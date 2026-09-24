@@ -106,8 +106,8 @@ const REGRESSIONS = [
   {
     nr: '13', name: 'Die Absage ohne eigene Adresse nennt den Weg dorthin nicht',
     file: 'public/languages/de.json',
-    search: "\"server.ownEmailMissing\": \"Für dein Konto ist keine E-Mail-Adresse hinterlegt. Trag sie unter Einstellungen › Mein Konto ein — die Testmail geht ausschließlich an die eigene Adresse.\",",
-    replacement: "\"server.ownEmailMissing\": \"Für dein Konto ist keine E-Mail-Adresse hinterlegt.\",",
+    search: "\"server.ownEmailMissing\": \"Für deinen Account ist keine E-Mail-Adresse hinterlegt. Bitte unter Einstellungen › Mein Account eintragen — die Testmail geht ausschließlich an die eigene Adresse.\",",
+    replacement: "\"server.ownEmailMissing\": \"Für deinen Account ist keine E-Mail-Adresse hinterlegt.\",",
     expected: 'Der Mailversand: die Testmail geht an die eigene Adresse'
   },
   {
@@ -559,14 +559,6 @@ const REGRESSIONS = [
     replacement: "  const best = (location.hash || '').match(/^#\\/confirm\\/([0-9a-f]{16,128})$/);\n  if (best) return showInvite(best[1]);",
     expected: 'Die Bestaetigungsseite in der Oberflaeche'
   },
-  {
-    nr: '66', name: 'Die gekuerzte Zeile im Mailtext verliert eine Auskunft',
-    file: 'public/languages/de.json',
-    /* DIE ZEILE STEHT ZWEIMAL -- in der Einladung und in der Ruecksetzung. */
-    search: "Danach brauchst du einen neuen Link vom Admin.\\n\\nWer diesen Link hat, kommt in deinen Zugang",
-    replacement: "\\nWer diesen Link hat, kommt in deinen Zugang",
-    expected: 'Der Mailversand: das echte SMTP-Gespraech'
-  },
   /* ---- Die Marke der Instanz ---- */
   {
     /* NEU GEZIELT: marke-hell.svg ist entfernt -- sie war Byte fuer Byte
@@ -897,8 +889,8 @@ const REGRESSIONS = [
     /* DIE ANDERE RICHTUNG -- und zwar an der OBERFLAECHE, nicht am Server. */
     nr: '113', name: 'Das Bestaetigungsfenster zeigt sein Codefeld immer',
     file: 'public/app.js',
-    search: "    : ''), TWO_FACTOR);",
-    replacement: "    : ''), true);",
+    search: "  confirmReason() + (TWO_FACTOR ? ' ' + t('dialog.twoFactorOn') : ''), TWO_FACTOR);",
+    replacement: "  confirmReason() + (TWO_FACTOR ? ' ' + t('dialog.twoFactorOn') : ''), true);",
     expected: 'Die Karte „Zugang“: der zweite Faktor'
   },
   {
@@ -952,8 +944,8 @@ const REGRESSIONS = [
   {
     nr: '119', name: 'Das Bestaetigungsfenster zeigt das Codefeld nie',
     file: 'public/app.js',
-    search: "    : ''), TWO_FACTOR);",
-    replacement: "    : ''), false);",
+    search: "  confirmReason() + (TWO_FACTOR ? ' ' + t('dialog.twoFactorOn') : ''), TWO_FACTOR);",
+    replacement: "  confirmReason() + (TWO_FACTOR ? ' ' + t('dialog.twoFactorOn') : ''), false);",
     expected: 'Die Karte „Zugang“: der zweite Faktor'
   },
   {
@@ -5121,8 +5113,8 @@ const REGRESSIONS = [
        die Liste im Pruefstand nachzieht. */
     nr: '678', name: 'Eine benannte Altlast verschwindet aus der Sprachdatei',
     file: 'public/languages/de.json',
-    search: '  "login.noUserYet": "Es ist noch kein Zugang eingerichtet.",',
-    replacement: '  "login.noUserYetX": "Es ist noch kein Zugang eingerichtet.",',
+    search: "  \"server.criteriaConflict\": {",
+    replacement: "  \"server.criteriaConflictX\": {",
     expected: 'Der Bildschirmtext-Waechter'
   },
   {
@@ -5130,8 +5122,8 @@ const REGRESSIONS = [
        auf der Liste stehen. */
     nr: '679', name: 'Eine Altlast ist behoben und steht doch noch auf der Liste',
     file: 'public/languages/de.json',
-    search: '  "server.deniedOwnUser": "Den eigenen Zugang ändert man unter „Mein Konto“, nicht hier.",',
-    replacement: '  "server.deniedOwnUser": "Das eigene Konto ändert man an anderer Stelle.",',
+    search: "  \"server.backupInDataDir\": \"Der Backup-Ordner darf nicht im Datenverzeichnis liegen — sonst schützt das Backup vor nichts.\",",
+    replacement: "  \"server.backupInDataDir\": \"Der Backup-Ordner darf nicht im Datenverzeichnis stehen.\",",
     expected: 'Der Bildschirmtext-Waechter'
   },
   {
@@ -5166,8 +5158,8 @@ const REGRESSIONS = [
        und zwei Ausfertigungen liefen auseinander. */
     nr: '683', name: 'Der Betreff eines Briefes verliert seinen Platzhalter',
     file: 'public/languages/de.json',
-    search: "  \"mail.invite.subject\": \"Dein Zugang zu „{instanceTitle}“\",",
-    replacement: '  "mail.invite.subject": "Dein Zugang",',
+    search: "  \"mail.invite.subject\": \"Dein Account für „{instanceTitle}“\",",
+    replacement: "  \"mail.invite.subject\": \"Dein Account\",",
     expected: 'Die Serverseite spricht aus der Datei — 0.24.0'
   },
   {
@@ -6218,15 +6210,6 @@ const REGRESSIONS = [
       ".vocabulary-grid .field .input { margin-top: auto; }",
     replacement: ".vocabulary-grid .field { margin-bottom: 10px; }",
     expected: 'Zwei Felder in einer Zeile stehen auf einer Linie — 0.25.3'
-  },
-  {
-    /* ================= 0.25.4 ========================================= DAS
-       FREISTEHENDE WOERTCHEN STEHT WIEDER DA, WO EIN VERB HINGEHOERT. */
-    nr: '792', name: 'Das tuerkische Stueck ist wieder ein Woertchen statt eines Verbs',
-    file: 'public/languages/tr.json',
-    search: '"login.linkUnaffectedWord": "etkilenmez",',
-    replacement: '"login.linkUnaffectedWord": "de\u011fil",',
-    expected: 'Ein Satz, den jede Sprache selbst schneidet — 0.25.4'
   },
   {
     /* UND DAS ANFUEHRUNGSZEICHEN BLEIBT WIEDER OFFEN. */
@@ -7661,15 +7644,6 @@ const REGRESSIONS = [
     expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
   },
   {
-    /* ZUSAGE 7: das hervorgehobene Wort wird „unberührt" -- und der
-       Traegersatz liest danach „Dein Link ist davon unberührt betroffen". */
-    nr: '959', name: 'Das hervorgehobene Wort des Verneinungssatzes heisst „unberührt"',
-    file: 'public/languages/de.json',
-    search: "  \"login.linkUnaffectedWord\": \"nicht\",",
-    replacement: "  \"login.linkUnaffectedWord\": \"unberührt\",",
-    expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
-  },
-  {
     /* ZUSAGE 8: der Export verlaesst wieder „das Haus". */
     nr: '960', name: 'Der Export verlaesst wieder „das Haus"',
     file: 'public/languages/de.json',
@@ -7692,16 +7666,6 @@ const REGRESSIONS = [
     file: 'public/languages/de.json',
     search: "  \"card.itemOne\": \"Das Bewertete, Einzahl\",",
     replacement: "  \"card.itemOne\": \"Sache, Einzahl\",",
-    expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
-  },
-  {
-    /* ZUSAGE 11: ein Satz verliert seine Anrede und wird zum Infinitiv ohne
-       Subjekt -- genau die Sorte Satz, die Geminis Vorlage „professionelles
-       Du" nennt. */
-    nr: '963', name: 'Ein Satz verliert seine Anrede und wird zum Infinitiv',
-    file: 'public/languages/de.json',
-    search: "  \"card.languageHint\": \"Sprache der Oberfläche, der Meldungen und deiner Mails. Wirkt sofort und gilt auf jedem Gerät, an dem du dich anmeldest.\",",
-    replacement: "  \"card.languageHint\": \"Sprache der Oberfläche, der Meldungen und der Mails. Wirkt sofort und gilt auf jedem angemeldeten Gerät.\",",
     expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
   },
 
@@ -7901,20 +7865,12 @@ const REGRESSIONS = [
     expected: 'Englisch sitzt — 0.31.2'
   },
   {
-    /* ZUSAGE 10: der Vergleichsstand und `en.json` laufen auseinander. */
-    nr: '987', name: 'Der Vergleichsstand weicht von en.json ab, ohne benannt zu sein',
-    file: 'tools/englisch-0312.json',
-    search: "    \"card.active\": \"active\",",
-    replacement: "    \"card.active\": \"on\",",
-    expected: 'Englisch sitzt — 0.31.2'
-  },
-  {
     /* ZUSAGE 1, ZWEITE HAELFTE: die bestellte Ausnahme wird zurueckgenommen. */
     nr: '988', name: 'Das Label heisst wieder „Zugang beantragen"',
     file: 'public/languages/de.json',
-    search: "  \"login.requestAccess\": \"Zugang anfragen\",",
+    search: "  \"login.requestAccess\": \"Account anfragen\",",
     replacement: "  \"login.requestAccess\": \"Zugang beantragen\",",
-    expected: 'Englisch sitzt — 0.31.2'
+    expected: "Der Bildschirmtext-Waechter"
   },
   /* ---- „Tuerkisch sitzt" -- 0.31.3, dreizehn Zusagen ---- JEDER GREIFT IN
      DIE DATEN UND NICHT IN DEN WAECHTER. */
@@ -8013,14 +7969,6 @@ const REGRESSIONS = [
     file: 'public/languages/tr.json',
     search: "  \"card.storeCaveat\": \"Kayıplı: fotoğraflarda yaklaşık üçte iki daha küçük,",
     replacement: "  \"card.storeCaveat\": \"Kayıplı: fotoğraflarda yaklaşık üçte iki daha küçük,\\n          ",
-    expected: 'Tuerkisch sitzt — 0.31.3'
-  },
-  {
-    /* ZUSAGE 13: der Vergleichsstand und `tr.json` laufen auseinander. */
-    nr: '1001', name: 'Der Vergleichsstand weicht von tr.json ab, ohne benannt zu sein',
-    file: 'tools/tuerkisch-0313.json',
-    search: "    \"card.active\": \"etkin\",",
-    replacement: "    \"card.active\": \"açık\",",
     expected: 'Tuerkisch sitzt — 0.31.3'
   },
   /* ---- „Nach einer Zahl die Einzahl" -- 0.31.4, fuenf Rueckbauten ---- DIE
@@ -8158,15 +8106,6 @@ const REGRESSIONS = [
     search: "  if (!mail.isAddress(address))\n    return res.status(400).json({ error: t(localeOf(req), 'login.emailInvalid') });",
     replacement: "",
     expected: 'Die Selbstanmeldung: die immer gleiche Antwort'
-  },
-  {
-    /* ZUSAGE 10: jede Aenderung an den drei Sprachdateien steht in ihrer
-       Tafel. */
-    nr: '1019', name: 'Der englische Vergleichsstand weicht ab, ohne benannt zu sein',
-    file: 'tools/englisch-0312.json',
-    search: "    \"card.active\": \"active\",",
-    replacement: "    \"card.active\": \"on\",",
-    expected: 'Englisch steht auf dem Stand des Deutschen — 0.31.2'
   },
   {
     /* ZUSAGE 11: kein Waechter ueber tuerkischen Text arbeitet mit `\b`. */

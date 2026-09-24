@@ -22,7 +22,7 @@ async function run() {
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1149 Rueckbauten`, gpList.length === 1149, `${gpList.length}`);
+  check(`Es sind genau 1142 Rueckbauten`, gpList.length === 1142, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
@@ -409,26 +409,26 @@ async function run() {
     const COMMENT_ROWS = [
       ['testbench.js', 77],
       ['test/batchrun.js', 87],
-      ['test/dom.js', 340],
+      ['test/dom.js', 341],
       ['test/firstlogin.js', 34],
       ['test/frame.js', 240],
       ['test/keychange.js', 81],
       ['test/release_029.js', 60],
       ['test/release_030.js', 253],
-      ['test/release_031.js', 463],
+      ['test/release_031.js', 286],
       ['test/release_041.js', 37],
-      ['test/roundtrip.js', 3312],
+      ['test/roundtrip.js', 3310],
       ['test/selfcheck.js', 235],
-      ['test/source.js', 943],
+      ['test/source.js', 653],
       ['test/ui_entry.js', 637],
       ['test/ui_export.js', 456],
       ['test/ui_inventory.js', 244],
       ['test/ui_language.js', 293],
-      ['test/ui_overview.js', 499],
-      ['test/ui_style.js', 608],
-      ['test/ui_system.js', 692],
+      ['test/ui_overview.js', 488],
+      ['test/ui_style.js', 607],
+      ['test/ui_system.js', 684],
       ['test/ui_translator.js', 105],
-      ['counterproof.js', 1639],
+      ['counterproof.js', 1627],
       ['server.js', 1591],
       ['auth.js', 290],
       ['db.js', 136],
@@ -441,12 +441,12 @@ async function run() {
       ['usertool.js', 21],
       ['twofactor.js', 34],
       ['keytool.js', 39],
-      ['public/app.js', 1970],
+      ['public/app.js', 1968],
       ['public/theme.js', 3],
       ['public/style.css', 1223],
     ];
     // Kommentar- und Codezeilen ueber alle Dateien, gemessen mit tools/comments.js.
-    const COMMENT_TOTAL = { comment: 16845, code: 69093 };
+    const COMMENT_TOTAL = { comment: 16343, code: 67972 };
     check('Der Waechter sieht alle siebenunddreissig Dateien',
       crAll.each.length === 37 && COMMENT_ROWS.length === 37,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);

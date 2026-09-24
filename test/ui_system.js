@@ -8,6 +8,7 @@ const {
   DOM_PASSWORD, placeConfirm, confirmImDom, buildDom, sysSection,
   sysPass, until, openRequests
 } = D;
+const ACCOUNT_CARD = D.DE_TEXTS['card.myAccount'];
 
 async function run() {
   const {
@@ -209,16 +210,12 @@ async function run() {
   /* EINUNDZWANZIG SEIT 0.21.0: „Potenzial: Kriterien" kommt dazu und steht
      UNMITTELBAR HINTER „Bewertungskriterien" -- dieselbe Maschine, eine
      andere Liste. */
-  /* DIE NAMEN SEIT 0.22.0 (Woerterbuch, Konzept 4.3): „Mein Konto" statt
-     „Zugang" (E2), „Bewertung: Kriterien" statt „Bewertungskriterien" (E14),
-     „Suchmaschinen" statt „Suchanbieter" (E7), „Benutzer" statt „Zugänge"
-     (E2), „Bildformate" statt „Bildablage" (E6). */
   /* ZWEIUNDZWANZIG SEIT 0.24.3: „Sprachen" kommt dazu und steht UNMITTELBAR
      HINTER „Titel" -- die zweite Karte des Abschnitts „Installation", der bis
      dahin genau eine trug. */
   // Dreiundzwanzig: „Grenzen beim Hochladen" steht hinter „Bildformate".
   const ALL_CARDS = [
-    'Mein Konto', 'Meine Sitzungen', 'Darstellung',
+    ACCOUNT_CARD, 'Meine Sitzungen', 'Darstellung',
     'Kategorien', 'Tags', 'Bewertung: Kriterien', 'Potenzial: Kriterien',
     'Vokabular', 'Links', 'Suchmaschinen', 'Papierkorb',
     'Benutzer', 'Anfragen', 'Sicherheitsprotokoll', 'Mailversand',
@@ -276,7 +273,7 @@ async function run() {
   await sysSection(rUser.w, 'database');
   check('Eine Adresse auf einen unsichtbaren Abschnitt faellt auf den ersten zurueck',
     [...rUser.w.document.querySelectorAll('.sys-grid > .sys-card h3')]
-      .map(h => h.textContent.trim())[0] === 'Mein Konto',
+      .map(h => h.textContent.trim())[0] === ACCOUNT_CARD,
     [...rUser.w.document.querySelectorAll('.sys-grid > .sys-card h3')]
       .map(h => h.textContent.trim()).join(' · '));
   check('Und die Adresse wird dabei nachgezogen',
@@ -304,7 +301,7 @@ async function run() {
   /* ACHT SEIT 0.21.0: „Potenzial: Kriterien" steht daneben, wie die drei
      anderen Listen -- sichtbar fuer jeden, bedienbar nur fuer den Admin. */
   check('Ein gewoehnlicher Benutzer sieht acht -- vier persoenliche, vier zum Nachsehen',
-    equal(kUser, ['Mein Konto', 'Meine Sitzungen', 'Darstellung',
+    equal(kUser, [ACCOUNT_CARD, 'Meine Sitzungen', 'Darstellung',
                    'Kategorien', 'Tags', 'Bewertung: Kriterien', 'Potenzial: Kriterien', 'Links']),
     kUser.join(' · '));
 
@@ -358,7 +355,7 @@ async function run() {
     [...rOutIncludingRows.w.document.querySelectorAll('#mrequests .mrow')].length === 1,
     `${[...rOutIncludingRows.w.document.querySelectorAll('#mrequests .mrow')].length} Zeilen`);
 
-  for (const card of ['Mein Konto', 'Meine Sitzungen', 'Darstellung', 'Links']) {
+  for (const card of [ACCOUNT_CARD, 'Meine Sitzungen', 'Darstellung', 'Links']) {
     check(`Die Karte "${card}" steht jedem, auch ohne Rolle`,
       kUser.includes(card) && kEig.includes(card), kUser.join(' · '));
   }
@@ -446,8 +443,8 @@ async function run() {
      schlimmer als eine fehlende: sie wird befolgt. */
   await sysSection(rUser.w, 'personal');
   const rUserCard = [...rUser.w.document.querySelectorAll('.sys-card')]
-    .find(k => k.querySelector('h3')?.textContent.trim() === 'Mein Konto');
-  check('Die Karte "Mein Konto" ist ueberhaupt da', !!rUserCard);
+    .find(k => k.querySelector('h3')?.textContent.trim() === ACCOUNT_CARD);
+  check('Die Karte "Mein Account" ist ueberhaupt da', !!rUserCard);
   check('Sie nennt AUTH_RESET nicht mehr',
     !!rUserCard && !/AUTH_RESET/.test(rUserCard.textContent || ''),
     rUserCard?.textContent?.slice(0, 200));
@@ -462,7 +459,7 @@ async function run() {
   {
     await sysSection(rEig.w, 'personal');
     const eigUser = [...rEig.w.document.querySelectorAll('.sys-card')]
-      .find(k => k.querySelector('h3')?.textContent.trim() === 'Mein Konto');
+      .find(k => k.querySelector('h3')?.textContent.trim() === ACCOUNT_CARD);
     check('Beim Eigentuemer steht er sehr wohl — im Kasten „Auf dem Server"',
       !!eigUser && /usertool\.js password/.test(eigUser.textContent || ''),
       eigUser?.textContent?.slice(0, 300));
@@ -812,8 +809,8 @@ async function run() {
     `${sReference?.className} · ${sAn.w.document.getElementById('lb')?.className}`);
   /* DIE FRAGE STEHT UEBER DEM KNOPF, nicht daneben und nicht darin. */
   const sQuestion = sAn.w.document.querySelector('.login-divider');
-  check('Darueber steht die Frage "Noch keinen Zugang?"',
-    /Noch keinen Zugang\?/.test(sQuestion?.textContent || ''), sQuestion?.textContent || '(fehlt)');
+  check('Darueber steht die Frage nach dem Account',
+    D.shows(sQuestion?.textContent, 'login.noAccountYet'), sQuestion?.textContent || '(fehlt)');
   check('Und sie steht wirklich VOR dem Knopf',
     sQuestion?.nextElementSibling === sReference,
     String(sQuestion?.nextElementSibling?.id || sQuestion?.nextElementSibling?.tagName));
@@ -1074,8 +1071,8 @@ async function run() {
   await until(zkOut.w, (x) => x.document.querySelector('.sys-grid') && openRequests(x) === 0,
     2000, 'der neu gezeichnete Systembereich');
   const zkBlock = () => zkOut.w.document.getElementById('two-factor-block');
-  check('Der Block steht in der Karte "Mein Konto" und nicht in einer eigenen',
-    Boolean(zkBlock()) && zkBlock().closest('.sys-card')?.querySelector('h3')?.textContent === 'Mein Konto',
+  check('Der Block steht in der Karte "Mein Account" und nicht in einer eigenen',
+    Boolean(zkBlock()) && zkBlock().closest('.sys-card')?.querySelector('h3')?.textContent === ACCOUNT_CARD,
     zkBlock()?.closest('.sys-card')?.querySelector('h3')?.textContent || '(kein Block)');
   /* GEZAEHLT WIRD UEBER ALLE ABSCHNITTE, seit der Systembereich immer nur
      einen zeigt. */
@@ -1238,11 +1235,8 @@ async function run() {
   await until(zkBest.w, (x) => x.document.getElementById('confirm-pass'), 2000, 'das Passwortfenster');
   check('Mit zweitem Faktor traegt das Bestaetigungsfenster ein Codefeld',
     Boolean(zkBest.w.document.getElementById('confirm-code')), 'kein Codefeld');
-  /* SEIT 0.19.2 IM NOMINATIV: „weil in deinem Profil ein zweiter Faktor
-     eingeschaltet ist" statt „weil dein Zugang einen zweiten Faktor traegt". */
   check('Und sagt daneben, warum der Code dazugehoert',
-    /zweiter Faktor ist eingeschaltet/.test(
-      zkBest.w.document.querySelector('.modal .desc')?.textContent || ''),
+    D.shows(zkBest.w.document.querySelector('.modal .desc')?.textContent, 'dialog.twoFactorOn'),
     zkBest.w.document.querySelector('.modal .desc')?.textContent);
   /* --- 0.12.3: die Beschriftung nennt das ALGORITHM, nicht das Geraet ---
      "Code aus deiner App" war zweimal falsch. */
@@ -1849,7 +1843,7 @@ async function run() {
     const d = await vzLink({ publicAddress: 'https://kriterion.beispiel.de', mailStatus: {} });
     const box = d.w.document.getElementById('user-link');
     check('Ohne Mailzugang sagt der Kasten, dass nichts verschickt wurde',
-      /keine Mail verschickt/.test(box?.textContent || ''), box?.textContent?.slice(0, 400));
+      D.shows(box?.textContent, 'card.noMailSent'), box?.textContent?.slice(0, 400));
     check('Mit dem Grund',
       /kein Mailzugang/.test(box?.textContent || ''), box?.textContent?.slice(0, 400));
     check('Und der Link steht auch dort',
@@ -2136,10 +2130,8 @@ async function run() {
     await until(d.w, (x) => !linkButton || x.document.getElementById('confirm-pass'),
       2000, 'der Dialog der zweiten Bestaetigung');
     check('Der Dialog steht da', !!zdDialog(d), 'kein Dialog');
-    /* SEIT 0.19.2 KUERZER: der Nebensatz ueber die fremde offene Anmeldung
-       ist weg, der Grund steht in einem Satz. */
     check('Und er sagt, WARUM gefragt wird',
-      /betrifft die ganze Anwendung/.test(zdDialog(d)?.closest('.modal')?.textContent || ''),
+      D.shows(zdDialog(d)?.closest('.modal')?.textContent, 'dialog.appWideHint'),
       zdDialog(d)?.closest('.modal')?.textContent?.replace(/\s+/g, ' ').slice(0, 220));
     check('Das Feld verbirgt die Eingabe',
       zdDialog(d)?.type === 'password', zdDialog(d)?.type);
@@ -2252,10 +2244,8 @@ async function run() {
     check('Vor dem Loeschen steht EIN Fenster mit den Haekchen — 0.22.0',
       !!zdModal && !zdDialog(d), zdModal ? 'steht' : 'kein Fenster');
     const zdText = zdModal?.textContent.replace(/\s+/g, ' ') || '';
-    check('Es nennt den umkehrbaren Weg',
-      /sperren statt löschen/.test(zdText), zdText.slice(0, 300));
-    check('Und sagt, dass er umkehrbar ist und der Name bleibt',
-      /umkehrbar/.test(zdText) && /der Name bleibt/.test(zdText), zdText.slice(0, 300));
+    check('Es nennt den umkehrbaren Weg: sperren statt loeschen',
+      D.shows(zdText, 'dialog.lockInsteadHint'), zdText.slice(0, 300));
     const zdYes = zdModal?.querySelector('[data-yes]');
     zdYes?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await until(d.w, (x) => !zdYes || x.document.getElementById('confirm-pass'),
@@ -2511,14 +2501,14 @@ async function run() {
   }
 
   /* ---------------------------------------------------------------- */
-  group('Die eigene Adresse in der Karte „Mein Konto“');
+  group('Die eigene Adresse in der Karte „Mein Account“');
 
   /* SIE GEHOERT DEM, DER SIE HAT -- deshalb steht sie hier und nicht in der
      Karte „Zugänge“. */
   {
     const d = await ziSystem({ isAdmin: false, isOwner: false });
     const field = d.w.document.getElementById('acc-mail');
-    check('Das Adressfeld steht in der Karte „Mein Konto“', !!field, 'kein Feld');
+    check('Das Adressfeld steht in der Karte „Mein Account“', !!field, 'kein Feld');
     check('Und es traegt die Adresse aus der Antwort',
       field?.value === 'chefin@beispiel.de', JSON.stringify(field?.value));
     /* UMGEDREHT MIT 0.22.0 (Anlage B): „freiwillig" heisst am Feld
@@ -2527,7 +2517,7 @@ async function run() {
     check('Die Karte sagt, dass die Adresse optional ist — 0.22.0',
       /E-Mail-Adresse \(optional\)/.test(d.w.document.body.textContent.replace(/\s+/g, ' ')), 'kein Hinweis');
     check('Und sie sagt in einem Satz, was sie enthaelt — 0.22.0',
-      /Benutzername, E-Mail-Adresse und Passwort deines Kontos\./.test(d.w.document.body.textContent),
+      D.shows(d.w.document.body.textContent, 'card.accountHint'),
       d.w.document.body.textContent.slice(0, 100));
   }
   {
@@ -2547,7 +2537,7 @@ async function run() {
     const saveButton = d.w.document.getElementById('acc-save');
     saveButton?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await until(d.w, (x) => !saveButton || (d.sent.some(g => g.method === 'PUT' && g.url === '/api/account') &&
-      openRequests(x) === 0), 2000, 'die neu gezeichnete Karte „Mein Konto“');
+      openRequests(x) === 0), 2000, 'die neu gezeichnete Karte „Mein Account“');
     const put = d.sent.find(x => x.method === 'PUT' && x.url === '/api/account');
     check('Der Knopf schickt die Adresse mit',
       put?.body?.email === 'neue@beispiel.de', JSON.stringify(put?.body));
@@ -2570,7 +2560,7 @@ async function run() {
     const saveButton = d.w.document.getElementById('acc-save');
     saveButton?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await until(d.w, (x) => !saveButton || (d.sent.some(g => g.method === 'PUT' && g.url === '/api/account') &&
-      openRequests(x) === 0), 2000, 'die neu gezeichnete Karte „Mein Konto“');
+      openRequests(x) === 0), 2000, 'die neu gezeichnete Karte „Mein Account“');
     const put = d.sent.find(x => x.method === 'PUT' && x.url === '/api/account');
     check('Ein geleertes Feld geht als leerer Wert hinaus, nicht als fehlendes',
       put?.body?.email === '' && 'email' in (put?.body || {}), JSON.stringify(put?.body));
@@ -2675,7 +2665,7 @@ async function run() {
     check('Die Begruendung zum fehlenden Adressfeld steht nicht in der Karte',
       !/offener Mailverteiler/.test(t), t.slice(0, 60));
     check('Was die Testmail tut, steht aber weiterhin da',
-      /ausschließlich an die Adresse deines eigenen Kontos/.test(t), t.slice(-140));
+      D.shows(t, 'card.ownAddressOnly'), t.slice(-140));
     d.w.close();
   }
   {

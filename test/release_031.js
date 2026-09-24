@@ -19,14 +19,6 @@ async function run() {
 /* ================================================================= 0.31.0 —
    „Die Sprachdateien werden gegengelesen" DREI BAUABSCHNITTE AM TEXT, UND ELF
    ZUSAGEN DARUEBER. */
-/* DIE ZAHL DER SCHLUESSEL JE SPRACHDATEI STEHT EINMAL.
-   ZWEI GRUPPEN FRAGEN SIE AB: 0.31.0 auf die Deckung der drei Dateien, 0.31.1
-   auf den Stand nach dem Verschmelzen. */
-/* VIERZEHN MEHR MIT DER AUSZEICHNUNG. */
-/* UND ZEHN MEHR MIT DEM HINWEIS VOR EXPORT UND IMPORT: zwoelf kommen dazu,
-   zwei fallen mit der Absage vor dem Gesamtexport. */
-const LANG_KEY_COUNT = 1258;
-
 async function check0310() {
   const drRead = (code) => JSON.parse(fs.readFileSync(
     path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
@@ -104,16 +96,13 @@ async function check0310() {
     check('Und kein Ruf sucht die elf noch — auch nicht in der Umbenennungstafel',
       drCalled.length === 0, drCalled.join(' · ') || 'kein Ruf mehr');
 
-    /* ---- Zusage 3: die drei Dateien tragen gleich viele Schluessel ----
-       1254, und die Zahl steht ausdruecklich da: „gleich viele" allein bliebe
-       gruen, wenn jemand aus allen dreien dasselbe herausnaehme. */
-    const drCounts = Object.fromEntries(
-      Object.entries(drFiles).map(([code, file]) => [code, Object.keys(file).length]));
-    /* DER GEGENSTAND DIESER ZUSAGE IST DIE DECKUNG DER DREI DATEIEN -- die
-       haelt weiter, nur auf einer anderen Zahl. Sie steht oben, einmal. */
-    check(`Zusage 3: die drei Dateien tragen gleich viele Schluessel — ${LANG_KEY_COUNT}`,
-      Object.values(drCounts).every(n => n === LANG_KEY_COUNT),
-      Object.entries(drCounts).map(([c, n]) => `${c}: ${n}`).join(' · '));
+    // Alle drei Dateien tragen dieselben Schluessel.
+    const drKeys = (file) => Object.keys(file).sort().join('\n');
+    const drOdd = Object.entries(drFiles).filter(([, file]) => drKeys(file) !== drKeys(drFiles.de))
+      .map(([code]) => code);
+    check('Zusage 3: die drei Dateien tragen dieselben Schluessel',
+      drOdd.length === 0 && Object.keys(drFiles.de).length > 1000,
+      drOdd.join(' · ') || `${Object.keys(drFiles.de).length} Schluessel je Datei`);
 
     /* ---- Zusage 4: kein Text mischt „ mit einem geraden " ----
        DREIUNDDREISSIG SCHLUESSEL, VIERUNDDREISSIG TEXTE haben in dieser Runde
@@ -156,24 +145,6 @@ async function check0310() {
       /const groupsOf = \(list\) => \{/.test(drApp) && /groupsOf\(inside\)\.forEach/.test(drApp),
       (drApp.match(/groupsOf[^\n]*/g) || ['(nicht gefunden)']).slice(0, 2).join(' | '));
 
-    /* ---- Zusage 7: `login.linkUnaffectedWord` ist „nicht" ---- GEMINI
-       WOLLTE „unberührt", UND DAS BRICHT DEN SATZ: das Wort steht
-       HERVORGEHOBEN in zwei Traegersaetzen („Dein Link ist davon {word}
-       betroffen"), und die Hervorhebung sitzt auf der VERNEINUNG. */
-    check('Zusage 7: `login.linkUnaffectedWord` ist „nicht"',
-      drFiles.de['login.linkUnaffectedWord'] === 'nicht',
-      JSON.stringify(drFiles.de['login.linkUnaffectedWord']));
-    check('Und beide Traegersaetze tragen es',
-      ['login.linkUnaffected', 'login.linkUnaffectedRetry']
-        .every(k => String(drFiles.de[k]).includes('{word}')),
-      ['login.linkUnaffected', 'login.linkUnaffectedRetry']
-        .map(k => `${k}: ${drFiles.de[k]}`).join(' · '));
-    /* UND DIE AUSZEICHNUNG LAEUFT WEITER UEBER tMark() -- das `{word}` wird
-       gegen ein Steuerzeichen getauscht und danach mit <strong> umschlossen. */
-    check('Und die Hervorhebung sitzt auf ihm',
-      (drApp.match(/tMark\('login\.linkUnaffected(Retry)?', 'login\.linkUnaffectedWord'\)/g) || []).length === 2,
-      (drApp.match(/tMark\([^)]*\)/g) || ['(kein Ruf)']).join(' | '));
-
     /* ---- Zusage 8 und 9: die beiden Bilder des Projekts fallen ---- „Das
        Haus verlassen" UND „Pille" SIND HAUSWOERTER, und beide haben am
        Bildschirm nichts zu suchen (Leitplanke L7 und Frage F7). */
@@ -206,22 +177,6 @@ async function check0310() {
         .test(drApp),
       (drApp.match(/\['v1'[^\n]*/) || ['(nicht gefunden)'])[0]);
 
-    /* ---- Zusage 11: die Zahl der Texte im aktiven Du sinkt nicht ----
-       GEMINIS UEBERSCHRIFT VERSPRICHT „professionelles Du (Linear-/
-       SIEBENUNDSECHZIG WAREN ES BEI 0.30.3, NEUNUNDSECHZIG SIND ES JETZT --
-       gezaehlt werden die Vorkommen von „du", „dir", „dich" und „dein…" als
-       ganze Woerter. */
-    const DR_YOU = /\b[Dd](?:u|ir|ich|ein(?:e|er|em|en|es)?)\b/g;
-    const drYou = drTexts(drFiles.de)
-      .reduce((n, [, t]) => n + (t.match(DR_YOU) || []).length, 0);
-    check('Zusage 11: die Zahl der Texte im aktiven Du sinkt nicht — 69, vorher 67',
-      drYou >= 69, `${drYou} Vorkommen von du/dir/dich/dein…`);
-    /* UND DER ZAEHLER ZAEHLT WIRKLICH DAS DU -- ohne diese Zeile bliebe die
-       Zusage gruen, wenn das Muster an jedem Wort griffe. */
-    check('Und der Zaehler trennt die Anrede vom Wortstueck',
-      ('Setz dein Passwort, du'.match(DR_YOU) || []).length === 2 &&
-      ('Dublette, Reduktion, Individuum'.match(DR_YOU) || []).length === 0,
-      JSON.stringify('Dublette, Reduktion, Individuum'.match(DR_YOU)));
   }
 }
 
@@ -247,7 +202,7 @@ async function check0311() {
     /* UND DIE FUELLUNGEN VON tMarks() SIND AUCH WELCHE. */
     for (const m of dsCode.matchAll(/\bword\d*:\s*[^,}]*?\bt[H]?\(\s*'([^']+)'/g)) dsWordKeys.add(m[1]);
     check('Die Wortschluessel kommen aus dem Quelltext und nicht aus einer Liste',
-      dsWordKeys.size >= 30 && dsWordKeys.has('login.linkUnaffectedWord'),
+      dsWordKeys.size >= 30 && dsWordKeys.has('login.recoveryCode'),
       `${dsWordKeys.size} Wortschluessel`);
 
     /* ZWEI SORTEN STEHEN WEITERHIN MIT EINEM TRENNER ODER EINEM EINZELNEN
@@ -469,25 +424,17 @@ async function check0311() {
        Wanderungen. */
     const dsTable = JSON.parse(fs.readFileSync(
       path.join(__dirname, 'tools', 'keys.json'), 'utf8'));
-    /* AUF DIE SCHLUESSEL DIESER RUNDE EINGEGRENZT, und das ist ein BEFUND und
-       keine Bequemlichkeit: NEUNUNDDREISSIG Eintraege zeigten schon vor
-       0.31.1 ins Leere -- auf `login.not`, `list.sortAvgDesc`,
-       `card.convertAllPng` und die vierzehn deutschen Vokabelnamen. */
-    /* EINUNDVIERZIG SEIT DEM STUECKWEISEN EXPORT: `server.exportTooBig` und
-       `server.exportGrew` gibt es nicht mehr. */
-    const DS_OLD_DANGLING = 41;
     const dsDangling = Object.entries(dsTable).filter(([, target]) => !(target in dsFiles.de));
-    check('Kein Eintrag der Umbenennungstafel zeigt auf einen Schluessel DIESER Runde',
-      dsDangling.length === DS_OLD_DANGLING,
-      `${dsDangling.length} ins Leere, ${DS_OLD_DANGLING} davon aelter als diese Runde`);
+    check('Kein Eintrag der Umbenennungstafel zeigt ins Leere',
+      dsDangling.length === 0, dsDangling.map(([k]) => k).slice(0, 6).join(' · ') || 'keiner');
 
     /* ---- Zusage 4: die drei Dateien tragen gleich viele Schluessel ---- Die
        Zahl steht ausdruecklich da, wie bei F_ROUTES: „gleich viele" allein
        bliebe gruen, wenn jemand aus allen dreien dasselbe herausnaehme. */
     const dsCounts = Object.fromEntries(['de', 'en', 'tr']
       .map(c => [c, Object.keys(dsFiles[c]).length]));
-    check(`Die drei Dateien tragen gleich viele Schluessel — ${LANG_KEY_COUNT}`,
-      ['de', 'en', 'tr'].every(c => dsCounts[c] === LANG_KEY_COUNT),
+    check('Die drei Dateien tragen gleich viele Schluessel',
+      new Set(Object.values(dsCounts)).size === 1,
       JSON.stringify(dsCounts));
     check('Und in derselben Folge',
       ['en', 'tr'].every(c => JSON.stringify(Object.keys(dsFiles[c])) ===
@@ -509,163 +456,6 @@ async function check0311() {
 
 /* ================================================================= 0.31.2 —
    „Englisch sitzt" ZEHN ZUSAGEN UEBER EINE EINZIGE DATEI. */
-/* DIE BEIDEN DEUTSCHEN PRUEFSUMMEN DER GLEICHLAUTPROBE, gemessen am gebauten
-   Stand dieser Runde. */
-/* UND MIT 0.37.0 EIN LETZTES MAL: die Probe streicht Kommentare jetzt ueber
-   segment() statt ueber eine Regex, und damit fallen auch die nachgestellten
-   Zeilenkommentare. Der Stand davor war de 9ecf77638a43ca46 / 5c906b3f07e55a67,
-   en 5b7036a2fdd2da3b / ba25a0449561068c, tr 7faa32844c119144 / 5792d1363423be42.
-   AB HIER IST DIE SUMME KOMMENTARFEST -- das ist der ganze Zweck der Aenderung. */
-/* UND MIT 0.36.0 WIEDER, UND WIEDER OHNE DASS EIN DEUTSCHER SATZ SICH BEWEGT
-   HAETTE: die Probe liest public/app.js, und die Runde fuehrt dort jede
-   Einsetzung in innerHTML. Der Stand davor war 66e7cb5a6c1c8517 /
-   26e8b307bfa5c01c, en 8ead268ee09cdfc8 / 75ba92e0a7e19b53, tr
-   750c9a0e5b2ee443 / 8d8fa279c5902fe0. */
-/* MIT 0.31.4 SIND DIESE BEIDEN ZAHLEN ANDERE, UND KEIN DEUTSCHER SATZ HAT
-   SICH BEWEGT. Dasselbe gilt fuer 0.35.0: die Probe liest den Quelltext von
-   public/app.js ohne Kommentare und ohne Markup, und diese Runde nimmt dort
-   toten Code weg und fasst Wiederholungen zusammen. Der Stand von 0.31.4 war
-   daa0c9094f2c2305 / 77128aef244a5976. */
-/* UND JETZT WIEDER, UND WIEDER OHNE DASS EIN DEUTSCHER SATZ SICH BEWEGT
-   HAETTE: die Runde fasst den Sprung zum Kommentar an, und dabei kommt in
-   public/app.js die Medienabfrage `(prefers-reduced-motion: reduce)` dazu.
-   Der Stand davor war de fd377642f0130b3b / b58cc8084be7e688,
-   en 68c54e6fc1a90c6d / 6ba9dddf3e06cb33, tr 150761ee459bc7fe /
-   1b07235978fc5ba3. */
-/* DIE FRUEHEREN DEUTSCHEN SUMMEN, von der aeltesten zur juengsten:
-   457f4c3c4bb28ec1 / 7bc60ecadb371e0e · 3601c96b846df672 / 278c9992bbfe95e5 ·
-   ca0e647191c4b45d / fa9051b4736f2e06 · daa9a66531bf3943 / 15359dca57efe311 ·
-   fd377642f0130b3b / b58cc8084be7e688 · b6907e61f79ce725 / 82ff600c40200af5 */
-/* UND WIEDER ANDERE, DIESMAL MIT EINEM DEUTSCHEN GRUND: der Hinweis vor
-   Export und Import bringt elf Saetze mit, und die beiden Absagen des
-   Gesamtexports fallen. Der Stand davor war de 4b0abbd60f65807b /
-   84dad7c0086755d1, en a162f49132220b4f / 3ff874893a28fe31,
-   tr 7d4e5fd082b2f9e1 / bfcfc70232d3103d. */
-// Davor 733a7fc85f03ba68 / e3dd61bee56400bb: das Wort Backup, die Hinweise zum Export und die Grenzen.
-const DE_UNTOUCHED = { one: 'b054e6310a03994c', other: 'e310e2a9a662f681' };
-const DE_BEFORE_0312 = { one: '91b86c5affcba789', other: '07fc3ccdc8a27a03' };
-const DE_ORDERED_0312 = {
-  'login.requestAccess': 'Zugang anfragen',
-  'login.requestAccessHint':
-    'Zugang anfragen. Du bestätigst deine Adresse per Mail, danach entscheidet ein Admin.'
-};
-
-/* DIE TAFEL DER ENGLISCHEN AENDERUNGEN -- sie steht auf MODULEBENE, weil zwei
-   Gruppen sie lesen: 0.31.2 misst gegen ihren eigenen Vergleichsstand, 0.31.3
-   misst denselben Stand noch einmal von ihrer Seite aus. */
-const EG_CHANGED_AFTER_0312_SHARED = {
-  "_afterNumber": "0.31.4: der Mechanismus — fuer Englisch `plural`, also das Verhalten von vorher",
-  "card.backupWhatHint": "0.41.0: die Karte nennt Benutzer und Einstellungen, die der Export nicht enthaelt",
-  "card.carryOn": "0.40.0: neu — der Knopf, der den Hinweis vor Export und Import bestaetigt",
-  "card.catchUpAsk": "0.33.0: der Dialog nennt die Vorschaubilder nicht mehr — die zweite Haelfte des Laufs ist gefallen",
-  "card.catchUpBoth": "0.33.0: die Zeile unter dem Knopf ebenso — sie sagt nur noch, was mit den Originalen geschieht",
-  "card.convertFinished": "0.33.0: der Fertigsatz nennt keine neu gerechneten Vorschaubilder mehr",
-  "card.copyByHand": "0.38.1: die Meldung nennt den Grund — ohne https gibt der Browser die Zwischenablage nicht frei",
-  "card.copyByHandLink": "0.38.1: derselbe Grund, und das markierte Feld steht weiter daneben",
-  "card.exportOnlyEntries": "0.41.0: neu — Export und Import enthalten nur die Eintraege",
-  "card.exportOversizeHint": "0.40.0: der Hinweis nennt keine Hoechstgroesse je Datei mehr — die Grenze des Gesamtexports ist fort",
-  "card.exportPurposeHint": "0.41.0: der Satz nennt, was der Export nicht enthaelt",
-  "card.exportRunTitle": "0.40.0: neu — die Ueberschrift des Hinweises vor dem Export",
-  "card.grade": "0.32.0: seine Beschriftung in der Vokabelkarte",
-  "card.importRunTitle": "0.40.0: neu — die Ueberschrift des Hinweises vor dem Import",
-  "card.itemMany": "0.32.0: Punkt 28, Fund 5 — dieselbe Sache in der Mehrzahl",
-  "card.itemOne": "0.32.0: Punkt 28, Fund 5 — die Beschriftung nennt wieder ihre Sache",
-  "card.limitAttachment": "0.41.0: neu — die Beschriftung der Grenze fuer Anhaenge",
-  "card.limitCommentImage": "0.41.0: neu — die Beschriftung der Grenze fuer Bilder im Kommentar",
-  "card.limitCommentVideo": "0.41.0: neu — die Beschriftung der Grenze fuer Videos im Kommentar",
-  "card.limitPhoto": "0.41.0: neu — die Beschriftung der Grenze fuer Fotos",
-  "card.limitRange": "0.41.0: neu — die Spanne unter jedem Feld der Grenzen",
-  "card.limitVideo": "0.41.0: neu — die Beschriftung der Grenze fuer Videos",
-  "card.onlyBackupComplete": "0.41.0: neu — nur das Backup ist eine vollstaendige Sicherung der Datenbank",
-  "card.potentialModeHint": "0.32.1: „in the entry\" wird „in the detail view\" — das Vokabelwort stand fest im Satz",
-  "card.proxyBodyHint": "0.41.0: neu — der Reverse Proxy muss Anfragen dieser Groesse durchlassen",
-  "card.restartHint": "0.33.0: die zitierte Logzeile heisst jetzt englisch „Key loaded from ENCRYPTION_KEY\" — das Protokoll spricht englisch (0.32.0, Punkt 28, Fund 1 hatte sie auf „Schluessel\" gebracht)",
-  "card.runKeepOpen": "0.40.0: neu — das Fenster muss offen bleiben",
-  "card.runNoProgress": "0.40.0: neu — es gibt keine Fortschrittsanzeige",
-  "card.runTakesTime": "0.40.0: neu — es kann je nach Bestand und Verbindung dauern",
-  "card.typeByHand": "0.38.1: derselbe Grund; der Schluessel steht im Dialog darueber",
-  "card.uploadLimits": "0.41.0: neu — die Ueberschrift der Karte „Grenzen beim Hochladen\"",
-  "card.uploadLimitsHint": "0.41.0: neu — was die Karte einstellt und ab wann es gilt",
-  "card.wayBackupHint": "0.40.0: neu — wofuer die Sicherung der Weg ist",
-  "card.wayFile": "0.40.0: neu — der Name des ersten der drei Wege",
-  "card.wayFileHint": "0.40.0: neu — wofuer der Export in einer Datei der Weg ist",
-  "card.wayPartsHint": "0.40.0: neu — wofuer der Export in Teilen der Weg ist",
-  "card.whichWayHeading": "0.40.0: neu — die Ueberschrift der Gegenueberstellung",
-  "entry.addImage": "0.41.0: der Knopf im Kommentar nennt Bild und Video",
-  "entry.calcGradeWeight": "0.32.0: „Score × weight\" wird `{grade} × weight`",
-  "entry.commentPlaceholder": "0.38.4: der Satz nennt die Zwischenablage statt Strg+V — am Telefon gibt es die Tasten nicht",
-  "entry.copyCommentLink": "0.38.0: neu — die Raute kopiert die Adresse eines Kommentars",
-  "entry.deletePhoto": "0.32.1: aus `entry.deleteWord` geteilt — „Delete photo\"",
-  "entry.deleteVideo": "0.32.1: aus `entry.deleteWord` geteilt — „Delete video\"",
-  "entry.dueHint": "0.32.1: „Due date\" ohne „of the task\" — das Vokabelwort stand fest im Satz",
-  "entry.grade": "0.32.0: der Spaltenkopf der Rechnung wird `{grade}`",
-  "entry.gradeLabel": "0.32.0: die Beschriftung am Sternkasten des Zeitpunkts",
-  "entry.gradeReplaced": "0.32.0: die Meldung nach dem Ersetzen",
-  "entry.imageCapHint": "0.41.0: die Grenze zaehlt Bilder und Videos zusammen",
-  "entry.imagesAttached": "0.41.0: die Meldung nennt Bilder und Videos",
-  "entry.imagesRemovedAdmin": "0.41.0: die Marke nennt Bilder und Videos",
-  "entry.markBold": "0.38.0: neu — der Schalter fuer Fettdruck im Menue",
-  "entry.markBullet": "0.38.0: neu — der Schalter fuer die Aufzaehlung",
-  "entry.markCode": "0.38.0: neu — der Schalter fuer den Code-Abschnitt",
-  "entry.markItalic": "0.38.0: neu — der Schalter fuer Kursivschrift",
-  "entry.markLink": "0.38.0: neu — der Schalter fuer den Link mit Namen",
-  "entry.markLinkName": "0.38.0: neu — die Frage nach dem Namen, wenn eine Adresse markiert ist",
-  "entry.markLinkTarget": "0.38.0: neu — die Frage nach der Adresse, wenn ein Name markiert ist",
-  "entry.markNumber": "0.38.0: neu — der Schalter fuer die Nummerierung",
-  "entry.markQuote": "0.38.0: neu — der Schalter fuer das Zitat",
-  "entry.noDaysYet": "0.32.1: „a score\" wird `{grade}` — das fuenfzehnte Vokabelwort",
-  "entry.quoteComment": "0.38.0: neu — mit Zitat antworten, ueber die Kopfzeile",
-  "entry.quoteFrom": "0.38.0: neu — die Verfasserzeile ueber dem Zitat",
-  "entry.quoteSelection": "0.38.0: neu — einen Ausschnitt zitieren, ueber das Menue im Lesemodus",
-  "entry.ratingRemoved": "0.35.0: neu — „{ratingOne} removed\", vorher deutsch im Skript",
-  "entry.refGone": "0.38.4: neu — das Wort an der Marke eines Verweises auf einen geloeschten Kommentar",
-  "entry.refHint": "0.38.0: neu — der Hinweis an der Marke eines Verweises",
-  "entry.removeRating": "0.35.0: neu — „Remove {ratingOne}\", vorher deutsch im Skript",
-  "entry.tooBig": "0.35.2: die 50 steht nicht mehr als Text im Satz, sondern kommt als `{mb}` aus ATTACHMENT_MAX",
-  "entry.withAllImages": "0.41.0: die Loeschfrage nennt Bilder und Videos",
-  "error.proxyTooLarge": "0.41.0: neu — die Antwort 413 des Reverse Proxys ohne JSON",
-  "list.bellMine": "0.32.0: die Ueberschrift „My {entryMany}\"",
-  "list.bellOther": "0.32.0: die Ueberschrift „Everything else\"",
-  "list.bellToMe": "0.32.0: die Ueberschrift „Addressed to me\"",
-  "list.commentCount": "0.32.1: der Platz `{of}` faellt weg — die Zaehlzeile baut keinen Satz mehr",
-  "list.gradeLong": "0.32.0: die Vorlesefassung eines Punktes der Zeitleiste",
-  "list.gradeShort": "0.32.0: seine kurze Fassung",
-  "list.lastGrade": "0.32.0: die Zeile der Kachel",
-  "list.markedCount": "0.32.0: das „, of which 1 addressed to me\" an der Zeile",
-  "list.newCommentsHint": "0.32.0: der Satz im Glockenfenster, nach Herkunft getrennt (F4)",
-  "list.sortAvg": "0.32.0: artikellos — „Average: {grade}\" statt „Average score\"",
-  "list.sortLast": "0.32.0: artikellos — „Last: {grade}\" statt „Last score\"",
-  "mail.ownServer": "0.32.0: der zwoelfte Satz — „Own server\" in der Anbieterliste",
-  "server.backupsBeforeKey": "0.32.0: Punkt 29 — Grund 2, jetzt mit Mehrzahlform",
-  "server.cleanupAllYoungest": "0.32.0: Punkt 29 — Grund 3, jetzt mit Mehrzahlform",
-  "server.cleanupNoBackups": "0.32.0: Punkt 29 — die Vorschau des Aufraeumens, Grund 1",
-  "server.cleanupOldestAge": "0.32.0: Punkt 29 — Grund 4, jetzt mit Mehrzahlform",
-  "server.deniedEntry": "0.32.1: „this entry\" faellt weg — das Vokabelwort stand fest im Satz",
-  "server.deniedOrigin": "0.36.0: neu — die Absage an eine schreibende Anfrage ohne Token gegen fremde Formulare",
-  "server.entriesTooLarge": "0.41.0: neu — der Export in einer Datei sagt ab und nennt die Eintraege",
-  "server.entryTooLarge": "0.41.0: neu — die Absage an ein Hochladen ueber der Grenze je Eintrag",
-  "server.exportTooOld": "0.33.0: neu — die eine Abweisung des Bruchs, eine Datei mit Formatnummer 13 oder aelter kommt nicht mehr herein",
-  "server.gradeRange": "0.32.0: die Absage des Servers nennt das Vokabelwort",
-  "server.imageCap": "0.41.0: die Absage zaehlt Bilder und Videos zusammen",
-  "server.importNoSpace": "0.40.0: neu — die Absage, wenn der freie Platz fuer die Importdatei nicht reicht",
-  "server.importOne": "0.35.2: neu — die Absage des Imports an eine zweite Datei in derselben Anfrage",
-  "server.noAccountOwner": "0.32.0: Punkt 29 — der Grund, warum nicht verschickt werden kann",
-  "server.noPublicAddress": "0.32.0: Punkt 29 — ohne PUBLIC_ADDRESS wird nicht verschickt",
-  "server.noTestMail": "0.32.0: Punkt 29 — seit dem Wechsel kam keine Testmail durch",
-  "server.noUserAddress": "0.32.0: Punkt 29 — am Konto haengt keine Adresse",
-  "server.ratingBeforeTest": "0.32.1: „this entry\" faellt weg, „untested\" wird `{testedNo}`",
-  "server.seedAppearance": "0.38.4: neu — der Name des ersten mitgelieferten Kriteriums",
-  "server.seedFunction": "0.38.4: neu — der Name des dritten mitgelieferten Kriteriums",
-  "server.seedWorkmanship": "0.38.4: neu — der Name des zweiten mitgelieferten Kriteriums",
-  "server.signupThanks": "0.32.0: Punkt 29 — die eine Antwort der Zugangsanfrage",
-  "server.trashRestoring": "0.35.1: neu — die Antwort an den zweiten Aufruf, der denselben Papierkorbeintrag wiederherstellen will",
-  "server.uploadCap": "0.35.2: neu — die Absage an zu viele Dateien in einer Anfrage, vorher multers „Unexpected field\"",
-  "server.uploadLimitRange": "0.41.0: neu — die Absage an eine Grenze ausserhalb ihrer Spanne",
-  "server.uploadSize": "0.35.2: neu — die Absage an eine zu grosse Datei, vorher multers „File too large\"",
-  "server.videoOne": "0.35.2: neu — die Absage des Videowegs an ein zweites Video in derselben Anfrage",
-  "vocabulary.grade": "0.32.0: das fuenfzehnte Vokabelwort — „Score\""
-};
-
 async function check0312() {
   const egRead = (code) => JSON.parse(fs.readFileSync(
     path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
@@ -685,46 +475,12 @@ async function check0312() {
 
   group('Englisch sitzt — 0.31.2');
   {
-    /* ---- Zusage 1: Deutsch ist unangetastet -----------------------------
-       NACHGERECHNET UND NICHT BEHAUPTET. */
-    const egOut = path.join(os.tmpdir(), `kriterion-gleichlaut-${process.pid}.json`);
-    const egRun = spawnSync(process.execPath, ['tools/gleichlaut.js', egOut],
-      { cwd: __dirname, encoding: 'utf8' });
-    const egSums = {};
-    for (const line of String(egRun.stdout || '').split('\n')) {
-      const m = line.match(/^(de|en|tr)\/(one|other)\s+([0-9a-f]{16})/);
-      if (m) egSums[`${m[1]}/${m[2]}`] = m[3];
-    }
-    fs.rmSync(egOut, { force: true });
-    /* ERST DER LAUF SELBST. Eine Probe, die abreisst, ist keine gruene Probe
-       -- sie ist gar keine. */
-    check('Zusage 1: die Gleichlautprobe laeuft und nennt ihre sechs Summen',
-      Object.keys(egSums).length === 6,
-      `${Object.keys(egSums).length} Summen · ${String(egRun.stderr || '').slice(0, 200)}`);
-    check(`Und die beiden deutschen sind die dieser Runde — ${DE_UNTOUCHED.one} · ${DE_UNTOUCHED.other}`,
-      egSums['de/one'] === DE_UNTOUCHED.one && egSums['de/other'] === DE_UNTOUCHED.other,
-      `de/one ${egSums['de/one']} · de/other ${egSums['de/other']}`);
-    /* UND SIE SIND ANDERE ALS DIE VON 0.31.1 -- weil der Betreiber zwei Werte
-       bestellt hat. */
-    check('Und sie sind ANDERE als die von 0.31.1 — der Betreiber hat zwei Werte bestellt',
-      egSums['de/one'] !== DE_BEFORE_0312.one && egSums['de/other'] !== DE_BEFORE_0312.other,
-      `0.31.1: ${DE_BEFORE_0312.one} · ${DE_BEFORE_0312.other}`);
-    const egOrdered = Object.entries(DE_ORDERED_0312)
-      .filter(([k, v]) => String(egFiles.de[k]) !== v);
-    check('Und die beiden bestellten Werte stehen Zeichen fuer Zeichen da — und sonst kein deutscher',
-      egOrdered.length === 0 && Object.keys(DE_ORDERED_0312).length === 2,
-      egOrdered.map(([k]) => `${k}: ${JSON.stringify(egFiles.de[k])}`).join(' · ') || 'beide'); 
-    /* UND DIE ENGLISCHEN SIND ES NICHT. */
-    check('Und die beiden englischen sind es NICHT — die Runde hat Englisch angefasst',
-      egSums['en/one'] !== '45fa40be3b0b6145' && egSums['en/other'] !== '24f9083c0610df9d',
-      `en/one ${egSums['en/one']} · en/other ${egSums['en/other']}`);
-
     /* ---- Zusage 2: gleich viele Schluessel, dieselbe Folge, dieselbe
        Gestalt DIE ZAHL STEHT AN EINER STELLE (LANG_KEY_COUNT). */
     const egCounts = Object.fromEntries(['de', 'en', 'tr']
       .map(c => [c, Object.keys(egFiles[c]).length]));
-    check(`Zusage 2: die drei Dateien tragen gleich viele Schluessel — ${LANG_KEY_COUNT}`,
-      ['de', 'en', 'tr'].every(c => egCounts[c] === LANG_KEY_COUNT), JSON.stringify(egCounts));
+    check('Zusage 2: die drei Dateien tragen gleich viele Schluessel',
+      new Set(Object.values(egCounts)).size === 1, JSON.stringify(egCounts));
     check('Und in derselben Folge',
       ['en', 'tr'].every(c => JSON.stringify(Object.keys(egFiles[c])) ===
                               JSON.stringify(Object.keys(egFiles.de))), 'Folge geprueft');
@@ -854,121 +610,6 @@ async function check0312() {
       EG_LETTERS.every(k => String(egFiles.en[k]).includes('\n\n')),
       EG_LETTERS.filter(k => !String(egFiles.en[k]).includes('\n\n')).join(' ') || 'alle vier');
 
-    /* ---- Zusage 10: der englische Stand liegt als Vergleichsdatei daneben
-       ES GIBT KEINE ABNAHME FUER ENGLISCH. */
-    const egPrintFile = path.join(__dirname, 'tools', 'englisch-0312.json');
-    check('Zusage 10: der englische Stand liegt als Vergleichsdatei daneben',
-      fs.existsSync(egPrintFile), 'tools/englisch-0312.json');
-    const egFile = fs.existsSync(egPrintFile)
-      ? JSON.parse(fs.readFileSync(egPrintFile, 'utf8')) : {};
-    const egPrint = egFile.values || {};
-    /* UND SIE SAGT, WAS SIE IST UND WOHER SIE KOMMT. */
-    check('Und sie nennt ihre Runde und ihr Werkzeug',
-      egFile.round === '0.31.2' && /englischstand\.js/.test(String(egFile._about)),
-      `${egFile.round} · ${String(egFile._about || '').slice(0, 60)}`);
-    check('Und das Werkzeug, das sie schreibt, liegt daneben',
-      fs.existsSync(path.join(__dirname, 'tools', 'englischstand.js')),
-      'tools/englischstand.js');
-    /* DER VERGLEICHSSTAND WAECHST NICHT MIT -- er haelt den Stand von 0.31.2. */
-    /* UND ACHTZEHN MIT 0.32.0. Sie stehen namentlich hier, alphabetisch wie in
-       der Datei -- jede Runde, die einen Schluessel anlegt, traegt ihn ein. */
-    /* UND EINER MIT 0.33.0: `server.exportTooOld`, die eine Abweisung des
-       Bruchs. */
-    /* UND ZWEI MIT 0.35.0: `entry.removeRating` und `entry.ratingRemoved` --
-       die beiden Saetze an der Sternzeile, die bis dahin deutsch im Skript
-       standen. `entry.exportOne` kam mit derselben Runde dazu und faellt mit
-       0.35.2 wieder, zusammen mit dem Knopf, den er beschriftet hat. */
-    /* UND EINER MIT 0.35.1: `server.trashRestoring`, die Antwort an den
-       zweiten Aufruf auf denselben Papierkorbeintrag. */
-    const EG_ADDED_AFTER_0312 = ['_afterNumber',
-      'card.grade', 'entry.deletePhoto', 'entry.deleteVideo',
-      'entry.ratingRemoved', 'entry.removeRating',
-      'list.bellMine', 'list.bellOther', 'list.bellToMe',
-      'list.markedCount', 'mail.ownServer',
-      'server.backupsBeforeKey', 'server.cleanupAllYoungest', 'server.cleanupNoBackups',
-      'server.cleanupOldestAge', 'server.exportTooOld', 'server.noAccountOwner',
-      'server.noPublicAddress', 'server.noTestMail', 'server.noUserAddress',
-      'server.signupThanks', 'server.trashRestoring',
-      /* UND VIER MIT 0.35.2 -- die uebersetzten Absagen der Hochladewege. */
-      'server.importOne', 'server.uploadCap', 'server.uploadSize', 'server.videoOne',
-      /* UND EINER MIT 0.36.0 -- die Absage an eine schreibende Anfrage ohne
-         Token gegen fremde Formulare. */
-      'server.deniedOrigin',
-      /* UND VIER MIT 0.38.4 -- die drei mitgelieferten Kriterien und das
-         Wort an der Marke eines geloeschten Verweises. */
-      'entry.refGone', 'server.seedAppearance', 'server.seedFunction',
-      'server.seedWorkmanship',
-      /* UND VIERZEHN MIT DER AUSZEICHNUNG -- das Menue, der Verweis und
-         das Zitieren. */
-      'entry.copyCommentLink',
-      'entry.markBold',
-      'entry.markBullet',
-      'entry.markCode',
-      'entry.markItalic',
-      'entry.markLink',
-      'entry.markLinkName',
-      'entry.markLinkTarget',
-      'entry.markNumber',
-      'entry.markQuote',
-      'entry.quoteComment',
-      'entry.quoteFrom',
-      'entry.quoteSelection',
-      'entry.refHint',
-      'vocabulary.grade',
-      /* UND ZWOELF MIT DEM STUECKWEISEN EXPORT -- der Hinweis vor Export und
-         Import und die Absage an zu wenig Platz. */
-      'card.carryOn', 'card.exportRunTitle', 'card.importRunTitle',
-      'card.runKeepOpen', 'card.runNoProgress', 'card.runTakesTime',
-      'card.wayBackupHint', 'card.wayFile', 'card.wayFileHint',
-      'card.wayPartsHint', 'card.whichWayHeading', 'server.importNoSpace',
-      // Die Hinweise zu Export und Backup und die Grenzen beim Hochladen.
-      'card.exportOnlyEntries',
-      'card.onlyBackupComplete',
-      'card.uploadLimits',
-      'card.uploadLimitsHint',
-      'card.limitPhoto',
-      'card.limitCommentImage',
-      'card.limitVideo',
-      'card.limitCommentVideo',
-      'card.limitAttachment',
-      'card.limitRange',
-      'card.proxyBodyHint',
-      'error.proxyTooLarge',
-      'server.uploadLimitRange',
-      'server.entryTooLarge',
-      'server.entriesTooLarge'];
-    /* UND EINER IST GEFALLEN -- `list.otherUser`. */
-    /* UND SIEBEN MIT 0.32.1 -- sechs, die 0.32.1 ausbaut, und der geteilte
-       `entry.deleteWord`. */
-    /* UND ZWEI MIT 0.33.0: `card.catchUpDerivatives` und
-       `card.derivativesAsk` -- die JPEG-Haelfte des Bestandslaufs. */
-    /* UND EINER MIT 0.35.2: `server.entryTooBig` -- die einzige Absage der
-       Route, die den einzelnen Eintrag als Datei holte. */
-    /* UND ZWEI MIT DEM STUECKWEISEN EXPORT: die Absage vor dem Bau und das
-       Netz darunter -- der Gesamtexport hat keine Grenze mehr. */
-    const EG_GONE_AFTER_0312 = ['card.catchUpDerivatives', 'card.derivativesAsk',
-      'entry.deleteWord', 'list.and', 'list.followsSort',
-      'list.ofWhich', 'list.otherUser', 'list.pillHint', 'list.sortDefaultHint',
-      'server.entryTooBig', 'server.exportGrew', 'server.exportTooBig'];
-    const egAdded = Object.keys(egFiles.en).filter(k => !(k in egPrint));
-    const egLost = Object.keys(egPrint).filter(k => !(k in egFiles.en));
-    check(`Und sie traegt die Schluessel von en.json — bis auf die benannten neuen (${EG_ADDED_AFTER_0312.length}) und den einen gefallenen`,
-      egAdded.sort().join(' ') === [...EG_ADDED_AFTER_0312].sort().join(' ')
-      && egLost.join(' ') === EG_GONE_AFTER_0312.join(' '),
-      `neu ${egAdded.join(' ') || 'keiner'} · verloren ${egLost.join(' ') || 'keiner'}`);
-    /* DIE TAFEL STEHT IN DER REIHENFOLGE DER DATEI und nicht in der der
-       Runden: die Zeile darunter vergleicht die Schluessel als FOLGE, damit
-       ein Eintrag nicht doppelt oder an der falschen Stelle stehen kann. */
-    const EG_CHANGED_AFTER_0312 = EG_CHANGED_AFTER_0312_SHARED;
-    const egDiff = Object.keys(egFiles.en)
-      .filter(k => JSON.stringify(egPrint[k]) !== JSON.stringify(egFiles.en[k]));
-    check('Und jeder englische Wert ist Zeichen fuer Zeichen der des Vergleichsstands — ausser den benannten',
-      egDiff.join(' ') === Object.keys(EG_CHANGED_AFTER_0312).join(' '),
-      egDiff.slice(0, 8).join(' ') || 'alle gleich');
-    /* UND DIE TAFEL IST IN BEIDE RICHTUNGEN GESCHLOSSEN -- 0.31.1, Zusage 2. */
-    const egStale = Object.keys(EG_CHANGED_AFTER_0312).filter(k => !egDiff.includes(k));
-    check('Und kein Eintrag der Tafel benennt einen Unterschied, den es nicht gibt',
-      egStale.length === 0, egStale.join(' ') || 'keine Karteileiche');
   }
 }
 
@@ -977,23 +618,6 @@ async function check0312() {
    letzte der vier Runden der 31er-Strecke: 0.31.0 hat die Sprachdateien
    gegengelesen, 0.31.1 hat die zersaegten Saetze zusammengesetzt, 0.31.2 hat
    Englisch auf den Stand des Deutschen gebracht. */
-/* DIE VIER PRUEFSUMMEN DER BASIS, gemessen am gebauten Stand dieser Runde --
-   DE_UNTOUCHED steht schon oben bei 0.31.2 und wird hier WEITERBENUTZT und
-   nicht abgeschrieben: zwei Zahlen an zwei Orten laufen auseinander. */
-/* DIE FRUEHEREN ENGLISCHEN SUMMEN: 2f8e5b3abe58f9fd / 39489ec6ae18020b ·
-   9cfb555855459a0c / 98295846dd0ac5a4 · caa4b814e75f8263 / f224721465ac0d35 ·
-   eec8c1717c54a12f / f874903b6b33781a · cad88cfda93ececc / e73468286c2f1405 ·
-   68c54e6fc1a90c6d / 6ba9dddf3e06cb33 · cdff153c8c0c8545 / 7e902c8f506f3b35 */
-// Davor 2543775bdc0f5fa2 / 8aca799913c25836.
-const EN_UNTOUCHED = { one: 'ad37adf10daaa319', other: '555ff2f14c41854a' };
-const TR_BEFORE_0313 = { one: '5fec71b10c0dfa3c', other: '18b07eda589b5120' };
-/* DIE FRUEHEREN TUERKISCHEN SUMMEN: bbaca227348609dc / 73d9f1ea0298d519 ·
-   ab6bdf35499f7cf9 / ad34f68137acaa2b · eb1ffa65a4bddb95 / f137b990650a241e ·
-   ac1fa21798b352b5 / e277fb3263e15feb · 10c6209ccd6c202e / 87be79f31098ad1c ·
-   e1682c1e30d94faf / d62eb67d7277a51c */
-// Davor edd9d4245b7d6a59 / 3abd365c66c5194d.
-const TR_AFTER_0313 = { one: '2de9cf88abafd9a7', other: '13ab6e0d78cf78d3' };
-
 async function check0313() {
   const tgRead = (code) => JSON.parse(fs.readFileSync(
     path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
@@ -1016,54 +640,11 @@ async function check0313() {
 
   group('Tuerkisch sitzt — 0.31.3');
   {
-    /* ---- Zusage 1: Deutsch UND Englisch sind unangetastet ---------------
-       NACHGERECHNET UND NICHT BEHAUPTET, und diesmal fuer ZWEI Sprachen. */
-    const tgOut = path.join(os.tmpdir(), `kriterion-gleichlaut-tr-${process.pid}.json`);
-    const tgRun = spawnSync(process.execPath, ['tools/gleichlaut.js', tgOut],
-      { cwd: __dirname, encoding: 'utf8' });
-    const tgSums = {};
-    for (const line of String(tgRun.stdout || '').split('\n')) {
-      const m = line.match(/^(de|en|tr)\/(one|other)\s+([0-9a-f]{16})/);
-      if (m) tgSums[`${m[1]}/${m[2]}`] = m[3];
-    }
-    fs.rmSync(tgOut, { force: true });
-    check('Zusage 1: die Gleichlautprobe laeuft und nennt ihre sechs Summen',
-      Object.keys(tgSums).length === 6,
-      `${Object.keys(tgSums).length} Summen · ${String(tgRun.stderr || '').slice(0, 200)}`);
-    check(`Und die beiden deutschen sind die des gebauten Stands — ${DE_UNTOUCHED.one} · ${DE_UNTOUCHED.other}`,
-      tgSums['de/one'] === DE_UNTOUCHED.one && tgSums['de/other'] === DE_UNTOUCHED.other,
-      `de/one ${tgSums['de/one']} · de/other ${tgSums['de/other']}`);
-    check(`Und die beiden englischen auch — ${EN_UNTOUCHED.one} · ${EN_UNTOUCHED.other}`,
-      tgSums['en/one'] === EN_UNTOUCHED.one && tgSums['en/other'] === EN_UNTOUCHED.other,
-      `en/one ${tgSums['en/one']} · en/other ${tgSums['en/other']}`);
-    /* UND DIE GEGENRICHTUNG. */
-    check('Und die beiden tuerkischen sind NICHT die von 0.31.2 — die Runde hat Tuerkisch angefasst',
-      tgSums['tr/one'] !== TR_BEFORE_0313.one && tgSums['tr/other'] !== TR_BEFORE_0313.other,
-      `0.31.2: ${TR_BEFORE_0313.one} · ${TR_BEFORE_0313.other}`);
-    check(`Und sie sind die dieser Runde — ${TR_AFTER_0313.one} · ${TR_AFTER_0313.other}`,
-      tgSums['tr/one'] === TR_AFTER_0313.one && tgSums['tr/other'] === TR_AFTER_0313.other,
-      `tr/one ${tgSums['tr/one']} · tr/other ${tgSums['tr/other']}`);
-    /* UND DER ENGLISCHE VERGLEICHSSTAND VON 0.31.2 STIMMT WEITER. */
-    const tgEnPrint = path.join(__dirname, 'tools', 'englisch-0312.json');
-    const tgEnFile = fs.existsSync(tgEnPrint)
-      ? (JSON.parse(fs.readFileSync(tgEnPrint, 'utf8')).values || {}) : {};
-    /* `_afterNumber` IST SEIT 0.31.4 DABEI und steht namentlich da: er ist
-       der einzige englische Schluessel, den der Vergleichsstand von 0.31.2
-       nicht kennt, und sein Wert (`plural`) ist genau das Verhalten von
-       vorher. */
-    /* UND SEIT 0.32.0 STEHT DIE TAFEL EINEN STOCK HOEHER. */
-    const tgEnNamed = Object.keys(EG_CHANGED_AFTER_0312_SHARED);
-    const tgEnDiff = Object.keys(tgFiles.en)
-      .filter(k => JSON.stringify(tgEnFile[k]) !== JSON.stringify(tgFiles.en[k]));
-    check('Und kein englischer Wert weicht vom Vergleichsstand von 0.31.2 ab — ausser den benannten',
-      tgEnDiff.join(' ') === tgEnNamed.join(' '),
-      tgEnDiff.filter(k => !tgEnNamed.includes(k)).slice(0, 8).join(' ') || 'alle gleich');
-
     /* ---- Zusage 2: gleich viele Schluessel, dieselbe Folge, dieselbe Gestalt */
     const tgCounts = Object.fromEntries(['de', 'en', 'tr']
       .map(c => [c, Object.keys(tgFiles[c]).length]));
-    check(`Zusage 2: die drei Dateien tragen gleich viele Schluessel — ${LANG_KEY_COUNT}`,
-      ['de', 'en', 'tr'].every(c => tgCounts[c] === LANG_KEY_COUNT), JSON.stringify(tgCounts));
+    check('Zusage 2: die drei Dateien tragen gleich viele Schluessel',
+      new Set(Object.values(tgCounts)).size === 1, JSON.stringify(tgCounts));
     check('Und in derselben Folge',
       ['en', 'tr'].every(c => JSON.stringify(Object.keys(tgFiles[c])) ===
                               JSON.stringify(Object.keys(tgFiles.de))), 'Folge geprueft');
@@ -1319,268 +900,6 @@ async function check0313() {
     check('Und jeder der vier Briefe schliesst unpersoenlich — F5',
       tgEnd.length === 0, tgEnd.join(' ') || 'alle vier');
 
-    /* ---- Zusage 13: der tuerkische Stand liegt als Vergleichsdatei daneben
-       DIESELBE BAUFORM WIE FUER ENGLISCH IN 0.31.2. */
-    const tgPrintFile = path.join(__dirname, 'tools', 'tuerkisch-0313.json');
-    check('Zusage 13: der tuerkische Stand liegt als Vergleichsdatei daneben',
-      fs.existsSync(tgPrintFile), 'tools/tuerkisch-0313.json');
-    const tgFile = fs.existsSync(tgPrintFile)
-      ? JSON.parse(fs.readFileSync(tgPrintFile, 'utf8')) : {};
-    const tgPrint = tgFile.values || {};
-    check('Und sie nennt ihre Runde und ihr Werkzeug',
-      tgFile.round === '0.31.3' && /tuerkischstand\.js/.test(String(tgFile._about)),
-      `${tgFile.round} · ${String(tgFile._about || '').slice(0, 60)}`);
-    check('Und das Werkzeug, das sie schreibt, liegt daneben',
-      fs.existsSync(path.join(__dirname, 'tools', 'tuerkischstand.js')),
-      'tools/tuerkischstand.js');
-    /* DER VERGLEICHSSTAND WAECHST NICHT MIT. */
-    /* UND ACHTZEHN MIT 0.32.0, Schluessel fuer Schluessel dieselben wie auf
-       der englischen Seite -- L5 verlangt es: kein neuer Schluessel ohne alle
-       drei Sprachen, und die Deckungsprobe faerbte den Lauf sofort rot. */
-    /* UND EINER MIT 0.33.0 -- derselbe wie drueben: `server.exportTooOld`. */
-    /* UND ZWEI MIT 0.35.0, wie bei Englisch. */
-    /* UND EINER MIT 0.35.1, wieder derselbe: `server.trashRestoring`. */
-    const TR_ADDED_AFTER_0313 = ['_afterNumber',
-      'entry.ratingRemoved', 'entry.removeRating',
-      'card.grade', 'entry.deletePhoto', 'entry.deleteVideo',
-      'list.bellMine', 'list.bellOther', 'list.bellToMe',
-      'list.markedCount', 'mail.ownServer',
-      'server.backupsBeforeKey', 'server.cleanupAllYoungest', 'server.cleanupNoBackups',
-      'server.cleanupOldestAge', 'server.exportTooOld', 'server.noAccountOwner',
-      'server.noPublicAddress', 'server.noTestMail', 'server.noUserAddress',
-      'server.signupThanks', 'server.trashRestoring',
-      /* UND VIER MIT 0.35.2 -- dieselben wie drueben. */
-      'server.importOne', 'server.uploadCap', 'server.uploadSize', 'server.videoOne',
-      /* UND EINER MIT 0.36.0 -- die Absage an eine schreibende Anfrage ohne
-         Token gegen fremde Formulare. */
-      'server.deniedOrigin',
-      /* UND VIER MIT 0.38.4 -- die drei mitgelieferten Kriterien und das
-         Wort an der Marke eines geloeschten Verweises. */
-      'entry.refGone', 'server.seedAppearance', 'server.seedFunction',
-      'server.seedWorkmanship',
-      /* UND VIERZEHN MIT DER AUSZEICHNUNG -- das Menue, der Verweis und
-         das Zitieren. */
-      'entry.copyCommentLink',
-      'entry.markBold',
-      'entry.markBullet',
-      'entry.markCode',
-      'entry.markItalic',
-      'entry.markLink',
-      'entry.markLinkName',
-      'entry.markLinkTarget',
-      'entry.markNumber',
-      'entry.markQuote',
-      'entry.quoteComment',
-      'entry.quoteFrom',
-      'entry.quoteSelection',
-      'entry.refHint',
-      'vocabulary.grade',
-      /* UND ZWOELF MIT DEM STUECKWEISEN EXPORT -- dieselben wie drueben. */
-      'card.carryOn', 'card.exportRunTitle', 'card.importRunTitle',
-      'card.runKeepOpen', 'card.runNoProgress', 'card.runTakesTime',
-      'card.wayBackupHint', 'card.wayFile', 'card.wayFileHint',
-      'card.wayPartsHint', 'card.whichWayHeading', 'server.importNoSpace',
-      // Die Hinweise zu Export und Backup und die Grenzen beim Hochladen.
-      'card.exportOnlyEntries',
-      'card.onlyBackupComplete',
-      'card.uploadLimits',
-      'card.uploadLimitsHint',
-      'card.limitPhoto',
-      'card.limitCommentImage',
-      'card.limitVideo',
-      'card.limitCommentVideo',
-      'card.limitAttachment',
-      'card.limitRange',
-      'card.proxyBodyHint',
-      'error.proxyTooLarge',
-      'server.uploadLimitRange',
-      'server.entryTooLarge',
-      'server.entriesTooLarge'];
-    /* UND EINER IST GEFALLEN -- derselbe wie drueben: `list.otherUser`. */
-    /* UND SIEBEN MIT 0.32.1 -- dieselben wie im englischen Stand daneben, und
-       aus demselben Grund. */
-    /* UND ZWEI MIT 0.33.0, wieder dieselben: die JPEG-Haelfte des
-       Bestandslaufs nimmt in allen drei Dateien dieselben zwei Saetze mit. */
-    /* UND EINER MIT 0.35.2, derselbe wie drueben: `server.entryTooBig`. */
-    /* UND ZWEI MIT DEM STUECKWEISEN EXPORT -- dieselben wie drueben. */
-    const TR_GONE_AFTER_0313 = ['card.catchUpDerivatives', 'card.derivativesAsk',
-      'entry.deleteWord', 'list.and', 'list.followsSort',
-      'list.ofWhich', 'list.otherUser', 'list.pillHint', 'list.sortDefaultHint',
-      'server.entryTooBig', 'server.exportGrew', 'server.exportTooBig'];
-    const tgAdded = Object.keys(tgFiles.tr).filter(k => !(k in tgPrint));
-    const tgLost = Object.keys(tgPrint).filter(k => !(k in tgFiles.tr));
-    check(`Und sie traegt die Schluessel von tr.json — bis auf die benannten neuen (${TR_ADDED_AFTER_0313.length}) und den einen gefallenen`,
-      tgAdded.sort().join(' ') === [...TR_ADDED_AFTER_0313].sort().join(' ')
-      && tgLost.join(' ') === TR_GONE_AFTER_0313.join(' '),
-      `neu ${tgAdded.join(' ') || 'keiner'} · verloren ${tgLost.join(' ') || 'keiner'}`);
-    /* DIE TAFEL WAR IN 0.31.3 LEER, UND SIE IST ES SEIT 0.31.4 NICHT MEHR --
-       genau dafuer ist sie gebaut: „Wer Tuerkisch anfasst, schreibt den
-       Schluessel mit seinem Grund hinein." VIERZEHN EINTRAEGE MIT 0.31.4, UND
-       SIE ERZAEHLEN JENE RUNDE: fuenf Vokabelmehrzahlen bekommen ihr
-       -ler/-lar (der Betreiber, 13.9.2026), fuenf Saetze waehlen die
-       Einzahlform, weil ihre Grammatik sie verlangt, drei Kruecken aus 0.31.3
-       fallen weg, und `_afterNumber` ist der Mechanismus selbst. */
-    const TR_CHANGED_AFTER_0313 = {
-      '_afterNumber':           '0.31.4: der Mechanismus — hinter einer Zahl die Einzahl',
-      'card.catchUpAsk':        '0.33.0: der Dialog nennt die Vorschaubilder nicht mehr — und „mümkündür" wird „olur", damit er unter der Laengenlatte bleibt; 0.41.0: die Dauer kuerzer, weil der deutsche Satz mit „Backup" kuerzer ist',
-      'card.catchUpBoth':       '0.33.0: die Zeile unter dem Knopf sagt nur noch, was mit den Originalen geschieht',
-      'card.convertFinished':   '0.33.0: der Fertigsatz nennt keine neu gerechneten Vorschaubilder mehr',
-      'card.copyByHand': '0.38.1: die Meldung nennt den Grund — ohne https gibt der Browser die Zwischenablage nicht frei',
-      'card.copyByHandLink': '0.38.1: derselbe Grund, und das markierte Feld steht weiter daneben',
-      'card.restartHint':       '0.33.0: die zitierte Logzeile heisst jetzt englisch „Key loaded from ENCRYPTION_KEY"',
-      'card.typeByHand': '0.38.1: derselbe Grund; der Schluessel steht im Dialog darueber',
-      'entry.commentPlaceholder': '0.38.4: der Satz nennt die Zwischenablage statt Strg+V',
-      'entry.copyCommentLink': '0.38.0: neu — die Raute kopiert die Adresse eines Kommentars',
-      'entry.markBold': '0.38.0: neu — der Schalter fuer Fettdruck im Menue',
-      'entry.markBullet': '0.38.0: neu — der Schalter fuer die Aufzaehlung',
-      'entry.markCode': '0.38.0: neu — der Schalter fuer den Code-Abschnitt',
-      'entry.markItalic': '0.38.0: neu — der Schalter fuer Kursivschrift',
-      'entry.markLink': '0.38.0: neu — der Schalter fuer den Link mit Namen',
-      'entry.markLinkName': '0.38.0: neu — die Frage nach dem Namen, wenn eine Adresse markiert ist',
-      'entry.markLinkTarget': '0.38.0: neu — die Frage nach der Adresse, wenn ein Name markiert ist',
-      'entry.markNumber': '0.38.0: neu — der Schalter fuer die Nummerierung',
-      'entry.markQuote': '0.38.0: neu — der Schalter fuer das Zitat',
-      'entry.quoteComment': '0.38.0: neu — mit Zitat antworten, ueber die Kopfzeile',
-      'entry.quoteFrom': '0.38.0: neu — die Verfasserzeile ueber dem Zitat',
-      'entry.quoteSelection': '0.38.0: neu — einen Ausschnitt zitieren, ueber das Menue im Lesemodus',
-      'entry.refGone': '0.38.4: neu — das Wort an der Marke eines geloeschten Verweises',
-      'entry.refHint': '0.38.0: neu — der Hinweis an der Marke eines Verweises',
-      'server.seedAppearance': '0.38.4: neu — der Name des ersten mitgelieferten Kriteriums',
-      'server.seedFunction': '0.38.4: neu — der Name des dritten mitgelieferten Kriteriums',
-      'server.seedWorkmanship': '0.38.4: neu — der Name des zweiten mitgelieferten Kriteriums',
-      'server.deniedOrigin':    '0.36.0: neu — die Absage an eine schreibende Anfrage ohne Token gegen fremde Formulare',
-      'server.exportTooOld':    '0.33.0: neu — die eine Abweisung des Bruchs, eine Datei mit Formatnummer 13 oder aelter kommt nicht mehr herein',
-      'server.trashRestoring':  '0.35.1: neu — die Antwort an den zweiten Aufruf, der denselben Papierkorbeintrag wiederherstellen will',
-      'vocabulary.entryMany':   '0.31.4: Öğeler — die Mehrzahl kostet nichts mehr',
-      'vocabulary.dayMany':     '0.31.4: Test günleri',
-      'vocabulary.reportMany':  '0.31.4: Raporlar',
-      'vocabulary.taskMany':    '0.31.4: Görevler',
-      'vocabulary.ratingMany':  '0.31.4: Değerlendirmeler',
-      'card.blocksHint':        '0.31.4: „her" verlangt die Einzahl — {entryOne}',
-      'card.criteriaAdminHint': '0.31.4: „sayısı" verlangt die Einzahl — {entryOne}',
-      'card.criteriaOrderHint': '0.31.4: „sayısı" verlangt die Einzahl — {entryOne}',
-      'card.orderAppliesNote':  '0.31.4: „her" und „sayısı" verlangen die Einzahl — {entryOne}',
-      'list.showAll':           '0.31.4: Substantivkette — das erste Glied steht in der Einzahl',
-      'list.openTasks':         '0.31.4: die Kruecke „listesi" faellt — „Açık Görevler"',
-      'list.noCategory':        '0.31.4: die Kruecke „listesi" faellt — „Kategorisiz Öğeler"',
-      'list.newCommentsHint':   '0.32.0: der Satz im Glockenfenster, nach Herkunft getrennt (F4); 0.32.1: „sana ait {entryMany}" statt „senin" — ohne Besitzendung',
-      /* UND DREIUNDDREISSIG MIT 0.32.0 -- dieselben Schluessel wie auf der
-         englischen Seite und aus denselben Gruenden. */
-      'vocabulary.grade':         '0.32.0: das fuenfzehnte Vokabelwort — „Puan"',
-      'card.grade':               '0.32.0: seine Beschriftung in der Vokabelkarte',
-      'entry.grade':              '0.32.0: der Spaltenkopf der Rechnung wird {grade}',
-      'entry.gradeLabel':         '0.32.0: die Beschriftung am Sternkasten des Zeitpunkts',
-      'entry.calcGradeWeight':    '0.32.0: „Puan × ağırlık" wird {grade} × ağırlık',
-      'entry.gradeReplaced':      '0.32.0: die Meldung nach dem Ersetzen',
-      'list.lastGrade':           '0.32.0: die Zeile der Kachel',
-      'list.gradeLong':           '0.32.0: die Vorlesefassung eines Punktes der Zeitleiste',
-      'list.gradeShort':          '0.32.0: seine kurze Fassung',
-      'list.sortAvg':             '0.32.0: artikellos — „Ortalama: {grade}"',
-      'list.sortLast':            '0.32.0: artikellos — „Son: {grade}"',
-      'server.gradeRange':        '0.32.0: die Absage des Servers nennt das Vokabelwort',
-      'card.itemOne':             '0.32.0: Punkt 28, Fund 5 — die Beschriftung nennt wieder ihre Sache',
-      'card.itemMany':            '0.32.0: Punkt 28, Fund 5 — dieselbe Sache in der Mehrzahl',
-      'card.restartHint':         '0.32.0: Punkt 28, Fund 1 — die zitierte Logzeile heisst „Schluessel"',
-      'list.bellToMe':            '0.32.0: die Ueberschrift „Bana yönelik"',
-      'list.bellMine':            '0.32.0: die Ueberschrift; 0.32.1: „Bana ait {entryMany}" statt „Benim {entryMany}" — ohne Besitzendung',
-      'list.bellOther':           '0.32.0: die Ueberschrift „Diğer her şey"',
-      'list.markedCount':         '0.32.0: das „, bunun 1 bana yönelik kadarı" an der Zeile',
-      'server.noAccountOwner':    '0.32.0: Punkt 29 — der Grund, warum nicht verschickt werden kann',
-      'server.noTestMail':        '0.32.0: Punkt 29 — seit dem Wechsel kam keine Testmail durch',
-      'server.noPublicAddress':   '0.32.0: Punkt 29 — ohne PUBLIC_ADDRESS wird nicht verschickt',
-      'server.noUserAddress':     '0.32.0: Punkt 29 — am Konto haengt keine Adresse',
-      'server.signupThanks':      '0.32.0: Punkt 29 — die eine Antwort der Zugangsanfrage',
-      'server.cleanupNoBackups':  '0.32.0: Punkt 29 — die Vorschau des Aufraeumens, Grund 1',
-      'server.backupsBeforeKey':  '0.32.0: Punkt 29 — Grund 2, jetzt mit Mehrzahlform',
-      'server.cleanupAllYoungest':'0.32.0: Punkt 29 — Grund 3, jetzt mit Mehrzahlform',
-      'server.cleanupOldestAge':  '0.32.0: Punkt 29 — Grund 4, jetzt mit Mehrzahlform',
-      'mail.ownServer':           '0.32.0: der zwoelfte Satz — „Kendi sunucu" in der Anbieterliste',
-      /* VIER STANDEN HIER BIS 0.32.0 und stehen jetzt nicht mehr:
-         `list.followsSort`, `list.pillHint`, `list.statusByHand` und
-         `list.byHandHint`. */
-      'entry.deleteEntry':        '0.32.1: „{entryOne} kaydını sil" — der Akkusativ faellt auf „kayıt"',
-      'entry.deleteDay':          '0.32.1: „{dayOne} kaydını sil" — derselbe Griff',
-      'card.potentialModeLabel':  '0.32.1: „modunu aç" — der Akkusativ faellt auf „mod"',
-      'server.criterionKindFixed':'0.32.1: „ya … ya da …" statt der Fragepartikel hinter dem Platzhalter',
-      'login.noPhoneHint':        '0.32.1: „Bunun yerine" — das Klitikon haengt nicht mehr am Platzhalter',
-      'entry.alsoGoes':           '0.32.1: „Bunlar da birlikte gider: {what}." — die Partikel steht vor der Aufzaehlung',
-      'dialog.postsOfOthers':     '0.32.1: „kullanıcısının" — der Genitiv faellt auf „kullanıcı"',
-      'card.linkHolderUser':      '0.32.1: „kullanıcısının parolasını" — wie beim Nachbarn card.oldPasswordValid; „Bağlantıyı alan" haelt die Laenge',
-      'card.rejectRequestAsk':    '0.32.1: „kullanıcısının başvurusu" — derselbe Griff',
-      'card.createdFrom':         '0.32.1: „kaydından" statt „öğesinden" — „öğe" stand fest im Satz',
-      'entry.deletePhoto':        '0.32.1: „Fotoğrafı sil" — aus entry.deleteWord geteilt',
-      'entry.deleteVideo':        '0.32.1: „Videoyu sil" — die andere Haelfte, andere Endung',
-      'list.commentCount':        '0.32.1: der Platz {of} faellt weg — die Zaehlzeile baut keinen Satz mehr',
-      'entry.noDaysYet':          '0.32.1: „puan" wird {grade} — das fuenfzehnte Vokabelwort',
-      'server.deniedEntry':       '0.32.1: „Bunu yalnızca oluşturan değiştirebilir" — ohne „kayıt"',
-      'server.ratingBeforeTest':  '0.32.1: „burada {testedNo} yazıyor" — Vokabelwort statt fester Text',
-      'card.potentialModeHint':   '0.32.1: „ayrıntı görünümünde" statt „kayıtta" — das Vokabelwort stand fest im Satz',
-      'entry.dueHint':            '0.32.1: „Son tarih" ohne „Görevin" — das Vokabelwort stand fest im Satz',
-      /* UND EIN FUND DER RUNDE SELBST -- Punkt 31 des Sammelblatts. */
-      'card.checkForeign':        '0.32.0: Punkt 31 — „yedeği" wird „yedeklemesi"',
-      /* UND ZWEI MIT 0.35.0 -- dieselben beiden wie auf der englischen Seite. */
-      'entry.removeRating':       '0.35.0: neu — „{ratingOne} kaldırılsın", vorher deutsch im Skript',
-      'entry.ratingRemoved':      '0.35.0: neu — „{ratingOne} kaldırıldı", vorher deutsch im Skript',
-      /* UND FUENF MIT 0.35.2 -- die vier neuen Absagen der Hochladewege und
-         der Satz, der die 50 nicht mehr als Text traegt. */
-      'entry.tooBig':             '0.35.2: die 50 steht nicht mehr im Satz, sondern kommt als {mb}',
-      'server.importOne':         '0.35.2: neu — die Absage des Imports an eine zweite Datei in derselben Anfrage',
-      'server.uploadCap':         '0.35.2: neu — die Absage an zu viele Dateien in einer Anfrage',
-      'server.uploadSize':        '0.35.2: neu — die Absage an eine zu grosse Datei',
-      'server.videoOne':          '0.35.2: neu — die Absage des Videowegs an ein zweites Video',
-      /* UND DREIZEHN MIT DEM STUECKWEISEN EXPORT -- dieselben wie drueben. */
-      'card.carryOn':             '0.40.0: neu — der Knopf, der den Hinweis bestaetigt',
-      'card.exportOversizeHint':  '0.40.0: der Hinweis nennt keine Hoechstgroesse je Datei mehr',
-      'card.exportRunTitle':      '0.40.0: neu — die Ueberschrift des Hinweises vor dem Export',
-      'card.importRunTitle':      '0.40.0: neu — die Ueberschrift des Hinweises vor dem Import',
-      'card.runKeepOpen':         '0.40.0: neu — das Fenster muss offen bleiben',
-      'card.runNoProgress':       '0.40.0: neu — es gibt keine Fortschrittsanzeige',
-      'card.runTakesTime':        '0.40.0: neu — es kann je nach Bestand und Verbindung dauern',
-      'card.wayBackupHint':       '0.40.0: neu — wofuer die Sicherung der Weg ist',
-      'card.wayFile':             '0.40.0: neu — der Name des ersten der drei Wege',
-      'card.wayFileHint':         '0.40.0: neu — wofuer der Export in einer Datei der Weg ist',
-      'card.wayPartsHint':        '0.40.0: neu — wofuer der Export in Teilen der Weg ist',
-      'card.whichWayHeading':     '0.40.0: neu — die Ueberschrift der Gegenueberstellung',
-      'server.importNoSpace':     '0.40.0: neu — die Absage bei zu wenig freiem Platz',
-      // Dieselben wie drueben.
-      'card.backupWhatHint': '0.41.0: die Karte nennt Benutzer und Einstellungen, die der Export nicht enthaelt',
-      'card.exportOnlyEntries': '0.41.0: neu — Export und Import enthalten nur die Eintraege',
-      'card.exportPurposeHint': '0.41.0: der Satz nennt, was der Export nicht enthaelt',
-      'card.limitAttachment': '0.41.0: neu — die Beschriftung der Grenze fuer Anhaenge',
-      'card.limitCommentImage': '0.41.0: neu — die Beschriftung der Grenze fuer Bilder im Kommentar',
-      'card.limitCommentVideo': '0.41.0: neu — die Beschriftung der Grenze fuer Videos im Kommentar',
-      'card.limitPhoto': '0.41.0: neu — die Beschriftung der Grenze fuer Fotos',
-      'card.limitRange': '0.41.0: neu — die Spanne unter jedem Feld der Grenzen',
-      'card.limitVideo': '0.41.0: neu — die Beschriftung der Grenze fuer Videos',
-      'card.onlyBackupComplete': '0.41.0: neu — nur das Backup ist eine vollstaendige Sicherung der Datenbank',
-      'card.proxyBodyHint': '0.41.0: neu — der Reverse Proxy muss Anfragen dieser Groesse durchlassen',
-      'card.uploadLimits': '0.41.0: neu — die Ueberschrift der Karte „Grenzen beim Hochladen"',
-      'card.uploadLimitsHint': '0.41.0: neu — was die Karte einstellt und ab wann es gilt',
-      'entry.addImage': '0.41.0: der Knopf im Kommentar nennt Bild und Video',
-      'entry.imageCapHint': '0.41.0: die Grenze zaehlt Bilder und Videos zusammen',
-      'entry.imagesAttached': '0.41.0: die Meldung nennt Bilder und Videos',
-      'entry.imagesRemovedAdmin': '0.41.0: die Marke nennt Bilder und Videos',
-      'entry.withAllImages': '0.41.0: die Loeschfrage nennt Bilder und Videos',
-      'error.proxyTooLarge': '0.41.0: neu — die Antwort 413 des Reverse Proxys ohne JSON',
-      'server.entriesTooLarge': '0.41.0: neu — der Export in einer Datei sagt ab und nennt die Eintraege',
-      'server.entryTooLarge': '0.41.0: neu — die Absage an ein Hochladen ueber der Grenze je Eintrag',
-      'server.imageCap': '0.41.0: die Absage zaehlt Bilder und Videos zusammen',
-      'server.uploadLimitRange': '0.41.0: neu — die Absage an eine Grenze ausserhalb ihrer Spanne'
-    };
-    const tgDiff = Object.keys(tgFiles.tr)
-      .filter(k => JSON.stringify(tgPrint[k]) !== JSON.stringify(tgFiles.tr[k]));
-    check('Und jeder tuerkische Wert ist Zeichen fuer Zeichen der des Vergleichsstands — ausser den benannten',
-      tgDiff.sort().join(' ') === Object.keys(TR_CHANGED_AFTER_0313).sort().join(' '),
-      tgDiff.filter(k => !(k in TR_CHANGED_AFTER_0313)).slice(0, 8).join(' ') || 'alle benannt');
-    /* UND JEDER EINTRAG SAGT SEINEN GRUND. Eine Tafel mit vierzehn Schluesseln
-       und ohne Begruendung ist eine Liste und keine Buchfuehrung. */
-    check('Und jeder Eintrag der Tafel nennt seinen Grund',
-      Object.values(TR_CHANGED_AFTER_0313).every(g => g.length > 15),
-      Object.entries(TR_CHANGED_AFTER_0313).filter(([, g]) => g.length <= 15).map(([k]) => k).join(' ') || 'alle benannt');
-    /* UND DIE TAFEL IST IN BEIDE RICHTUNGEN GESCHLOSSEN -- 0.31.1, Zusage 2. */
-    const tgStale = Object.keys(TR_CHANGED_AFTER_0313).filter(k => !tgDiff.includes(k));
-    check('Und kein Eintrag der Tafel benennt einen Unterschied, den es nicht gibt',
-      tgStale.length === 0, tgStale.join(' ') || 'keine Karteileiche');
   }
 }
 

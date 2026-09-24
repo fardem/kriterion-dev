@@ -33,16 +33,16 @@ Fehlversuchen von derselben Adresse ist sie für einige Minuten gesperrt, auch
 über einen Neustart hinweg. Je Benutzername wird nur verzögert, nie gesperrt.
 
 Ein ungültiger Einladungs- oder Rücksetzlink (abgelaufen, eingelöst, falsch
-oder Zugang gesperrt) ergibt immer dieselbe Meldung: „Dieser Link gilt nicht
+oder Account gesperrt) ergibt immer dieselbe Meldung: „Dieser Link gilt nicht
 mehr. Bitte beim Admin einen neuen anfordern."
 
 ### Zweiter Faktor
 
-Freiwillig, je Zugang, ab Werk aus. Niemand kann ihn für einen anderen ein-
+Freiwillig, je Account, ab Werk aus. Niemand kann ihn für einen anderen ein-
 oder ausschalten, auch der Eigentümer nicht. Der Code kommt aus einer App auf
 dem Telefon; Kriterion verschickt keine Codes.
 
-Einschalten in der Karte „Mein Konto":
+Einschalten in der Karte „Mein Account":
 
 1. Eine TOTP-App installieren, etwa Google Authenticator, Aegis, 1Password
    oder die Passwörter-App von iOS.
@@ -59,7 +59,7 @@ verlangt.
 **Wiederherstellungscodes:** Beim Einschalten erscheinen acht Codes. Sie werden
 nur einmal angezeigt und gelten je einmal anstelle eines App-Codes. **Getrennt
 vom Telefon aufbewahren.** Ohne sie ist ein verlorenes Telefon ein verlorener
-Zugang. Neue Codes gibt es in „Mein Konto" gegen Passwort und Code; die alten
+Account. Neue Codes gibt es in „Mein Account" gegen Passwort und Code; die alten
 verfallen dann.
 
 Sind Telefon und Codes weg, schaltet der Eigentümer den zweiten Faktor auf dem
@@ -73,7 +73,7 @@ Mailzugangs fragt Kriterion noch einmal nach dem eigenen Passwort. Die
 Bestätigung gilt einmal, nur für diese Handlung und nur in dieser Sitzung.
 
 Nicht bestätigt werden: Sperren und Entsperren, Anlegen eines Benutzers,
-Änderungen am eigenen Konto, die Testmail und alles am Eintrag.
+Änderungen am eigenen Account, die Testmail und alles am Eintrag.
 
 ## Benutzer und Rollen
 
@@ -110,7 +110,7 @@ Ein Link gilt sieben Tage und einmal. Ab dem ersten Öffnen bleiben 15 Minuten.
 
 Mit einer E-Mail-Adresse im optionalen Feld geht der Link zusätzlich per Mail
 hinaus, sofern der Mailversand eingerichtet ist. Die Adresse ändert danach nur
-der Benutzer selbst in „Mein Konto".
+der Benutzer selbst in „Mein Account".
 
 ### Passwort zurücksetzen
 
@@ -130,13 +130,13 @@ Zwei Häkchen löschen auf Wunsch mit:
 - seine Beiträge in Einträgen anderer.
 
 Sitzungen, offene Links, Favoriten und persönliche Einstellungen gehen immer
-mit. Wer nur den Zugang unterbinden will, sperrt statt zu löschen. Gelöschte
+mit. Wer nur die Anmeldung unterbinden will, sperrt statt zu löschen. Gelöschte
 Benutzer stehen hinter „Gelöschte Benutzer (n)".
 
 ### Registrierung
 
 Mit eingeschalteter Registrierung kann jemand auf der Anmeldeseite über
-„Zugang anfragen" einen Zugang erbitten. Ab Werk ist sie aus. Der Schalter
+„Account anfragen" einen Account erbitten. Ab Werk ist sie aus. Der Schalter
 steht in der Karte „Anfragen" und lässt sich nur einschalten, wenn:
 
 - eine Testmail durchgekommen ist (nach jeder Änderung am Mailzugang erneut),
@@ -146,7 +146,7 @@ Ablauf:
 
 1. Anfrage mit Benutzername und E-Mail-Adresse, ohne Passwort.
 2. Kriterion schickt einen Bestätigungslink, 24 Stunden gültig. Er öffnet
-   keinen Zugang.
+   keinen Account.
 3. Erst die bestätigte Anfrage erscheint in der Karte „Anfragen".
 4. Ein Admin schaltet frei (Rolle Benutzer, mit Einladungslink) oder lehnt ab.
 5. Der Benutzer setzt sein Passwort über den Einladungslink.
@@ -158,7 +158,7 @@ später aus, bleibt der Schalter an; die Karte zeigt eine rote Zeile.
 ### Mailversand
 
 Optional. Ohne Mailzugang stehen alle Links zum Kopieren da. Kriterion
-verschickt nur zwei Arten von Mails, beide als reiner Text: Tokenlinks und
+verschickt nur zwei Arten von E-Mails, beide als reiner Text: Tokenlinks und
 die Testmail.
 
 Den Mailzugang richtet nur der Eigentümer ein, in der Karte „Mailversand"
@@ -177,17 +177,17 @@ Häufige Fehler:
 - Nie direkt vom eigenen Internetanschluss senden, immer über den SMTP-Server
   eines Anbieters.
 
-Landet die Mail im Spam, fehlen für die Absenderdomain meist die Einträge SPF,
+Landet die E-Mail im Spam, fehlen für die Absenderdomain meist die Einträge SPF,
 DKIM und DMARC. Die Werte liefert der Mailanbieter. Prüfen lässt es sich an
 einer Testmail an ein Gmail-Konto unter „Original anzeigen".
 
-„Testmail an mich" geht an die Adresse des eigenen Kontos. Antwortet der
+„Testmail an mich" geht an die Adresse des eigenen Accounts. Antwortet der
 Mailserver nicht, bricht der Versuch nach 20 Sekunden ab; der Link steht
 trotzdem zum Kopieren da.
 
 ### Meine Sitzungen
 
-Die Karte zeigt, wo das eigene Konto angemeldet ist, und beendet mit „Alle
+Die Karte zeigt, wo der eigene Account angemeldet ist, und beendet mit „Alle
 anderen Sitzungen beenden" alle außer der aktuellen. Gerät und IP-Adresse
 werden nicht gespeichert. Jeder sieht nur seine eigenen Sitzungen.
 
@@ -235,7 +235,7 @@ entfernt".
 
 ### Verfasser
 
-Ab dem zweiten Zugang nennen Eintrag, Kommentar und Testtag ihren Verfasser.
+Ab dem zweiten Account nennen Eintrag, Kommentar und Testtag ihren Verfasser.
 Links und Dateien nennen ihn nur, wenn er nicht der Verfasser des Eintrags ist;
 Datum und Name stehen am Mauszeiger. Die Bewertung zeigt nur den eigenen Wert
 und den Schnitt; wer wie bewertet hat, sieht nur der Admin über „Wer hat
@@ -278,7 +278,7 @@ Potenzial („◆ 4,2").
 ### Gespeicherte Ansichten
 
 „+ Ansicht speichern" merkt die ganze Filterstellung samt Suchbegriff als
-Knopf. Das Kreuz am Knopf entfernt sie. Bis zu acht Ansichten je Zugang.
+Knopf. Das Kreuz am Knopf entfernt sie. Bis zu acht Ansichten je Account.
 
 ### Zeitleiste
 
@@ -289,7 +289,7 @@ Testtagen und lässt sich in „Darstellung" abschalten.
 ### Vergleich
 
 Das Häkchen auf einer Kachel nimmt den Eintrag in den Vergleich. Ab zwei
-Zugängen schaltet „meine / alle" zwischen eigenen Werten und dem Schnitt
+Accounts schaltet „meine / alle" zwischen eigenen Werten und dem Schnitt
 aller.
 
 ### Glocke und „Offen"
@@ -449,7 +449,7 @@ eigene Adresse. Abschnitte ohne sichtbare Karte erscheinen nicht.
 
 | Abschnitt | Karten |
 |---|---|
-| Persönlich | Mein Konto, Meine Sitzungen, Darstellung |
+| Persönlich | Mein Account, Meine Sitzungen, Darstellung |
 | Bestand | Kategorien, Tags, Bewertung: Kriterien, Potenzial: Kriterien, Vokabular, Links, Suchmaschinen, Papierkorb |
 | Benutzer | Benutzer, Anfragen, Sicherheitsprotokoll, Mailversand |
 | Datenbank | Kennzahlen, Bildformate, Grenzen beim Hochladen, Backup, Alte Backups, Export und Import |
@@ -507,7 +507,7 @@ markiert. Zurückspielen geht nur auf dem Server (README, „Backup").
 ### Alte Backups
 
 Listet alle Backups mit Nummer, Datum, Alter und Größe. „prüfen" öffnet ein
-Backup probeweise und nennt Einträge, Fotos, Zugänge und das jüngste Datum;
+Backup probeweise und nennt Einträge, Fotos, Accounts und das jüngste Datum;
 „Mit diesem Schlüssel nicht lesbar" heißt, es gehört zu einem anderen
 Schlüssel.
 
@@ -611,7 +611,7 @@ Felder fallen auf die Vorgabe zurück. Das Vokabular gibt es je Sprache.
 ## Hell oder dunkel
 
 In „Darstellung": Hell, Dunkel (Vorgabe) oder Auto (folgt dem
-Betriebssystem). Die Einstellung gilt je Zugang. Das Vollbild bleibt in beiden
+Betriebssystem). Die Einstellung gilt je Account. Das Vollbild bleibt in beiden
 Schemata dunkel.
 
 ## Schriftgröße

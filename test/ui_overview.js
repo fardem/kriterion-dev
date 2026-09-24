@@ -1766,45 +1766,23 @@ async function run() {
         vsFiles[code] = JSON.parse(fs.readFileSync(
           path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
       const vsSentences = ['login.linkUnaffected', 'login.linkUnaffectedRetry'];
-      /* JEDER SATZ IST EINER, und er traegt genau EINEN Platzhalter. Zwei
-         waeren wieder eine Zusammensetzung, keiner waere keine Hervorhebung. */
+      // Jeder Satz steht vollstaendig in seiner Sprache, ohne eingesetztes Stueck.
       const vsWrong = [];
       for (const [code, langFile] of Object.entries(vsFiles))
         for (const k of vsSentences) {
           const value = langFile[k];
-          const platz = (String(value).match(/\{\w+\}/g) || []);
-          if (typeof value !== 'string' || platz.length !== 1 || platz[0] !== '{word}')
+          if (typeof value !== 'string' || /\{\w+\}/.test(value) || value.trim().length < 5)
             vsWrong.push(`${code}/${k}: ${JSON.stringify(value)}`);
         }
-      check('Jede Sprache trägt EINEN Satz mit genau einem hervorgehobenen Stück',
+      check('Jede Sprache trägt beide Sätze vollständig, ohne eingesetztes Stück',
         vsWrong.length === 0, vsWrong.join(' · ') || 'alle sechs');
-      /* UND DAS STUECK STEHT DA UND IST NICHT LEER. Ein leeres Stueck waere
-         eine Hervorhebung um nichts. */
-      const vsEmpty = Object.entries(vsFiles)
-        .filter(([, d]) => !d['login.linkUnaffectedWord']).map(([c]) => c);
-      check('Und das hervorgehobene Stück steht in jeder Sprache da',
-        vsEmpty.length === 0, vsEmpty.join(' ') || 'alle drei');
-      /* UND IM TUERKISCHEN IST ES DAS VERB. Das ist der ganze Befund in einer
-         Zeile: „değil" allein ist keine Verneinung, „etkilenmez" ist eine. */
-      const vsTr = vsFiles.tr;
-      check('Und im Türkischen ist es das VERB — nicht ein Wörtchen davor',
-        vsTr['login.linkUnaffectedWord'] === 'etkilenmez' &&
-        !/\bdeğil\b/.test(vsTr['login.linkUnaffected']) &&
-        !/\bdeğil\b/.test(vsTr['login.linkUnaffectedRetry']),
-        `${JSON.stringify(vsTr['login.linkUnaffectedWord'])} · ${JSON.stringify(vsTr['login.linkUnaffected'])}`);
-      /* UND DIE ALTE ZUSAMMENSETZUNG GIBT ES IM QUELLTEXT NICHT MEHR. */
       const vsSource = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
-      /* AN DER WORTGRENZE GESUCHT UND NICHT IRGENDWO: `weightMark(` traegt
-         die Zeichenfolge „tMark(" mitten im Namen, und der erste Entwurf
-         zaehlte die beiden Gewichtsstellen mit -- vier statt zwei. */
-      /* BIS 0.31.0 STAND HIER `vsRufe === 2` -- die beiden Rufe, die 0.25.4
-         angelegt hat. */
-      const vsOwn = ["tMark('login.linkUnaffected', 'login.linkUnaffectedWord')",
-                        "tMark('login.linkUnaffectedRetry', 'login.linkUnaffectedWord')"];
-      const vsMissing = vsOwn.filter(r => !vsSource.includes(r));
-      check('Und der Ruf, der drei Stücke zusammensetzte, ist weg',
-        !/login\.yourLinkAffected|login\.not'/.test(vsSource) && vsMissing.length === 0,
-        vsMissing.length ? `fehlt: ${vsMissing.join(' · ')}` : 'beide Rufe stehen namentlich');
+      const vsPieces = Object.entries(vsFiles).flatMap(([code, d]) =>
+        ['login.linkUnaffectedWord', 'login.yourLinkAffected', 'login.not']
+          .filter(k => d[k] !== undefined).map(k => `${code}/${k}`));
+      check('Und keines der früheren Bruchstücke steht noch in Datei oder Quelltext',
+        vsPieces.length === 0 && !/login\.(linkUnaffectedWord|yourLinkAffected|not)'/.test(vsSource),
+        vsPieces.join(' · ') || 'keines');
 
       /* ---- DAS ANFUEHRUNGSZEICHEN, DAS NIE GESCHLOSSEN WURDE ------------
          `entry.tagQuote` geht unveraendert in ein `title`; am Bildschirm
