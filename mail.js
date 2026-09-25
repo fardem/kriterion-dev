@@ -1,32 +1,26 @@
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 
-/* Der Uebersetzer. Die vier Briefe und die Absagen dieser Datei stehen in
-   public/languages/<code>.json. */
+// Die Texte stehen in public/languages/<code>.json.
 let t = (locale, key) => `\u27e6${key}\u27e7`;
 function setTranslator(fn) { t = fn; }
 
-/* Ein Fehler mit Schluessel, ohne die Klasse `Message` aus auth.js -- die
-   requiret diese Datei. */
+// Nicht `Message` aus auth.js: auth.js laedt diese Datei.
 const message = (key, values = {}) =>
   Object.assign(new Error(key), { key, values, status: 400 });
 
-/* Der Mailversand -- die einzige Verbindung nach draussen, und nur ausgehend.
-   Nichts in dieser Datei wirft: send() liefert ein Ergebnis. */
 const PROVIDERS = [
   { key: 'gmx',    name: 'GMX',           server: 'mail.gmx.net',       port: 587, secure: false },
   { key: 'web',    name: 'Web.de',        server: 'smtp.web.de',        port: 587, secure: false },
   { key: 'gmail',  name: 'Gmail',         server: 'smtp.gmail.com',     port: 465, secure: true },
   { key: 'strato', name: 'Strato',        server: 'smtp.strato.de',     port: 465, secure: true },
   { key: 'ionos',  name: 'IONOS',         server: 'smtp.ionos.de',      port: 587, secure: false },
-  /* „Eigener Server" ist eine Beschreibung und keine Marke, also traegt der
-     Eintrag einen Schluessel daneben. */
+  // Keine Marke, sondern ein Text: er wird ueber `nameKey` uebersetzt.
   { key: 'eigen',  name: 'Eigener Server', nameKey: 'mail.ownServer',
     server: '',                  port: 587, secure: false }
 ];
 
-/* Drei Hinweise am Bildschirm, je Anbieter. Sie stehen hier, weil der
-   Server die Anbieterliste kennt. Der vierte gilt fuer alle. */
+// Neue Eintraege auch in `MAIL_HINT_KEYS` in test/dom.js eintragen.
 const HINTS = {
   gmail: 'mail.hintGmail',
   gmx: 'mail.hintGmx',
@@ -34,7 +28,7 @@ const HINTS = {
 };
 const HINT_ALWAYS = 'mail.hintAlways';
 
-/* Die drei Fristen. */
+// Fristen in ms; `*_MS` weicht nur im Pruefstand von `*_SHIPPED` ab.
 const keys = require('./keys');
 const SEND_SHIPPED = 20 * 1000;
 const CONNECT_SHIPPED = 7 * 1000;
@@ -43,28 +37,23 @@ const SEND_MS = keys.mailDeadline(SEND_SHIPPED);
 const CONNECT_MS = keys.mailDeadline(CONNECT_SHIPPED);
 const GREETING_MS = keys.mailDeadline(GREETING_SHIPPED);
 
-/* Der Mailzugang liegt unter einem Schluessel in settings und gehoert dem
-   Eigentuemer, nicht dem Admin: der SMTP-Server sieht jede Mail. */
 const SETTING_KEY = 'mailzugang';
 
 const EMPTY = { provider: '', server: '', port: 0, secure: false, user: '', password: '', sender: '' };
 
-// Wie eine Adresse aussehen darf.
 const ADDRESS_PATTERN = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
 const isAddress = (a) => ADDRESS_PATTERN.test(String(a || '').trim());
 
 const providerOf = (key) => PROVIDERS.find(a => a.key === key) || null;
 
-/* Was der Dialog je Anbieter braucht: der Hinweis und die drei festen Werte,
-   die mit der Auswahl gelten -- beides muss vorliegen, bevor gespeichert
-   wird. */
+// Der Dialog zeigt Hinweis und feste Werte schon bei der Auswahl, vor dem Speichern.
 const forChoice = () => PROVIDERS.map(a => ({
   key: a.key, name: a.name, nameKey: a.nameKey || '',
   server: a.server, port: a.port, secure: a.secure,
   hint: HINTS[a.key] || ''
 }));
 
-/* Loest den gespeicherten Zugang zu dem auf, was der Versand braucht. */
+// Feste Anbieter nehmen Server, Port und TLS aus PROVIDERS, nicht aus dem gespeicherten Wert.
 function resolve(raw) {
   const z = { ...EMPTY, ...(raw && typeof raw === 'object' ? raw : {}) };
   const v = providerOf(z.provider);
@@ -76,8 +65,7 @@ function resolve(raw) {
   return { ...z, server: v.server, port: v.port, secure: v.secure };
 }
 
-/* Der Zustand fuer den Bildschirm. Das Passwort kommt nie heraus -- nur die
-   Feststellung, dass eines gesetzt ist, und nicht seine Laenge. */
+// Das Passwort geht nicht an den Browser, auch nicht seine Laenge.
 function state(raw) {
   const z = resolve(raw);
   const v = providerOf(z.provider);
@@ -91,8 +79,6 @@ function state(raw) {
   };
 }
 
-/* Ist der Zugang vollstaendig? Erst der Gegenstand, dann die Eigenschaft:
-   ein leerer Zugang ist keiner. 'eigen' braucht Server und Port zusaetzlich. */
 function configured(raw) {
   const z = resolve(raw);
   if (!providerOf(z.provider)) return false;
@@ -100,8 +86,7 @@ function configured(raw) {
   return Boolean(z.user && z.password && isAddress(z.sender));
 }
 
-/* Prueft, was von aussen hereinkommt, und liefert den Wert zum Speichern.
-   Wirft mit Schluessel; der Aufrufer gibt die Message weiter. */
+// Liefert den Wert zum Speichern oder wirft einen Fehler mit `key`.
 function checkInput(input, before) {
   const e = input && typeof input === 'object' ? input : {};
   const old = resolve(before);
@@ -112,8 +97,7 @@ function checkInput(input, before) {
 
   const user = String(e.user ?? '').trim();
   const sender = String(e.sender ?? '').trim();
-  // Ein neues Passwort wird genommen, wie es ist -- nicht beschnitten: ein
-// Leerzeichen am Ende kann dazugehoeren.
+  // Nicht trimmen: ein Leerzeichen am Ende kann zum Passwort gehoeren.
   const password = typeof e.password === 'string' && e.password !== ''
     ? e.password : String(old.password || '');
 
@@ -132,8 +116,7 @@ function checkInput(input, before) {
   return { ...out, server, port, secure: e.secure === true };
 }
 
-/* Eine Marke ueber den Zugang: damit laesst sich belegen, dass sich seit dem
-   Test nichts geaendert hat. */
+// Fingerprint des Zugangs; zeigt, ob er sich seit dem letzten Mailtest geaendert hat.
 function mark(raw) {
   const z = resolve(raw);
   return crypto.createHash('sha256')
@@ -141,21 +124,16 @@ function mark(raw) {
     .digest('hex').slice(0, 16);
 }
 
-/* Der Versand. Liefert ein Ergebnis und wirft nie -- der Token muss auf jeden
-   Fall entstehen. */
 function buildTransport(z) {
   return nodemailer.createTransport({
     host: z.server, port: z.port, secure: z.secure === true,
     auth: { user: z.user, pass: z.password },
     connectionTimeout: CONNECT_MS, greetingTimeout: GREETING_MS, socketTimeout: SEND_MS,
-    // Keine offen gehaltene Verbindung nach draussen.
     pool: false
   });
 }
 
-/* DER GRUND REIST ALS SCHLUESSEL UND NICHT ALS SATZ: wer ihn zeigt, uebersetzt
-   ihn in der Sprache dessen, der ihn liest. `reasonKey` traegt ihn aus dieser
-   Datei, `reason` die Worte des Anbieters -- immer nur eines von beiden. */
+// Wirft nie: ein gescheiterter Versand darf den Tokenlink nicht verhindern.
 async function send(raw, to, subject, text) {
   const z = resolve(raw);
   if (!configured(z)) return { ok: false, reasonKey: 'mail.noAccount', reason: '' };
@@ -163,12 +141,9 @@ async function send(raw, to, subject, text) {
   let transport = null;
   try {
     transport = buildTransport(z);
-    /* Der Wettlauf ueber den ganzen Versand. Er steht hier und nicht beim
-       Aufrufer: eine Frist je Route waere an der naechsten vergessen. */
+    // Die Gesamtfrist steht hier und nicht beim Aufrufer, damit keine Route sie vergisst.
     let clock;
     const deadline = new Promise((_, error) => {
-      /* DER WURF TRAEGT SEINEN SCHLUESSEL und keinen Satz -- dieselbe Form,
-         die auth.js unter `Message` wirft. */
       const late = new Error('mail.timeout');
       late.key = 'mail.timeout';
       clock = setTimeout(() => error(late), SEND_MS);
@@ -183,22 +158,21 @@ async function send(raw, to, subject, text) {
   } catch (e) {
     return { ok: false, ...shortReason(e) };
   } finally {
-    // Auch im Fehlerfall: keine haengende Verbindung nach draussen.
     try { if (transport) transport.close(); } catch {}
   }
 }
 
+/* Entweder `reasonKey`, uebersetzt in der Sprache des Lesers, oder `reason`,
+   der Text des Anbieters, nie beides. */
 function shortReason(e) {
   if (e && e.key) return { reasonKey: e.key, reason: '' };
-  /* Die Meldung des Anbieters wird beschnitten: manche Server geben die
-     Anmeldedaten in der Absage zurueck. Der Anfang traegt den Fehlercode. */
+  /* Gekuerzt, weil manche Server die Anmeldedaten in der Fehlermeldung
+     wiederholen; der Fehlercode steht am Anfang. */
   const raw = String((e && e.message) || '').replace(/\s+/g, ' ').trim();
   if (!raw) return { reasonKey: 'mail.unknownError', reason: '' };
   return { reasonKey: '', reason: raw.length > 120 ? raw.slice(0, 117) + '…' : raw };
 }
 
-/* Die vier Briefe. Die Texte stehen in der Sprachdatei; hier steht nur der
-   Griff -- welcher Brief zu welchem Anlass gehoert. */
 const mail = (locale, kind, values) => ({
   subject: t(locale, `mail.${kind}.subject`, values),
   text: t(locale, `mail.${kind}.body`, values)

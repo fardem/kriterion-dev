@@ -1,19 +1,16 @@
 const crypto = require('crypto');
 
-/* Der zweite Faktor: TOTP nach RFC 6238, die reine Rechnung. Diese Datei
-   kennt keine Datenbank -- alles, was eine Zeile hat, steht in auth.js. */
+// TOTP nach RFC 6238. Alles mit Datenbankzugriff steht in auth.js.
 const ALGORITHM = 'sha1';
 const DIGITS = 6;
 const STEP_SECONDS = 30;
-// Ein Fenster nach vorn und eines zurueck, also je dreissig Sekunden.
+// In Schritten: je 30 Sekunden vor und zurueck.
 const WINDOW = 1;
 
-/* Die Laenge des Geheimnisses in Bytes. RFC 4226 empfiehlt 20; die gehen
-   glatt in 32 Base32-Zeichen auf, also ohne Fuellzeichen. */
+// RFC 4226 empfiehlt 20 Bytes; das sind 32 Base32-Zeichen ohne Fuellzeichen.
 const SECRET_BYTES = 20;
 
-/* Base32 nach RFC 4648 -- das Alphabet, das Google Authenticator liest. Es
-   kennt kein kleines l, keine 0 und keine 1. */
+// Base32 nach RFC 4648, wie es die Authenticator-Apps lesen.
 const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
 function base32Encode(buffer) {
@@ -24,14 +21,12 @@ function base32Encode(buffer) {
     while (bits >= 5) { out += B32[(value >>> (bits - 5)) & 31]; bits -= 5; }
   }
   if (bits) out += B32[(value << (5 - bits)) & 31];
-  // Fuellzeichen bis auf ein Vielfaches von acht -- so verlangt es RFC 4648.
-// Bei 20 Bytes faellt keines an; die Zeile steht fuer den allgemeinen Fall.
+  // Fuellzeichen nach RFC 4648; bei SECRET_BYTES = 20 faellt keines an.
   while (out.length % 8) out += '=';
   return out;
 }
 
-/* Liefert den Puffer oder null -- null und keine Ausnahme: der Aufrufer ist
-   eine Route. */
+// null statt Ausnahme, weil der Aufrufer eine Route ist.
 function base32Decode(text) {
   const t = String(text || '').toUpperCase().replace(/[\s-]/g, '').replace(/=+$/, '');
   if (!t) return null;
@@ -47,22 +42,17 @@ function base32Decode(text) {
   return Buffer.from(out);
 }
 
-// Ein frisches Geheimnis, fertig zum Abtippen. Es verlaesst die Instanz genau
-// einmal -- beim Einschalten.
 const newSecret = () => base32Encode(crypto.randomBytes(SECRET_BYTES));
 
-/* Der Schluessel am Bildschirm, in Vierergruppen. Die Gruppen sind eine
-   Anzeige und kein Format: base32Decode wirft sie wieder weg. */
+// Nur Anzeige; base32Decode entfernt die Leerzeichen wieder.
 const groupsOfFour = (s) => String(s || '').replace(/(.{4})(?=.)/g, '$1 ');
 
-/* Die Zahl der Dreissig-Sekunden-Schritte seit dem 1.1.1970. Sie ist der
-   Zaehler des HMAC und zugleich das, was gegen Wiederverwendung aufbewahrt
-   wird. */
+/* Schritte seit dem 1.1.1970 als Zaehler des HMAC; auth.js speichert ihn
+   gegen Wiederverwendung. */
 const stepOf = (msSinceEpoch) => Math.floor(msSinceEpoch / 1000 / STEP_SECONDS);
 const nowStep = () => stepOf(Date.now());
 
-/* Der Code zu einem Zaehler. Das dynamische Abgreifen steht in RFC 4226,
-   Abschnitt 5.3. */
+// Dynamic Truncation nach RFC 4226, Abschnitt 5.3.
 function code(secretBase32, counter) {
   const secret = base32Decode(secretBase32);
   if (!secret || !secret.length) return null;
@@ -75,12 +65,10 @@ function code(secretBase32, counter) {
   return String(bin % 10 ** DIGITS).padStart(DIGITS, '0');
 }
 
-// Sieht ein getippter Wert nach einem Code aus. Sechs Ziffern, sonst nichts --
-// damit ein Eingabefeld ihn vom Wiederherstellungscode unterscheidet.
+// Trennt im selben Eingabefeld den Code vom Wiederherstellungscode.
 const isCodeForm = (input) => new RegExp(`^\\d{${DIGITS}}$`).test(String(input || '').trim());
 
-/* Prueft einen Code gegen das Fenster und liefert den Zaehler, der getragen
-   hat, oder null. */
+// Liefert den passenden Zaehler oder null.
 function checkCode(secretBase32, input, now = Date.now()) {
   const typed = String(input || '').trim();
   if (!isCodeForm(typed)) return null;
@@ -96,8 +84,6 @@ function checkCode(secretBase32, input, now = Date.now()) {
   return null;
 }
 
-/* Die Zeile fuer die App. otpauth:// ist der Standard; auf einem Telefon
-   oeffnet der Link die App unmittelbar. */
 function otpauthLine(instance, username, secretBase32) {
   const label = encodeURIComponent(`${instance}:${username}`);
   return `otpauth://totp/${label}?secret=${secretBase32}` +
@@ -105,28 +91,22 @@ function otpauthLine(instance, username, secretBase32) {
     `&algorithm=${ALGORITHM.toUpperCase()}&digits=${DIGITS}&period=${STEP_SECONDS}`;
 }
 
-/* Die Wiederherstellungscodes -- ohne sie ist ein verlorenes Telefon ein
-   verlorener Zugang. */
+// Ohne I, L, O, 0 und 1, die sich beim Abtippen verwechseln lassen.
 const RECOVERY_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const RECOVERY_COUNT = 8;
 const RECOVERY_LENGTH = 10;
 
-/* Gleichverteilt gezogen. `zufall % 31` gaebe den ersten Zeichen des
-   Alphabets rund vier Prozent mehr Gewicht. */
+// randomInt statt Byte % 31, das die ersten Zeichen bevorzugt.
 const oneRecoveryCode = () => Array.from({ length: RECOVERY_LENGTH },
   () => RECOVERY_ALPHABET[crypto.randomInt(RECOVERY_ALPHABET.length)]).join('');
 
 const newRecoveryCodes = () => Array.from({ length: RECOVERY_COUNT }, oneRecoveryCode);
 
-// Am Bildschirm in zwei Fuenferbloecken: XXXXX-XXXXX.
 const recoveryDisplay = (c) => `${String(c).slice(0, 5)}-${String(c).slice(5)}`;
 
-/* Auf die Form gebracht, bevor verglichen wird: Bindestriche und Leerzeichen
-   fallen weg, klein wird gross. */
 const recoveryNormal = (input) =>
   String(input || '').toUpperCase().replace(/[\s-]/g, '');
 
-// Die Gegenprobe zu isCodeForm: zehn Zeichen aus dem Alphabet, sonst nichts.
 const isRecoveryForm = (input) => {
   const w = recoveryNormal(input);
   return w.length === RECOVERY_LENGTH && [...w].every(z => RECOVERY_ALPHABET.includes(z));

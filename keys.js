@@ -2,21 +2,15 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { logLine, logWarn, logFail } = require('./log');
-// Die Ansagen dieser Datei gelten dem Betreiber. Im Neben-Thread bleiben
-// sie aus, sonst staenden sie bei jedem Bestandslauf ein zweites Mal im
-// Containerprotokoll.
+// Ausgaben nur im Haupt-Thread, sonst stehen sie bei jedem Lauf von batchrun.js doppelt im Log.
 const { isMainThread } = require('worker_threads');
 
-// Genau 64 Hex-Zeichen. An einer Stelle, weil die Frage an dreien gestellt
-// wird: beim Laden, beim Erzeugen und beim Nachziehen der Ablage.
 const HEX_PATTERN = /^[0-9a-fA-F]{64}$/;
 
-/* Der Pruefschalter senkt drei Kosten des Prueflaufs: die Kostenstufe von
-   scrypt, die drei Mailfristen und die Wartezeit der Anmeldebremse. Nur die
-   Form `pruefstand:name=wert` wird gelesen, und jede hat einen Boden. */
+// Form: KRITERION_TESTBENCH=pruefstand:scrypt=N:mail=N:brake=N, gesetzt nur vom Pruefstand.
 const TESTBENCH_NAME = 'KRITERION_TESTBENCH';
 const TESTBENCH_MARK = 'pruefstand';
-// Der Boden je Einstellung. `scrypt` muss ausserdem eine Zweierpotenz sein.
+// Untergrenzen: scrypt als Kostenstufe N, mail und brake in ms.
 const TESTBENCH_FLOOR = { scrypt: 1024, mail: 100, brake: 10 };
 
 function testbenchSwitch() {
@@ -33,21 +27,17 @@ function testbenchSwitch() {
   return Object.keys(outcome).length ? outcome : null;
 }
 
-/* Die Kostenstufe von scrypt. Ohne Schalter die ausgelieferte Zahl, mit
-   Schalter keine unter dem Boden und keine, die keine Zweierpotenz ist. */
 function scryptCost(shipped) {
   const set = testbenchSwitch();
   const wish = set && set.scrypt;
   if (!wish) return shipped;
   const floored = Math.max(TESTBENCH_FLOOR.scrypt, wish);
-  // Auf die naechste Zweierpotenz NACH UNTEN, aber nie unter den Boden.
+  // Node verlangt fuer N eine Zweierpotenz; abgerundet, nie unter den Boden.
   const power = 2 ** Math.floor(Math.log2(floored));
   return Math.max(TESTBENCH_FLOOR.scrypt, power);
 }
 
-/* Die Wartezeit der Anmeldebremse. Gesenkt wird nur das Warten, nicht die
-   Kurve und nicht die Schwellen: weich ab fuenf, hart ab zehn, fuenf Minuten
-   Sperre bleiben. */
+// Kuerzt nur die Wartezeit, nicht die Schwellen der Anmeldebremse in auth.js.
 function brakeWait(shipped) {
   if (!shipped) return 0;
   const set = testbenchSwitch();
@@ -63,9 +53,6 @@ function mailDeadline(shipped) {
   return Math.max(TESTBENCH_FLOOR.mail, Math.round(shipped / part));
 }
 
-// Der Schluessel oeffnet die Datenbankdatei und kann deshalb nicht darin
-// liegen: er kommt aus der Umgebung oder aus einer Datei daneben. Fehlt
-// beides, wird einer erzeugt.
 function loadKey(dataDir) {
   const fromEnv = process.env.ENCRYPTION_KEY;
   if (fromEnv && fromEnv.trim()) {
@@ -80,9 +67,9 @@ function loadKey(dataDir) {
   const keyPath = path.join(dataDir, 'encryption.key');
   if (fs.existsSync(keyPath)) {
     const hex = fs.readFileSync(keyPath, 'utf8').trim();
-    /* Genau 64 Hex-Zeichen nimmt SQLCipher als Schluessel, alles andere als
-       Passwort. Eine abgeschnittene Datei meldete sonst `SQLITE_NOTADB` und
-       bekam eine neue Datenbank unter einem unwiederbringlichen Schluessel. */
+    /* SQLCipher nimmt nur 64 Hex-Zeichen als Schluessel und alles andere als
+       Passwort; eine abgeschnittene Datei fuehrte sonst zu `SQLITE_NOTADB` und
+       einer neuen Datenbank unter einem verlorenen Schluessel. */
     if (!HEX_PATTERN.test(hex))
       throw new Error(`${keyPath} enthaelt keine 64 Hex-Zeichen, sondern ` +
         `${hex.length} Zeichen. Die Datei ist leer, abgeschnitten oder ` +
@@ -118,16 +105,13 @@ function warnKeyBesideData() {
   );
 }
 
-/* Den Schluessel wechseln -- nur von keytool.js auf dem Wirt; der Server
-   liest seinen Schluessel beim Start und danach nie wieder. Zwei Ablagen,
-   weil loadKey() zwei Herkuenfte kennt: die Datei und die .env. */
+/* ---- Schluesselwechsel, nur fuer keytool.js ---- */
 
 function createKey() {
   return crypto.randomBytes(32).toString('hex');
 }
 
-// Die Ablage neben der Datenbank. Erst daneben schreiben, dann umbenennen:
-// eine halbgeschriebene Schluesseldatei oeffnet nichts mehr.
+// Erst `.wird` schreiben, dann umbenennen: eine halb geschriebene Schluesseldatei oeffnet nichts.
 function writeKeyFile(dataDir, hex) {
   if (!HEX_PATTERN.test(hex)) throw new Error('Der neue Schluessel ist kein 64-stelliger Hexwert.');
   const target = path.join(dataDir, 'encryption.key');
@@ -137,8 +121,6 @@ function writeKeyFile(dataDir, hex) {
   return target;
 }
 
-/* Die aktiven ENCRYPTION_KEY-Zeilen einer .env, mit Nummer und Wert. Eine
-   auskommentierte Zeile zaehlt nicht. */
 function findEnvLine(lines) {
   const hit = [];
   lines.forEach((z, i) => {
@@ -148,9 +130,7 @@ function findEnvLine(lines) {
   return hit;
 }
 
-/* Bringt die Notiz `who` auf eine Zeile und kuerzt sie auf 80 Zeichen. Sie
-   landet in einer Datei, die beim Start Zeile fuer Zeile gelesen wird; ein
-   Zeilenumbruch darin schoebe eine erfundene Einstellung dazwischen. */
+// Ein Zeilenumbruch in `who` ergaebe in der .env eine zusaetzliche Einstellung.
 function cleanNote(text) {
   const s = String(text == null ? '' : text).replace(/[\r\n]+/g, ' ').trim();
   return (s ? s.slice(0, 80) : 'unbekannt');
@@ -159,8 +139,7 @@ function cleanNote(text) {
 function writeEnvLine(file, oldHex, newHex, who, stamp) {
   if (!HEX_PATTERN.test(newHex)) throw new Error('Der neue Schluessel ist kein 64-stelliger Hexwert.');
   const raw = fs.readFileSync(file, 'utf8');
-  // Die Zeilenenden bleiben, wie sie sind: eine .env, die nach dem Wechsel
-  // ploetzlich CRLF traegt, waere eine Aenderung, die niemand bestellt hat.
+  // Nur an `\n` trennen, damit die Zeilenenden der Datei erhalten bleiben.
   const lines = raw.split('\n');
   const hit = findEnvLine(lines);
   if (!hit.length)
@@ -171,22 +150,17 @@ function writeEnvLine(file, oldHex, newHex, who, stamp) {
     throw new Error(`In ${file} stehen ${hit.length} aktive Zeilen ENCRYPTION_KEY=. ` +
       'Welche gemeint ist, entscheidet dieser Befehl nicht.');
   const old = hit[0].value.trim();
-  // Die .env muss zu dieser Instanz gehoeren: steht dort ein anderer Wert
-  // als der, mit dem die Datenbank offen ist, ist es die falsche Datei.
   if (old.toLowerCase() !== String(oldHex).toLowerCase())
     throw new Error(`Die Zeile ENCRYPTION_KEY in ${file} traegt einen anderen Wert als den, ` +
       'mit dem diese Datenbank offen ist. Das ist nicht die .env dieser Instanz.');
-  // Der alte Wert bleibt als Kommentar stehen: er oeffnet jedes Backup von
-  // vor dem Wechsel. Angefasst wird nur diese eine Zeile.
   lines.splice(hit[0].nr, 1,
     `# Abgeloest am ${stamp} durch ${cleanNote(who)} (keytool.js).`,
     '# ER OEFFNET ALLE BACKUPS VON VOR DIESEM ZEITPUNKT -- nicht loeschen,',
     '# bevor er im Passwortspeicher steht.',
     `#ENCRYPTION_KEY=${old}`,
     `ENCRYPTION_KEY=${newHex}`);
-  /* Danebenschreiben, dann umbenennen. Der Aufrufer muss die .env deshalb
-     ueber ihr Verzeichnis erreichbar machen und nicht als einzeln
-     eingehaengte Datei -- keytool.sh haengt das Projektverzeichnis ein. */
+  /* rename() scheitert an einer einzeln eingehaengten Datei; keytool.sh haengt
+     deshalb das ganze Projektverzeichnis ein. */
   const becoming = file + '.wird';
   fs.writeFileSync(becoming, lines.join('\n'), { mode: 0o600 });
   fs.renameSync(becoming, file);

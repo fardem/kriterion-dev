@@ -1,33 +1,27 @@
-/* Anhaenge: Auslieferung und Vorschau. Eine Anlage wird nie so ausgeliefert,
- * dass der Browser sie als Webseite ausfuehrt -- neun Schichten, jede an
- * ihrer Stelle weiter unten benannt. */
+/* Anhaenge: Auslieferung und Vorschau. Keine Anlage wird so ausgeliefert,
+ * dass der Browser sie als Webseite ausfuehrt. */
 const zlib = require('zlib');
 
-/* ================= Typen ================= */
+/* ---- Typen ---- */
 
-// Bilder, die gefahrlos eingebettet werden koennen. Bewusst ohne SVG.
+// Ohne SVG, weil es Script enthalten kann.
 const IMAGE_TYPES = {
   jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif',
   webp: 'image/webp', avif: 'image/avif', bmp: 'image/bmp'
 };
 
-/* Kurzvideos am Fotoplatz, eine Liste fuer beide Richtungen. Alles Uebrige
- * -- .avi, .mkv, .wmv, .flv -- gehoert an den Anhang. */
+// Videos am Platz des Fotos; .avi, .mkv, .wmv und .flv bleiben Anhang.
 const VIDEO_TYPES = {
   mp4: 'video/mp4', m4v: 'video/mp4', webm: 'video/webm', mov: 'video/quicktime'
 };
 
-// Dieselbe Liste rueckwaerts, fuer den Namen einer ausgelieferten Datei.
-// Tragen zwei Endungen denselben Typ, gewinnt die erste (mp4 vor m4v).
+// Bei gleichem Typ gewinnt die erste Endung (mp4 vor m4v).
 const EXTENSION_BY_TYPE = {};
 for (const [e, t] of Object.entries(VIDEO_TYPES)) if (!EXTENSION_BY_TYPE[t]) EXTENSION_BY_TYPE[t] = e;
 
-// Dateien, deren Inhalt als Text gelesen und als JSON geschickt wird.
 const TEXT_EXTENSIONS = ['txt', 'md', 'markdown', 'csv', 'tsv', 'log', 'ini', 'conf'];
 
-// Endung -> ausgelieferter Typ. Alles, was hier fehlt, wird
-// application/octet-stream. Die Liste enthaelt absichtlich kein html, xhtml,
-// svg, xml oder aehnliches.
+// Absichtlich ohne html, xhtml, svg und xml.
 const TYPE_BY_EXTENSION = {
   ...IMAGE_TYPES,
   ...VIDEO_TYPES,
@@ -45,8 +39,6 @@ const TYPE_BY_EXTENSION = {
   mp3: 'audio/mpeg', wav: 'audio/wav', json: 'application/json'
 };
 
-/* Nur diese Typen duerfen inline heraus; alles andere bekommt
- * Content-Disposition: attachment. */
 const INLINE_ALLOWED = new Set([...Object.values(IMAGE_TYPES),
                                 ...Object.values(VIDEO_TYPES), 'application/pdf']);
 
@@ -55,14 +47,14 @@ const extension = (name) => {
   return m ? m[1] : '';
 };
 
-/* ================= Auslieferung ================= */
+/* ---- Auslieferung ---- */
 
-// Der ausgelieferte Typ kommt aus der eigenen Liste, nie vom Hochladenden.
+// Nie den Typ vom Hochladenden uebernehmen.
 function outType(filename) {
   return TYPE_BY_EXTENSION[extension(filename)] || 'application/octet-stream';
 }
 
-// Art der Vorschau. Entscheidet allein die Endung, nicht der gemeldete Typ.
+// Nur die Endung zaehlt, nicht der gemeldete Typ.
 function previewKind(filename) {
   const e = extension(filename);
   if (IMAGE_TYPES[e]) return 'image';
@@ -72,8 +64,7 @@ function previewKind(filename) {
   return 'keine';
 }
 
-// Dateiname fuer den Header, ohne Zeilenumbrueche und Anfuehrungszeichen,
-// dazu die Form nach RFC 5987.
+// filename*= nach RFC 5987 fuer Nicht-ASCII, filename= als ASCII-Ersatz.
 function dispositionHeader(filename, inline) {
   const raw = String(filename || 'datei').replace(/[\r\n]/g, ' ');
   const plain = raw.replace(/[^\x20-\x7e]/g, '_').replace(/["\\]/g, '_');
@@ -82,21 +73,17 @@ function dispositionHeader(filename, inline) {
   return `${inline ? 'inline' : 'attachment'}; filename="${plain}"; filename*=UTF-8''${encoded}`;
 }
 
-// Die Sicherheitsregel der Antwort. Sie haelt jede Anlage davon ab, im
-// Ursprung der Anwendung zu laufen. PDF bekommt `sandbox allow-scripts`,
-// weil die Betrachter von Chrome und Edge selbst aus HTML und JavaScript
-// bestehen; allow-same-origin wird nie gesetzt.
+// PDF braucht allow-scripts, weil die Betrachter in Chrome und Edge aus
+// HTML und JavaScript bestehen. Nie allow-same-origin setzen.
 function securityRule(type) {
   return type === 'application/pdf'
     ? "default-src 'none'; sandbox allow-scripts"
     : "default-src 'none'; sandbox";
 }
 
-// Setzt alle Header fuer eine Anlage. Einzige Stelle, an der das geschieht.
+// Dieselben Header setzt setImageHeader; beide zusammen aendern.
 function setHeader(res, filename, { inline = false } = {}) {
   const type = outType(filename);
-  // Inline nur, wenn der Typ auf der kurzen Positivliste steht UND es
-  // ausdruecklich verlangt wurde. Im Zweifel herunterladen.
   const reallyInline = inline && INLINE_ALLOWED.has(type);
   res.set('Content-Type', type);
   res.set('Content-Disposition', dispositionHeader(filename, reallyInline));
@@ -106,10 +93,7 @@ function setHeader(res, filename, { inline = false } = {}) {
   return reallyInline;
 }
 
-/* Typ aus den ersten Bytes -- fuer Bilder ohne Dateinamen. Erkannt wird
- * nur, was eingebettet werden darf. */
-// Die Marken im ftyp-Kasten. Positivliste: eine unbekannte ISO-Marke soll
-   // herunterladen, nicht abspielen.
+// Positivliste: eine unbekannte ISO-Marke wird heruntergeladen, nicht abgespielt.
 const ISO_BRANDS_MP4 = new Set(['isom', 'iso2', 'iso4', 'iso5', 'iso6',
   'mp41', 'mp42', 'mmp4', 'avc1', 'dash', 'cmfc', 'M4V ', 'M4VH', 'M4VP']);
 
@@ -122,12 +106,12 @@ function typeFromBytes(buf) {
   if (header === 'GIF87a' || header === 'GIF89a') return 'image/gif';
   if (b.slice(0, 4).toString('latin1') === 'RIFF' && b.slice(8, 12).toString('latin1') === 'WEBP')
     return 'image/webp';
-  // ISO-BMFF: Laenge, dann 'ftyp', dann die Marke.
+  // MP4-Familie: Laenge, dann 'ftyp', dann die Marke.
   if (b.slice(4, 8).toString('latin1') === 'ftyp') {
     const brand = b.slice(8, 12).toString('latin1');
     if (brand === 'avif' || brand === 'avis') return 'image/avif';
     if (ISO_BRANDS_MP4.has(brand)) return 'video/mp4';
-    // Zwei nachlaufende Leerzeichen, so steht es in jeder QuickTime-Datei.
+    // Die QuickTime-Marke endet auf zwei Leerzeichen.
     if (brand === 'qt  ') return 'video/quicktime';
   }
   // WebM ist Matroska und beginnt mit dem EBML-Kopf.
@@ -140,12 +124,10 @@ function typeFromBytes(buf) {
   return null;
 }
 
-// Header fuer ein Bild aus der Datenbank: hier entscheidet der Inhalt und
-// nicht der Dateiname.
+// Bilder aus der Datenbank haben keinen Dateinamen; hier entscheidet der Inhalt.
 function setImageHeader(res, buf, { name = 'image', maxAge = 3600 } = {}) {
   const type = typeFromBytes(buf) || 'application/octet-stream';
   const inline = INLINE_ALLOWED.has(type);
-  // Der Name traegt die Endung des erkannten Typs.
   const extensions = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif',
                      'image/webp': 'webp', 'image/avif': 'avif', 'image/tiff': 'tiff',
                      'image/bmp': 'bmp', ...EXTENSION_BY_TYPE };
@@ -158,22 +140,19 @@ function setImageHeader(res, buf, { name = 'image', maxAge = 3600 } = {}) {
   return type;
 }
 
-/* Ranges -- ohne sie kann der Browser im Video nicht springen. Ungueltiges
- * wird mit 416 beantwortet, zurechtgerueckt nur ein Ende hinter dem
- * Dateiende. Rueckgabe: null, { ungueltig: true } oder { von, bis }. */
+/* Ohne Ranges kann der Browser im Video nicht springen.
+ * Rueckgabe: null (ganze Datei), { invalid: true } (416) oder { from, to }. */
 function rangeOut(header, size) {
   if (typeof header !== 'string') return null;
   const m = header.trim().match(/^bytes=(\d*)-(\d*)$/);
-  // Mehrere Ranges werden nicht beantwortet; die Norm laesst zu, alles am
-  // Stueck zu schicken.
+  // Mehrere Ranges: ganze Datei schicken, das erlaubt die Norm.
   if (!m) return null;
   const [, a, e] = m;
   if (a === '' && e === '') return null;
-  // Eine leere Datei hat keinen Range, den man verlangen koennte.
   if (size <= 0) return { invalid: true };
   let from, to;
   if (a === '') {
-    // bytes=-500 -- die letzten 500 Bytes. Null Bytes gibt es nicht.
+    // bytes=-500: die letzten 500 Bytes.
     const howMany = Number(e);
     if (howMany <= 0) return { invalid: true };
     from = Math.max(0, size - howMany);
@@ -183,28 +162,26 @@ function rangeOut(header, size) {
     to = e === '' ? size - 1 : Number(e);
     if (from >= size) return { invalid: true };
     if (to < from) return { invalid: true };
-    // Nur das: ein Ende hinter dem Dateiende meint das Dateiende.
+    // Ein Ende hinter dem Dateiende meint das Dateiende.
     if (to >= size) to = size - 1;
   }
   return { from, to };
 }
 
-/* ================= Textvorschau ================= */
+/* ---- Textvorschau ---- */
 
-const PREVIEW_CHARS = 200 * 1024;   // mehr liest niemand im Browser
+const PREVIEW_CHARS = 200 * 1024;   // textPreview: Bytes, docxPreview: Zeichen
 
-// Text lesen, ohne ihn je als Datei auszuliefern. Steuerzeichen fallen weg.
 function textPreview(buf) {
   const raw = buf.slice(0, PREVIEW_CHARS).toString('utf8');
   const text = raw.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '');
   return { text, shortened: buf.length > PREVIEW_CHARS };
 }
 
-/* ================= .docx-Vorschau ================= */
-/* Eine .docx ist ein ZIP mit word/document.xml, ausgepackt mit zlib. */
+/* ---- .docx-Vorschau ---- */
 function findInZip(buf, wantedName) {
-  // Das Ende des zentralen Verzeichnisses steht hinten -- rueckwaerts
-  // suchen.
+  // Am Dateiende: End of Central Directory (22 Bytes), danach bis zu
+  // 65535 Bytes Kommentar.
   const END = 0x06054b50;
   let eocd = -1;
   for (let i = buf.length - 22; i >= 0 && i >= buf.length - 22 - 65535; i--) {
@@ -224,8 +201,7 @@ function findInZip(buf, wantedName) {
     const offset = buf.readUInt32LE(p + 42);
     const name = buf.slice(p + 46, p + 46 + nameLen).toString('utf8');
     if (name === wantedName) {
-      // Der oertliche Kopf hat eigene Laengen fuer Name und Zusatzfeld --
-      // die aus dem Verzeichnis passen hier nicht.
+      // Der Local File Header hat eigene Laengen fuer Name und Zusatzfeld.
       if (buf.readUInt32LE(offset) !== 0x04034b50) return null;
       const oNameLen = buf.readUInt16LE(offset + 26);
       const oExtraLen = buf.readUInt16LE(offset + 28);
@@ -233,15 +209,14 @@ function findInZip(buf, wantedName) {
       const raw = buf.slice(start, start + packed);
       if (method === 0) return raw;                     // ungepackt
       if (method === 8) return zlib.inflateRawSync(raw); // deflate
-      return null;                                        // anderes Verfahren
+      return null;
     }
     p += 46 + nameLen + extraLen + commentLen;
   }
   return null;
 }
 
-// Vereinfachte Lesevorschau: Absaetze und Zeilenumbrueche bleiben, alles
-// andere faellt weg. Keine Formatierung, keine Bilder, keine Tabellenraster.
+// Nur Text: keine Formatierung, keine Bilder, keine Tabellen.
 function docxPreview(buf) {
   let xml;
   try { xml = findInZip(buf, 'word/document.xml'); }
@@ -252,7 +227,7 @@ function docxPreview(buf) {
     .replace(/<w:tab[^>]*\/?>/g, '\t')
     .replace(/<w:br[^>]*\/?>/g, '\n')
     .replace(/<\/w:p>/g, '\n')
-    .replace(/<[^>]+>/g, '')                       // alle uebrigen Marken weg
+    .replace(/<[^>]+>/g, '')
     .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"').replace(/&apos;/g, "'")
     .replace(/&amp;/g, '&')                        // amp zuletzt, sonst doppelt

@@ -433,7 +433,7 @@ async function checkBatchRun() {
     check('db.js legt keine Tabelle ohne IF NOT EXISTS an',
       blWithoutWhen === 0 && !/db\.exec\('VACUUM'\)/.test(blDb), `${blWithoutWhen} Stellen`);
     check('Und der Nachweis der Wiederholbarkeit steht dort geschrieben',
-      /WAS BEIM OEFFNEN LAEUFT, DARF ZWEIMAL LAUFEN/.test(blDb),
+      /muss wiederholbar sein/.test(blDb),
       'die Begruendung fehlt');
     /* 12. DIE ANSAGEN AN DEN BETREIBER BLEIBEN IM HAUPT-THREAD. */
     const blKeys = fs.readFileSync(path.join(__dirname, 'keys.js'), 'utf8');

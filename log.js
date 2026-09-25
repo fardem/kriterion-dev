@@ -1,6 +1,5 @@
-/* Das Containerprotokoll: Zeitstempel und Name an einer Stelle, ISO 8601 mit
-   Versatz aus TZ. Die GESPEICHERTEN Zeiten folgen TZ nicht -- sie bleiben UTC,
-   weil sie zwischen Installationen verglichen werden. */
+/* Zeitstempel fuers Containerprotokoll in ISO 8601 mit Versatz aus TZ;
+   gespeicherte Zeiten bleiben UTC. */
 
 const NAME = '[Kriterion]';
 

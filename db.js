@@ -3,8 +3,7 @@ const path = require('path');
 const Database = require('better-sqlite3-multiple-ciphers');
 const { loadKey } = require('./keys');
 const { logLine, logWarn, logFail } = require('./log');
-// Die eine Ansage dieser Datei bleibt im Neben-Thread still: der
-// Bestandslauf oeffnet dieselbe Datei aus seinem eigenen Thread.
+// batchrun.js laedt diese Datei im eigenen Thread; Meldungen nur im Haupt-Thread.
 const { isMainThread } = require('worker_threads');
 
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
@@ -22,9 +21,8 @@ function open(file) {
   return db;
 }
 
-/* Den Schluessel der Datei wechseln, nur von keytool.js bei angehaltener
-   Instanz. PRAGMA rekey laeuft im WAL-Modus nicht: erst auf DELETE
-   umschalten, wechseln, im finally zurueckschalten. */
+/* Nur fuer keytool.js bei angehaltener Instanz. PRAGMA rekey laeuft nicht
+   im WAL-Modus, daher vorher DELETE. */
 function changeKey(newHex) {
   if (!/^[0-9a-fA-F]{64}$/.test(String(newHex)))
     throw new Error('Der neue Schluessel ist kein 64-stelliger Hexwert.');
@@ -38,9 +36,8 @@ function changeKey(newHex) {
   return { before, after: db.pragma('journal_mode', { simple: true }) };
 }
 
-/* Welche Verfahren wirklich laufen, abgelesen und nicht behauptet: `cipher`
-   und `journal_mode` fragt die geoeffnete Datei selbst. Keine Paketversion --
-   ein Name sagt, wie gerechnet wird, eine Nummer, welche Luecke passt. */
+/* Aus der geoeffneten Datei gelesen. Ohne Paketversion, weil sie verriete,
+   welche Sicherheitsluecke passt. */
 function method() {
   return {
     cipher: String(db.pragma('cipher', { simple: true }) || ''),
@@ -49,8 +46,8 @@ function method() {
   };
 }
 
-/* Kein Backtick in diesem String, auch nicht in einem SQL-Kommentar: das
-   ganze Schema ist ein Template-String, und ein Backtick beendet ihn. */
+/* Kein Backtick im Schema, auch nicht in SQL-Kommentaren: er beendet den
+   Template-String. */
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS product_categories (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -480,31 +477,24 @@ CREATE TABLE IF NOT EXISTS trash_bytes (
 );
 `;
 
-/* WAS BEIM OEFFNEN LAEUFT, DARF ZWEIMAL LAUFEN: der Bestandslauf oeffnet
-   dieselbe Datei aus einem eigenen Thread. Jede Zeile hier ist wiederholbar --
-   IF NOT EXISTS, OR IGNORE oder ein Schreiben nur bei Abweichung. */
+/* Alles ab hier muss wiederholbar sein, weil batchrun.js die Datei im eigenen
+   Thread erneut oeffnet: IF NOT EXISTS, OR IGNORE, Schreiben nur bei Abweichung. */
 const db = open(DB_FILE);
 
-/* searchFold() -- die eine Faltung der Suche, ohne Sprache. Die vier i von
-   Unicode fallen auf eines, `ß` und `ss` auf `ss`; der Preis: „Masse" findet
-   auch „Maße". null wird zum leeren String -- `NULL > 0` ist nie wahr. */
+/* Ohne Sprache: die i-Varianten fallen zusammen, `ß` wird `ss` („Masse"
+   findet auch „Maße"). null wird '', weil `NULL > 0` in SQL nie wahr ist. */
 const searchFold = (s) => (s === null || s === undefined ? ''
   : String(s).toLowerCase().replace(/\u0307/g, '').replace(/\u0131/g, 'i')
       .replace(/\u00df/g, 'ss'));
 
-/* kkl() -- die Faltung, in SQL eingehaengt: SQLites lower() faltet nur ASCII.
-   deterministic: ohne die Angabe verbietet SQLite den Aufruf in einem Index
-   oder einer erzeugten Spalte. */
+/* SQLites lower() faltet nur ASCII. Ohne deterministic verbietet SQLite die
+   Funktion in Index und erzeugter Spalte. */
 db.function('kkl', { deterministic: true }, searchFold);
 
 db.exec(SCHEMA);
 
-/* Die Probe auf einen unvollstaendigen Bestand -- sie meldet, sie sperrt
-   nicht. Gefragt wird der Bestand und kein Merker. Sie steht HINTER
-   db.exec(SCHEMA): was danach fehlt, ist eine Spalte und keine Tabelle. */
-/* JEDE SPALTE EINZELN, mit drei Angaben: Tabelle, Spalte und der Name, unter
-   dem sie frueher dalag (oder null). DER ALTE NAME IST DIE GENAUERE DIAGNOSE:
-   steht er da, fehlt nicht die Spalte, sondern die Umbenennung. */
+/* Nach db.exec(SCHEMA) pruefen: dann fehlt nur noch eine Spalte, keine
+   Tabelle. Dritter Wert: der fruehere Spaltenname fuer die Meldung. */
 const REQUIRED_COLUMNS = [
   ['comments',           'images_removed',  null],
   ['links',              'user_id',         null],
@@ -531,9 +521,7 @@ function incompleteDatabase() {
     .all().map(z => z.name));
   const findings = [];
   for (const [table, column, old] of REQUIRED_COLUMNS) {
-    /* FEHLT DIE TABELLE, FEHLT KEINE SPALTE. Die DDL legt jede an, die zum
-       Schema gehoert; was hier trotzdem fehlte, gehoert nicht dazu, und eine
-       Meldung darueber waere ein Fehlalarm. */
+    // Nach db.exec(SCHEMA) fehlt nur eine Tabelle, die nicht zum Schema gehoert.
     if (!tables.has(table)) continue;
     const columns = db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
     if (columns.includes(column)) continue;
@@ -544,14 +532,9 @@ function incompleteDatabase() {
   return findings;
 }
 
-/* DER KASTEN, dieselbe Form wie warnKeyBesideData() in keys.js: derselbe
-   Rahmen, dieselbe Breite. ER SAGT, WAS ZU TUN IST, und nicht nur, was falsch
-   ist -- ein Hinweis ohne Weg ist eine Beunruhigung. */
+// Rahmen und Breite wie warnKeyBesideData() in keys.js.
 function warnIncompleteDatabase(findings) {
   if (!isMainThread || !findings.length) return;
-  /* DER ALTE NAME STEHT AUCH DANN DA, WENN ER NICHT MEHR LIEGT: „fehlt, und
-     unter dem alten Namen liegt sie auch nicht" ist die schaerfere Auskunft
-     als „fehlt". */
   const rows = findings.map(f =>
     `    ${f.place.padEnd(22)} is missing` +
     (f.old ? (f.oldThere ? `; still present as ${f.old}`
@@ -576,49 +559,28 @@ function warnIncompleteDatabase(findings) {
 }
 warnIncompleteDatabase(incompleteDatabase());
 
-/* ERST BEIM ERSTEN RUF VORBEREITET: ueber einer unvollstaendigen Datenbank
-   wirft db.prepare, und die Instanz kaeme gar nicht hoch. Der spaete Ruf
-   laesst sie starten und die LESENDE Seite scheitern. */
-/* NICHT die Spaltenliste von der Spalte abhaengig machen: die Seite liefe
-   dann mit fehlenden Daten weiter und behauptete Vollstaendigkeit. */
+/* Erst beim ersten Aufruf vorbereitet, weil db.prepare bei fehlender Spalte
+   wirft und die Instanz sonst nicht startet; die Spaltenliste nicht an die
+   vorhandenen Spalten anpassen, sonst fehlen Daten ohne Fehlermeldung. */
 const lateStatement = (sql) => {
   let ready = null;
   return () => (ready || (ready = db.prepare(sql)));
 };
-/* Dieselbe Verspaetung fuer eine Gruppe, die zusammengehoert. */
+// Wie lateStatement, fuer mehrere Statements zusammen.
 const lateGroup = (build) => {
   let ready = null;
   return () => (ready || (ready = build()));
 };
 
-/* DIE INDIZES AUF NACHGERUESTETE SPALTEN STEHEN HIER UNTEN UND NICHT IN DER
-   DDL, weil sie eine Klammer tragen: dort truege `db.exec(SCHEMA)` den
-   Fehlschlag. Ein fehlender Index kostet Geschwindigkeit, keine Auskunft. */
+/* Diese Indizes stehen nicht in SCHEMA: bei fehlender Spalte scheitert so nur
+   der Index und nicht db.exec(SCHEMA). Die Spalte meldet warnIncompleteDatabase. */
 
-/* WOZU DER ERSTE: `kind` steht hinter drei Blobs (data, thumb, medium). Wer
-   es aus dem SATZ liest, laeuft die ganze Kette der Overflow-Seiten durch.
-   Gemessen an einer SQLCipher-Datei mit 400 Zeilen a 512 kB (312 MB):
-
-     COUNT(*)                                        0,0 ms
-     mime_type gruppiert  (Spalte 2, VOR den Blobs)  8,7 ms
-     kind gruppiert       (Spalte 6, HINTER ihnen)   1338,8 ms
-     SUM(length(data))    (Spalte 3)                 7,2 ms
-     SUM(length(data)) mit WHERE kind != 'video'      1334,1 ms
-     kind gruppiert, MIT diesem Index                0,1 ms
-
-   EINE GLEICHHEIT, KEINE UNGLEICHHEIT: `WHERE kind != 'video'` schlaegt den
-   Index aus, `WHERE kind IS ?` nutzt ihn. Aufbau einmalig 1,4 s bei 312 MB. */
-/* WAS EIN INDEX BRAUCHT, DER SICH AN EINER UNVOLLSTAENDIGEN DATENBANK NICHT
-   ANLEGEN LAESST: er wird versucht, er faellt weich, und er sagt es in EINER
-   Zeile. Der Kasten weiter oben hat schon gesagt, WAS fehlt. */
-/* Der Wortlaut ohne `IF NOT EXISTS` und ohne Weissraum: so legt SQLite ihn
-   in sqlite_master ab. */
+// SQLite legt den Befehl ohne IF NOT EXISTS in sqlite_master ab.
 const indexWording = (sql) =>
   String(sql).replace(/\s+/g, ' ').replace(/IF NOT EXISTS /i, '').trim();
 const tryIndex = (name, sql) => {
   try {
-    /* `CREATE INDEX IF NOT EXISTS` fasst einen vorhandenen Index nicht an:
-       eine geaenderte Spaltenliste braucht erst das Fallenlassen. */
+    // IF NOT EXISTS laesst einen vorhandenen Index mit alter Spaltenliste stehen.
     const there = db.prepare(
       `SELECT sql FROM sqlite_master WHERE type = 'index' AND name = ?`).get(name);
     if (there && indexWording(there.sql) !== indexWording(sql))
@@ -631,37 +593,27 @@ const tryIndex = (name, sql) => {
   }
 };
 
+/* kind steht hinter drei Blobs; ohne Index liest jede Abfrage die ganze Zeile.
+   312 MB, 400 Zeilen: kind gruppiert 1338,8 ms, mit Index 0,1 ms.
+   Nur `kind IS ?` nutzt den Index, `kind != ?` nicht. */
 tryIndex('idx_photos_kind',
   'CREATE INDEX IF NOT EXISTS idx_photos_kind ON photos(kind)');
 
-/* WOZU DER ZWEITE: `/api/items` holt je Eintrag sieben Fotospalten, die
-   hinter data, thumb und medium stehen. Gemessen an derselben Datei
-   (400 Eintraege, 400 Fotos, 312 MB), je Aufruf ueber alle Eintraege:
-
-     N Abfragen, aus dem Satz                           9,3 ms
-     N Abfragen, aus diesem deckenden Index             3,0 ms
-     EINE Abfrage, aus diesem deckenden Index           1,6 ms
-     EINE Abfrage, ohne ihn                             6,3 ms
-
-   DIE LISTE MUSS VOLLSTAENDIG SEIN: fehlt eine Spalte, faellt SQLite auf
-   idx_photos_item zurueck und liest wieder den Satz. Wer in der Uebersicht
-   eine Spalte ergaenzt, ergaenzt sie AUCH HIER -- eine Pruefung haelt die
-   Liste und PHOTO_SPALTEN gegeneinander. Er kostet 20 kB bei 400 Zeilen. */
-/* UND DIE FASSUNG DER KACHEL STEHT ALS AUSDRUCK MIT DARIN: `length(thumb)`
-   haengt an derselben Abfrage, und ohne den Ausdruck im Index faellt SQLite
-   auf den Zeilenzugriff zurueck. */
+/* /api/items, 312 MB, 400 Eintraege, je Aufruf:
+     N Abfragen ohne Index 9,3 ms, mit Index 3,0 ms
+     eine Abfrage ohne Index 6,3 ms, mit Index 1,6 ms */
+/* Muss alle Spalten aus PHOTO_COLUMNS und PHOTO_VERSION in server.js
+   enthalten, sonst liest SQLite die ganze Zeile. */
 tryIndex('idx_photos_tile', `CREATE INDEX IF NOT EXISTS idx_photos_tile
            ON photos(item_id, sort_order, id, mime_type, focus_x, focus_y, zoom, created_at, kind, duration, length(thumb))`);
 
-/* WOZU DER DRITTE: die Dateien eines Eintrags werden ohne ihren Inhalt
-   gelesen, und alle gelesenen Spalten stehen in attachments hinter `data` --
-   bis 50 MB je Zeile. idx_attachments_item traegt nur item_id. */
+/* Die Dateiliste liest nur Spalten hinter data (bis 50 MB je Zeile);
+   idx_attachments_item traegt nur item_id. */
 tryIndex('idx_attachments_list', `CREATE INDEX IF NOT EXISTS idx_attachments_list
            ON attachments(item_id, sort_order, id, filename, mime_type, size, created_at, user_id)`);
 
-/* DIE ADRESSE IST EINDEUTIG: ein partieller UNIQUE-Index, weil `ALTER TABLE`
-   keines nachruesten kann; `WHERE email IS NOT NULL` und NOCASE wie am Namen.
-   Stehen schon zwei gleiche da, scheitert er -- gemeldet, nicht verschwiegen. */
+/* Partieller UNIQUE-Index, weil SQLite an einer Tabelle kein UNIQUE nachruestet.
+   Scheitert er an doppelten Adressen, nennt emailsDoubled() sie. */
 const qDoubleEmails = `
   SELECT lower(email) AS address, COUNT(*) AS n,
          group_concat(username, ', ') AS names
@@ -669,9 +621,7 @@ const qDoubleEmails = `
    WHERE email IS NOT NULL AND trim(email) <> '' AND status <> 'deleted'
    GROUP BY lower(email) HAVING COUNT(*) > 1
    ORDER BY lower(email)`;
-/* Grabsteine zaehlen nicht mit: ein geloeschter Zugang meldet sich nie
-   wieder an. Seine Adresse steht aber im Weg, also raeumt die Zeile darunter
-   sie weg, bevor der Index versucht wird. */
+// Geloeschte Zugaenge melden sich nie wieder an; ihre Adresse darf den Index nicht verhindern.
 db.prepare(`UPDATE users SET email = NULL WHERE status = 'deleted' AND email IS NOT NULL`).run();
 let doubleEmails = [];
 try {
@@ -683,20 +633,15 @@ try {
     doubleEmails.map(z => `${z.address} (${z.n})`).join(', ') +
     ' -- used more than once. The "Users" card names them.');
 }
-/* Bei jedem Abruf neu gefragt und nicht gemerkt -- und nur, wenn der Index
-   fehlt: steht er, kann es keine doppelte Adresse geben. */
 function emailsDoubled() {
   const present = db.prepare(
     `SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = 'idx_users_email'`).get();
   return present ? [] : db.prepare(qDoubleEmails).all();
 }
 
-// --- Rueckfall: die Instanz braucht einen Eigentuemer ---
-// Gibt es keinen, wird es der aelteste Zugang, DER SCHON RECHTE HAT; erst wenn
-// es auch keinen Admin gibt, der mit der kleinsten Nummer. Der Zwischenschritt
-// ueber den Admin verhindert, dass ein ausdruecklich herabgestufter Erstzugang
-// still wieder befoerdert wird. Ein Grabstein (status = 'deleted') erbt nie:
-// er meldet sich nie wieder an. Wiederholbar und im Normalfall stumm.
+/* ---- Rueckfall: Eigentuemer ---- */
+/* Erst der aelteste Admin, dann der aelteste Zugang, damit ein herabgestufter
+   Erstzugang nicht still wieder Eigentuemer wird. */
 {
   const n = db.prepare(
     "UPDATE users SET role = 'owner' WHERE id = (" +
@@ -709,25 +654,16 @@ function emailsDoubled() {
     'privileged account is the owner now (role=owner).');
 }
 
-// WEM herrenloser Bestand zufaellt, steht an genau einer Stelle -- hier. Die
-// Frage liest die Rolle: der Bestand darf keinem Grabstein zufallen, denn der
-// meldet sich nie wieder an. Gibt es mehrere Eigentuemer, nimmt der aelteste.
-// Blankes SQL statt eines Aufrufs in auth.js: db.js darf von auth.js nichts
-// wissen, die Abhaengigkeit laeuft andersherum.
+// SQL statt eines Aufrufs in auth.js, weil auth.js db.js laedt und nicht umgekehrt.
 function ownerId() {
   return db.prepare("SELECT MIN(id) AS id FROM users WHERE role = 'owner'").get().id;
 }
 
-// --- Rueckfall: kein Bestand ohne Benutzer ---
-/* Alles, was niemandem gehoert, faellt an den Eigentuemer -- auch eine
-   Linkzeile und eine Datei. Im Normalbetrieb entsteht das nicht; geloeschte
-   Zugaenge bleiben als Grabstein stehen, gefangen werden Fehlerfaelle. */
-/* ZWEI AUFRUFSTELLEN, beide noetig: hier beim Start und in auth.js nach
-   legeErstenBenutzerAn() -- in einer leeren Instanz gibt es noch keinen
-   Benutzer, dem etwas zufallen koennte. */
-// UPDATE OR IGNORE, weil user_id bei ratings und test_days im UNIQUE steht:
-// zwei herrenlose Zeilen zum selben Kriterium sind moeglich (NULL gilt im
-// UNIQUE als verschieden); ohne OR IGNORE stuerbe der Start an der Verletzung.
+/* ---- Rueckfall: Bestand ohne Benutzer ---- */
+/* Auch createFirstUser() in auth.js ruft das auf: in einer leeren Instanz
+   gibt es beim Start noch keinen Eigentuemer. */
+/* OR IGNORE: user_id steht bei ratings und test_days im UNIQUE; zwei Zeilen
+   mit NULL gelten dort als verschieden, nach dem Zuweisen nicht mehr. */
 function assignInventory() {
   const counts = {};
   let sum = 0;
@@ -736,9 +672,7 @@ function assignInventory() {
     return { items: 0, comments: 0, test_days: 0, ratings: 0, links: 0, attachments: 0 };
   }
   for (const table of ['items', 'comments', 'test_days', 'ratings', 'links', 'attachments']) {
-    /* Eine Tabelle ohne `user_id` wird uebergangen. Ohne diese Zeile stuerbe
-       der Start an einem `db.prepare` ueber die fehlende Spalte. Gefragt wird
-       die Tabelle selbst. */
+    // Bei fehlender Spalte wuerfe db.prepare, und der Start scheiterte.
     if (!db.prepare(`PRAGMA table_info(${table})`).all().some(c => c.name === 'user_id')) {
       counts[table] = 0;
       continue;
@@ -758,27 +692,20 @@ function assignInventory() {
 }
 assignInventory();
 
-/* Die drei mitgelieferten Kriterien legt der Server an und nicht diese Datei:
-   ihre Namen stehen in den Sprachdateien, und die liegen dort. */
-
-// Reihenfolge der Kriterien lueckenlos durchnummerieren; reihenfolgetreu und
-// beliebig oft wiederholbar. Bewusst in JS statt als UPDATE mit Unterabfrage
-// auf dieselbe Tabelle -- SQLite saehe dort bereits geaenderte Zeilen und
-// nummerierte falsch.
+/* In JS statt UPDATE mit Unterabfrage auf dieselbe Tabelle: SQLite saehe dort
+   schon geaenderte Zeilen und nummerierte falsch. */
 function renumberCriteria() {
   const rows = db.prepare('SELECT id, sort_order FROM rating_criteria ORDER BY sort_order, id').all();
   const upd = db.prepare('UPDATE rating_criteria SET sort_order = ? WHERE id = ?');
   db.transaction(() => rows.forEach((r, i) => { if (r.sort_order !== i) upd.run(i, r.id); }))();
 }
 
-// --- Vorgabewerte ---
+/* ---- Vorgabewerte ---- */
 const setDefault = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
 setDefault.run('title_public', JSON.stringify('Bewertungskatalog'));
 setDefault.run('title_app', JSON.stringify('Model Bewertungen'));
 
-/* Der Stempel in `settings`: `versionCreated` nur in einer wirklich frischen
-   Datenbank, `versionLastOpened` bei jedem Start. Eine fehlende erste Zeile
-   heisst „aelter als der Stempel". Beide sind beliebig oft fahrbar. */
+// Fehlt versionCreated, ist die Datenbank aelter als diese Angabe.
 const APP_VERSION = require('./package.json').version;
 {
   const grown = db.prepare('SELECT COUNT(*) AS n FROM users').get().n > 0 ||
@@ -791,8 +718,6 @@ const APP_VERSION = require('./package.json').version;
   } else if (before.value !== JSON.stringify(APP_VERSION)) {
     db.prepare("UPDATE settings SET value = ? WHERE key = 'versionLastOpened'")
       .run(JSON.stringify(APP_VERSION));
-    /* GESAGT WIRD NUR DER WECHSEL, und nur er ist eine Nachricht. „Laeuft
-       weiter unter derselben Fassung" bei jedem Start waere Gerede. */
     if (isMainThread) {
       let from = null;
       try { from = JSON.parse(before.value); } catch { from = String(before.value); }
@@ -804,19 +729,12 @@ const APP_VERSION = require('./package.json').version;
 
 renumberCriteria();
 
-// keyHex wandert mit, damit der Systembereich den vorhandenen Wert zum
-// Abschreiben zeigen kann. Ausgeliefert wird er nur hinter der Anmeldung und
-// nur dann, wenn er ohnehin schon neben der Datenbank liegt.
+// keyHex nur fuer die Anzeige in den Einstellungen; server.js gibt ihn nur dem
+// Eigentuemer und nicht, wenn der Schluessel aus der Umgebung kommt.
 module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.hex,
-                   // Welche Adressen mehrfach vergeben sind -- leer, solange
-                   // der partielle Index steht.
                    emailsDoubled,
-                   // Die eine Faltung der Suche. Sie geht hinaus, damit die
-                   // NADEL dieselbe Funktion ruft wie der Heuhaufen.
+                   // Der Suchbegriff braucht dieselbe Faltung wie kkl() in SQL.
                    searchFold,
                    changeKey, method,
                    renumberCriteria, assignInventory,
-                   /* Was eine unvollstaendige Datenbank vermissen laesst. Geht hinaus, damit
-                      der Pruefstand die Probe an einer gestellten Lage fragen
-                      kann. */
                    incompleteDatabase, lateStatement, lateGroup };
