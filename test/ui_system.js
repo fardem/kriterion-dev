@@ -1,7 +1,6 @@
-/* Kriterion — Pruefstand: die Oberflaeche: der Systembereich Die Karten des
-   Systembereichs nach Rolle: Zugaenge, Anmeldeseiten, Sitzungen,
-   Sicherheitsprotokoll, Mailversand, Papierkorb, Bildablage und die
-   Sicherung. */
+/* Kriterion — Pruefstand: die Oberflaeche: die Einstellungen nach Rolle,
+   Anmeldeseiten, Sitzungen, Sicherheitsprotokoll, Mailversand, Papierkorb,
+   Bildablage und Backup. */
 const H = require('./frame.js');
 const D = require('./dom.js');
 const {
@@ -15,15 +14,13 @@ async function run() {
    fs, os, path, sharp, TEXT, __dirname, require, group, check,
    equal, setField, PORT, shortRun
   } = H;
-  /* DIESES MODUL BAUT FENSTER. Fehlt jsdom, sagt es das und haelt an. */
   let JSDOM;
   try { ({ JSDOM } = require('jsdom')); }
   catch { console.log('  … uebersprungen: jsdom fehlt (npm install)'); return; }
 
-  /* ================= Die beiden Anlegen-Schalter ================= */
   group('Anlegen-Schalter in der Oberflaeche');
 
-  /* Der Bildschirm bietet nicht an, was der Server abweist. */
+  /* Ohne Recht zum Anlegen fehlt die Eingabezeile, die der Server abweisen wuerde. */
   const createPool = [
     { id: 1, name: 'Vorhanden', usage_count: 3, test_usage_count: 0 },
     { id: 2, name: 'Auch da', usage_count: 1, test_usage_count: 0, assigned: true }
@@ -43,8 +40,7 @@ async function run() {
   check('Und die Zeile fuer eine neue Kategorie ebenso',
     !wOut.document.getElementById('newcat') && !wOut.document.getElementById('newcat-b'),
     'die Kategoriezeile steht noch da');
-  /* AUSWAHL AUS DEM VORHANDENEN BLEIBT. Das ist der ganze Sinn des Schalters:
-     zuweisen darf immer jeder, nur das Anlegen faellt weg. */
+  /* Zuweisen darf jeder; der Schalter sperrt nur das Anlegen. */
   check('Die Auswahlliste der Kategorien bleibt stehen',
     !!wOut.document.getElementById('cat'), 'die Auswahl ist mitverschwunden');
   check('Und die Tagwolke bleibt vollstaendig bedienbar',
@@ -55,8 +51,7 @@ async function run() {
     !!wOut.document.querySelector('#chips .chip button'), 'kein ✕ an der Marke');
   check('Die Vorschlagsliste bleibt -- die Testtagzeile braucht sie',
     !!wOut.document.getElementById('tagsug'), 'die datalist ist mitverschwunden');
-  /* DER SONDERFALL AM TESTTAG: dort gibt es keine Wolke, die Eingabe ist der
-     einzige Zuweisungsweg und bleibt deshalb stehen. */
+  /* Am Testtag gibt es keine Tagwolke; die Eingabe ist dort der einzige Weg zum Zuweisen. */
   const aTrow = wOut.document.querySelector('#tdays .trow');
   check('Am Testtag bleibt der Knopf fuer Tags stehen',
     !!aTrow && !!aTrow.querySelector('.ttag-add'), 'kein + am Testtag');
@@ -64,8 +59,7 @@ async function run() {
   await until(wOut, () => aTrow.querySelector('.ttag-in'), 2000, 'das Eingabefeld am Testtag');
   check('Und er oeffnet weiterhin das Eingabefeld',
     !!aTrow.querySelector('.ttag-in'), 'das Feld bleibt zu');
-  /* Ein Behandler an einem fehlenden Element risse die ganze Ansicht mit --
-     deshalb haengen sie nur an dem, was wirklich dasteht. */
+  /* Ein Behandler an einem fehlenden Element bricht den Aufbau der ganzen Ansicht ab. */
   check('Die Ansicht steht trotzdem vollstaendig da',
     !!wOut.document.getElementById('cmts') && !!wOut.document.getElementById('chips') &&
     !!wOut.document.getElementById('links') && !!wOut.document.getElementById('ratings'),
@@ -88,8 +82,6 @@ async function run() {
   check('Mit eingeschaltetem Schalter sieht auch der Benutzer beide Zeilen wieder',
     !!wAn.document.getElementById('newtag') && !!wAn.document.getElementById('newcat'),
     'die Zeilen bleiben weg');
-  // Und der Weg funktioniert auch: ein wirklich zugestellter Druck schickt den
-// Namen. Ein Knopf, den es gibt und der nichts tut, waere nicht besser.
   anDom.sent.length = 0;
   setField(wAn.document, 'newtag', 'Ganz neu');
   wAn.document.getElementById('newtag-b').dispatchEvent(new wAn.MouseEvent('click', { bubbles: true }));
@@ -101,9 +93,8 @@ async function run() {
     JSON.stringify(anSent));
   wAn.close();
 
-  /* ---- Die Haken im Systembereich ---- Nur der Admin bekommt sie zu sehen:
-     ein Haken, der zuverlaessig eine Absage erzeugt, saehe aus wie ein
-     Fehler. */
+  /* Nur der Admin sieht die Haken: ein Haken, den der Server immer abweist,
+     saehe aus wie ein Fehler. */
   const sysDom = buildDom(JSDOM, { settings: { filters: null, isAdmin: true,
     tagsFreeCreate: false, categoriesFreeCreate: true } });
   const wSys = sysDom.w;
@@ -123,9 +114,8 @@ async function run() {
     checkCategory.closest('.sys-card')?.querySelector('h3')?.textContent === 'Kategorien',
     `${checkTag.closest('.sys-card')?.querySelector('h3')?.textContent} / ` +
     `${checkCategory.closest('.sys-card')?.querySelector('h3')?.textContent}`);
-  /* Ein wirklich zugestelltes Ereignis, kein Behandleraufruf: der Behandler
-     laeuft nach einem await weiter, und genau dort saessen die Fehler, die im
-     bloss gebauten DOM unsichtbar bleiben. */
+  /* Zugestelltes Ereignis statt Behandleraufruf: Fehler hinter dem await im
+     Behandler blieben sonst unsichtbar. */
   sysDom.sent.length = 0;
   checkTag.checked = true;
   checkTag.dispatchEvent(new wSys.Event('change', { bubbles: true }));
@@ -153,19 +143,14 @@ async function run() {
   check('Ein Benutzer bekommt die Haken gar nicht erst zu sehen',
     !wSysU.document.getElementById('tag-free') && !wSysU.document.getElementById('cat-free'),
     'ein Haken steht auch ohne Adminrolle da');
-  // Die beiden KARTEN bleiben stehen, auch seit 0.8.5: wer nicht verwalten
-// darf, darf nachsehen, was es gibt. Weg sind nur die Bedienzeichen.
+  // Ansehen darf jeder, nur die Bedienelemente fehlen.
   check('Die Karten selbst bleiben ihm',
     !!wSysU.document.getElementById('mtags') && !!wSysU.document.getElementById('mcats'),
     'die Karten sind verschwunden');
   wSysU.close();
 
-  /* ================= Der Systembereich nach Rolle ================= */
   group('Der Systembereich nach Rolle');
 
-  /* DREI LAGEN NEBENEINANDER, und keine ist entbehrlich: die Eigentuemerin
-     (alle Karten), ein Admin OHNE Eigentuemerrecht (alles ausser Export und
-     Import) und ein gewoehnlicher Benutzer (drei Karten). */
   const rTags = [
     { id: 31, name: 'Alu', usage_count: 3, test_usage_count: 1 },
     { id: 32, name: 'Stahl', usage_count: 1, test_usage_count: 0 }
@@ -180,8 +165,7 @@ async function run() {
       2000, 'der Systembereich');
     return d;
   };
-  /* Die Karten werden an ihrer UEBERSCHRIFT abgezaehlt, nicht an einer id:
-     die Ueberschrift ist das, was auf dem Bildschirm steht. */
+  /* sysPass (dom.js) zaehlt die Karten an der Ueberschrift, die auf dem Bildschirm steht. */
   const rEig = await buildSystem({ isAdmin: true, isOwner: true });
   const rAdm = await buildSystem({ isAdmin: true, isOwner: false });
   const rUser = await buildSystem({ isAdmin: false, isOwner: false });
@@ -189,31 +173,17 @@ async function run() {
         dUser = await sysPass(rUser);
   const kEig = dEig.cards, kAdm = dAdm.cards, kUser = dUser.cards;
 
-  /* ---- Rueckfallprobe — 0.24.0 --------------------------------------- KEIN
-     ⟦…⟧ AM BILDSCHIRM. */
+  /* ⟦…⟧ steht fuer einen Schluessel ohne Text in der Sprachdatei. */
   const rewind = [['Eigentuemerin', dEig], ['Admin', dAdm], ['Benutzer', dUser]]
     .filter(([, d]) => d.text.includes('\u27e6'))
     .map(([actor, d]) => `${actor}: ${(d.text.match(/\u27e6[^\u27e7]*\u27e7/g) || []).slice(0, 4).join(' ')}`);
   check('Rueckfallprobe: kein ⟦…⟧ im Systembereich, in keiner Rolle',
     rewind.length === 0, rewind.join(' · '));
-  // Und der Gegenstand: es ist wirklich Text da, den sie ansehen konnte.
+  // Ohne Text waere die Verneinung darueber immer wahr.
   check('Und die drei Durchgaenge tragen wirklich Text',
     dEig.text.length > 2000 && dAdm.text.length > 500 && dUser.text.length > 200,
     `${dEig.text.length} · ${dAdm.text.length} · ${dUser.text.length} Zeichen`);
 
-  /* ACHTZEHN SEIT 0.9.0: "Mailversand" kommt dazu, und sie steht beim
-     EIGENTUEMER -- nicht beim Admin, obwohl der die Einladungen verschickt. */
-  /* ACHTZEHN SEIT 0.16.0: "Export" und "Import" sind EINE Karte geworden --
-     sie meinen dieselbe Datei, und der Import steht darin eine Stufe tiefer. */
-  /* ZWANZIG SEIT 0.20.0: "Alte Sicherungen" kommt dazu und steht UNMITTELBAR
-     HINTER "Sicherung". */
-  /* EINUNDZWANZIG SEIT 0.21.0: „Potenzial: Kriterien" kommt dazu und steht
-     UNMITTELBAR HINTER „Bewertungskriterien" -- dieselbe Maschine, eine
-     andere Liste. */
-  /* ZWEIUNDZWANZIG SEIT 0.24.3: „Sprachen" kommt dazu und steht UNMITTELBAR
-     HINTER „Titel" -- die zweite Karte des Abschnitts „Installation", der bis
-     dahin genau eine trug. */
-  // Dreiundzwanzig: „Grenzen beim Hochladen" steht hinter „Bildformate".
   const ALL_CARDS = [
     ACCOUNT_CARD, 'Meine Sitzungen', 'Darstellung',
     'Kategorien', 'Tags', 'Bewertung: Kriterien', 'Potenzial: Kriterien',
@@ -223,31 +193,23 @@ async function run() {
     'Titel', 'Sprachen'];
   check('Die Eigentuemerin sieht alle dreiundzwanzig Karten',
     equal(kEig, ALL_CARDS), kEig.join(' · '));
-  // Die ZAHL ausdruecklich, wie bei F_ROUTES: eine Karte, die still
-// verschwindet, faellt sonst niemandem auf.
+  // Prueft auch ALL_CARDS selbst: eine aus der Liste gestrichene Karte fiele sonst nicht auf.
   check('Und es sind wirklich dreiundzwanzig', ALL_CARDS.length === 23 && kEig.length === 23,
     `${ALL_CARDS.length} erwartet, ${kEig.length} gezeichnet`);
-  /* UND DIE ZWEITE KRITERIENKARTE STEHT HINTER DER ERSTEN -- dieselbe
-     Nachbarschaftszusage wie bei „Alte Sicherungen" darunter, und aus
-     demselben Grund: die Zeile darueber faerbt sich auch bei einer
-     Verschiebung, diese hier sagt, WELCHE Nachbarschaft gemeint war. */
+  /* `equal(kEig, ALL_CARDS)` schlaegt auch bei einer Verschiebung an; diese
+     Pruefung nennt, welche Nachbarschaft verletzt ist. */
   check('Und "Potenzial: Kriterien" steht unmittelbar hinter "Bewertung: Kriterien"',
     kEig.indexOf('Potenzial: Kriterien') === kEig.indexOf('Bewertung: Kriterien') + 1,
     `Bewertung: Kriterien: ${kEig.indexOf('Bewertung: Kriterien')} · ` +
     `Potenzial: Kriterien: ${kEig.indexOf('Potenzial: Kriterien')}`);
-  /* UND SIE STEHT HINTER "SICHERUNG" -- die Reihenfolge ist geprueft und
-     nicht zufaellig. */
   check('Und "Alte Backups" steht unmittelbar hinter "Backup"',
     kEig.indexOf('Alte Backups') === kEig.indexOf('Backup') + 1,
     `Backup: ${kEig.indexOf('Backup')} · Alte Backups: ${kEig.indexOf('Alte Backups')}`);
-  // Und keine steht zweimal -- eine Karte, die in zwei Abschnitten haengt,
-// faellt an der Summe sonst gar nicht auf.
   check('Und keine Karte steht in zwei Abschnitten',
     new Set(kEig).size === kEig.length,
     kEig.filter((n, i) => kEig.indexOf(n) !== i).join(' · '));
 
-  /* ---- DIE ABSCHNITTE SELBST ---- FUENF FUER DEN EIGENTUEMER, ZWEI FUER DEN
-     GEWOEHNLICHEN BENUTZER. */
+  /* ---- Abschnitte ---- */
   const tabWords = (d) => [...d.w.document.querySelectorAll('.sys-tab')]
     .map(a => a.textContent.trim());
   check('Die Eigentuemerin bekommt fuenf Abschnitte',
@@ -258,18 +220,15 @@ async function run() {
   check('Und kein Abschnitt ist dabei leer',
     dUser.tab.length === 2 && kUser.length === 8,
     `${dUser.tab.length} Reiter, ${kUser.length} Karten`);
-  // Jeder Reiter traegt eine eigene Adresse -- ohne sie liesse sich keine
-// Einstellung verlinken, und die Zurueck-Taste braeche.
+  // Ohne eigene Adresse laesst sich kein Abschnitt verlinken, und die Zurueck-Taste bricht.
   check('Jeder Reiter traegt seine eigene Adresse',
     equal(dEig.tab, ['#/system/personal', '#/system/inventory', '#/system/users',
                          '#/system/database', '#/system/installation']),
     dEig.tab.join(' · '));
-  /* UND ER IST EIN VERWEIS UND KEIN KNOPF. */
   check('Und er ist ein Verweis und kein Knopf',
     [...rEig.w.document.querySelectorAll('.sys-tab')].length === 5 &&
     [...rEig.w.document.querySelectorAll('.sys-tab')].every(a => a.tagName === 'A'),
     [...rEig.w.document.querySelectorAll('.sys-tab')].map(a => a.tagName).join(' · '));
-  /* DIE ADRESSE ZEIGT AUF EINEN ABSCHNITT, DEN ES FUER IHN NICHT GIBT. */
   await sysSection(rUser.w, 'database');
   check('Eine Adresse auf einen unsichtbaren Abschnitt faellt auf den ersten zurueck',
     [...rUser.w.document.querySelectorAll('.sys-grid > .sys-card h3')]
@@ -278,13 +237,11 @@ async function run() {
       .map(h => h.textContent.trim()).join(' · '));
   check('Und die Adresse wird dabei nachgezogen',
     rUser.w.location.hash === '#/system/personal', rUser.w.location.hash);
-  /* DIE GEGENLAGE, sonst belegte die Zeile darueber nichts: eine Adresse auf
-     einen Abschnitt, den es SEHR WOHL gibt, bleibt stehen. */
+  /* Ohne diese Gegenlage belegte die Pruefung darueber nichts. */
   await sysSection(rUser.w, 'inventory');
   check('Eine Adresse auf einen sichtbaren Abschnitt bleibt dagegen stehen',
     rUser.w.location.hash === '#/system/inventory', rUser.w.location.hash);
-  /* UND `#/system` OHNE ABSCHNITT LOEST SICH AUF -- es ist die Adresse, die
-     der Knopf in der Kopfzeile setzt. */
+  /* `#/system` setzt der Knopf in der Kopfzeile. */
   rUser.w.history.replaceState(null, '', '#/system');
   await rUser.w.renderSystem();
   await until(rUser.w, (x) => x.document.querySelector('.sys-tab.on')?.getAttribute('href') ===
@@ -292,23 +249,15 @@ async function run() {
   check('Und `#/system` ohne Abschnitt loest sich auf den ersten auf',
     rUser.w.location.hash === '#/system/personal', rUser.w.location.hash);
 
-  /* Die drei, die JEDEM bleiben -- und der Grund steht in jeder von ihnen:
-     "Zugang" ist der eigene Zugang, "Darstellung" ist Schriftgroesse und
-     Blockanordnung, "Links" ist die Zahl der sichtbaren Zeilen und der
-     angezeigten Anbieternamen. */
-  /* SIEBEN SEIT 0.8.80: "Meine Sitzungen" ist persoenlich wie "Zugang" und
-     steht deshalb JEDEM -- es ist kein Systembereich fuer Admins. */
-  /* ACHT SEIT 0.21.0: „Potenzial: Kriterien" steht daneben, wie die drei
-     anderen Listen -- sichtbar fuer jeden, bedienbar nur fuer den Admin. */
+  /* Mein Account, Meine Sitzungen, Darstellung und Links sind persoenlich; die
+     vier Listen sieht jeder, bedienen darf sie nur der Admin. */
   check('Ein gewoehnlicher Benutzer sieht acht -- vier persoenliche, vier zum Nachsehen',
     equal(kUser, [ACCOUNT_CARD, 'Meine Sitzungen', 'Darstellung',
                    'Kategorien', 'Tags', 'Bewertung: Kriterien', 'Potenzial: Kriterien', 'Links']),
     kUser.join(' · '));
 
-  /* Punkt fuer Punkt, weil eine Sammelpruefung nicht sagt, WELCHE Karte
-     fehlt -- und weil jede fuer sich gegengeprueft werden koennen muss. */
-  /* "Papierkorb" steht beim Admin -- SEHEN ist die Adminfrage, HANDELN die
-     Eigentuemerfrage. */
+  /* Je Karte eine Pruefung, damit die fehlende mit Namen gemeldet wird. */
+  /* „Papierkorb": ansehen darf der Admin, handeln nur der Eigentuemer. */
   for (const card of ['Titel', 'Kennzahlen', 'Vokabular', 'Benutzer', 'Suchmaschinen', 'Papierkorb',
                        'Anfragen']) {
     check(`Die Karte "${card}" steht nur beim Admin`,
@@ -321,8 +270,6 @@ async function run() {
       kEig.includes(card) && !kAdm.includes(card) && !kUser.includes(card),
       `Eigentuemer: ${kEig.includes(card)} · Admin: ${kAdm.includes(card)}`);
   }
-  /* DIE KARTE "ANFRAGEN" STEHT AUCH DANN, WENN DIE SELBSTANMELDUNG AUS IST --
-     UND DAS IST EINE BERICHTIGUNG AUS DEM BETRIEB. */
   const rOut = await buildSystem({ isAdmin: true, isOwner: true },
     { an: false, deliveryReady: false, deliveryReason: 'Es ist kein Mailzugang eingerichtet.',
       cap: 20, hours: 24, requests: [] });
@@ -331,21 +278,15 @@ async function run() {
     kOut.includes('Anfragen'), kOut.join(' · '));
   check('Und es sind auch dann dreiundzwanzig', kOut.length === 23 && equal(kOut, ALL_CARDS),
     `${kOut.length} gezeichnet`);
-  // Die Karte steht im Abschnitt „Zugaenge" -- dorthin, bevor an ihr geprueft wird.
   await sysSection(rOut.w, 'users');
-  /* DER SCHALTER MUSS IN GENAU DIESER LAGE ERREICHBAR SEIN -- sonst ist die
-     Selbstanmeldung ueber die Oberflaeche gar nicht einzuschalten. */
   check('Und der Schalter steht darin -- sonst kaeme man nie an ihn heran',
     Boolean(rOut.w.document.getElementById('signup-toggle')), 'der Schalter fehlt');
   check('Er bietet das Einschalten an',
     /einschalten/.test(rOut.w.document.getElementById('signup-toggle')?.textContent || ''),
     rOut.w.document.getElementById('signup-toggle')?.textContent || '');
-  /* Und die Karte bleibt in dieser Lage KURZ: keine Liste, wo nichts steht. */
   check('Die Liste bleibt dabei leer, statt eine Zeile zu erfinden',
     (rOut.w.document.getElementById('mrequests')?.textContent || '').trim() === '',
     rOut.w.document.getElementById('mrequests')?.textContent || '');
-  /* UND SIE IST AUCH DA, WENN DER SCHALTER AUS IST, ABER NOCH ANFRAGEN
-     LIEGEN. */
   const rOutIncludingRows = await buildSystem({ isAdmin: true, isOwner: true },
     { an: false, deliveryReady: true, deliveryReason: '', cap: 20, hours: 24,
       requests: [{ id: 11, username: 'neuling', email: 'neuling@beispiel.de',
@@ -360,7 +301,6 @@ async function run() {
       kUser.includes(card) && kEig.includes(card), kUser.join(' · '));
   }
 
-  /* DIE KONKRETESTE FALLE DIESER STUFE. */
   check('Ohne Adminrolle werden die Kennzahlen gar nicht erst abgerufen',
     !rUser.sent.some(x => x.url === '/api/stats'),
     rUser.sent.map(x => x.url).join(' · '));
@@ -371,7 +311,6 @@ async function run() {
     kUser.length > 0 && !/lädt …/.test(rUser.w.document.getElementById('app')?.textContent || ''),
     rUser.w.document.getElementById('app')?.textContent?.slice(0, 80));
 
-  /* DER FINGERPRINT IN DER KARTE (0.8.10). */
   const statsCard = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
     .find(c => c.querySelector('h3')?.textContent.trim() === 'Kennzahlen');
   await sysSection(rAdm.w, 'database');
@@ -387,17 +326,13 @@ async function run() {
       .some(z => z.querySelector('.k')?.textContent.trim() === 'Prüfsumme (Fingerprint)' &&
                  z.querySelector('.v')?.textContent.trim() === 'a1b2c3d4'),
     [...(admCard?.querySelectorAll('.kv .v') || [])].map(v => v.textContent.trim()).join(' · '));
-  /* NIRGENDS heisst: in KEINEM Abschnitt. Ein Blick auf den gerade offenen
-     belegte nur, dass er dort nicht steht. */
+  /* dUser.text umfasst alle Abschnitte; der gerade offene allein belegte nichts. */
   check('Ohne Adminrolle steht der Fingerprint nirgends',
     !/a1b2c3d4/.test(dUser.text), dUser.text.slice(0, 120));
 
-  /* Was verschwindet, sind die KARTEN, nicht die Daten. */
   const rVok = await buildSystem({ isAdmin: false, isOwner: false,
     vocabulary: { entryMany: 'Geräte' } });
-  /* Die Karte „Vokabular" steht im Abschnitt „Bestand", und die Beschriftung,
-     an der das Vokabular abzulesen ist, ebenso -- die Karte „Kategorien"
-     nennt dort die Mehrzahl. */
+  /* Die Karte „Kategorien" im Abschnitt „Bestand" nennt die Mehrzahl aus dem Vokabular. */
   await sysSection(rVok.w, 'inventory');
   check('Das Vokabular wird trotzdem ausgeliefert und benutzt',
     /Geräte/.test(rVok.w.document.getElementById('app')?.textContent || ''),
@@ -406,7 +341,6 @@ async function run() {
     !rVok.w.document.getElementById('v1') && !rVok.w.document.getElementById('vsave'));
   rVok.w.close();
 
-  /* Die persoenlichen Karten sind nicht nur da, sie funktionieren auch. */
   await sysSection(rUser.w, 'personal');
   rUser.sent.length = 0;
   const rPill = [...rUser.w.document.querySelectorAll('#fsize .pill')]
@@ -422,8 +356,7 @@ async function run() {
   check('Und der Druck speichert sie wirklich',
     rSent?.body?.font === 120, JSON.stringify(rSent));
 
-  /* Die persoenliche Haelfte der Links bleibt, die Adminhaelfte geht. Beides
-     an EINER Lage, sonst liesse sich der Schnitt der Karte nicht belegen. */
+  /* Karte „Links": die persoenliche Haelfte bleibt, die Haelfte fuer den Admin fehlt. */
   await sysSection(rUser.w, 'inventory');
   await sysSection(rAdm.w, 'inventory');
   check('Die Zahl der Anbieternamen bleibt dem Benutzer',
@@ -439,8 +372,7 @@ async function run() {
     rAdm.w.document.querySelectorAll('#engines-own .engine-slot').length === 3,
     `${rAdm.w.document.querySelectorAll('#engines .engine').length} Anbieter`);
 
-  /* Die veraltete Anleitung. Eine falsche Anleitung auf dem Bildschirm ist
-     schlimmer als eine fehlende: sie wird befolgt. */
+  /* Eine falsche Anleitung auf dem Bildschirm wird befolgt. */
   await sysSection(rUser.w, 'personal');
   const rUserCard = [...rUser.w.document.querySelectorAll('.sys-card')]
     .find(k => k.querySelector('h3')?.textContent.trim() === ACCOUNT_CARD);
@@ -448,11 +380,9 @@ async function run() {
   check('Sie nennt AUTH_RESET nicht mehr',
     !!rUserCard && !/AUTH_RESET/.test(rUserCard.textContent || ''),
     rUserCard?.textContent?.slice(0, 200));
-  /* SEIT 0.17.1 HAENGT DER BEFEHL AN DER ROLLE. */
   check('Beim gewoehnlichen Benutzer steht der Wirtsbefehl nicht mehr da',
     !!rUserCard && !/usertool\.js password/.test(rUserCard.textContent || ''),
     rUserCard?.textContent?.slice(0, 300));
-  /* DER SATZ IST MIT 0.31.1 EIN ANDERER, und sein Gegenstand ist derselbe. */
   check('Sondern der Satz, der ihm wirklich hilft',
     !!rUserCard && /Link zum Zurücksetzen des Passworts geschickt werden/.test(rUserCard.textContent || ''),
     rUserCard?.textContent?.slice(0, 300));
@@ -464,19 +394,13 @@ async function run() {
       !!eigUser && /usertool\.js password/.test(eigUser.textContent || ''),
       eigUser?.textContent?.slice(0, 300));
   }
-  // Und ausdruecklich in der ganzen Oberflaeche nicht mehr als Anleitung:
-// der String steht in app.js nur noch dort, wo sie hingehoert.
   const rAppSource = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
   check('AUTH_RESET steht in der ganzen Oberflaeche nirgends mehr',
     !rAppSource.includes('AUTH_RESET'), 'public/app.js nennt AUTH_RESET noch');
 
 
-  /* --- Die Kachel "Zugaenge" ueber die volle Breite --- Zwei Haelften, und
-     beide werden gebraucht: die Klasse am Knoten sagt nichts darueber, ob sie
-     etwas bewirkt, und die Regel im Stylesheet nichts darueber, ob sie jemand
-     traegt. */
-  /* ALLE BREITEN KACHELN STEHEN IM ABSCHNITT „Zugaenge", und das ist kein
-     Zufall. */
+  /* Geprueft werden die Klasse am Knoten und die Regel im Stylesheet; eine ohne
+     die andere bewirkt nichts. */
   await sysSection(rEig.w, 'users');
   const rTile = [...rEig.w.document.querySelectorAll('.sys-grid > .sys-card')]
     .find(k => k.querySelector('h3')?.textContent.trim() === 'Benutzer');
@@ -484,14 +408,12 @@ async function run() {
   check('Und sie ist als breite Kachel gekennzeichnet',
     !!rTile && rTile.classList.contains('wide'),
     rTile?.className);
-  /* Und ausdruecklich nicht alle: eine Kennzeichnung, die jede Kachel traegt,
-     ist keine. */
+  /* Traegt jede Kachel die Klasse, kennzeichnet sie nichts. */
   const rWidth = [...rEig.w.document.querySelectorAll('.sys-grid > .sys-card.wide')]
     .map(k => k.querySelector('h3')?.textContent.trim());
   check('Als eine von genau vieren, und alle vier namentlich',
     equal(rWidth, ['Benutzer', 'Anfragen', 'Sicherheitsprotokoll', 'Mailversand']),
     JSON.stringify(rWidth));
-  /* UND KEINE SCHMALE BLEIBT IM ABSCHNITT STEHEN. */
   const rNarrow = [...rEig.w.document.querySelectorAll('.sys-grid > .sys-card')]
     .filter(k => !k.classList.contains('wide'))
     .map(k => k.querySelector('h3')?.textContent.trim());
@@ -506,19 +428,18 @@ async function run() {
   check('Und sie zieht die Kachel ueber alle Rasterspalten',
     /grid-column: 1 \/ -1/.test(rRule('.sys-card.wide')),
     rRule('.sys-card.wide') || '(keine Regel)');
-  /* Die Luecke, die eine breite Kachel davor hinterlaesst. */
+  /* `dense` fuellt die Luecke, die eine breite Kachel davor hinterlaesst. */
   check('Die Regel fuer das Kartenraster steht ueberhaupt im Stylesheet',
     rRule('.sys-grid').length > 0, '(keine Regel)');
   check('Und das Raster zieht nachfolgende Karten in die Luecke',
     /grid-auto-flow: dense/.test(rRule('.sys-grid')),
     rRule('.sys-grid') || '(keine Regel)');
-  // Die Reihenfolge im Quelltext bleibt davon unberuehrt: die Kachel steht
-// weiterhin dort, wo sie stand, und nicht am Ende.
+  // Das Raster ordnet nur die Anzeige um, die Reihenfolge im DOM bleibt.
   check('Und die Kachel steht dabei nicht am Ende des Rasters',
     [...rEig.w.document.querySelectorAll('.sys-grid > .sys-card')].pop() !== rTile,
     'die breite Kachel ist ans Ende gewandert');
 
-  /* --- Trennlinien zwischen den Abschnitten der Linkkarten --- */
+  /* ---- Trennlinien in den Linkkarten ---- */
   await sysSection(rUser.w, 'inventory');
   check('Die Karte "Links" traegt einen abgesetzten Abschnitt',
     rUser.w.document.querySelectorAll('.sys-card .sys-part').length > 0,
@@ -534,20 +455,17 @@ async function run() {
     /border-top: 1px solid var\(--line\)/.test(rRule('.sys-card .sys-part')) &&
     /padding-top:/.test(rRule('.sys-card .sys-part')),
     rRule('.sys-card .sys-part') || '(keine Regel)');
-  // Keine neue Farbe: --line gibt es laengst und bedeutet dort bereits
-// "Kante zwischen zwei Flaechen".
+  // --line steht schon fuer die Kante zwischen zwei Flaechen.
   check('Ohne eine neue Farbe dafuer zu erfinden',
     !/border-top: 1px solid (?!var\(--line\))/.test(rRule('.sys-card .sys-part')),
     rRule('.sys-card .sys-part'));
 
   rEig.w.close(); rAdm.w.close(); rUser.w.close();
 
-  /* ---------------------------------------------------------------- */
   group('Die Einladungsseite in der Oberflaeche');
 
-  /* EIN ZUSTAND DER ANMELDESEITE, KEINE ZWEITE AUSGELIEFERTE DATEI -- sonst
-     gaebe es eine zweite Stelle fuer Kopfzeilen, Content-Security-Policy und
-     die Sicherheitsregel aus Abschnitt 5a. */
+  /* Ein Zustand der Anmeldeseite statt einer zweiten Datei: sonst gaebe es eine
+     zweite Stelle fuer Kopfzeilen und Content-Security-Policy. */
   const eiBuild = async (key) => {
     const d = buildDom(JSDOM, { hash: `#/invite/${key}` });
     await until(d.w, (x) => x.document.querySelector('#ep, #eb-again, #lu, #count') &&
@@ -559,8 +477,6 @@ async function run() {
   check('Der Aufruf mit einem Link fragt den Server nach ihm',
     eiGood.sent.some(x => x.method === 'POST' && x.url === '/api/token/check'),
     eiGood.sent.map(x => `${x.method} ${x.url}`).join(' · '));
-  /* DER SCHLUESSEL GEHT IM RUMPF, NICHT IN DER ADRESSE. Ohne diese Zeile
-     bliebe die Pruefung auch dann gruen, wenn er im Pfad stuende. */
   check('Und zwar im Rumpf, nicht in der Adresse',
     eiGood.sent.find(x => x.url === '/api/token/check')?.body?.token === 'd'.repeat(64) &&
     !eiGood.sent.some(x => x.url.includes('d'.repeat(64))),
@@ -572,7 +488,6 @@ async function run() {
     eiGood.w.document.body.classList.contains('login'));
   check('Sie steht in derselben Karte wie die Anmeldung',
     !!eiGood.w.document.querySelector('.login-screen .login-card'), 'keine Anmeldekarte');
-  /* DER NAME KOMMT VOM SERVER, und zwar erst, wenn der Link traegt. */
   check('Sie begruesst mit dem Namen aus der Antwort',
     /Willkommen, carla/.test(eiGood.w.document.body.textContent), 
     eiGood.w.document.body.textContent.slice(0, 200));
@@ -587,8 +502,8 @@ async function run() {
   check('Und sie sagt, dass alle anderen Geraete abgemeldet werden',
     /auf allen anderen Geräten abgemeldet/.test(eiGood.w.document.body.textContent),
     eiGood.w.document.body.textContent.slice(0, 400));
-  /* Und der zweite Anlass: derselbe Weg, anderer Text -- ABGELEITET AUS DEM
-     ZUSTAND (hat der Zugang schon ein Passwort), nicht aus dem Zweck. */
+  /* Der Text haengt davon ab, ob der Zugang schon ein Passwort hat, nicht vom
+     Anlass des Links. */
   const eiBack = await eiBuild('f'.repeat(64));
   check('Bei einem Zugang MIT Passwort steht ein anderer Text',
     /Neues Passwort für/.test(eiBack.w.document.body.textContent) &&
@@ -598,9 +513,7 @@ async function run() {
     /dora/.test(eiBack.w.document.body.textContent),
     eiBack.w.document.body.textContent.slice(0, 200));
 
-  /* DIE ABSAGE: zurueck auf die gewoehnliche Anmeldeseite, mit der Message
-     darueber -- und die Adresse wird geleert, damit ein Neuladen nicht
-     denselben toten Link noch einmal versucht. */
+  /* Die Adresse wird geleert, damit ein Neuladen den ungueltigen Link nicht erneut versucht. */
   const eiPath = await eiBuild('9'.repeat(64));
   check('Ein Link, der nicht mehr gilt, fuehrt auf die Anmeldeseite',
     !!eiPath.w.document.getElementById('lu') && !!eiPath.w.document.getElementById('lp'),
@@ -615,27 +528,20 @@ async function run() {
     eiPath.w.location.hash === '#/', eiPath.w.location.hash);
   check('Und es steht kein Passwortfeld der Einladung mehr da',
     !eiPath.w.document.getElementById('ep'), 'das Formular steht noch');
-  /* DIE FRIST AB DEM ERSTEN OEFFNEN, seit 0.9.0 -- und sie gehoert an die
-     Stelle, an der sie LAEUFT. */
   check('Die Einladungsseite nennt die Frist ab dem ersten Oeffnen',
     /gilt noch 15 Minuten/.test(eiGood.w.document.body.textContent),
     eiGood.w.document.body.textContent.slice(0, 600));
-  /* GEKUERZT MIT 0.9.1 -- EIN SATZ WENIGER, NICHT EINE AUSKUNFT WENIGER. */
-  /* UMGEDREHT MIT 0.22.0: der Satz ueber das Neuladen ist weg (Bauprozess,
-     Anlage A, Z. */
   check('Und sagt, was nach der Frist zu tun ist',
     /danach\s+brauchst du einen neuen vom Admin/i.test(eiGood.w.document.body.textContent),
     eiGood.w.document.body.textContent.slice(0, 600));
   check('Und dass das Setzen die anderen Geraete abmeldet — 0.22.0',
     /Nach dem Setzen wirst du auf allen anderen Geräten abgemeldet/.test(eiGood.w.document.body.textContent),
     eiGood.w.document.body.textContent.slice(0, 600));
-  /* UND SIE IST WIRKLICH KUERZER: der dritte Satz ist weg. */
   check('Und der Satz, der dasselbe zweimal sagte, steht nicht mehr da',
     !/Seit dem ersten Öffnen läuft eine Frist/.test(eiGood.w.document.body.textContent),
     eiGood.w.document.body.textContent.slice(0, 600));
 
-  /* ---- BEFUND G, behoben in 0.9.0 ---- EINE VORUEBERGEHENDE ABSAGE DARF DEN
-     SCHLUESSEL NICHT WEGWERFEN. */
+  /* Eine voruebergehende Absage (Bremse) laesst den Schluessel in der Adresse. */
   const eiThrottle = await (async () => {
     const d = buildDom(JSDOM, { hash: `#/invite/${'d'.repeat(64)}`, tokenThrottle: 1 });
     await until(d.w, (x) => x.document.querySelector('#ep, #eb-again, #lu, #count') &&
@@ -655,11 +561,8 @@ async function run() {
   const eiButton = eiThrottle.w.document.getElementById('eb-again');
   check('Ein zweiter Anlauf steht als Knopf da', !!eiButton, 'kein Knopf');
   {
-    /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT, und hier nicht aus
-       Ordnungsliebe: eine Gegenprobe nimmt genau
-       diesen Knopf weg, und ein .dispatchEvent auf null riss den ganzen Lauf
-       ab, statt die Pruefungen darunter rot zu faerben. */
-    // Ein wirklich zugestelltes Ereignis: ein Knopf ist erst geprueft, wenn er geklickt wurde.
+    /* Erst das Vorhandensein, dann die Eigenschaft: eine Gegenprobe nimmt diesen
+       Knopf weg, und dispatchEvent auf null bricht den ganzen Lauf ab. */
     if (eiButton) eiButton.dispatchEvent(new eiThrottle.w.MouseEvent('click', { bubbles: true }));
     await until(eiThrottle.w, (x) => !eiButton ||
       (eiThrottle.sent.filter(g => g.url === '/api/token/check').length > 1 && openRequests(x) === 0),
@@ -673,20 +576,17 @@ async function run() {
         .every(x => x.body?.token === 'd'.repeat(64)),
       JSON.stringify(eiThrottle.sent.filter(x => x.url === '/api/token/check').map(x => x.body?.token)));
   }
-  /* UND DIE GEGENRICHTUNG, damit die Unterscheidung wirklich eine ist: die
-     ENDGUELTIGE Absage (400) leert die Adresse weiterhin. */
+  /* Gegenlage: die endgueltige Absage (400). */
   check('Die endgueltige Absage leert die Adresse dagegen weiterhin',
     eiPath.w.location.hash === '#/' && !eiPath.w.document.getElementById('eb-again'),
     `${eiPath.w.location.hash} · Knopf: ${!!eiPath.w.document.getElementById('eb-again')}`);
 
-  /* Ein Fragment, das gar kein Schluessel ist, geht den gewoehnlichen Weg --
-     ohne den Server nach ihm zu fragen. */
   const eiNonsense = await eiBuild('kurz');
   check('Ein Fragment ohne Schluessel wird gar nicht erst gefragt',
     !eiNonsense.sent.some(x => x.url === '/api/token/check'),
     eiNonsense.sent.map(x => x.url).join(' · '));
 
-  /* DAS PASSWORT SETZEN, mit einem WIRKLICH zugestellten Ereignis. */
+  /* ---- Passwort setzen ---- */
   {
     const d = await eiBuild('d'.repeat(64));
     setField(d.w.document, 'ep', 'kurz');
@@ -729,20 +629,17 @@ async function run() {
       set?.body?.password === 'ein-gutes-passwort', JSON.stringify(set?.body));
     check('Danach ist die Adresse geleert -- der Link ist verbraucht',
       d.w.location.hash === '#/', d.w.location.hash);
-    /* UND DIE SEITE GEHT WEITER, statt stehenzubleiben: angemeldet ist man
-       bereits, der Server hat den Cookie mitgeschickt. */
+    /* Angemeldet ist man schon: der Server hat den Cookie mitgeschickt. */
     check('Und die Oberflaeche baut sich auf',
       !d.w.document.body.classList.contains('login'),
       'die Seite steht noch auf der Anmeldung');
   }
 
 
-  /* ---------------------------------------------------------------- */
   group('Die Markenzeile der Anmeldeseiten');
 
-  /* AUS DEM BETRIEB: die Marke stand UEBER dem Namen der Instanz, und das
-     Paar las sich als Bild mit einer Ueberschrift darunter -- zwei Dinge
-     statt einem. */
+  /* Zeichen und Name stehen in einer Zeile; untereinander lesen sie sich wie
+     Bild und Bildunterschrift. */
   const mzDom = buildDom(JSDOM, { loggedIn: false, signup: false });
   await until(mzDom.w, (x) => x.document.getElementById('lu') && openRequests(x) === 0,
     2000, 'die Anmeldeseite');
@@ -752,32 +649,26 @@ async function run() {
   const mzChildren = mzRow ? [...mzRow.children] : [];
   check('Darin stehen genau zwei Dinge', mzChildren.length === 2,
     mzChildren.map(e => e.tagName).join(' ') || '(leer)');
-  /* SEIT 0.23.0 IST DAS ZEICHEN EIN SVG UND KEIN BILD MEHR -- es muss
-     Variablen lesen koennen (siehe „Die Marke der Instanz"). */
+  /* Ein SVG, weil das Zeichen CSS-Variablen lesen muss. */
   check('Erst das Zeichen',
     mzChildren[0]?.tagName?.toLowerCase() === 'svg' && mzChildren[0]?.classList.contains('logo'),
     `${mzChildren[0]?.tagName} ${mzChildren[0]?.getAttribute('class') || ''}`);
   check('Dann das Wort',
     mzChildren[1]?.tagName === 'H1' && /\S/.test(mzChildren[1]?.textContent || ''),
     `${mzChildren[1]?.tagName} ${JSON.stringify(mzChildren[1]?.textContent || '')}`);
-  /* UND DIE MARKE STEHT NICHT MEHR EIN ZWEITES MAL DANEBEN. */
   check('Und ausserhalb der Zeile steht keine zweite Marke',
     mzDom.w.document.querySelectorAll('.login-card .logo').length === 1,
     `${mzDom.w.document.querySelectorAll('.login-card .logo').length} Marken in der Karte`);
-  /* DAS ZEICHEN BLEIBT STUMM: es steht unmittelbar neben dem Namen der
-     Instanz, ein Vorleseprogramm saegte ihn sonst zweimal. */
-  // Bis 0.22.1 war das alt=""; an einem SVG ist aria-hidden die Entsprechung.
+  /* Das Zeichen steht neben dem Namen; ohne aria-hidden liest ein
+     Vorleseprogramm den Namen zweimal. */
   check('Das Zeichen bleibt fuer das Vorleseprogramm stumm',
     mzChildren[0]?.getAttribute('aria-hidden') === 'true'
       && !mzChildren[0]?.getAttribute('title') && !mzChildren[0]?.querySelector('title'),
     `aria-hidden=${JSON.stringify(mzChildren[0]?.getAttribute('aria-hidden'))}`);
   mzDom.w.close();
 
-  /* ---------------------------------------------------------------- */
   group('Die Anmeldeseite: das Anfrageformular');
 
-  /* DAS FORMULAR STEHT NUR DA, WENN DER SERVER SAGT, DASS DIE SELBSTANMELDUNG
-     AN IST. */
   const sOut = buildDom(JSDOM, { loggedIn: false, signup: false });
   await until(sOut.w, (x) => x.document.getElementById('lu') && openRequests(x) === 0,
     2000, 'die Anmeldeseite');
@@ -795,19 +686,16 @@ async function run() {
   const sReference = sAn.w.document.getElementById('l-request');
   check('Ist sie an, steht der Weg "Zugang anfragen" da', Boolean(sReference),
     'der Weg fehlt');
-  /* ER IST EIN KNOPF UND KEIN VERWEIS IN EINER FUSSZEILE -- eine Berichtigung
-     aus dem Betrieb: der Verweis wurde uebersehen. */
+  /* Ein Knopf, weil ein Verweis in der Fusszeile uebersehen wird. */
   check('Und zwar als KNOPF, nicht als Verweis in einer Fusszeile',
     sReference?.tagName === 'BUTTON', String(sReference?.tagName));
   check('Er traegt dieselbe Knopfklasse wie "Anmelden"',
     sReference?.classList.contains('btn'), sReference?.className);
-  /* UND ER IST NICHT DER LAUTERE VON BEIDEN: zwei gleich betonte Knoepfe sagen
-     nicht mehr, welcher der gewoehnliche Weg ist. */
+  /* Zwei gleich betonte Knoepfe zeigen nicht mehr, welcher der gewoehnliche Weg ist. */
   check('Aber nicht in der Betonung des Anmeldeknopfs',
     !sReference?.classList.contains('btn-accent') &&
     sAn.w.document.getElementById('lb')?.classList.contains('btn-accent'),
     `${sReference?.className} · ${sAn.w.document.getElementById('lb')?.className}`);
-  /* DIE FRAGE STEHT UEBER DEM KNOPF, nicht daneben und nicht darin. */
   const sQuestion = sAn.w.document.querySelector('.login-divider');
   check('Darueber steht die Frage nach dem Account',
     D.shows(sQuestion?.textContent, 'login.noAccountYet'), sQuestion?.textContent || '(fehlt)');
@@ -819,20 +707,16 @@ async function run() {
       sAn.w.Node.DOCUMENT_POSITION_FOLLOWING), 'er steht davor');
   check('Und die Anmeldemaske steht weiterhin daneben',
     Boolean(sAn.w.document.getElementById('lu')), 'die Anmeldemaske fehlt');
-  /* DIE TRENNUNG STEHT IM STYLESHEET -- ohne sie liefe der Knopf optisch mit dem
-     Anmeldeknopf zusammen. */
+  /* Ohne die Trennung laeuft der Knopf optisch mit dem Anmeldeknopf zusammen. */
   const sCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')
     .replace(/\s+/g, ' ');
   const sRule = (sCss.match(/\.login-card \.login-divider \{[^}]*\}/) || [''])[0];
   check('Die Regel fuer die Trennung steht im Stylesheet', sRule.length > 0,
     'keine Regel gefunden');
-  /* UND SIE TRENNT MIT ABSTAND STATT MIT EINEM STRICH. */
   check('Und sie tut das OHNE Strich',
     !/border/.test(sRule), sRule);
   check('Sondern mit einem Abstand, der groesser ist als jede Luecke davor',
     (Number((sRule.match(/margin: *(\d+)px/) || [0, 0])[1]) || 0) > 24, sRule);
-  /* GEDAEMPFT, ABER ERKENNBAR EIN KNOPF, und die Grenze zwischen beidem ist
-     der Punkt. */
   check('Der Knopf traegt die gedaempfte Klasse',
     sReference?.classList.contains('login-alt'), sReference?.className);
   const sQuiet = (sCss.match(/\.login-card \.login-alt \{[^}]*\}/) || [''])[0];
@@ -842,10 +726,8 @@ async function run() {
     /background: *var\(--accent-dim\)/.test(sQuiet), sQuiet);
   check('Und zieht die Umrandung in dieselbe Farbe',
     /border-color: *var\(--accent-line\)/.test(sQuiet), sQuiet);
-  /* DIE GEGENLAGE: die beiden Werte sind wirklich die leisen. */
   const sCoverage = ['--accent-dim', '--accent-line'].map(n => {
-    /* DIE KLAMMER IST SEIT 0.23.0 VERSCHACHTELT -- `rgba(var(--accent-rgb),
-       .13)`. */
+    /* Der Wert ist verschachtelt, etwa `rgba(var(--accent-rgb), .13)`. */
     const t = (sCss.match(new RegExp(`${n}: *rgba\\((?:[^()]|\\([^()]*\\))*\\)`)) || [''])[0];
     const a = t.match(/,\s*(0?\.\d+|0|1)\)/);
     return { n, t, a: a ? Number(a[1]) : NaN };
@@ -860,20 +742,17 @@ async function run() {
     /color: *var\(--muted\)/.test(sQuiet), sQuiet);
   check('Aber NICHT ohne Umrandung -- sonst waere er wieder ein Verweis',
     !/border(-color)?: *(transparent|none|0)/.test(sQuiet), sQuiet);
-  /* UND DIE GEGENLAGE ZUR REGEL SELBST: die Grundklasse traegt die Umrandung
-     ueberhaupt. */
+  /* Gegenlage: ohne Umrandung an `.btn` belegte die Pruefung darueber nichts. */
   check('Denn die Grundklasse .btn traegt eine',
     /\.btn \{[^}]*border: *1px solid/.test(sCss),
     (sCss.match(/\.btn \{[^}]*\}/) || [''])[0]);
-  /* UEBER EIN WIRKLICH ZUGESTELLTES EREIGNIS -- ein
-     aufgerufener Behandler belegt nicht, dass ein Klick ankommt. */
+  /* Ein aufgerufener Behandler belegt nicht, dass ein Klick ankommt. */
   sReference.dispatchEvent(new sAn.w.MouseEvent('click', { bubbles: true, cancelable: true }));
   await until(sAn.w, (x) => !x.document.getElementById('lu'), 2000, 'das Anfrageformular');
   const sName = sAn.w.document.getElementById('req-name');
   const sMail = sAn.w.document.getElementById('req-mail');
   check('Der Klick fuehrt zum Formular mit Name und Adresse',
     Boolean(sName && sMail), 'das Formular fehlt');
-  /* KEIN PASSWORTFELD. */
   check('Und ohne jedes Passwortfeld',
     sAn.w.document.querySelectorAll('.login-card input[type="password"]').length === 0,
     `${sAn.w.document.querySelectorAll('.login-card input[type="password"]').length} Passwortfelder`);
@@ -896,8 +775,7 @@ async function run() {
   check('Der Rumpf traegt sonst nichts -- keine Rolle, kein Passwort',
     equal(Object.keys(sSent?.body || {}).sort(), ['address', 'name']),
     JSON.stringify(Object.keys(sSent?.body || {})));
-  /* DIE MELDUNG KOMMT VOM SERVER UND WIRD NICHT ERFUNDEN -- eine zweite
-     Ausfertigung in der Oberflaeche liefe beim naechsten Wort auseinander. */
+  /* Die Meldung kommt vom Server; eine zweite Fassung in der Oberflaeche liefe auseinander. */
   const sDank = sAn.w.document.getElementById('req-thanks');
   check('Danach steht die Dankseite da', Boolean(sDank), 'die Dankseite fehlt');
   check('Und sie zeigt genau die Meldung des Servers',
@@ -907,11 +785,9 @@ async function run() {
   check('Sie verraet nicht, ob der Name frei war',
     !/vergeben|bereits|frei/i.test(sDank?.textContent || ''), sDank?.textContent || '');
 
-  /* ---------------------------------------------------------------- */
 
   group('Die Anmeldeseite: der zweite Schritt');
 
-  /* WAS DER MENSCH SIEHT, IST DIE HAELFTE DIESER RUNDE. */
   /* Klickt per dispatchEvent und wartet auf `condition`; fehlt der Knopf, wird nicht gewartet. */
   const zdClickable = async (w, el, condition, what) => {
     if (!el) return;
@@ -937,7 +813,6 @@ async function run() {
     return d;
   };
 
-  /* OHNE ZWEITEN FAKTOR AENDERT SICH NICHTS -- die Gegenlage steht zuerst. */
   const zdWithout = await zdLogin(false);
   check('Ohne zweiten Faktor fuehrt die Anmeldung wie bisher hinein',
     !zdWithout.w.document.getElementById('two-factor-code') &&
@@ -952,32 +827,26 @@ async function run() {
     !zdIncluding.w.document.getElementById('lp'), 'das Passwortfeld steht noch da');
   check('Die Marke der Instanz steht auch hier',
     Boolean(zdIncluding.w.document.querySelector('.login-brand')), 'keine Markenzeile');
-  /* DER WEG UEBER DEN WIEDERHERSTELLUNGSCODE STEHT DANEBEN, nicht hinter
-     einem Knopf: wer sein Telefon nicht hat, sucht ihn genau in diesem
-     Augenblick -- und findet ihn nicht, wenn er erst aufzuklappen waere. */
+  /* Der Hinweis steht ohne Klick da: wer sein Telefon nicht hat, sucht ihn genau jetzt. */
   check('Und der Hinweis auf die Wiederherstellungscodes steht ohne Klick da',
     /Wiederherstellungscode/.test(zdIncluding.w.document.querySelector('.login-card')?.textContent || ''),
     zdIncluding.w.document.querySelector('.login-card')?.textContent?.slice(-160));
   check('Ein Feld fuer BEIDE Formen, kein Umschalter daneben',
     zdIncluding.w.document.querySelectorAll('.login-card input').length === 1,
     String(zdIncluding.w.document.querySelectorAll('.login-card input').length));
-  /* --- 0.12.3: und die Beschriftung schliesst keine der beiden Formen aus
-     --- "Sechsstelliger Code" war fuer den Wiederherstellungscode falsch --
-     der hat zehn Zeichen -- und "aus deiner App" fuer ihn ebenso: er kommt
-     von einem Zettel. */
+  /* Der Wiederherstellungscode hat zehn Zeichen und kommt nicht aus der App;
+     die Beschriftung passt auf beide Formen. */
   const zdLabel = zdIncluding.w.document.querySelector('label[for="two-factor-code"]')?.textContent || '';
   check('Die Beschriftung nennt das Verfahren und keine Zeichenzahl',
     /Zwei-Faktor-Code/.test(zdLabel) && !/[Ss]echsstellig/.test(zdLabel), zdLabel);
   check('Und die Seite spricht nirgends mehr von einer App',
     !/\bApp\b/i.test(zdIncluding.w.document.querySelector('.login-card')?.textContent || ''),
     (zdIncluding.w.document.querySelector('.login-card')?.textContent || '').replace(/\s+/g, ' ').slice(0, 200));
-  /* DER AUSWEIS AUS SCHRITT 1 WIRD WIRKLICH MITGESCHICKT und nicht neu
-     erfunden -- er ist die einzige Verbindung zwischen den beiden Schritten. */
+  /* Der Ausweis aus Schritt 1 ist die einzige Verbindung zwischen den beiden Schritten. */
   const zdOne = zdIncluding.sent.filter(g => g.url === '/api/login').pop();
   check('Schritt 1 ist wirklich gelaufen', Boolean(zdOne), JSON.stringify(zdOne));
 
-  // Ein falscher Code: die Seite bleibt stehen, nennt die Absage und geht mit
-// dem FRISCHEN Ausweis weiter -- ein Tippfehler kostet nicht das Passwort.
+  // Ein falscher Code kostet nicht das Passwort: es geht mit dem frischen Ausweis weiter.
   zfSet(zdIncluding.w, 'two-factor-code', '000000');
   const zdSend1 = zdIncluding.w.document.getElementById('two-factor-send');
   await zdClickable(zdIncluding.w, zdSend1, (x) => !zdSend1.isConnected && openRequests(x) === 0,
@@ -995,7 +864,6 @@ async function run() {
   check('Der erste Ausweis ist dabei mitgegangen',
     zdWrong?.body?.ticket === 'ausweis-1', JSON.stringify(zdWrong?.body));
 
-  // Und jetzt der richtige.
   zfSet(zdIncluding.w, 'two-factor-code', '123456');
   const zdSend2 = zdIncluding.w.document.getElementById('two-factor-send');
   await zdClickable(zdIncluding.w, zdSend2, (x) => !zdSend2.isConnected && openRequests(x) === 0,
@@ -1008,8 +876,7 @@ async function run() {
     !zdIncluding.w.document.querySelector('.login-card'),
     zdIncluding.w.document.querySelector('.login-card') ? 'die Karte steht noch da' : 'drin');
 
-  /* EIN WIEDERHERSTELLUNGSCODE TRAEGT AN DERSELBEN STELLE. Ohne diese Lage
-     bliebe der Satz auf dem Bildschirm eine Behauptung. */
+  /* Belegt den Hinweis, dass ein Wiederherstellungscode im selben Feld gilt. */
   const zdAgain = await zdLogin(true);
   zfSet(zdAgain.w, 'two-factor-code', 'AAAAA-BBBBB');
   const zdSend3 = zdAgain.w.document.getElementById('two-factor-send');
@@ -1019,10 +886,8 @@ async function run() {
     !zdAgain.w.document.querySelector('.login-card'),
     zdAgain.w.document.querySelector('.login-card')?.textContent?.slice(0, 80));
 
-  /* IST DER AUSWEIS FORT, GEHT ES ZURUECK AN DEN ANFANG -- und zwar an einem
-     FELD und nicht an einem Statuscode: liegt der Absage ein frischer Ausweis
-     bei, war der Code falsch; liegt keiner bei, ist hier nichts mehr zu
-     holen. */
+  /* Entscheidend ist ein Feld der Absage, nicht der Statuscode: mit frischem
+     Ausweis war der Code falsch, ohne ist der Ausweis abgelaufen. */
   const zdPath = await zdLogin(true);
   const zdSendOld = zdPath.w.document.getElementById('two-factor-send');
   zdPath.w.showSecondFactor('erfundener-ausweis');
@@ -1039,9 +904,6 @@ async function run() {
     /abgelaufen/.test(zdPath.w.document.querySelector('.login-error')?.textContent || ''),
     zdPath.w.document.querySelector('.login-error')?.textContent || '(keine Meldung)');
 
-  /* UND DIE ANMELDESEITE SELBST BLEIBT UNANGETASTET: bei falschem Passwort
-     sieht sie aus wie vor dieser Runde, und von einem zweiten Faktor steht
-     dort kein Wort. */
   const zdWord = buildDom(JSDOM, { loggedIn: false, loginFactor: true });
   await until(zdWord.w, (x) => x.document.getElementById('lu') && openRequests(x) === 0,
     2000, 'die Anmeldeseite');
@@ -1062,8 +924,6 @@ async function run() {
 
   group('Die Karte „Zugang“: der zweite Faktor');
 
-  /* KEINE NEUE KARTE -- es bleibt bei achtzehn. Der zweite Faktor steht dort,
-     wo Name, Passwort und Adresse stehen: beim eigenen Zugang. */
   const zkOut = buildDom(JSDOM, { hash: '#/system' });
   await until(zkOut.w, (x) => x.document.querySelector('.sys-grid') && openRequests(x) === 0,
     2000, 'der Systembereich');
@@ -1074,25 +934,20 @@ async function run() {
   check('Der Block steht in der Karte "Mein Account" und nicht in einer eigenen',
     Boolean(zkBlock()) && zkBlock().closest('.sys-card')?.querySelector('h3')?.textContent === ACCOUNT_CARD,
     zkBlock()?.closest('.sys-card')?.querySelector('h3')?.textContent || '(kein Block)');
-  /* GEZAEHLT WIRD UEBER ALLE ABSCHNITTE, seit der Systembereich immer nur
-     einen zeigt. */
+  /* sysPass zaehlt ueber alle Abschnitte; sichtbar ist immer nur einer. */
   const zkAll = (await sysPass(zkOut)).cards;
   check('Und die Zahl der Karten bleibt bei dreiundzwanzig',
     zkAll.length === 23, `${zkAll.length}: ${zkAll.join(' · ')}`);
   await sysSection(zkOut.w, 'personal');
-  /* DER ZUSTAND STEHT OHNE KLICK DA. "An seit ..." oder "aus" -- nicht hinter
-     einem Knopf, den man erst druecken muss. */
   check('Der Zustand "aus" steht ohne Klick da',
     /Zweiter Faktor: aus/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 90));
   check('Und daneben der Knopf zum Einschalten',
     Boolean(zkOut.w.document.getElementById('two-factor-on')), 'der Knopf fehlt');
   check('Zum Ausschalten steht dort keiner',
     !zkOut.w.document.getElementById('two-factor-off') && !zkOut.w.document.getElementById('two-factor-new'));
-  // 0.22.0: der Absatz ist zwei Saetze lang und sagt, dass die App kein Internet braucht.
   check('Und der Text sagt, dass die App kein Internet braucht',
     /kein Internet/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 300));
 
-  // Einschalten, Schritt 1: hinter dem bisherigen Passwort.
   await zdClickable(zkOut.w, zkOut.w.document.getElementById('two-factor-on'),
     (x) => x.document.getElementById('confirm-pass'), 'das Passwortfenster');
   check('Einschalten fragt zuerst nach dem bisherigen Passwort',
@@ -1118,7 +973,6 @@ async function run() {
     zkOut.w.document.getElementById('two-factor-secret')?.compareDocumentPosition(zkRow) === 4,
     String(zkOut.w.document.getElementById('two-factor-secret')?.compareDocumentPosition(zkRow)));
 
-  // Schritt 2: der Code aus der App.
   zfSet(zkOut.w, 'two-factor-check', '000000');
   await zdClickable(zkOut.w, zkOut.w.document.getElementById('two-factor-done'),
     (x) => x.document.getElementById('confirm-pass'), 'das Passwortfenster');
@@ -1134,8 +988,6 @@ async function run() {
   check('Und die Zahl der Wiederherstellungscodes steht daneben',
     /noch 8 von 8/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 200));
 
-  /* DIE CODES WERDEN GENAU EINMAL GEZEIGT, und der Bildschirm sagt es an
-     derselben Stelle -- mit demselben Ernst wie beim Einladungslink. */
   const zkBox = () => zkOut.w.document.getElementById('two-factor-codebox');
   check('Die acht Wiederherstellungscodes stehen da',
     zkBox()?.querySelectorAll('.two-factor-codes span').length === 8,
@@ -1151,7 +1003,6 @@ async function run() {
   check('Er nennt den Notweg ueber den Wirt fuer den Fall, dass alles weg ist',
     /usertool\.js twofactor/.test(zkBox()?.textContent || ''),
     zkBox()?.textContent?.slice(-160));
-  // Und beim naechsten Aufbau der Karte sind sie fort.
   await zkOut.w.renderSystem();
   await until(zkOut.w, (x) => x.document.querySelector('.sys-grid') && openRequests(x) === 0,
     2000, 'der neu gezeichnete Systembereich');
@@ -1163,8 +1014,6 @@ async function run() {
     !zkOut.w.document.body.textContent.includes('GEZDGNBVGY3TQOJQ'),
     'das Geheimnis steht noch da');
 
-  /* NEUE CODES -- der Fall, den niemand plant. Hinter Passwort UND Code, und
-     das Fenster zeigt jetzt BEIDE Felder. */
   await zdClickable(zkOut.w, zkOut.w.document.getElementById('two-factor-new'),
     (x) => x.document.getElementById('confirm-pass'), 'das Passwortfenster');
   check('Neue Codes fragen nach Passwort UND Code',
@@ -1178,7 +1027,6 @@ async function run() {
   check('Und die Zahl steht wieder bei acht von acht',
     /noch 8 von 8/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 160));
 
-  // Ausschalten: Passwort und Code, danach wieder "aus".
   await zdClickable(zkOut.w, zkOut.w.document.getElementById('two-factor-off'),
     (x) => x.document.getElementById('confirm-pass'), 'das Passwortfenster');
   check('Ausschalten fragt ebenfalls nach beidem',
@@ -1196,7 +1044,6 @@ async function run() {
     Boolean(zkOut.w.document.getElementById('two-factor-on')) &&
     !zkOut.w.document.getElementById('two-factor-off'));
 
-  /* DIE WARNUNG, WENN ES KNAPP WIRD. */
   const zkTight = buildDom(JSDOM, { hash: '#/system',
     twoFactorState: { an: true, since: '2026-08-14 10:00:00', codesOpen: 1, codesTotal: 8 } });
   await until(zkTight.w, (x) => x.document.querySelector('.sys-grid') && openRequests(x) === 0,
@@ -1208,7 +1055,6 @@ async function run() {
   check('Bei einem uebrigen Code bittet die Karte um neue Codes',
     /noch 1 von 8/.test(zkTightText) && /rechtzeitig neue erzeugen/.test(zkTightText),
     zkTightText.slice(0, 200));
-  // SEIT 0.22.0 DURCH fmtDate: „14.08.2026" statt des ISO-Datums (Anlage F, Z. 6884).
   check('Und nennt den Tag, an dem er eingeschaltet wurde',
     /14\.08\.2026/.test(zkTightText) && !/2026-08-14/.test(zkTightText), zkTightText.slice(0, 120));
   const zkFull = buildDom(JSDOM, { hash: '#/system',
@@ -1222,8 +1068,6 @@ async function run() {
     !/knapp/.test(zkFull.w.document.getElementById('two-factor-block')?.textContent || ''),
     zkFull.w.document.getElementById('two-factor-block')?.textContent?.slice(0, 200));
 
-  /* DAS BESTAETIGUNGSFENSTER FOLGT DEM SERVER UND NICHT EINER VERMUTUNG: das
-     Codefeld steht nur bei Zugaengen mit zweitem Faktor. */
   const zkBest = buildDom(JSDOM, { hash: '#/system',
     twoFactorState: { an: true, since: '2026-08-14 10:00:00', codesOpen: 8, codesTotal: 8 } });
   await until(zkBest.w, (x) => x.document.querySelector('.sys-grid') && openRequests(x) === 0,
@@ -1238,15 +1082,12 @@ async function run() {
   check('Und sagt daneben, warum der Code dazugehoert',
     D.shows(zkBest.w.document.querySelector('.modal .desc')?.textContent, 'dialog.twoFactorOn'),
     zkBest.w.document.querySelector('.modal .desc')?.textContent);
-  /* --- 0.12.3: die Beschriftung nennt das ALGORITHM, nicht das Geraet ---
-     "Code aus deiner App" war zweimal falsch. */
   const zkLabel = [...zkBest.w.document.querySelectorAll('.modal .field label')]
     .map(l => l.textContent);
   check('Das Codefeld nennt das Verfahren',
     zkLabel.some(t => /Zwei-Faktor-Code/.test(t)), JSON.stringify(zkLabel));
   check('Und keine Beschriftung im Fenster spricht mehr von einer App',
     !zkLabel.some(t => /App/i.test(t)), JSON.stringify(zkLabel));
-  /* IM DIALOG STAND DER ZWEITE WEG BISHER NIRGENDS. */
   check('Und der zweite Weg steht daneben, wie an der Anmeldung',
     /Wiederherstellungscode/.test(
       zkBest.w.document.querySelector('.modal .desc')?.textContent || ''),
@@ -1276,7 +1117,6 @@ async function run() {
   check('Und im Rumpf steht dann auch kein Feld code',
     zkWithoutCall && zkWithoutCall.body.code === undefined, JSON.stringify(zkWithoutCall?.body));
 
-  /* DIE FARBEN DES ZUSTANDS -- erst das Vorhandensein, dann die Eigenschaft. */
   const zfCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')
     .replace(/\s+/g, ' ');
   const zfRule = (w) => (zfCss.match(new RegExp(w.replace(/\./g, '\\.') + ' \\{[^}]*\\}')) || [''])[0];
@@ -1296,8 +1136,8 @@ async function run() {
 
   group('Die Bestaetigungsseite in der Oberflaeche');
 
-  /* DER SCHLUESSEL STEHT IM FRAGMENT (#/confirm/…) und geht damit nie an den
-     Server -- dieselbe Bauform wie beim Einladungslink. */
+  /* Der Schluessel steht im Fragment und geht nie als Adresse an den Server,
+     wie beim Einladungslink. */
   const beGood = buildDom(JSDOM, { hash: `#/confirm/${'d'.repeat(64)}` });
   await until(beGood.w, (x) => x.document.getElementById('confirm-back') && openRequests(x) === 0,
     2000, 'die Bestaetigungsseite');
@@ -1317,9 +1157,6 @@ async function run() {
   check('Und sie sagt, dass jetzt der Admin entscheidet',
     /Admin/.test(beGood.w.document.getElementById('confirm-ok')?.textContent || ''),
     beGood.w.document.getElementById('confirm-ok')?.textContent || '');
-  /* SIE MELDET NIEMANDEN AN, und das ist die Oberflaechenhaelfte der Zusage:
-     kein Weg von hier fuehrt weiter in die Anwendung, und der Schluessel
-     verlaesst die Adresse. */
   check('Die Seite bleibt die Anmeldeseite -- niemand ist damit angemeldet',
     beGood.w.document.body.classList.contains('login'),
     'die Oberflaeche hat sich aufgebaut');
@@ -1339,12 +1176,10 @@ async function run() {
     !/@/.test(beDead.w.document.querySelector('.login-error')?.textContent || ''),
     beDead.w.document.querySelector('.login-error')?.textContent || '');
 
-  /* ---------------------------------------------------------------- */
   group('Die Karte „Anfragen“');
 
-  /* ZU JEDEM FELD, DAS DIE OBERFLAECHE AUS DER ANTWORT LIEST, EINE PRUEFUNG
-     AN DER ECHTEN ANTWORT -- die steht in der Gruppe "die
-     Freischaltung" oben. */
+  /* Die Felder dieser Antwort prueft test/roundtrip.js in der Gruppe
+     „Die Selbstanmeldung: die Freischaltung" an der echten Antwort. */
   const sCardBuild = async (status) => {
     const d = buildDom(JSDOM, { requestsStatus: status,
       settings: { filters: null, isAdmin: true, isOwner: true } });
@@ -1381,8 +1216,7 @@ async function run() {
     /an/.test(kA.w.document.getElementById('signup-state')?.textContent || ''),
     kA.w.document.getElementById('signup-state')?.textContent || '');
 
-  /* DIE FREISCHALTUNG UEBER EIN ZUGESTELLTES EREIGNIS, und das Bestaetigen
-     davor ist gestellt: confirm() gibt es in jsdom nicht von selbst. */
+  /* confirm() fehlt in jsdom; placeConfirm stellt es. */
   placeConfirm(kA.w, true);
   kRows[0].querySelector('.signup-approve')
     .dispatchEvent(new kA.w.MouseEvent('click', { bubbles: true, cancelable: true }));
@@ -1394,15 +1228,13 @@ async function run() {
     kA.sent.filter(x => /anfragen/.test(x.url)).map(x => `${x.method} ${x.url}`).join(' · '));
   check('Und schickt dabei keine Rolle mit',
     !JSON.stringify(kFree?.body || {}).includes('role'), JSON.stringify(kFree?.body));
-  /* DIE KARTE ZEICHNET SICH AUS DER ANTWORT NEU. */
   check('Die freigeschaltete Zeile verschwindet aus der Liste',
     [...kA.w.document.querySelectorAll('#mrequests .mrow')].length === 1,
     `${[...kA.w.document.querySelectorAll('#mrequests .mrow')].length} Zeilen`);
   check('Und der Stand gegen den Deckel zieht mit',
     /1 von höchstens 20/.test(kA.w.document.getElementById('signup-used')?.textContent || ''),
     kA.w.document.getElementById('signup-used')?.textContent || '');
-  /* DER EINLADUNGSLINK ERSCHEINT IN DER KARTE, in der der Knopf steht -- und
-     nicht in "Zugaenge", wo ihn niemand sucht. */
+  /* Der Link erscheint in der Karte mit dem Knopf, nicht in „Benutzer". */
   const kField = kA.w.document.querySelector('#signup-link #user-link-field');
   check('Der Einladungslink steht danach in der Karte "Anfragen"',
     kField?.value === `https://kriterion.beispiel.de/#/invite/${'e'.repeat(64)}`,
@@ -1430,7 +1262,6 @@ async function run() {
   check('Und es entsteht dabei kein Linkkasten -- es gibt keinen Zugang',
     !kFrom.w.document.querySelector('#signup-link #user-link-field'), 'ein Linkkasten steht da');
 
-  /* DER SCHALTER. */
   const kSch = await sCardBuild(sCardStatus());
   kSch.w.document.getElementById('signup-toggle')
     .dispatchEvent(new kSch.w.MouseEvent('click', { bubbles: true, cancelable: true }));
@@ -1449,7 +1280,6 @@ async function run() {
     /einschalten/.test(kSch.w.document.getElementById('signup-toggle')?.textContent || ''),
     kSch.w.document.getElementById('signup-toggle')?.textContent || '');
 
-  /* DIE ROTE ZEILE: DER VERSAND IST KAPUTT, DER SCHALTER BLEIBT AN. */
   const kRed = await sCardBuild({ ...sCardStatus(), deliveryReady: false,
     deliveryReason: 'Seit der letzten Änderung am Mailzugang ist keine Testmail durchgekommen.' });
   check('Ist der Versand kaputt, steht die rote Zeile da',
@@ -1463,14 +1293,9 @@ async function run() {
   check('Der Schalter steht dabei weiterhin auf "an"',
     /an/.test(kRed.w.document.getElementById('signup-state')?.textContent || ''),
     kRed.w.document.getElementById('signup-state')?.textContent || '');
-  /* UND DIE GEGENLAGE: bei heilem Versand steht die Zeile
-     NICHT da. */
   check('Bei heilem Versand steht sie nicht da',
     !kA.w.document.getElementById('signup-broken'), 'die Zeile steht auch dann da');
 
-  /* IST DER SCHALTER AUS UND DER VERSAND KAPUTT, laesst sich gar nicht erst
-     einschalten -- und die Karte sagt, was fehlt, statt einen Knopf
-     anzubieten, der nur absagt. */
   const kNotReady = await sCardBuild({ an: false, deliveryReady: false,
     deliveryReason: 'Es ist kein Mailzugang eingerichtet. Das macht der Eigentümer dieser Installation.',
     cap: 20, hours: 24, requests: [
@@ -1482,10 +1307,8 @@ async function run() {
   check('Und die Karte sagt, was dafuer fehlt',
     /Mailzugang/.test(kNotReady.w.document.getElementById('signup-notready')?.textContent || ''),
     kNotReady.w.document.getElementById('signup-notready')?.textContent || '');
-  /* ---------------------------------------------------------------- */
   group('Meine Sitzungen in der Oberflaeche');
 
-  /* DIE KARTE IN BEIDEN ZUSTAENDEN -- mehrere Anmeldungen und eine einzige. */
   const msSystem = async (roles, opt = {}) => {
     const d = buildDom(JSDOM, { settings: { filters: null, userCount: 4, ...roles }, ...opt });
     await until(d.w, (x) => x.document.getElementById('count') && openRequests(x) === 0,
@@ -1502,10 +1325,7 @@ async function run() {
   const msuEig = await msSystem({ isAdmin: true, isOwner: true });
   const msuUser = await msSystem({ isAdmin: false, isOwner: false });
 
-  // ERST DAS VORHANDENSEIN, dann jede Aussage darueber.
   check('Die Karte steht bei der Eigentuemerin', !!msCard(msuEig));
-  /* UND BEI EINEM GEWOEHNLICHEN BENUTZER AUCH -- sie ist persoenlich wie
-     "Zugang" und kein Systembereich fuer Admins. */
   check('Und bei einem gewoehnlichen Benutzer ebenso', !!msCard(msuUser));
   check('Die Liste wird beim Aufbau des Bereichs geholt, nicht nachgeladen',
     msuUser.sent.some(x => x.method === 'GET' && x.url === '/api/sessions'),
@@ -1514,9 +1334,6 @@ async function run() {
   const msuRows = msSessionRows(msuEig);
   check('Die Karte zeigt alle drei Anmeldungen', msuRows.length === 3,
     `${msuRows.length} Zeilen`);
-  /* ZU JEDEM FELD, DAS DIE OBERFLAECHE AUS DER ANTWORT LIEST, GEHOERT EINE
-     PRUEFUNG -- hier beide Zeitangaben, in deutscher
-     Schreibweise. */
   const msuText = msuRows.map(r => r.textContent || '');
   check('Jede Zeile nennt, wann angemeldet wurde',
     /angemeldet 20\.08\.2026/.test(msuText[0]), msuText[0]);
@@ -1529,8 +1346,8 @@ async function run() {
     /Diese Sitzung/.test(msuText[0]) && /\(hier\)/.test(msuText[0]), msuText[0]);
   check('Die anderen heissen anders',
     msuText.slice(1).every(t => /Andere Sitzung/.test(t)), JSON.stringify(msuText.slice(1)));
-  /* AN DER EIGENEN STEHT KEIN KREUZ -- man wuerde sich sonst selbst
-     hinauswerfen, und der Server weist den Weg ohnehin ab. */
+  /* Ohne Kreuz an der eigenen Sitzung: man meldete sich selbst ab, und der
+     Server weist das ohnehin ab. */
   check('Es gibt ueberhaupt eine eigene Zeile',
     !!msuRows.find(r => r.classList.contains('session-mine')));
   check('An der eigenen steht kein Kreuz',
@@ -1540,23 +1357,20 @@ async function run() {
     msuRows.filter(r => !r.classList.contains('session-mine'))
       .every(r => !!r.querySelector('.session-x')),
     'einer anderen fehlt das Kreuz');
-  /* DIE ZAHL IST DIE AUSKUNFT DIESER KARTE -- ohne Geraetekennung ist sie
-     das, was ueberhaupt etwas sagt. */
+  /* Ohne Geraetekennung ist die Zahl die einzige Auskunft der Karte. */
   check('Die Karte nennt die Zahl der anderen',
     /2 weitere/.test(msCard(msuEig)?.textContent || ''),
     msCard(msuEig)?.textContent?.slice(-260));
   check('Und den Knopf, der sie beendet',
     !!msCard(msuEig)?.querySelector('#sessions-all'), 'der Knopf fehlt');
-  /* ---- BEFUND 2 DER RUNDE 0.26.0 -- DIE FUSSZEILE STEHT NEBEN DER LISTE
-     ---- Sie war bis dahin das letzte Kind IN `#msessions` und wurde vom
-     Deckel dieser Liste mitgerechnet. */
+  /* Die Fusszeile steht neben `#msessions`; darin zaehlte sie zur Obergrenze
+     der sichtbaren Zeilen. */
   const msuFoot = msCard(msuEig)?.querySelector('.session-foot');
   check('Die Fusszeile der Sitzungen steht da', !!msuFoot,
     msCard(msuEig)?.innerHTML?.slice(-200));
   check('Und sie ist kein Kind der rollenden Liste',
     !!msuFoot && !msCard(msuEig)?.querySelector('#msessions .session-foot'),
     msuFoot?.parentElement?.id || msuFoot?.parentElement?.className || '(kein Elternteil)');
-  /* UND DER KNOPF MIT IHR. */
   check('Und der Knopf steht in ihr, nicht in der Liste',
     !!msuFoot?.querySelector('#sessions-all') &&
     !msCard(msuEig)?.querySelector('#msessions #sessions-all'),
@@ -1564,12 +1378,10 @@ async function run() {
   check('Die Frist kommt vom Server und wird nicht nachgerechnet',
     /30 Tagen/.test(msCard(msuEig)?.textContent || ''),
     msCard(msuEig)?.textContent?.slice(-260));
-  /* WAS DIE KARTE AUSDRUECKLICH NICHT VERSPRICHT: ein Geraet. */
   check('Die Karte sagt offen, dass sie das Geraet nicht kennt',
     /Gerät und\s+Ort werden nicht gespeichert/.test(msCard(msuEig)?.querySelector('.desc')?.textContent || ''),
     msCard(msuEig)?.querySelector('.desc')?.textContent);
 
-  /* DER LEERE FALL -- nur die eigene, mit eigenem Aufbau. */
   const msuOne = await msSystem({ isAdmin: true, isOwner: true },
     { sessionsInventory: [{ id: 'a'.repeat(64), loggedInAt: '2026-08-20 08:00:00',
                            lastSeen: '2026-08-24 07:30:00', current: true }] });
@@ -1578,12 +1390,10 @@ async function run() {
   check('Und sie sagt, dass es die einzige ist',
     /einzige/.test(msCard(msuOne)?.textContent || ''),
     msCard(msuOne)?.textContent?.slice(-200));
-  /* KEIN KNOPF, DER ZUVERLAESSIG NICHTS TUT -- er saehe aus wie ein Fehler. */
+  /* Ein Knopf, der nichts tut, saehe aus wie ein Fehler. */
   check('Ohne andere Anmeldung steht auch kein Knopf da',
     !msCard(msuOne)?.querySelector('#sessions-all'), 'der Knopf steht doch da');
 
-  /* EINE EINZELNE BEENDEN, mit einem WIRKLICH zugestellten Ereignis --
-     .click() genuegt nicht. */
   {
     const d = await msSystem({ isAdmin: true, isOwner: true });
     const before = msSessionRows(d).length;
@@ -1601,8 +1411,7 @@ async function run() {
       msSessionRows(d).map(r => r.className).join(' · '));
   }
 
-  /* ALLE ANDEREN BEENDEN. confirm ist in jsdom nicht gebaut und liefert
-     undefined -- ein falscher Wert, an dem der Behandler zurueckkaeme. */
+  /* confirm() fehlt in jsdom und liefert undefined; placeConfirm stellt die Antwort. */
   {
     const d = await msSystem({ isAdmin: true, isOwner: true });
     const msNo = placeConfirm(d.w, false);
@@ -1631,8 +1440,8 @@ async function run() {
       /einzige/.test(msCard(d)?.textContent || ''), msCard(d)?.textContent?.slice(-200));
   }
 
-  /* JEDE LESESTELLE IST ABGEFANGEN: fehlt die Antwort oder
-     ein Feld darin, soll die Karte etwas sagen und nicht der Lauf abreissen. */
+  /* Fehlt die Antwort oder ein Feld darin, sagt die Karte etwas, statt den
+     Lauf abzubrechen. */
   {
     const d = await msSystem({ isAdmin: true, isOwner: true }, { sessionsInventory: [] });
     check('Auch ohne eine einzige Zeile steht die Karte',
@@ -1640,10 +1449,8 @@ async function run() {
     check('Und der Lauf reisst dabei nicht ab', true);
   }
 
-  /* ---------------------------------------------------------------- */
   group('Der Einladungslink in der Karte Benutzer');
 
-  // „Benutzer" seit 0.22.0 (E2); der Abschnittsschluessel heisst seit 0.24.1 `users`.
   const ziCard = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
     .find(c => c.querySelector('h3')?.textContent.trim() === 'Benutzer');
   const ziRows = (d) => [...(ziCard(d)?.querySelectorAll('#musers .mrow.user') || [])];
@@ -1659,19 +1466,14 @@ async function run() {
 
   const ziEig = await ziSystem({ isAdmin: true, isOwner: true });
   check('Die Karte "Benutzer" steht da', !!ziCard(ziEig));
-  // Drei lebende Zugaenge; der Grabstein der Prueflage steht seit 0.13.0 im
-// eigenen Fenster und nicht mehr in dieser Liste.
+  // Drei aktive Zugaenge; der geloeschte Zugang der Prueflage steht im eigenen Fenster.
   check('Und sie zeigt ihre Zeilen', ziRows(ziEig).length === 3, `${ziRows(ziEig).length}`);
 
-  /* "NOCH KEIN PASSWORT" IST ABGELEITET, KEIN VIERTER ZUSTAND -- und es steht
-     NUR an der aktiven Zeile. */
+  /* „noch kein Passwort" wird abgeleitet und steht nur an aktiven Zeilen. */
   const ziRow = (name) => ziRows(ziEig).find(r => (r.querySelector('.mname')?.textContent || '').includes(name));
   check('Die Zeile des eingeladenen Zugangs ist da', !!ziRow('bert'));
   check('Sie traegt "noch kein Passwort"',
     /noch kein Passwort/.test(ziRow('bert')?.textContent || ''), ziRow('bert')?.textContent);
-  /* SEIT 0.13.0 STEHT DER GRABSTEIN NICHT MEHR IN DIESER LISTE, sondern in
-     einem eigenen Fenster -- er ist kein Zugang, den man verwalten kann, und
-     er waechst mit jeder Loeschung. */
   check('Der Grabstein steht nicht mehr zwischen den lebenden Zugaengen',
     !ziRow('Gelöschter Benutzer 4'),
     ziRows(ziEig).map(r => r.querySelector('.mname')?.textContent).join(' · '));
@@ -1679,8 +1481,6 @@ async function run() {
     !/noch kein Passwort/.test(ziRow('carla')?.textContent || ''),
     ziRow('carla')?.textContent);
 
-  /* BEIDE WEGE STEHEN NEBENEINANDER, und die Karte bevorzugt den Link:
-     er steht VOR dem Schluessel. */
   check('An einer bedienbaren Zeile steht das Kettenglied',
     !!ziRow('carla')?.querySelector('.user-link-btn'), 'der Knopf fehlt');
   check('Und der Schluessel daneben steht weiterhin',
@@ -1692,8 +1492,7 @@ async function run() {
       .findIndex(e => e.classList.contains('user-pass-btn')),
     'die Reihenfolge stimmt nicht');
 
-  /* ================= Gelöschte Zugänge im eigenen Fenster — 0.13.0 ====
-     REINE OBERFLÄCHE, Vorbild ist der Dialog "Wer hat bewertet". */
+  /* ---- Geloeschte Zugaenge im eigenen Fenster ---- */
   {
     const zwButton = () => ziCard(ziEig)?.querySelector('#deleted-users');
     check('An der Karte steht ein Knopf zu den geloeschten Zugaengen', !!zwButton(),
@@ -1708,17 +1507,14 @@ async function run() {
     const zwRows = () => [...(zwDialog()?.querySelectorAll('.mrow.user') || [])];
     check('Darin steht der Grabstein', zwRows().length === 1 &&
       /Gelöschter Benutzer 4/.test(zwRows()[0]?.textContent || ''), zwDialog()?.textContent);
-    /* KEIN WERKZEUG AM GRABSTEIN -- es gibt nichts zu tun, und ein Knopf, der
-       zuverlaessig eine Fehlermeldung erzeugt, sieht aus wie ein Fehler. */
+    /* Ein Knopf, der sicher eine Fehlermeldung erzeugt, saehe aus wie ein Fehler. */
     check('Ohne Werkzeug: kein Link, kein Schluessel, kein Entfernen',
       !zwRows()[0].querySelector('.user-link-btn') && !zwRows()[0].querySelector('.user-pass-btn') &&
       !zwRows()[0].querySelector('.user-x') && !zwRows()[0].querySelector('.user-act'),
       zwRows()[0].innerHTML);
-    // "Noch kein Passwort" gilt auch hier nicht: der Grabstein traegt denselben
-// leeren Hash, aber die Angabe waere eine Falschaussage.
+    // Der geloeschte Zugang hat auch einen leeren Hash; „noch kein Passwort" waere dort falsch.
     check('Und ohne "noch kein Passwort"',
       !/noch kein Passwort/.test(zwRows()[0].textContent || ''), zwRows()[0].textContent);
-    /* DAS WINDOW SAGT, WARUM DER NAME NICHT DASTEHT. */
     check('Es sagt, dass der urspruengliche Name nicht aufbewahrt wird',
       D.shows(zwDialog()?.textContent, 'card.nameFreedHint'),
       zwDialog()?.textContent?.replace(/\s+/g, ' ').slice(0, 300));
@@ -1730,7 +1526,6 @@ async function run() {
     await until(ziEig.w, () => !zwClose || !zwClose.isConnected, 2000, 'das geschlossene Fenster');
     check('Und es laesst sich wieder schliessen', !zwDialog(), 'das Fenster bleibt stehen');
   }
-  /* OHNE GRABSTEIN KEIN KNOPF. */
   {
     const d = await ziSystem({ isAdmin: true, isOwner: true }, { users: {
       ich: 1, mayRoles: true, owner: 1,
@@ -1744,8 +1539,6 @@ async function run() {
     d.w.close();
   }
 
-  /* DEN LINK ERZEUGEN. Der Kasten erscheint, er nennt die Adresse VOLLSTAENDIG
-     -- gebaut aus location, nicht vom Server --, und die Warnung steht daneben. */
   {
     const d = await ziSystem({ isAdmin: true, isOwner: true });
     placeConfirm(d.w, true);
@@ -1754,7 +1547,6 @@ async function run() {
     linkButton?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await until(d.w, (x) => !linkButton || x.document.getElementById('confirm-pass'),
       2000, 'der Dialog der zweiten Bestaetigung');
-    /* SEIT 0.8.90 STEHT DIE ZWEITE BESTAETIGUNG DAVOR. */
     check('Vor dem Link steht die zweite Bestaetigung',
       !!d.w.document.getElementById('confirm-pass'), 'kein Dialog');
     check('Und der Server ist bis dahin NICHT gefragt worden',
@@ -1769,14 +1561,10 @@ async function run() {
       JSON.stringify(d.sent.find(x => x.url === '/api/users/3/token')?.body));
     const field = d.w.document.getElementById('user-link-field');
     check('Der Kasten mit dem Link steht da', !!field, 'kein Feld');
-    /* DIE VOLLSTAENDIGE ADRESSE BAUT DER BROWSER -- der Server gibt nur den
-       Schluessel heraus. Nachgerechnet gegen den Ort des Fensters. */
+    /* Die Adresse baut der Browser aus location; der Server liefert nur den Schluessel. */
     check('Er traegt die vollstaendige Adresse aus dem Ort des Fensters',
       field?.value === `${d.w.location.origin}${d.w.location.pathname}#/invite/${'d'.repeat(64)}`,
       field?.value);
-    /* UMGEDREHT MIT 0.22.0 (Anlage F): der Kasten sagt in drei Saetzen, was
-       der Link kann, wie lange und wie oft er gilt und an wen er geht -- ohne
-       „Passwortersatz" und ohne den „fremden Verlauf". */
     const zlText = () => (d.w.document.getElementById('user-link')?.textContent || '').replace(/\s+/g, ' ');
     check('Die Warnung steht daneben, nicht nur im Dokument',
       /Wer den Link hat, kann das Passwort setzen/.test(zlText()), zlText().slice(0, 240));
@@ -1786,21 +1574,17 @@ async function run() {
       /Nur an die richtige Person weitergeben/.test(zlText()), zlText().slice(0, 240));
     check('Der Kasten sagt, dass der Link nur dieses eine Mal erscheint',
       /wird nur einmal angezeigt/.test(zlText()), zlText().slice(0, 240));
-    // Und die Frist aus 0.9.0, gelesen aus der ANTWORT.
     check('Und er nennt die Frist ab dem ersten Oeffnen',
       /15 Minuten/.test(d.w.document.getElementById('user-link')?.textContent || ''),
       d.w.document.getElementById('user-link')?.textContent?.slice(0, 300));
   }
 
-  /* ---------------------------------------------------------------- */
   group('Der Versandzustand neben dem Link');
 
-  /* DREI ZUSTAENDE, DREI LAGEN -- und in JEDER steht der Link daneben. */
   const vzLink = async (opt) => {
     const d = await ziSystem({ isAdmin: true, isOwner: true }, opt);
     placeConfirm(d.w, true);
-    // bert TRAEGT eine Adresse, carla nicht -- damit laesst sich der Zweig
-// "keine Adresse hinterlegt" ueberhaupt stellen.
+    // bert hat eine Adresse, carla nicht; so laesst sich der Fall ohne Adresse stellen.
     const row = ziRows(d).find(r => (r.querySelector('.mname')?.textContent || '').includes(opt.actor || 'bert'));
     const linkButton = row?.querySelector('.user-link-btn');
     linkButton?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
@@ -1816,10 +1600,8 @@ async function run() {
       D.shows(box?.textContent, 'card.testMailSent'), box?.textContent?.slice(0, 400));
     check('Und der Link steht trotzdem da',
       !!d.w.document.getElementById('user-link-field'), 'kein Linkfeld');
-    /* DIE ADRESSE DES EMPFAENGERS STEHT NICHT IM KASTEN, und das ist kein
-       Versehen: an einem BESTEHENDEN Zugang hat sie der Betroffene selbst
-       eingetragen, und GET /api/users liefert sie aus demselben Grund nicht
-       mit. */
+    /* Die Adresse hat der Betroffene selbst eingetragen; auch GET /api/users
+       liefert sie nicht mit. */
     check('Die Adresse des Empfaengers steht dabei NICHT im Kasten',
       !/@/.test((box?.querySelector('.user-send')?.textContent || '')),
       box?.querySelector('.user-send')?.textContent);
@@ -1839,7 +1621,6 @@ async function run() {
       /von Hand weiter/.test(box?.textContent || ''), box?.textContent?.slice(0, 400));
   }
   {
-    // KEIN MAILZUGANG: der haeufigste Fall, und er muss aussehen wie 0.8.80.
     const d = await vzLink({ publicAddress: 'https://kriterion.beispiel.de', mailStatus: {} });
     const box = d.w.document.getElementById('user-link');
     check('Ohne Mailzugang sagt der Kasten, dass nichts verschickt wurde',
@@ -1850,7 +1631,7 @@ async function run() {
       !!d.w.document.getElementById('user-link-field'), 'kein Linkfeld');
   }
   {
-    // UND DER ZUGANG OHNE ADRESSE -- carla hat keine.
+    // carla hat keine Adresse.
     const d = await vzLink({ publicAddress: 'https://kriterion.beispiel.de', actor: 'carla' });
     const box = d.w.document.getElementById('user-link');
     check('Ohne Adresse am Zugang sagt der Kasten auch das',
@@ -1860,13 +1641,10 @@ async function run() {
       !!d.w.document.getElementById('user-link-field'), 'kein Linkfeld');
   }
 
-  /* ---------------------------------------------------------------- */
   group('Das Sicherheitsprotokoll in der Oberflaeche');
 
-  /* DIE KARTE HOLT IHREN BESTAND BEIM AUFBAU DES BEREICHS und laedt sich
-     nicht selbst nach: eine Zusage, die nach dem
-     Schliessen ihres Fensters ankommt, risse den ganzen Lauf ab statt eine
-     Pruefung rot zu faerben. */
+  /* Die Karte holt ihren Bestand beim Aufbau des Bereichs: ein Promise, das nach
+     dem Schliessen des Fensters ankommt, bricht den ganzen Lauf ab. */
   const spCard = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
     .find(c => c.querySelector('h3')?.textContent.trim() === 'Sicherheitsprotokoll');
   const spRows = (d) => [...(spCard(d)?.querySelectorAll('.log-row') || [])];
@@ -1881,8 +1659,6 @@ async function run() {
     check('Und sie zeigt ihre vier Zeilen',
       spRows(d).length === 4, `${spRows(d).length} Zeilen`);
 
-    /* JEDE DER VIER LAGEN EINZELN -- und erst das Vorhandensein der Zeile,
-       dann ihre Eigenschaft. */
     const spRow = (event) => spRows(d).find(z => z.dataset.event === event);
     check('Die Zeile zum Rollenwechsel ist ueberhaupt da', !!spRow('user.role'));
     check('Sie nennt den Vorgang, den Handelnden, das Ziel und die neue Rolle',
@@ -1892,17 +1668,14 @@ async function run() {
       /Admin/.test(spRow('user.role')?.textContent || ''),
       spRow('user.role')?.textContent?.replace(/\s+/g, ' '));
     check('Die Zeile zum Export ist ueberhaupt da', !!spRow('export'));
-    /* Erst das Vorhandensein des Feldes, dann seine Leere:
-       ein fehlendes Feld liefert einen leeren Text, und jede Verneinung
-       darauf waere wahr. */
+    /* Ein fehlendes Feld liefert leeren Text; die Pruefung auf Leere waere dann immer wahr. */
     check('Die Zeile zum Export hat ueberhaupt ein Zielfeld',
       !!spRow('export')?.querySelector('.log-target'), 'kein Zielfeld');
     check('Und es bleibt leer -- der Export trifft die Instanz, nicht jemanden',
       (spRow('export')?.querySelector('.log-target')?.textContent || '').trim() === '',
       spRow('export')?.textContent?.replace(/\s+/g, ' '));
 
-    /* wer IS NULL HEISST "UEBER usertool.js AUF DEM WIRT" -- mit genau einer
-       Ausnahme, und die ist am Vorgang zu erkennen. */
+    /* `wer IS NULL` heisst: ueber usertool.js am Server, ausser bei `login.fail`. */
     check('Die Zeile vom Wirt ist ueberhaupt da', !!spRow('user.password'));
     check('Sie sagt, dass sie per Kommandozeile am Server kam — 0.22.0',
       /per Kommandozeile am Server/.test(spRow('user.password')?.textContent || ''),
@@ -1930,26 +1703,20 @@ async function run() {
         d.w.document.getElementById('log-foot')?.textContent || ''),
       d.w.document.getElementById('log-foot')?.textContent);
 
-    /* ---- 0.13.0: der Filter an der Karte ---- DIE KARTE HOLT DIE HUNDERT
-       JUENGSTEN ZEILEN, alle Vorgangsarten gemischt -- man findet die
-       gescheiterten Anmeldungen darin nicht, sie stehen nur dazwischen. */
+    /* Die Karte holt die hundert juengsten Zeilen aller Arten; gescheiterte
+       Anmeldungen gehen darin unter, deshalb der Filter. */
     const spFilter = () => [...(d.w.document.querySelectorAll('#log-filter .pill') || [])];
     check('Ueber der Liste steht eine Filterleiste', spFilter().length > 0,
       `${spFilter().length} Pillen`);
     check('Und sie bietet "Alle" und fuenf Ansichten',
       spFilter().length === 6 && spFilter()[0].textContent.startsWith('Alle'),
       JSON.stringify(spFilter().map(b => b.textContent)));
-    /* "GESCHEITERT" IST DIE ANSICHT, UM DIE ES GEHT -- sie steht
-       ausdruecklich und nicht als eine unter vielen: der ganze Punkt war,
-       dass man sie findet. */
     const spFailed = () => spFilter().find(b => b.dataset.group === 'failed');
     check('Darunter eine eigene fuer die gescheiterten Versuche', !!spFailed(),
       JSON.stringify(spFilter().map(b => b.dataset.group)));
     check('Und ihr Name sagt, dass beide Arten darin stehen',
       /Anmeldungen und .*Bestätigungen/.test(spFailed()?.title || ''),
       spFailed()?.title);
-    /* JEDE PILLE NENNT IHRE ZAHL, und die zaehlt ueber die GANZE Tabelle --
-       nicht ueber die vier geholten Zeilen. */
     check('Jede Pille nennt ihre Zahl',
       spFilter().every(b => /^\d+$/.test(b.querySelector('.n')?.textContent || '')),
       JSON.stringify(spFilter().map(b => b.querySelector('.n')?.textContent)));
@@ -1957,7 +1724,6 @@ async function run() {
       spFilter()[0].querySelector('.n').textContent === '7' &&
       spFailed().querySelector('.n').textContent === '2',
       JSON.stringify(spFilter().map(b => b.textContent)));
-    // Eine Ansicht ohne Zeilen wird gedaempft -- wie jede Pille in dieser Lage.
     const spZf = spFilter().find(b => b.dataset.group === 'twofactor');
     check('Eine Ansicht ohne Zeilen ist gedaempft', spZf?.classList.contains('blank'),
       spZf?.className);
@@ -1966,7 +1732,6 @@ async function run() {
     check('"Alle" steht anfangs auf an', spFilter()[0].classList.contains('on'),
       spFilter()[0].className);
 
-    /* DER KLICK FRAGT DEN SERVER und filtert nicht im Browser. */
     spFailed().dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await until(d.w, (x) => d.sent.filter(g => String(g.url).startsWith('/api/security-log')).length > 1 &&
       openRequests(x) === 0, 2000, 'die gefilterte Liste');
@@ -1983,15 +1748,13 @@ async function run() {
     check('Und die Fusszeile sagt, dass sie von dieser Art spricht',
       /dieser Art/.test(d.w.document.getElementById('log-foot')?.textContent || ''),
       d.w.document.getElementById('log-foot')?.textContent);
-    // Und wieder zurueck: eine Ansicht, aus der es keinen Weg heraus gibt,
-// waere eine Falle.
     spFilter()[0].dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await until(d.w, (x) => d.sent.filter(g => String(g.url).startsWith('/api/security-log')).length > 2 &&
       openRequests(x) === 0, 2000, 'die ungefilterte Liste');
     check('Zurueck auf "Alle" zeigt wieder alle vier Zeilen',
       spRows(d).length === 4, `${spRows(d).length} Zeilen`);
 
-    /* ---- 0.13.0: die Namen sind anklickbar ---- */
+    /* ---- Anklickbare Namen ---- */
     const spRole = spRows(d).find(z => z.dataset.event === 'user.role');
     const spWhoButton = spRole?.querySelector('.log-actor .log-jump');
     check('Der Handelnde ist ein Knopf und kein blosser Text', !!spWhoButton,
@@ -2005,24 +1768,20 @@ async function run() {
       /^→\s/.test(spRole?.querySelector('.log-target')?.textContent || '') &&
       !/→/.test(spRole?.querySelector('.log-target .log-jump')?.textContent || ''),
       spRole?.querySelector('.log-target')?.textContent);
-    /* "UNBEKANNTER NAME" WIRD NIE EIN KNOPF: er ist der getippte Name eines
-       Versuchs, der an keinen Zugang traf -- es gaebe nichts, wohin er
-       springen koennte. */
+    /* „unbekannter Name" gehoert zu keinem Zugang; es gibt kein Sprungziel. */
     const spFail = spRows(d).find(z => z.dataset.event === 'login.fail');
     check('"unbekannter Name" bleibt Text und wird kein Knopf',
       !!spFail && /unbekannter Name/.test(spFail.textContent) &&
       !spFail.querySelector('.log-jump'), spFail?.innerHTML);
-    // Und "über usertool.js auf dem Wirt" ebenso wenig -- dort ist niemand.
+    // Bei usertool.js gibt es keinen Handelnden und damit kein Sprungziel.
     const spHost = spRows(d).find(z => z.dataset.event === 'user.password');
     check('Der Wirt wird ebenso wenig anklickbar',
       !spHost?.querySelector('.log-actor .log-jump'),
       spHost?.querySelector('.log-actor')?.innerHTML);
-    // Das Ziel dieser Zeile dagegen schon: carla ist ein Zugang.
     check('Ihr Ziel dagegen schon',
       spHost?.querySelector('.log-target .log-jump')?.dataset.mid === '3',
       spHost?.querySelector('.log-target')?.innerHTML);
-    /* DER SPRUNG FINDET DIE ZEILE IN DER KARTE "ZUGAENGE". Wer das Protokoll
-       sieht, ist Eigentuemer und damit immer auch Admin -- die Karte ist da. */
+    /* Das Protokoll sieht nur der Eigentuemer-Admin, also sieht er auch die Karte „Benutzer". */
     spWhoButton?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await until(d.w, (x) => !spWhoButton || x.document.querySelector('#musers .mrow-flash'),
       2000, 'die hervorgehobene Zeile');
@@ -2031,9 +1790,8 @@ async function run() {
       d.w.document.getElementById('musers')?.innerHTML.slice(0, 200));
   }
 
-  /* ---- 0.13.0: die fuenf Vorgaenge ohne Wort ---- Ein Vorgang ohne Wort
-     faellt auf den Rueckfall `|| z.was` und steht als roher Schluessel am
-     Bildschirm. */
+  /* Ein Vorgang ohne Text in der Sprachdatei faellt auf `|| z.was` zurueck und
+     steht als roher Schluessel da. */
   {
     const wVerz = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-woerter-'));
     const wListen = JSON.parse(shortRun(
@@ -2047,19 +1805,17 @@ async function run() {
     const d = await ziSystem({ isAdmin: true, isOwner: true },
       { logInventory: { rows: wRows, total: wRows.length, days: 180, limit: 100,
                             counts: { all: wRows.length } } });
-    /* ERST DER GEGENSTAND: ohne Zeilen bliebe die Verneinung darunter wahr und
-       belegte nichts. */
+    /* Ohne Zeilen waere die Verneinung darunter immer wahr. */
     check('Der Aufbau steht: jede Vorgangsart hat eine Zeile',
       spRows(d).length === wListen.EVENTS.length,
       `${spRows(d).length} von ${wListen.EVENTS.length}`);
-    /* KEIN ROHER SCHLUESSEL AM BILDSCHIRM. Erkennbar sind sie am Punkt:
-       "request.approve" steht so in keiner deutschen Beschriftung. */
+    /* Rohe Schluessel erkennt man am Punkt, etwa `request.approve`. */
     const wRaw = spRows(d).filter(z =>
       (z.querySelector('.log-event')?.textContent || '').includes('.'));
     check('Kein Vorgang steht als roher Schluessel am Bildschirm',
       wRaw.length === 0, wRaw.map(z => z.dataset.event).join(' '));
-    /* UND JEDES MERKMAL HAT SEIN WORT -- ausser den beiden, deren Wort schon
-       der Vorgang traegt ("Zugang gesperrt" / "Zugang freigegeben"). */
+    /* `active` und `locked` haben kein eigenes Wort; es steht schon im Vorgang
+       („Zugang gesperrt", „Zugang freigegeben"). */
     const wWithoutEvent = ['active', 'locked'];
     const wZeilen2 = wListen.DETAILS.filter(m => !wWithoutEvent.includes(m))
       .map((detail, i) => ({ id: 200 + i, at: '2026-08-24 09:00:00', event: 'user.self',
@@ -2074,7 +1830,6 @@ async function run() {
     check('Und jedes Merkmal bekommt sein Wort — keines verschwindet spurlos',
       wSilent.length === 0,
       wSilent.map((z, i) => wZeilen2[spRows(dm).indexOf(z)]?.detail).join(' '));
-    /* JEDER VORGANG STEHT IN GENAU EINER GRUPPE. */
     const wMapping = wListen.EVENTS.map(v =>
       [v, Object.entries(wListen.GROUPS).filter(([, kinds]) => kinds.includes(v)).length]);
     check('Jeder Vorgang steht in genau einer Gruppe des Filters',
@@ -2084,7 +1839,6 @@ async function run() {
     d.w.close();
   }
 
-  /* DER LEERE FALL. */
   {
     const d = await ziSystem({ isAdmin: true, isOwner: true },
       { logInventory: { rows: [], total: 0, days: 180, limit: 100 } });
@@ -2094,15 +1848,12 @@ async function run() {
     check('Es steht dann auch keine Zeile da', spRows(d).length === 0, `${spRows(d).length}`);
   }
 
-  /* UND DIE ANDEREN BEIDEN ROLLEN. */
   {
     const dAdmin = await ziSystem({ isAdmin: true, isOwner: false });
     check('Ohne Eigentuemerrolle wird das Protokoll gar nicht erst abgerufen',
       !dAdmin.sent.some(x => x.url === '/api/security-log'),
       dAdmin.sent.map(x => x.url).join(' · '));
-    /* GEZAEHLT WIRD UEBER ALLE ABSCHNITTE: ein einzelner traegt seit 0.16.0
-       drei bis sieben Karten, und „mehr als fuenf" saehe je nach offenem
-       Abschnitt anders aus. */
+    /* Ueber alle Abschnitte gezaehlt: ein einzelner traegt drei bis sieben Karten. */
     const dAdminCards = (await sysPass(dAdmin)).cards;
     check('Und der Systembereich bleibt dabei gefuellt',
       dAdminCards.length > 5, `${dAdminCards.length} Karten`);
@@ -2112,15 +1863,12 @@ async function run() {
       dUser.sent.map(x => x.url).join(' · '));
   }
 
-  /* ---------------------------------------------------------------- */
   group('Die zweite Bestaetigung in der Oberflaeche');
 
-  /* NEUE BEDIENELEMENTE WERDEN PER dispatchEvent GEDRUECKT, samt Durchlauf
-     des Event Loops -- .click() genuegt nicht. */
   const zdDialog = (d) => d.w.document.getElementById('confirm-pass');
   const zdAsked = (d, url) => d.sent.some(x => x.url === url);
 
-  // 1. DER LINK. Der Dialog steht davor, und vorher geht nichts an den Server.
+  // 1. Link
   {
     const d = await ziSystem({ isAdmin: true, isOwner: true });
     placeConfirm(d.w, true);
@@ -2139,8 +1887,6 @@ async function run() {
       !zdAsked(d, '/api/confirm') && !zdAsked(d, '/api/users/3/token'),
       d.sent.map(x => x.url).join(' · '));
 
-    /* DER ABBRUCH. Ein Abbruch, der trotzdem handelt, ist der schlimmere
-       Fehler -- also wird er ausdruecklich geprueft. */
     await confirmImDom(d, 'egal', true);
     check('Nach dem Abbruch geht gar nichts an den Server',
       !zdAsked(d, '/api/confirm') && !zdAsked(d, '/api/users/3/token'),
@@ -2148,8 +1894,7 @@ async function run() {
     check('Und der Dialog ist weg', !zdDialog(d), 'der Dialog steht noch');
   }
 
-  // 2. DAS FALSCHE PASSWORT. Die Freigabe wird gefragt und abgewiesen -- und
-// die Handlung laeuft NICHT trotzdem.
+  // 2. Falsches Passwort
   {
     const d = await ziSystem({ isAdmin: true, isOwner: true });
     placeConfirm(d.w, true);
@@ -2167,8 +1912,7 @@ async function run() {
       !d.w.document.getElementById('user-link-field'), 'der Link steht da');
   }
 
-  // 3. DAS RICHTIGE PASSWORT -- an der Rolle, am fremden Passwort und am
-  // Entfernen.
+  // 3. Richtiges Passwort: Rolle, fremdes Passwort, Entfernen
   {
     const d = await ziSystem({ isAdmin: true, isOwner: true });
     placeConfirm(d.w, true);
@@ -2194,19 +1938,14 @@ async function run() {
   {
     const d = await ziSystem({ isAdmin: true, isOwner: true });
     placeConfirm(d.w, true);
-    /* prompt() WIRD AUF „Abbrechen" GESTELLT, obwohl die Oberflaeche es seit
-       0.22.0 nicht mehr ruft: jsdom liefert undefined, und ein Rueckbau auf
-       prompt() liefe damit in `.trim()` auf undefined -- der Lauf risse ab,
-       statt dass die Zeile zum Passwortfeld rot wuerde. */
+    /* prompt() fehlt in jsdom und liefert undefined; ein Rueckbau auf prompt()
+       braeche sonst in `.trim()` den Lauf ab, statt die Pruefung rot zu faerben. */
     d.w.prompt = () => null;
     const row = ziRows(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
     const passButton = row?.querySelector('.user-pass-btn');
     passButton?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await until(d.w, (x) => !passButton || x.document.getElementById('np-pass'),
       2000, 'das Fenster fuer das fremde Passwort');
-    /* SEIT 0.22.0 KOMMT DAS FREMDE PASSWORT AUS EINEM EIGENEN WINDOW MIT
-       PASSWORTFELD -- nicht mehr aus prompt(), wo es im Klartext stand
-       (Bauabschnitt 4). */
     const npField = d.w.document.getElementById('np-pass');
     check('Vor dem fremden Passwort steht ein Fenster mit Passwortfeld — 0.22.0',
       npField?.type === 'password' && /Passwort für „carla“ setzen/.test(npField?.closest('.modal')?.textContent || ''),
@@ -2237,9 +1976,6 @@ async function run() {
     await until(d.w, (x) => !removeButton ||
       (x.document.getElementById('delete-user') && openRequests(x) === 0),
       2000, 'das Fenster zum Loeschen');
-    /* ---- 0.22.0: EIN WINDOW STATT DREI RUECKFRAGEN (Bauabschnitt 4) ----
-       Bis 0.21.1 stellte der Weg drei confirm() hintereinander, und in den
-       ersten beiden hiess „Abbrechen" nicht abbrechen. */
     const zdModal = d.w.document.getElementById('delete-user');
     check('Vor dem Loeschen steht EIN Fenster mit den Haekchen — 0.22.0',
       !!zdModal && !zdDialog(d), zdModal ? 'steht' : 'kein Fenster');
@@ -2251,8 +1987,6 @@ async function run() {
     await until(d.w, (x) => !zdYes || x.document.getElementById('confirm-pass'),
       2000, 'der Dialog der zweiten Bestaetigung');
     check('Danach steht der Dialog der zweiten Bestaetigung', !!zdDialog(d), 'kein Dialog');
-    /* DAS PASSWORTFENSTER SAGT, WAS GESCHIEHT UND DASS ES ENDGUELTIG IST --
-       die Rueckgaengig-Formel des Woerterbuchs. */
     check('Und das Passwortfenster dahinter sagt, dass es endgueltig ist',
       /Das lässt sich nicht rückgängig machen/.test(zdDialog(d)?.closest('.modal')?.textContent || ''),
       zdDialog(d)?.closest('.modal')?.textContent?.replace(/\s+/g, ' ').slice(0, 300));
@@ -2268,17 +2002,14 @@ async function run() {
       d.sent.map(x => `${x.method} ${x.url}`).join(' · '));
   }
 
-  /* 4. DER EXPORT. Er ist eine BROWSERNAVIGATION -- geprueft wird bis zum
-     Dialog und beim Abbruch, denn ein bestaetigter Export verliesse jsdom. */
+  /* 4. Export: ein bestaetigter Export ist eine Navigation und verliesse jsdom;
+     geprueft wird bis zum Dialog und der Abbruch. */
   {
     const d = await ziSystem({ isAdmin: true, isOwner: true });
-    // Der Export steht seit 0.16.0 im Abschnitt „Datenbank" und in derselben
-// Karte wie der Import.
     await sysSection(d.w, 'database');
     const exNo = d.w.document.getElementById('ex-no');
     exNo?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await until(d.w, (x) => !exNo || x.document.querySelector('.backdrop'), 2000, 'der Hinweis auf den Lauf');
-    /* ERST DER HINWEIS AUF DEN LAUF, DANN DIE ZWEITE BESTAETIGUNG. */
     const zdNotice = () => [...d.w.document.querySelectorAll('.backdrop .modal')]
       .find(m => /Bevor der Export läuft/.test(m.textContent || ''));
     check('Vor dem Export steht der Hinweis auf den Lauf', !!zdNotice(), 'kein Hinweis');
@@ -2303,7 +2034,6 @@ async function run() {
     check('Nach dem Abbruch wird keine Freigabe geholt',
       !zdAsked(d, '/api/confirm'), d.sent.map(x => x.url).join(' · '));
   }
-  /* UND DER ABBRUCH AM HINWEIS SELBST: er holt weder Freigabe noch Dialog. */
   {
     const d = await ziSystem({ isAdmin: true, isOwner: true });
     await sysSection(d.w, 'database');
@@ -2317,17 +2047,13 @@ async function run() {
     check('Nach dem Abbruch am Hinweis steht kein Passwortfenster',
       !zdDialog(d) && !zdAsked(d, '/api/confirm'), d.sent.map(x => x.url).join(' · '));
   }
-  /* Was hier NICHT steht und warum: der Import laeuft ueber eine echte Datei
-     und einen FileReader; sein Weg ist serverseitig belegt (Gruppe "jeder
-     schwere Weg einzeln"), und ein gestellter Dateiwaehler pruefte den
-     Dateiwaehler, nicht die Schranke. */
+  /* Den Import prueft test/roundtrip.js in der Gruppe „jeder schwere Weg
+     einzeln"; ein gestellter Dateiwaehler pruefte hier nur sich selbst. */
 
-  /* ---------------------------------------------------------------- */
   group('Die oeffentliche Adresse im Linkkasten');
 
-  /* BEIDE ZUSTAENDE, und zu jedem die Nachschau, dass der ANDERE gerade nicht
-     dasteht -- sonst bliebe eine Zeile, die BEIDE Formen nennt, in beiden
-     Lagen gruen. */
+  /* Je Zustand auch die Nachschau, dass der andere nicht dasteht; sonst bliebe
+     eine Zeile mit beiden Formen gruen. */
   const oaLink = async (opt) => {
     const d = await ziSystem({ isAdmin: true, isOwner: true }, opt);
     placeConfirm(d.w, true);
@@ -2370,8 +2096,6 @@ async function run() {
       d.w.document.getElementById('user-link-field')?.value);
   }
 
-  /* EINE WAHL, EIN KNOPF -- und das Passwortfeld erscheint nur zu der
-     Betriebsart, in der es gilt. */
   {
     const d = await ziSystem({ isAdmin: true, isOwner: true });
     const kind = d.w.document.getElementById('user-kind');
@@ -2384,15 +2108,13 @@ async function run() {
     check('Es traegt genau die zwei Betriebsarten',
       equal([...kind.options].map(o => o.value), ['link', 'passwort']),
       JSON.stringify([...(kind?.options || [])].map(o => o.value)));
-    /* DIE VORGABE IST DER LINK -- der Weg, bei dem der Admin das Passwort nie
-       erfaehrt. */
+    /* Beim Link erfaehrt der Admin das Passwort nie. */
     check('Die Vorgabe ist der Link', kind.value === 'link', kind.value);
     check('Und das Passwortfeld steht dabei nicht da',
       pass.hidden === true, `hidden=${pass.hidden}`);
     check('Der Knopf sagt, was er tun wird',
       button.textContent.includes('Link'), button.textContent);
-    /* Und die Regel dazu im Stylesheet -- ohne sie stuende das Feld im
-       Flex-Kasten weiter da. */
+    /* Ohne die Regel fuer `[hidden]` bliebe das Feld im Flex-Kasten sichtbar. */
     const ziCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
     check('Das Stylesheet nimmt ein verstecktes Feld wirklich aus der Zeile',
       /\[hidden\] \{ display: none !important; \}/.test(ziCss),
@@ -2400,7 +2122,6 @@ async function run() {
     check('Und zwar ohne eine eigene Regel fuer diesen Kasten daneben',
       !/\.user-new \[hidden\] \{/.test(ziCss), 'die alte oertliche Regel steht noch da');
 
-    // Hinwechseln: das Feld erscheint, der Knopf heisst anders.
     kind.value = 'password';
     kind.dispatchEvent(new d.w.Event('change'));
     check('Nach der Wahl "ich vergebe eins" erscheint das Passwortfeld',
@@ -2408,7 +2129,6 @@ async function run() {
     check('Und der Knopf spricht nicht mehr vom Link',
       !button.textContent.includes('Link'), button.textContent);
 
-    // Zurueckwechseln: das Feld verschwindet UND wird geleert.
     pass.value = 'heimlich-getipptes';
     kind.value = 'link';
     kind.dispatchEvent(new d.w.Event('change'));
@@ -2418,7 +2138,6 @@ async function run() {
       pass.value === '', JSON.stringify(pass.value));
   }
 
-  /* Die Vorgabe legt mit Link an. */
   {
     const d = await ziSystem({ isAdmin: true, isOwner: true });
     const before = ziRows(d).length;
@@ -2442,8 +2161,6 @@ async function run() {
       ziRows(d).length === before + 1, `${before} -> ${ziRows(d).length}`);
   }
 
-  /* Die andere Betriebsart schickt das Passwort und KEINE Einladung -- sonst
-     waere die Wahl eine Kulisse. */
   {
     const d = await ziSystem({ isAdmin: true, isOwner: true });
     const kind = d.w.document.getElementById('user-kind');
@@ -2464,8 +2181,7 @@ async function run() {
       !d.w.document.getElementById('user-link-field'), 'der Kasten steht doch da');
   }
 
-  /* Das Adressfeld beim Anlegen, seit 0.9.0. FREIWILLIG -- ohne Adresse
-     entsteht der Zugang wie bisher, und nur die Mail bleibt aus. */
+  /* Die Adresse ist freiwillig; ohne sie bleibt nur die Mail aus. */
   {
     const d = await ziSystem({ isAdmin: true, isOwner: true });
     check('Beim Anlegen steht ein Adressfeld',
@@ -2484,9 +2200,8 @@ async function run() {
       JSON.stringify(d.w.document.getElementById('user-mail')?.value));
   }
   {
-    // OHNE ADRESSE wird das Feld gar nicht erst mitgeschickt -- ein leeres
-    // `email` waere am Server die Ansage "keine", und das ist beim ANLEGEN
-    // dasselbe; mitzuschicken gibt es trotzdem nichts.
+    // Ein leeres `email` hiesse am Server „keine Adresse"; beim Anlegen genuegt es,
+    // das Feld wegzulassen.
     const d = await ziSystem({ isAdmin: true, isOwner: true });
     setField(d.w.document, 'user-name', 'ohnemail');
     const createButton = d.w.document.getElementById('user-create');
@@ -2500,20 +2215,15 @@ async function run() {
       create?.body?.username === 'ohnemail', JSON.stringify(create?.body));
   }
 
-  /* ---------------------------------------------------------------- */
   group('Die eigene Adresse in der Karte „Mein Account“');
 
-  /* SIE GEHOERT DEM, DER SIE HAT -- deshalb steht sie hier und nicht in der
-     Karte „Zugänge“. */
+  /* Die Adresse gehoert zum eigenen Account, deshalb nicht in der Karte „Benutzer". */
   {
     const d = await ziSystem({ isAdmin: false, isOwner: false });
     const field = d.w.document.getElementById('acc-mail');
     check('Das Adressfeld steht in der Karte „Mein Account“', !!field, 'kein Feld');
     check('Und es traegt die Adresse aus der Antwort',
       field?.value === 'chefin@beispiel.de', JSON.stringify(field?.value));
-    /* UMGEDREHT MIT 0.22.0 (Anlage B): „freiwillig" heisst am Feld
-       „(optional)", und der Satz ueber den Link steht in der Karte
-       „Mailversand", wo die Auskunft hingehoert. */
     check('Die Karte sagt, dass die Adresse optional ist — 0.22.0',
       /E-Mail-Adresse \(optional\)/.test(d.w.document.body.textContent.replace(/\s+/g, ' ')), 'kein Hinweis');
     check('Und sie sagt in einem Satz, was sie enthaelt — 0.22.0',
@@ -2529,8 +2239,6 @@ async function run() {
       /noch keine hinterlegt/.test(field?.placeholder || ''), field?.placeholder);
   }
   {
-    /* GESPEICHERT WIRD SIE MIT DEM BISHERIGEN PASSWORT, ueber denselben Weg
-       wie Name und Passwort. */
     const d = await ziSystem({ isAdmin: false, isOwner: false });
     setField(d.w.document, 'acc-old', DOM_PASSWORD);
     setField(d.w.document, 'acc-mail', 'neue@beispiel.de');
@@ -2543,17 +2251,15 @@ async function run() {
       put?.body?.email === 'neue@beispiel.de', JSON.stringify(put?.body));
     check('Und das bisherige Passwort daneben',
       put?.body?.oldPassword === DOM_PASSWORD, 'das bisherige Passwort fehlt');
-    /* DER MOCK ZIEHT MIT, also steht die neue Adresse danach wirklich im Feld
- -- sonst waere „die Karte zeichnet sich neu“ von „sie
-       blieb stehen“ nicht zu unterscheiden. */
+    /* Der Mock uebernimmt die Aenderung; sonst liesse sich ein Neuzeichnen nicht
+       von einer stehengebliebenen Karte unterscheiden. */
     check('Und die Karte zeigt danach die neue Adresse',
       d.w.document.getElementById('acc-mail')?.value === 'neue@beispiel.de',
       JSON.stringify(d.w.document.getElementById('acc-mail')?.value));
   }
   {
-    // LEEREN HEISST LOESCHEN, und das Feld muss es koennen: ein leeres Feld,
-    // das als „unveraendert“ gelesen wird, liesse eine Adresse nie wieder
-    // entfernen -- genau die stille Falle, die niemand bemerkt.
+    // Ein leeres Feld, das als „unveraendert" gelesen wird, liesse eine Adresse
+    // nie wieder entfernen.
     const d = await ziSystem({ isAdmin: false, isOwner: false });
     setField(d.w.document, 'acc-old', DOM_PASSWORD);
     setField(d.w.document, 'acc-mail', '');
@@ -2569,11 +2275,8 @@ async function run() {
       JSON.stringify(d.w.document.getElementById('acc-mail')?.value));
   }
 
-  /* ---------------------------------------------------------------- */
   group('Die Karte „Mailversand“');
 
-  /* DIE ACHTZEHNTE KARTE, und sie gehoert dem EIGENTUEMER -- eintragen,
-     einsehen und testen. */
   const mvCard = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
     .find(c => c.querySelector('h3')?.textContent.trim() === 'Mailversand');
   {
@@ -2581,15 +2284,11 @@ async function run() {
       { publicAddress: 'https://kriterion.beispiel.de' });
     const k = mvCard(d);
     check('Die Karte „Mailversand“ steht da', !!k, 'keine Karte');
-    /* DER SATZ, DER UEBER ALLEM STEHT, GEHOERT AN DEN BILDSCHIRM und nicht
-       bloss in ein Dokument. */
     check('Sie sagt, dass E-Mail optional ist — 0.22.0',
       /E-Mail ist optional\./.test(k?.textContent || ''),
       k?.textContent?.slice(0, 300));
     check('Sie sagt "eingerichtet"',
       /eingerichtet/.test(k?.textContent || ''), k?.textContent?.slice(0, 300));
-    /* ---- FUENF ZEILEN UND KEIN FELD — 0.17.3 ---- DIE KARTE TRAEGT KEIN
-       BEDIENELEMENT MEHR ausser den beiden Knoepfen. */
     const mvRows = [...(k?.querySelectorAll('.kv .k') || [])].map(e => e.textContent.trim());
     check('Sie ist eine Zustandskarte mit fuenf Zeilen',
       equal(mvRows, ['Zustand', 'Anbieter', 'Absender', 'Öffentliche Adresse',
@@ -2598,8 +2297,6 @@ async function run() {
     check('Und traegt kein einziges Eingabefeld mehr',
       [...(k?.querySelectorAll('input, select, textarea') || [])].length === 0,
       [...(k?.querySelectorAll('input, select, textarea') || [])].map(e => e.id).join(','));
-    /* DIE ANBIETERZEILE FASST DREI ANGABEN ZU EINER. Bis 0.17.2 stand der
-       Anbieter allein auf einem Drittel, daneben zwei Drittel Leere. */
     const mvValue = (name) => [...(k?.querySelectorAll('.kv') || [])]
       .find(z => z.querySelector('.k')?.textContent.trim() === name)
       ?.querySelector('.v')?.textContent.trim() || '';
@@ -2607,13 +2304,11 @@ async function run() {
       mvValue('Anbieter') === 'GMX · mail.gmx.net:587 · STARTTLS', JSON.stringify(mvValue('Anbieter')));
     check('Und die Absenderzeile die Absenderadresse',
       mvValue('Absender') === 'instanz@gmx.de', JSON.stringify(mvValue('Absender')));
-    /* DAS PASSWORT STEHT NIE DA -- weder als Wert noch als Laenge noch als
-       Sternchen mit der richtigen Zahl. */
+    /* Das Passwort steht nie da, auch nicht als Laenge oder als Sternchen. */
     check('Die Karte traegt keine Zeile „Passwort" mehr',
       !mvRows.includes('Passwort'), JSON.stringify(mvRows));
     check('Sie nennt die Frist des Versands',
       /20 Sekunden/.test(k?.textContent || ''), k?.textContent?.slice(0, 900));
-    /* ZWEI KNOEPFE, und der erste sagt, was er tut. */
     const mvButtons = [...(k?.querySelectorAll('.btn') || [])].map(b => `${b.id}:${b.textContent.trim()}`);
     check('Darunter stehen genau zwei Knoepfe',
       equal(mvButtons, ['mail-setup:Mailzugang ändern', 'mail-test:Testmail an mich']),
@@ -2625,7 +2320,6 @@ async function run() {
     d.w.close();
   }
   {
-    // OHNE OEFFENTLICHE ADRESSE markiert die Karte rot und nennt den Grund.
     const d = await ziSystem({ isAdmin: true, isOwner: true }, { publicAddress: '' });
     const k = mvCard(d);
     check('Ohne oeffentliche Adresse markiert die Karte das',
@@ -2639,13 +2333,11 @@ async function run() {
     d.w.close();
   }
   {
-    // OHNE ZUGANG: der Zustand jeder Instanz vor dieser Runde.
     const d = await ziSystem({ isAdmin: true, isOwner: true }, { mailStatus: {} });
     const k = mvCard(d);
     check('Ohne Mailzugang sagt die Karte "nicht eingerichtet"',
       /nicht eingerichtet/.test(k?.textContent || ''), k?.textContent?.slice(0, 400));
-    /* UND DIE ANBIETERZEILE STEHT NICHT LEER DA. Eine leere Zelle sieht aus
-       wie eine Auskunft, die nicht geladen hat. */
+    /* Eine leere Zelle saehe aus wie eine Auskunft, die nicht geladen hat. */
     check('Und die Anbieterzeile sagt, dass keiner gewaehlt ist',
       /noch keiner gewählt/.test(k?.textContent || ''), k?.textContent?.slice(0, 500));
     check('Der Knopf heisst dann „einrichten" und nicht „ändern"',
@@ -2656,9 +2348,6 @@ async function run() {
     d.w.close();
   }
   {
-    /* ---- WAS 0.17.2 WEGGENOMMEN HAT, BLEIBT WEG ---- Die Begruendung zum
-       fehlenden Adressfeld ist richtig und war ein Gedanke vom Bauen; eine
-       Oberflaeche sagt, WAS IST (Projektstand 5.6). */
     const d = await ziSystem({ isAdmin: true, isOwner: true },
       { publicAddress: 'https://kriterion.beispiel.de' });
     const t = (mvCard(d)?.textContent || '').replace(/\s+/g, ' ');
@@ -2669,8 +2358,6 @@ async function run() {
     d.w.close();
   }
   {
-    /* DIE TESTMAIL, und zwar in BEIDEN Ausgaengen -- Erfolg UND Fehlschlag.
-       Ein Knopf, der nur im guten Fall geprueft ist, ist halb geprueft. */
     const d = await ziSystem({ isAdmin: true, isOwner: true },
       { publicAddress: 'https://kriterion.beispiel.de' });
     const testButton = d.w.document.getElementById('mail-test');
@@ -2680,8 +2367,7 @@ async function run() {
     check('Der Testknopf fragt den Server',
       d.sent.some(x => x.method === 'POST' && x.url === '/api/mail/test'),
       d.sent.slice(-3).map(x => `${x.method} ${x.url}`).join(' · '));
-    /* KEIN ADRESSFELD DANEBEN, und der Rumpf traegt auch keins: die Testmail
-       geht an die eigene Adresse, und das ist baulich und nicht abgefragt. */
+    /* Die Testmail geht immer an die eigene Adresse; der Rumpf traegt deshalb keine. */
     const test = d.sent.find(x => x.url === '/api/mail/test');
     check('Und schickt ausdruecklich KEINE Adresse mit',
       JSON.stringify(test?.body || {}) === '{}', JSON.stringify(test?.body));
@@ -2714,7 +2400,6 @@ async function run() {
     d.w.close();
   }
   {
-    // OHNE EIGENE ADRESSE sagt die Absage, wo sie einzutragen ist.
     const d = await ziSystem({ isAdmin: true, isOwner: true },
       { publicAddress: 'https://kriterion.beispiel.de', ownAddress: '' });
     const testButton = d.w.document.getElementById('mail-test');
@@ -2727,10 +2412,8 @@ async function run() {
     d.w.close();
   }
 
-  /* ---------------------------------------------------------------- */
   group('Der Dialog „Mailzugang einrichten“ — 0.17.3');
 
-  /* DIE KARTE ZEIGT, DER DIALOG STELLT EIN. */
   const mdOpen = async (d) => {
     const setupButton = d.w.document.getElementById('mail-setup');
     setupButton?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
@@ -2747,26 +2430,21 @@ async function run() {
     check('Und seine Ueberschrift sagt, dass geaendert wird',
       dlg?.querySelector('h2')?.textContent.trim() === 'Mailzugang ändern',
       dlg?.querySelector('h2')?.textContent);
-    /* EINE SPALTE, BESCHRIFTUNG UEBER DEM FELD. Jedes Feld steht in einem
-       `.field` mit eigener Beschriftung -- keine Reihe, kein Raster. */
+    /* Eine Spalte: jedes Feld steht in `.field` mit der Beschriftung darueber. */
     check('Der Dialog traegt keine der alten Reihen mehr',
       !dlg?.querySelector('.mail-reihe'), 'eine Reihe steht noch da');
-    /* DIE AUSWAHLLISTE KOMMT VOM SERVER, samt „Eigener Server“. */
     const selection = d.w.document.getElementById('mail-provider');
     check('Die Anbieterliste kommt vom Server',
       [...(selection?.options || [])].map(o => o.value).join(',') === ',gmx,web,gmail,strato,ionos,eigen',
       [...(selection?.options || [])].map(o => o.value).join(','));
     check('Und der gespeicherte Anbieter steht vorgewaehlt',
       selection?.value === 'gmx', selection?.value);
-    /* ---- DER HINWEIS STEHT UNTER SEINER SACHE UND WECHSELT MIT DER AUSWAHL. */
     const mdHint = () => d.w.document.getElementById('mail-provider-hint');
     check('Der Hinweis zum Anbieter steht unter der Auswahl',
       mdHint()?.previousElementSibling?.querySelector('#mail-provider') != null,
       mdHint()?.previousElementSibling?.className);
     check('Und er nennt, was GMX verlangt',
       /fremde Programme/.test(mdHint()?.textContent || ''), mdHint()?.textContent);
-    /* BEI EINER VORLAGE STEHEN SERVER, PORT UND VERSCHLUESSELUNG ALS GELESENE
-       ZEILE DA -- kein Feld. */
     const mdFixed = () => d.w.document.getElementById('mail-fixed');
     const mdFixedField = () => d.w.document.getElementById('mail-fixed-field');
     const mdOwn = () => d.w.document.getElementById('mail-custom');
@@ -2775,11 +2453,8 @@ async function run() {
       `versteckt=${mdFixedField()?.hidden} · ${mdFixed()?.textContent}`);
     check('Und die drei Felder dazu stehen nicht da',
       mdOwn()?.hidden === true, `versteckt=${mdOwn()?.hidden}`);
-    /* DER SATZ ZUM HAUSANSCHLUSS STEHT BEI „EIGENER SERVER" UND SONST NIRGENDS
-       -- dort, wo er gilt. Bis 0.17.2 stand er quer durch die ganze Karte. */
-    /* ER STEHT DORT, WO ER GILT, UND SONST NIRGENDS -- geprueft ueber ALLE
-       Absaetze des Dialogs und nicht ueber einen: eine zweite Ausfertigung
-       weiter unten faende die Abfrage auf einen einzelnen nicht. */
+    /* Geprueft ueber alle Absaetze des Dialogs: eine zweite Fassung weiter unten
+       faende die Abfrage auf einen einzelnen nicht. */
     check('Und der Satz zum Internetanschluss steht ausschliesslich bei „Eigener Server“',
       [...(dlg?.querySelectorAll('p') || [])]
         .filter(x => /Internetanschluss/.test(x.textContent)).length === 1 &&
@@ -2788,7 +2463,7 @@ async function run() {
       [...(dlg?.querySelectorAll('p') || [])]
         .filter(x => /Internetanschluss/.test(x.textContent)).map(x => x.parentElement?.id).join(','));
 
-    /* ---- UND JETZT DIE GEGENRICHTUNG: „Eigener Server" ---- */
+    /* ---- Gegenlage: „Eigener Server" ---- */
     selection.value = 'eigen';
     selection.dispatchEvent(new d.w.Event('change'));
     check('Bei „eigener Server“ stehen die drei Felder da',
@@ -2804,17 +2479,12 @@ async function run() {
       (mdOwn()?.textContent || '').replace(/\s+/g, ' ').slice(-160));
     check('Und „Eigener Server“ hat keinen Anbieterhinweis',
       mdHint()?.hidden === true, `versteckt=${mdHint()?.hidden} · ${mdHint()?.textContent}`);
-    /* EIN ANDERER VORLAGENANBIETER WECHSELT BEIDES MIT -- Hinweis UND feste
-       Zeile. */
     selection.value = 'gmail';
     selection.dispatchEvent(new d.w.Event('change'));
     check('Ein anderer Anbieter bringt seine eigene feste Zeile mit',
       mdFixed()?.textContent === 'smtp.gmail.com · 465 · SSL/TLS', mdFixed()?.textContent);
     check('Und seinen eigenen Hinweis',
       /App-Passwort/.test(mdHint()?.textContent || ''), mdHint()?.textContent);
-    /* „KEIN VERSAND" IST DER DRITTE FALL und nicht die halbe Vorlagenlage:
-       dort gibt es weder feste Zeile noch Felder, und die drei Felder
-       darunter haben nichts zu tragen. */
     selection.value = '';
     selection.dispatchEvent(new d.w.Event('change'));
     check('Ohne Anbieter steht weder die feste Zeile noch die Felder da',
@@ -2826,7 +2496,7 @@ async function run() {
       ['user', 'pass', 'sender']
         .map(id => `${id}=${d.w.document.getElementById('mail-' + id)?.disabled}`).join(' · '));
 
-    /* ---- DAS PASSWORT UND SEIN PLATZHALTER ---- */
+    /* ---- Passwort und Platzhalter ---- */
     selection.value = 'gmx';
     selection.dispatchEvent(new d.w.Event('change'));
     check('Das Passwortfeld steht leer da',
@@ -2835,21 +2505,17 @@ async function run() {
     check('Und sagt im Platzhalter, dass leer "unveraendert" heisst',
       /leer lassen ändert es nicht/.test(d.w.document.getElementById('mail-pass')?.placeholder || ''),
       d.w.document.getElementById('mail-pass')?.placeholder);
-    /* DER HINWEIS ZUR ABSENDERADRESSE STEHT UNTER IHR und nicht neben ihr. */
     const mdAbs = d.w.document.getElementById('mail-sender-hint');
     check('Der Hinweis zur Absenderadresse steht unter dem Feld',
       mdAbs?.previousElementSibling?.querySelector('#mail-sender') != null,
       mdAbs?.previousElementSibling?.className);
     check('Und er nennt, dass die Adresse zum Konto gehoeren muss',
       /Absenderadresse muss zum Konto gehören/.test(mdAbs?.textContent || ''), mdAbs?.textContent);
-    /* DIE REIHENFOLGE DER FELDER, in einer Zeile abgelesen: Anbieter, die
-       drei der eigenen Lage, Benutzername, Passwort, Absenderadresse. */
     const mdFollow = [...(dlg?.querySelectorAll('.field .input') || [])].map(e => e.id);
     check('Die Felder stehen in der festgelegten Folge',
       equal(mdFollow, ['mail-provider', 'mail-server', 'mail-port', 'mail-secure',
                        'mail-user', 'mail-pass', 'mail-sender']),
       JSON.stringify(mdFollow));
-    // ABBRECHEN SCHLIESST OHNE ZU SCHREIBEN.
     const mdBefore = d.sent.length;
     dlg.querySelector('[data-no]').dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await until(d.w, (x) => !x.document.getElementById('mail-dialog'), 2000, 'der geschlossene Dialog');
@@ -2860,8 +2526,6 @@ async function run() {
     d.w.close();
   }
   {
-    /* SPEICHERN -- hinter der zweiten Bestaetigung, mit einem WIRKLICH
-       zugestellten Ereignis. */
     const d = await ziSystem({ isAdmin: true, isOwner: true },
       { publicAddress: 'https://kriterion.beispiel.de', mailStatus: {} });
     const dlg = await mdOpen(d);
@@ -2875,7 +2539,7 @@ async function run() {
     setField(d.w.document, 'mail-sender', 'instanz@gmail.com');
     const mdSave = d.w.document.getElementById('mail-save');
     mdSave?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    // Ohne Rueckfrage geht der Mailzugang sofort hinaus; dann wird auf die Antwort gewartet.
+    // Faellt die Rueckfrage weg, geht der Mailzugang sofort hinaus; auch darauf wird gewartet.
     await until(d.w, (x) => !mdSave || x.document.getElementById('confirm-pass') ||
       (d.sent.some(g => g.method === 'PUT' && g.url === '/api/mail') && openRequests(x) === 0),
       2000, 'der Dialog der zweiten Bestaetigung');
@@ -2884,15 +2548,13 @@ async function run() {
     check('Und der Server ist bis dahin NICHT gefragt worden',
       !d.sent.some(x => x.method === 'PUT' && x.url === '/api/mail'),
       d.sent.slice(-3).map(x => `${x.method} ${x.url}`).join(' · '));
-    /* BRICHT DIE BESTAETIGUNG AB, BLEIBT DER DIALOG STEHEN -- sonst waere das
-       Eingetippte weg, und ein Anbieterpasswort tippt niemand gern zweimal. */
+    /* Sonst waere das Eingetippte weg, auch das Anbieterpasswort. */
     await confirmImDom(d, 'chefinnen-langes-wort', true);
     check('Ein Abbruch der Bestaetigung laesst den Dialog stehen',
       !!d.w.document.getElementById('mail-dialog'), 'der Dialog ist weg');
     check('Und das Eingetippte steht noch darin',
       d.w.document.getElementById('mail-user')?.value === 'instanz@gmail.com',
       d.w.document.getElementById('mail-user')?.value);
-    // Und noch einmal, diesmal mit Freigabe.
     const mdSave2 = d.w.document.getElementById('mail-save');
     mdSave2?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await until(d.w, (x) => !mdSave2 || x.document.getElementById('confirm-pass'),
@@ -2919,10 +2581,8 @@ async function run() {
     d.w.close();
   }
 
-  /* ---------------------------------------------------------------- */
   group('Der Papierkorb in der Oberflaeche');
 
-  /* DIE KARTE IN BEIDEN ZUSTAENDEN -- gefuellt und leer. */
   const pkSystem = async (roles, opt = {}) => {
     const d = buildDom(JSDOM, { settings: { filters: null, userCount: 4, ...roles }, ...opt });
     await until(d.w, (x) => x.document.getElementById('count') && openRequests(x) === 0,
@@ -2940,7 +2600,6 @@ async function run() {
   const pkuAdm = await pkSystem({ isAdmin: true, isOwner: false });
   const pkuUser = await pkSystem({ isAdmin: false, isOwner: false });
 
-  // ERST DAS VORHANDENSEIN, dann jede Aussage darueber.
   check('Die Karte steht bei der Eigentuemerin', !!pkCard(pkuEig));
   check('Und beim Admin ohne Eigentuemerrolle', !!pkCard(pkuAdm));
   check('Bei einem gewoehnlichen Benutzer gibt es sie nicht', !pkCard(pkuUser));
@@ -2960,8 +2619,8 @@ async function run() {
   const pkuMeta = pkuRows.map(r => r.querySelector('.trash-meta')?.textContent || '');
   check('Jede Zeile nennt, wer geloescht hat',
     /von chefin/.test(pkuMeta[0]), pkuMeta[0]);
-  /* Der GRABSTEIN geht denselben Weg von der Nummer zum Namen wie ueberall
-     sonst -- der Name steht in der Antwort ausdruecklich auf null. */
+  /* Der Name eines geloeschten Zugangs ist in der Antwort null; die Oberflaeche
+     leitet ihn wie ueberall aus der Nummer ab. */
   check('Und ein Grabstein heisst wie ueberall "Geloeschter Benutzer 4"',
     /von Gelöschter Benutzer 4/.test(pkuMeta[1]), pkuMeta[1]);
   check('Jede Zeile nennt die verbleibenden Tage',
@@ -2971,7 +2630,6 @@ async function run() {
   check('Das Datum steht in deutscher Schreibweise',
     /01\.08\.2026/.test(pkuMeta[0]), pkuMeta[0]);
 
-  /* BEIDE KNOEPFE NUR BEIM EIGENTUEMER. */
   check('Bei der Eigentuemerin steht an jeder Zeile Zurueckholen und ein Kreuz',
     pkuRows.length === 2 && pkuRows.every(r => !!r.querySelector('.trash-back') && !!r.querySelector('.trash-remove')),
     JSON.stringify(pkuRows.map(r => r.innerHTML.slice(0, 120))));
@@ -2988,25 +2646,20 @@ async function run() {
     !/Eigentümer dieser Installation/.test(pkCard(pkuEig)?.querySelector('.desc')?.textContent || ''),
     pkCard(pkuEig)?.querySelector('.desc')?.textContent);
 
-  // Die Frist steht in der Karte, und zwar die aus der Antwort.
   check('Die Karte nennt die Frist aus der Antwort',
     /30 Tage/.test(pkCard(pkuEig)?.querySelector('.desc')?.textContent || ''),
     pkCard(pkuEig)?.querySelector('.desc')?.textContent);
 
-  /* DAS VOKABULAR. */
   const pkuVok = await pkSystem({ isAdmin: true, isOwner: true,
     vocabulary: { entryOne: 'Maschine', entryMany: 'Maschinen',
                  dayOne: 'Prüfung', dayMany: 'Prüfungen' } });
   check('Die Karte benutzt das Vokabular',
     /Gelöschte Maschinen/.test(pkCard(pkuVok)?.querySelector('.desc')?.textContent || ''),
     pkCard(pkuVok)?.querySelector('.desc')?.textContent);
-  /* UMGEDREHT MIT 0.22.0 (Anlage F): der Satz zum Zeitpunkt ist aus der Karte
-     heraus, und mit ihm das zweite Vokabelwort. */
   check('Und das Standardwort steht nicht daneben — 0.22.0',
     !/Eintr(ag|äge)/.test(pkCard(pkuVok)?.querySelector('.desc')?.textContent || ''),
     pkCard(pkuVok)?.querySelector('.desc')?.textContent);
 
-  /* DER LEERE FALL, mit eigenem Aufbau. */
   const pkuEmpty = await pkSystem({ isAdmin: true, isOwner: true }, { trashInventory: [] });
   check('Ist der Papierkorb leer, steht die Karte trotzdem da', !!pkCard(pkuEmpty));
   check('Und sie sagt es',
@@ -3019,9 +2672,6 @@ async function run() {
     /Keine gelöschten Maschinen/.test(pkCard(pkuEmptyVok)?.textContent || ''),
     pkCard(pkuEmptyVok)?.textContent?.slice(0, 200));
 
-  /* ZURUECKHOLEN, mit einem WIRKLICH zugestellten Ereignis -- .click()
-     genuegt nicht, und ein Fehler hinter einem await bliebe im nur gebauten
-     DOM unsichtbar. */
   {
     const d = await pkSystem({ isAdmin: true, isOwner: true });
     const before = pkTrashRows(d).length;
@@ -3045,8 +2695,7 @@ async function run() {
       d.w.document.querySelector('.toast')?.textContent);
   }
 
-  /* Und die laute Haelfte: unbekannte Verfasser aus der Antwort werden
-     genannt. Die zweite Zeile der Prueflage traegt sie. */
+  /* Die zweite Zeile der Prueflage traegt unbekannte Verfasser. */
   {
     const d = await pkSystem({ isAdmin: true, isOwner: true });
     const pkBack = pkTrashRows(d)[1]?.querySelector('.trash-back');
@@ -3058,8 +2707,6 @@ async function run() {
       d.w.document.querySelector('.toast')?.textContent);
   }
 
-  /* ENDGUELTIG ENTFERNEN -- mit Rueckfrage davor. Ein Weg ohne Rueckweg
-     bekommt eine. */
   {
     const d = await pkSystem({ isAdmin: true, isOwner: true });
     const before = pkTrashRows(d).length;
@@ -3072,7 +2719,6 @@ async function run() {
     check('Und die Frage nennt den Titel und sagt, dass es danach keinen Rueckweg gibt',
       /Weggeworfenes/.test(askKey?.textContent || '') && /nicht rückgängig machen/.test(askKey?.textContent || ''),
       askKey?.textContent);
-    // Erst abbrechen: danach darf NICHTS geschickt worden sein.
     const pkNo = d.w.document.querySelector('.backdrop [data-no]');
     pkNo?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await until(d.w, () => !pkNo?.isConnected, 2000, 'die geschlossene Rueckfrage');
@@ -3096,10 +2742,7 @@ async function run() {
       pkTrashRows(d).length === before - 1, `vorher ${before}, danach ${pkTrashRows(d).length}`);
   }
 
-  /* DIE KENNZAHLENKARTE weist den Papierkorb getrennt aus. */
   {
-    // Die Kennzahlen stehen im Abschnitt „Datenbank", der Papierkorb in
-// „Bestand" -- dieselbe Karte, ein anderer Platz.
     await sysSection(pkuEig.w, 'database');
     const card = [...pkuEig.w.document.querySelectorAll('.sys-grid > .sys-card')]
       .find(c => c.querySelector('h3')?.textContent.trim() === 'Kennzahlen');
@@ -3112,8 +2755,6 @@ async function run() {
       /^2 · 2,5 KB$/.test(row?.querySelector('.v')?.textContent?.trim() || ''),
       row?.querySelector('.v')?.textContent);
 
-    /* ---- VERSION UND ALGORITHM — 0.16.0 ---- DIE VERSION STAND IN DER
-       ANTWORT SCHON IMMER, gezeigt hat die Karte sie nie. */
     const kvRow = (k) => [...(card?.querySelectorAll('.kv') || [])]
       .find(z => z.querySelector('.k')?.textContent.trim() === k);
     check('Die Karte nennt die Version der Instanz',
@@ -3127,14 +2768,12 @@ async function run() {
       [...(card?.querySelectorAll('.kv .k') || [])].map(k => k.textContent.trim())
         .join('|').includes('Version|Prüfsumme (Fingerprint)'),
       [...(card?.querySelectorAll('.kv .k') || [])].map(k => k.textContent.trim()).join(' · '));
-    /* GESUCHT WIRD DER ABSCHNITT MIT DEM NAMEN und nicht der erste: seit
-       0.19.0 traegt die Karte zwei -- „Bildablage" steht vor „Verfahren". */
+    /* Die Karte hat mehrere Unterabschnitte; gesucht wird nach dem Namen. */
     const kvSignatures = [...(card?.querySelectorAll('.sys-sub') || [])]
       .map(u => u.textContent.trim());
     check('Ein eigener, untergeordneter Abschnitt nennt die Verfahren',
       kvSignatures.includes('Technische Verfahren'), kvSignatures.join(' · '));
-    /* DIE BESCHRIFTUNGEN SIND IN DER KARTE EINDEUTIG -- „Datenbank" steht
-       dort schon einmal, fuer die Belegung auf der Platte. */
+    /* „Datenbank" steht in der Karte schon einmal, fuer die Belegung auf der Platte. */
     check('Keine Beschriftung steht in der Karte zweimal',
       new Set([...(card?.querySelectorAll('.kv .k') || [])].map(k => k.textContent.trim())).size ===
         (card?.querySelectorAll('.kv .k') || []).length,
@@ -3145,23 +2784,19 @@ async function run() {
         kvRow(word)?.querySelector('.v')?.textContent.trim() === value,
         kvRow(word)?.querySelector('.v')?.textContent);
     }
-    /* UND KEINE PAKETVERSION IN DER GANZEN KARTE. Die Version der INSTANZ steht
-       darin und ist erwuenscht; gesucht wird deshalb nach den Paketnamen. */
+    /* Die Version der Instanz steht in der Karte; gesucht wird deshalb nach Paketnamen. */
     check('Und die Karte nennt keine fremde Bibliothek beim Namen',
       !/better-sqlite3|nodemailer|express|multer|sharp/i.test(card?.textContent || ''),
       card?.textContent?.replace(/\s+/g, ' ').slice(0, 200));
-    /* NEU MIT 0.17.0: die Karte SAGT das auch nicht mehr. */
     check('Und sie begruendet den Vorbehalt nicht mehr an der Oberflaeche',
       !/Lücke ausnutzen|welcher Bibliothek/.test(card?.textContent || ''),
       card?.textContent?.replace(/\s+/g, ' ').slice(-260));
-    /* DIE ANGABE SELBST BLEIBT ABER STEHEN -- ohne diese Zeile bliebe die
-       Verneinung darueber auch dann gruen, wenn der ganze Absatz verschwaende. */
+    /* Ohne diese Pruefung bliebe die Verneinung darueber auch ohne den Absatz gruen. */
     check('Der Satz zum Schluessel neben der Datenbank bleibt dagegen stehen — 0.22.0',
       /liegt (weiterhin im Datenbankverzeichnis|im selben Verzeichnis wie die Datenbank)/
         .test(card?.textContent || ''),
       card?.textContent?.replace(/\s+/g, ' ').slice(-260));
-    /* DIE GEGENLAGE: liefert der Server die Verfahren nicht mit, steht der
-       Abschnitt gar nicht da -- statt vier Zeilen mit Gedankenstrichen. */
+    /* Ohne Angaben vom Server fehlt der Abschnitt, statt vier Zeilen mit Gedankenstrichen. */
     const withoutVerf = await pkSystem({ isAdmin: true, isOwner: true },
       { statsMethod: null });
     await sysSection(withoutVerf.w, 'database');
@@ -3174,13 +2809,9 @@ async function run() {
     withoutVerf.w.close();
   }
 
-  /* ---------------------------------------------------------------- */
   group('Die Bildablage in der Oberflaeche');
 
-  /* SIE HAT DIE KARTE „Kennzahlen" VERLASSEN UND IST DIE NEUNZEHNTE KARTE,
-     seit 0.19.1. */
   {
-    // SEIT 0.22.0 HEISST DIE KARTE „Bildformate" (E6).
     const baCard = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
       .find(c => c.querySelector('h3')?.textContent.trim() === 'Bildformate');
     const baRows = (k) => [...(k?.querySelectorAll('.kv .k') || [])]
@@ -3211,13 +2842,9 @@ async function run() {
         row?.querySelector('.v')?.textContent.trim() === value,
         `${word}: ${row?.querySelector('.v')?.textContent}`);
     }
-    /* EIN FORMAT OHNE BILDER BEKOMMT KEINE ZEILE MIT EINER NULL. Eine Null ist
-       eine Aussage, und sie lenkt von den beiden Zahlen ab, um die es geht. */
+    /* Eine Zeile mit Null lenkt von den Formaten ab, die Bilder haben. */
     check('Ein Format ohne Bilder steht gar nicht da',
       !baRows(kEig).some(z => z.startsWith('GIF')), baRows(kEig).join(' · '));
-    /* UMGEDREHT MIT 0.22.0 (Anlage F): der Zusatz am PNG haengt an der Wahl
-       -- „wird beim Upload zu WebP" steht nur, wenn ueberhaupt umkodiert wird
-       --, und JPEG „bleibt unverändert". */
     const baPicked = kEig?.querySelector('.engine .sdefault.on')
       ?.closest('.engine')?.getAttribute('data-store');
     check('Und PNG traegt den Zusatz genau dann, wenn umkodiert wird — 0.22.0',
@@ -3227,8 +2854,6 @@ async function run() {
     check('Und JPEG den, dass es unveraendert bleibt — 0.22.0',
       baRows(kEig).some(z => /^JPEG.*bleibt unverändert/.test(z)), baRows(kEig).join(' · '));
 
-    /* ---- ZUSAGE 9: DIE KARTE ZEIGT DREI VERFAHREN UND NENNT DIE AUFLAGE
-       ---- BIS 0.26.0 STAND HIER EIN HAEKCHEN. */
     const storeRows = [...(baEig.w.document.querySelectorAll('.sys-card .engine[data-store]') || [])];
     check('Die Eigentuemerin bekommt drei Verfahren zur Wahl',
       storeRows.length === 3, `${storeRows.length} Zeilen: ` +
@@ -3237,7 +2862,6 @@ async function run() {
       ['png', 'webp-lossless', 'webp-lossy'].every(k =>
         storeRows.some(z => z.getAttribute('data-store') === k)),
       storeRows.map(z => z.getAttribute('data-store')).join(' · '));
-    /* JEDE ZEILE TRAEGT EINEN KNOPF „Standard", UND GENAU EINER STEHT AN. */
     check('Jede Zeile traegt einen Knopf „Standard"',
       storeRows.every(z => (z.querySelector('.sdefault')?.textContent || '').trim() === 'Standard'),
       storeRows.map(z => z.querySelector('.sdefault')?.textContent).join(' · '));
@@ -3247,8 +2871,6 @@ async function run() {
     check('Und zwar der, den die Antwort nennt',
       onButtons[0]?.getAttribute('data-store') === 'webp-lossless',
       onButtons[0]?.getAttribute('data-store'));
-    /* UND JEDE ZEILE SAGT, WOFUER IHR VERFAHREN GUT IST. Eine Wahl aus drei
-       Namen ohne einen Satz dazu ist eine Wahl ins Blaue. */
     const storeText = (k) => storeRows.find(z => z.getAttribute('data-store') === k)
       ?.textContent.replace(/\s+/g, ' ') || '';
     check('„PNG" sagt, dass nicht konvertiert wird',
@@ -3263,33 +2885,23 @@ async function run() {
     check('Und den Knopf, der den Bestand umstellt', !!button);
     check('Der Knopf ist bedienbar, solange kein Lauf laeuft', !!button && !button.disabled);
 
-    /* WAS DER SCHALTER TUT, STEHT AM SCHALTER -- und zwar vollstaendig: was
-       aus einem eingefuegten Bildschirmfoto wird, dass die Guete dabei
-       bleibt, und was UNANGETASTET bleibt. */
     const baCardText = (kEig?.textContent || '').replace(/\s+/g, ' ');
-    /* ZUSAGE 9: DIE KARTE NENNT DIE AUFLAGE. */
-    /* DER WORTLAUT IST MIT 0.31.1 KUERZER -- Regel 1 des Betreibers,
-       Stichwort vorn. */
     check('Die Karte nennt die Auflage: verlustbehaftet spart bei Fotos zwei Drittel',
       /Verlustbehaftet: bei Fotos rund zwei Drittel kleiner/.test(baCardText),
       baCardText.slice(0, 400));
     check('Und dass es beim Bildschirmfoto mit Text groesser wird',
       D.shows(baCardText, 'card.storeCaveat'),
       baCardText.slice(0, 400));
-    /* DIE DRITTE HAELFTE HAT MIT 0.31.0 IHRE SACHE GEWECHSELT und ist deshalb
-       umgestellt und nicht gefallen. */
     check('Und dass die Wahl fuer alle neuen Uploads gilt',
       /neuen Uploads/.test(baCardText), baCardText.slice(0, 400));
-    /* UND DIE ABLEITUNGEN FOLGEN DER WAHL NICHT (F3). Ohne diesen Satz hielte
-       jemand „PNG" fuer eine Aussage ueber die ganze Zeile. */
+    /* Ohne diesen Satz gaelte „PNG" auch fuer die Vorschaubilder. */
     check('Und dass die Vorschaubilder der Wahl nicht folgen',
       /Vorschaubilder: in jedem Fall WebP/.test(baCardText),
       baCardText.slice(0, 500));
 
-    /* DER KNOPF FRAGT ERST DAS PASSWORT. */
     baEig.sent.length = 0;
     button?.onclick();
-    // Ohne Rueckfrage geht der Lauf sofort hinaus; dann wird auf die Antwort gewartet.
+    // Faellt die Rueckfrage weg, geht der Lauf sofort hinaus; auch darauf wird gewartet.
     await until(baEig.w, (x) => !button || x.document.getElementById('confirm-pass') ||
       (baEig.sent.some(g => g.url === '/api/images/convert') && openRequests(x) === 0),
       2000, 'der Dialog der zweiten Bestaetigung');
@@ -3301,19 +2913,12 @@ async function run() {
     check('Sondern fragt vorher nach dem Passwort',
       !!dialog && !!baEig.w.document.getElementById('confirm-pass'),
       dialogText.replace(/\s+/g, ' ').slice(0, 160));
-    /* UND DER TEXT BESCHOENIGT NICHTS UND SAGT NICHTS ZWEIMAL. */
-    /* UMGEDREHT MIT 0.22.0 (Anlage F): vier kurze Saetze -- Zahl und Groesse,
-       was mit den Originalen geschieht und was danach uebrig ist, der einzige
-       Rueckweg, die Dauer ohne Zahl. */
     check('Und sagt vorher, wie viele Bilder es trifft', /12 PNG-Fotos \(6,0 MB\)/.test(dialogText),
       dialogText.replace(/\s+/g, ' ').slice(0, 300));
     check('Und dass die Originale ersetzt werden — 0.22.0',
       /die Originale ersetzt \(danach etwa/.test(dialogText), dialogText.replace(/\s+/g, ' ').slice(0, 300));
-    /* UND DASS DIE ZWEITE HAELFTE NICHT MEHR MITGEHT -- 0.33.0. */
-    /* GEFRAGT WIRD AM SATZ DES DIALOGS UND NICHT AM GANZEN SEITENTEXT: die
-       Karte darunter sagt weiterhin „Vorschaubilder: in jedem Fall WebP, von
-       dieser Wahl unberuehrt", und das ist der Satz, der nach dieser Runde
-       ohne Widerspruch dasteht. */
+    /* Gesucht wird der Satz des Dialogs, nicht das Wort: die Karte sagt weiterhin
+       „Vorschaubilder: in jedem Fall WebP". */
     check('Und dass die Vorschaubilder NICHT mehr mitgehen — 0.33.0',
       !/JPEG-Vorschaubilder werden dabei neu generiert/
         .test(dialogText.replace(/\s+/g, ' ')),
@@ -3321,15 +2926,12 @@ async function run() {
     check('Und dass nur ein vorher angelegtes Backup zurueckfuehrt',
       /Rückgängig nur mit einem vorher angelegten Backup/.test(dialogText),
       dialogText.replace(/\s+/g, ' ').slice(0, 300));
-    /* DASS ES DAUERN KANN -- ausdruecklich OHNE Zahl. */
     check('Und dass sich die Dauer nicht vorhersagen laesst',
       /Dauer: Minuten bis Stunden\./.test(dialogText),
       dialogText.replace(/\s+/g, ' ').slice(0, 460));
     check('Und bittet nicht mehr um ein Zeitfenster — 0.22.0',
       !/Zeitfenster/.test(dialogText),
       dialogText.replace(/\s+/g, ' ').slice(0, 460));
-    /* KEINE ERFUNDENE MINUTENANGABE. Der Dialog nennt Bilder und Bytes -- aber
-       keine Dauer in Minuten, Stunden oder Sekunden. */
     check('Aber keine erfundene Zeitangabe',
       !/\b\d+([.,]\d+)?\s*(Sekunden?|Minuten?|Stunden?)\b/
         .test((baEig.w.document.querySelector('.backdrop .modal')?.textContent || '')),
@@ -3337,8 +2939,6 @@ async function run() {
         .replace(/\s+/g, ' ').slice(0, 460));
     baEig.w.document.querySelectorAll('.backdrop').forEach(e => e.remove());
 
-    /* DER KNOPF „Standard" SCHREIBT WIRKLICH -- und ueber PUT /api/settings,
-       nicht ueber eine eigene Route. */
     baEig.sent.length = 0;
     const pngButton = baEig.w.document
       .querySelector('.engine[data-store="png"] .sdefault');
@@ -3354,7 +2954,6 @@ async function run() {
     check('Und es gibt keine eigene Route dafuer',
       !baEig.sent.some(g => /images\/(store|convert)$/.test(g.url) && g.method === 'PUT'),
       baEig.sent.map(g => g.url).join(' · '));
-    /* ZUSAGE 8 AN DER OBERFLAECHE: DAS UMSCHALTEN STARTET KEINEN LAUF. */
     check('Und das Umschalten ruft den Lauf ueber den Bestand nicht',
       !baEig.sent.some(g => g.url === '/api/images/convert'),
       baEig.sent.map(g => `${g.method} ${g.url}`).join(' · '));
@@ -3362,8 +2961,7 @@ async function run() {
       2000, 'der neu gezeichnete Systembereich');
     baEig.w.close();
 
-    /* ---- DIE DREI GEGENLAGEN ---- */
-    /* KEIN PNG MEHR DA -- UND DER KNOPF IST WIEDER TOT. */
+    /* ---- Gegenlagen ---- */
     const baEmpty = await pkSystem({ isAdmin: true, isOwner: true },
       { statsImageFormats: { webp: { count: 9, bytes: 65536 } } });
     await sysSection(baEmpty.w, 'database');
@@ -3378,7 +2976,6 @@ async function run() {
       (baCard(baEmpty)?.textContent || '').replace(/\s+/g, ' ').slice(-260));
     baEmpty.w.close();
 
-    // Ein Lauf ist unterwegs: die Zeile zaehlt mit, der Knopf ist tot.
     const baRun = await pkSystem({ isAdmin: true, isOwner: true },
       { statsSwitch: { running: true, total: 12, done: 5, converted: 4, stayed: 1, freed: 100 } });
     await sysSection(baRun.w, 'database');
@@ -3389,27 +2986,23 @@ async function run() {
       baRun.w.document.getElementById('convert-run')?.disabled === true);
     baRun.w.close();
 
-    // Ein Lauf ist durch: die Zeile sagt, was herauskam.
     const baDone = await pkSystem({ isAdmin: true, isOwner: true },
       { statsSwitch: { running: false, total: 12, done: 12, converted: 11,
                        stayed: 1, freed: 4194304 } });
     await sysSection(baDone.w, 'database');
     const doneRow = baDone.w.document.getElementById('convert-running')?.textContent || '';
-    /* DER FERTIGSATZ NENNT SEIT 0.33.0 WIEDER EINE HAELFTE. */
     check('Nach einem Lauf sagt die Zeile, was herauskam',
       /11 von 12 Originalen konvertiert/.test(doneRow) &&
       !/Vorschaubilder neu generiert/.test(doneRow) &&
       /1 bereits aktuell/.test(doneRow) &&
       /4,0 MB gespart/.test(doneRow), doneRow);
-    /* UND DIE ZEILE DES ZWEITEN LAUFS STEHT NICHT DA, wenn keiner lief. */
     check('Und die Zeile des Nachziehens steht daneben nicht',
       !baDone.w.document.getElementById('thumbs-running'),
       baDone.w.document.getElementById('thumbs-running')?.textContent);
     baDone.w.close();
 
-    /* ---- DAS NACHZIEHEN DER GEOMETRIE — 0.19.4 ---- ES IST EIN ZWEITER LAUF
-       UND NICHT DERSELBE: er faehrt bei jedem Start, die Umstellung auf
-       Knopfdruck. */
+    /* Das Nachziehen der Geometrie ist ein eigener Lauf: er laeuft bei jedem
+       Start, die Umstellung nur auf Knopfdruck. */
     const geoRun = await pkSystem({ isAdmin: true, isOwner: true },
       { statsGeometry: { running: true, total: 1032, done: 40, checked: 40,
                           renewed: 31, skipped: 0, grown: 1000 } });
@@ -3417,14 +3010,12 @@ async function run() {
     check('Waehrend des Nachziehens zeigt die Karte seinen Fortschritt',
       /40 von 1032/.test(geoRun.w.document.getElementById('thumbs-running')?.textContent || ''),
       geoRun.w.document.getElementById('thumbs-running')?.textContent);
-    /* UND DER UMSTELLUNGSKNOPF BLEIBT BEDIENBAR. Genau das waere weg, wenn
-       beide Laeufe in demselben Feld staenden. */
+    /* Teilten sich beide Laeufe ein Feld, waere der Knopf gesperrt. */
     check('Und der Umstellungsknopf bleibt dabei bedienbar',
       geoRun.w.document.getElementById('convert-run')?.disabled === false,
       String(geoRun.w.document.getElementById('convert-run')?.disabled));
     geoRun.w.close();
 
-    // Und durch: die Zeile sagt, was herauskam.
     const geoDone = await pkSystem({ isAdmin: true, isOwner: true },
       { statsGeometry: { running: false, total: 1032, done: 1032, checked: 1032,
                           renewed: 825, skipped: 2, grown: 61341696 } });
@@ -3435,7 +3026,6 @@ async function run() {
       /58,5 MB mehr/.test(geoRow), geoRow);
     geoDone.w.close();
 
-    /* UND SIE KENNT BEIDE RICHTUNGEN -- 0.19.5. */
     const geoSmaller = await pkSystem({ isAdmin: true, isOwner: true },
       { statsGeometry: { running: false, total: 1032, done: 1032, checked: 1032,
                           renewed: 825, skipped: 0, grown: -20971520 } });
@@ -3446,7 +3036,6 @@ async function run() {
       geoSmallerRow);
     geoSmaller.w.close();
 
-    /* UND SIE STEHT NICHT DA, WENN ES NICHTS ZU SAGEN GAB. */
     const geoEmpty = await pkSystem({ isAdmin: true, isOwner: true },
       { statsGeometry: { running: false, total: 1032, done: 1032, checked: 1032,
                           renewed: 0, skipped: 0, grown: 0 } });
@@ -3454,21 +3043,14 @@ async function run() {
     check('Ein Lauf ohne Fund hinterlaesst keine Zeile',
       !geoEmpty.w.document.getElementById('thumbs-running'),
       geoEmpty.w.document.getElementById('thumbs-running')?.textContent);
-    /* UND DIE KARTE SAGT, WELCHE MASSE DIE BEIDEN ABLEITUNGEN TRAGEN. */
     {
       const t = (baCard(geoEmpty)?.textContent || '').replace(/\s+/g, ' ');
-      /* UMGEDREHT MIT 0.22.0 (Anlage F, Regel S5): die Masse der beiden
-         Vorschaubilder sind Bauwissen und stehen im Projektstand, nicht mehr
-         in der Karte. */
       check('Die Karte sagt, dass die Vorschaubilder nicht mitgezaehlt sind — 0.22.0',
         /Vorschaubilder \(WebP\) sind nicht mitgezählt/.test(t) &&
         !/512 × 512/.test(t) && !/1600 px/.test(t), t.slice(0, 320));
     }
     geoEmpty.w.close();
 
-    /* ---- UND WER SIE NICHT BEDIENEN DARF ---- Der Admin ohne
-       Eigentuemerrolle sieht die ZAHLEN -- sie stehen hinter nurAdmin --,
-       aber weder Schalter noch Knopf. */
     const baAdm = await pkSystem({ isAdmin: true, isOwner: false });
     await sysSection(baAdm.w, 'database');
     check('Der Admin ohne Eigentuemerrolle sieht die Aufstellung',
@@ -3479,14 +3061,8 @@ async function run() {
     baAdm.w.close();
   }
 
-  /* ---------------------------------------------------------------- */
   group('Die Sicherung in der Oberflaeche');
 
-  /* DREI ZUSTAENDE, DREI AUFBAUTEN: eingerichtet, gar nicht eingerichtet und
-     ein Zielort mit Fehler. */
-  /* „Sicherung" und „Export und Import" stehen seit 0.16.0 im Abschnitt
-     „Datenbank", der Papierkorb daneben in „Bestand" -- dieselbe Prueflage,
-     ein anderer Abschnitt. */
   const siSystem = async (roles, opt = {}) => {
     const d = await pkSystem(roles, opt);
     await sysSection(d.w, 'database');
@@ -3506,8 +3082,7 @@ async function run() {
     siEig.sent.some(x => x.url === '/api/backup'),
     siEig.sent.map(x => x.url).join(' · '));
 
-  /* ROT ODER GRUEN: DIE LAGE DES SICHERUNGSORTS. Ein Ort im
-     Arbeitsverzeichnis wird nicht abgewiesen -- er wird benannt. */
+  /* Ein Ort im Arbeitsverzeichnis wird nicht abgewiesen, nur benannt. */
   const siState = (d) => d.w.document.getElementById('backup-place');
   check('Die Karte sagt, wie der Sicherungsort liegt', !!siState(siEig),
     siCard(siEig)?.innerHTML?.slice(0, 300));
@@ -3535,20 +3110,15 @@ async function run() {
       D.shows(box?.textContent, 'card.backupDirHint'), box?.textContent);
     check('Und er sagt, WO es umgestellt wird',
       /docker-compose\.yml/.test(box?.textContent || ''), box?.textContent);
-    /* DIE KARTE BLEIBT BENUTZBAR. Der Kasten ist eine Auskunft, keine
-       Absage -- Zielort und Knopf stehen weiter da. */
+    /* Der Kasten ist eine Auskunft, keine Absage. */
     check('Der Knopf steht trotzdem da', !!siInn.w.document.getElementById('backup-run'));
     check('Und das Feld fuer den Zielort auch',
       !!siInn.w.document.getElementById('backup-dir'));
   }
 
 
-  /* ZWEI SCHLUESSEL IM UMLAUF IN DER OBERFLAECHE -- seit 0.8.91. DREI LAGEN,
-     DREI AUFBAUTEN, und jede bekommt ihre Gegenlage: ohne Wechsel steht gar
-     kein Kasten da (eine Warnung, die immer dasteht, liest niemand mehr),
-     nach einem Wechsel mit brauchbarer Kopie ein gruener, und wenn auch die
-     juengste Kopie aelter ist als der Wechsel, ein roter mit dem schaerferen
-     Satz. */
+  /* Kein Kasten ohne Schluesselwechsel (eine Warnung, die immer dasteht, liest
+     niemand), gruen mit einer juengeren Kopie, sonst rot. */
   {
     const siStatusIncluding = (extraEnv) => ({
       configured: true, root: '/sicherung', place: 'taeglich', filePath: '/sicherung/taeglich',
@@ -3558,21 +3128,17 @@ async function run() {
                 at: '2026-08-20 03:00:00', daysAgo: 3, outdated: false },
       changedAt: null, outdated: 0, ...extraEnv
     });
-    /* GESUCHT WIRD IM GEFALTETEN TEXT. */
     const fold = (t) => String(t || '').replace(/\s+/g, ' ').trim();
     const siText = (d) => fold(siCard(d)?.textContent);
     const siBoxes = (d, cls) =>
       [...(siCard(d)?.querySelectorAll('.' + cls) || [])].map(k => fold(k.textContent));
 
-    // Ohne Wechsel: kein Kasten, kein Wort davon.
     const withoutPhotos = await siSystem({ isAdmin: true, isOwner: true },
       { backupStatus: siStatusIncluding({}) });
     check('Ohne Wechsel steht nichts von zwei Schluesseln auf der Karte',
       !/Schlüsselwechsel|alten Schlüssel|gewechselt/.test(siText(withoutPhotos)),
       siText(withoutPhotos).slice(0, 300));
 
-    // Ein Teil veraltet: roter Kasten mit der Zahl und dem Verbleib des alten
-// Werts.
     const partly = await siSystem({ isAdmin: true, isOwner: true },
       { backupStatus: siStatusIncluding({ changedAt: '2026-08-21 08:00:00', outdated: 2 }) });
     const partlyRed = siBoxes(partly, 'warn-box').join(' ');
@@ -3580,28 +3146,20 @@ async function run() {
       /2 Backups stammen von vor dem Schlüsselwechsel/.test(partlyRed), partlyRed.slice(0, 300));
     check('Und er nennt den Zeitpunkt des Wechsels',
       /21\.08\.2026/.test(partlyRed), partlyRed.slice(0, 300));
-    /* SEIT 0.22.0 (Anlage F) SAGT DER KASTEN NUR NOCH, WOMIT SICH DIE ALTEN
-       OEFFNEN und wohin der alte Schluessel gehoert: in einen
-       Passwort-Manager. */
     check('Und wo der alte Wert zu finden ist',
       /nur mit dem alten Schlüssel/.test(partlyRed) && /Passwort-Manager/.test(partlyRed),
       partlyRed.slice(0, 400));
-    /* DIE ZEILE „DATEIEN AM ORT" IST MIT 0.20.1 AUS DIESER KARTE HERAUS --
-       und die Pruefung darauf wird UMGEDREHT statt geloescht. */
     check('Die Zeile "Dateien am Ort" steht nicht mehr in dieser Karte',
       !/Dateien am Ort/.test(siText(partly)), siText(partly).slice(0, 400));
 
-    // Genau eine alte Kopie -- die Einzahl gehoert geprueft, sonst steht dort
-// "1 Kopien stammen".
+    // Die Einzahl, sonst stuende dort „1 Backups stammen".
     const one = await siSystem({ isAdmin: true, isOwner: true },
       { backupStatus: siStatusIncluding({ changedAt: '2026-08-21 08:00:00', outdated: 1 }) });
     check('Bei genau einer alten Kopie steht die Einzahl da',
       /1 Backup stammt von vor dem Schlüsselwechsel/.test(siBoxes(one, 'warn-box').join(' ')),
       siBoxes(one, 'warn-box').join(' ').slice(0, 300));
 
-    // Alles veraltet -- die schaerfste Lage: es gibt ueberhaupt keine
-    // brauchbare Kopie, und das ist eine ANDERE Aussage als "ein paar alte
-    // liegen daneben".
+    // Keine brauchbare Kopie ist eine andere Aussage als einige alte daneben.
     const everything = await siSystem({ isAdmin: true, isOwner: true },
       { backupStatus: siStatusIncluding({
         changedAt: '2026-08-22 08:00:00', outdated: 3,
@@ -3615,8 +3173,6 @@ async function run() {
     check('Und sie sagt, wohin der alte Schluessel gehoert — 0.22.0',
       /Passwort-Manager/.test(everythingRed), everythingRed.slice(0, 400));
 
-    // Und die Gegenlage: alle Kopien juenger als der Wechsel -> gruen, mit
-// dem Grund daneben statt eines blossen "alles gut".
     const green = await siSystem({ isAdmin: true, isOwner: true },
       { backupStatus: siStatusIncluding({ changedAt: '2026-08-19 08:00:00', outdated: 0 }) });
     const greenBox = siBoxes(green, 'ok-box').join(' ');
@@ -3626,13 +3182,9 @@ async function run() {
       !/alten Schlüssel/.test(siText(green)), siText(green).slice(0, 300));
   }
 
-  /* DIE ROLLENTEILUNG STEHT AN BEIDEN KARTEN, nicht nur in den Dokumenten. */
-  // SEIT 0.16.0 HEISST SIE „Export und Import": es ist dieselbe Datei, die
-// hinausgeht und wieder hereinkommt.
   const siExportCard = [...siEig.w.document.querySelectorAll('.sys-grid > .sys-card')]
     .find(c => c.querySelector('h3')?.textContent.trim() === 'Export und Import');
   check('Die Exportkarte ist ueberhaupt da', !!siExportCard);
-  // SEIT 0.22.0 OHNE „Austauschweg" (Verbotsliste): die Karte sagt, wofuer der Export ist.
   check('Sie sagt, wofuer der Export ist — 0.22.0',
     /für Umzug, Archiv und Weitergabe/.test(siExportCard?.textContent || ''), siExportCard?.textContent?.slice(0, 200));
   check('Und verweist auf das Backup',
@@ -3644,9 +3196,7 @@ async function run() {
     /nur in dieselbe Programmversion zurückspielen/.test(siCard(siEig)?.textContent || ''),
     siCard(siEig)?.textContent?.slice(0, 400));
 
-  /* DER HINWEIS AUF DEN SCHLUESSEL GEHOERT AN DEN KNOPF, nicht in die
-     Dokumentation: die Kopie ist ohne .env wertlos, und genau dort tappt
-     jemand in die Falle. */
+  /* Ohne den Schluessel aus der .env ist die Kopie wertlos; der Hinweis steht deshalb am Knopf. */
   const siWarn = siCard(siEig)?.querySelector('.warn-box');
   check('Der Hinweis auf den Schluessel steht in der Karte', !!siWarn,
     siCard(siEig)?.innerHTML?.slice(0, 200));
@@ -3666,8 +3216,7 @@ async function run() {
     /kriterion-2026-08-20-03-00-00\.sqlite/.test(siCard(siEig)?.textContent || '') &&
     /50,0 MB/.test(siCard(siEig)?.textContent || ''),
     siCard(siEig)?.textContent?.slice(0, 600));
-  /* DIE DAUER STEHT VORHER DA. VACUUM INTO laeuft synchron, die Instanz steht
-     so lange still -- eine Ansage ist besser als ein stiller Stillstand. */
+  /* VACUUM INTO laeuft synchron; die Instanz steht so lange still. */
   check('Die Karte sagt vorher, dass Kriterion kurz nicht erreichbar ist — 0.22.0',
     /ist Kriterion kurz nicht\s+erreichbar/.test(siCard(siEig)?.textContent || ''),
     siCard(siEig)?.textContent?.slice(0, 700));
@@ -3675,7 +3224,6 @@ async function run() {
     /etwa\s+1 Sekunden/.test(siCard(siEig)?.textContent || ''),
     siCard(siEig)?.textContent?.slice(0, 700));
 
-  /* DER NICHT EINGERICHTETE FALL. */
   {
     const d = await siSystem({ isAdmin: true, isOwner: true },
       { backupStatus: { configured: false, reason: 'Es ist kein Backup-Ordner eingerichtet. ' +
@@ -3691,8 +3239,6 @@ async function run() {
       !d.w.document.getElementById('backup-dir'), 'das Feld steht da');
   }
 
-  /* DER UNERREICHBARE ZIELORT. Die Karte sagt es, statt eine Zahl zu
-     behaupten -- das ist der Preis der Entscheidung fuer das Dateisystem. */
   {
     const d = await siSystem({ isAdmin: true, isOwner: true },
       { backupStatus: { configured: true, root: '/sicherung', place: 'weg',
@@ -3715,7 +3261,6 @@ async function run() {
       siCard(d)?.textContent?.slice(0, 400));
   }
 
-  /* DER KNOPF, mit einem WIRKLICH zugestellten Ereignis. */
   {
     const d = await siSystem({ isAdmin: true, isOwner: true });
     const siRun = d.w.document.getElementById('backup-run');
@@ -3736,8 +3281,6 @@ async function run() {
       siCard(d)?.textContent?.slice(0, 600));
   }
 
-  /* DER ZIELORT laesst sich umstellen -- und eine Absage des Servers wird
-     gesagt, statt still zu bleiben. */
   {
     const d = await siSystem({ isAdmin: true, isOwner: true });
     if (d.w.document.getElementById('backup-dir')) setField(d.w.document, 'backup-dir', 'woechentlich');
@@ -3768,21 +3311,17 @@ async function run() {
   }
 
 
-  /* ---------------------------------------------------------------- */
   group('Die Karte „Alte Backups" in der Oberflaeche');
 
-  /* SIE STEHT IM ABSCHNITT „DATENBANK", HINTER „SICHERUNG" -- die Reihenfolge
-     ist geprueft und nicht zufaellig. */
   const afCard = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
     .find(c => c.querySelector('h3')?.textContent.trim() === 'Alte Backups');
   const afText = (d) => String(afCard(d)?.textContent || '').replace(/\s+/g, ' ').trim();
   const afRows = (d) => [...(d.w.document.querySelectorAll('#cleanup-list .mrow') || [])]
     .map(z => z.textContent.replace(/\s+/g, ' ').trim());
   const afButtons = (d) => d.w.document.querySelectorAll('#cleanup-list button').length;
-  /* DAS STILBLATT ALS TEXT. */
   const afStyle = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
-  /* DIE KOPIEN DER PRUEFLAGE: fuenf am Ort, juengste zuerst. Mit Mindestzahl
-     3 und Alter 30 treffen es die beiden aeltesten. */
+  /* Fuenf Kopien, juengste zuerst; mit Mindestzahl 3 und Alter 30 trifft die
+     Regel die beiden aeltesten. */
   const AF_COPIES = [
     { file: 'kriterion-2026-09-03-10-00-00.sqlite', at: '2026-09-03 10:00:00', daysAgo: 0, bytes: 52428800 },
     { file: 'kriterion-2026-09-02-10-00-00.sqlite', at: '2026-09-02 10:00:00', daysAgo: 1, bytes: 52428800 },
@@ -3790,8 +3329,7 @@ async function run() {
     { file: 'kriterion-2026-07-25-10-00-00.sqlite', at: '2026-07-25 10:00:00', daysAgo: 40, bytes: 52428800 },
     { file: 'kriterion-2026-07-05-10-00-00.sqlite', at: '2026-07-05 10:00:00', daysAgo: 60, bytes: 52428800 }
   ];
-  /* DIE LISTE WIE DER SERVER SIE LIEFERT: Nummer von der juengsten an, und je
-     Zeile die beiden Marken. */
+  /* Wie vom Server: Nummer ab der juengsten, je Zeile `affected` und `outdated`. */
   const afFiles = (keep = 3, days = 30, oldNames = []) => {
     const old = new Set(oldNames);
     const matched = new Set(AF_COPIES.slice(keep)
@@ -3822,35 +3360,27 @@ async function run() {
   const afEig = await afSystem();
   check('Die Karte steht da', !!afCard(afEig), afEig.w.document.body.innerHTML.slice(0, 200));
 
-  /* --- DIE LISTE ALLER SICHERUNGEN. */
   check('Die Karte listet ALLE Backups',
     afRows(afEig).length === AF_COPIES.length,
     `${afRows(afEig).length} Zeilen, ${AF_COPIES.length} erwartet`);
   check('Und nennt ihre Zahl in der Ueberschrift',
     /Backups \(5\)/.test(afText(afEig)), afText(afEig).slice(0, 300));
-  /* DIE NUMMER LAEUFT VON DER JUENGSTEN (1) ZUR AELTESTEN -- so, wie die
-     Mindestzahl zaehlt. */
+  /* Die Nummer zaehlt wie die Mindestzahl, ab der juengsten. */
   check('Die Nummern laufen von der juengsten zur aeltesten',
     equal(afRows(afEig).map(z => (z.match(/^#(\d+)/) || [])[1]),
            ['1', '2', '3', '4', '5']),
     afRows(afEig).map(z => (z.match(/^#(\d+)/) || [])[1]).join(' '));
-  /* DIE GROESSE STEHT SEIT 0.29.0 VOR DEM ALTER, und der Grund ist gemessen:
-     mit dem Verweis „prüfen" daneben fehlen der Zeile am Telefon 24 Pixel,
-     und etwas muss weichen. */
+  /* Groesse vor Alter: mit „prüfen" daneben fehlen der Zeile am Telefon 24 px. */
   check('Je Zeile Datum, Groesse und Alter',
     /^#1 · 03\.09\.2026, \d{2}:\d{2}.*50,0 MB · vor 0 Tagen/.test(afRows(afEig)[0]),
     afRows(afEig)[0]);
-  /* KEIN DATEINAME IN DER ZEILE, und dabei geht nichts verloren: der Name IST
-     die Zeitmarke, und die Zeile nennt Datum und Uhrzeit. */
+  /* Der Dateiname ist die Zeitmarke; die Zeile nennt Datum und Uhrzeit. */
   check('Und kein Dateiname',
     !/kriterion-/.test(afRows(afEig).join(' ')), afRows(afEig).join(' · ').slice(0, 200));
-  /* GENAU EIN KNOPF JE ZEILE, UND ER LIEST -- 0.29.0, Befund 1. */
   check('Je Zeile genau ein Knopf, und er prueft nur',
     afButtons(afEig) === afRows(afEig).length &&
     afRows(afEig).every(z => /prüfen/.test(z)),
     `${afButtons(afEig)} Knoepfe auf ${afRows(afEig).length} Zeilen`);
-  /* DIE MARKE SAGT, WELCHE ZEILE FAELLT -- an der Zeile und nicht in einer
-     zweiten Liste darunter. */
   check('Die Zeilen, die die Regel trifft, sind markiert',
     equal(afRows(afEig).filter(z => /LÖSCHEN|löschen/i.test(z)).map(z => (z.match(/^#(\d+)/) || [])[1]),
            ['4', '5']),
@@ -3858,37 +3388,32 @@ async function run() {
   check('Und die drei jüngsten sind es nicht',
     afRows(afEig).slice(0, 3).every(z => !/löschen/i.test(z)),
     afRows(afEig).slice(0, 3).join(' · '));
-  /* DER DECKEL LIEGT BEI FUENF ZEILEN und nicht bei den zehn der uebrigen
-     Systemlisten: die Liste steht MITTEN in ihrer Karte, unter ihr stehen die
-     Zusammenfassung und beide Knoepfe. */
+  /* Fuenf Zeilen statt zehn wie in den uebrigen Listen: unter der Liste stehen
+     noch Zusammenfassung und beide Knoepfe. */
   check('Die Liste traegt ihren eigenen Deckel von fuenf Zeilen',
     !!afEig.w.document.getElementById('cleanup-list') &&
     /#cleanup-list \{ flex: none; max-height: 13\.98rem; \}/.test(afStyle),
     (afStyle.match(/#cleanup-list[^\n]*/) || ['(keine Regel)'])[0]);
   check('Und die Rechnung dahinter steht im Stilblatt',
-    /5 x 41,92 \/ 15 = 13,973/.test(afStyle), 'die Rechnung fehlt');
+    /5 x 41,92( px)? \/ 15 = 13,973/.test(afStyle), 'die Rechnung fehlt');
 
-  /* --- DER SCHALTER UND DIE BEIDEN FELDER, mit den kurzen Texten. --- */
+  /* ---- Schalter und Felder ---- */
   check('Der Schalter steht auf aus',
     afEig.w.document.getElementById('cleanup-toggle')?.checked === false,
     JSON.stringify(afEig.w.document.getElementById('cleanup-toggle')?.checked));
   check('Und sagt in einem halben Satz, was ohne Haken gilt',
     /Ohne Häkchen nur auf Knopfdruck\./.test(afText(afEig)), afText(afEig).slice(0, 400));
-  /* ZWEI TATSACHEN IM KOPFTEXT, UND SONST NICHTS: dass es weg ist, und was
-     ueberhaupt in Frage kommt. */
   check('Der Kopftext sagt, dass es endgueltig ist — 0.22.0',
     /— endgültig\./.test(afText(afEig)), afText(afEig).slice(0, 300));
   check('Und dass nur das Namensschema der Installation gelöscht wird',
     /nur Backups, die Kriterion selbst angelegt hat/.test(afText(afEig)),
     afText(afEig).slice(0, 300));
-  /* UND DIE SAETZE, DIE MIT DEM FELDBEFUND GEFALLEN SIND, STEHEN NICHT MEHR
-     DA. */
   check('Die Begruendung des Schalters steht nicht mehr auf der Karte',
     !/das ist Absicht/.test(afText(afEig)) && !/holt nichts zurück/.test(afText(afEig)),
     afText(afEig).slice(0, 400));
   check('Und von einer fremden Datei ist keine Rede mehr',
     !/fremde Datei/.test(afText(afEig)), afText(afEig).slice(0, 300));
-  /* „BODEN" UND „SCHERE" SIND BILDER DES PROJEKTS UND KEIN BILDSCHIRMTEXT. */
+  /* „Boden" und „Schere" sind Begriffe des Projekts, kein Text der Oberflaeche. */
   check('Weder „Boden" noch „Schere" stehen am Bildschirm',
     !/\bBoden\b/.test(afText(afEig)) && !/\bSchere\b/.test(afText(afEig)),
     afText(afEig).slice(0, 500));
@@ -3902,31 +3427,26 @@ async function run() {
     afT()?.getAttribute('min') === '7' && afT()?.getAttribute('max') === '365',
     JSON.stringify([afB()?.getAttribute('min'), afB()?.getAttribute('max'),
                     afT()?.getAttribute('min'), afT()?.getAttribute('max')]));
-  /* DIE BESCHRIFTUNGEN SAGEN, WAS DAS FELD TUT, und nicht, wie das Bild dazu
-     heisst. Und die VORGABE steht nicht daneben: sie steht im Feld. */
   check('Die Beschriftungen heissen wie in der Sprachdatei',
     D.shows(afText(afEig), 'card.keepAtLeast') && D.shows(afText(afEig), 'card.deleteFromAge'),
     afText(afEig).slice(0, 500));
   check('Und keine nennt ihre Vorgabe ein zweites Mal',
     !/Vorgabe/.test(afText(afEig)), afText(afEig).slice(0, 600));
-  /* DAS ALTERSFELD ERKLAERT SICH MIT DER LEBENDEN MINDESTZAHL. */
   check('Das Altersfeld nennt die lebende Mindestzahl',
     /nur, wenn mehr als 3 vorhanden sind/.test(afText(afEig)), afText(afEig).slice(0, 700));
 
-  /* --- WAS DIE REGEL TRIFFT: eine Zeile unter der Liste. --- */
+  /* ---- Was die Regel trifft ---- */
   check('Unter der Liste steht, wie viele fallen und was frei wird',
     /2 Backups werden gelöscht — 100,0 MB frei\./.test(afText(afEig)),
     afText(afEig).slice(0, 900));
   check('Der Knopf steht da und ist bedienbar',
     afEig.w.document.getElementById('cleanup-run')?.disabled === false,
     JSON.stringify(afEig.w.document.getElementById('cleanup-run')?.disabled));
-  /* OHNE VERALTETE KOPIEN GIBT ES DEN ZWEITEN KNOPF NICHT. Ein Knopf, der
-     zuverlaessig nichts tut, sieht aus wie ein Fehler. */
+  /* Ein Knopf, der nichts tut, saehe aus wie ein Fehler. */
   check('Und der zweite Knopf steht nicht da, wenn es nichts Veraltetes gibt',
     !afEig.w.document.getElementById('cleanup-old'), 'der Knopf steht da');
 
-  /* TRIFFT DIE REGEL NICHTS, STEHT DER GRUND DA -- eine leere Aussage ohne
-     Erklaerung sieht aus wie ein Fehler. Und der Knopf ist dann tot. */
+  /* Eine leere Aussage ohne Grund saehe aus wie ein Fehler. */
   {
     const d = await afSystem({}, { matched: [], bytes: 0, files: afFiles(20, 30),
       reason: 'Alle 5 Backups sind unter den jüngsten 20.' });
@@ -3936,13 +3456,11 @@ async function run() {
     check('Und der Knopf ist dann nicht bedienbar',
       d.w.document.getElementById('cleanup-run')?.disabled === true,
       JSON.stringify(d.w.document.getElementById('cleanup-run')?.disabled));
-    /* UND DIE LISTE STEHT TROTZDEM DA, ohne eine einzige Marke. Sie ist die
-       Auskunft ueber den Ort und nicht die Ankuendigung eines Laufs. */
+    /* Die Liste zeigt den Bestand am Ort, nicht nur, was ein Lauf loescht. */
     check('Die Liste steht auch dann da, ohne Marke',
       afRows(d).length === 5 && afRows(d).every(z => !/löschen/i.test(z)),
       afRows(d).join(' · '));
   }
-  /* LIEGT NICHTS DA, SAGT DIE KARTE GENAU DAS -- statt einer leeren Liste. */
   {
     const d = await afSystem({ number: 0, last: null },
       { files: [], matched: [], bytes: 0, reason: 'Hier gibt es noch kein Backup.' });
@@ -3951,8 +3469,6 @@ async function run() {
     check('Und es steht keine leere Liste da',
       !d.w.document.getElementById('cleanup-list'), 'die Liste steht da');
   }
-  /* DIE KOPIEN VON VOR DEM SCHLUESSELWECHSEL: in derselben Liste markiert, mit
-     eigener Zahl, eigener Summe und eigenem Knopf darunter. */
   {
     const oldNames = AF_COPIES.slice(3).map(z => z.file);
     const d = await afSystem({ changedAt: '2026-08-01 08:00:00', outdated: 2 },
@@ -3975,7 +3491,7 @@ async function run() {
       /2 Backups mit altem Schlüssel löschen/.test(
         d.w.document.getElementById('cleanup-old')?.textContent || ''),
       d.w.document.getElementById('cleanup-old')?.textContent);
-    // Die Einzahl gehoert geprueft, sonst steht dort "1 Sicherungen oeffnen".
+    // Die Einzahl, sonst stuende dort „1 Backups oeffnen".
     const one = await afSystem({ changedAt: '2026-08-01 08:00:00', outdated: 1 },
       { oldCount: 1, oldBytes: 52428800, oldFiles: AF_COPIES.slice(4),
         files: afFiles(3, 30, [AF_COPIES[4].file]) });
@@ -3985,8 +3501,7 @@ async function run() {
         one.w.document.getElementById('cleanup-old')?.textContent || ''),
       afText(one).slice(0, 700));
   }
-  /* OHNE EINGERICHTETEN ORT SAGT DIE KARTE GENAU DAS UND SONST NICHTS: ein
-     Schalter, der nie greifen kann, verspricht etwas und haelt es nie. */
+  /* Ein Schalter, der nie greifen kann, verspricht etwas, das nicht eintritt. */
   {
     const d = await afSystem({ configured: false,
       reason: 'Es ist kein Backup-Ordner eingerichtet.' });
@@ -3998,11 +3513,11 @@ async function run() {
       'der Schalter steht da');
   }
 
-  /* --- DIE LISTE RECHNET BEI JEDER AENDERUNG NEU, UND SIE LOESCHT DABEI
-     NICHTS. Wer die Zahl von 3 auf 2 stellt, sieht sofort, was das kostet. --- */
+  /* ---- Vorschau bei jeder Aenderung ---- */
   {
     const d = await afSystem();
-    /* JEDER GRIFF AUF EINEN KNOTEN IST ABGEFANGEN. */
+    /* `?.` und `!afKeep ||`: fehlt ein Knoten, schlaegt die Pruefung an, statt
+       den Lauf abzubrechen. */
     setField(d.w.document, 'cleanup-keep', '2');
     const afKeep = d.w.document.getElementById('cleanup-keep');
     afKeep?.dispatchEvent(new d.w.Event('input', { bubbles: true }));
@@ -4013,8 +3528,7 @@ async function run() {
       asked.length === 1 && /keep=2/.test(asked[0].url) &&
       (asked[0].method || 'GET') === 'GET',
       d.sent.slice(-3).map(x => `${x.method || 'GET'} ${x.url}`).join(' · '));
-    /* UND SIE RECHNET DIE REGEL NICHT SELBST NACH: gefragt wird der Server,
-       und gezeichnet wird, was zurueckkommt. */
+    /* Die Regel rechnet der Server; gezeichnet wird seine Antwort. */
     check('Und danach sind drei Zeilen markiert statt zwei',
       afRows(d).filter(z => /löschen/i.test(z)).length === 3 &&
       afRows(d).length === 5,
@@ -4023,8 +3537,7 @@ async function run() {
       !d.sent.some(x => x.method === 'PUT' && x.url === '/api/settings') &&
       !d.sent.some(x => x.url === '/api/backup/cleanup'),
       d.sent.slice(-4).map(x => `${x.method || 'GET'} ${x.url}`).join(' · '));
-    /* ERST DAS VERLASSEN DES FELDES SPEICHERT. Ein eigener Speicherknopf waere
-       ein dritter Knopf auf einer Karte, die mit zwei auskommt. */
+    /* Ein eigener Speicherknopf waere ein dritter Knopf auf der Karte. */
     const afKeep2 = d.w.document.getElementById('cleanup-keep');
     afKeep2?.dispatchEvent(new d.w.Event('change', { bubbles: true }));
     await until(d.w, (x) => !afKeep2 || (d.sent.some(g => g.method === 'PUT' && g.url === '/api/settings') &&
@@ -4034,8 +3547,6 @@ async function run() {
         x.body?.backupKeep === 2),
       d.sent.slice(-3).map(x => `${x.method} ${x.url} ${JSON.stringify(x.body)}`).join(' · '));
   }
-  /* --- DER SCHALTER GEHT UEBER PUT /api/settings und bekommt keine eigene
-     Route -- dieselbe Bauform wie der Schalter der Bildablage. --- */
   {
     const d = await afSystem();
     const afS = d.w.document.getElementById('cleanup-toggle');
@@ -4048,8 +3559,6 @@ async function run() {
         x.body?.backupCleanup === true),
       d.sent.slice(-3).map(x => `${x.method} ${x.url} ${JSON.stringify(x.body)}`).join(' · '));
   }
-  /* --- DER KNOPF IST OHNE ZWEITE BESTAETIGUNG NICHT BEDIENBAR. Ein Abbruch
-     im Dialog schickt gar nichts. --- */
   {
     const d = await afSystem();
     const afRun = d.w.document.getElementById('cleanup-run');
@@ -4067,8 +3576,6 @@ async function run() {
       !d.sent.some(x => x.url === '/api/backup/cleanup'),
       d.sent.slice(-3).map(x => `${x.method} ${x.url}`).join(' · '));
   }
-  /* --- UND MIT BESTAETIGUNG GEHT ES HINAUS: die Art im Rumpf, kein
-     Dateiname. --- */
   {
     const d = await afSystem();
     const afRun = d.w.document.getElementById('cleanup-run');
@@ -4082,7 +3589,6 @@ async function run() {
     check('Mit Bestaetigung geht das Loeschen hinaus',
       outcome.length === 1 && outcome[0].method === 'POST' && outcome[0].body?.kind === 'rule',
       d.sent.slice(-3).map(x => `${x.method} ${x.url} ${JSON.stringify(x.body)}`).join(' · '));
-    /* DER RUMPF TRAEGT DIE ART UND SONST NICHTS. */
     check('Und der Rumpf traegt genau ein Feld, und das ist die Art',
       equal(Object.keys(outcome[0]?.body || {}), ['kind']),
       JSON.stringify(outcome[0]?.body));

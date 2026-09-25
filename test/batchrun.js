@@ -1,6 +1,5 @@
-/* Kriterion — Pruefstand: der Bestandslauf im eigenen Thread Die Umstellung
-   der Bildablage faehrt in einem eigenen Thread -- an einer echten,
-   verschluesselten Instanz und ohne Server dazwischen. */
+/* Bestandslauf in batchrun.js: der Worker-Thread an einer echten,
+   verschluesselten Instanz, ohne Server. */
 const H = require('./frame.js');
 
 async function run() {
@@ -9,8 +8,6 @@ async function run() {
    require, group, check, equal, open
   } = H;
 
-/* ================= Der Bestandslauf im eigenen Thread — 0.19.3
-   ============== WAS HIER GEPRUEFT WIRD UND WARUM NICHT AM SERVER. */
 async function checkBatchRun() {
   group('Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3');
 
@@ -21,8 +18,7 @@ async function checkBatchRun() {
   const environment = { ...process.env, DATA_DIR: dir, ENCRYPTION_KEY: hex };
   delete environment.AUTH_RESET;
 
-  /* DAS SCHEMA KOMMT AUS db.js UND NICHT AUS DER HAND -- ein von Hand gebautes
-     waere eine zweite Wahrheit darueber, wie eine Instanz aussieht. */
+  // Schema aus db.js, damit es nicht von einer echten Instanz abweicht.
   execFileSync(process.execPath, ['-e', "require('./db');"],
     { cwd: __dirname, encoding: 'utf8', env: environment });
   const open = () => {
@@ -33,8 +29,7 @@ async function checkBatchRun() {
     return d;
   };
 
-  /* DIE VORLAGE IST EIN ECHTES PNG und kein Byte-Haufen: der Thread laedt
-     sharp und wandelt wirklich um. */
+  // Ein echtes PNG: der Thread laedt sharp und wandelt wirklich um.
   const template = await sharp({ create: { width: 240, height: 160, channels: 3,
     background: { r: 30, g: 90, b: 200 } } }).png().toBuffer();
   const ROWS = 6;
@@ -46,8 +41,6 @@ async function checkBatchRun() {
     d.close();
   }
 
-  /* DER THREAD WIRD VON HIER AUS ERZEUGT, mit derselben Datei, die auch
-     server.js an `new Worker` reicht. */
   const drive = (task, rows, outside) => new Promise((done) => {
     const w = new Worker(path.join(__dirname, 'batchrun.js'),
       { workerData: { task: task, rows: rows }, env: environment, stdout: true, stderr: true });
@@ -55,17 +48,13 @@ async function checkBatchRun() {
     let error = null;
     w.on('message', (m) => states.push(m));
     w.on('error', (e) => { error = e; });
-    /* DER ZWEITE SCHREIBER HAENGT SICH ZUERST AN 'exit', und das ist keine
-       Geschmacksfrage: Node ruft die Horcher in der Reihenfolge ihrer
-       Anmeldung. */
+    /* outside.start() haengt sich vor `done` an 'exit': Node ruft die Listener
+       in der Reihenfolge der Anmeldung. */
     if (outside) outside.start(w);
     w.on('exit', (code) => done({ states, error, code }));
   });
 
   /* ---- Die Vorschaubilder, aus dem Thread ---- */
-  /* `pending` UND NICHT `open` -- 0.24.3, Bauabschnitt 7: der Name `offen`
-     ist zu `open` geworden und stiess mit dem Oeffner der Datenbank zwei
-     Zeilen weiter zusammen. */
   const pending = (() => {
     const d = open();
     const r = d.prepare(
@@ -86,10 +75,7 @@ async function checkBatchRun() {
     check('Und danach fehlt keines mehr', missing === 0, `${missing} ohne Vorschaubild`);
   }
 
-  /* ---- Die Umstellung, aus dem Thread, mit einem zweiten Schreiber daneben
-     ---- DIE ZWEITE HAELFTE IST DER EIGENTLICHE GEGENSTAND: 0.19.1 hat diese
-     Runde mit dem Satz zurueckgestellt, ein zweiter
-     Schreiber auf einer WAL-Datei sei heikel. */
+  /* ---- Die Umstellung, mit einem zweiten Schreiber auf der WAL-Datei ---- */
   const pngs = (() => {
     const d = open();
     const r = d.prepare("SELECT id FROM photos WHERE kind != 'video' AND hex(substr(data,1,8)) = ?")
@@ -121,19 +107,15 @@ async function checkBatchRun() {
   check('Der Thread stellt um und endet sauber',
     um.code === 0 && um.error === null,
     `Rueckgabe ${um.code}: ${um.error && um.error.message}`);
-  /* JE ZEILE EINE MELDUNG, DAZU DIE EINE AM ENDE. */
   check('Und meldet je Zeile einmal, dazu einmal am Ende',
     um.states.length === ROWS + 1, `${um.states.length} Meldungen`);
-  /* SIE TRAEGT DEN STAND UND KEINE ZUNAHME: der Haupt-Thread ERSETZT damit,
-     statt zu addieren. */
+  // Der Haupt-Thread ersetzt seinen Stand damit, statt zu addieren.
   const last = um.states[um.states.length - 1] || {};
   check('Jede Meldung traegt den ganzen Stand und nicht eine Zunahme',
     um.states.every(m => m && m.kind === 'status' && m.status &&
       typeof m.status.done === 'number' && typeof m.status.total === 'number'),
     JSON.stringify(um.states[0]));
-  /* AUCH HIER GEHT JEDER ZUGRIFF DURCH EINE KLAMMER: Rueckbau 491 nimmt der
-     Schleife ihre Message, und eine Zeile, die dann auf `m.status.erledigt`
-     greift, riesse den Lauf ab statt rot zu werden. */
+  // Jeder Zugriff geprueft: fehlt `status`, wird die Pruefung rot, statt den Lauf abzubrechen.
   const ueDone = um.states.map(m => (m && m.status && m.status.done));
   check('Und der Stand zaehlt hoch, bis alle Zeilen erledigt sind',
     equal(ueDone, [1, 2, 3, 4, 5, 6, 6]), JSON.stringify(ueDone));
@@ -147,22 +129,18 @@ async function checkBatchRun() {
     const png = d.prepare("SELECT COUNT(*) n FROM photos WHERE hex(substr(data,1,8)) = ?")
       .get('89504E470D0A1A0A').n;
     d.close();
-    /* DER THREAD HAT WIRKLICH IN DIE VERSCHLUESSELTE DATEI GESCHRIEBEN --
-       better-sqlite3-multiple-ciphers oeffnet sie aus einem Worker-Thread
-       heraus und beschreibt sie. */
+    // better-sqlite3-multiple-ciphers muss die Datei aus einem Worker-Thread beschreiben.
     check('Der Thread hat wirklich in die verschluesselte Datei geschrieben',
       webp === ROWS && png === 0, `${webp} WebP, ${png} PNG`);
   }
-  /* KEINE EINZIGE ABWEISUNG, und die Zahl der Schreibungen steht daneben: ein
-     zweiter Schreiber, der gar nicht erst zum Zuge kam, belegte nichts. */
+  // Ohne Schreibungen belegte `refused === 0` nichts.
   const nb = alongside.result || {};
   check('Der zweite Schreiber kam waehrenddessen ueberhaupt zum Zuge',
     nb.written > 0, JSON.stringify(nb));
   check('Und keine einzige seiner Schreibungen wurde abgewiesen',
     nb.refused === 0, JSON.stringify(nb));
 
-  /* ---- Die Kacheln erneuern, aus dem Thread — 0.19.4, erweitert 0.19.5 ----
-     DER LAUF, DEN 0.19.4 EINGEBRACHT HAT. */
+  /* ---- Die Kacheln erneuern, aus dem Thread ---- */
   {
     const big = await sharp({ create: { width: 1920, height: 1080, channels: 3,
       background: { r: 200, g: 40, b: 60 } } }).jpeg().toBuffer();
@@ -177,10 +155,9 @@ async function checkBatchRun() {
       const item = d.prepare("INSERT INTO items (title) VALUES ('Alte Geometrie')").run().lastInsertRowid;
       const into = d.prepare("INSERT INTO photos (item_id, data, mime_type, thumb, medium, kind, duration) " +
         "VALUES (?,?,?,?,?,?,?)");
-      /* `kind` STEHT HIER AUF 'image' UND OBEN IN DERSELBEN GRUPPE AUF
-         'foto'. */
+      // 'image' hier, 'photo' oben: die Auswahl muss beide Werte von `kind` erfassen.
       for (let i = 0; i < OLD; i++) into.run(item, big, 'image/jpeg', oldThumb, oldMedium, 'image', null);
-      /* EINE VIDEOZEILE MIT DEMSELBEN alten `thumb`. */
+      // Eine Videozeile mit demselben alten `thumb`.
       videoId = into.run(item, Buffer.from('ftypisom-kein-bild'), 'video/mp4',
         oldThumb, oldMedium, 'video', 7).lastInsertRowid;
       d.close();
@@ -189,7 +166,7 @@ async function checkBatchRun() {
     check('Der Aufbau steht: vier Zeilen tragen die alte Geometrie',
       (await size(oldThumb)) === '400x225', await size(oldThumb));
 
-    /* DIE AUSWAHL KOMMT AUS DERSELBEN ABFRAGE WIE IM SERVER -- wortgleich. */
+    // Wortgleich mit `qTileRows` in server.js; die Pruefung darunter vergleicht.
     const SELECTION = 'SELECT id FROM photos';
     const serverGeo = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
     check('Und der Server waehlt seine Zeilen mit genau dieser Abfrage',
@@ -198,7 +175,6 @@ async function checkBatchRun() {
     const imageRows = (() => { const d = open(); const r = d.prepare(SELECTION).all(); d.close(); return r; })();
     check('Die Videozeile steht jetzt IN der Auswahl',
       imageRows.some(z => z.id === videoId), `${imageRows.length} Zeilen`);
-    /* UND DIE SECHS ZEILEN MIT DEM DRITTEN WORT STEHEN EBENFALLS DARIN. */
     check('Und die Zeilen mit einem dritten Wort in `kind` stehen darin',
       imageRows.length === ROWS + OLD + 1, `${imageRows.length} statt ${ROWS + OLD + 1}`);
 
@@ -206,23 +182,18 @@ async function checkBatchRun() {
     check('Der Thread erneuert die Kacheln und endet sauber',
       geo.code === 0 && geo.error === null,
       `Rueckgabe ${geo.code}: ${geo.error && geo.error.message}`);
-    /* JE ZEILE EINE MELDUNG, DAZU DIE EINE AM ENDE -- wie bei der Umstellung. */
+    // ROWS + OLD + 1 Zeilen, dazu die Meldung am Ende.
     check('Und meldet je Zeile einmal, dazu einmal am Ende',
       geo.states.length === ROWS + OLD + 2, `${geo.states.length} Meldungen`);
     const gState = (geo.states[geo.states.length - 1] || {}).status || {};
-    /* ZWEIMAL WIRD GEZAEHLT, UND DAS IST KEINE DOPPELUNG: `geprueft` sind die
-       Zeilen, deren Kopf gelesen wurde, `nachgezogen` die, die wirklich eine
-       neue Kachel bekommen haben. */
+    // `checked`: Zeilen, deren Kopf gelesen wurde; `renewed`: Zeilen mit neuer Kachel.
     check('Und erneuert genau die vier alten Zeilen und die Videozeile',
       gState.running === false && gState.renewed === OLD + 1 &&
       gState.checked === ROWS + OLD + 1,
       JSON.stringify(gState));
-    /* DIE SECHS ZEILEN VON OBEN SIND GEPRUEFT UND NICHT ANGEFASST WORDEN. */
     check('Und laesst die sechs kleinen Bilder in Ruhe',
       gState.checked - gState.renewed - gState.skipped === ROWS,
       JSON.stringify(gState));
-    /* UND KEINE EINZIGE ZEILE IST UEBERSPRUNGEN WORDEN. Bis 0.19.4 war es
-       genau eine -- die Videozeile, deren `data` die Videodatei traegt. */
     check('Und keine Zeile wurde uebersprungen',
       gState.skipped === 0, JSON.stringify(gState));
     {
@@ -238,8 +209,7 @@ async function checkBatchRun() {
         oldDa.length === 0, JSON.stringify(freshSizes));
       check('Und die vier tragen jetzt eine zugeschnittene 512x512-Kachel',
         freshSizes.filter(m => m === '512x512').length === OLD, JSON.stringify(freshSizes));
-      /* `medium` IST DABEI NICHT GESCHNITTEN WORDEN -- und das ist die
-         Zusage, um die es hier geht. */
+      // Nur `thumb` wird quadratisch geschnitten, `medium` nicht.
       const mediumSizes = [];
       for (const z of rows) if (z.medium) mediumSizes.push(await size(z.medium));
       const mediumWebp = rows.filter(z => z.medium &&
@@ -253,8 +223,6 @@ async function checkBatchRun() {
       }).length;
       check('Und ungeschnitten geblieben -- 1600 auf der langen Kante, nicht quadratisch',
         mediumUncropped === mediumSizes.length, JSON.stringify(mediumSizes));
-      /* DIE VIDEOZEILE HAT IHRE KACHEL AUS `medium` BEKOMMEN -- und `medium`
-         SELBST steht unveraendert da. */
       check('Die Videokachel ist aus ihrem `medium` erzeugt',
         video && video.thumb && (await size(video.thumb)) === '512x512',
         video && video.thumb ? await size(video.thumb) : '(leer)');
@@ -263,7 +231,6 @@ async function checkBatchRun() {
         video && video.medium ? await size(video.medium) : '(leer)');
     }
 
-    /* EIN `thumb`, DEN SHARP NICHT LESEN KANN, GILT ALS ALT UND WIRD ERSETZT. */
     {
       let brokenId = null;
       {
@@ -285,7 +252,6 @@ async function checkBatchRun() {
         `${JSON.stringify(rStatus)} · ${fresh && fresh.thumb ? await size(fresh.thumb).catch(() => '(unlesbar)') : '(leer)'}`);
     }
 
-    /* UND DER ZWEITE LAUF ERNEUERT NICHTS MEHR. */
     const repeatCall = await drive('geometry', (() => {
       const d = open(); const r = d.prepare(SELECTION).all(); d.close(); return r;
     })());
@@ -310,9 +276,7 @@ async function checkBatchRun() {
       `${JSON.stringify(bState)} · thumb ${bRow.thumb ? bRow.thumb.length + ' Bytes' : 'leer'}`);
     { const d = open(); d.prepare('DELETE FROM photos WHERE id = ?').run(brokenId); d.close(); }
 
-    /* ---- Die vierte Aufgabe: EINE Zeile, auf ausdruecklichen Knopfdruck
-       ---- Sie faehrt denselben Weg wie die Schleife und schreibt dieselbe
-       Spalte; was sie unterscheidet, ist der Rufer. */
+    /* ---- Die vierte Aufgabe `crop`: eine Zeile auf Knopfdruck ---- */
     {
       const one = imageRows[imageRows.length - 1];
       const d0 = open();
@@ -329,7 +293,6 @@ async function checkBatchRun() {
         JSON.stringify(message));
       check('Und die Kachel ist danach eine andere',
         after && !after.equals(before), `${before.length} -> ${after && after.length} Bytes`);
-      /* EINE ZEILE, DIE ES NICHT GIBT, MELDET `ok: false` UND WIRFT NICHT. */
       const empty = await drive('crop', [{ id: 999999 }]);
       const lm = empty.states.find(m => m && m.kind === 'refreshed') || {};
       check('Eine Zeile, die es nicht gibt, meldet ok:false und wirft nicht',
@@ -338,18 +301,13 @@ async function checkBatchRun() {
     }
   }
 
-  /* ---- Ein Fehler im Thread kommt als Fehler an ---- Er reisst den Server
-     NICHT ab: server.js faengt ihn in worker.on('error'), setzt
-     umstellung.laeuft auf false und laesst den Rest stehen. */
+  /* ---- Ein Fehler im Thread kommt als Fehler an ---- */
   const nonsense = await drive('unfug', []);
   check('Eine unbekannte Aufgabe endet als Fehler und nicht still',
     nonsense.error !== null && /Unbekannte Aufgabe/.test(nonsense.error.message || ''),
     JSON.stringify(nonsense.error && nonsense.error.message));
 
-  /* ---- Und der Quelltext dazu ---- WAS SICH AM VERHALTEN NICHT ZEIGT, muss
-     am Quelltext festgehalten werden: dass die Schleife WIRKLICH nur noch im
-     Thread steht, dass der Schluessel NICHT mitreist und dass der Abschluss
-     den Thread VOR der Datei beendet. */
+  /* ---- Quelltext: was sich am Verhalten nicht zeigt ---- */
   {
     const blServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
     const blRun = fs.readFileSync(path.join(__dirname, 'batchrun.js'), 'utf8');
@@ -357,42 +315,33 @@ async function checkBatchRun() {
     const blDb = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
     const oneLine = (t) => t.replace(/\s+/g, ' ');
 
-    /* 1. DIE SCHLEIFE STEHT NUR NOCH IM THREAD. */
     check('Die beiden Schleifen stehen nur noch in batchrun.js',
       /for \(const \{ id \} of rows\)/.test(blRun) &&
       !/for \(const \{ id \} of zeilen\)/.test(blServer) &&
       !/UPDATE photos SET thumb = \?, medium = \? WHERE id = \?/.test(blServer),
       (blServer.match(/UPDATE photos SET thumb[^\n]*/) || ['(nicht mehr im Server — richtig)'])[0]);
-    /* 2. UND DER SERVER RUFT SIE UEBER EINEN THREAD. */
-    /* DER RUF DER UMSTELLUNG TRAEGT SEIT 0.27.0 ZWEI ARGUMENTE MEHR: ein
-       `null` fuer `done` und das gewaehlte Verfahren. */
     check('Und der Server startet fuer alle vier Aufgaben einen Thread',
       oneLine(blServer).includes("startBatchThread('conversion', rows, null, imageStore())") &&
       oneLine(blServer).includes("startBatchThread('thumbnails', open, refreshTiles)") &&
       oneLine(blServer).includes("startBatchThread('geometry', rows, maintainStorage)") &&
       oneLine(blServer).includes("startBatchThread('crop', [{ id: Number(id) }], once)"),
       (blServer.match(/startBatchThread\([^)]*\)/g) || []).join(' · ') || '(nicht gefunden)');
-    /* UND DIE KETTE HAELT AUCH, WENN EIN GLIED NICHTS ZU TUN HAT. */
     check('Und jedes Glied ruft das naechste selbst, wenn es nichts zu tun gibt',
       /if \(!open\.length\) return refreshTiles\(\);/.test(blServer) &&
       /if \(!rows\.length\) return maintainStorage\(\);/.test(blServer),
       (blServer.match(/if \(!offen\.length\)[^\n]*/) || ['(nicht gefunden)'])[0]);
-    /* 3. DER PFAD STEHT AN EINER STELLE, und der Fingerprint liest dieselbe. */
+    // Der Fingerprint liest dieselbe Konstante BATCHRUN.
     check('Der Pfad des Threads steht an einer Stelle',
       /const BATCHRUN = path\.join\(__dirname, 'batchrun\.js'\);/.test(blServer) &&
       /new Worker\(BATCHRUN,/.test(blServer) &&
       /\.\.\.ran, BATCHRUN,/.test(oneLine(blServer)),
       (blServer.match(/const BATCHRUN = [^\n]*/) || ['(nicht gefunden)'])[0]);
-    /* 4. DER SCHLUESSEL REIST NICHT MIT. */
-    /* SEIT 0.27.0 REIST EIN DRITTES FELD MIT, UND ES IST KEIN GEHEIMNIS:
-       `store` ist das gewaehlte Ablageverfahren -- 'png', 'webp-lossless'
-       oder 'webp-lossy'. */
+    // `store` ist das Ablageverfahren ('png', 'webp-lossless', 'webp-lossy'), kein Geheimnis.
     check('Der Schluessel reist nicht ueber workerData',
       oneLine(blServer).includes('{ workerData: { task, rows, store } }') &&
       !/workerData[^\n]*(key|hex|schluessel|Schluessel)/i.test(blServer) &&
       !/workerData\.(key|hex|schluessel)/i.test(blRun),
       (blServer.match(/workerData: \{[^}]*\}/) || ['(nicht gefunden)'])[0]);
-    /* UND ES SIND GENAU DIESE DREI FELDER. */
     check('Und es sind genau drei Felder: Aufgabe, Zeilen, Verfahren',
       (oneLine(blServer).match(/workerData: \{([^}]*)\}/) || [,''])[1]
         .split(',').map(x => x.trim()).filter(Boolean).join('|') === 'task|rows|store',
@@ -400,32 +349,25 @@ async function checkBatchRun() {
     check('Und der Thread laedt ihn ueber db.js wie der Haupt-Thread',
       /require\('\.\/db'\)/.test(blRun) && !/loadKey|ENCRYPTION_KEY/.test(blRun),
       (blRun.match(/const \{ db \} = [^\n]*/) || ['(nicht gefunden)'])[0]);
-    /* 5. DER ABSCHLUSS BEENDET DEN THREAD VOR DER DATEI. */
     const sigterm = (blServer.match(/for \(const signal of \['SIGTERM'[\s\S]{0,1600}?\n\}/) || [''])[0];
     check('SIGTERM beendet erst die Threads und dann die Datei',
       sigterm.indexOf('w.terminate()') > 0 &&
       sigterm.indexOf('w.terminate()') < sigterm.indexOf('db.close()'),
       sigterm.slice(0, 400) || '(kein Abschluss gefunden)');
-    /* UND ES IST EINE MENGE UND KEINE EINZELNE VARIABLE. */
     check('Und er nimmt jeden laufenden Thread mit, nicht nur den letzten',
       /const batchThreads = new Set\(\);/.test(blServer) &&
       /batchThreads\.add\(w\);/.test(blServer) &&
       /batchThreads\.delete\(w\);/.test(blServer) &&
       /for \(const w of batchThreads\)/.test(sigterm),
       (blServer.match(/const batchThreads = [^\n]*/) || ['(nicht gefunden)'])[0]);
-    /* 6. EIN FEHLER IM THREAD REISST DEN SERVER NICHT AB, und er laesst die
-       Karte auch nicht fuer immer auf „laeuft" stehen. */
     check('Ein Fehler im Thread setzt den Lauf auf beendet und laesst den Rest stehen',
       /w\.on\('error', \(e\) => \{\s*\n\s*if \(batchStates\[task\]\) batchStates\[task\]\.running = false;\s*\n\s*logFail\(/
         .test(blServer),
       (blServer.match(/w\.on\('error'[\s\S]{0,200}/) || ['(nicht gefunden)'])[0]);
-    /* 7. UND ER WIRD JE LAUF ERZEUGT UND DANACH BEENDET -- kein Threadpool,
-       kein Dauerlaeufer. */
     check('Der Thread wird je Lauf erzeugt und danach vergessen',
       /w\.on\('exit', \(\) => \{ batchThreads\.delete\(w\);/.test(blServer) &&
       /parentPort\.close\(\);/.test(blRun) && /db\.close\(\);/.test(blRun),
       (blServer.match(/w\.on\('exit'[^\n]*/) || ['(nicht gefunden)'])[0]);
-    /* 8. DIE UMWANDLUNG GIBT ES GENAU EINMAL. */
     check('storeImage und makeVariants stehen genau einmal, in images.js',
       /async function storeImage\(/.test(blImages) && /async function makeVariants\(/.test(blImages) &&
       !/function storeImage\(|function makeVariants\(/.test(blServer) &&
@@ -434,24 +376,21 @@ async function checkBatchRun() {
     check('Und beide Wege rufen dieselbe',
       /require\('\.\/images'\)/.test(blServer) && /require\('\.\/images'\)/.test(blRun),
       'einer der beiden Wege laedt images.js nicht');
-    /* 9. UND DIE THREADZAHL VON sharp WIRD IM THREAD EIGENS GESETZT. */
     check('Der Thread setzt die Threadzahl von sharp selbst',
       /sharp\.concurrency\(Math\.max\(1, Math\.floor\(os\.cpus\(\)\.length \/ 2\)\)\);/.test(blRun),
       (blRun.match(/sharp\.concurrency\([^\n]*/) || ['(nicht gefunden)'])[0]);
-    /* 10. maintainStorage BLEIBT IM HAUPT-THREAD. Es fasst die ganze Datei an
-       -- beim ersten Mal ein VACUUM -- und gehoert nicht neben die Schleife. */
+    // maintainStorage fasst die ganze Datei an (beim ersten Mal VACUUM).
     check('maintainStorage bleibt im Haupt-Thread',
       /db\.exec\('VACUUM'\);/.test(blServer) && !/db\.exec\('VACUUM'\)/.test(blRun) &&
       /startBatchThread\('geometry', rows, maintainStorage\);/.test(blServer),
       (blRun.match(/db\.exec\('VACUUM'\)/) || ['(kein VACUUM im Thread — richtig)'])[0]);
-    /* 11. UND db.js FUEHRT BEIM OEFFNEN NICHTS AUS, WAS ZWEIMAL SCHADET. */
+    // Der Thread laedt db.js ein zweites Mal; das Oeffnen muss wiederholbar sein.
     const blWithoutWhen = (blDb.match(/CREATE TABLE (?!IF NOT EXISTS)/g) || []).length;
     check('db.js legt keine Tabelle ohne IF NOT EXISTS an',
       blWithoutWhen === 0 && !/db\.exec\('VACUUM'\)/.test(blDb), `${blWithoutWhen} Stellen`);
     check('Und der Nachweis der Wiederholbarkeit steht dort geschrieben',
       /muss wiederholbar sein/.test(blDb),
       'die Begruendung fehlt');
-    /* 12. DIE ANSAGEN AN DEN BETREIBER BLEIBEN IM HAUPT-THREAD. */
     const blKeys = fs.readFileSync(path.join(__dirname, 'keys.js'), 'utf8');
     check('Der Schluesselhinweis wird im Neben-Thread nicht wiederholt',
       /const \{ isMainThread \} = require\('worker_threads'\);/.test(blKeys) &&

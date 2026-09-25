@@ -1,5 +1,5 @@
-/* Kriterion — Pruefstand: der Rundlauf am Hauptserver Der lange Ablauf: eine
-   Instanz wird eingerichtet, angemeldet, gefuellt und durchgespielt. */
+/* Kriterion — Pruefstand: Rundlauf am Hauptserver. Eine Instanz wird
+   eingerichtet, angemeldet, gefuellt und durchgespielt. */
 const H = require('./frame.js');
 const D = require('./dom.js');
 const {
@@ -16,27 +16,21 @@ async function run() {
    FINGERPRINT_BASE, smtpEmpfaenger, startFurtherServer, call, names,
    includingShare, callF, shareMain, nextSecond
   } = H;
-  /* DER QUELLTEXT DES SERVERS. Zwei Gruppen dieses Moduls lesen ihn -- die
-     Groesse des Exports und die Zeile davor. */
   const fSource = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
 
-// Ein echtes, winziges PNG (1x1). Muss echt sein: der Server jagt jedes Foto
-// durch sharp, ein Fantasie-Puffer scheiterte dort.
-/* SEIT 0.19.0 LIEGT ES NACH DEM HOCHLADEN ALS WEBP IN DER TABELLE -- auch
-   dieses winzige: 70 Bytes PNG werden 36 Bytes WebP. */
+// Echtes PNG (1x1), weil der Server jedes Foto durch sharp schickt.
+// Es liegt danach als WebP in der Tabelle: 70 Bytes PNG, 36 Bytes WebP.
 const PNG_BASE64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 
-/* EIN ECHTES, WINZIGES WEBP (16x16, verlustfrei) -- 54 Bytes. */
+/* Echtes WebP, 16x16, verlustfrei, 54 Bytes. */
 const WEBP_BASE64 = 'UklGRi4AAABXRUJQVlA4TCIAAAAvD8ADALkyRPQ/dhHR/wCRtk0l3L/hwdOBGMCYAKoO1H8A';
 
-/* EIN ECHTES, WINZIGES GIF (8x8, zwei Farben) -- 53 Bytes. Gebraucht wird es
-   fuer die Gegenzusage: GIF wird NICHT umgewandelt. */
+/* Echtes GIF, 8x8, 53 Bytes; GIF wird nicht umgewandelt. */
 const GIF_BASE64 = 'R0lGODlhCAAIAIAAAAD/AP8AACH5BAQAAAAALAAAAAAIAAgAAAIMDIxwi5nM3IKNKhkKADs=';
 
-/* EIN ERZEUGTES PRUEFBILD -- gross genug, dass die Umwandlung ueberhaupt
-   etwas bringt, und mit dem Gemisch, um das es geht: weiche Flaechen wie auf
-   einer Aufnahme, harte Kanten wie auf einer Bedienoberflaeche. */
+/* Weiche Flaechen wie ein Foto, harte Kanten wie eine Oberflaeche, und gross
+   genug, dass die Umwandlung etwas bringt. */
 async function makePruefPNG(side = 96) {
   const raw = Buffer.alloc(side * side * 3);
   for (let y = 0; y < side; y++) {
@@ -45,7 +39,6 @@ async function makePruefPNG(side = 96) {
       raw[i]     = Math.round(120 + 90 * Math.sin(x / 7) * Math.cos(y / 5)) & 255;
       raw[i + 1] = Math.round(110 + 80 * Math.sin((x + y) / 6)) & 255;
       raw[i + 2] = Math.round(140 + 70 * Math.cos(x / 4)) & 255;
-      // Harte Kanten obenauf, sonst waere es ein reines Farbfeld.
       if (y % 17 < 2) { raw[i] = 18; raw[i + 1] = 18; raw[i + 2] = 22; }
     }
   }
@@ -54,8 +47,7 @@ async function makePruefPNG(side = 96) {
     .ensureAlpha().png({ compressionLevel: 9 }).toBuffer();
 }
 
-/* DIE GROESSTE ABWEICHUNG EINES EINZELNEN FARBWERTS zwischen zwei Bildern --
-   nicht der Durchschnitt, der SCHLIMMSTE Einzelfall. */
+/* Groesste Abweichung eines einzelnen Farbwerts, nicht der Durchschnitt. */
 async function largestDeviation(a, b) {
   const ma = await sharp(a).metadata(), mb = await sharp(b).metadata();
   if (ma.width !== mb.width || ma.height !== mb.height) return -1;
@@ -70,7 +62,7 @@ async function largestDeviation(a, b) {
   return max;
 }
 
-/* ECHTE VIDEODATEIEN, keine Nachbildung. */
+/* Echte Videodateien, keine Nachbildung. */
 const MP4_BASE64 =
   'AAAAJGZ0eXBpc29tAAACAGlzb21pc282aXNvMnZwMDltcDQxAAACt21vb3YAAAB4bXZoZAEAAAAAAAAA5rBYpAAAAADm' +
   'sFikAAAD6AAAAAAAAANtAAEAAAEAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAQAAAAAAA' +
@@ -115,8 +107,7 @@ const WEBM_BASE64 =
 const MP4 = () => Buffer.from(MP4_BASE64, 'base64');
 const WEBM = () => Buffer.from(WEBM_BASE64, 'base64');
 
-/* Ein Video samt Standbild hochladen -- zwei benannte Felder in EINEM
-   Vorgang, so wie die Oberflaeche es schickt. */
+/* Video und Standbild in einer Anfrage, wie die Oberflaeche sie schickt. */
 function sendVideo(itemId, { video = MP4(), name = 'clip.mp4', type = 'video/mp4',
                               stillFrame = Buffer.from(PNG_BASE64, 'base64'),
                               stillFrameName = 'stillframe.jpg', stillFrameType = 'image/jpeg',
@@ -134,7 +125,7 @@ async function putPhotoAn(itemId) {
   return response.content.photos[0];
 }
 
-// Kommentar anlegen: Multipart, weil Bilder mitkommen koennen.
+// Multipart, weil Bilder mitkommen koennen.
 async function sendComment(itemId, fields, images = []) {
   return sendMultipart(`/api/items/${itemId}/comments`, 'images', images, fields);
 }
@@ -142,8 +133,7 @@ async function sendComment(itemId, fields, images = []) {
 const sendFiles = (itemId, files) =>
   sendMultipart(`/api/items/${itemId}/attachments`, 'files', files);
 
-// Multipart-Formularkoerper von Hand: die Pruefung soll ohne zusaetzliche
-// Bibliothek auskommen, und Buffer duerfen nicht ueber Strings laufen --
+// Von Hand, ohne weitere Bibliothek. Buffer nicht ueber Strings fuehren,
 // sonst zerfaellt jedes Byte ueber 127.
 async function sendMultipart(filePath, field, files, fields = {}) {
   const limit = '----pruefung' + crypto.randomBytes(6).toString('hex');
@@ -154,8 +144,7 @@ async function sendMultipart(filePath, field, files, fields = {}) {
   }
   for (const d of files) {
     const content = Buffer.isBuffer(d.content) ? d.content : Buffer.from(d.content, 'utf8');
-    // Je Datei ein eigener Feldname, wenn sie einen nennt: der Videoweg
-// schickt zwei verschiedene Felder in einem Vorgang.
+    // d.field: der Videoweg schickt zwei Felder in einer Anfrage.
     parts.push(Buffer.from(
       `--${limit}\r\nContent-Disposition: form-data; name="${d.field || field}"; filename="${d.name}"\r\n` +
       `Content-Type: ${d.type}\r\n\r\n`, 'utf8'));
@@ -171,8 +160,7 @@ async function sendMultipart(filePath, field, files, fields = {}) {
   return { status: a.status, content: await a.json().catch(() => null) };
 }
 
-// Eine echte .docx bauen: ZIP mit word/document.xml, ungepackt gespeichert.
-// So prueft die Vorschau am wirklichen Format, nicht an einer Nachbildung.
+// Echte .docx: ZIP mit word/document.xml, ungepackt gespeichert.
 function buildDocx(text) {
   const paragraphs = text.split('\n').map(z =>
     `<w:p><w:r><w:t>${z.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</w:t></w:r></w:p>`).join('');
@@ -220,8 +208,7 @@ function crc32(buf) {
   return (r ^ 0xffffffff) >>> 0;
 }
 
-/* Der Import geht ueber einen rohen fetch, weil er multipart schickt -- also
-   holt er seine Freigabe ausdruecklich davor. */
+/* Roher fetch wegen Multipart, daher die Freigabe von Hand davor. */
 async function sendImport(object, mode, withoutShare = false) {
   if (!withoutShare) await shareMain('import');
   const limit = '----pruefung' + crypto.randomBytes(6).toString('hex');
@@ -241,14 +228,10 @@ async function sendImport(object, mode, withoutShare = false) {
 
   await startServer();
 
-  /* ---------------------------------------------------------------- */
   group('Frische Installation');
 
-  // Der Hauptserver startet auf einer leeren Instanz -- genau wie im Betrieb.
   const freshDb = open(path.join(DATA, 'katalog.sqlite'));
-  /* Die Spalte weight steht mit in der Abfrage -- und wird abgefangen, falls
-     es sie nicht gibt: sonst risse ein Rueckbau der DDL den ganzen Lauf in
-     der ERSTEN Gruppe ab und nennte keinen einzigen Namen. */
+  /* Ohne die Spalte weight (Rueckbau der DDL) bricht der Lauf sonst hier ab. */
   let freshCriterion;
   try {
     freshCriterion = freshDb.prepare('SELECT name, sort_order, weight FROM rating_criteria ORDER BY sort_order, id').all();
@@ -257,13 +240,11 @@ async function sendImport(object, mode, withoutShare = false) {
   }
   check('Die mitgelieferten Kriterien werden angelegt', freshCriterion.length === 3, JSON.stringify(freshCriterion));
   check('Die mitgelieferten Kriterien sind durchnummeriert', equal(freshCriterion.map(c => c.sort_order), [0, 1, 2]));
-  /* Erst auf Vorhandensein, dann auf die Eigenschaft: eine
-     leere Liste liesse every() gruen und belegte nichts. */
+  /* Laenge zuerst: every() ist auf einer leeren Liste wahr. */
   check('Und jedes Kriterium startet auf Gewicht 1',
     freshCriterion.length === 3 && freshCriterion.every(c => c.weight === 1),
     JSON.stringify(freshCriterion.map(c => `${c.name}:${c.weight}`)));
-  /* ---- DIE DREI STEHEN IN DER AUSLIEFERUNGSSPRACHE ----
-     GELESEN WIRD DIE SPRACHDATEI UND KEINE ZWEITE LISTE DANEBEN. */
+  /* Namen aus den Sprachdateien, keine zweite Liste hier. */
   const freshTexts = Object.fromEntries(['de', 'en', 'tr'].map(code =>
     [code, JSON.parse(fs.readFileSync(
       path.join(__dirname, 'public', 'languages', code + '.json'), 'utf8'))]));
@@ -280,8 +261,8 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und die Spalte language sagt dieselbe Sprache',
     freshLanguage.length === 3 && freshLanguage.every(c => c.language === 'en'),
     JSON.stringify(freshLanguage.map(c => c.language)));
-  /* UND KEIN NAME IN criterion_names DANEBEN: eine Zeile dort schluege den
-     Grundnamen, und ein Umbenennen ohne Sprachangabe traefe ihn nicht mehr. */
+  /* Eine Zeile in criterion_names ginge vor den Grundnamen, und ein Umbenennen
+     ohne Sprachangabe traefe ihn nicht mehr. */
   check('Und keine weitere Sprache bekommt einen Namen daneben',
     freshDb.prepare('SELECT COUNT(*) n FROM criterion_names').get().n === 0,
     JSON.stringify(freshDb.prepare('SELECT * FROM criterion_names').all()));
@@ -289,7 +270,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Vor der Einrichtung meldet /api/config Einrichtungsbedarf',
     (await call('GET', '/api/config')).content.setupRequired === true);
 
-  /* ---------------------------------------------------------------- */
   group('Anmeldung');
 
   check('Ohne Anmeldung keine Kriterien', (await call('GET', '/api/criteria')).status === 401);
@@ -302,11 +282,8 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Genau ein Zugang in der Datenbank', created.length === 1 && created[0].username === USER,
     JSON.stringify(created.map(u => u.username)));
   check('Und er ist Eigentuemer', created[0]?.role === 'owner', created[0]?.role);
-  // Erst auf Vorhandensein, dann auf Eigenschaften: sonst reisst ein fehlender
-// Zugang den ganzen Lauf mit.
+  // ?. und || '': ein fehlender Zugang soll nicht den ganzen Lauf abbrechen.
   const hash = created[0]?.password_hash || '';
-  /* DIE KOSTENSTUFE IM HASH IST DIE DIESES LAUFS und nicht die getippte Zahl
-     -- 0.30.0, F1. */
   check('Passwort liegt als scrypt-Hash, nicht im Klartext',
     new RegExp(`^scrypt\\$${RUN_SCRYPT}\\$8\\$1\\$[0-9a-f]{32}\\$[0-9a-f]{128}$`).test(hash) &&
       !hash.includes(PASSWORD),
@@ -320,9 +297,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Eingerichtet meldet /api/config keinen Einrichtungsbedarf',
     (await call('GET', '/api/config')).content.setupRequired === false);
 
-  /* --- UND KEIN ROTER RAHMEN AN DER KACHEL --- Er steht dort, wo der Name aus
-     einer anderen Sprache kommt; in der Auslieferungssprache gelesen, kommt er
-     aus keiner. */
+  /* nameFallback setzt den roten Rahmen an der Kachel. */
   {
     const inEnglish = await (await fetch(`${BASE}/api/criteria`,
       { headers: { cookie: H.cookie, 'accept-language': 'en' } })).json();
@@ -331,8 +306,7 @@ async function sendImport(object, mode, withoutShare = false) {
       JSON.stringify(inEnglish.map(c => `${c.name}:${c.nameFallback ?? '—'}`)));
   }
 
-  /* --- Startbestand ueber die Schnittstelle: drei benannte Kriterien und ein
-         erster Eintrag mit Sternen; darauf bauen die folgenden Gruppen auf. */
+  /* Startbestand, auf dem die folgenden Gruppen aufbauen. */
   {
     const start = (await call('GET', '/api/criteria')).content;
     for (const [i, name] of [[0, 'Optik'], [1, 'Haptik'], [2, 'Preis']]) {
@@ -340,36 +314,29 @@ async function sendImport(object, mode, withoutShare = false) {
     }
     const firstItem = (await call('POST', '/api/items',
       { title: 'Alteintrag', description: 'Erstbestand des Prueflaufs' })).content;
-    /* ER STEHT AUF „getestet" -- seit 0.22.1 muss er das, denn die Route
-       weist eine Bewertung an einem ungetesteten Eintrag ab. */
+    /* Die Route weist Bewertungen an ungetesteten Eintraegen ab. */
     await call('PUT', `/api/items/${firstItem.id}`, { tested: true });
     await call('PUT', `/api/items/${firstItem.id}/ratings`, { criterionId: start[0].id, value: 4 });
     // Ein Kriterium mit ausdruecklich 0 Sternen: der Zaehler darf es nicht zaehlen.
     await call('PUT', `/api/items/${firstItem.id}/ratings`, { criterionId: start[1].id, value: 0 });
   }
 
-  /* ---------------------------------------------------------------- */
-  /* ---------------------------------------------------------------- */
   group('Kein fremdes Formular kommt an eine schreibende Route');
 
-  /* AN DER LAUFENDEN INSTANZ UND NICHT AM QUELLTEXT, Route fuer Route. Die
-     Liste ist dieselbe, die der Rechtewaechter liest. */
+  /* An der laufenden Instanz, nicht am Quelltext. */
   const csSource = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
   const csFree = new Set([...csSource.slice(csSource.indexOf('const CSRF_FREE = ['),
       csSource.indexOf('const CSRF_FREE_SET')).matchAll(/'([A-Z]+) (\/api\/[\w\/.:-]*)'/g)]
     .map(m => `${m[1]} ${m[2]}`));
-  /* Eine Nummer statt der Klemme: die Anfrage kommt an die Route ohnehin
-     nicht heran, aber ein Pfad mit ':' traefe sie auch nicht. */
+  /* Parameter wie :id durch eine Zahl ersetzen, sonst passt der Pfad auf keine Route. */
   const csAddress = (filePath) => filePath.replace(/:[A-Za-z]+/g, '7');
   const csGuarded = H.F_ROUTES.filter(([m, p]) => !csFree.has(`${m} ${p}`));
-  // Zwei mehr mit den Kommentarvideos: Hochladen und Loeschen.
   check('Siebenundsechzig der fuenfundsiebzig Routen stehen hinter dem Schutz',
     csGuarded.length === 67 && H.F_ROUTES.length === 75,
     `${csGuarded.length} von ${H.F_ROUTES.length}`);
   const csThrough = [];
   for (const [method, filePath] of csGuarded) {
-    /* OHNE KOPFZEILE UND MIT SITZUNG -- genau die Lage eines Formulars auf
-       einer fremden Seite. */
+    /* Ohne CSRF-Kopfzeile, mit Sitzung: wie ein Formular auf einer fremden Seite. */
     const a = await fetch(BASE + csAddress(filePath),
       { method, headers: { cookie: H.cookie, 'content-type': 'application/json' },
         body: '{}' });
@@ -377,22 +344,18 @@ async function sendImport(object, mode, withoutShare = false) {
   }
   check('Jede von ihnen weist eine Anfrage ohne Token ab',
     csThrough.length === 0, csThrough.slice(0, 6).join(' · '));
-  /* UND DIE GEGENRICHTUNG: mit Token kommt dieselbe Anfrage an die Route und
-     bekommt die Antwort der Route -- 403 waere hier der Fehler. */
+  /* Mit Token antwortet die Route selbst (404), nicht der Schutz (403). */
   const csWith = await fetch(BASE + '/api/links/999999',
     { method: 'DELETE', headers: H.withCsrf(H.cookie) });
   check('Mit Token kommt sie an die Route heran', csWith.status === 404,
     `Status ${csWith.status}`);
-  /* Und die acht offenen Routen bleiben offen: sie stehen vor der Anmeldung
-     und koennen den Token nicht haben. */
+  /* Offene Routen liegen vor der Anmeldung und kennen den Token nicht. */
   const csOpen = await fetch(BASE + '/api/signup',
     { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
   check('Und eine offene Route bleibt ohne Token erreichbar', csOpen.status === 400,
     `Status ${csOpen.status}`);
 
-  /* ---- DIE GESTALT DER BEIDEN COOKIES ---- Der Sitzungscookie bleibt dem
-     Skript verborgen, der Token muss lesbar sein: sonst kann ihn niemand
-     mitschicken. */
+  /* Der Token muss fuer das Skript lesbar sein, sonst kann es ihn nicht mitschicken. */
   const csLogin = await fetch(BASE + '/api/login',
     { method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ user: USER, password: PASSWORD }) });
@@ -405,23 +368,16 @@ async function sendImport(object, mode, withoutShare = false) {
     String(csSession).split(';').slice(1).join(';'));
   check('Und der Token ausdruecklich NICHT', !/;\s*HttpOnly/i.test(csToken || ''),
     String(csToken).split(';').slice(1).join(';'));
-  /* UND ER IST AUS DER SITZUNG ABGELEITET -- ohne diese Zeile koennte er auch
-     eine zweite Zufallszahl sein, und dann braeuchte er eine eigene Zeile. */
   check('Und er ist aus dem Sitzungstoken abgeleitet',
     String(csToken).split(';')[0].split('=')[1] === H.csrfFor(String(csSession).split(';')[0]),
     String(csToken).split(';')[0]);
 
   group('Umbenennung auf Kriterion');
 
-  // Zwei Stellen der Umbenennung stehen bewusst nicht hier, sondern dort, wo
-  // sie hingehoeren: der Cookiename eine Zeile weiter oben in der Anmeldung,
-  // die Versionszeile in der Oberflaechengruppe.
-
   check('Das Serverprotokoll traegt das Praefix [Kriterion]', /\[Kriterion\]/.test(H.output));
   check('Und nirgends mehr das alte Praefix', !/\[Katalog\]/.test(H.output),
     (H.output.match(/.*\[Katalog\].*/) || [''])[0]);
 
-  /* GELESEN WIRD DIE VORLAGE, nicht die Arbeitsdatei. */
   const composeText = fs.readFileSync(path.join(__dirname, 'docker-compose.example.yml'), 'utf8');
   const packageJson = require('./package.json');
   const indexText = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
@@ -429,16 +385,13 @@ async function sendImport(object, mode, withoutShare = false) {
     /^ {2}kriterion:$/m.test(composeText) && /container_name: kriterion$/m.test(composeText));
   check('package.json nennt den Namen kriterion', packageJson.name === 'kriterion', packageJson.name);
 
-  /* DIE EINHAENGUNG UND DIE VARIABLE GEHOEREN ZUSAMMEN. */
   const composeTargets = [...composeText.matchAll(/^\s*-\s+[^\s#][^\s]*:(\/[^\s:]+)/gm)].map(m => m[1]);
   const composeSelf = (composeText.match(/^\s*-\s*BACKUP_DIR=(\S+)/m) || [])[1];
   check('Die docker-compose.example.yml nennt einen Sicherungsort', !!composeSelf, composeSelf);
   check('Und er ist wirklich eingehaengt -- Einhaengung und Variable laufen nicht auseinander',
     !!composeSelf && composeTargets.includes(composeSelf),
     `${composeSelf} gegen ${composeTargets.join(', ')}`);
-  /* DIE ROT-GRUEN-ANZEIGE HAENGT AN DER SPIEGELUNG: was auf dem Wirt unter ./
-     liegt, gehoert im Container unter /app -- sonst sagt die Karte etwas
-     anderes als die Lage draussen. */
+  /* Die Karte fuer den Backup-Ort setzt voraus: ./ auf dem Host ist /app im Container. */
   const composeSelfRow = (composeText.match(/^\s*-\s+(\.[^\s:]*):(\/[^\s:]+)\s*$/gm) || [])
     .map(z => z.trim().replace(/^-\s+/, '').split(':'))
     .find(([, inside]) => inside === composeSelf);
@@ -448,9 +401,8 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify(composeSelfRow));
   check('Der Fenstertitel heisst Kriterion', /<title>Kriterion<\/title>/.test(indexText));
 
-  // Der Rueckfallname der Exportdatei greift nur, wenn title_app weder
-  // Buchstaben noch Ziffern enthaelt -- im Betrieb steht dort ein Titel und
-  // die Datei heisst nach ihm.
+  // Der Rueckfallname greift nur, wenn title_app weder Buchstaben noch Ziffern
+  // enthaelt.
   const titleBefore = (await call('GET', '/api/titles')).content;
   await call('PUT', '/api/titles', { publicTitle: titleBefore.publicTitle, appTitle: '...' });
   await shareMain('export');
@@ -465,10 +417,7 @@ async function sendImport(object, mode, withoutShare = false) {
     titleAfter.publicTitle === titleBefore.publicTitle && titleAfter.appTitle === titleBefore.appTitle,
     JSON.stringify(titleAfter));
 
-  /* Waechter: in den ausgelieferten Dateien steht nichts vom alten Namen --
-     ausser den Zeichenfolgen, die ausdruecklich bleiben. */
   const ALLOWED = ['katalog.sqlite', 'Bewertungskatalog'];
-  /* DIE SPRACHDATEI GEHOERT DAZU -- 0.24.0. */
   const TESTED = ['server.js', 'db.js', 'auth.js', 'keys.js', 'usertool.js', 'attachments.js',
     'package.json', 'docker-compose.example.yml', 'Dockerfile', '.env.example',
     'public/app.js', 'public/index.html', 'public/style.css',
@@ -485,8 +434,6 @@ async function sendImport(object, mode, withoutShare = false) {
 
   group('Die Threadzahl von sharp — 0.19.1');
 
-  /* ---- DIE THREADZAHL VON sharp ---- SIE STEHT AUSDRUECKLICH DA und wird
-     nicht der Vorgabe ueberlassen. */
   {
     const halfCores = Math.max(1, Math.floor(os.cpus().length / 2));
     const serverText = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
@@ -494,33 +441,26 @@ async function sendImport(object, mode, withoutShare = false) {
       /sharp\.concurrency\(Math\.max\(1, Math\.floor\(os\.cpus\(\)\.length \/ 2\)\)\);/
         .test(serverText),
       (serverText.match(/sharp\.concurrency\([^\n]*/) || ['(nicht gesetzt)'])[0]);
-    /* UND SIE IST HOECHSTENS DIE HALBE KERNZAHL UND MINDESTENS EINS. */
     check('Und der gesetzte Wert ist mindestens 1 und hoechstens die halbe Kernzahl',
       halfCores >= 1 && halfCores <= Math.max(1, os.cpus().length),
       `${halfCores} bei ${os.cpus().length} Kernen`);
-    /* UND DIE EINSCHRAENKUNG STEHT DANEBEN: os.cpus() meldet im Container den
-       WIRT und nicht das Kontingent. */
+    /* os.cpus() meldet im Container die Kerne des Hosts, nicht das Kontingent. */
     check('Und der Vorbehalt zum Container steht im Quelltext daneben',
-      /os\.cpus\(\) IST IM CONTAINER NICHT DIE WAHRHEIT/.test(serverText),
+      /os\.cpus\(\) meldet im Container/.test(serverText),
       'der Vorbehalt fehlt');
   }
 
-  /* ---------------------------------------------------------------- */
   group('Der Bau ist wiederholbar');
 
-  /* Das Lockfile nagelt die Abhaengigkeiten fest. */
   const lockPath = path.join(__dirname, 'package-lock.json');
   const lockDa = fs.existsSync(lockPath);
-  // Erst das Vorhandensein, dann die Eigenschaft: ohne diese Zeile bliebe
-  // jede Aussage ueber den Inhalt bei fehlender Datei unpruefbar.
   check('Das Lockfile liegt im Repo', lockDa, lockPath);
   const lockfile = lockDa ? JSON.parse(fs.readFileSync(lockPath, 'utf8')) : {};
   check('Es hat das heutige Format', lockfile.lockfileVersion >= 3, `${lockfile.lockfileVersion}`);
   check('Es gehört zu dieser package.json',
     lockfile.name === packageJson.name && lockfile.version === packageJson.version,
     `${lockfile.name} ${lockfile.version} gegen ${packageJson.name} ${packageJson.version}`);
-  /* DIE NUMMER STEHT IM LOCKFILE ZWEIMAL -- 0.17.1. Einmal in der Wurzel und
-     ein zweites Mal in `packages[""]`, dem Eintrag des Pakets selbst. */
+  /* Die Version steht im Lockfile zweimal: in der Wurzel und in packages[""]. */
   check('Und es traegt den Eintrag des Pakets selbst',
     !!(lockfile.packages && lockfile.packages['']), JSON.stringify(Object.keys(lockfile.packages || {}).slice(0, 3)));
   check('Die Version steht dort ein zweites Mal und stimmt mit der ersten ueberein',
@@ -530,9 +470,7 @@ async function sendImport(object, mode, withoutShare = false) {
     Object.keys(packageJson.dependencies).every(n => lockfile.packages && lockfile.packages['node_modules/' + n]),
     Object.keys(packageJson.dependencies).filter(n => !(lockfile.packages || {})['node_modules/' + n]).join(', '));
 
-  /* Der Ausschluss entscheidet darueber, ob `npm ci` im Image ueberhaupt
-     etwas findet: was .dockerignore nennt, geht nicht mit in den Bauzusammen-
-     hang, und dann bricht der Bau ab. */
+  /* Was .dockerignore nennt, fehlt im Build-Kontext; ohne Lockfile bricht npm ci ab. */
   const asPattern = (row) => new RegExp('^' + row.trim()
     .replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*\*/g, '\u0000')
     .replace(/\*/g, '[^/]*').replace(/\u0000/g, '.*') + '$');
@@ -540,7 +478,6 @@ async function sendImport(object, mode, withoutShare = false) {
     .split('\n').map(z => z.trim()).filter(z => z && !z.startsWith('#') && !z.startsWith('!'));
   const hits = exclusions.filter(z => asPattern(z).test('package-lock.json'));
   check('.dockerignore hält das Lockfile nicht zurück', hits.length === 0, hits.join(', '));
-  // Gegenprobe zur Gegenprobe: das Muster taugt ueberhaupt etwas.
   check('Und das Muster greift nachweislich',
     exclusions.some(z => asPattern(z).test('testbench.js')) &&
     exclusions.some(z => asPattern(z).test('kriterion.log')),
@@ -550,15 +487,13 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Der Dockerfile kopiert das Lockfile in die Bauphase',
     /^COPY package\.json package-lock\.json \.\/$/m.test(dockerText));
   check('Und liest sie mit npm ci', /^RUN npm ci --omit=dev$/m.test(dockerText));
-  /* Das ist der eigentliche Punkt: bliebe irgendwo ein Aufruf der alten Art
-     stehen, waere das Lockfile ein Merker ohne Wirkung. */
+  /* Ein einziges npm install liesse das Lockfile wirkungslos. */
   const buildRows = dockerText.split('\n').filter(z => !z.trim().startsWith('#'));
   check('Keine Bauzeile ruft npm install',
     !buildRows.some(z => /npm install/.test(z)),
     buildRows.filter(z => /npm install/.test(z)).join(' · '));
 
-  /* Ohne HEALTHCHECK weiss Docker nur, dass der Prozess laeuft -- nicht, ob
-     er antwortet. */
+  /* Ohne HEALTHCHECK weiss Docker nur, dass der Prozess laeuft, nicht, ob er antwortet. */
   const healthRow = dockerText.split('\n').find(z => z.startsWith('HEALTHCHECK'));
   check('Der Dockerfile hat einen Healthcheck', !!healthRow, 'keine HEALTHCHECK-Zeile');
   check('Er fragt /api/config, das schon vor der Anmeldung antwortet',
@@ -567,12 +502,9 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und /api/config antwortet wirklich ohne Anmeldung',
     (await fetch(`${BASE}/api/config`)).status === 200);
 
-  /* ---------------------------------------------------------------- */
   group('Der Versions-Fingerprint');
 
-  /* Der Fingerprint ist eine Ableitung beim Start: er geht ueber die Dateien,
-     die der Server WIRKLICH laedt (require.cache) und WIRKLICH ausliefert
-     (public/). */
+  /* Der Fingerprint entsteht beim Start aus require.cache und public/. */
   const sourceCopy = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-quelle-'));
   for (const e of fs.readdirSync(__dirname, { withFileTypes: true })) {
     if (['node_modules', 'data', '.git'].includes(e.name)) continue;
@@ -580,17 +512,12 @@ async function sendImport(object, mode, withoutShare = false) {
     if (e.isDirectory()) fs.cpSync(path.join(__dirname, e.name), target, { recursive: true });
     else if (e.isFile()) fs.copyFileSync(path.join(__dirname, e.name), target);
   }
-  // Ueber die Verknuepfung loest require die Pakete auf ihren ECHTEN Ort auf;
-// sie liegen damit ausserhalb der Kopie und koennen gar nicht mitzaehlen.
+  // require loest den Symlink auf; die Pakete liegen damit ausserhalb der Kopie
+  // und zaehlen nicht mit.
   fs.symlinkSync(path.join(__dirname, 'node_modules'), path.join(sourceCopy, 'node_modules'));
 
-  // Ein Server aus der Kopie, frisch eingerichtet, einmal nach den Kennzahlen
-  // gefragt und wieder beendet.
-  /* Die Ports werden fortlaufend vergeben, nicht gewuerfelt: hier laufen
-     ueber ein Dutzend Server nacheinander, und bei gewuerfelten Nummern
-     trifft frueher oder spaeter einer auf einen, der noch nicht losgelassen
-     hat. */
-  /* AUCH DIESE LAGE GEHT UEBER PORT_OFFSET. */
+  /* Ports fortlaufend statt zufaellig: hier starten ueber ein Dutzend Server
+     nacheinander, und ein zufaelliger Port traefe einen noch belegten. */
   let fingerprintPort = FINGERPRINT_BASE;
   async function fingerprintOut(directory) {
     const dataVerz = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-fingerprint-'));
@@ -619,19 +546,15 @@ async function sendImport(object, mode, withoutShare = false) {
     }
   }
 
-  // Der Wert des laufenden Servers, gegen den verglichen wird.
   const fingerprintDisk = (await call('GET', '/api/stats')).content.fingerprint;
   const fingerprintCopy = await fingerprintOut(sourceCopy);
-  // Erst das Vorhandensein, dann jede Aussage darueber: ohne
-// diese Zeile bliebe jeder Vergleich zweier fehlender Werte wahr.
+  // Sonst waere der Vergleich zweier fehlender Werte wahr.
   check('Der Server aus der Kopie nennt einen Fingerprint',
     /^[0-9a-f]{8}$/.test(fingerprintCopy || ''), JSON.stringify(fingerprintCopy));
-  /* Die Kopie liegt woanders, traegt ein eigenes Datenverzeichnis und einen
-     eigenen Bestand -- und kommt trotzdem auf denselben Wert. */
+  /* Anderer Ort, eigenes Datenverzeichnis, eigener Bestand, derselbe Wert. */
   check('Und es ist derselbe wie auf der Platte', fingerprintCopy === fingerprintDisk,
     `${fingerprintCopy} gegen ${fingerprintDisk}`);
 
-  // Kleine Hilfe: eine Datei in der Kopie anfassen und neu fragen.
   const afterChange = async (rel, content) => {
     const full = path.join(sourceCopy, rel);
     fs.mkdirSync(path.dirname(full), { recursive: true });
@@ -639,27 +562,21 @@ async function sendImport(object, mode, withoutShare = false) {
     return fingerprintOut(sourceCopy);
   };
 
-  /* DIE FALLE, UND SIE IST DER GRUND FUER DIE ABLEITUNG: testbench.js und
-     Doku/ liegen im Repo, aber nicht im Image (.dockerignore). */
-  /* DIE SPRACHDATEI GEHOERT DAZU -- 0.24.0. */
+  /* Was .dockerignore ausschliesst, liegt im Repository, aber nicht im Image. */
   check('Eine Änderung an public/languages/de.json ändert ihn',
     await afterChange('public/languages/de.json',
       JSON.stringify({ _locale: 'de-DE', 'server.errorUnknown': 'anders' })) !== fingerprintCopy);
-  // Und wieder zurueck: die folgenden Zeilen vergleichen gegen den Ausgangswert.
+  // Zuruecksetzen: die folgenden Pruefungen vergleichen mit fingerprintCopy.
   fs.copyFileSync(path.join(__dirname, 'public', 'languages', 'de.json'),
                   path.join(sourceCopy, 'public', 'languages', 'de.json'));
   check('Eine Änderung an testbench.js lässt ihn unberührt',
     await afterChange('testbench.js', '// nicht ausgeliefert\n') === fingerprintCopy);
   check('Eine neue Datei unter Doku ebenfalls',
     await afterChange('Doku/Neu.md', '# nicht ausgeliefert\n') === fingerprintCopy);
-  /* Die bewusste Grenze, ausdruecklich festgehalten, damit sie nicht
-     stillschweigend kippt: usertool.js liegt im Image, wird aber nur von Hand
-     aufgerufen und nie vom Server geladen. */
   check('Und eine an usertool.js auch — es läuft nicht im Server',
     await afterChange('usertool.js', '// von Hand, nicht im Server\n') === fingerprintCopy);
 
-  /* Und die Gegenrichtung. Ohne sie koennte der Fingerprint eine feste
-     String sein und alle Pruefungen darueber blieben gruen. */
+  /* Gegenrichtung: sonst koennte der Fingerprint ein fester Wert sein. */
   const appBefore = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
   const fingerprintApp = await afterChange('public/app.js', appBefore + '\n// eine Zeile mehr\n');
   check('Eine Änderung an public/app.js ändert ihn',
@@ -674,8 +591,6 @@ async function sendImport(object, mode, withoutShare = false) {
     `${fingerprintDb} gegen ${fingerprintCopy} und ${fingerprintApp}`);
   fs.writeFileSync(path.join(sourceCopy, 'db.js'), dbBefore);
 
-  /* UND EINE AN batchrun.js EBENSO — 0.19.3, und das ist die Zeile, um die es
-     in dieser Runde geht. */
   const runBefore = fs.readFileSync(path.join(__dirname, 'batchrun.js'), 'utf8');
   const fingerprintRun = await afterChange('batchrun.js',
     runBefore + '\n// eine Zeile mehr\n');
@@ -684,7 +599,6 @@ async function sendImport(object, mode, withoutShare = false) {
     `${fingerprintRun} gegen ${fingerprintCopy} und ${fingerprintDb}`);
   fs.writeFileSync(path.join(sourceCopy, 'batchrun.js'), runBefore);
 
-  /* DER NAME GEHOERT MIT HINEIN, nicht nur der Inhalt. */
   const fingerprintZ1 = await afterChange('public/z1.txt', 'derselbe Inhalt\n');
   fs.rmSync(path.join(sourceCopy, 'public', 'z1.txt'));
   const fingerprintZ2 = await afterChange('public/z2.txt', 'derselbe Inhalt\n');
@@ -693,16 +607,13 @@ async function sendImport(object, mode, withoutShare = false) {
     `${fingerprintZ1} gegen ${fingerprintZ2}`);
   fs.rmSync(path.join(sourceCopy, 'public', 'z2.txt'));
 
-  /* Zum Schluss zurueck auf den Ausgangsstand. */
   check('Zurück am Ausgangsstand steht wieder der erste Wert',
     await fingerprintOut(sourceCopy) === fingerprintCopy);
 
   fs.rmSync(sourceCopy, { recursive: true, force: true });
 
-  /* Der Fingerprint wird beim START gebildet, und vollstaendig ist er nur,
-     solange jedes Modul am Dateianfang geladen wird: ein require INNERHALB
-     einer Funktion liefe erst spaeter und stuende dann nicht darin -- der
-     Fingerprint wuerde still unvollstaendig, ohne dass irgendetwas rot wird. */
+  /* Ein require innerhalb einer Funktion laeuft nach dem Start und fehlt dann
+     unbemerkt im Fingerprint. */
   const moduleGraph = (start) => {
     const seen = new Set();
     const fetchFile = (rel) => {
@@ -724,9 +635,8 @@ async function sendImport(object, mode, withoutShare = false) {
     fs.readFileSync(path.join(__dirname, n), 'utf8').split('\n').forEach((z, i) => {
       if (/^\s+.*\brequire\(/.test(z)) lateLoaded.push(`${n}:${i + 1}`);
     });
-  // Erst das Vorhandensein, dann die Eigenschaft: bliebe die Ableitung bei
-  // server.js allein stehen, waere die Pruefung darunter gruen, ohne eine
-  // einzige der anderen Dateien gelesen zu haben.
+  // Sonst bliebe die Pruefung auf spaete require gruen, ohne ein weiteres
+  // Modul gelesen zu haben.
   check('Der Modulgraph nennt mehr als server.js allein',
     imFingerprint.length >= 5, imFingerprint.join(' · '));
   check('Und weder usertool.js noch testbench.js stehen darauf',
@@ -734,16 +644,12 @@ async function sendImport(object, mode, withoutShare = false) {
     imFingerprint.join(' · '));
   check('Kein Modul des Servers wird erst innerhalb einer Funktion geladen',
     lateLoaded.length === 0, lateLoaded.join(', '));
-  /* DIE BEIDEN NEUEN AUS 0.19.3 STEHEN NAMENTLICH DA, und aus zwei
-     verschiedenen Gruenden: images.js kommt ueber require() herein und
-     belegt, dass die gewohnte Ableitung greift; batchrun.js kommt NUR ueber
-     die Zeile, mit der der Thread erzeugt wird. */
+  /* images.js kommt ueber require(), batchrun.js nur ueber die Zeile, die den
+     Thread erzeugt (zweiter Zweig der Regex in moduleGraph). */
   check('images.js und batchrun.js stehen beide im Graphen',
     imFingerprint.includes('images.js') && imFingerprint.includes('batchrun.js'),
     imFingerprint.join(' · '));
 
-  /* DER HANDGRIFF IM README NENNT DIESELBEN DATEIEN -- und das ist seit
-     0.10.0 geprueft statt gepflegt. */
   const readmeText = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
   const handle = (readmeText.match(/for f in ([^;]*?); do/s) || [, ''])[1]
     .replace(/\\\s*\n\s*/g, ' ').trim().split(/\s+/).filter(Boolean);
@@ -761,11 +667,9 @@ async function sendImport(object, mode, withoutShare = false) {
     handle.includes('package.json') && handle.includes('public/*'),
     handle.join(' '));
 
-  /* ---------------------------------------------------------------- */
   group('Der Gruppenfilter');
 
-  /* Der Rahmen kann sich nicht selbst bestaetigen: waeren Zaehlung oder
-     Rueckgabewert falsch, waere es genau die Zaehlung, die es meldet. */
+  /* Im Kindprozess, weil der Rahmen seine eigene Zaehlung nicht selbst belegen kann. */
   const frameProbe = (state, filter) => {
     const r = require('child_process').spawnSync(process.execPath,
       filter ? ['testbench.js', filter] : ['testbench.js'],
@@ -774,8 +678,7 @@ async function sendImport(object, mode, withoutShare = false) {
   };
 
   const withoutFilter = frameProbe('1', '');
-  // Erst das Vorhandensein: kaeme aus dem Kindprozess gar nichts, waere jede
-// Verneinung darunter wahr und der ganze Abschnitt gruen.
+  // Ohne Ausgabe des Kindprozesses waere jede Verneinung darunter wahr.
   check('Die Selbstprobe des Rahmens läuft überhaupt',
     /Pruefungen bestanden/.test(withoutFilter.text), JSON.stringify(withoutFilter.text.slice(0, 120)));
   check('Ohne Filter stehen beide Gruppen da',
@@ -791,18 +694,13 @@ async function sendImport(object, mode, withoutShare = false) {
     /Rechte am Eintrag/.test(filtered.text));
   check('Und die andere verschwindet',
     !/Fotos und Vorschau/.test(filtered.text));
-  /* DIE REGEL, UM DIE ES GEHT: ohne diesen Satz liese sich "alles in Ordnung"
-     nach einem Teillauf als vollstaendiger Beleg lesen. */
   check('Der Lauf sagt selbst, dass er gefiltert war',
     /GEFILTERTER LAUF nach "Rechte" — KEIN VOLLSTAENDIGER BELEG/.test(filtered.text));
   check('Und nennt die Zahl der übergangenen Gruppen',
     /1 von 2 Gruppen gezeigt, 1 uebergangen \(2 Pruefungen\)/.test(filtered.text),
     filtered.text.split('\n').filter(z => /Gruppen/.test(z)).join(' | '));
 
-  /* Ein Fehlschlag in einer UEBERGANGENEN Gruppe: der Rueckgabewert folgt dem
-     Gezeigten und bleibt null -- sonst waere der Filter wertlos -- aber der
-     Schlussblock nennt ihn, damit niemand den Teillauf fuer vollstaendig
-     haelt. */
+  /* Rueckgabewert nur nach den gezeigten Gruppen, sonst waere der Filter wertlos. */
   const stillRed = frameProbe('rot-uebergangen', 'Rechte');
   check('Ein Fehlschlag im Übergangenen wird ausdrücklich gemeldet',
     /DARIN 1 GESCHEITERT — hier nicht angezeigt/.test(stillRed.text),
@@ -812,14 +710,10 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Er taucht auch in keiner Zeile mit einem Namen auf',
     !/✗/.test(stillRed.text), stillRed.text.split('\n').filter(z => /✗/.test(z)).join(' | '));
 
-  /* Und die Gegenrichtung: ein Fehlschlag in einer GEZEIGTEN Gruppe macht den
-     Lauf rot. */
   const shownRed = frameProbe('rot-gezeigt', 'Rechte');
   check('Ein Fehlschlag im Gezeigten macht den Lauf rot',
     shownRed.code === 1 && /1 GESCHEITERT/.test(shownRed.text), `Code ${shownRed.code}`);
 
-  /* Ein Filter, auf den nichts passt, ist die eigentliche Falle: er zeigt
-     nichts, und ohne Regel meldete er wortlos Erfolg. */
   const outside = frameProbe('1', 'Gibtesnicht');
   check('Ein Filter ohne Treffer meldet keinen Erfolg',
     /KEINE PRUEFUNG GEZEIGT/.test(outside.text) &&
@@ -827,14 +721,10 @@ async function sendImport(object, mode, withoutShare = false) {
     outside.text.split('\n').filter(z => z.trim()).join(' | '));
   check('Und sein Rückgabewert ist rot', outside.code === 1, `Code ${outside.code}`);
 
-  /* ---------------------------------------------------------------- */
   group('Der Prueflauf bei jedem Push');
 
-  /* ZWEI ZAHLEN, DIE ZUSAMMENGEHOEREN. */
   const workPath = path.join(__dirname, '.github', 'workflows', 'pruefstand.yml');
   const workDa = fs.existsSync(workPath);
-  // Erst das Vorhandensein: fehlt die Datei, waere jede Aussage ueber ihren
-// Inhalt an einem leeren String wahr.
   check('Die Datei für den Prüflauf liegt im Repo', workDa, workPath);
   const workText = workDa ? fs.readFileSync(workPath, 'utf8') : '';
   const workNode = (workText.match(/node-version:\s*'([^']+)'/) || [])[1];
@@ -843,39 +733,27 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Der Dockerfile nennt ebenfalls eine', !!imageNode, JSON.stringify(imageNode));
   check('Und es ist dieselbe', workNode === imageNode,
     `Prüflauf ${workNode}, Image ${imageNode}`);
-  // Beide Stufen des Dockerfile -- die Bauphase uebersetzt, die Laufzeit
-  // fuehrt aus.
+  // Die Bauphase uebersetzt native Module, die Laufzeit fuehrt sie aus.
   const imageRows = [...dockerText.matchAll(/^FROM node:([^\s]+)/mg)].map(t => t[1]);
   check('Bauphase und Laufzeit stehen auf demselben Image',
     imageRows.length === 2 && imageRows[0] === imageRows[1],
     imageRows.join(' gegen '));
 
-  /* Der Lauf muss das Lockfile lesen und die bekannten Luecken ansehen --
-     sonst waere er ein Prueflauf ohne die beiden Punkte, um die es in dieser
-     Runde geht. */
   check('Der Lauf holt die Abhängigkeiten mit npm ci',
     /^\s+run: npm ci$/m.test(workText));
   check('Er fährt den Prüfstand', /^\s+run: npm test$/m.test(workText));
   check('Und sieht die bekannten Lücken ab "high" an',
     /^\s+run: npm audit --audit-level=high$/m.test(workText));
-  // Die Schwelle wird nicht heimlich gesenkt: weder ueber --audit-level noch
-// dadurch, dass der Schritt scheitern darf.
   check('Die Schwelle ist nicht abgesenkt',
     !/audit-level=(low|moderate)/.test(workText) &&
     !/continue-on-error/.test(workText) && !/\|\|\s*true/.test(workText),
     workText.split('\n').filter(z => /audit|continue-on-error/.test(z)).join(' | '));
-  /* PUSH OHNE ZWEIGFILTER, DAZU DER KNOPF -- entschieden vom Betreiber am
-     Abend des 10. September 2026. Diese Zeile zielt seit 0.8.10 auf den
-     Rueckbau der Ereignisliste; ihre Sache hat sich an EINEM TAG ZWEIMAL
-     geaendert, und sie geht beide Male MIT, statt geloescht zu werden
-: bis 10.9. */
   const workCode = workText.split('\n').filter(z => !/^\s*#/.test(z)).join('\n');
   check('Er läuft bei jedem Push und auf Knopfdruck — und nicht bei einer Anfrage',
     /^on:[ \t]*\n[ \t]+push:[ \t]*\n[ \t]+workflow_dispatch:[ \t]*$/m.test(workCode) &&
     !/pull_request/.test(workCode),
     (workCode.match(/^on:[\s\S]{0,60}/m) || ['(keine Zeile on:)'])[0].replace(/\s+/g, ' '));
 
-  /* ---------------------------------------------------------------- */
   group('Kriterien: lesen, umbenennen, anlegen');
 
   let criterion = (await call('GET', '/api/criteria')).content;
@@ -900,7 +778,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Neues Kriterium haengt sich hinten an', fresh.status === 201 && fresh.content.sort_order === 3);
   check('Doppelanlage wird abgewiesen', (await call('POST', '/api/criteria', { name: 'verarbeitung' })).status === 409);
 
-  /* ---------------------------------------------------------------- */
   group('Kriterien: Reihenfolge');
 
   criterion = (await call('GET', '/api/criteria')).content;
@@ -908,7 +785,6 @@ async function sendImport(object, mode, withoutShare = false) {
   const sorted = await call('PUT', '/api/criteria/order', { order: backwards });
   check('Sortieren gelingt', sorted.status === 200);
   check('Route /order wird nicht als Id gelesen', sorted.content && Array.isArray(sorted.content));
-  /* Die beiden Zeilen lesen aus der Antwort. */
   const sortList = Array.isArray(sorted.content) ? sorted.content : null;
   check('Neue Reihenfolge steht in der Antwort',
     !!sortList && equal(sortList.map(c => c.id), backwards), JSON.stringify(sorted.content));
@@ -922,7 +798,6 @@ async function sendImport(object, mode, withoutShare = false) {
     Array.isArray(halfList.content) &&
     equal(halfList.content.map(c => c.sort_order), [0, 1, 2, 3]), JSON.stringify(halfList.content));
 
-  /* ---------------------------------------------------------------- */
   group('Wirkung auf den Eintrag');
 
   const order = names((await call('GET', '/api/criteria')).content);
@@ -935,8 +810,8 @@ async function sendImport(object, mode, withoutShare = false) {
   const secondItem = (await call('POST', '/api/items', { title: 'Zweiter Eintrag' })).content;
   check('Neuer Eintrag bekommt dieselbe Reihenfolge', equal(secondItem.ratings.map(r => r.name), order));
 
-  // So baut die Vergleichsansicht ihre Zeilen: erste Nennung gewinnt, ueber
-// alle verglichenen Eintraege hinweg. Hier nachgerechnet statt nachgezaehlt.
+  // Nachbau der Vergleichsansicht: die erste Nennung ueber alle Eintraege
+  // bestimmt die Zeile.
   const compareRows = [];
   [entry, secondItem].forEach(i => i.ratings.forEach(r => {
     if (!compareRows.includes(r.name)) compareRows.push(r.name);
@@ -944,7 +819,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Vergleich reiht die Kriterien genauso',
     equal(compareRows, order), JSON.stringify(compareRows));
 
-  /* ---------------------------------------------------------------- */
   group('Loeschen');
 
   const beforeIds = (await call('GET', '/api/criteria')).content.map(c => c.id);
@@ -954,19 +828,18 @@ async function sendImport(object, mode, withoutShare = false) {
     equal(after.map(c => c.id), beforeIds.filter(i => i !== beforeIds[1])));
   check('Nummerierung nach dem Loeschen lueckenlos', equal(after.map(c => c.sort_order), [0, 1, 2]));
 
-  /* ---------------------------------------------------------------- */
   group('Export und Import');
 
   const exported = await callF('GET', '/api/export?photos=0');
-  /* JEDE LESESTELLE ABGEFANGEN: eine unlesbare Datei soll die Pruefungen
-     darunter ROT faerben und nicht den Lauf abreissen. */
+  /* ?. ueberall: eine unlesbare Datei soll Pruefungen scheitern lassen, nicht
+     den Lauf abbrechen. */
   check('Export nennt die Kriterienreihenfolge',
     equal(exported.content?.criteria, names(after)), JSON.stringify(exported.content?.criteria));
   check('Bestehende Felder unveraendert',
     Array.isArray(exported.content?.items) && 'ratings' in exported.content.items[0]
     && 'testDays' in exported.content.items[0]);
 
-  // Alte Exportdatei ohne das neue Feld: muss weiterhin laufen.
+  // Exportdatei ohne das Feld criteria.
   const oldFile = { exported_at: new Date().toISOString(), title: 'Alt', version: 14, items: [
     { title: 'Aus alter Datei', ratings: [{ name: 'Nur hier', value: 3 }] }
   ]};
@@ -976,7 +849,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Unbekanntes Kriterium haengt sich hinten an', names(afterOld)[afterOld.length - 1] === 'Nur hier');
   check('Nummerierung nach dem Import lueckenlos', equal(afterOld.map(c => c.sort_order), [0, 1, 2, 3]));
 
-  // Neue Exportdatei mit Reihenfolge, ersetzend eingespielt.
   const newFile = { exported_at: new Date().toISOString(), title: 'Neu', version: 14,
     criteria: ['Zuerst', 'Dann', 'Zuletzt'],
     items: [{ title: 'Eingespielt', ratings: [{ name: 'Zuletzt', value: 5 }] }] };
@@ -988,16 +860,12 @@ async function sendImport(object, mode, withoutShare = false) {
   const imported = (await call('GET', '/api/items')).content;
   check('Eintrag aus der Datei ist da', imported.length === 1 && imported[0].title === 'Eingespielt');
 
-  /* --- Die Gewichte in der Datei -----------------------------------------
-     Eine Datei OHNE das Feld muss weiterhin laufen, und alles steht danach
-     auf 1,0. */
+  /* ---- Gewichte in der Exportdatei ---- */
   const gewAfterOld = (await call('GET', '/api/criteria')).content;
   check('Eine Datei ohne das Feld laesst alle Gewichte auf 1',
     gewAfterOld.length > 0 && gewAfterOld.every(c => c.weight === 1),
     JSON.stringify(gewAfterOld.map(c => `${c.name}:${c.weight}`)));
 
-  /* EIN BEKANNTES KRITERIUM BEHAELT SEIN GEWICHT, ein NEUES bekommt das aus
-     der Datei. */
   const gewTarget = gewAfterOld.find(c => c.name === 'Zuerst');
   await call('PUT', `/api/criteria/${gewTarget.id}`, { name: 'Zuerst', weight: 1.5 });
   const gewFile = { exported_at: new Date().toISOString(), title: 'Mit Gewichten', version: 14,
@@ -1013,8 +881,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Ein neu angelegtes bekommt das Gewicht aus der Datei',
     gewFrom('Ganz neu') === 1.8, `${gewFrom('Ganz neu')}`);
 
-  /* EIN UNGUELTIGES GEWICHT BRICHT NICHT AB, sondern faellt auf 1,0 und wird
-     genannt -- dieselbe Haltung wie bei einem unbekannten Verfassernamen. */
   const gewCrooked = { exported_at: new Date().toISOString(), title: 'Krumm', version: 14,
     criteria: ['Zu schwer', 'Negativ', 'Kein Wert', 'Sauber'],
     criteriaWeights: { 'Zu schwer': 9, 'Negativ': -1, 'Kein Wert': 'viel', 'Sauber': 1.2 },
@@ -1034,14 +900,10 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify(gewImCrooked.content?.weightsDropped));
   check('Bei einer sauberen Datei bleibt die Liste leer',
     equal(gewIm.content?.weightsDropped, []), JSON.stringify(gewIm.content?.weightsDropped));
-  /* UND DAS PROTOKOLL NENNT SIE EBENFALLS -- auf ENGLISCH seit 0.33.0 (Strang
-     4). */
   check('Das Protokoll nennt sie ebenfalls',
     /invalid weight reset to 1\.0/.test(H.output),
     (H.output.match(/.*weight reset.*/) || ['(nichts im Protokoll)'])[0]);
 
-  /* Ein RUNDLAUF: Gewichte setzen, exportieren, in dieselbe Instanz ersetzend
-     einspielen. */
   const gewRound = (await call('GET', '/api/criteria')).content;
   await call('PUT', `/api/criteria/${gewRound[0].id}`, { name: gewRound[0].name, weight: 0.6 });
   const gewVorRound = (await call('GET', '/api/criteria')).content
@@ -1051,16 +913,13 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Ein Rundlauf in dieselbe Instanz laesst die Gewichte stehen',
     equal((await call('GET', '/api/criteria')).content.map(c => `${c.name}:${c.weight}`), gewVorRound),
     JSON.stringify((await call('GET', '/api/criteria')).content.map(c => `${c.name}:${c.weight}`)));
-  // Und die Datei traegt sie ueberhaupt -- sonst belegte der Rundlauf oben nur,
-// dass der Import nichts anfasst.
+  // Sonst belegte der Rundlauf oben nur, dass der Import nichts anfasst.
   check('Und die Exportdatei traegt sie',
     gewOut?.criteriaWeights?.[gewRound[0].name] === 0.6, JSON.stringify(gewOut?.criteriaWeights));
 
-  /* ---------------------------------------------------------------- */
   group('Der Export schreibt stueckweise');
 
-  /* EINE EIGENE INSTANZ: die Prueflage waechst hier ueber die alte Grenze,
-     und das gehoert nicht in den Hauptbestand. */
+  /* Eigene Instanz, weil die Prueflage hier sehr gross wird. */
   const sxDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-stueckweise-'));
   const sxWord = 'annas-stueckweises-wort';
   const sxPng = Buffer.from(PNG_BASE64, 'base64');
@@ -1118,8 +977,7 @@ async function sendImport(object, mode, withoutShare = false) {
   };
   const sxShare = (purpose) =>
     sxCall('POST', '/api/confirm', { password: sxWord, purpose, target: null });
-  /* Der Export geht ueber einen rohen fetch: gebraucht werden die Kopfzeilen
-     und der Strom, nicht ein fertiges Objekt. */
+  /* Roher fetch: gebraucht werden die Kopfzeilen und der Strom. */
   const sxExport = async (query = '?photos=1&files=1') => {
     await sxShare('export');
     return fetch(SX.base + '/api/export' + query, { headers: sxHead() });
@@ -1140,13 +998,13 @@ async function sendImport(object, mode, withoutShare = false) {
     return { status: a.status, content: await a.json().catch(() => null) };
   };
 
-  /* ---- 1. Der Export schreibt gueltiges JSON ---- */
+  /* ---- Gueltiges JSON ---- */
   const sxFirst = await sxExport();
   const sxText = await sxFirst.text();
   check('Der Export antwortet und nennt seinen Typ',
     sxFirst.status === 200 && /application\/json/.test(sxFirst.headers.get('content-type') || ''),
     `${sxFirst.status} · ${sxFirst.headers.get('content-type')}`);
-  /* OHNE LAENGE: sie stuende erst fest, wenn die Datei fertig waere. */
+  /* Keine Laenge: sie stuende erst fest, wenn die Datei fertig waere. */
   check('Und traegt keine Laenge mehr',
     sxFirst.headers.get('content-length') === null,
     String(sxFirst.headers.get('content-length')));
@@ -1163,8 +1021,7 @@ async function sendImport(object, mode, withoutShare = false) {
     !!sxPaper?.items?.[0]?.attachments?.[0]?.data_base64,
     JSON.stringify(Object.keys(sxPaper?.items?.[0]?.photos?.[0] || {})));
 
-  /* ---- 3. Der Rundlauf ---- Was der Export schreibt, liest der Import
-     wieder ein: dieselbe Instanz, ersetzend, und danach dieselbe Datei. */
+  /* ---- Rundlauf: dieselbe Instanz, ersetzend ---- */
   const sxBack = await sxImport(sxText, 'replace');
   check('Die Datei laesst sich wieder einspielen',
     sxBack.status === 200 && sxBack.content?.items === 2,
@@ -1174,23 +1031,20 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Der Bestand danach gleicht dem davor — Zeichen fuer Zeichen',
     sxWithoutTime(sxSecond) === sxWithoutTime(sxText),
     `${sxSecond.length} gegen ${sxText.length} Zeichen`);
-  /* ---- 5a. Die Datei ist danach weg ---- */
   check('Und der Import hat seine Datei weggeraeumt',
     fs.readdirSync(sxImportDir).length === 0, fs.readdirSync(sxImportDir).join(' '));
 
-  /* ---- 4. Eine Datei ohne den Schluss wird abgewiesen ---- */
   const sxBroken = await sxImport(sxText.slice(0, -2), 'replace');
   check('Eine Datei ohne den Schluss wird abgewiesen',
     sxBroken.status === 400, `${sxBroken.status} · ${JSON.stringify(sxBroken.content)}`);
   check('Und der Bestand ist unberuehrt geblieben',
     ((await sxCall('GET', '/api/items')).content || []).length === 2,
     JSON.stringify(((await sxCall('GET', '/api/items')).content || []).length));
-  /* ---- 5b. Auch beim Fehler ---- */
   check('Auch beim Fehler bleibt keine Datei liegen',
     fs.readdirSync(sxImportDir).length === 0, fs.readdirSync(sxImportDir).join(' '));
 
-  /* ---- 6. Der Serverstart leert den Ordner ---- Ein Absturz mitten im
-     Import erreicht das finally nicht mehr. */
+  /* Ein Absturz mitten im Import erreicht das finally nicht; deshalb leert der
+     Start den Ordner. */
   await SX.stop();
   fs.writeFileSync(path.join(sxImportDir, 'uebrig.json'), '{"items":[]}');
   check('Die Prueflage steht: eine Datei liegt im Ordner',
@@ -1203,9 +1057,8 @@ async function sendImport(object, mode, withoutShare = false) {
     /Import: 1 leftover file\(s\) removed at startup\./.test(SX.log()),
     SX.log().split('\n').filter(z => /Import:/.test(z)).join(' · ') || '(keine Zeile)');
 
-  /* ---- 2 und 9. Eine Prueflage ueber der alten Grenze ---- Sie waere
-     vorher abgesagt worden: ein Tagname je Eintrag, und die Rechnung des
-     Umschlags zaehlt ihn je Verknuepfung. */
+  /* Ein Tagname von 1 MiB an 500 Eintraegen: envelope zaehlt ihn je
+     Verknuepfung und liegt damit ueber export.limit. */
   {
     const d = open(path.join(sxDir, 'katalog.sqlite'));
     d.pragma('busy_timeout = 8000');
@@ -1246,8 +1099,8 @@ async function sendImport(object, mode, withoutShare = false) {
     `${sxBig.status}, ${sxBytes} Bytes gegen ${sxStats.export?.limit}`);
   check('Und die Datei ist am Ende vollstaendig',
     sxTail.endsWith(']}'), JSON.stringify(sxTail));
-  /* DER RUECKSTAU, GEMESSEN: ohne ihn stuende die ganze Datei im Puffer des
-     Sockets, und die Spitze laege ueber ihrer Groesse. */
+  /* Ohne Rueckstau stuende die ganze Datei im Puffer des Sockets, und die
+     Spitze (VmHWM) laege ueber ihrer Groesse. */
   check('Der Waechter kommt an die Spitze des Servers heran',
     sxBefore > 0 && sxAfter >= sxBefore, `${sxBefore} / ${sxAfter}`);
   check('Und sie waechst beim Schreiben um weniger als 200 MB',
@@ -1255,10 +1108,8 @@ async function sendImport(object, mode, withoutShare = false) {
     `${Math.round((sxAfter - sxBefore) / 1048576)} MB bei ${Math.round(sxBytes / 1048576)} MB Datei`);
   await SX.stop();
   fs.rmSync(sxDir, { recursive: true, force: true });
-  /* ---------------------------------------------------------------- */
   group('Die Marke der Instanz');
 
-  /* SEIT 0.9.1 WAR SIE EINE AUSGELIEFERTE DATEI. */
   const mkVerz = path.join(__dirname, 'public');
   const mkFiles = ['favicon.svg'];
   for (const n of mkFiles) {
@@ -1267,26 +1118,20 @@ async function sendImport(object, mode, withoutShare = false) {
   const mkContent = Object.fromEntries(mkFiles
     .filter(n => fs.existsSync(path.join(mkVerz, n)))
     .map(n => [n, fs.readFileSync(path.join(mkVerz, n), 'utf8')]));
-  /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT: eine leere
-     Datei erfuellte jede Verneinung darunter. */
+  /* Eine leere Datei erfuellte jede Verneinung darunter. */
   check('Und jede traegt wirklich ein SVG',
     mkFiles.every(n => /<svg[\s>]/.test(mkContent[n] || '')),
     JSON.stringify(Object.fromEntries(mkFiles.map(n => [n, (mkContent[n] || '').length]))));
-  /* KEIN SKRIPT IN EINER AUSGELIEFERTEN GRAFIK. */
   check('Und keine davon traegt Skript',
     mkFiles.every(n => !/<script|on\w+ *=|javascript:/i.test(mkContent[n] || '')),
     mkFiles.filter(n => /<script|on\w+ *=|javascript:/i.test(mkContent[n] || '')).join(' '));
-  /* UND SIE LIEGT WIRKLICH NICHT MEHR DA. Ohne diese Zeile bliebe eine
-     verwaiste Datei im Fingerprint stehen, die niemand mehr laedt. */
+  /* Eine verwaiste Datei in public/ ginge weiter in den Fingerprint ein. */
   check('marke-dunkel.svg liegt nicht mehr in public/',
     !fs.existsSync(path.join(mkVerz, 'marke-dunkel.svg')), 'die Datei ist noch da');
   check('favicon.svg bringt eine Kachel mit',
     /<rect[^>]*fill=/.test(mkContent['favicon.svg'] || ''), 'keine Kachel');
-  /* ZWEI DATEIEN, NICHT DREI. */
   check('Und eine dritte Fassung liegt nicht mehr daneben',
     !fs.existsSync(path.join(mkVerz, 'marke-hell.svg')), 'marke-hell.svg ist wieder da');
-  /* UND DIE ALLGEMEINE FASSUNG DERSELBEN FRAGE, die den naechsten Fall auch
-     faengt: in public/ steht keine Datei zweimal unter zwei Namen. */
   const mkAll = fs.readdirSync(mkVerz)
     .filter(n => fs.statSync(path.join(mkVerz, n)).isFile());
   const mkSeen = new Map();
@@ -1298,8 +1143,7 @@ async function sendImport(object, mode, withoutShare = false) {
   }
   check('In public/ liegt keine Datei zweimal unter zwei Namen',
     mkTwice.length === 0, mkTwice.join(' \u00b7 '));
-  /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT: ohne diese
-     Zeile bliebe die vorige auch dann gruen, wenn public/ leer waere. */
+  /* Sonst bliebe die vorige Pruefung auch bei leerem public/ gruen. */
   check('Und es liegen ueberhaupt Dateien darin', mkAll.length >= 4,
     `${mkAll.length} Dateien`);
 
@@ -1307,7 +1151,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Die Oberflaeche zeichnet die Marke selbst',
     /<svg class="logo"/.test(mkApp) && !/<img class="logo"/.test(mkApp),
     (mkApp.match(/const MARK = [\s\S]{0,120}/) || [''])[0].replace(/\s+/g, ' '));
-  /* UND ZWAR MIT VARIABLEN -- das ist der ganze Zweck der Ruecknahme. */
   check('Und faerbt jeden Strich ueber eine Variable',
     (mkApp.match(/stroke="var\(--brand-(?:grey|line)\)"/g) || []).length === 4
       && !/stroke="#/.test(mkApp),
@@ -1315,20 +1158,16 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Die Oberflaeche laedt keine Fassung mit Kachel',
     !/src="favicon\.svg"/.test(mkApp),
     'die Oberflaeche laedt eine Fassung mit Kachel');
-  /* SIE IST FUER VORLESEPROGRAMME NICHT DA -- sie steht ueberall unmittelbar
-     neben dem Namen der Instanz. Bis 0.22.1 trug sie dafuer alt="" am Bild. */
+  /* Die Marke steht immer direkt neben dem Namen der Instanz. */
   check('Und sie bleibt fuer Vorleseprogramme stumm',
     /aria-hidden="true"/.test((mkApp.match(/const MARK = [\s\S]{0,400}/) || [''])[0]),
     'kein aria-hidden an der Marke');
-  /* DIE ZWEI VARIABLEN ERFINDEN KEINE FARBE: sie sind --muted und
-     --accent-text. */
   check('Die beiden Markenvariablen stehen im Stilblatt und erfinden keine Farbe',
     /--brand-grey: var\(--muted\);/.test(fs.readFileSync(path.join(mkVerz, 'style.css'), 'utf8'))
       && /--brand-line: var\(--accent-text\);/.test(fs.readFileSync(path.join(mkVerz, 'style.css'), 'utf8')),
     (fs.readFileSync(path.join(mkVerz, 'style.css'), 'utf8')
       .match(/--brand-[a-z]+:[^;]*/g) || ['(nicht gesetzt)']).join(' · '));
 
-  /* ZWEI DINGE MIT DEMSELBEN NAMEN SIND EINES ZU VIEL. */
   check('Die Marke traegt NICHT die Klasse der Kommentarknoepfe',
     !/class="mark"/.test(mkApp) && /class="logo"/.test(mkApp),
     (mkApp.match(/class="logo?"/g) || []).join(' '));
@@ -1337,26 +1176,21 @@ async function sendImport(object, mode, withoutShare = false) {
     /\.logo \{[^}]*\}/.test(mkCss) && /\.mark \{[^}]*border-radius: 999px/.test(mkCss),
     'die beiden Regeln sind nicht getrennt');
 
-  /* MARKE UND NAME STEHEN NEBENEINANDER, NICHT UEBEREINANDER. */
   check('Marke und Name stehen in einer gemeinsamen Zeile',
     /const BRAND_LINE = \(\) =>\s*`<div class="login-brand">\$\{MARK\(\d+\)\}<h1>/.test(mkApp),
     (mkApp.match(/const BRAND_LINE =[\s\S]{0,140}/) || ['(kein Helfer)'])[0]);
-  /* UND ZWAR GENAU EINMAL IN DER GANZEN QUELLE. */
   const mkPairs = mkApp.match(/\$\{MARK\(\d+\)\}\s*<h1>/g) || [];
   check('Und keine Anmeldeseite stapelt die beiden daneben noch von Hand',
     mkPairs.length === 1, `das Paar steht ${mkPairs.length}-mal in der Quelle`);
-  /* UND DIE ZEILE IST WIRKLICH VOLLSTAENDIG: Zeichen, Wort, Schluss. */
   check('Und in der Zeile steht nichts ausser den beiden',
     /login-brand">\$\{MARK\(\d+\)\}<h1>\$\{esc\(TITLE_PUBLIC\)\}<\/h1><\/div>/.test(mkApp),
     (mkApp.match(/<div class="login-brand">[\s\S]{0,90}/) || ['(keine Zeile)'])[0]);
-  /* UND DAS STYLESHEET STELLT SIE WIRKLICH NEBENEINANDER. */
   const mkRow = (mkCss.match(/\.login-card \.login-brand \{[^}]*\}/) || [''])[0];
   check('Und das Stylesheet stellt sie wirklich nebeneinander',
     /display: *flex/.test(mkRow) && /align-items: *center/.test(mkRow), mkRow);
   check('Mit einer Luecke dazwischen',
     /gap: *\d/.test(mkRow), mkRow);
-  /* DIE UEBERSCHRIFT TRAEGT IN DER ZEILE KEINEN EIGENEN UNTERRAND. */
-  /* GEMESSEN WIRD DER GANZE WERT UND NICHT SEIN ANFANG. */
+  /* [;}] hinter der 0: margin: 0 8px zaehlt nicht. */
   const mkH1 = (mkCss.match(/\.login-card \.login-brand h1 \{[^}]*\}/) || [''])[0];
   check('Und die Ueberschrift traegt darin keinen eigenen Unterrand',
     /margin: *0 *[;}]/.test(mkH1) && !/margin-bottom/.test(mkH1),
@@ -1366,8 +1200,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Der Tab bekommt die Marke als Favicon',
     /<link rel="icon" href="favicon\.svg" type="image\/svg\+xml">/.test(mkIndex),
     (mkIndex.match(/<link[^>]*icon[^>]*>/) || ['(keine Zeile)'])[0]);
-  /* UND SIE WIRD WIRKLICH AUSGELIEFERT -- eine Datei im Verzeichnis belegt
-     nicht, dass der Server sie herausgibt. */
   const mkResponse = await fetch(`${BASE}/favicon.svg`);
   check('Und der Server liefert sie aus', mkResponse.status === 200, `Status ${mkResponse.status}`);
   check('Mit dem Typ, den ein Browser dafuer braucht',
@@ -1377,8 +1209,7 @@ async function sendImport(object, mode, withoutShare = false) {
     mkResponse.headers.get('x-content-type-options') === 'nosniff',
     mkResponse.headers.get('x-content-type-options'));
 
-  /* ---- Die Farbe, seit 0.11.0 ---- DER HERVORGEHOBENE STRICH TRAEGT DEN
-     AKZENT UND NICHT MEHR GOLD. */
+  /* ---- Farbe der Marke ---- */
   const MK_ACCENT = '#ff7a1a', MK_GOLD = '#ffc531', MK_GREY = '#838c95';
   for (const n of mkFiles) {
     check(`${n} traegt den Akzent am hervorgehobenen Strich`,
@@ -1387,26 +1218,20 @@ async function sendImport(object, mode, withoutShare = false) {
     check(`Und ${n} traegt nirgends mehr Gold`,
       !(mkContent[n] || '').includes(MK_GOLD), MK_GOLD + ' steht noch darin');
   }
-  // Der Rest der Marke bleibt grau -- die Runde aendert EINEN Strich und nicht
-// das Zeichen.
   for (const n of mkFiles) {
     const grey = ((mkContent[n] || '').match(new RegExp(MK_GREY, 'g')) || []).length;
     check(`Und die drei uebrigen Striche in ${n} bleiben grau`, grey === 3, `${grey} statt 3`);
   }
 
-  /* ---- Die Hoehe, seit 0.11.0 ---- DAS viewBox DER DURCHSICHTIGEN FASSUNG
-     UMSCHLIESST DIE FARBE. */
-  // Seit 0.23.0 steht es im Helfer und nicht mehr in einer Datei.
+  /* ---- Hoehe der Marke ---- */
   check('Das viewBox der Marke umschliesst die Farbe',
     /viewBox="6\.5 4\.5 19 23"/.test(mkApp),
     mkApp.match(/viewBox="[^"]*"/)?.[0] || '(kein viewBox)');
-  /* UND favicon.svg BEHAELT SEIN QUADRAT. Es ist ein Kachelsymbol: die Kachel
-     braucht ihren Rand, und 72 Prozent sind dort der uebliche Schutzbereich. */
+  /* Die Kachel braucht ihren Rand; 72 Prozent sind der uebliche Schutzbereich. */
   check('Und die Fassung mit Kachel behaelt ihr Quadrat',
     /viewBox="0 0 32 32"/.test(mkContent['favicon.svg'] || ''),
     (mkContent['favicon.svg'] || '').match(/viewBox="[^"]*"/)?.[0] || '(kein viewBox)');
 
-  /* DIE HOEHE STEHT IM CSS UND IN rem, NICHT IN PIXEL. */
   const mkNumber = (rule, field) => {
     const r = (mkCss.match(new RegExp(rule.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' \\{[^}]*\\}')) || [''])[0];
     const m = r.match(new RegExp(field + ': *([\\d.]+)rem'));
@@ -1417,8 +1242,7 @@ async function sendImport(object, mode, withoutShare = false) {
     const m = r.match(/font-size: *([\d.]+)rem/);
     return m ? Number(m[1]) : null;
   };
-  /* GENOMMEN WIRD DER body-BLOCK, DER DIE ZEILENHOEHE WIRKLICH SETZT. Im
-     Stylesheet steht `html, body { ... */
+  /* Mehrere Regeln enthalten "body {"; genommen wird die erste mit line-height. */
   const mkLineHeight = (() => {
     for (const b of (mkCss.match(/body \{[^}]*\}/g) || [])) {
       const m = b.match(/line-height: *([\d.]+)/);
@@ -1442,24 +1266,21 @@ async function sendImport(object, mode, withoutShare = false) {
     mkLoginUp !== null && mkLoginBig !== null
       && Math.abs(mkLoginUp - mkLoginBig * mkLineHeight) < 0.011,
     `${mkLoginUp}rem gegen ${(mkLoginBig * mkLineHeight).toFixed(3)}rem`);
-  /* KEINE PIXELHOEHE DANEBEN. Eine zweite Angabe in px schluege die rem-Zeile
-     je nach Reihenfolge und macht die Rechnung darueber wertlos. */
+  /* Eine Hoehe in px daneben ginge je nach Reihenfolge vor und machte die
+     Rechnung darueber wertlos. */
   check('Und keine der beiden traegt daneben eine Hoehe in Pixel',
     !/\.brand \.logo \{[^}]*height: *\d+px/.test(mkCss)
       && !/\.login-brand \.logo \{[^}]*height: *\d+px/.test(mkCss),
     'eine Pixelhoehe steht daneben');
-  /* DIE BREITE FOLGT DEM SEITENVERHAELTNIS. Ohne `width: auto` schluege das
-     Attribut aus dem Markup zu und die Marke waere verzerrt. */
+  /* Ohne width: auto gilt das width-Attribut aus dem Markup, und die Marke wird verzerrt. */
   check('Die Breite folgt dem Seitenverhaeltnis der Datei',
     /\.logo \{[^}]*width: *auto/.test(mkCss),
     (mkCss.match(/\.logo \{[^}]*\}/) || ['(keine Regel)'])[0]);
-  // Und das Markup traegt dasselbe Verhaeltnis, damit nichts springt, bevor
-// das Stylesheet greift.
+  // Damit nichts springt, bevor das Stylesheet geladen ist.
   check('Und das Markup traegt dasselbe Verhaeltnis',
     /width="\$\{Math\.round\(s \* 19 \/ 23\)\}" height="\$\{s\}"/.test(mkApp),
     (mkApp.match(/const MARK =[\s\S]{0,200}/) || [''])[0]);
 
-  /* ---------------------------------------------------------------- */
   group('Schriftgroessen im Stylesheet');
 
   const css = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
@@ -1478,10 +1299,9 @@ async function sendImport(object, mode, withoutShare = false) {
     /\.frow > \.eyebrow *\{ *min-width: *[0-9.]+em/.test(css) &&
     /\.lnum[^}]*min-width: *[0-9.]+em/.test(css));
 
-  /* ---------------------------------------------------------------- */
   group('Die Trefferzeile im Stylesheet');
 
-  /* jsdom RECHNET KEIN CSS. */
+  /* jsdom rechnet kein CSS; geprueft werden die Regeln im Text. */
   const cssTz = css.replace(/\s+/g, ' ');
   const ruleTz = (choice) =>
     (cssTz.match(new RegExp(choice.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' \\{[^}]*\\}')) || [''])[0];
@@ -1506,25 +1326,20 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Die Marke setzt Grund UND Schrift',
     /background:/.test(ruleTz('mark')) && /color:/.test(ruleTz('mark')),
     ruleTz('mark') || '(keine Regel)');
-  /* KEINE NEUE FARBE: Orange ist in dieser Instanz das Signal, und genau das
-     sagt eine Fundstelle. */
+  /* Der Akzent ist die Signalfarbe, und eine Fundstelle ist ein Signal. */
   check('Und beides aus den Farben, die es schon gibt',
     /var\(--accent/.test(ruleTz('mark')) && !/#[0-9a-f]{3,6}/i.test(ruleTz('mark')),
     ruleTz('mark') || '(keine Regel)');
-  /* SIE GILT UEBERALL, WO GESUCHT WURDE, und braucht deshalb keine Klasse:
-     die Marke steht in der Kachel, in der Linkliste und im Kommentartext. */
   check('Die Regel steht genau einmal und nicht je Ort',
     (cssTz.match(/(?:^|[ }])mark \{/g) || []).length === 1,
     `${(cssTz.match(/(?:^|[ }])mark \{/g) || []).length} Regeln`);
 
-  /* ---------------------------------------------------------------- */
   group('Handy und Tablett: die Staffel der Umbruchpunkte');
 
   const indexHtml = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
   const cssEng = css.replace(/\s+/g, ' ');
 
-  /* OHNE viewport-fit=cover IST JEDE ANGABE ZUR AUSSPARUNG EINE TOTE ZEILE:
-     env(safe-area-inset-*) liefert dann in jedem Browser null. */
+  /* Ohne viewport-fit=cover liefert env(safe-area-inset-*) in jedem Browser 0. */
   check('Die Seite bekommt die ganze Flaeche, Aussparung eingeschlossen',
     /<meta name="viewport"[^>]*viewport-fit=cover/.test(indexHtml),
     (indexHtml.match(/<meta name="viewport"[^>]*>/) || ['(keine Zeile)'])[0]);
@@ -1532,14 +1347,12 @@ async function sendImport(object, mode, withoutShare = false) {
     (cssEng.match(/env\(safe-area-inset-/g) || []).length >= 6,
     String((cssEng.match(/env\(safe-area-inset-/g) || []).length));
 
-  /* Die Farbe der Browserleiste ist --bg und keine zweite Wahrheit. */
   const themeColor = (indexHtml.match(/<meta name="theme-color" content="([^"]+)"/) || [])[1];
   const bgColor = (css.match(/--bg: *(#[0-9a-fA-F]+)/) || [])[1];
   check('Die Leiste des Browsers traegt die Farbe der Instanz',
     !!themeColor && !!bgColor && themeColor.toLowerCase() === bgColor.toLowerCase(),
     `${themeColor} gegen ${bgColor}`);
 
-  /* DREI UMBRUCHPUNKTE, MEHR NICHT -- und eine Deckelung dazu. */
   const conditions = (css.match(/@media[^{]+\{/g) || []).join(' ');
   const widths = [...new Set((conditions.match(/max-width: *(\d+)px/g) || [])
     .map(t => Number(t.match(/\d+/)[0])))].sort((a, b) => a - b);
@@ -1550,8 +1363,7 @@ async function sendImport(object, mode, withoutShare = false) {
     /\(max-height: 500px\) and \(max-width: 960px\)/.test(conditions),
     conditions.slice(0, 200));
 
-  /* DIE BEDINGUNG "SCHMALER SCHIRM" STEHT ZWEIMAL -- im Stylesheet und in
-     app.js. */
+  /* NARROW in public/app.js und die Medienregel in style.css muessen gleich lauten. */
   const narrowLiteral = (appSource.match(/const NARROW = '([^']+)'/) || [])[1];
   check('Die Oberflaeche kennt die Bedingung fuer den schmalen Schirm', !!narrowLiteral,
     String(narrowLiteral));
@@ -1559,8 +1371,8 @@ async function sendImport(object, mode, withoutShare = false) {
     !!narrowLiteral && cssEng.includes('@media ' + narrowLiteral + ' {'),
     String(narrowLiteral));
 
-  /* Die Grundstellung der neuen Bauteile MUSS vor den Medienregeln stehen:
-     gleiches Gewicht, spaetere Zeile gewinnt. */
+  /* Gleiche Spezifitaet: die spaetere Regel gewinnt, also Grundstellung vor der
+     Medienregel. */
   const reasonContents = cssEng.indexOf('.mast-rest { display: contents; }');
   const mediaNone = cssEng.indexOf('.mast-rest { display: none;');
   check('Der Behaelter des Menues ist auf dem breiten Schirm nicht da',
@@ -1568,36 +1380,30 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und seine Grundstellung steht VOR der Medienregel',
     reasonContents >= 0 && mediaNone > reasonContents, `${reasonContents} gegen ${mediaNone}`);
 
-  /* Der Kern der Runde: auf dem Telefon ist ein Block kein Kasten mehr,
-     sondern ein Abschnitt. */
   check('Auf dem Telefon verliert der Block seinen Rahmen',
     /\.block \{ background: none; border: 0; border-top: 1px solid var\(--line\); border-radius: 0;/.test(cssEng),
     (cssEng.match(/\.block \{ background: none;[^}]*\}/) || ['(keine Regel)'])[0]);
   check('Und die Karte des Systembereichs ebenso',
     /\.sys-card \{ background: none; border: 0; border-top: 1px solid var\(--line\);/.test(cssEng));
 
-  /* minmax(0, 1fr) und NICHT 1fr. */
+  /* 1fr allein schrumpft nicht unter die Mindestbreite des Inhalts. */
   check('Die Spalte des Systembereichs darf auf null schrumpfen',
     /\.sys-grid \{ grid-template-columns: minmax\(0, 1fr\); gap: 0; \}/.test(cssEng),
     (cssEng.match(/\.sys-grid \{[^}]*\}/g) || []).join(' | '));
 
-  /* Die Groesse der Ziele haengt am ZEIGER und nicht an der Breite: ein
-     Tablett im Querformat ist breit UND wird mit dem Finger bedient. */
+  /* pointer: coarse statt Breite: ein Tablet im Querformat ist breit und wird
+     mit dem Finger bedient. */
   const fingerBlock = (cssEng.match(/@media \(pointer: coarse\) \{.*?\n?/) || [''])[0];
   check('Es gibt einen eigenen Abschnitt fuer den Finger',
     cssEng.includes('@media (pointer: coarse) {'), fingerBlock);
   check('Und der Symbolknopf misst darin 44 Pixel',
     /@media \(pointer: coarse\) \{[^@]*\.icon-btn \{ width: 44px; height: 44px; \}/.test(cssEng));
 
-  /* KEIN HINEINZOOMEN BEIM TIPPEN. */
+  /* Unter 16px zoomt iOS Safari beim Tippen in das Feld. */
   check('Eingabefelder fallen auf dem Finger nicht unter die Zoomgrenze',
     (cssEng.match(/font-size: max\(16px, 1rem\)/g) || []).length >= 2,
     String((cssEng.match(/font-size: max\(16px, 1rem\)/g) || []).length));
-  /* DIESE ZUSAGE IST IN ZWEI ZERFALLEN UND NICHT GEFALLEN -- 0.28.0.
-     Bis 0.27.0 stand hier EINE Zeile, die `.input,
-     .input-sm, .ta, .select, .select-sm` in einem Stueck verlangte. */
-  /* DIE KOMMENTARE MUESSEN WEG, BEVOR DER WAEHLER GELESEN WIRD -- und das ist
-     ein Fund aus dem ersten Lauf dieser Runde. */
+  /* Ohne Kommentare, sonst gehoert ihr Text zum Selektor davor. */
   const cssWithoutProse = css.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\s+/g, ' ');
   const zoomRule = (cssWithoutProse.match(/[^{}]*\{ font-size: max\(16px, 1rem\); \}/g) || []).join(' ');
   check('Die Eingabefelder stehen ausnahmslos in der Zoomregel',
@@ -1608,7 +1414,6 @@ async function sendImport(object, mode, withoutShare = false) {
     && /\.mrow \.mweight-field/.test(zoomRule)
     && /\.test-add input\[type=date\]/.test(zoomRule),
     zoomRule || '(Regel nicht gefunden)');
-  /* UND DAS DATUMSFELD BLEIBT AUSDRUECKLICH DRIN (F16). */
   check('Und das Datumsfeld ist eines von ihnen und kein Auswahlfeld',
     /\.test-add input\[type=date\]/.test(zoomRule)
     && !/input\[type=date\][^,}]*select/.test(zoomRule));
@@ -1617,29 +1422,22 @@ async function sendImport(object, mode, withoutShare = false) {
     && !/\.select-sm\b/.test(zoomRule)
     && !/select\.user-role-sel/.test(zoomRule),
     zoomRule || '(Regel nicht gefunden)');
-  /* UND DER GRUND STEHT IM STILBLATT DANEBEN. Eine Wegnahme ohne Begruendung
-     liest sich beim naechsten Mal wie ein Versehen und wird zurueckgebaut. */
   check('Und der Grund dafuer steht im Stilblatt daneben',
     /<select> NIMMT KEINEN SCHREIBSTRICH|`<select>` nicht hat|oeffnet die Auswahl des Systems/.test(css)
     && /Anlass/.test(css));
-  /* DIE UNTERGRENZE STEHT WEITER IN EINER FUNKTION und nicht als blanke Zahl
-     -- Zusage 20. Eine blanke Pixelzahl waere ein zweites Grundmass neben dem
-     am Wurzelelement, und die Pruefung darueber faellt darauf. */
+  /* 16px als blanke Zahl waere eine zweite feste Schriftgroesse neben html. */
   check('Die Untergrenze steht weiter in einer Funktion und nicht als blanke Zahl',
     /font-size: max\(16px, 1rem\)/.test(cssEng)
     && !/font-size: 16px/.test(cssEng));
 
-  /* ---- Die Dichte am Finger -- 0.28.0, BA 7 ---- ZWEI MASSE IN EINER
-     ZUSAGE, und das ist Absicht: „kleiner als heute" allein waere auch dann
-     gruen, wenn jemand die Pille auf das ZEIGERMASS zurueckstellte -- und
-     genau das soll nicht passieren. */
+  /* ---- Dichte am Finger ---- */
+  /* Zwei Masse, weil "kleiner als vorher" auch mit dem Mass des Zeigers gruen waere. */
   const fingerBlock2 = (cssEng.match(/@media \(pointer: coarse\) \{.*?\n?/) || [''])[0];
   const pillFinger = (cssEng.match(/@media \(pointer: coarse\) \{[^@]*?\.pill \{ padding: (\d+)px (\d+)px; \}/) || [])[1];
   const pillPointer = (cssEng.match(/\.pill \{ padding: (\d+)px/) || [])[1];
   check('Die Pille ist am Finger kleiner als vorher UND groesser als am Zeiger',
     Number(pillFinger) === 7 && Number(pillPointer) === 5,
     `Finger ${pillFinger}px (vorher 10), Zeiger ${pillPointer}px`);
-  /* UND DER UND/ODER-UMSCHALTER MUSS MITGEHEN. */
   const modeFinger = (cssEng.match(/@media \(pointer: coarse\) \{[^@]*?\.pill-mode \{ padding: (\d+)px/) || [])[1];
   check('Und der Und/Oder-Umschalter bleibt am Finger kleiner als die Pille',
     Number(modeFinger) < Number(pillFinger),
@@ -1647,27 +1445,20 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und er bleibt ueber seinem Zeigermass',
     Number(modeFinger) > Number((cssEng.match(/\.pill-mode \{ padding: (\d+)px/) || [])[1]),
     `Finger ${modeFinger}px, Zeiger ${(cssEng.match(/\.pill-mode \{ padding: (\d+)px/) || [])[1]}px`);
-  /* DAS MASS DES SYMBOLKNOPFS BLEIBT UNANGETASTET -- Zusage 17. Es ist die
-     einzige Zahl, die der Finger-Abschnitt ausdruecklich verspricht. */
   check('Und der Symbolknopf hat dabei seine 44 Pixel behalten',
     /@media \(pointer: coarse\) \{[^@]*\.icon-btn \{ width: 44px; height: 44px; \}/.test(cssEng));
 
-  /* ---- Die Meldung weicht der Vergleichsleiste -- 0.28.0, BA 5 ----
-     GEMESSEN IN CHROMIUM am 11. September 2026: die Leiste misst 54 px am
-     Zeiger und 60 am Finger, die Meldung 43; beide sassen unten und deckten
-     einander vollstaendig. */
+  /* Gemessen in Chromium: Vergleichsleiste 54 px am Zeiger, 60 px am Finger,
+     Meldung 43 px; beide stehen unten. */
   check('Die Meldung weicht der Vergleichsleiste',
     /body:has\(\.cmp-bar\) \.toast \{ bottom: calc\(90px \+ env\(safe-area-inset-bottom\)\); \}/.test(cssEng),
     (cssEng.match(/body:has\([^)]*\) \.toast \{[^}]*\}/) || ['(keine Regel)'])[0]);
-  /* UND SIE STEHT HOEHER ALS DIE LEISTE HOCH IST. Eine Zahl, die kleiner waere
-     als die Leiste, verschoebe die Meldung und deckte sie trotzdem zu. */
   const hub = Number((cssEng.match(/body:has\(\.cmp-bar\) \.toast \{ bottom: calc\((\d+)px/) || [])[1]);
   const barBottom = Number((cssEng.match(/\.cmp-bar \{ position: fixed; bottom: (\d+)px/) || [])[1]);
   check('Und der Hub ist groesser als Stand und Hoehe der Leiste zusammen',
     hub > barBottom + 60, `Hub ${hub}px gegen Leiste bei ${barBottom}px plus 60px Hoehe`);
 
-  /* ---- Die Behaelterabfragen -- 0.28.0, BA 3 ---- DAS ERSTE
-     `container-type` DIESES STILBLATTS. */
+  /* ---- Container Queries ---- */
   check('Die Karte des Systembereichs ist ein Behaelter',
     /\.sys-card \{ container-type: inline-size; \}/.test(cssEng));
   check('Und das Stilblatt hat genau zwei Behaelterabfragen',
@@ -1676,8 +1467,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und sechzehn Fensterabfragen -- eine weniger als vor dieser Runde',
     (cssEng.match(/@media /g) || []).length === 16,
     String((cssEng.match(/@media /g) || []).length));
-  /* DIE ZEILE DES PROTOKOLLS WIRD AN DER KARTE GEMESSEN UND NICHT AM FENSTER
-     -- Zusage 9. */
   const behaelter = (css.match(/@container \(max-width: 420px\) \{[\s\S]*?\n\}/) || [''])[0];
   check('Die Zeile des Protokolls fragt die Karte und nicht mehr das Fenster',
     /\.log-row \{ display: grid;/.test(behaelter) && /\.log-time \{ grid-column: 1 \/ -1; \}/.test(behaelter),
@@ -1686,64 +1475,45 @@ async function sendImport(object, mode, withoutShare = false) {
     !/@media[^@]*\.log-row \{ display: grid;/.test(cssEng));
   check('Und die zwei Spalten Formularfelder fragen ebenfalls die Karte',
     /\.vocabulary-grid \{ grid-template-columns: 1fr; \}/.test(behaelter));
-  /* DER BEFEHL AUS BEFUND 3. */
   const command = (css.match(/@container \(max-width: 560px\) \{[\s\S]*?\n\}/) || [''])[0];
   check('Der Befehl bricht um, statt seitlich zu rollen',
     /\.server-row code \{[^}]*overflow-x: visible/.test(command)
     && /white-space: pre-wrap/.test(command),
     command ? '(Behaelterabfrage gefunden)' : '(keine Behaelterabfrage bei 560px)');
-  /* UND VIER REGELN BLEIBEN AUSDRUECKLICH FENSTERABFRAGEN, jede mit ihrem
-     Grund im Stilblatt. */
   check('Das Raster der Karten bleibt eine Fensterfrage',
     /@media \(max-width: 1024px\) \{[^@]*\.sys-grid \{ grid-template-columns: repeat\(auto-fit/.test(cssEng));
   check('Und der Deckel der Listen bleibt eine Frage an die HOEHE',
     /max-height: 62dvh/.test(cssWithoutProse) && !/@container[^@]*62dvh/.test(cssWithoutProse));
 
-  /* Jede Sichtbarkeit, die an :hover haengt, braucht ihr Gegenstueck fuer den
-     Finger. */
+  /* Was nur bei :hover sichtbar wird, braucht eine Regel fuer hover: none. */
   ['.vnav', '.vtools'].forEach(w =>
     check(`Ohne Ueberfahren ist ${w} sichtbar`,
       new RegExp('@media \\(hover: none\\) \\{ ' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' \\{ opacity: 1; \\} \\}').test(cssEng),
       cssEng.slice(Math.max(0, cssEng.indexOf(w)), cssEng.indexOf(w) + 80)));
 
-  /* UND EINE, DIE IN DIE ANDERE RICHTUNG ZEIGT. */
   check('Auf dem Finger traegt die Vorschaukachel kein Kreuz mehr',
     /@media \(hover: none\) \{ \.thumb \.del \{ display: none; \} \}/.test(cssEng),
     (cssEng.match(/@media \(hover: none\) \{ \.thumb \.del[^}]*\}/) || ['(keine Regel)'])[0]);
   check('Am Zeigegeraet bleibt es beim Ueberfahren',
     /\.thumb:hover \.del \{ opacity: 1; \}/.test(cssEng));
-  /* UND EINE DRITTE, DIE DEN UNTERSCHIED FESTHAELT, AUF DEN ES ANKOMMT:
-     `display: none` und nicht `opacity: 0`. */
+  /* Mit opacity: 0 bliebe das Kreuz antippbar. */
   check('Und zwar herausgenommen, nicht nur unsichtbar gemacht',
     !/@media \(hover: none\) \{ \.thumb \.del \{ (opacity|visibility)/.test(cssEng),
     (cssEng.match(/@media \(hover: none\) \{ \.thumb \.del[^}]*\}/) || ['(keine Regel)'])[0]);
 
-  /* ---- DIE VORSCHAUREIHE FUELLT AUF DEM TELEFON DIE BREITE ---- 62 Pixel
-     feste Kachelbreite in einem umbrechenden Kasten heisst: die Spaltenzahl
-     ist eine Treppe ueber der Fensterbreite, und was nicht mehr hineinpasst,
-     bleibt als Streifen rechts liegen. */
-  /* UMGEDREHT MIT 0.22.0 UND NICHT GELOESCHT: das Raster
-     gilt seither auf ALLEN Schirmen, und die Mindestkante kommt aus der
-     Einstellung `--tile-min` (E11) statt aus festen 60 Pixeln. */
+  /* Feste Kachelbreiten lassen rechts einen leeren Streifen; das Raster fuellt die Zeile. */
   const tileGrid = (cssEng.match(/\.thumbs \{ display: grid;[^}]*\}/) || [''])[0];
   check('Der Bildstreifen steht auf allen Schirmen als Raster — 0.22.0',
     /grid-template-columns: repeat\(auto-fill, minmax\(var\(--tile-min\), 1fr\)\);/.test(tileGrid),
     tileGrid || '(keine Rasterregel)');
-  /* auto-fit STATT auto-fill WAERE DER STILLE FEHLER: mit genug Kacheln sehen
-     die beiden gleich aus, und bei WENIGEN klappt auto-fit die leeren Spalten
-     zusammen -- ein Eintrag mit zwei Fotos bekaeme zwei Kacheln von 180
-     Pixeln. */
+  /* auto-fit sieht mit vielen Kacheln gleich aus, klappt bei wenigen aber die
+     leeren Spalten zusammen: zwei Fotos bekaemen je 180 Pixel. */
   check('Und zwar mit auto-fill, das die leeren Spalten offenhaelt',
     !!tileGrid && !/auto-fit/.test(tileGrid), tileGrid);
-  /* Sobald die Breite gerechnet wird, MUSS die Hoehe ihr folgen -- sonst
-     stuende an der Kachel eine feste Hoehe von 62 neben einer Breite von 72,
-     und aus dem Quadrat wuerde ein liegendes Rechteck. */
+  /* Eine feste Hoehe neben der gerechneten Breite machte die Kachel zum Rechteck. */
   check('Und die Kachel gibt dafuer ihre festen Masse ab und bleibt quadratisch',
     /\.thumb \{ width: auto; height: auto; aspect-ratio: 1\/1;/.test(cssEng),
     (cssEng.match(/\.thumb \{ width: auto[^}]*\}/) || ['(keine Regel)'])[0]);
-  /* DIE GRUNDREGEL BLEIBT, WIE SIE WAR, und das ist die Gegenrichtung: am
-     Schreibtisch aendert sich nichts, und das haengt daran, dass die 62 Pixel
-     dort unangetastet stehen. */
   check('Am Schreibtisch gibt es keine festen 62 Pixel mehr — die Kante kommt aus --tile-min (0.22.0)',
     !/\.thumb \{ width: 62px/.test(cssEng) && /--tile-min: 80px;/.test(cssEng),
     (cssEng.match(/\.thumb \{ width: 62px[^;]*;[^;]*;/) || ['(keine feste Kante — richtig)'])[0]);
@@ -1751,36 +1521,28 @@ async function sendImport(object, mode, withoutShare = false) {
     !/@media[^{]*\{[^@]*\.thumbs \{ display: grid/.test(cssEng.slice(cssEng.indexOf('@media (max-width: 700px)'))),
     'das Raster steht doppelt');
 
-  /* Der Papierkorb am grossen Bild ist der Weg, den das Kreuz freigemacht
-     hat. */
+  /* Ersatz fuer das Kreuz, das am Finger fehlt. */
   check('Am Bildbereich gibt es einen Papierkorb',
     /\.vremove \{ margin-left: 14px; \}/.test(cssEng),
     (cssEng.match(/\.vremove[^{]*\{[^}]*\}/g) || ['(keine Regel)'])[0]);
-  /* Die Reihe macht die ausgerechnete Zahl ueberfluessig, an der sich die
-     beiden Knoepfe bei grosser Schrift uebereinandergeschoben haben. */
+  /* Mit right: 92px schieben sich die Knoepfe bei grosser Schrift uebereinander. */
   check('Und der Vollbildknopf haengt nicht mehr an einer ausgerechneten Breite',
     !/right: 92px/.test(cssEng), (cssEng.match(/[^;{]*right: 92px[^;}]*/) || [''])[0]);
 
-  /* Was sich beim Ueberfahren BEWEGT, bleibt auf dem Finger haengen: ein Tipp
-     setzt :hover, und niemand nimmt ihn wieder weg. */
+  /* Am Finger setzt ein Tipp :hover, und nichts nimmt es wieder weg. */
   check('Der angehobene Zustand der Karte bleibt auf dem Finger nicht haengen',
     /@media \(hover: none\) \{ \.card:hover \{ transform: none;/.test(cssEng),
     (cssEng.match(/@media \(hover: none\) \{ \.card:hover[^}]*\}/) || ['(keine Regel)'])[0]);
 
-  /* Die Vergleichsleiste stand mittig ueber `transform: translateX(-50%)` --
-     und daneben `animation: rise ... */
+  /* Die Animation rise setzt transform und hebt ein translateX(-50%) auf. */
   const bar = (cssEng.match(/\.cmp-bar \{[^}]*\}/) || [''])[0];
   check('Die Vergleichsleiste steht wirklich mittig',
     /margin: 0 auto/.test(bar) && !/transform: translateX/.test(bar), bar);
 
-  /* ---------------------------------------------------------------- */
   group('Die gemeinsame Kopfzeile und das Blaettern — 0.28.0');
 
-  /* DIE VIER UNTERANSICHTEN WERDEN EINZELN GEPRUEFT UND NICHT
-     STELLVERTRETEND. */
-  /* UND DER SCHNITT NIMMT DIE KOMMENTARE HERAUS -- fuenfmal in dieser Runde
-     ist eine Zusage daran gescheitert, dass der Absatz UEBER einer Zeile
-     genau das Wort nennt, das die Zusage darin NICHT sehen will. */
+  /* Ohne Kommentare: ein Kommentar ueber einer Zeile nennt oft genau das Wort,
+     das die Pruefung nicht sehen will. */
   const piece = (fromLine, until) => {
     const a = appSource.indexOf(fromLine);
     if (a < 0) return '';
@@ -1802,23 +1564,17 @@ async function sendImport(object, mode, withoutShare = false) {
     check(`${name}: die alte Rueckzeile ist weg`,
       !/class="back"/.test(pieceText));
   }
-  /* UND DER FUENFTE: der Fehlerweg des Eintrags. */
   check('Auch der Fehlerweg des Eintrags traegt sie',
     /server\.entryUnknown[\s\S]{0,80}<\/div>`;\n      wireSubhead/.test(appSource)
     || /\$\{subhead\(\)\}<p class="hint">\$\{tH\('server\.entryUnknown'\)\}/.test(appSource));
-  /* GEZAEHLT WIRD IM AUFBAU UND NICHT IN DEN ERKLAERUNGEN. */
   const appWithoutProse = appSource.replace(/\/\*[\s\S]*?\*\//g, ' ');
   check('Und die Klasse `back` steht nirgends mehr im Aufbau',
     (appWithoutProse.match(/class="back"/g) || []).length === 0,
     String((appWithoutProse.match(/class="back"/g) || []).length));
-  /* DER SATZ BLEIBT. Die Zeile ist gefallen, nicht ihr Wortlaut -- der Knopf
-     traegt ihn weiter als Titel. */
   check('Der Satz `list.backToList` lebt weiter und traegt den Knopf',
     /class="icon-btn sub-back" title="\$\{esc\(t\('list\.backToList'\)\)\}/.test(appSource));
 
-  /* ---- Zusage 2: WAS sie traegt, namentlich und nicht gezaehlt ---- EINE
-     ZUSAGE, DIE NUR ZAEHLT, SIEHT KEINEN TAUSCH: „sechs Dinge" bliebe gruen,
-     wenn jemand das Suchfeld gegen die Glocke tauscht. */
+  /* Namentlich statt gezaehlt: eine Zahl bemerkt keinen Tausch zweier Elemente. */
   const headCode = piece('function subhead(', '\nfunction wireSubhead(');
   check('Sie traegt Zurueck, Marke, Suchfeld und Menue -- jedes namentlich',
     /class="icon-btn sub-back"/.test(headCode)
@@ -1826,31 +1582,23 @@ async function sendImport(object, mode, withoutShare = false) {
     && /<h1>\$\{esc\(TITLE_APP\)\}<\/h1>/.test(headCode)
     && /class="search-box"/.test(headCode) && /id="sub-q"/.test(headCode)
     && /class="icon-btn mast-menu" id="menu"/.test(headCode));
-  /* UND SIE TRAEGT KEINE BLAETTERPFEILE MEHR -- 0.28.1, und die Zusage hat
-     sich dabei UMGEDREHT statt zu verschwinden. */
   check('Und KEINE Blaetterpfeile -- die stehen seit 0.28.1 am Fuss des Eintrags',
     !/ICON_STEP_BACK/.test(headCode) && !/ICON_STEP_FWD/.test(headCode)
     && !/class="icon-btn step"/.test(headCode));
-  /* WAS SIE AUSDRUECKLICH NICHT TRAEGT (F1), und jedes einzeln: der Zaehler
-     zaehlt die Uebersicht, „+ Eintrag" gehoert dorthin, wo man anlegt, und
-     die Glocke ist eine Auskunft ueber den Bestand. */
   check('Sie traegt KEINEN Zaehler', !/class="count"/.test(headCode));
   check('Sie traegt KEIN „+ Eintrag"', !/id="new"/.test(headCode) && !/V\.entryOne/.test(headCode));
   check('Sie traegt KEINE Glocke', !/id="bell"/.test(headCode) && !/ICON_BELL/.test(headCode));
-  /* UND SIE IST DIESELBE KOPFZEILE WIE IN DER UEBERSICHT und keine zweite. */
   check('Sie ist dieselbe Kopfzeile wie die der Uebersicht',
     /class="masthead subhead"/.test(headCode));
   check('Und das Menue klappt auf dem Telefon nach derselben Regel ein',
     /class="mast-rest" id="mast-rest"/.test(headCode));
 
-  /* ---- Zusage 3: die Suche springt zur Uebersicht ---- */
-  const draht = piece('function wireSubhead(', '\n/* Gesetzt von der Tuer');
+  /* ---- Suche in der Kopfzeile ---- */
+  const draht = piece('function wireSubhead(', '\n}\n');
   check('Die Suche darin springt zur Uebersicht und sucht nicht in der Ansicht',
     /SEARCH_HANDOFF = true; location\.hash = '#\/';/.test(draht)
     && !/api\('GET', '\/api\/items\?/.test(draht));
-  /* ---- UND SIE STEHT NICHT MEHR UEBERALL -- 0.28.1 ---- IM SYSTEMBEREICH
-     AUF KEINEM GERAET: ein Feld ueber den Einstellungen verspricht, IN den
-     Einstellungen zu suchen, und sprang in den Bestand. */
+  /* Ein Suchfeld ueber den Einstellungen versprache eine Suche in den Einstellungen. */
   check('Der Systembereich traegt auf KEINEM Geraet ein Suchfeld',
     /\$\{subhead\(\{ searchBox: false \}\)\}/.test(appWithoutProse));
   check('Und das Feld steht nur da, wo die Ansicht es zulaesst',
@@ -1862,33 +1610,27 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und die Marke gilt fuer genau einen Sprung',
     /SEARCH_HANDOFF = false;/.test(appSource));
 
-  /* ---- Zusage 4 bis 6: die Reihenfolge ---- */
-  const nachbarn = piece('const entryNeighbours =', '\n/* DIE ZWEI KNOEPFE AM FUSS');
+  /* ---- Blaettern ---- */
+  const nachbarn = piece('const entryNeighbours =', '\n};\n');
   check('Die Pfeile blaettern in der Reihenfolge der Uebersicht',
     /state\.items \|\| \[\]/.test(nachbarn));
   check('Und nicht im ungefilterten Bestand',
     !/state\.all\b/.test(nachbarn));
   check('Ohne Reihenfolge gibt es keine Nachbarn -- beide gedaempft',
     /if \(at < 0\) return \{ prev: null, next: null \};/.test(nachbarn));
-  /* UND KEIN FELD DANEBEN, DAS NIEMAND LIEST. */
   check('Und kein Feld daneben, das niemand liest',
     !/ordered/.test(nachbarn));
-  /* DER FUSS DES EINTRAGS -- seit 0.28.1 der Ort der beiden Knoepfe. */
-  const foot = piece('function entryNav(id) {', '\n/* Der Aufbau.');
+  const foot = piece('function entryNav(id) {', '\n}\n');
   check('Am Anfang und am Ende sind sie gedaempft und bleiben stehen',
     /at > 0 \? list\[at - 1\]\.id : null/.test(nachbarn)
     && /at < list\.length - 1 \? list\[at \+ 1\]\.id : null/.test(nachbarn)
     && /target == null \? 'disabled' : ''/.test(foot));
-  /* SIE VERSCHWINDEN NICHT. */
   check('Und sie verschwinden nicht, sondern werden gedaempft',
     /\.entry-nav \.step:disabled \{ opacity: \.38; cursor: default; \}/.test(cssEng));
-  /* UND SIE STEHEN AM FUSS UND NICHT IN DER KOPFZEILE -- die Zusage, die
-     0.28.1 umdreht. */
   check('Und sie stehen am FUSS des Eintrags, in einer eigenen Reihe',
     /<div class="entry-nav">/.test(foot)
     && /\.entry-nav \{ display: flex; justify-content: space-between;/.test(cssEng));
-  /* KURZ AUF DEM KNOPF, VOLLSTAENDIG IM TITEL -- ein Befund aus dem Augenschein:
-     mit dem vollen Satz lief der zweite Knopf am Telefon aus dem Schirm. */
+  /* Mit dem vollen Satz laeuft der zweite Knopf am Telefon aus dem Bild. */
   check('Der Knopf traegt das kurze Wort und den vollen Satz im Titel',
     /title="\$\{esc\(t\(hint\)\)\}"/.test(foot)
     && /list\.prevHint/.test(foot) && /list\.nextHint/.test(foot));
@@ -1898,10 +1640,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und der Begriff faehrt beim Blaettern in der Adresse mit',
     /location\.hash = entryAddress\(\+to, term\)/.test(appWithoutProse));
 
-  /* ---- Zusage 7: KEINE Taste blaettert den Eintrag ---- DER BETREIBER HAT
-     `Bild auf`/`Bild ab` AM 11. SEPTEMBER 2026 GESTRICHEN: bei langen
-     Kommentaren wird `Bild ab` zum Rollen gebraucht, und der Eintrag ist die
-     Ansicht mit dem laengsten Inhalt. */
+  /* Bild auf/ab wird bei langen Kommentaren zum Rollen gebraucht. */
   check('Keine Taste blaettert den Eintrag -- weder Bild auf/ab noch die Pfeile',
     !/PageUp|PageDown/.test(appSource));
   check('Und die Pfeiltasten bleiben bei den Bildern',
@@ -1909,12 +1648,10 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Der Wechsel des Eintrags haengt am Klick und nicht an einer Taste',
     /b\.onclick = \(\) => \{[\s\S]{0,160}location\.hash = entryAddress/.test(appWithoutProse)
     && !/keydown[\s\S]{0,200}entryAddress/.test(appWithoutProse));
-  /* ---- Zusage 8: keine Wischgeste ---- */
   check('Es ist keine Wischgeste zum Blaettern angehaengt',
     !/touchstart[\s\S]{0,300}entryAddress/.test(appSource)
     && !new RegExp('swipe', 'i').test(draht));
 
-  /* ---- Zusage 10: der Halbsatz am Ablegefeld, in allen drei Sprachen ---- */
   for (const langCode of ['de', 'en', 'tr']) {
     const langWords = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'languages', langCode + '.json'), 'utf8'));
     check(`Der Satz am Ablegefeld gilt am Telefon (${langCode})`,
@@ -1927,14 +1664,10 @@ async function sendImport(object, mode, withoutShare = false) {
       `${langWords['list.prevInList']} / ${langWords['list.nextInList']}`);
   }
 
-  /* ---------------------------------------------------------------- */
   group('Das Startbildzeichen — 0.28.0');
 
-  /* GEFRAGT WIRD DER LAUFENDE SERVER UND NICHT DER QUELLTEXT. Eine Route, die
-     im Quelltext steht und beim Rufen 404 liefert, ist keine Route. */
   {
     const titlesBefore = (await call('GET', '/api/titles')).content;
-    /* ZUERST OHNE ANMELDUNG -- und das ist die eigentliche Zusage. */
     const keptCookie = H.cookie; H.cookie = '';
     const without = await call('GET', '/api/manifest.json');
     H.cookie = keptCookie;
@@ -1942,7 +1675,6 @@ async function sendImport(object, mode, withoutShare = false) {
       without.status === 200 && without.content && typeof without.content.name === 'string',
       `Status ${without.status}`);
 
-    /* UND ER TRAEGT DEN TITEL DIESER INSTALLATION. */
     const probe = 'Werkstatt Nord ' + Math.random().toString(36).slice(2, 7);
     await callF('PUT', '/api/titles', { publicTitle: probe, appTitle: probe + ' intern' });
     const manifestAfter = await call('GET', '/api/manifest.json');
@@ -1953,9 +1685,8 @@ async function sendImport(object, mode, withoutShare = false) {
       manifestAfter.content && manifestAfter.content.name === probe
       && manifestAfter.content.name !== probe + ' intern',
       `ist: ${manifestAfter.content && manifestAfter.content.name}`);
-    /* WAS EIN STARTBILDZEICHEN BRAUCHT, und jedes Stueck einzeln: ohne
-       `start_url` oeffnet die Kachel irgendwo, ohne `display: standalone` ist
-       sie ein huebscheres Lesezeichen, ohne Zeichen ist sie grau. */
+    /* Ohne start_url oeffnet das Startbildzeichen irgendwo, ohne standalone ist
+       es nur ein Lesezeichen. */
     const m = manifestAfter.content || {};
     check('Er nennt Startadresse, Geltungsbereich und Darstellungsart',
       m.start_url === '/' && m.scope === '/' && m.display === 'standalone',
@@ -1964,10 +1695,8 @@ async function sendImport(object, mode, withoutShare = false) {
       Array.isArray(m.icons) && m.icons.length === 1
       && m.icons[0].src === '/favicon.svg' && m.icons[0].type === 'image/svg+xml',
       JSON.stringify(m.icons));
-    /* DIE FARBE IST DAS DUNKLE --bg UND EINE ABSCHRIFT. */
     const headHtml = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
     const themeMeta = (headHtml.match(/<meta name="theme-color" content="([^"]+)"/) || [])[1];
-    /* UND SIE SETZT IHREN TYP NICHT SELBST. */
     check('Und sie setzt den ausgelieferten Typ nicht selbst',
       !/res\.type\(/.test(fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')
         .replace(/\/\*[\s\S]*?\*\//g, ' ')));
@@ -1976,44 +1705,31 @@ async function sendImport(object, mode, withoutShare = false) {
       `Manifest ${m.theme_color} / ${m.background_color}, index.html ${themeMeta}`);
     check('Die Seite verweist auf das Manifest',
       /<link rel="manifest" href="\/api\/manifest\.json">/.test(headHtml));
-    /* UND OHNE crossorigin: der Browser holt das Manifest ohne Anmeldedaten,
-       und die Route ist genau deshalb offen. */
+    /* Der Browser holt das Manifest ohne Anmeldedaten; deshalb ist die Route offen. */
     check('Und zwar ohne use-credentials',
       !/rel="manifest"[^>]*crossorigin/.test(headHtml));
 
-    /* KEIN ARBEITER IM HINTERGRUND, KEIN ZWISCHENSPEICHER -- am Quelltext
-       geprueft, im GANZEN Auslieferungsverzeichnis und nicht nur in app.js. */
     const shipped = fs.readdirSync(path.join(__dirname, 'public'), { recursive: true })
       .filter(f => /\.(js|html|json)$/.test(String(f)))
       .map(f => fs.readFileSync(path.join(__dirname, 'public', String(f)), 'utf8')).join('\n');
     check('Kein Arbeiter im Hintergrund und kein Zwischenspeicher',
       !/serviceWorker|ServiceWorker|caches\.open|workbox/.test(shipped + fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')));
 
-    /* UND DIE ZAHL, DIE NICHT WAECHST. `F_ROUTES` fuehrt die SCHREIBENDEN
-       Routen; die Manifestroute ist lesend und steht dort nicht. */
+    /* F_ROUTES fuehrt nur schreibende Routen. */
     const serverCode = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
     check('Die neue Route ist lesend und waechst F_ROUTES nicht',
       /app\.get\('\/api\/manifest\.json'/.test(serverCode)
       && !/app\.(post|put|delete)\('\/api\/manifest\.json'/.test(serverCode));
-    /* 31 -> 30 mit 0.35.0: GET /api/health ist gefallen. Die Route stand
-       hinter app.use('/api', auth.requireAuth) und antwortete ohne
-       Sitzungscookie mit 401; der Container fragt /api/config. */
-    /* 30 -> 29 mit 0.35.2: GET /api/items/:id/export ist gefallen. Die Route
-       hatte 26 Runden lang keinen Rufer in der Oberflaeche. */
-    /* 29 -> 30: GET /api/comment-refs holt Titel und Stellung, auf die ein
-       Verweis zeigt. Lesend, also waechst F_ROUTES auch damit nicht. */
-    // 30 -> 31: GET /api/comment-videos/:id/raw liefert ein Kommentarvideo.
     check('Und die Zahl der lesenden Routen steht',
       (serverCode.match(/^app\.get\('/gm) || []).length === 31,
       String((serverCode.match(/^app\.get\('/gm) || []).length));
 
-    // Den Titel zurueckstellen -- die Pruefungen danach rechnen mit dem alten.
+    // Die Pruefungen danach rechnen mit dem alten Titel.
     if (titlesBefore && titlesBefore.publicTitle)
       await callF('PUT', '/api/titles',
         { publicTitle: titlesBefore.publicTitle, appTitle: titlesBefore.appTitle });
   }
 
-  /* ---------------------------------------------------------------- */
   group('Einstellungen: Vokabular und Schriftgroesse');
 
   const fallback = (await call('GET', '/api/settings')).content;
@@ -2021,11 +1737,6 @@ async function sendImport(object, mode, withoutShare = false) {
     fallback.vocabulary.entryOne === 'Eintrag' && fallback.vocabulary.dayMany === 'Testtage',
     JSON.stringify(fallback.vocabulary));
   check('Vorgabe der Schriftgroesse ist 100', fallback.font === 100);
-  /* Die Liste steht seit 0.22.0 bei VIERZEHN Woertern -- `ratingOne` und
-     `ratingMany` sind dazugekommen (E14), das Paar fuer den zweiten
-     Sternkasten; 0.21.0 hatte ihn bewusst ausgelassen, und die Schieflage
-     (das eine Kastenwort umbenennbar, das andere nicht) war bei jedem
-     Umbenennen sichtbar. */
   check('Das Vokabular hat fuenfzehn Woerter, nicht mehr — 0.32.0',
     Object.keys(fallback.vocabulary).length === 15,
     `${Object.keys(fallback.vocabulary).length}: ${Object.keys(fallback.vocabulary).join(', ')}`);
@@ -2052,9 +1763,8 @@ async function sendImport(object, mode, withoutShare = false) {
   const long = await call('PUT', '/api/settings', { vocabulary: { entryOne: 'x'.repeat(120) } });
   check('Ueberlanges Wort wird gekuerzt', long.content.vocabulary.entryOne.length === 40);
 
-  // Geprueft wird am SERVER, nicht gegen die clientseitige Vorgabe: ein Wort,
-  // das der Server nicht kennt, taucht in der Karte trotzdem auf, laesst sich
-  // aber nicht speichern -- und nur diese Pruefung saehe es.
+  // Am Server: ein Wort, das nur die Oberflaeche kennt, erscheint in der Karte,
+  // laesst sich aber nicht speichern.
   check('Der Server kennt alle fuenfzehn Vokabeln',
     ['entryOne', 'entryMany', 'testedYes', 'testedNo',
      'dayOne', 'dayMany', 'reportOne', 'reportMany',
@@ -2062,7 +1772,6 @@ async function sendImport(object, mode, withoutShare = false) {
      'potential', 'ratingOne', 'ratingMany', 'grade'].every(k => k in fallback.vocabulary) &&
     Object.keys(fallback.vocabulary).length === 15,
     JSON.stringify(Object.keys(fallback.vocabulary)));
-  /* UND DAS ZWOELFTE LAESST SICH SETZEN -- 0.21.0. */
   check('Und das Wort fuer den Potenzialkasten laesst sich setzen',
     (await call('PUT', '/api/settings', { vocabulary: { potential: ' Erwartung ' } }))
       .content.vocabulary.potential === 'Erwartung');
@@ -2070,9 +1779,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und ein leeres Feld faellt auf die Vorgabe zurueck',
     (await call('GET', '/api/settings')).content.vocabulary.potential === 'Potenzial',
     JSON.stringify((await call('GET', '/api/settings')).content.vocabulary.potential));
-  /* DAS PAAR FUER DIE BEWERTUNG LAESST SICH SETZEN -- 0.22.0 (E14), beide
-     Haelften, und das leere Feld faellt wie bei jedem anderen Wort auf die
-     Vorgabe zurueck. */
   const bwSet = await call('PUT', '/api/settings', { vocabulary: {
     ratingOne: ' Urteil ', ratingMany: 'Urteile' } });
   check('Das Paar fuer die Bewertung laesst sich setzen — 0.22.0',
@@ -2114,10 +1820,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Filterwahl bleibt daneben bestehen',
     (await call('PUT', '/api/settings', { filters: { sort: 'title_asc' } })).content.font === 120);
 
-  /* ---------------------------------------------------------------- */
   group('Die Einstellung streifen — 0.22.0');
-  /* DIESELBE MASCHINE WIE `font` (E11): persoenlich je Zugang, ein Wert fuer
-     alle Geraete, fuenf Stufen, Rueckfall auf die Vorgabe. */
   check('Die Vorgabe des Bildstreifens ist 80',
     (await call('GET', '/api/settings')).content.strip === 80,
     JSON.stringify((await call('GET', '/api/settings')).content.strip));
@@ -2135,15 +1838,13 @@ async function sendImport(object, mode, withoutShare = false) {
     (await call('GET', '/api/settings')).content.strip === 120);
   check('Die Schrift daneben bleibt unberuehrt',
     (await call('GET', '/api/settings')).content.font === 120);
-  /* ALLE FUENF STUFEN, UND KEINE DAZWISCHEN -- die Liste ausdruecklich, wie
-     bei der Schrift. */
   let stripAll = true;
   for (const s of [60, 80, 100, 120, 150])
     if ((await call('PUT', '/api/settings', { strip: s })).content?.strip !== s) stripAll = false;
   check('Alle fuenf Stufen 60, 80, 100, 120 und 150 gehen durch', stripAll);
   await call('PUT', '/api/settings', { strip: 80 });
 
-  /* DAS FARBSCHEMA -- 0.23.0. */
+  /* ---- Farbschema ---- */
   check('Die Vorgabe des Farbschemas ist dunkel',
     (await call('GET', '/api/settings')).content.theme === 'dark',
     JSON.stringify((await call('GET', '/api/settings')).content.theme));
@@ -2159,20 +1860,15 @@ async function sendImport(object, mode, withoutShare = false) {
     (await call('GET', '/api/settings')).content.theme === 'light');
   check('Der Bildstreifen daneben bleibt unberuehrt',
     (await call('GET', '/api/settings')).content.strip === 80);
-  /* ALLE DREI STUFEN, UND KEINE DAZWISCHEN. */
   let themeAll = true;
   for (const s of ['light', 'dark', 'device'])
     if ((await call('PUT', '/api/settings', { theme: s })).content?.theme !== s) themeAll = false;
   check('Alle drei Stufen hell, dunkel und geraet gehen durch', themeAll);
   await call('PUT', '/api/settings', { theme: 'dark' });
 
-  /* ---------------------------------------------------------------- */
   group('Eine Absage von PUT /api/settings schreibt nichts');
-  /* Die Route schrieb, bis die Absage kam: ein Rumpf mit `{font: 80,
-     strip: 999}` schrieb `font` und antwortete dann mit 400. Sie laeuft
-     jetzt als Ganzes in einer Transaktion.
-     GEPRUEFT WIRD ENTLANG DER REIHENFOLGE IM RUMPF: geschrieben wird immer
-     das, was VOR der Absage steht -- sonst belegte die Gruppe nichts. */
+  /* Jeder Fall setzt einen gueltigen Wert vor den ungueltigen, in der Reihenfolge,
+     in der die Route schreibt; sonst belegt er nichts. */
   await call('PUT', '/api/settings', { font: 120, strip: 80, theme: 'dark' });
   const noWriteStart = (await call('GET', '/api/settings')).content;
   check('Der Ausgangsstand steht: Schrift 120, Streifen 80, Schema dunkel',
@@ -2201,9 +1897,7 @@ async function sendImport(object, mode, withoutShare = false) {
     (await call('GET', '/api/settings')).content.theme === 'dark',
     JSON.stringify((await call('GET', '/api/settings')).content.theme));
 
-  /* Der leere Suchvorrat ist die Absage hinter ALLEN persoenlichen
-     Schreibstellen -- Schrift, Streifen, Schema, Bloecke, Linkzeilen,
-     Zeitleiste und Merkzeitpunkt stehen davor. */
+  /* Der Suchvorrat wird nach allen anderen persoenlichen Werten geprueft. */
   const noWritePool = await call('PUT', '/api/settings', { font: 80, searchOn: [] });
   check('Gueltige Schrift und leerer Suchvorrat: abgewiesen',
     noWritePool.status === 400, `${noWritePool.status}`);
@@ -2211,8 +1905,7 @@ async function sendImport(object, mode, withoutShare = false) {
     (await call('GET', '/api/settings')).content.font === 120,
     JSON.stringify((await call('GET', '/api/settings')).content.font));
 
-  /* DIE GLOBALE HAELFTE: das Vokabular steht in der Tabelle settings und
-     nicht am Zugang -- es wird vor den fuenf Stufen geschrieben. */
+  /* Das Vokabular liegt in der Tabelle settings und wird vor den Stufen geschrieben. */
   const noWriteVocabularyBefore = (await call('GET', '/api/settings')).content.vocabulary;
   const noWriteVocabulary = await call('PUT', '/api/settings',
     { vocabulary: { entryOne: 'Absageprobe' }, font: 999 });
@@ -2223,9 +1916,7 @@ async function sendImport(object, mode, withoutShare = false) {
       === JSON.stringify(noWriteVocabularyBefore),
     JSON.stringify((await call('GET', '/api/settings')).content.vocabulary));
 
-  /* DIE GEGENPROBE: derselbe Rumpf mit gueltigen Werten geht durch. Ohne sie
-     waere die Gruppe auch dann gruen, wenn die Route gar nichts mehr
-     schriebe. */
+  /* Sonst waere die Gruppe auch gruen, wenn die Route gar nichts schriebe. */
   const noWriteGood = await call('PUT', '/api/settings', { font: 80, strip: 120 });
   check('Derselbe Rumpf mit zwei gueltigen Werten geht durch und schreibt beide',
     noWriteGood.status === 200 && noWriteGood.content.font === 80
@@ -2237,7 +1928,6 @@ async function sendImport(object, mode, withoutShare = false) {
     noWriteBack.font === 120 && noWriteBack.strip === 80 && noWriteBack.theme === 'dark',
     JSON.stringify([noWriteBack.font, noWriteBack.strip, noWriteBack.theme]));
 
-  /* ---------------------------------------------------------------- */
   group('Vokabular in den Servermeldungen');
 
   await call('PUT', '/api/settings', { vocabulary: {
@@ -2267,7 +1957,6 @@ async function sendImport(object, mode, withoutShare = false) {
     !JSON.stringify(outVok.content).includes('Maschine') && 'testDays' in outVok.content.items[0]);
   await call('DELETE', `/api/items/${object.id}`);
 
-  /* ---------------------------------------------------------------- */
   group('Tags an Testtagen');
 
   const tt = (await call('POST', '/api/items', { title: 'Tagprobe' })).content;
@@ -2312,8 +2001,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Übersicht liefert die Testtage selbst, nicht nur die Anzahl',
     Array.isArray(searchable.testDays) && searchable.testDays[0].day === '2026-07-01');
   await call('POST', `/api/test-days/${tag1.id}/tags`, { name: 'Nurhier' });
-  /* SEIT 0.11.0 SUCHT DER SERVER. Bis 0.10.0 stand hier eine Frage an das
-     Feld `searchText` der Listenantwort; das Feld gibt es nicht mehr. */
   const suchbar2 = (await call('GET', '/api/items?q=nurhier')).content;
   check('Suche findet Tags, die nur am Testtag hängen',
     suchbar2.some(i => i.id === tt.id),
@@ -2328,14 +2015,11 @@ async function sendImport(object, mode, withoutShare = false) {
 
   const outT = await callF('GET', '/api/export?photos=0');
   const outTag = outT.content.items.find(i => i.title === 'Tagprobe');
-  // Am Datum festmachen, nicht am Listenplatz: die Reihenfolge im Export
-// haengt an den Daten, nicht an der Reihenfolge des Eintragens.
+  // Am Datum festmachen: die Reihenfolge im Export haengt an den Daten.
   const outTagJuly = outTag.testDays.find(d => d.day === '2026-07-01');
   check('Export nimmt die Tags am Testtag mit',
     equal(outTagJuly.tags, ['Regen']), JSON.stringify(outTagJuly));
 
-  // Testtag loeschen: die Verknuepfung muss mitgehen, sonst zaehlt der Tag
-// weiter Verwendungen, die es nicht mehr gibt.
   await call('DELETE', `/api/test-days/${tag1.id}`);
   const afterRemove = (await call('GET', '/api/tags')).content.find(t => t.name === 'Regen');
   check('Gelöschter Testtag nimmt seine Tagverknüpfung mit',
@@ -2357,7 +2041,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Testtag ohne Tagfeld bleibt leer', withoutTags.tags.length === 0);
   await call('DELETE', `/api/items/${importedT.id}`);
 
-  /* ---------------------------------------------------------------- */
   group('Versionsnummer, Linkzeilen, Zeitleiste');
 
   const cfg = await (await fetch(`${BASE}/api/config`)).json();
@@ -2367,20 +2050,14 @@ async function sendImport(object, mode, withoutShare = false) {
     String(cfg.version).startsWith('0.'));
   check('Sie stimmt mit der package.json überein',
     cfg.version === require('./package.json').version);
-  // Die Liste ist bewusst abgeschlossen: was hier auftaucht, sieht jeder, der
-  // die Adresse kennt.
-  /* FUENF NAMEN SEIT 0.9.1: registrierung kommt dazu -- die Anmeldeseite muss
-     wissen, ob sie das Formular ueberhaupt zeigen soll. */
+  // Abgeschlossene Liste: was hier steht, sieht jeder, der die Adresse kennt.
   check('Vor der Anmeldung wird sonst nichts verraten',
     equal(Object.keys(cfg).sort(),
       ['language', 'minPassword', 'setupRequired', 'signup', 'title', 'version']),
     JSON.stringify(Object.keys(cfg)));
-  /* UND DIE VORGABE IST EINE KENNUNG UND KEIN GEBILDE -- kein Vorrat, keine
-     Locale, keine Angabe darueber, welche Dateien sonst noch liegen. */
   check('Und die Vorgabesprache ist eine blosse Kennung',
     typeof cfg.language === 'string' && /^[a-z]{2,3}(-[A-Za-z]+)*$/.test(cfg.language),
     JSON.stringify(cfg.language));
-  /* UND DER VORRAT STEHT DORT NICHT MEHR. */
   check('Und der Vorrat der Sprachen steht vor der Anmeldung nirgends',
     cfg.languages === undefined &&
     !Object.values(cfg).some(v => Array.isArray(v)),
@@ -2391,17 +2068,13 @@ async function sendImport(object, mode, withoutShare = false) {
     !JSON.stringify(cfg).includes('Intern') && !('appTitle' in cfg));
   check('Die Kennzahlen nennen sie ebenfalls',
     (await call('GET', '/api/stats')).content.version === cfg.version);
-  /* Seit 0.8.10 gibt es den Fingerprint. Er steht ausdruecklich NICHT vor der
-     Anmeldung, sondern bei den Kennzahlen. */
   check('Der Fingerprint bleibt vor der Anmeldung draußen', !('fingerprint' in cfg),
     JSON.stringify(Object.keys(cfg)));
   const statsFingerprint = (await call('GET', '/api/stats')).content.fingerprint;
   check('Die Kennzahlen nennen ihn dafür', /^[0-9a-f]{8}$/.test(statsFingerprint || ''),
     JSON.stringify(statsFingerprint));
 
-  /* ---- DIE ALGORITHM -- 0.16.0 ------------------------------------------
-     ABGELESEN UND NICHT BEHAUPTET: die Angaben kommen aus db.js, das die
-     GEOEFFNETE Datei fragt. */
+  /* ---- Verfahren ---- */
   const statsVerf = (await call('GET', '/api/stats')).content.method;
   check('Die Kennzahlen nennen die Verfahren', !!statsVerf && typeof statsVerf === 'object',
     JSON.stringify(statsVerf));
@@ -2417,20 +2090,15 @@ async function sendImport(object, mode, withoutShare = false) {
     statsVerf?.journal === 'WAL', JSON.stringify(statsVerf?.journal));
   check('Und die Passwoerter rechnen mit scrypt',
     statsVerf?.passwords === 'scrypt', JSON.stringify(statsVerf?.passwords));
-  /* DIE GEGENPROBE AN DER INSTANZ SELBST, sonst waeren die vier Zeilen
-     darueber nur vier Behauptungen gegen vier andere Behauptungen: db.js muss
-     die Chiffre wirklich setzen, und auth.js muss wirklich scrypt schreiben. */
+  /* Sonst stuenden nur die Angaben von /api/stats gegen die Erwartung hier. */
   const verfSourceDb = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
   check('db.js setzt die Chiffre wirklich',
     verfSourceDb.includes("db.pragma(\"cipher='sqlcipher'\")"), 'die Zeile fehlt');
   check('Und den Schluessel wirklich roh, ohne Ableitung',
     /db\.pragma\(`key="x'\$\{key\.hex\}'"`\)/.test(verfSourceDb), 'die Zeile fehlt');
-  // auth.js unmittelbar gefragt: das Verfahren steht vorn in jedem
-// gespeicherten Wert, und genau dieses Wort nennen die Kennzahlen.
   const verfHash = await require('./auth').hashPassword('probe-fuer-das-verfahren');
   check('Ein gespeichertes Passwort traegt wirklich das genannte Verfahren',
     verfHash.startsWith('scrypt$'), verfHash.slice(0, 12));
-  /* KEINE PAKETVERSION IN DER ANTWORT. */
   check('Und keine der Angaben nennt eine Paketversion',
     !Object.values(statsVerf || {}).some(v => /\d+\.\d+\.\d+/.test(String(v))),
     JSON.stringify(statsVerf));
@@ -2452,14 +2120,12 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify([e1.linkRows, e1.timeline]));
   await call('PUT', '/api/settings', { linkRows: 5, timeline: true });
 
-  /* ---------------------------------------------------------------- */
   group('Adresse oder Suchbegriff');
 
   const lk = (await call('POST', '/api/items', { title: 'Linkprobe' })).content;
   const putAn = async (text) =>
     (await call('POST', `/api/items/${lk.id}/links`, { url: text })).content.links.slice(-1)[0].url;
 
-  // Adressen: mit Schema unveraendert, ohne Schema mit https davor.
   check('Adresse mit Schema bleibt, wie sie ist',
     await putAn('https://beispiel.de/handbuch') === 'https://beispiel.de/handbuch');
   check('http bleibt http', await putAn('http://beispiel.de') === 'http://beispiel.de');
@@ -2472,7 +2138,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Rechnername mit Portnummer ebenso',
     await putAn('nas:8080') === 'https://nas:8080');
 
-  // Suchtexte: roh gespeichert, ohne jedes Schema.
   check('Ein Wort bleibt roh stehen', await putAn('Handbuch') === 'Handbuch');
   check('Mehrere Wörter bleiben roh', await putAn('Handbuch 3000') === 'Handbuch 3000');
   check('Eine Nummer mit Punkt ist keine Adresse',
@@ -2480,26 +2145,21 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Auch eine reine Zahlenfolge nicht', await putAn('3.5') === '3.5');
   check('Ein Doppelpunkt ohne Portnummer auch nicht',
     await putAn('Frage: warum so laut') === 'Frage: warum so laut');
-  // Genau daran erkennt die Oberflaeche den Unterschied -- ohne neue Spalte.
+  // Daran unterscheidet die Oberflaeche Adresse und Suchtext.
   const lkDetail = (await call('GET', `/api/items/${lk.id}`)).content;
   check('Jede Zeile trägt entweder ein Schema oder keins',
     lkDetail.links.every(l => /^https?:\/\//i.test(l.url) || !/^\w+:\/\//.test(l.url)),
     JSON.stringify(lkDetail.links.map(l => l.url)));
   check('Leere Eingabe wird weiterhin abgewiesen',
     (await call('POST', `/api/items/${lk.id}/links`, { url: '   ' })).status === 400);
-  // Gefragt wird die Suchroute und nicht ein Feld der Listenantwort: seit
-// 0.11.0 sucht der Server, und `searchText` gibt es nicht mehr.
   const lkSearch = (await call('GET', '/api/items?q=handbuch%203000')).content;
   check('Suchtexte werden mit durchsucht',
     lkSearch.some(i => i.id === lk.id),
     `${lkSearch.length} Treffer`);
 
-  // Export und Import fuehren durch dieselbe Regel. Eine alte Exportdatei
-// traegt ueberall ein Schema und darf sich deshalb nicht veraendern.
+  // Eine alte Exportdatei traegt ueberall ein Schema und bleibt deshalb unveraendert.
   const lkOut = (await callF('GET', '/api/export?photos=0')).content
     .items.find(i => i.title === 'Linkprobe');
-  /* UMGESTELLT MIT 0.8.30, nicht geloescht: ein Link ist im Export seit
-     Formatnummer 7 ein Objekt aus Adresse und Verfasser. */
   const lkOutUrls = (lkOut.links || []).map(l => l.url);
   check('Der Export nennt Suchtexte im Rohzustand',
     lkOutUrls.includes('Handbuch 3000') && lkOutUrls.includes('https://beispiel.de'),
@@ -2514,9 +2174,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Import mit gemischten Zeilen gelingt', lkImp.status === 200);
   const lkFresh = (await call('GET', '/api/items')).content.find(i => i.title === 'Eingespielte Links');
   const lkFreshD = (await call('GET', `/api/items/${lkFresh.id}`)).content;
-  /* Der Fragezeichenpunkt ist keine Zierde: faellt eine Zeile beim Einspielen
-     weg, ist links[0] undefined -- und ein Zugriff darauf REISST DEN LAUF AB,
-     statt einen roten Punkt zu setzen. */
+  /* ?.: fehlt eine Zeile, soll die Pruefung scheitern, nicht der Lauf abbrechen. */
   check('Eingespielte Adresse bleibt unverändert',
     lkFreshD.links[0]?.url === 'https://alt.example/pfad', JSON.stringify(lkFreshD.links.map(l => l.url)));
   check('Eingespielte Adresse ohne Schema bekommt eins',
@@ -2530,7 +2188,6 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify(lkFreshD.links.map(l => l.sort_order)));
   await call('DELETE', `/api/items/${lkFresh.id}`);
 
-  /* ---------------------------------------------------------------- */
   group('Suchanbieter');
 
   const s0 = (await call('GET', '/api/settings')).content;
@@ -2539,8 +2196,6 @@ async function sendImport(object, mode, withoutShare = false) {
   const imPool = (list) => (list || []).filter(a => a.active).map(a => a.key);
   const defaultFrom = (list) => (list || []).find(a => a.isDefault)?.key;
 
-  // Die Liste liegt im Server, nicht in app.js. Neun Plaetze:
-// sechs eingebaute, drei eigene.
   check('Der Server liefert neun Anbieterplätze', anb0.length === 9, `${anb0.length}`);
   check('Die sechs eingebauten stehen vorn und sind vorhanden',
     equal(key(anb0).slice(0, 6), ['google', 'bing', 'ddg', 'startpage', 'brave', 'ecosia']) &&
@@ -2554,7 +2209,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Die Vorlage des Standards trägt den Platzhalter', String(s0.search).includes('%s'));
   check('Vorgabe für die Zahl der Namen ist zwei', s0.searchNames === 2, `${s0.searchNames}`);
 
-  // Vorrat: mehrere gleichzeitig, Standard zuerst.
   const sv1 = (await call('PUT', '/api/settings', { searchOn: ['ddg', 'bing'] })).content;
   check('Mehrere Anbieter lassen sich in den Vorrat nehmen',
     equal(imPool(sv1.searchProviders).sort(), ['bing', 'ddg']), JSON.stringify(imPool(sv1.searchProviders)));
@@ -2562,13 +2216,10 @@ async function sendImport(object, mode, withoutShare = false) {
     defaultFrom(sv1.searchProviders));
   check('Die Vorlage des Standards wird mitgeführt',
     sv1.search === 'https://duckduckgo.com/?q=%s', sv1.search);
-  // Wird der Standard aus dem Vorrat genommen, rueckt der erste aktive nach --
-// sonst liefe der Zeilenklick ins Leere.
   const sv2 = (await call('PUT', '/api/settings', { searchOn: ['bing'] })).content;
   check('Fällt der Standard weg, rückt der erste aktive nach',
     defaultFrom(sv2.searchProviders) === 'bing' && equal(imPool(sv2.searchProviders), ['bing']),
     `${defaultFrom(sv2.searchProviders)} / ${JSON.stringify(imPool(sv2.searchProviders))}`);
-  // Ein leerer Vorrat macht jede Suchzeile unbenutzbar.
   const sv3 = await call('PUT', '/api/settings', { searchOn: [] });
   check('Ein leerer Vorrat wird abgewiesen', sv3.status === 400, `${sv3.status}`);
   check('Und der bisherige Vorrat steht danach unverändert',
@@ -2577,7 +2228,6 @@ async function sendImport(object, mode, withoutShare = false) {
     !imPool((await call('PUT', '/api/settings', { searchOn: ['bing', 'gibtsnicht'] })).content.searchProviders)
       .includes('gibtsnicht'));
 
-  // Eigene Anbieter: Name UND Vorlage, sonst gibt es den Platz nicht.
   const se1 = (await call('PUT', '/api/settings', { searchOwn: [
     { name: 'Modellforum', template: 'https://forum.beispiel.de/suche?q=%s' }] })).content;
   const eigen1 = (se1.searchProviders || []).find(a => a.key === 'eigen1');
@@ -2605,8 +2255,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Ein Platz ohne Vorlage wird abgewiesen',
     (await call('PUT', '/api/settings', { searchOwn: [{ name: 'Nur Name', template: '' }] })).status === 400);
 
-  // Die Vorlage ist Eingabe und landet in einem window.open. Ohne diese
-// Schranke waere javascript: moeglich -- dieselbe Denkweise wie in 5a.
+  // Die Vorlage landet in window.open; ohne Pruefung waere javascript: moeglich.
   const svBad = await call('PUT', '/api/settings', {
     searchOwn: [{ name: 'Böse', template: 'javascript:alert(1)/*%s*/' }] });
   check('javascript: wird abgewiesen', svBad.status === 400, JSON.stringify(svBad.content));
@@ -2627,8 +2276,6 @@ async function sendImport(object, mode, withoutShare = false) {
     (await call('GET', '/api/settings')).content.searchProviders
       .find(a => a.key === 'eigen1')?.name === 'Heimsuche');
 
-  // Ein geraeumter Platz verschwindet -- und nimmt den Standard mit, der dann
-// nachrueckt (dieselbe Regel wie beim Deaktivieren).
   const sePath = (await call('PUT', '/api/settings', { searchOwn: [{ name: '', template: '' }] })).content;
   check('Ein geräumter Platz gilt als nicht vorhanden',
     sePath.searchProviders.find(a => a.key === 'eigen1')?.present === false);
@@ -2636,7 +2283,6 @@ async function sendImport(object, mode, withoutShare = false) {
     defaultFrom(sePath.searchProviders) === 'bing' && sePath.search === 'https://www.bing.com/search?q=%s',
     `${defaultFrom(sePath.searchProviders)} / ${sePath.search}`);
 
-  // Zahl der Namen: vier feste Stufen, wie schrift und linkZeilen.
   check('Die Zahl der Namen lässt sich setzen',
     (await call('PUT', '/api/settings', { searchNames: 4 })).content.searchNames === 4);
   check('Eine Zahl ausserhalb der Stufen wird abgewiesen',
@@ -2645,11 +2291,9 @@ async function sendImport(object, mode, withoutShare = false) {
     (await call('GET', '/api/settings')).content.searchNames === 4);
   await call('PUT', '/api/settings', { searchNames: 2, searchOn: ['google'] });
 
-  /* ---------------------------------------------------------------- */
   group('Suchanbieter aus der Datenbank');
 
-  // "Name UND Vorlage" steht zweimal: der Schreibweg weist halb Ausgefuelltes
-  // mit 400 ab, der Leseweg laesst den Platz gar nicht erst gelten.
+  // Halb ausgefuellte Plaetze direkt in die Datenbank, am Schreibweg vorbei.
   async function instanceIncludingSettings(rows, portBase) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-suchdb-'));
     shortRun(`require('./db'); console.log('da');`, dir);
@@ -2680,11 +2324,9 @@ async function sendImport(object, mode, withoutShare = false) {
   await wHalf.S.stop();
   fs.rmSync(wHalf.dir, { recursive: true, force: true });
 
-  /* ---------------------------------------------------------------- */
   group('Benutzer und Sitzungen');
 
-  // Belegt an der Datenbank und unmittelbar an der Middleware -- ueber die
-// Schnittstelle waere davon nichts zu sehen.
+  // An Datenbank und Middleware, weil die Schnittstelle nichts davon zeigt.
   const stA = open(path.join(DATA, 'katalog.sqlite'));
   const uColumns = stA.prepare('PRAGMA table_info(users)').all().map(c => c.name);
   const sColumns = stA.prepare('PRAGMA table_info(sessions)').all().map(c => c.name);
@@ -2706,8 +2348,6 @@ async function sendImport(object, mode, withoutShare = false) {
     stA.prepare('SELECT COUNT(*) n FROM sessions WHERE user_id IS NULL').get().n === 0);
   stA.close();
 
-  /* req.user wird unmittelbar an der Middleware geprueft, in einem eigenen
-     Prozess mit eigenem Verzeichnis. */
   const mwDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-mw-'));
   const mw = JSON.parse(shortRun(`
     const { db } = require('./db');
@@ -2748,14 +2388,10 @@ async function sendImport(object, mode, withoutShare = false) {
     /Benutzer/.test(mw.withoutId || ''), String(mw.withoutId));
   fs.rmSync(mwDir, { recursive: true, force: true });
 
-  /* ---------------------------------------------------------------- */
-  /* ================= Der kaputte Cookiewert — 0.14.0 =================
-     parseCookies() sieht ALLE Cookies des Hosts an, nicht nur die eigenen. */
+  /* parseCookies() liest alle Cookies des Hosts, auch fremde. */
   group('Der kaputte Cookiewert — 0.14.0');
 
   const kkValue = '%';
-  /* ERST DER GEGENSTAND: ist der Wert dekodierbar, traegt
-     die ganze Gruppe darunter nichts. */
   let kkBreaks = false;
   try { decodeURIComponent(kkValue); } catch { kkBreaks = true; }
   check('Der gestellte Wert laesst sich wirklich nicht dekodieren', kkBreaks,
@@ -2763,8 +2399,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und die Prueflage haelt einen gueltigen Sitzungscookie in der Hand',
     /^kriterion_session=.+/.test(H.cookie), JSON.stringify(H.cookie.slice(0, 24)));
 
-  // Zwei Cookies in EINEM Kopf, in beiden Reihenfolgen: der kaputte darf den
-// gueltigen weder ueberholen noch verdecken.
   const kkCall = async (head) => {
     const a = await fetch(`${BASE}/api/criteria`, { headers: { cookie: head } });
     return a.status;
@@ -2773,35 +2407,27 @@ async function sendImport(object, mode, withoutShare = false) {
   const kkBehind = await kkCall(`${H.cookie}; fremd=${kkValue}`);
   check('Ein kaputter Cookie VOR dem eigenen sperrt nicht aus', kkFront === 200, `Stand ${kkFront}`);
   check('Und einer DAHINTER ebenso wenig', kkBehind === 200, `Stand ${kkBehind}`);
-  /* DIE GEGENLAGE: der kaputte Cookie wird UEBERGANGEN, nicht angenommen. */
   const kkAlone = await kkCall(`kriterion_session=${kkValue}`);
   check('Ein kaputter Wert am EIGENEN Namen gilt als keine Sitzung, nicht als Fehler',
     kkAlone === 401, `Stand ${kkAlone}`);
-  // Der NAME bleibt roh -- er wird nie dekodiert, ein Prozentzeichen darin ist
-// deshalb kein Fall fuer diese Schranke.
+  // Der Name wird nie dekodiert; ein Prozentzeichen darin ist kein Fehler.
   const kkName = await kkCall(`fre%md=1; ${H.cookie}`);
   check('Ein Prozentzeichen im NAMEN ist gar kein Fall', kkName === 200, `Stand ${kkName}`);
-  /* WAS AUSDRUECKLICH NICHT GEBAUT WURDE, und deshalb hier steht
-: ein fremder Cookie ist kein Vorgang dieser Instanz. */
   const kkProt = (await call('GET', '/api/security-log')).content;
   const kkRows = Array.isArray(kkProt) ? kkProt : (kkProt?.rows || []);
   check('Und er hinterlaesst keine Zeile im Sicherheitsprotokoll',
     !kkRows.some(z => /cookie/i.test(JSON.stringify(z))),
     JSON.stringify(kkRows.slice(0, 3)));
 
-  /* ---------------------------------------------------------------- */
   group('Bestand am Benutzer');
 
-  /* Belegt an der Datenbank: jede Zeile bekommt ihren Verfasser -- beim
-     Anlegen und beim Einspielen. */
   const stB = open(path.join(DATA, 'katalog.sqlite'));
   for (const t of ['items', 'comments', 'test_days']) {
     const sp = stB.prepare(`PRAGMA table_info(${t})`).all().map(c => c.name);
     check(`${t} traegt user_id`, sp.includes('user_id'), sp.join(', '));
   }
-  /* ON DELETE SET NULL ist keine Kosmetik: mit CASCADE naehme ein entfernter
-     Benutzer den halben Bestand mit, mit NO ACTION scheiterte jedes DELETE
-     FROM users an einer Fremdschluesselverletzung. */
+  /* CASCADE naehme den Bestand eines entfernten Benutzers mit, NO ACTION liesse
+     jedes DELETE FROM users scheitern. */
   for (const t of ['items', 'comments', 'test_days']) {
     const fk = stB.prepare(`PRAGMA foreign_key_list(${t})`).all().find(f => f.from === 'user_id');
     check(`${t}.user_id gibt den Bestand beim Loeschen frei`,
@@ -2811,7 +2437,6 @@ async function sendImport(object, mode, withoutShare = false) {
   const stBu = stB.prepare('SELECT MIN(id) AS id FROM users').get().id;
   stB.close();
 
-  /* Zuweisung beim Anlegen -- die drei Wege ueber die Schnittstelle. */
   const bItem = (await call('POST', '/api/items', { title: 'Bestand: angelegt' })).content;
   await call('POST', `/api/items/${bItem.id}/test-days`, { day: '2024-05-05', rating: 3 });
   await sendComment(bItem.id, { text: 'Kommentar zum Bestand' });
@@ -2829,9 +2454,6 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify(getB('comments', 'item_id', bItem.id)));
   afterCreate.close();
 
-  /* Ersetzen des eigenen Testtags am selben Datum: der Tag wird
-     ueberschrieben statt verdoppelt, und die Zeile traegt danach weiterhin
-     ihren Verfasser. */
   const replaced = await call('POST', `/api/items/${bItem.id}/test-days`, { day: '2024-05-05', rating: 5 });
   const afterReplace = open(path.join(DATA, 'katalog.sqlite'));
   const tdReplaced = afterReplace.prepare(
@@ -2842,8 +2464,6 @@ async function sendImport(object, mode, withoutShare = false) {
     tdReplaced[0]?.rating === 5 && tdReplaced[0]?.user_id === stBu, JSON.stringify(tdReplaced));
   afterReplace.close();
 
-  /* Zuweisung beim Einspielen ohne Verfasserangabe: alles faellt an den
-     Einspielenden. */
   const bImp = await sendImport({ version: 14, title: 'B', items: [{
     title: 'Bestand: eingespielt',
     testDays: [{ day: '2024-06-06', rating: 4 }],
@@ -2863,7 +2483,6 @@ async function sendImport(object, mode, withoutShare = false) {
     bImpKom.length === 1 && bImpKom.every(r => r.user_id === stBu), JSON.stringify(bImpKom));
   afterImport.close();
 
-  /* ---------------------------------------------------------------- */
   group('Favoriten je Benutzer');
 
   const p1 = open(path.join(DATA, 'katalog.sqlite'));
@@ -2875,8 +2494,6 @@ async function sendImport(object, mode, withoutShare = false) {
     equal(pColumns.filter(c => c.pk).sort((a, b) => a.pk - b.pk).map(c => c.name),
       ['user_id', 'item_id']),
     JSON.stringify(pColumns.filter(c => c.pk).map(c => `${c.name}:${c.pk}`)));
-  /* Beide Kaskaden, aus verschiedenen Gruenden: mit dem Eintrag geht sein
-     Favorit, mit dem Benutzer geht seiner. */
   for (const [column, target] of [['user_id', 'users'], ['item_id', 'items']]) {
     const fk = p1.prepare('PRAGMA foreign_key_list(item_pins)').all().find(f => f.from === column);
     check(`item_pins.${column} nimmt den Favoriten beim Loeschen mit`,
@@ -2884,12 +2501,11 @@ async function sendImport(object, mode, withoutShare = false) {
   }
   p1.close();
 
-  /* --- Ueber die Schnittstelle, mit einem Benutzer --- */
+  /* ---- Ein Benutzer ueber die Schnittstelle ---- */
   const pItem = (await call('POST', '/api/items', { title: 'Favoritenprobe' })).content;
   check('Ein frischer Eintrag ist kein Favorit', pItem.favorite === false,
     JSON.stringify(pItem.favorite));
 
-  /* Vor dem Setzen des Favoriten ein FESTES, altes Aenderungsdatum setzen. */
   const pAlt2 = open(path.join(DATA, 'katalog.sqlite'));
   pAlt2.prepare("UPDATE items SET updated_at = '2020-01-01 00:00:00' WHERE id = ?").run(pItem.id);
   pAlt2.close();
@@ -2901,11 +2517,9 @@ async function sendImport(object, mode, withoutShare = false) {
     `Status ${pAn.status}, favorite ${JSON.stringify(pAn.content?.favorite)}`);
   check('Es entsteht genau eine Zeile in item_pins',
     p2.prepare('SELECT COUNT(*) n FROM item_pins WHERE item_id = ?').get(pItem.id).n === 1);
-  /* Die alte Spalte darf nicht mitgeschrieben werden. */
   check('Die alte Spalte wird dabei nicht mitgeschrieben',
     p2.prepare('SELECT favorite FROM items WHERE id = ?').get(pItem.id).favorite === 0);
-  /* Liefe der Favorit als Spalte durch dasselbe UPDATE wie der Titel, setzte
-     er updated_at -- der Eintrag spraenge in JEDER Uebersicht nach oben. */
+  /* Setzte der Favorit updated_at, spraenge der Eintrag in jeder Uebersicht nach oben. */
   check('Der Favorit ruehrt das Aenderungsdatum nicht an',
     p2.prepare('SELECT updated_at FROM items WHERE id = ?').get(pItem.id).updated_at
       === '2020-01-01 00:00:00',
@@ -2932,8 +2546,6 @@ async function sendImport(object, mode, withoutShare = false) {
     p3.prepare('SELECT COUNT(*) n FROM item_pins WHERE item_id = ?').get(pItem.id).n === 0);
   p3.close();
 
-  /* Eingespieltes gehoert dem Einspielenden -- dieselbe Regel wie bei
-     Eintrag, Kommentar, Testtag und Bewertung. */
   await sendImport({ version: 14, items: [{ title: 'Eingespielt favorisiert', favorite: true },
                               { title: 'Eingespielt schlicht', favorite: false }] }, 'merge');
   const p4 = open(path.join(DATA, 'katalog.sqlite'));
@@ -2946,7 +2558,6 @@ async function sendImport(object, mode, withoutShare = false) {
     pImp.every(r => r.favorite === 0), JSON.stringify(pImp));
   p4.close();
 
-  /* Mit dem Eintrag gehen seine Favoriten. */
   const pPath = (await call('POST', '/api/items', { title: 'Wieder weg' })).content;
   await call('PUT', `/api/items/${pPath.id}`, { favorite: true });
   await call('DELETE', `/api/items/${pPath.id}`);
@@ -2955,8 +2566,7 @@ async function sendImport(object, mode, withoutShare = false) {
     p5.prepare('SELECT COUNT(*) n FROM item_pins WHERE item_id = ?').get(pPath.id).n === 0);
   p5.close();
 
-  /* --- Zwei Rufer nebeneinander --- Zwei fertige Sitzungen, eine je
-     Benutzer, schon beim Anlegen. */
+  /* ---- Zwei Benutzer nebeneinander ---- */
   function putFavoritesInventoryAn() {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-favoriten-'));
     shortRun(`require('./db'); console.log('da');`, dir);
@@ -2967,18 +2577,15 @@ async function sendImport(object, mode, withoutShare = false) {
     d.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run('pin-zweiter', 2);
     for (const t of ['Pin eins', 'Pin zwei', 'Pin drei'])
       d.prepare('INSERT INTO items (title, user_id) VALUES (?, 1)').run(t);
-    // Die mitgelieferten Kriterien raeumen und eigene mit bekannten Nummern
-// holen -- feste Nummern truegen, weil AUTOINCREMENT weiterzaehlt.
+    // Ids aus lastInsertRowid, weil AUTOINCREMENT nach dem DELETE weiterzaehlt.
     d.prepare('DELETE FROM rating_criteria').run();
     const kLook = d.prepare('INSERT INTO rating_criteria (name, sort_order) VALUES (?, 0)').run('Optik').lastInsertRowid;
     const kHaptics = d.prepare('INSERT INTO rating_criteria (name, sort_order) VALUES (?, 1)').run('Haptik').lastInsertRowid;
-    // Beide Benutzer bewerten dasselbe Kriterium desselben Eintrags mit
-// VERSCHIEDENEN Werten -- gleiche Werte machten die Pruefung blind.
+    // Verschiedene Werte je Benutzer, sonst sieht die Pruefung keine Verwechslung.
     for (const [it, kr, w, u] of [[1, kLook, 4, 1], [1, kLook, 2, 2], [1, kHaptics, 5, 1]])
       d.prepare('INSERT INTO ratings (item_id, criterion_id, value, user_id) VALUES (?, ?, ?, ?)')
         .run(it, kr, w, u);
-    // Zwei von drei sind Favorit des Ersten: der dritte belegt, dass nicht
-// einfach fuer jeden Eintrag eine Zeile entsteht.
+    // Der dritte Eintrag ohne Favorit belegt, dass nicht jeder eine Zeile bekommt.
     d.prepare('INSERT INTO item_pins (user_id, item_id) VALUES (1, 1)').run();
     d.prepare('INSERT INTO item_pins (user_id, item_id) VALUES (1, 3)').run();
     d.close();
@@ -3000,8 +2607,6 @@ async function sendImport(object, mode, withoutShare = false) {
     return { status: a.status, content };
   };
 
-  /* Und jetzt die Sache selbst: dieselbe Antwort sieht fuer zwei Leute
-     verschieden aus. */
   const pViewE = (await pCall('pin-erster', 'GET', '/api/items/1')).content;
   const pViewZ = (await pCall('pin-zweiter', 'GET', '/api/items/1')).content;
   check('Der Eigentuemer sieht seinen Favoriten', pViewE?.favorite === true,
@@ -3013,7 +2618,6 @@ async function sendImport(object, mode, withoutShare = false) {
     Array.isArray(pListZ) && pListZ.every(i => i.favorite === false),
     JSON.stringify(pListZ?.map(i => `${i.id}:${i.favorite}`)));
 
-  /* Die eigene Sterne-Zeile. */
   check('Die Sterne zeigen genau eine Zeile je Kriterium',
     pViewZ?.ratings?.length === 2, JSON.stringify(pViewZ?.ratings));
   check('Und es sind die eigenen Werte',
@@ -3022,8 +2626,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Der zweite sieht seine eigenen, nicht die fremden',
     equal(pViewZ?.ratings?.map(r => `${r.name}:${r.value}`), ['Optik:2', 'Haptik:0']),
     JSON.stringify(pViewZ?.ratings?.map(r => `${r.name}:${r.value}`)));
-  /* Der Schnitt rechnet ueber ALLE -- und zweistufig. Bestand: Optik 4
-     (erster) und 2 (zweiter), Haptik 5 (erster). */
+  /* Optik (4 + 2) / 2 = 3, Haptik 5, Schnitt 4,0; flach waere (4 + 2 + 5) / 3 = 3,7. */
   check('Der Schnitt rechnet zweistufig ueber alle Bewerter',
     pViewE?.avgRating === 4.0, JSON.stringify(pViewE?.avgRating));
   check('Und ist damit nicht mehr das flache Mittel',
@@ -3049,8 +2652,7 @@ async function sendImport(object, mode, withoutShare = false) {
   await P1.stop();
   fs.rmSync(pDir, { recursive: true, force: true });
 
-  /* --- Der Rueckfall an der Einrichtung: herrenloser Bestand faellt dem
-     ersten Zugang zu. */
+  /* ---- Herrenloser Bestand bei der Einrichtung ---- */
   const eDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-rueckfall-'));
   shortRun(`require('./db'); console.log('da');`, eDir);
   {
@@ -3077,21 +2679,14 @@ async function sendImport(object, mode, withoutShare = false) {
   await E1.stop();
   fs.rmSync(eDir, { recursive: true, force: true });
 
-  /* --- Zwei Waechter ueber den Quelltext --- Sie sind ausdruecklich als
-     solche gebaut: sie schlagen bei jeder Gegenprobe an, die detail()
-     anfasst. */
+  /* ---- detail() im Quelltext ---- */
   const source = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
-  /* Kommentare erst herausnehmen -- sie sprechen ueber detail() und wuerden
-     sonst als Aufrufstellen gezaehlt. */
+  /* Ohne Kommentare, die detail() sonst als Aufrufstellen zaehlen. */
   const withoutComment = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-  /* DIE SIGNATUR TRAEGT SEIT 0.24.3 EINE DRITTE ANGABE -- die Sprache des
-     Lesers (Bauabschnitt 6a). */
+  /* Die Definition selbst (id, userId, locale) zaehlt nicht mit. */
   const calls = [...withoutComment.matchAll(/detail\(([^)]+)\)/g)]
     .map(m => m[1]).filter(a => a !== 'id, userId, locale');
-  /* VIERUNDZWANZIG SEIT 0.21.0, vorher fuenfundzwanzig: DELETE
-     /api/items/:id/ratings ist weggefallen und mit ihm seine Aufrufstelle. */
   const withoutUser = calls.filter(a => !/,\s*req\.user\.id\s*,\s*localeOf\(req\s*$/.test(a));
-  // 24 -> 26: Hochladen und Loeschen eines Kommentarvideos antworten mit dem Eintrag.
   check('Keine Aufrufstelle von detail() ohne Benutzer und ohne Sprache',
     calls.length === 26 && withoutUser.length === 0,
     `${calls.length} Aufrufe, unvollstaendig: ${JSON.stringify(withoutUser)}`);
@@ -3099,10 +2694,8 @@ async function sendImport(object, mode, withoutShare = false) {
     /function detail\(id, userId, locale\) \{\s*\n\s*if \(userId == null\) throw/.test(source),
     'ohne die Klemme bindet better-sqlite3 das fehlende Argument als NULL');
 
-  /* ---------------------------------------------------------------- */
   group('Persoenliche Einstellungen');
 
-  /* Die Tabelle selbst. */
   const dMain = open(path.join(DATA, 'katalog.sqlite'));
   const dColumns = dMain.prepare('PRAGMA table_info(user_settings)').all();
   const dFk = dMain.prepare('PRAGMA foreign_key_list(user_settings)').all();
@@ -3119,13 +2712,9 @@ async function sendImport(object, mode, withoutShare = false) {
     'sonst waere das UNIQUE loechrig, weil NULL darin als verschieden gilt');
   dMain.close();
 
-  /* Die Liste der persoenlichen Schluessel in server.js -- am Quelltext
-     gegengehalten, damit ein still entfernter Schluessel auffaellt. */
   const srvSource = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
-  // Bewusst ohne zusammengesetzten regulaeren Ausdruck: der wird beim
-  // Einbetten in ein String ein zweites Mal maskiert und ist dann falsch,
-  // ohne dass man es ihm ansieht -- genau das ist beim Bauen dieser Gruppe
-  // passiert.
+  // indexOf statt new RegExp(): ein in einen String eingebetteter Ausdruck
+  // braucht doppelte Maskierung, und ein Fehler darin faellt nicht auf.
   const listOut = (text, name) => {
     const start = text.indexOf(`const ${name} = [`);
     if (start < 0) return null;
@@ -3136,27 +2725,16 @@ async function sendImport(object, mode, withoutShare = false) {
       .map(s => s.trim().replace(/^'|'$/g, '')).filter(Boolean).sort();
   };
   const dListSrv = listOut(srvSource, 'PERSONAL_KEYS');
-  /* ACHT SEIT 0.11.0: `views` kommt dazu, die gespeicherten Filterstellungen. */
-  /* ZEHN SEIT 0.23.0: `theme` -- hell, dunkel oder wie das Geraet. */
-  /* ELF SEIT 0.24.3: `language` -- die Sprache, in der DIESER Zugang liest. */
   const dExpected = ['bellSeen', 'blocks', 'filters', 'font', 'language', 'linkRows',
                  'searchNames', 'strip', 'theme', 'timeline', 'views'];
   check('server.js kennt genau die elf persoenlichen Schluessel — 0.24.3',
     equal(dListSrv, dExpected), JSON.stringify(dListSrv));
-  /* UND `zuletztGesehen` STEHT WIRKLICH NIRGENDS MEHR IN server.js -- ausser
-     als Vermerk in einem Kommentar. */
   check('Und `zuletztGesehen` steht in keiner Zeile Code mehr',
     !/zuletztGesehen/.test(srvSource.replace(/\/\*[\s\S]*?\*\//g, '')
       .replace(/^\s*\/\/.*$/gm, '')),
     (srvSource.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
       .match(/^.*zuletztGesehen.*$/m) || ['(keine)'])[0]);
-  /* DER VERMERK BLEIBT ABER STEHEN. Eine Entscheidung, die man zurueckgenommen
-     hat, kommt sonst in zwei Jahren wieder. */
-  check('Der Vermerk ueber den weggefallenen Merker steht als Kommentar da',
-    /zuletztGesehen/.test(srvSource) && /Neu seit/.test(srvSource),
-    'der Vermerk fehlt');
 
-  /* Der Waechter ueber den Quelltext. */
   const srvWithoutComment = srvSource
     .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
   const emptyCalls = ['fontSize', 'blocks', 'linkRows', 'timelineOn', 'searchNames']
@@ -3170,14 +2748,10 @@ async function sendImport(object, mode, withoutShare = false) {
     /const putUserSetting = \(userId, k, value\) => \{\s*\n\s*if \(userId == null\)\s*\n?\s*throw/.test(srvSource),
     'sonst meldet erst die Datenbank den Fehler, ohne zu sagen wer ihn gemacht hat');
 
-  /* Die Schranke gegen die zweite Wahrheit. */
   check('putSetting weist persoenliche Schluessel ab',
     /if \(PERSONAL_KEYS\.includes\(k\)\)\s*\n\s*throw/.test(srvSource),
     'ohne die Schranke wandert ein zurueckgeschriebener Schluessel beim naechsten ' +
     'Start still zum Eigentuemer statt zu dem, der ihn gesetzt hat');
-  // Und der Nachweis, dass sie wirklich greift: der einzige Weg dorthin
-  // fuehrt ueber den Quelltext, also wird sie hier in einem eigenen Prozess
-  // gerufen.
   const dBarrier = (() => {
     try {
       const { execFileSync } = require('child_process');
@@ -3194,7 +2768,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Die Schranke kennt die persoenlichen Schluessel namentlich',
     dBarrier === 'ja', `Ergebnis: ${dBarrier}`);
 
-  /* Jetzt die Wirkung, und zwar mit ZWEI Benutzern nebeneinander. */
   function putTwoUserAn() {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-stufed-'));
     shortRun(`require('./db'); console.log('da');`, dir);
@@ -3209,9 +2782,8 @@ async function sendImport(object, mode, withoutShare = false) {
   const dDir = putTwoUserAn();
   const D1 = startFurtherServer(dDir, {}, 5200);
   await D1.ready;
-  // Zwei echte Cookies nebeneinander, ohne den gemeinsamen Cookiespeicher von
-  // startFurtherServer zu benutzen -- sonst ueberschriebe der zweite den
-  // ersten und es gaebe wieder nur einen Rufer.
+  // Eigene Cookies statt des gemeinsamen Speichers von startFurtherServer:
+  // dort ueberschriebe der zweite Benutzer den ersten.
   const dCall = async (cookieValue, method, filePath, body) => {
     const opt = { method: method, headers: H.withCsrf(`kriterion_session=${cookieValue}`) };
     if (body !== undefined) {
@@ -3224,15 +2796,13 @@ async function sendImport(object, mode, withoutShare = false) {
     return { status: a.status, content };
   };
 
-  /* `language` STEHT MIT DABEI, seit 0.24.3. */
   await dCall('cookie-d-eins', 'PUT', '/api/settings',
     { font: 120, linkRows: 12, timeline: false, searchNames: 4, strip: 100, language: 'de' });
   await dCall('cookie-d-zwei', 'PUT', '/api/settings',
     { font: 80, linkRows: 3, searchNames: 1 });
   await dCall('cookie-d-eins', 'PUT', '/api/settings', { filters: { tested: 'yes' } });
   await dCall('cookie-d-zwei', 'PUT', '/api/settings', { filters: { tested: 'no' } });
-  // Der achte persoenliche Schluessel seit 0.11.0.
-  /* NUR DER ERSTE SETZT SIE, ausdruecklich. */
+  // views setzt nur der Erste.
   await dCall('cookie-d-eins', 'PUT', '/api/settings',
     { views: [{ name: 'Meine Sicht', q: 'eins', filters: { tested: 'yes' } }] });
   const dOne = (await dCall('cookie-d-eins', 'GET', '/api/settings')).content;
@@ -3254,14 +2824,9 @@ async function sendImport(object, mode, withoutShare = false) {
     dOne.filters?.tested === 'yes' && dTwo.filters?.tested === 'no',
     JSON.stringify([dOne.filters, dTwo.filters]));
 
-  /* MITGENOMMEN MIT 0.17.0, NICHT GELOESCHT: bis dahin
-     stand hier derselbe Block fuer `zuletztGesehen`, den Merker der Pille
-     „Neu seit ...". */
   const dBefore = (await dCall('cookie-d-eins', 'GET', '/api/settings')).content;
   check('Vor dem ersten Verlassen der Uebersicht gibt es keinen Bezugspunkt',
     dBefore.bellSeen === null, JSON.stringify(dBefore.bellSeen));
-  /* UND DEN MERKER DER PILLE GIBT ES GAR NICHT MEHR. Ohne diese Zeile bliebe
-     offen, ob der Server ihn weiter fuehrt und nur niemand ihn liest. */
   check('Und den Merker der gestrichenen Pille gibt es nicht mehr',
     !('zuletztGesehen' in dBefore), JSON.stringify(Object.keys(dBefore).sort()));
   const dSeen = await dCall('cookie-d-eins', 'PUT', '/api/settings',
@@ -3274,8 +2839,8 @@ async function sendImport(object, mode, withoutShare = false) {
     dAfter.bellSeen !== '1999-01-01 00:00:00' &&
     dAfter.bellSeen > '2020-01-01 00:00:00',
     JSON.stringify(dAfter.bellSeen));
-  /* DAS WINDOW IST NACHGESTELLT: datetime('now') loest nur
-     Sekunden auf. */
+  /* Der Server setzt bellSeen eine Sekunde zurueck, weil datetime('now') nur
+     Sekunden aufloest. */
   const dClock = (() => {
     const d = open(path.join(dDir, 'katalog.sqlite'));
     const t = d.prepare("SELECT datetime('now') AS t").get().t;
@@ -3292,13 +2857,11 @@ async function sendImport(object, mode, withoutShare = false) {
     (await dCall('cookie-d-zwei', 'GET', '/api/settings')).content.bellSeen === null,
     JSON.stringify((await dCall('cookie-d-zwei', 'GET', '/api/settings')).content.bellSeen));
 
-  /* DER SCHLUESSEL MUSS IN PERSOENLICHE_SCHLUESSEL STEHEN, und das ist keine
-     Formsache. */
+  /* bellSeen muss in PERSONAL_KEYS stehen, sonst darf ihn nur ein Admin setzen. */
   check('Der zweite Zugang traegt wirklich keine Adminrolle',
     (await dCall('cookie-d-zwei', 'GET', '/api/settings')).content.isAdmin === false,
     JSON.stringify((await dCall('cookie-d-zwei', 'GET', '/api/settings')).content.isAdmin));
-  /* GESETZT WIRD BEI BEIDEN ZUGAENGEN, damit die Zaehlung weiter unten den
-     Bezugspunkt wirklich in der persoenlichen Tabelle findet. */
+  /* Bei beiden setzen: die Zaehlung weiter unten erwartet bellSeen in user_settings. */
   await dCall('cookie-d-eins', 'PUT', '/api/settings', { bellSeen: 1 });
   const dSeenTwo = await dCall('cookie-d-zwei', 'PUT', '/api/settings', { bellSeen: 1 });
   check('Auch ohne Adminrolle merkt sich jeder seinen eigenen Zeitpunkt',
@@ -3307,11 +2870,9 @@ async function sendImport(object, mode, withoutShare = false) {
     /^\d{4}-/.test((await dCall('cookie-d-zwei', 'GET', '/api/settings')).content.bellSeen || ''),
     JSON.stringify((await dCall('cookie-d-zwei', 'GET', '/api/settings')).content.bellSeen));
 
-  // Und die Blockanordnung, die eine eigene Bauform hat (verschachteltes
-// Objekt statt Zahl) und deshalb eigens geprueft wird.
+  // blocks ist ein verschachteltes Objekt statt einer Zahl.
   await dCall('cookie-d-eins', 'PUT', '/api/settings',
     { blocks: { side: ['bewertung', 'tags', 'kategorie', 'potenzial'], bottom: [], closed: ['links'] } });
-  // 0.23.0: das Farbschema gehoert demselben Rang wie Schrift und Bildstreifen.
   await dCall('cookie-d-eins', 'PUT', '/api/settings', { theme: 'light' });
   await dCall('cookie-d-zwei', 'PUT', '/api/settings', { theme: 'device' });
   check('Das Farbschema gehoert dem Benutzer',
@@ -3329,20 +2890,16 @@ async function sendImport(object, mode, withoutShare = false) {
     equal(dBlOne.closed, ['links']) && equal(dBlTwo.closed, []),
     JSON.stringify([dBlOne.closed, dBlTwo.closed]));
 
-  /* Die andere Haelfte, und sie ist der eigentliche Gegenbeweis: was global
-     bleibt, MUSS fuer beide gleich aussehen. */
+  /* ---- Globale Einstellungen: fuer beide gleich ---- */
   await dCall('cookie-d-eins', 'PUT', '/api/settings', { searchOn: ['ddg', 'bing'] });
   await dCall('cookie-d-eins', 'PUT', '/api/settings',
     { vocabulary: { entryOne: 'Maschine' } });
   const dGlobOne = (await dCall('cookie-d-eins', 'GET', '/api/settings')).content;
   const dGlobTwo = (await dCall('cookie-d-zwei', 'GET', '/api/settings')).content;
-  // defaultFrom und imPool stehen weiter oben in dieser Datei -- eine zweite
-  // Ausfertigung daneben waere eine Doppelung, die sich nur halb prueft.
   check('Der Startanbieter bleibt global -- beide sehen denselben',
     defaultFrom(dGlobOne.searchProviders) === 'ddg' && defaultFrom(dGlobTwo.searchProviders) === 'ddg',
     `erster ${defaultFrom(dGlobOne.searchProviders)}, zweiter ${defaultFrom(dGlobTwo.searchProviders)}`);
-  // ACHTUNG, nicht ['ddg','bing']: imPool liest die Liste in KANONISCHER
-  // Reihenfolge (google, bing, ddg, ...), nicht in Vorratsreihenfolge.
+  // imPool folgt der festen Reihenfolge der Anbieter, nicht der des Vorrats.
   check('Der Vorrat bleibt global',
     equal(imPool(dGlobOne.searchProviders), ['bing', 'ddg']) &&
     equal(imPool(dGlobTwo.searchProviders), ['bing', 'ddg']),
@@ -3352,7 +2909,7 @@ async function sendImport(object, mode, withoutShare = false) {
     dGlobTwo.vocabulary?.entryOne === 'Maschine',
     JSON.stringify([dGlobOne.vocabulary?.entryOne, dGlobTwo.vocabulary?.entryOne]));
 
-  /* Und jetzt die Trennung dort, wo sie stattfindet: in den beiden Tabellen. */
+  /* ---- settings und user_settings ---- */
   const dDb = open(path.join(dDir, 'katalog.sqlite'));
   const globalDa = (k) => !!dDb.prepare('SELECT 1 FROM settings WHERE key = ?').get(k);
   const personalDa = (k, u) =>
@@ -3373,8 +2930,7 @@ async function sendImport(object, mode, withoutShare = false) {
     !['suche', 'searchOn', 'searchOwn', 'vocabulary', 'title_app', 'title_public']
       .some(k => personalDa(k, 1)),
     JSON.stringify(dDb.prepare('SELECT key FROM user_settings WHERE user_id = 1').all()));
-  /* Der Zweite hat vier Schluessel selbst gesetzt und seit 0.8.60 den
-     Merkzeitpunkt dazu -- fuenf. */
+  /* font, linkRows, searchNames, filters, theme und bellSeen. */
   check('Die beiden Benutzer teilen sich keine Zeile',
     dDb.prepare('SELECT COUNT(*) n FROM user_settings WHERE user_id = 2').get().n === 6,
     JSON.stringify(dDb.prepare('SELECT key FROM user_settings WHERE user_id = 2').all()));
@@ -3382,9 +2938,19 @@ async function sendImport(object, mode, withoutShare = false) {
     personalDa('views', 1) && !personalDa('views', 2),
     `beim Ersten ${personalDa('views', 1)}, beim Zweiten ${personalDa('views', 2)}`);
   dDb.close();
+  {
+    const dFix = open(path.join(dDir, 'katalog.sqlite'));
+    const dWas = dFix.prepare("SELECT value FROM user_settings WHERE user_id = 2 AND key = 'font'").get();
+    dFix.prepare("INSERT OR REPLACE INTO user_settings (user_id, key, value) VALUES (2, 'font', '999')").run();
+    const dOdd = (await dCall('cookie-d-zwei', 'GET', '/api/settings')).content;
+    if (dWas) dFix.prepare("UPDATE user_settings SET value = ? WHERE user_id = 2 AND key = 'font'").run(dWas.value);
+    else dFix.prepare("DELETE FROM user_settings WHERE user_id = 2 AND key = 'font'").run();
+    dFix.close();
+    check('Ein gespeicherter Wert ausserhalb der Stufen faellt auf die Vorgabe zurueck',
+      dOdd.font === 100, `font ${dOdd.font}`);
+  }
 
-  /* Die Kaskade an user_settings.user_id. Die Anwendung entfernt keine
-     Benutzerzeile -- geloescht heisst Grabstein. */
+  /* Die Anwendung loescht keine Benutzerzeile, deshalb DELETE direkt in der Datenbank. */
   await D1.stop();
   const drDb = open(path.join(dDir, 'katalog.sqlite'));
   drDb.pragma('foreign_keys = ON');
@@ -3393,16 +2959,13 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify(drDb.prepare('SELECT user_id, key FROM user_settings').all()));
   const drEntries = drDb.prepare('SELECT COUNT(*) n FROM items').get().n;
   let drError = null;
-  // Ohne ON DELETE CASCADE scheitert diese Zeile mit
-// "FOREIGN KEY constraint failed" -- im Betrieb stuerbe daran der Start.
+  // Ohne ON DELETE CASCADE: "FOREIGN KEY constraint failed".
   try { drDb.prepare('DELETE FROM users').run(); } catch (e) { drError = e.message; }
   check('Ein DELETE FROM users geht ohne Fremdschluesselfehler durch',
     drError === null, drError || '');
   check('Und die Kaskade raeumt die persoenlichen Einstellungen mit weg',
     drDb.prepare('SELECT COUNT(*) n FROM user_settings').get().n === 0,
     JSON.stringify(drDb.prepare('SELECT user_id, key FROM user_settings').all()));
-  // Die Gegenrichtung an derselben Stelle: der BESTAND haengt auf SET NULL
-  // und darf nicht mitgehen.
   check('Der Bestand wird dabei herrenlos statt geloescht',
     drDb.prepare('SELECT COUNT(*) n FROM items').get().n === drEntries &&
     drDb.prepare('SELECT COUNT(*) n FROM items WHERE user_id IS NULL').get().n === drEntries,
@@ -3411,51 +2974,39 @@ async function sendImport(object, mode, withoutShare = false) {
   fs.rmSync(dDir, { recursive: true, force: true });
 
 
-  /* ================= Der Vorrat der Sprachen — 0.24.3, F9 =================
-     ZWEI SCHLUESSEL UND NICHT EINER: `languageDefault` traegt die Vorgabe der
-     Installation, `languageOn` den Vorrat, aus dem ein Benutzer waehlen darf. */
+  /* languageDefault: Vorgabe der Instanz; languageOn: die Sprachen, aus denen
+     ein Benutzer waehlt. */
   group('Der Vorrat der Sprachen — 0.24.3');
 
   const pvBefore = (await call('GET', '/api/settings')).content;
-  /* ERST DER GEGENSTAND: ohne zwei Sprachen im Haus liesse
-     sich ueber einen Vorrat gar nichts sagen. */
-  /* DREI SEIT 0.24.4 -- und die Zahl steht ausdruecklich da, wie bei
-     F_ROUTES: eine Sprachdatei, die still dazukommt oder verschwindet, faellt
-     sonst niemandem auf. */
+  /* Feste Zahl: eine Sprachdatei, die dazukommt oder fehlt, faellt sonst nicht auf. */
   check('Der Aufbau steht: es liegen drei Sprachdateien — 0.24.4',
     Array.isArray(pvBefore.languages) && pvBefore.languages.length === 3 &&
     equal(pvBefore.languages.map(a => a.code).sort(), ['de', 'en', 'tr']),
     JSON.stringify(pvBefore.languages));
-  /* UND DIE DRITTE HEISST, WIE SIE SICH SELBST NENNT. */
   check('Und die dritte nennt sich Türkçe',
     (pvBefore.languages.find(a => a.code === 'tr') || {}).name === 'Türkçe',
     JSON.stringify(pvBefore.languages.find(a => a.code === 'tr')));
-  /* OHNE EINTRAG IST ALLES IM VORRAT. */
   check('Ohne Eintrag stehen alle Sprachen im Vorrat',
     pvBefore.languages.every(a => a.active === true),
     JSON.stringify(pvBefore.languages));
 
-  // Der Eigentuemer nimmt Deutsch aus dem Vorrat -- Englisch ist die Vorgabe.
+  // Deutsch aus dem Vorrat nehmen; Englisch ist die Vorgabe.
   const pvOnlyEnglish = await call('PUT', '/api/settings', { languageOn: ['en'] });
   check('Der Eigentuemer kann den Vorrat einschraenken',
     pvOnlyEnglish.status === 200 &&
     equal(pvOnlyEnglish.content.languages.filter(a => a.active).map(a => a.code), ['en']),
     JSON.stringify(pvOnlyEnglish.content.languages));
-  /* UND EIN BENUTZER KANN NICHT MEHR AUF DEUTSCH STELLEN. */
   const pvDenied = await call('PUT', '/api/settings', { language: 'de' });
   check('Und niemand kann eine Sprache setzen, die nicht im Vorrat steht',
     pvDenied.status === 400, `Status ${pvDenied.status}: ${JSON.stringify(pvDenied.content)}`);
-  /* DIE ABSAGE KOMMT AUF ENGLISCH, und das ist richtig: der Vorrat traegt in
-     diesem Augenblick nur Englisch, also faellt localeOf() vom Kopf `de` auf
-     die Vorgabe zurueck -- die zweite Quelle darf nur nennen, was im Vorrat
-     steht. */
+  /* Die Absage kommt auf Englisch: localeOf() nimmt nur Sprachen aus dem Vorrat. */
   check('Und die Absage nennt den Grund',
     /(Sprache|language)/i.test(pvDenied.content?.error || ''), JSON.stringify(pvDenied.content));
   check('Und die eigene Sprache steht danach unveraendert',
     (await call('GET', '/api/settings')).content.language !== 'de',
     JSON.stringify((await call('GET', '/api/settings')).content.language));
 
-  /* DIE VORGABE LAESST SICH NICHT AUS DEM VORRAT NEHMEN. */
   const pvWithout = await call('PUT', '/api/settings',
     { languageDefault: 'en', languageOn: ['de'] });
   check('Die Vorgabe bleibt im Vorrat, auch wenn sie nicht mitgeschickt wird',
@@ -3465,21 +3016,19 @@ async function sendImport(object, mode, withoutShare = false) {
     pvWithout.content.languages.filter(a => a.active).map(a => a.code).includes('de'),
     JSON.stringify(pvWithout.content.languages));
 
-  /* DIE KLEMME STEHT AN ZWEI STELLEN, UND JEDE WIRD EINZELN GEPRUEFT. */
+  /* Die Vorgabe wird beim Schreiben und beim Lesen ergaenzt; beides einzeln pruefen. */
   const pvStored = () => {
     const d = open(path.join(DATA, 'katalog.sqlite'));
     const r = d.prepare("SELECT value FROM settings WHERE key = 'languageOn'").get();
     d.close();
     return r ? JSON.parse(r.value) : null;
   };
-  /* UNMITTELBAR HINTER DEM PUT, DER DIE VORGABE WEGLAESST -- und nicht
-     irgendwo spaeter in der Gruppe. */
+  /* Direkt nach dem PUT ohne die Vorgabe lesen, nicht spaeter. */
   check('Die schreibende Haelfte: schon in der Ablage steht die Vorgabe im Vorrat',
     (pvStored() || []).includes('en'), JSON.stringify(pvStored()));
   check('Und in der Ablage steht genau das, was der Rumpf gesagt hat -- plus die Vorgabe',
     equal((pvStored() || []).sort(), ['de', 'en']), JSON.stringify(pvStored()));
-  /* UND DIE LESENDE HAELFTE, an einem Vorrat, der am Schreibweg VORBEI in die
-     Ablage gelegt wird -- genau die Lage, die ein alter Bestand mitbringt. */
+  /* Am Schreibweg vorbei, wie bei einem alten Bestand. */
   {
     const d = open(path.join(DATA, 'katalog.sqlite'));
     d.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('languageOn', ?)")
@@ -3492,42 +3041,32 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Die lesende Haelfte: beim Lesen kommt die Vorgabe trotzdem zurueck',
     pvRead.languages.filter(a => a.active).map(a => a.code).includes('en'),
     JSON.stringify(pvRead.languages));
-  /* UND SIE STEHT AN ERSTER STELLE ODER IN DER FOLGE DES VERZEICHNISSES --
-     nicht irgendwo: die Pillenreihe soll in jeder Ansicht dieselbe
-     Reihenfolge haben. */
   check('Und der Vorrat traegt danach beide Sprachen',
     equal(pvRead.languages.filter(a => a.active).map(a => a.code).sort(), ['de', 'en']),
     JSON.stringify(pvRead.languages));
 
-  /* EINE SPRACHE OHNE DATEI FAELLT AUS DEM VORRAT, statt ihn zu vergiften:
-     `languagePool()` und `writeLanguages()` filtern beide gegen das
-     Verzeichnis -- zwei Schichten derselben Klemme, weil die Ablage aelter
-     sein kann als das Verzeichnis. */
+  /* languagePool() und writeLanguages() filtern beide gegen die Sprachdateien,
+     weil die gespeicherte Liste aelter sein kann als das Verzeichnis. */
   const pvInvented = await call('PUT', '/api/settings', { languageOn: ['de', 'en', 'tr', 'xx'] });
   check('Eine Sprache ohne Datei kommt gar nicht erst in den Vorrat',
     equal(pvInvented.content.languages.map(a => a.code).sort(), ['de', 'en', 'tr']),
     JSON.stringify(pvInvented.content.languages));
-  /* UND EINE ERFUNDENE VORGABE WIRD UEBERGANGEN. */
   const pvInventedDefault = await call('PUT', '/api/settings', { languageDefault: 'xx' });
   check('Und eine erfundene Vorgabe laesst die alte stehen',
     pvInventedDefault.content.languages.some(a => a.isDefault),
     JSON.stringify(pvInventedDefault.content.languages));
 
 
-  // Und zurueck auf den Anfangszustand -- alles im Vorrat, Englisch vorgegeben.
   await call('PUT', '/api/settings', { languageDefault: 'en', languageOn: ['de', 'en', 'tr'] });
   check('Der Aufraeumschritt stellt den Anfangszustand wieder her',
     (await call('GET', '/api/settings')).content.languages.every(a => a.active),
     JSON.stringify((await call('GET', '/api/settings')).content.languages));
 
-  /* =========== Der Rueckfall der Namen — 0.24.3, F8a und F8b =============
-     KRITERIEN UND KATEGORIEN TRAGEN EINE FASSUNG JE SPRACHE, und zwar in
-     EINER TABELLE DANEBEN (`criterion_names`, `category_names`). */
+  /* Namen je Sprache stehen in criterion_names und category_names. */
   group('Der Rueckfall der Namen — 0.24.3');
 
-  /* Der Aufbau: ein Kriterium mit Sternen daran, in der Vorgabesprache
-     benannt. Ohne die Sterne sagte der Rueckfall nichts ueber sie. */
-  /* DIE ZEILE WIRD AUSDRUECKLICH ENGLISCH ANGELEGT -- 0.25.0. */
+  /* Ein Kriterium mit Sternen, englisch benannt; ohne Sterne sagte der Rueckfall
+     nichts ueber sie. */
   const rnCriterion = (await call('POST', '/api/criteria',
     { name: 'Rueckfallkriterium', language: 'en' })).content;
   const rnItem = (await call('POST', '/api/items', { title: 'Rueckfalleintrag' })).content;
@@ -3549,7 +3088,6 @@ async function sendImport(object, mode, withoutShare = false) {
     rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)?.usage_count === 1,
     JSON.stringify(rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)));
 
-  /* OHNE ZEILE IN DER NAMENSTABELLE STEHT DIE GRUNDZEILE -- in JEDER Sprache. */
   check('Ohne Uebersetzung steht der Name der Vorgabesprache — auch auf Deutsch',
     rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.name === 'Rueckfallkriterium' &&
     rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)?.name === 'Rueckfallkriterium',
@@ -3558,8 +3096,6 @@ async function sendImport(object, mode, withoutShare = false) {
     rnFind(await rnRead('de', '/api/product-categories'), rnCategory.id)?.name === 'Rueckfallkategorie',
     JSON.stringify(rnFind(await rnRead('de', '/api/product-categories'), rnCategory.id)));
 
-  /* JETZT DIE UEBERSETZUNG. Sie wird AUSDRUECKLICH bestellt -- der Rumpf
-     nennt die Sprache. */
   const rnTranslated = await call('PUT', `/api/criteria/${rnCriterion.id}`,
     { name: 'Deutscher Name', language: 'de' });
   check('Eine Uebersetzung laesst sich anlegen', rnTranslated.status === 200,
@@ -3570,34 +3106,28 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und der englische weiterhin die Grundzeile',
     rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)?.name === 'Rueckfallkriterium',
     JSON.stringify(rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)));
-  /* UND DIE STERNE HAENGEN UNVERAENDERT DARAN. */
   check('Und die Bewertung haengt unveraendert daran',
     rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.usage_count === 1 &&
     (await call('GET', `/api/items/${rnItem.id}`)).content.ratings
       .some(z => z.criterion_id === rnCriterion.id && z.value === 4),
     JSON.stringify((await call('GET', `/api/items/${rnItem.id}`)).content.ratings));
 
-  // Dasselbe an der Kategorie -- gleiche Bauform, eigene Tabelle.
   await call('PUT', `/api/product-categories/${rnCategory.id}`,
     { name: 'Deutsche Kategorie', language: 'de' });
   check('Die Kategorie traegt ihre Uebersetzung ebenso',
     rnFind(await rnRead('de', '/api/product-categories'), rnCategory.id)?.name === 'Deutsche Kategorie' &&
     rnFind(await rnRead('en', '/api/product-categories'), rnCategory.id)?.name === 'Rueckfallkategorie',
     JSON.stringify(rnFind(await rnRead('de', '/api/product-categories'), rnCategory.id)));
-  /* UND DER EINTRAG HAENGT WEITER AN DERSELBEN KATEGORIE. */
   check('Und der Eintrag haengt weiter an derselben Kategorie',
     (await call('GET', `/api/items/${rnItem.id}`)).content.category?.id === rnCategory.id,
     JSON.stringify((await call('GET', `/api/items/${rnItem.id}`)).content.category));
 
 
-  /* --- DIE SPRACHFASSUNGEN REISEN MIT DER DATEI — F8c -------------------
-     ALLE, NICHT NUR DIE DES EXPORTIERENDEN. */
+  /* ---- Sprachfassungen in der Exportdatei ---- */
   const rnFile = (await callF('GET', '/api/export?photos=0')).content;
   check('Die Exportdatei traegt die Formatnummer 19',
     rnFile?.version === 19, JSON.stringify(rnFile?.version));
-  /* UND DIE PROGRAMMFASSUNG DANEBEN -- 0.33.0, F14. `version` sagt, WELCHE
-     FELDER zu erwarten sind; `appVersion` sagt, WAS die Datei geschrieben
-     hat. */
+  /* version nennt das Format der Felder, appVersion das Programm, das die Datei schrieb. */
   check('Und die Programmfassung daneben — 0.33.0',
     rnFile?.appVersion === require('./package.json').version,
     JSON.stringify(rnFile?.appVersion));
@@ -3605,20 +3135,13 @@ async function sendImport(object, mode, withoutShare = false) {
     rnFile?.criteriaNames?.de?.['Rueckfallkriterium'] === 'Deutscher Name' &&
     rnFile?.categoryNames?.de?.['Rueckfallkategorie'] === 'Deutsche Kategorie',
     JSON.stringify([rnFile?.criteriaNames, rnFile?.categoryNames]));
-  /* UND SIE STEHEN UNTER DEM NAMEN DER GRUNDZEILE UND NICHT UNTER EINER
-     NUMMER. */
   check('Und die Tafel steht unter dem Namen der Grundzeile, nicht unter einer Nummer',
     Object.keys(rnFile?.criteriaNames?.de || {}).every(k => Number.isNaN(Number(k))),
     JSON.stringify(Object.keys(rnFile?.criteriaNames?.de || {})));
-  /* UND DIE ERSTELLUNGSSPRACHE REIST MIT -- 0.25.0, Formatnummer 15. Das ist
-     der spaete Befund: **der Import ist ein Anlegeweg
-     wie jeder andere**, und diese Runde sagt zu, dass ab jetzt keine Zeile
-     mehr ohne Sprachvermerk entsteht. */
   check('Und sie nennt die Erstellungssprache jeder Zeile — 0.25.0',
     rnFile?.criteriaLanguages?.['Rueckfallkriterium'] === 'en' &&
     rnFile?.categoryLanguages?.['Rueckfallkategorie'] === 'en',
     JSON.stringify([rnFile?.criteriaLanguages, rnFile?.categoryLanguages]));
-  /* UND NUR, WAS EINE HAT. */
   {
     const d = open(path.join(DATA, 'katalog.sqlite'));
     d.prepare('UPDATE rating_criteria SET language = NULL WHERE id = ?').run(rnCriterion.id);
@@ -3635,7 +3158,6 @@ async function sendImport(object, mode, withoutShare = false) {
     d.prepare("UPDATE rating_criteria SET language = 'en' WHERE id = ?").run(rnCriterion.id);
     d.close();
   }
-  /* UND DER IMPORT LEGT SIE MIT AN. */
   const rnNewImport = await sendImport({ exported_at: new Date().toISOString(),
     title: 'Sprachmitnahme', version: 15, items: [],
     criteria: ['Eingespieltes Kriterium'],
@@ -3649,8 +3171,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und der Import legt sie mit an — 0.25.0',
     rnNewImport.status === 200 && rnImported.language === 'tr',
     `Status ${rnNewImport.status}, Sprache ${JSON.stringify(rnImported.language)}`);
-  /* UND EINE DATEI OHNE DAS FELD LEGT SIE OHNE SPRACHVERMERK AN — der Bestand
-     einer Zweitinstanz aus Format 14. Die Karte fragt dann einmal nach. */
+  /* Ohne Sprachvermerk fragt die Karte spaeter einmal nach der Sprache. */
   const rnOldImport = await sendImport({ exported_at: new Date().toISOString(),
     title: 'Vierzehn', version: 14, items: [],
     criteria: ['Kriterium aus Vierzehn'] }, 'merge');
@@ -3663,9 +3184,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und eine Datei aus Format 14 legt sie ohne Sprachvermerk an',
     rnOldImport.status === 200 && rnOldRow.language === null,
     `Status ${rnOldImport.status}, Sprache ${JSON.stringify(rnOldRow.language)}`);
-  /* UND DASSELBE AN DER KATEGORIE, ueber einen Eintrag: eine Kategorie
-     entsteht beim Import ausschliesslich dadurch, dass ein Eintrag sie nennt
-     (`catByName`). */
+  /* Eine Kategorie entsteht beim Import nur, wenn ein Eintrag sie nennt (catByName). */
   const rnCatImport = await sendImport({ exported_at: new Date().toISOString(),
     title: 'Sprachmitnahme, Kategorie', version: 15,
     items: [{ title: 'Eintrag mit eingespielter Kategorie',
@@ -3680,12 +3199,10 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und dasselbe an der Kategorie — 0.25.0',
     rnCatImport.status === 200 && rnCatRow.language === 'en',
     `Status ${rnCatImport.status}, Sprache ${JSON.stringify(rnCatRow.language)}`);
-  /* BEIDE WIEDER WEG, UND ZWAR UEBER DEN WEG UND NICHT UEBER DIE DATEI: das
-     Loeschen nummeriert die Reihenfolge neu, und eine Luecke in `sort_order`
-     traefe jede spaetere Prueflage, die sie zaehlt. */
+  /* Ueber die Route loeschen, nicht in der Datenbank: nur die Route nummeriert
+     sort_order neu, und spaetere Pruefungen zaehlen die Nummern. */
   await call('DELETE', `/api/criteria/${rnImported.id}`);
   await call('DELETE', `/api/criteria/${rnOldRow.id}`);
-  /* UND DER EINGESPIELTE EINTRAG SAMT SEINER KATEGORIE. */
   {
     const d = open(path.join(DATA, 'katalog.sqlite'));
     const z = d.prepare('SELECT id FROM items WHERE title = ?')
@@ -3695,8 +3212,7 @@ async function sendImport(object, mode, withoutShare = false) {
   }
   if (rnCatRow.id) await call('DELETE', `/api/product-categories/${rnCatRow.id}`);
 
-  /* JETZT DIE GEGENRICHTUNG: die Uebersetzungen von Hand wegnehmen und die
-     Datei zusammenfuehrend wieder einspielen. */
+  /* Uebersetzungen entfernen und die Datei zusammenfuehrend wieder einspielen. */
   await call('PUT', `/api/criteria/${rnCriterion.id}`,
     { name: 'Rueckfallkriterium', language: 'de' });
   await call('PUT', `/api/product-categories/${rnCategory.id}`,
@@ -3705,7 +3221,6 @@ async function sendImport(object, mode, withoutShare = false) {
     rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.name === 'Rueckfallkriterium' &&
     rnFind(await rnRead('de', '/api/product-categories'), rnCategory.id)?.name === 'Rueckfallkategorie',
     JSON.stringify(rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)));
-  /* EINGESPIELT WIRD EINE DATEI MIT DEN BEIDEN TAFELN UND OHNE EINTRAEGE. */
   const rnBack = await sendImport({ exported_at: rnFile.exported_at, title: rnFile.title,
     version: rnFile.version, items: [],
     criteriaNames: rnFile.criteriaNames, categoryNames: rnFile.categoryNames }, 'merge');
@@ -3716,13 +3231,10 @@ async function sendImport(object, mode, withoutShare = false) {
     rnFind(await rnRead('de', '/api/product-categories'), rnCategory.id)?.name === 'Deutsche Kategorie',
     JSON.stringify([rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.name,
                     rnFind(await rnRead('de', '/api/product-categories'), rnCategory.id)?.name]));
-  /* UND DIE GRUNDZEILE HAT SICH DABEI NICHT GEAENDERT. */
   check('Und der englische Leser sieht weiter die Grundzeile',
     rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)?.name === 'Rueckfallkriterium',
     JSON.stringify(rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)));
 
-  /* EINE DATEI AUS FORMAT 14 LAESST SICH WEITERHIN EINSPIELEN -- sie kennt
-     die beiden Tafeln gar nicht, und ein fehlendes Feld ist kein Fehler. */
   const rnOld = await sendImport({ exported_at: new Date().toISOString(), title: 'Vierzehn',
     version: 14, items: [] }, 'merge');
   check('Eine Datei aus Format 14 spielt sich weiterhin ein',
@@ -3730,25 +3242,18 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und die vorhandene Uebersetzung bleibt dabei stehen',
     rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.name === 'Deutscher Name',
     JSON.stringify(rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)));
-  /* UND EINE AUS FORMAT 13 KOMMT NICHT MEHR HEREIN. */
   const rnTooOld = await sendImport({ exported_at: new Date().toISOString(), title: 'Dreizehn',
     version: 13, items: [{ title: 'Aus Format 13' }] }, 'merge');
   check('Eine Datei aus Format 13 wird abgewiesen — 0.33.0',
     rnTooOld.status === 400, `Status ${rnTooOld.status}: ${JSON.stringify(rnTooOld.content)}`);
-  /* UND DIE ABSAGE SAGT, WARUM: die Nummer der Datei und die aelteste, die
-     noch gelesen wird. Ein „geht nicht" ohne beides waere eine Sackgasse. */
   check('Und die Absage nennt beide Nummern',
     /13/.test(rnTooOld.content.error || '') && /14/.test(rnTooOld.content.error || ''),
     JSON.stringify(rnTooOld.content));
-  /* UND SIE FAELLT VOR DER ERSTEN SCHREIBUNG. Der Eintrag aus der Datei darf
-     nirgends stehen -- eine Absage nach halbem Schreiben waere keine. */
   const rnStill = (await call('GET', '/api/items')).content;
   check('Und aus der abgewiesenen Datei ist nichts angelegt worden',
     !rnStill.some(z => z.title === 'Aus Format 13'),
     JSON.stringify(rnStill.map(z => z.title)));
 
-  /* OHNE SPRACHANGABE MEINT DER SCHREIBWEG DIE GRUNDZEILE -- und nicht die
-     Sprache des Lesers. */
   await call('PUT', `/api/criteria/${rnCriterion.id}`, { name: 'Umbenannt' });
   check('Ohne Sprachangabe wird die Grundzeile umbenannt, nicht uebersetzt',
     rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)?.name === 'Umbenannt' &&
@@ -3756,9 +3261,7 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify([rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)?.name,
                     rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.name]));
 
-  /* EINE SPRACHE OHNE DATEI WIRD ABGEWIESEN und nicht still auf die Vorgabe
-     gedreht: sonst schriebe der Eigentuemer in eine Sprache, die niemand je
-     zu sehen bekaeme, und hielte sie fuer gespeichert. */
+  /* Sonst schriebe der Eigentuemer einen Namen, den niemand je zu sehen bekaeme. */
   const rnInvented = await call('PUT', `/api/criteria/${rnCriterion.id}`,
     { name: 'Egal', language: 'xx' });
   check('Eine Sprache ohne Datei wird beim Umbenennen abgewiesen',
@@ -3767,7 +3270,6 @@ async function sendImport(object, mode, withoutShare = false) {
     rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)?.name === 'Umbenannt',
     JSON.stringify(rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)));
 
-  /* EINE UEBERSETZUNG, DIE DER GRUNDZEILE GLEICHT, BLEIBT SEIT 0.25.0 STEHEN. */
   await call('PUT', `/api/criteria/${rnCriterion.id}`,
     { name: 'Umbenannt', language: 'de' });
   const rnNamesRows = () => {
@@ -3782,7 +3284,6 @@ async function sendImport(object, mode, withoutShare = false) {
     rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.name === 'Umbenannt' &&
     rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.nameFallback === undefined,
     JSON.stringify(rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)));
-  /* UND DAS ✕ RAEUMT SIE WIRKLICH WEG -- 0.25.0 (F5), am laufenden Server. */
   const rnCleared = await call('PUT', `/api/criteria/${rnCriterion.id}`,
     { clearName: true, language: 'de' });
   check('Das ✕ raeumt den Eintrag wirklich weg — 0.25.0 (F5)',
@@ -3792,7 +3293,6 @@ async function sendImport(object, mode, withoutShare = false) {
     rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.name === 'Umbenannt' &&
     rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.nameFallback === 'en',
     JSON.stringify(rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)));
-  /* UND DER ORIGINALTEXT LAESST SICH NICHT RAEUMEN. */
   const rnKeep = await call('PUT', `/api/criteria/${rnCriterion.id}`,
     { clearName: true, language: 'en' });
   check('Der Originaltext laesst sich nicht raeumen',
@@ -3800,7 +3300,6 @@ async function sendImport(object, mode, withoutShare = false) {
     rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)?.name === 'Umbenannt',
     `Status ${rnKeep.status}: ${JSON.stringify(rnKeep.content)}`);
 
-  /* UND DIE BEIDEN TABELLEN HAENGEN AN IHRER GRUNDZEILE. */
   await call('PUT', `/api/criteria/${rnCriterion.id}`,
     { name: 'Nochmal deutsch', language: 'de' });
   await call('DELETE', `/api/criteria/${rnCriterion.id}`);
@@ -3815,8 +3314,6 @@ async function sendImport(object, mode, withoutShare = false) {
   await call('DELETE', `/api/items/${rnItem.id}`);
   await call('DELETE', `/api/product-categories/${rnCategory.id}`);
 
-  /* ========= Die Namenstafeln je Sprache — 0.24.5 =======================
-     DIE REPARATUR VON D1, AM LAUFENDEN SERVER UND AM QUELLTEXT. */
   group('Die Namenstafeln je Sprache — 0.24.5');
 
   const NT_WORD = 'nadines-langes-wort';
@@ -3824,13 +3321,10 @@ async function sendImport(object, mode, withoutShare = false) {
   const NT = startFurtherServer(ntDirectory, {}, 5000);
   await NT.ready;
   await NT.call('POST', '/api/setup', { user: 'nadine', password: NT_WORD });
-  /* DIE LAGE DES BETREIBERS: alle drei Sprachen im Vorrat, DEUTSCH
-     vorgegeben. */
   await NT.call('PUT', '/api/settings',
     { languageDefault: 'de', languageOn: ['de', 'en', 'tr'] });
 
-  /* DER BESTAND: ein Kriterium in ALLEN DREI Sprachen, eine Kategorie OHNE
-     Tuerkisch. Ohne die zweite belegte die Gruppe den Rueckfall nicht. */
+  /* Die Kategorie ohne Tuerkisch belegt den Rueckfall. */
   const ntCriterion = (await NT.call('POST', '/api/criteria', { name: 'Grundkriterium' })).content;
   await NT.call('PUT', `/api/criteria/${ntCriterion.id}`,
     { name: 'English criterion', language: 'en' });
@@ -3839,7 +3333,6 @@ async function sendImport(object, mode, withoutShare = false) {
     { name: 'Grundkategorie' })).content;
   await NT.call('PUT', `/api/product-categories/${ntCategory.id}`,
     { name: 'English category', language: 'en' });
-  /* UND EINE ZWEITE KATEGORIE OHNE DEUTSCHEN EINTRAG -- 0.25.0. */
   const ntSecond = (await NT.call('POST', '/api/product-categories',
     { name: 'Zweite englisch', language: 'en' })).content;
   await NT.call('PUT', `/api/product-categories/${ntSecond.id}`,
@@ -3850,12 +3343,8 @@ async function sendImport(object, mode, withoutShare = false) {
       { headers: { cookie: cookieValue, 'accept-language': language } })).json();
 
   const ntDe = await ntRead('de'), ntEn = await ntRead('en'), ntTr = await ntRead('tr');
-  /* JEDER GRIFF IN DIE TAFEL IST GEKLAMMERT, und das hat die Gegenprobe
-     entschieden und nicht der Entwurf: Rueckbau 737 nimmt die Tafeln aus der
-     Antwort, und `ntDe.criterionNames.de[...]` warf daraufhin -- der ganze
-     Lauf riss ab und faerbte keine einzige Zeile rot. */
-  /* SEIT 0.25.0 TRAEGT EINE ZELLE ZWEI ANGABEN: den Namen, den ein Leser
-     dieser Sprache saehe, und die Sprache, aus der er stammt. */
+  /* Jeder Zugriff abgesichert: fehlen die Tafeln, soll die Pruefung scheitern,
+     nicht der Lauf. Eine Zelle traegt name und from (Sprache der Herkunft). */
   const ntCell = (answer, which, code, id) =>
     (((answer || {})[which] || {})[code] || {})[id] || {};
   const ntAt = (answer, which, code, id) => ntCell(answer, which, code, id).name;
@@ -3868,7 +3357,6 @@ async function sendImport(object, mode, withoutShare = false) {
     equal(ntColumns(ntDe, 'criterionNames').sort(), ['de', 'en', 'tr']) &&
     equal(ntColumns(ntDe, 'categoryNames').sort(), ['de', 'en', 'tr']),
     JSON.stringify(ntColumns(ntDe, 'criterionNames')));
-  /* DIE TAFEL DER ERSTELLUNGSSPRACHE KOMMT AUS DER GRUNDZEILE -- 0.25.0. */
   check('Die Tafel der Erstellungssprache kommt aus der Grundzeile',
     ntAt(ntDe, 'criterionNames', 'de', ntCriterion.id) === 'Grundkriterium' &&
     ntFrom(ntDe, 'criterionNames', 'de', ntCriterion.id) === 'de' &&
@@ -3883,7 +3371,6 @@ async function sendImport(object, mode, withoutShare = false) {
     ntFrom(ntDe, 'criterionNames', 'tr', ntCriterion.id) === 'tr',
     JSON.stringify([ntCell(ntDe, 'criterionNames', 'en', ntCriterion.id),
                     ntCell(ntDe, 'criterionNames', 'tr', ntCriterion.id)]));
-  /* UND WO NICHTS EINGETRAGEN IST, SAGT DIE ZELLE ES -- 0.25.0. */
   check('Und wo nichts eingetragen ist, sagt die Zelle es — from nennt die Herkunft',
     ntColumns(ntDe, 'categoryNames').length === 3 &&
     ntAt(ntDe, 'categoryNames', 'tr', ntCategory.id) === 'Grundkategorie' &&
@@ -3892,7 +3379,6 @@ async function sendImport(object, mode, withoutShare = false) {
     ntFrom(ntDe, 'categoryNames', 'en', ntCategory.id) === 'en',
     JSON.stringify((ntDe || {}).categoryNames));
 
-  /* ---- DIE KERNZUSICHERUNG: DER LESER AENDERT DIE TAFEL NICHT ---------- */
   check('Tafelprobe: drei Leser, dieselbe Tafel — der Kopf aendert sie nicht',
     ntColumns(ntDe, 'criterionNames').length === 3 &&
     equal(ntDe.criterionNames, ntEn.criterionNames) &&
@@ -3901,7 +3387,6 @@ async function sendImport(object, mode, withoutShare = false) {
     equal(ntDe.categoryNames, ntTr.categoryNames),
     JSON.stringify([ntAt(ntEn, 'criterionNames', 'de', ntCriterion.id),
                     ntAt(ntTr, 'criterionNames', 'de', ntCriterion.id)]));
-  /* UND DER PERSOENLICHE SCHLUESSEL AENDERT SIE AUCH NICHT. */
   await NT.call('PUT', '/api/settings', { language: 'tr' });
   const ntChosen = await ntRead('de');
   check('Und der persoenliche Schluessel aendert sie auch nicht',
@@ -3909,8 +3394,6 @@ async function sendImport(object, mode, withoutShare = false) {
     equal(ntChosen.criterionNames, ntDe.criterionNames) &&
     equal(ntChosen.categoryNames, ntDe.categoryNames),
     JSON.stringify(ntAt(ntChosen, 'criterionNames', 'de', ntCriterion.id)));
-  /* UND DIE ANDERE HAELFTE BLEIBT, WIE SIE IST: `localeOf(req)` wird nicht
-     angefasst, und der LISTENWEG folgt weiterhin dem Leser. */
   const ntList = await (await fetch(`${NT.base}/api/criteria`,
     { headers: { cookie: NT.cookieValue(), 'accept-language': 'de' } })).json();
   check('Und der Listenweg folgt weiter dem Leser — localeOf bleibt, wie es ist',
@@ -3918,7 +3401,7 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify((ntList.find(c => c.id === ntCriterion.id) || {}).name));
   await NT.call('PUT', '/api/settings', { language: 'de' });
 
-  /* ---- UND SIE STEHT NUR DEM ADMIN OFFEN (F3) -------------------------- */
+  /* ---- Namenstafeln nur fuer Admins ---- */
   await NT.call('POST', '/api/users', { username: 'norbert', password: 'norberts-langes-wort' });
   const ntUserLogin = await fetch(`${NT.base}/api/login`, { method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -3931,34 +3414,28 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Rollenprobe: der gewoehnliche Zugang bekommt keine Namenstafel',
     (ntUser || {}).categoryNames === undefined && (ntUser || {}).criterionNames === undefined,
     JSON.stringify(Object.keys(ntUser || {}).filter(k => /Names$/.test(k))));
-  /* UND ER SIEHT DIE LISTE TROTZDEM, in SEINER Sprache. */
   const ntUserList = await (await fetch(`${NT.base}/api/criteria`,
     { headers: { cookie: ntUserCookie, 'accept-language': 'en' } })).json();
   check('Und die Liste bekommt er trotzdem — in der Sprache, die er liest',
     (ntUserList.find(c => c.id === ntCriterion.id) || {}).name === 'English criterion',
     JSON.stringify((ntUserList.find(c => c.id === ntCriterion.id) || {}).name));
 
-  /* ---- DIE WAECHTER AM QUELLTEXT — 0.24.5 ------------------------------
-     DREI STELLEN, UND ALLE DREI SIND EINE ABWESENHEIT. */
+  /* ---- Am Quelltext ---- */
   const ntCode = segment(fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8'),
     'public/app.js').filter(part => part.kind === CODE).map(part => part.value).join('\n');
   check('Der Zwischenspeicher der nachgeholten Abrufe steht in keiner Zeile mehr',
     !/NAMES_FETCHED/.test(ntCode), (ntCode.match(/.{0,60}NAMES_FETCHED.{0,20}/) || [''])[0]);
   check('Und fetchNames() gibt es nicht mehr',
     !/fetchNames/.test(ntCode), (ntCode.match(/.{0,60}fetchNames.{0,20}/) || [''])[0]);
-  /* UND api() KANN EINE FREMDE SPRACHE GAR NICHT MEHR VERLANGEN. */
   check('api() nimmt keine fremde Sprache mehr an — der fuenfte Wert ist weg',
     /async function api\(method, url, body, isForm = false\) \{/.test(ntCode),
     (ntCode.match(/async function api\([^)]*\)/) || ['(nicht gefunden)'])[0]);
-  /* DIESE EINE ZEILE WIRD AM ROHEN QUELLTEXT GELESEN, und zwar mit Grund: der
-     Kopfname ist ein STRING und liegt damit in einem Textstueck, nicht im
-     Code -- die Sicht ohne Kommentare sieht ihn gar nicht. */
+  /* Roher Quelltext: 'Accept-Language' ist ein String und fehlt in ntCode. */
   const ntRaw = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
   check('Und Accept-Language traegt ausnahmslos die Sprache des Lesers',
     /'Accept-Language': LANGUAGE/.test(ntRaw) &&
     (ntRaw.match(/'Accept-Language'/g) || []).length === 1,
     `${(ntRaw.match(/'Accept-Language'/g) || []).length} Stellen`);
-  /* UND DIE TAFEL WIRD OHNE localeOf GEBAUT. */
   const ntServer = segment(fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8'), 'server.js')
     .filter(part => part.kind === CODE).map(part => part.value).join('\n');
   check('Die beiden Bauer der Namenstafeln nehmen keine Sprache an',
@@ -3966,15 +3443,12 @@ async function sendImport(object, mode, withoutShare = false) {
     /const categoryNamesAll = \(\) =>/.test(ntServer) &&
     /const criterionNamesAll = \(\) =>/.test(ntServer),
     (ntServer.match(/(categoryNamesAll|criterionNamesAll)\([^)]*\)/g) || []).join(' '));
-  /* UND SIE STEHEN HINTER isAdmin(req). */
   check('Und sie stehen an genau einer Klemme: isAdmin(req)',
     /\.\.\.\(isAdmin\(req\)\s*\?\s*\{ categoryNames: categoryNamesAll\(\), criterionNames: criterionNamesAll\(\) \}/
       .test(ntServer.replace(/\s*\n\s*/g, ' ')),
     (ntServer.match(/.{0,40}categoryNames: categoryNamesAll.{0,40}/) || ['(nicht gefunden)'])[0]);
 
-  /* ---- DIE ZWEITE ACHSE: DIE VORGABESPRACHE — 0.24.6, REPARIERT 0.25.0 ---
-     GEMESSEN UND NICHT VERMUTET, und dieselbe Messung wie in 0.24.6 -- nur
-     ist der Sollwert jetzt ein anderer. */
+  /* ---- Wechsel der Vorgabesprache ---- */
   const ntTable = async () => {
     const a = await ntRead('de');
     return { cats: (a || {}).categoryNames, crits: (a || {}).criterionNames };
@@ -3985,8 +3459,7 @@ async function sendImport(object, mode, withoutShare = false) {
     ntFrom(ntBefore, 'cats', 'de', ntCategory.id) === 'de' &&
     ntFrom(ntBefore, 'cats', 'tr', ntCategory.id) === 'de',
     JSON.stringify(ntBefore.cats));
-  /* UND JETZT DER WECHSEL -- auf eine Sprache, fuer die diese Kategorie
-     NICHTS traegt. */
+  /* Tuerkisch: dafuer traegt ntCategory keinen Namen. */
   const ntSwitch = (await NT.call('PUT', '/api/settings', { languageDefault: 'tr' })).content;
   const ntAfter = await ntTable();
   check('Messung: nach dem Wechsel bleibt die Grundzeile in der Tafel IHRER Sprache',
@@ -3997,36 +3470,29 @@ async function sendImport(object, mode, withoutShare = false) {
     ntAt(ntAfter, 'cats', 'tr', ntCategory.id) === 'Grundkategorie' &&
     ntFrom(ntAfter, 'cats', 'tr', ntCategory.id) === 'de',
     JSON.stringify(ntAfter.cats));
-  /* UND WAS WIRKLICH EINGETRAGEN IST, WANDERT NICHT. */
   check('Und was wirklich eingetragen ist, wandert nicht',
     ntAt(ntAfter, 'cats', 'en', ntCategory.id) === 'English category' &&
     ntAt(ntAfter, 'crits', 'en', ntCriterion.id) === 'English criterion' &&
     ntAt(ntAfter, 'crits', 'tr', ntCriterion.id) === 'Türkçe ölçüt',
     JSON.stringify(ntAfter.crits));
 
-  /* ---- UND DIE ANTWORT DES WECHSELS TRAEGT DIE BEIDEN TAFELN — F4 -------
-     DIE REPARATUR VON E3 AN IHRER WURZEL: die Karte kann die Tafeln nur
-     nachziehen, wenn die Antwort sie traegt. */
+  /* Die Karte kann die Tafeln nur aktualisieren, wenn die Antwort sie traegt. */
   check('Die Antwort des Wechsels traegt die beiden Namenstafeln — F4',
     !!(ntSwitch || {}).categoryNames && !!(ntSwitch || {}).criterionNames,
     JSON.stringify(Object.keys(ntSwitch || {}).filter(k => /Names$|^languages$/.test(k))));
-  /* UND SIE TRAGEN SCHON DEN NEUEN STAND. */
   check('Und sie tragen schon den neuen Stand — nicht den von vorher',
     ntFrom(ntSwitch, 'categoryNames', 'de', ntSecond.id) === 'tr' &&
     ntAt(ntSwitch, 'categoryNames', 'de', ntSecond.id) === 'Zweite tuerkisch',
     JSON.stringify((ntSwitch || {}).categoryNames));
-  /* UND `languages` STEHT WEITER DANEBEN. */
   check('Und die Sprachliste steht weiter daneben',
     Array.isArray((ntSwitch || {}).languages) &&
     ((ntSwitch.languages.find(a => a.isDefault) || {}).code) === 'tr',
     JSON.stringify((ntSwitch || {}).languages));
-  /* UND EIN SCHREIBEN OHNE SPRACHFRAGE TRAEGT SIE NICHT. */
   const ntPlain = (await NT.call('PUT', '/api/settings', { filters: null })).content;
   check('Und ein Schreiben ohne Sprachfrage traegt die Tafeln nicht',
     (ntPlain || {}).categoryNames === undefined &&
     (ntPlain || {}).criterionNames === undefined,
     JSON.stringify(Object.keys(ntPlain || {}).filter(k => /Names$/.test(k))));
-  /* UND SIE STEHEN AN DERSELBEN EINEN KLEMME WIE BEIM LESEN. */
   check('Und der Schreibweg haengt an derselben Klemme: isAdmin(req)',
     /\.\.\.\(isAdmin\(req\) && languagesTouched \? \{ categoryNames: categoryNamesAll\(\), criterionNames: criterionNamesAll\(\) \} : \{\}\)/
       .test(ntServer.replace(/\s*\n\s*/g, ' ')),
@@ -4037,14 +3503,11 @@ async function sendImport(object, mode, withoutShare = false) {
   NT.stop();
   fs.rmSync(ntDirectory, { recursive: true, force: true });
 
-  /* ================= Die Kette am Server — 0.25.0 =======================
-     DIE VOLLE TAFEL, UND SIE LAEUFT AM LAUFENDEN SERVER (F8). */
   group('Die Kette am Server — 0.25.0');
 
   const KT_WORD = 'kettes-langes-wort';
   const ktDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-kette-'));
-  /* DIE BASIS 5000 STEHT SCHON DA UND WIRD GETEILT -- mit der Lage „Die
-     Namenstafeln je Sprache", die genau darueber gestoppt wird. */
+  /* Portbasis 5000 teilt sich KT mit NT; NT ist darueber schon gestoppt. */
   const KT = startFurtherServer(ktDirectory, {}, 5000);
   await KT.ready;
   await KT.call('POST', '/api/setup', { user: 'kaethe', password: KT_WORD });
@@ -4063,10 +3526,7 @@ async function sendImport(object, mode, withoutShare = false) {
   await ktName(ktThree.id, 'tr', 'L3_tr');
   const ktFour = await ktMake('L4_orig', 'de');
   await ktName(ktFour.id, 'tr', 'L4_tr');
-  /* UND DIE VIERTE LAGE WIRD VON HAND HERGESTELLT: `language IS NULL` ist der
-     Zustand des Bestands NACH der Migration und VOR dem Zuordnen, und es gibt
-     keinen Schreibweg, der ihn erzeugt -- ab dieser Runde entsteht keine
-     Zeile mehr ohne Sprachvermerk. */
+  /* language IS NULL von Hand: kein Schreibweg legt eine Zeile ohne Sprache an. */
   {
     const d = open(path.join(ktDirectory, 'katalog.sqlite'));
     d.prepare('UPDATE product_categories SET language = NULL WHERE id = ?').run(ktFour.id);
@@ -4077,9 +3537,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const ktCell = (list, id) => {
     const row = (list || []).find(z => z.id === id);
     if (!row) return { name: '(Zeile fehlt)', from: '(Zeile fehlt)' };
-    /* DIE HERKUNFT STEHT ALS `nameFallback` IN DER ANTWORT: die Kennung der
-       Sprache, aus der der Name stammt, `true` fuer den Originaltext ohne
-       Sprachangabe -- und GAR NICHTS, wenn es kein Rueckfall ist. */
+    /* nameFallback: Sprache der Herkunft, true ohne Sprachangabe, fehlt ohne Rueckfall. */
     return { name: row.name, from: row.nameFallback };
   };
   check('Der Aufbau steht: vier Kategorien, und eine davon ohne Sprachvermerk',
@@ -4090,8 +3548,7 @@ async function sendImport(object, mode, withoutShare = false) {
       return r.length === 4 && r.filter(z => z.language === null).length === 1;
     })(), 'die vier Lagen stehen nicht');
 
-  /* DIE TAFEL. Je Vorgabesprache eine Zeile, darin je Bestandslage die drei
-     Lesersprachen -- Name und Herkunft. */
+  /* Vorgabesprache → Lage → Lesersprache: [Name, Herkunft]. */
   const KT_TABLE = {
     de: {
       L1: { de: ['L1_de', null], en: ['L1_de', 'de'], tr: ['L1_de', 'de'] },
@@ -4133,13 +3590,10 @@ async function sendImport(object, mode, withoutShare = false) {
       }
     }
   }
-  /* UND ES WAREN WIRKLICH SECHSUNDDREISSIG. */
   check('Die Kettentafel hat wirklich 36 Zellen — 3 Leser × 3 Vorgaben × 4 Lagen',
     ktCells === 36, `${ktCells} Zellen`);
 
-  /* ---- UND DER GEWOEHNLICHE BENUTZER BEKOMMT DIESELBE KETTE ----------- DAS
-     IST DIE HALBE SACHE DIESER RUNDE (A2): die Kette gilt fuer JEDEN Leser
-     und nicht nur in der Adminkarte. */
+  /* ---- Gewoehnlicher Zugang ---- */
   await KT.call('PUT', '/api/settings', { languageDefault: 'de' });
   await KT.call('POST', '/api/users', { username: 'karl', password: 'karls-langes-wort' });
   const ktLogin = await fetch(`${KT.base}/api/login`, { method: 'POST',
@@ -4153,25 +3607,20 @@ async function sendImport(object, mode, withoutShare = false) {
     ktCell(ktUserList, ktTwo.id).from === 'de' &&
     ktCell(ktUserList, ktFour.id).name === 'L4_tr',
     JSON.stringify([ktCell(ktUserList, ktTwo.id), ktCell(ktUserList, ktFour.id)]));
-  /* UND ER BEKOMMT WEITERHIN KEINE TAFEL. Ohne diese Zeile waere die darueber
-     auch dann gruen, wenn die Rollenklemme gefallen waere. */
+  /* Sonst waere die Pruefung darueber auch ohne Rollenpruefung gruen. */
   const ktUserSettings = await (await fetch(`${KT.base}/api/settings`,
     { headers: { cookie: ktCookie, 'accept-language': 'tr' } })).json();
   check('Und die Namenstafel bekommt er weiterhin nicht',
     ktUserSettings.categoryNames === undefined && ktUserSettings.criterionNames === undefined,
     JSON.stringify(Object.keys(ktUserSettings).filter(k => /Names$/.test(k))));
 
-  /* ---- DIE SORTIERUNG BLEIBT AM GRUNDNAMEN ---------------------------
-     AUSDRUECKLICH NICHT GEAENDERT:
-     zwei Leser saehen sonst zwei Reihenfolgen. */
+  /* Sortiert nach dem Grundnamen, sonst saehen zwei Leser zwei Reihenfolgen. */
   const ktOrderDe = (await ktRows('de')).map(z => z.id);
   const ktOrderTr = (await ktRows('tr')).map(z => z.id);
   check('Sortierprobe: die Reihenfolge ist fuer jeden Leser dieselbe',
     equal(ktOrderDe, ktOrderTr) && equal(ktOrderDe, [ktOne.id, ktTwo.id, ktThree.id, ktFour.id]),
     `${JSON.stringify(ktOrderDe)} · ${JSON.stringify(ktOrderTr)}`);
 
-  /* ---- DIE SPRACHE EINER NEUEN ZEILE IST DIE DES RUFERS -------------- UND
-     NICHT DIE VORGABE DER INSTALLATION. */
   await KT.call('PUT', '/api/settings', { languageDefault: 'en' });
   const ktFresh = (await KT.call('POST', '/api/product-categories',
     { name: 'Ohne Angabe' })).content;
@@ -4183,8 +3632,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Anlegeprobe: eine neue Zeile ohne Sprachangabe bekommt die des Rufers',
     ktFreshRow.language === 'de',
     `steht: ${JSON.stringify(ktFreshRow.language)} — soll: "de" (die Vorgabe steht auf "en")`);
-  /* UND DIE MITGESCHICKTE SCHLAEGT SIE. Ohne diese Zeile bliebe die darueber
-     auch dann gruen, wenn der Server die Angabe des Rufers gar nicht liest. */
+  /* Sonst bliebe die Pruefung darueber gruen, auch wenn der Server language nicht liest. */
   const ktSaid = (await KT.call('POST', '/api/product-categories',
     { name: 'Mit Angabe', language: 'tr' })).content;
   const ktSaidRow = (() => {
@@ -4196,8 +3644,7 @@ async function sendImport(object, mode, withoutShare = false) {
     ktSaidRow.language === 'tr', JSON.stringify(ktSaidRow.language));
   await KT.call('PUT', '/api/settings', { languageDefault: 'de' });
 
-  /* ---- DER EINE GRIFF FUER DIE UNBEKANNTE SPRACHE — F2 --------------- ER
-     SCHREIBT IN BEIDE TABELLEN UND NUR DORT, WO `language IS NULL`. */
+  /* ---- PUT /api/names/language ---- */
   const ktBeforeAssign = (() => {
     const d = open(path.join(ktDirectory, 'katalog.sqlite'));
     const r = d.prepare('SELECT id, name, language FROM product_categories ORDER BY id').all();
@@ -4221,20 +3668,14 @@ async function sendImport(object, mode, withoutShare = false) {
     !!ktAssign.content.categoryNames && !!ktAssign.content.criterionNames &&
     (((ktAssign.content.categoryNames || {}).en || {})[ktFour.id] || {}).from === 'en',
     JSON.stringify((ktAssign.content.categoryNames || {}).en));
-  /* UND EIN ZWEITER GRIFF FINDET NICHTS MEHR. Der Kasten ist danach weg, und
-     der Weg bleibt trotzdem gangbar -- er meldet null und schreibt nichts. */
   const ktAgain = await KT.call('PUT', '/api/names/language', { language: 'tr' });
   check('Und ein zweiter Griff findet nichts mehr — er schreibt nicht um',
     ktAgain.status === 200 && ktAgain.content.categories === 0 &&
     ktAgain.content.criteria === 0,
     JSON.stringify(ktAgain.content && [ktAgain.content.categories, ktAgain.content.criteria]));
-  /* UND EINE SPRACHE OHNE DATEI WIRD ABGEWIESEN -- dieselbe Klemme wie beim
-     Umbenennen, und aus demselben Grund. */
   const ktInvented = await KT.call('PUT', '/api/names/language', { language: 'xx' });
   check('Und eine Sprache ohne Datei wird abgewiesen', ktInvented.status === 400,
     `Status ${ktInvented.status}`);
-  /* UND DER WEG GEHOERT DEM ADMIN. Ohne diese Zeile koennte jeder Benutzer
-     dem ganzen Bestand eine Sprache zuschreiben. */
   const ktUserAssign = await fetch(`${KT.base}/api/names/language`, { method: 'PUT',
     headers: { ...H.withCsrf(ktCookie), 'content-type': 'application/json' },
     body: JSON.stringify({ language: 'de' }) });
@@ -4244,12 +3685,6 @@ async function sendImport(object, mode, withoutShare = false) {
   KT.stop();
   fs.rmSync(ktDirectory, { recursive: true, force: true });
 
-  /* ================= Die Datenbankstufen 0.25.0 und 0.27.0 ==============
-     BIS 0.32.1 STANDEN HIER ZWEI GRUPPEN, die ihre Migrationsblöcke an echten
-     Altbestaenden fuhren: 0.25.0 nahm die beiden `language`-Spalten wieder
-     weg und sah zu, wie ein Start sie nachruestete; 0.27.0 schrieb
-     `convertImages` in vier Ausgangslagen und sah zu, wie daraus `imageStore`
-     wurde. */
   group('Die Datenbankstufen 0.25.0 und 0.27.0 — umgedreht');
   {
     const stDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-stufe-'));
@@ -4264,8 +3699,7 @@ async function sendImport(object, mode, withoutShare = false) {
       stColumns('product_categories').includes('language') &&
       stColumns('rating_criteria').includes('language'),
       JSON.stringify([stColumns('product_categories'), stColumns('rating_criteria')]));
-    /* UND DAS BLOSSE OEFFNEN LEGT KEIN KRITERIUM MEHR AN: die drei
-       mitgelieferten entstehen im Server, weil ihre Namen in den
+    /* Die mitgelieferten Kriterien legt der Server an, weil ihre Namen in den
        Sprachdateien stehen. */
     const stSeed = (() => {
       const d = open(stFile);
@@ -4274,15 +3708,12 @@ async function sendImport(object, mode, withoutShare = false) {
     })();
     check('Und das blosse Oeffnen der Datei legt kein Kriterium mehr an',
       stSeed.length === 0, JSON.stringify(stSeed));
-    /* UND KEIN START MELDET MEHR EINE MIGRATION. */
     const stSay = shortRunAll(`require('./db'); console.log('da');`, stDir);
     check('Und kein Start meldet noch eine Migration',
       !/Migration auf 0\.2[57]\.0/i.test(stSay) && !/migration on 0\.2[57]\.0/i.test(stSay),
       JSON.stringify(stSay.split('\n').filter(z => /0\.2[57]\.0/.test(z))));
     fs.rmSync(stDir, { recursive: true, force: true });
 
-    /* ZUSAGE 11 VON 0.27.0, JETZT OHNE AUSNAHME: `convertImages` steht in
-       keiner Zeile Code mehr -- und db.js ist nicht laenger ausgenommen. */
     const noComments = (file) => fs.readFileSync(path.join(__dirname, file), 'utf8')
       .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
     const stLeft = [];
@@ -4293,13 +3724,11 @@ async function sendImport(object, mode, withoutShare = false) {
     }
     check('`convertImages` steht in keiner Zeile Code mehr — db.js eingeschlossen',
       stLeft.length === 0, stLeft.join(' · ') || 'nirgends');
-    /* UND DER WAECHTER FAENDE IHN WIRKLICH. */
     check('Und der Waechter faende ihn — gestellt und nachgemessen',
       /convertImages/.test(
         "const x = getSetting('convertImages', true); /* convertImages */".
           replace(/\/\*[\s\S]*?\*\//g, '')),
       'der Schnitt nimmt zu viel weg');
-    /* UND DAS ERGEBNIS VON 0.27.0 STEHT UNVERAENDERT DA. */
     const stOwner = (fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')
       .match(/const OWNER_KEYS = \[([\s\S]*?)\];/) || [, ''])[1];
     const stOwnerKeys = (stOwner.match(/'[^']+'/g) || []).map(x => x.slice(1, -1));
@@ -4310,15 +3739,10 @@ async function sendImport(object, mode, withoutShare = false) {
       `${stOwnerKeys.length}: ${stOwnerKeys.join(' · ')}`);
   }
 
-  /* ================= Der Beipack — 0.25.0 (F7) ==========================
-     ZWEI WAECHTER, und beide sind eine Aussage ueber Dateien, die kein
-     Prueflauf sonst ansieht. */
   group('Der Beipack — 0.25.0');
   {
     const bpPackage = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
-    /* DIE BEREICHE STEHEN NAMENTLICH DA und werden nicht aus der Lockfile
-       abgelesen: eine Probe, die ihren Maßstab vom Pruefling bezieht, kann
-       nicht scheitern (Befund B aus 0.12.0). */
+    /* Fest eingetragen: aus der Lockfile gelesen, koennte die Pruefung nicht scheitern. */
     const BP_RANGES = {
       'better-sqlite3-multiple-ciphers': '^11.5.0',
       express: '^4.21.0', multer: '^2.0.1', nodemailer: '^9.0.5', sharp: '^0.35.3'
@@ -4328,29 +3752,23 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und die eine Entwicklungsabhaengigkeit steht unveraendert daneben',
       equal(bpPackage.devDependencies, { jsdom: '^30.0.1' }),
       JSON.stringify(bpPackage.devDependencies));
-    /* UND DIE LOCKFILE TRAEGT DIE GEHOBENEN STAENDE. */
     const bpLock = JSON.parse(fs.readFileSync(path.join(__dirname, 'package-lock.json'), 'utf8'));
     const bpAt = (name) => ((bpLock.packages || {})[`node_modules/${name}`] || {}).version;
     check('Und die Lockfile traegt die gehobenen Staende',
       bpAt('multer') === '2.3.0' && bpAt('nodemailer') === '9.1.1' &&
       bpAt('sharp') === '0.35.4' && bpAt('body-parser') === '1.20.8',
       JSON.stringify(['multer', 'nodemailer', 'sharp', 'body-parser'].map(n => `${n}=${bpAt(n)}`)));
-    /* UND express BLEIBT, WO ES WAR. */
     check('Und express bleibt bei 4 — der Sprung auf 5 ist eine eigene Runde',
       /^4\./.test(String(bpAt('express'))), `express=${bpAt('express')}`);
-    /* ② DER WORKFLOW -- UND SEINE SACHE HAT SICH GEAENDERT. */
+    /* ---- Workflow ---- */
     const bpFlow = fs.readFileSync(
       path.join(__dirname, '.github', 'workflows', 'pruefstand.yml'), 'utf8');
-    /* AUCH NICHT AUSKOMMENTIERT: eine Bedingung, die als Kommentar
-       stehenbliebe, waere genau die tote Regel, die diese Reihe an anderer
-       Stelle als Befund fuehrt -- sie tut nichts und liest sich, als tue sie
-       etwas. */
+    /* Auch nicht als Kommentar: dort liest sie sich, als wirke sie. */
     check('Workflowprobe: die Bedingung fuer Weg B ist weg — auch als Kommentar',
       !/^[ \t]*#*[ \t]*if:/m.test(bpFlow) &&
       !/github\.event_name/.test(bpFlow) &&
       !/pull_request\.head\.repo/.test(bpFlow),
       (bpFlow.match(/^.*if:.*$/m) || ['(keine Bedingung)'])[0]);
-    /* UND DER LAUF HAENGT AN GENAU ZWEI EREIGNISSEN, DIE NAMENTLICH DASTEHEN. */
     const bpOn = ((bpFlow.split('\n').filter(z => !/^\s*#/.test(z)).join('\n'))
       .match(/^on:[ \t]*\n(?:[ \t]+\S.*\n|[ \t]*\n)*/m) || [''])[0];
     const bpEvents = [...bpOn.matchAll(/^ {2}(\w+):/mg)].map(t => t[1]);
@@ -4358,19 +3776,14 @@ async function sendImport(object, mode, withoutShare = false) {
       bpEvents.length === 2 && bpEvents.includes('push')
         && bpEvents.includes('workflow_dispatch'),
       bpEvents.join(', ') || '(keins)');
-    /* UND DER PUSH TRAEGT KEINEN ZWEIGFILTER. */
     check('Und der Push traegt keinen Zweigfilter',
       !/^ {2}push:[ \t]*\n {4}branches:/m.test(bpOn),
       bpOn.replace(/\n/g, ' \\n ').trim());
   }
 
-  /* ================= Die Befunde der Runde 0.24.4 =======================
-     ELF WAECHTER, und jeder haelt eine Zusicherung der Runde fest. */
   group('Die Befunde der Runde 0.24.4 — am laufenden Server');
 
-  /* --- DIE EINTRAGSPROBE (B2) ------------------------------------------ Die
-     Zusicherung in einem Satz: egal, wie die Oberflaeche steht -- was fuer
-     eine Sprache eingetragen wurde, steht in dieser Sprache da. */
+  /* ---- Vokabular je Sprache ---- */
   await call('PUT', '/api/settings', { languageDefault: 'en', languageOn: ['de', 'en', 'tr'] });
   const bfClear = async () => {
     for (const code of ['de', 'en', 'tr'])
@@ -4389,15 +3802,12 @@ async function sendImport(object, mode, withoutShare = false) {
   const bfEnglish = await bfRead('en');
   check('Eintragsprobe: was fuer Englisch eingetragen wurde, steht auf Englisch da',
     bfEnglish.vocabulary.entryOne === 'Widget', JSON.stringify(bfEnglish.vocabulary.entryOne));
-  /* UND DIE ANDEREN DREIZEHN WOERTER BLEIBEN, WAS SIE SIND. */
   const bfGerman = await bfRead('de');
   check('Und der deutsche Leser bekommt nur DIESES eine Wort auf Englisch',
     bfGerman.vocabulary.entryOne === 'Widget' && bfGerman.vocabulary.dayOne === 'Testtag' &&
     bfGerman.vocabulary.reportMany === 'Berichte',
     JSON.stringify([bfGerman.vocabulary.entryOne, bfGerman.vocabulary.dayOne,
                     bfGerman.vocabulary.reportMany]));
-  /* UND IN DER ABLAGE STEHT NUR DAS EINGETRAGENE. Die Zeile darueber sieht
-     das Ergebnis; diese sieht die Ursache. */
   const bfStored = () => {
     const d = open(path.join(DATA, 'katalog.sqlite'));
     const r = d.prepare("SELECT value FROM settings WHERE key = 'vocabulary'").get();
@@ -4406,17 +3816,13 @@ async function sendImport(object, mode, withoutShare = false) {
   };
   check('Und in der Ablage steht genau ein Wort, nicht vierzehn',
     equal(bfStored(), { en: { entryOne: 'Widget' } }), JSON.stringify(bfStored()));
-  /* UND EINE SPRACHE OHNE EIN EINZIGES WORT LIEGT GAR NICHT ERST DA. */
   check('Und eine geraeumte Sprache faellt ganz aus der Ablage',
     !('de' in (bfStored() || {})) && !('tr' in (bfStored() || {})),
     JSON.stringify(bfStored()));
-  /* DER RUECKFALL AUS 0.24.3 BLEIBT -- er ist ausdruecklich NICHT der Befund. */
   const bfTurkish = await bfRead('tr');
   check('Und der Rueckfall aus 0.24.3 gilt weiter — auch fuer den tuerkischen Leser',
     bfTurkish.vocabulary.entryOne === 'Widget' && bfTurkish.vocabulary.dayOne === 'Test günü',
     JSON.stringify([bfTurkish.vocabulary.entryOne, bfTurkish.vocabulary.dayOne]));
-  /* UND DIE DREI TAFELN, DIE DIE KARTE BRAUCHT. Sie beantworten je eine
-     andere Frage, und keine laesst sich aus den anderen ausrechnen. */
   check('Die Karte bekommt drei Tafeln: eingetragen, wirksam, Vorgabe',
     equal(bfGerman.vocabulariesOwn.en, { entryOne: 'Widget' }) &&
     equal(bfGerman.vocabulariesOwn.de, {}) &&
@@ -4425,15 +3831,13 @@ async function sendImport(object, mode, withoutShare = false) {
     bfGerman.vocabularyDefaults.tr.entryOne === 'Öğe',
     JSON.stringify([bfGerman.vocabulariesOwn.en, bfGerman.vocabulariesOwn.de,
                     bfGerman.vocabularies.de.entryOne, bfGerman.vocabularyDefaults.tr.entryOne]));
-  /* UND JEDE SPRACHE BEHAELT IHREN EIGENEN SATZ. */
   await call('PUT', '/api/settings', { vocabulary: { de: { entryOne: 'Gerät' } } });
   const bfBoth = await bfRead('de');
   check('Und jede Sprache behaelt ihren eigenen Satz',
     bfBoth.vocabulary.entryOne === 'Gerät' &&
     (await bfRead('en')).vocabulary.entryOne === 'Widget',
     JSON.stringify([bfBoth.vocabulary.entryOne, (await bfRead('en')).vocabulary.entryOne]));
-  /* UND EIN GERAEUMTES FELD BLEIBT GERAEUMT. „Leer heisst Vorgabe" gilt
-     weiter -- nur wird die Vorgabe beim LESEN eingesetzt. */
+  /* Die Vorgabe wird beim Lesen eingesetzt, nicht gespeichert. */
   await call('PUT', '/api/settings', { vocabulary: { de: { entryOne: '  ' } } });
   check('Ein geraeumtes Feld faellt auf die Vorgabe zurueck und liegt nicht in der Ablage',
     (await bfRead('de')).vocabulary.entryOne === 'Widget' &&
@@ -4441,8 +3845,7 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify(bfStored()));
   await bfClear();
 
-  /* --- DREI ZUGAENGE, DREI SPRACHEN, GLEICHZEITIG ---------------------- Die
-     Sprache steht am ZUGANG und nicht an der Installation. */
+  /* ---- Drei Sprachen gleichzeitig ---- */
   {
     await call('PUT', '/api/settings', { vocabulary: { tr: { entryOne: 'Model' } } });
     const drRead = async (language) => (await bfRead(language));
@@ -4458,8 +3861,7 @@ async function sendImport(object, mode, withoutShare = false) {
     await bfClear();
   }
 
-  /* --- DIE FALTUNGSPROBE UND DIE ZWEI-LESER-PROBE (B8) ----------------- Der
-     Bestand traegt die vier i des Lateinischen in Unicode. */
+  /* ---- Suche: die vier i (I, ı, İ, i) ---- */
   {
     const bfIds = [];
     for (const title of ['İstanbul', 'Istanbul', 'Işık', 'ışık', 'Iğdır', 'ığdır'])
@@ -4471,8 +3873,6 @@ async function sendImport(object, mode, withoutShare = false) {
       return (Array.isArray(list) ? list : list.items || [])
         .filter(z => bfIds.includes(z.id)).map(z => z.title).sort();
     };
-    /* NEUN GEWOEHNLICHE FAELLE, und keiner darf ins Leere gehen. Bis 0.24.3
-       gingen fuenf davon ins Leere -- gemessen, nicht vermutet. */
     const bfCases = [
       ['istanbul', ['Istanbul', 'İstanbul']], ['ISTANBUL', ['Istanbul', 'İstanbul']],
       ['Istanbul', ['Istanbul', 'İstanbul']], ['İSTANBUL', ['Istanbul', 'İstanbul']],
@@ -4484,8 +3884,7 @@ async function sendImport(object, mode, withoutShare = false) {
       if (!equal(await bfSearch(q, 'de'), want.slice().sort())) bfEmpty.push(q);
     check('T3-Probe: neun tuerkische Suchfaelle, keiner geht ins Leere',
       bfEmpty.length === 0, `ins Leere: ${bfEmpty.join(' · ') || '—'}`);
-    /* UND ZWEI LESER BEKOMMEN DIESELBE ANTWORT. Das ist die eigentliche
-       Zusicherung: die Faltung haengt an der Installation und nicht am Leser. */
+    /* Die Faltung haengt an der Instanz, nicht an der Sprache des Lesers. */
     const bfDiffer = [];
     for (const [q] of bfCases) {
       const [a, b, c] = [await bfSearch(q, 'de'), await bfSearch(q, 'en'), await bfSearch(q, 'tr')];
@@ -4493,15 +3892,10 @@ async function sendImport(object, mode, withoutShare = false) {
     }
     check('Zwei-Leser-Probe: derselbe Bestand, dieselbe Eingabe, dieselbe Trefferliste',
       bfDiffer.length === 0, bfDiffer.slice(0, 3).join(' · ') || 'alle gleich');
-    /* UND DIE FALTUNG AM LAUFENDEN SERVER, nicht nur am Quelltext: dieselbe
-       Funktion faltet beide Haelften, also findet ein GROSS geschriebener
-       Begriff einen klein geschriebenen Bestand und umgekehrt. */
     check('Faltungsprobe am laufenden Server: Nadel und Heuhaufen falten gleich',
       equal(await bfSearch('IŞIK', 'de'), await bfSearch('ışık', 'de')),
       JSON.stringify([await bfSearch('IŞIK', 'de'), await bfSearch('ışık', 'de')]));
-    /* DIE SORTIERUNG LAEUFT UEBER Intl.Collator UND NICHT UEBER DIE FALTUNG
-       -- die beiden beantworten verschiedene Fragen, und wer sie
-       zusammenlegt, bekommt „İzmir" vor „irmik". */
+    /* Nach der Faltung sortiert stuende „İzmir" vor „irmik". */
     check('Und die Sortierung folgt der Locale, nicht der Faltung',
       equal(['İzmir', 'ılık', 'irmik'].sort((a, b) => a.localeCompare(b, 'tr-TR')),
             ['ılık', 'irmik', 'İzmir']),
@@ -4509,9 +3903,7 @@ async function sendImport(object, mode, withoutShare = false) {
     for (const id of bfIds) await call('DELETE', `/api/items/${id}`);
   }
 
-  /* --- EIN BESTAND AUS 0.24.3 LAEUFT AN ---------------------------------
-     Die Ablage einer 0.24.3-Instanz traegt je Sprache VIERZEHN Woerter -- der
-     Schreibweg von damals hat fuer jedes leere Feld die Vorgabe eingesetzt. */
+  /* ---- Alter Bestand: jedes Wort gespeichert, auch die Vorgaben ---- */
   {
     const fromOld = {
       de: Object.fromEntries(Object.entries(JSON.parse(fs.readFileSync(
@@ -4534,21 +3926,15 @@ async function sendImport(object, mode, withoutShare = false) {
       fromRead.vocabulary.grade === 'Note' &&
       Object.keys(fromRead.vocabulary).length === 15,
       JSON.stringify(fromRead.vocabulary));
-    /* UND DIE KARTE ZEIGT SIE ALS EINGETRAGEN -- weil sie es aus Sicht der
-       Ablage sind. */
     check('Und die Karte zeigt sie als eingetragen — die Kehrseite, benannt',
       fromRead.vocabulariesOwn.de.dayOne === 'Testtag',
       JSON.stringify(fromRead.vocabulariesOwn.de.dayOne));
     await bfClear();
   }
 
-  /* --- EIN EXPORT TRAEGT ALLE DREI SPRACHFASSUNGEN ----------------------
-     Austauschformat 14 seit 0.24.3, unveraendert. */
+  /* ---- Export mit drei Sprachfassungen ---- */
   {
-    /* ENGLISCH ANGELEGT -- 0.25.0, aus demselben Grund wie oben beim
-       Rueckfall: die Grundzeile traegt seit dieser Runde ihre eigene Sprache,
-       und `language: 'de'` gleich darunter benennte sonst sie um, statt eine
-       zweite Fassung anzulegen. */
+    /* Englisch anlegen: sonst benennte language: 'de' darunter die Grundzeile um. */
     const exCrit = (await call('POST', '/api/criteria',
       { name: 'Dreisprachig', language: 'en' })).content;
     await call('PUT', `/api/criteria/${exCrit.id}`, { name: 'Dreisprachig DE', language: 'de' });
@@ -4560,8 +3946,6 @@ async function sendImport(object, mode, withoutShare = false) {
       exFile?.criteriaNames?.tr?.['Dreisprachig'] === 'Üç dilli',
       JSON.stringify([exFile?.version, exFile?.criteriaNames?.de?.['Dreisprachig'],
                       exFile?.criteriaNames?.tr?.['Dreisprachig']]));
-    /* UND WIEDER EINGESPIELT STEHEN SIE DA. */
-    /* WEGGERAEUMT WIRD MIT DEM ✕ -- 0.25.0 (F5). */
     await call('PUT', `/api/criteria/${exCrit.id}`, { clearName: true, language: 'de' });
     await call('PUT', `/api/criteria/${exCrit.id}`, { clearName: true, language: 'tr' });
     const exGone = await (await fetch(`${BASE}/api/criteria`,
@@ -4582,9 +3966,7 @@ async function sendImport(object, mode, withoutShare = false) {
     await call('DELETE', `/api/criteria/${exCrit.id}`);
   }
 
-  /* --- DIE DECKUNGSPROBE FUER tr.json ---------------------------------
-     Dieselben Schluessel, dieselbe Reihenfolge, und beide Mehrzahlformen
-     gefuellt. */
+  /* ---- tr.json ---- */
   {
     const dgRead = (code) => JSON.parse(fs.readFileSync(
       path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
@@ -4595,8 +3977,6 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und ihr Kopf nennt Locale und Namen',
       dgTr._locale === 'tr-TR' && dgTr._name === 'Türkçe',
       `${dgTr._locale} · ${dgTr._name}`);
-    /* T2: BEIDE FORMEN SIND GEFUELLT. `Intl.PluralRules('tr')` kennt `one`
-       UND `other` -- nachgemessen, nicht angenommen. */
     check('Der Aufbau steht: Tuerkisch kennt beide Mehrzahlklassen',
       new Intl.PluralRules('tr-TR').select(1) === 'one' &&
       new Intl.PluralRules('tr-TR').select(3) === 'other',
@@ -4606,8 +3986,8 @@ async function sendImport(object, mode, withoutShare = false) {
       (!v || typeof v !== 'object' || !String(v.one || '').trim() || !String(v.other || '').trim()));
     check('T2: beide Mehrzahlformen sind gefuellt — alle vierunddreissig',
       dgHalf.length === 0, dgHalf.map(([k]) => k).join(' '));
-    /* UND NACH EINER ZAHL STEHT DIE EINZAHL. Die Mehrzahl mit -ler/-lar
-       steht nur da, wo kein Zaehler davorsteht („Yorumlar" als Titel). */
+    /* Nach einer Zahl steht die Einzahl; -ler/-lar nur ohne Zaehler („Yorumlar"
+       als Titel). */
     const TR_WORD = 'A-Za-zÇĞİÖŞÜçğıöşü';
     const dgCounted = new RegExp(
       `(?:\\{n\\}|(?:^|[^${TR_WORD}0-9])[0-9]+)\\s+[${TR_WORD}]*(?:ler|lar)(?![${TR_WORD}])`);
@@ -4617,8 +3997,6 @@ async function sendImport(object, mode, withoutShare = false) {
         if (dgCounted.test(String(one))) dgPlural.push(k);
     check('T2: nach einer Zahl steht die Einzahl — kein -ler/-lar hinter einem Zaehler',
       dgPlural.length === 0, dgPlural.join(' '));
-    /* UND DIE FUENF VOKABELPAARE TRAGEN VERSCHIEDENE WOERTER -- seit 0.31.4,
-       und das ist die UMKEHRUNG dieser Zeile. */
     const dgPairs = [['entryOne', 'entryMany'], ['dayOne', 'dayMany'],
       ['reportOne', 'reportMany'], ['taskOne', 'taskMany'], ['ratingOne', 'ratingMany']];
     const dgSame = dgPairs.filter(([one, many]) =>
@@ -4626,7 +4004,6 @@ async function sendImport(object, mode, withoutShare = false) {
     check('T2: die fuenf Vokabelpaare tragen auf Tuerkisch verschiedene Woerter — seit 0.31.4',
       dgSame.length === 0,
       dgSame.map(([o]) => `${o}: ${dgTr['vocabulary.' + o]}`).join(' · ') || 'alle fuenf verschieden');
-    /* UND DIE MEHRZAHL IST WIRKLICH EINE. */
     const dgNotPlural = dgPairs.filter(([, many]) =>
       !new RegExp(`[${TR_WORD}]*(?:ler|lar)(?:i|ı)?$`).test(String(dgTr['vocabulary.' + many])));
     check('Und jede der fuenf tuerkischen Mehrzahlen endet auf -ler oder -lar',
@@ -4639,8 +4016,8 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und der Leser wuerde einen Verstoss finden',
       dgCounted.test('3 yorumlar') && !dgCounted.test('3 yorum'),
       'der Leser trennt Einzahl und Mehrzahl nicht');
-    /* T1: KEINE ENDUNG AN EINEM PLATZHALTER -- weder angeklebt noch mit
-       Apostroph. Die Endung traegt ein festes Wort daneben. */
+    /* Tuerkische Endungen folgen dem Vokal des Wortes davor; an einem Platzhalter
+       passt sie nicht zu jedem eingesetzten Wort. */
     const dgSuffix = new RegExp(`\\{[a-zA-Z_]+\\}['’]?[${TR_WORD}]`);
     const dgStuck = [];
     for (const [k, v] of Object.entries(dgTr))
@@ -4651,8 +4028,6 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und der Leser wuerde eine finden',
       dgSuffix.test("{entryOne}'yi sil?") && !dgSuffix.test('{entryOne} silinsin mi?'),
       'der Leser sieht die Endung nicht');
-    /* UND DIE PROBE AM LEBENDEN BEISPIEL: dasselbe Vokabelwort auf drei
-       Vokale, derselbe Satz bleibt richtig. */
     const dgFill = (text, values) =>
       String(text).replace(/\{(\w+)\}/g, (whole, name) =>
         (values[name] !== undefined ? values[name] : whole));
@@ -4668,34 +4043,26 @@ async function sendImport(object, mode, withoutShare = false) {
       dgWrong.length === 0, dgWrong.slice(0, 3).join(' · '));
   }
 
-  /* ================= Die Zahl der Tabellen — 0.24.3 =====================
-     SIEBENUNDZWANZIG SEIT JENER RUNDE, vorher fuenfundzwanzig:
-     `criterion_names` und `category_names` sind dazugekommen. */
+  /* ---- Zahl der Tabellen ---- */
   {
     const tzDb = open(path.join(DATA, 'katalog.sqlite'));
     const tzTables = tzDb.prepare(
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
       .all().map(z => z.name).sort();
     tzDb.close();
-    // Die dreissigste traegt die Videos in Kommentaren.
     check('Die Datenbank traegt genau dreissig Tabellen',
       tzTables.length === 30 && tzTables.includes('comment_videos'), `${tzTables.length}: ${tzTables.join(' ')}`);
-    /* DIE NEUNUNDZWANZIGSTE TRAEGT DIE ANMELDEBREMSE -- sie lag vorher in
-       einer Map, und ein Neustart setzte jeden Zaehler auf null. */
+    /* login_attempts: in einer Map setzte jeder Neustart die Zaehler auf null. */
     check('Und die neue heisst login_attempts',
       tzTables.includes('login_attempts'), tzTables.join(' '));
     check('Und die beiden neuen aus 0.24.3 stehen darunter',
       tzTables.includes('criterion_names') && tzTables.includes('category_names'),
       tzTables.join(' '));
-    /* UND DIE EINE NEUE AUS 0.32.0 -- sie steht ohne Migrationsblock da:
-       `CREATE TABLE IF NOT EXISTS` legt eine fehlende TABELLE bei jedem Start
-       an; nur eine fehlende SPALTE an einer vorhandenen Tabelle braeuchte
-       einen. */
+    /* CREATE TABLE IF NOT EXISTS legt eine fehlende Tabelle bei jedem Start an. */
     check('Und die eine neue aus 0.32.0 auch — comment_mentions',
       tzTables.includes('comment_mentions'), tzTables.join(' '));
   }
 
-  /* ---------------------------------------------------------------- */
   group('Schnitt und Anzahl je Kriterium');
 
   function putThreeUserAn() {
@@ -4704,28 +4071,22 @@ async function sendImport(object, mode, withoutShare = false) {
     const d = open(path.join(dir, 'katalog.sqlite'));
     for (const n of ['eins', 'zwei', 'drei'])
       d.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(n, 'x');
-    // Drei fertige Sitzungen, eine je Benutzer -- schneller und
-// unabhaengiger als der Weg ueber die Verwaltung.
+    // Sitzungen direkt in der Datenbank: schneller als der Weg ueber die Verwaltung.
     for (const [t, u] of [['cookie-e-eins', 1], ['cookie-e-zwei', 2], ['cookie-e-drei', 3]])
       d.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run(t, u);
     for (const t of ['Dreier', 'Zweiter Eintrag'])
       d.prepare('INSERT INTO items (title, user_id) VALUES (?, 1)').run(t);
-    // Die drei Vorgabekriterien aus db.js weg -- sonst laegen sieben Zeilen
-    // im Sternwidget und die Bewertungen unten trafen ueber ihre Ids die
-    // falschen.
+    // Nur die vier Kriterien unten, sonst staenden weitere in der Sternzeile.
     d.prepare('DELETE FROM rating_criteria').run();
     const kId = {};
     ['Optik', 'Haptik', 'Preis', 'Service'].forEach((n, i) => {
       kId[n] = d.prepare('INSERT INTO rating_criteria (name, sort_order) VALUES (?, ?)')
         .run(n, i).lastInsertRowid;
     });
-    /* Eintrag 1: Optik 5/3/1 (drei Stimmen) -> Schnitt 3,0 Haptik 4/2 (zwei
-       Stimmen) -> Schnitt 3,0 Preis 5 (eine Stimme) -> Schnitt 5,0 dazu eine
-       NULLZEILE auf Preis: zurueckgesetzt, keine Stimme Service: gar nichts
-       -> null, und faellt aus dem Gesamtschnitt heraus zweistufig: (3,0 + 3,0
-       + 5,0) / 3 = 3,7 flach: (5+3+1+4+2+5) / 6 = 3,3 <- das waere die alte
-       Zahl Eintrag 2: Optik 4 (eine Stimme) -- allein dafuer da, dass Optik
-       an ZWEI Eintraegen verwendet ist, aber vier Zeilen hat. */
+    /* Eintrag 1: Optik 5/3/1 → 3,0; Haptik 4/2 → 3,0; Preis 5 → 5,0 (die 0 ist
+       zurueckgesetzt, keine Stimme); Service ohne Stimme → null.
+       Gesamt (3,0 + 3,0 + 5,0) / 3 = 3,7; flach (5+3+1+4+2+5) / 6 = 3,3.
+       Eintrag 2: Optik 4, damit Optik an zwei Eintraegen haengt. */
     for (const [it, kr, w, u] of [
       [1, 'Optik', 5, 1], [1, 'Optik', 3, 2], [1, 'Optik', 1, 3],
       [1, 'Haptik', 4, 1], [1, 'Haptik', 2, 2],
@@ -4733,20 +4094,19 @@ async function sendImport(object, mode, withoutShare = false) {
       [2, 'Optik', 4, 1]
     ]) d.prepare('INSERT INTO ratings (item_id, criterion_id, value, user_id) VALUES (?, ?, ?, ?)')
         .run(it, kId[kr], w, u);
-    // Zwei Leute am selben Datum sind zwei Testtage, der dritte
-// liegt spaeter. Fuer die Zeitleiste: einer eigen, zwei fremd.
+    // Zwei Benutzer am selben Datum sind zwei Testtage; fuer Benutzer 1 ist
+    // einer eigen, zwei fremd.
     for (const [date, score, u] of [['2024-03-01', 4, 1], ['2024-03-01', 2, 2], ['2024-04-01', 5, 3]])
       d.prepare('INSERT INTO test_days (item_id, day, rating, user_id) VALUES (1, ?, ?, ?)')
         .run(date, score, u);
-    /* BEIDE EINTRAEGE STEHEN AUF „getestet" -- Eintrag 2 seit 0.22.1. */
+    /* Bewertungen gelten nur an getesteten Eintraegen. */
     d.prepare('UPDATE items SET tested = 1 WHERE id IN (1, 2)').run();
     d.close();
     return dir;
   }
 
   const levelEDir = putThreeUserAn();
-  // Der Exportierende dieser Lage braucht ein echtes Passwort: seit 0.8.90
-// verlangt der Export eine zweite Bestaetigung.
+  // Der Export verlangt eine Bestaetigung mit Passwort.
   const eWord = 'eins-langes-wort';
   setPasswordImInventory(levelEDir, 'eins', eWord);
   const SE1 = startFurtherServer(levelEDir, {}, 5560);
@@ -4777,8 +4137,7 @@ async function sendImport(object, mode, withoutShare = false) {
     eRow(eOne, 'Optik')?.avg === 3 && eRow(eOne, 'Haptik')?.avg === 3 &&
     eRow(eOne, 'Preis')?.avg === 5,
     JSON.stringify(eOne?.ratings?.map(r => `${r.name}:${r.avg}`)));
-  /* Der Zaehler ist die eigentliche Falle: ein zweiter JOIN neben dem, der
-     die eigene Zeile holt, vervielfacht die Kriterien. */
+  /* Ein zweiter JOIN neben dem fuer die eigene Zeile vervielfacht die Zaehlung. */
   check('Die Zahl der Bewerter ist nicht vervielfacht',
     eRow(eOne, 'Optik')?.count === 3 && eRow(eOne, 'Haptik')?.count === 2 &&
     eRow(eOne, 'Preis')?.count === 1,
@@ -4786,8 +4145,8 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Ein Kriterium ohne Stimme bleibt leer statt null zu zaehlen',
     eRow(eOne, 'Service')?.avg === null && eRow(eOne, 'Service')?.count === 0,
     JSON.stringify(eRow(eOne, 'Service')));
-  // Eine zurueckgesetzte Bewertung hinterlaesst eine Zeile mit 0. Zaehlte sie
-// mit, waere Preis 2,5 aus zwei Stimmen statt 5,0 aus einer.
+  // Eine zurueckgesetzte Bewertung ist eine Zeile mit 0; mitgezaehlt waere
+  // Preis 2,5 statt 5,0.
   check('Eine zurueckgesetzte Bewertung ist keine Stimme',
     eRow(eOne, 'Preis')?.count === 1 && eRow(eOne, 'Preis')?.avg === 5,
     JSON.stringify(eRow(eOne, 'Preis')));
@@ -4797,7 +4156,6 @@ async function sendImport(object, mode, withoutShare = false) {
     equal(eThree?.ratings?.map(r => r.value), [1, 0, 5, 0]),
     `eins: ${JSON.stringify(eOne?.ratings?.map(r => r.value))}, ` +
     `drei: ${JSON.stringify(eThree?.ratings?.map(r => r.value))}`);
-  // Der Schnitt ist keine persoenliche Angabe: drei Leute sehen dieselbe Zahl.
   check('Schnitt und Zahl sehen fuer alle drei gleich aus',
     equal(eOne?.ratings?.map(r => `${r.avg}/${r.count}`),
            eTwo?.ratings?.map(r => `${r.avg}/${r.count}`)) &&
@@ -4810,14 +4168,12 @@ async function sendImport(object, mode, withoutShare = false) {
     eOne?.avgRating === 3.7, JSON.stringify(eOne?.avgRating));
   check('Und ausdruecklich nicht das flache Mittel ueber alle Zeilen',
     eOne?.avgRating !== 3.3, JSON.stringify(eOne?.avgRating));
-  // Dieselbe Zahl muss auch die Kachel tragen -- sie kommt aus einer anderen
-// Abfrage und muesste sonst getrennt gepflegt werden.
+  // Die Kachel rechnet in einer eigenen Abfrage.
   const eList = (await eCall('cookie-e-eins', 'GET', '/api/items')).content;
   check('Die Uebersicht rechnet mit demselben Ergebnis',
     eList?.find(i => i.id === 1)?.avgRating === 3.7,
     JSON.stringify(eList?.map(i => `${i.id}:${i.avgRating}`)));
 
-  /* Der Verwendungszaehler in der Verwaltungskarte. */
   const eCriterion = (await eCall('cookie-e-eins', 'GET', '/api/criteria')).content;
   const eCriterionNumber = (n) => eCriterion?.find(c => c.name === n)?.usage_count;
   check('Der Verwendungszaehler zaehlt Eintraege, nicht Bewertungszeilen',
@@ -4826,10 +4182,10 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und ein Kriterium ohne vergebene Sterne steht auf null',
     eCriterionNumber('Service') === 0, JSON.stringify(eCriterionNumber('Service')));
 
-  /* --- Testtage: wem gehoert der Punkt --- */
+  /* ---- Testtage: mine ---- */
   const eDays = (u) => (u?.testDays || []).map(t => `${t.day}/${t.rating}/${t.mine}`);
-  // Reihenfolge: ORDER BY day DESC, id DESC -- bei gleichem Datum steht der
-  // zuletzt eingetragene oben.
+  // ORDER BY day DESC, id DESC: bei gleichem Datum steht der zuletzt
+  // eingetragene oben.
   check('Jeder Testtag sagt, ob er mir gehoert',
     equal(eDays(eOne), ['2024-04-01/5/false', '2024-03-01/2/false', '2024-03-01/4/true']),
     JSON.stringify(eDays(eOne)));
@@ -4840,17 +4196,13 @@ async function sendImport(object, mode, withoutShare = false) {
     equal((eList?.find(i => i.id === 1)?.testDays || []).map(t => t.mine),
            [false, false, true]),
     JSON.stringify((eList?.find(i => i.id === 1)?.testDays || []).map(t => t.mine)));
-  // Die Verfasser-Id selbst hat in der Antwort nichts verloren --
-// eine nackte Id liest ohnehin niemand.
   check('Die Verfasser-Id steht nicht in der Antwort',
     (eOne?.testDays || []).every(t => t.user_id === undefined),
     JSON.stringify(eOne?.testDays?.[0]));
-  // Die Kennzahlen des Blockkopfes rechnen weiterhin ueber alle.
   check('Die Testkennzahlen rechnen ueber alle Benutzer',
     eOne?.testCount === 3 && eOne?.testAvg === 3.7 && eOne?.testLast === 5,
     JSON.stringify({ c: eOne?.testCount, a: eOne?.testAvg, l: eOne?.testLast }));
 
-  /* --- Benutzerzahl und Rolle in den Einstellungen --- */
   const ePlaceE = (await eCall('cookie-e-eins', 'GET', '/api/settings')).content;
   const ePlaceZ = (await eCall('cookie-e-zwei', 'GET', '/api/settings')).content;
   check('Die Einstellungen nennen die Zahl der Zugaenge',
@@ -4860,8 +4212,7 @@ async function sendImport(object, mode, withoutShare = false) {
     ePlaceE?.isAdmin === true && ePlaceZ?.isAdmin === false,
     JSON.stringify([ePlaceE?.isAdmin, ePlaceZ?.isAdmin]));
 
-  /* --- Die Klemme an den Kriterien -----------------------------------------
-     Vier Wege, vier eigene Verweigerungen. */
+  /* ---- Kriterien nur fuer Admins ---- */
   const eBefore = (await eCall('cookie-e-eins', 'GET', '/api/criteria')).content;
   const eNoCreate = await eCall('cookie-e-zwei', 'POST', '/api/criteria', { name: 'Heimlich' });
   const eNoRename = await eCall('cookie-e-zwei', 'PUT', `/api/criteria/${eBefore[0].id}`, { name: 'Umgetauft' });
@@ -4889,19 +4240,16 @@ async function sendImport(object, mode, withoutShare = false) {
   const eJaRemove = await eCall('cookie-e-eins', 'DELETE', `/api/criteria/${eJaCreate.content.id}`);
   check('Und loescht wieder', eJaRemove.status === 204, `Status ${eJaRemove.status}`);
 
-  /* ---------------------------------------------------------------- */
   group('Gewichtung: der Rechenweg');
 
-  /* DIESELBE PRUEFLAGE WIE DARUEBER, und das ist Absicht: mehrere Bewerter
-     und ungleich viele Stimmen je Kriterium. */
+  /* Dieselbe Prueflage wie oben: mehrere Bewerter, ungleich viele Stimmen je Kriterium. */
   const gCriterion = (await eCall('cookie-e-eins', 'GET', '/api/criteria')).content;
   const gId = (n) => gCriterion.find(c => c.name === n)?.id;
   const gSet = (name, value, cookie = 'cookie-e-eins') =>
     eCall(cookie, 'PUT', `/api/criteria/${gId(name)}`, { name, weight: value });
   const gAverage = async (itemId = 1) =>
     (await eCall('cookie-e-eins', 'GET', `/api/items/${itemId}`)).content?.avgRating;
-  // Abgefangen wie ueberall, wo die Spalte gelesen wird: ohne das reisst ein
-// Rueckbau der DDL den Lauf ab, statt rot zu werden.
+  // Ohne try reisst ein Rueckbau der DDL den Lauf ab, statt rot zu werden.
   const gWeights = () => {
     const d = open(path.join(levelEDir, 'katalog.sqlite'));
     let z = [];
@@ -4916,14 +4264,11 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify(gCriterion?.map(c => c.name)));
   check('Die Kriterienliste nennt das Gewicht',
     gCriterion?.every(c => c.weight === 1), JSON.stringify(gCriterion?.map(c => `${c.name}:${c.weight}`)));
-  /* Was die Oberflaeche aus der Antwort liest, gehoert an
-     der ECHTEN Antwort geprueft. */
   const gDetail = (await eCall('cookie-e-eins', 'GET', '/api/items/1')).content;
   check('Und jede Kriterienzeile am Eintrag traegt es ebenfalls',
     gDetail?.ratings?.length === 4 && gDetail.ratings.every(r => r.weight === 1),
     JSON.stringify(gDetail?.ratings?.map(r => `${r.name}:${r.weight}`)));
 
-  /* DIE WICHTIGSTE PRUEFUNG DER RUNDE. */
   const gUnweighted = (view) => {
     const w = (view?.ratings || []).filter(r => r.avg != null).map(r => r.avg);
     if (!w.length) return null;
@@ -4937,25 +4282,20 @@ async function sendImport(object, mode, withoutShare = false) {
   const gOptik2 = await gSet('Optik', 2);
   check('Der Admin setzt ein Gewicht', gOptik2.status === 200 && gOptik2.content?.weight === 2,
     `Status ${gOptik2.status}, ${JSON.stringify(gOptik2.content)}`);
-  /* (3,0*2 + 3,0*1 + 5,0*1) / 4 = 3,5 -- und ausdruecklich nicht mehr 3,7. */
+  /* (3,0*2 + 3,0*1 + 5,0*1) / 4 = 3,5; ungewichtet 3,7. */
   check('Und der Gesamtschnitt folgt', (await gAverage()) === 3.5, `${await gAverage()}`);
   check('Er ist ausdruecklich nicht mehr der ungewichtete', (await gAverage()) !== 3.7);
-  /* Der Schnitt JE KRITERIUM bleibt ungewichtet: er ist eine Aussage ueber
-     das Kriterium, nicht ueber den Eintrag -- ihn zu gewichten hiesse, ihn
-     mit sich selbst zu gewichten. */
+  /* Der Schnitt je Kriterium beschreibt das Kriterium, nicht den Eintrag. */
   const gAfterLook = (await eCall('cookie-e-eins', 'GET', '/api/items/1')).content;
   check('Der Schnitt je Kriterium bleibt ungewichtet',
     gAfterLook?.ratings?.find(r => r.name === 'Optik')?.avg === 3 &&
     gAfterLook?.ratings?.find(r => r.name === 'Optik')?.count === 3,
     JSON.stringify(gAfterLook?.ratings?.map(r => `${r.name}:${r.avg}/${r.count}`)));
 
-  /* DIE FALLE. Ein UNBEWERTETES Kriterium darf sein Gewicht nicht in den
-     Nenner bringen. */
   await gSet('Kundendienst', 2);
   check('Ein unbewertetes Kriterium bringt sein Gewicht NICHT in den Nenner',
     (await gAverage()) === 3.5, `${await gAverage()}`);
-  /* Und derselbe Fall in seiner schaerfsten Form, am zweiten Eintrag: dort
-     ist NUR Optik bewertet (eine Stimme, Wert 4). */
+  /* Am zweiten Eintrag ist nur Optik bewertet (eine Stimme, Wert 4). */
   await gSet('Optik', 0.2); await gSet('Haptik', 2); await gSet('Preis', 2);
   check('Ist nur ein Kriterium bewertet, zaehlt allein dessen Gewicht',
     (await gAverage(2)) === 4, `${await gAverage(2)}`);
@@ -4964,8 +4304,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
   /* --- Die zugesicherten Grenzen, unter Last --- */
   const gExtrem = (await eCall('cookie-e-eins', 'POST', '/api/items', { title: 'Grenzfall' })).content;
-  /* AUF „getestet" -- seit 0.22.1. Ein neuer Eintrag kommt ungetestet auf die
-     Welt, und die Route weist an einem solchen jede Bewertung ab. */
+  /* Die Route weist Bewertungen an ungetesteten Eintraegen ab. */
   await eCall('cookie-e-eins', 'PUT', `/api/items/${gExtrem.id}`, { tested: true });
   const gValues = async (pairs) => {
     for (const [name, value] of pairs)
@@ -4978,8 +4317,8 @@ async function sendImport(object, mode, withoutShare = false) {
     (await gValues([['Optik', 5], ['Haptik', 5], ['Preis', 5], ['Kundendienst', 5]])) === 5);
   check('Alle Werte 1 ergeben genau 1,0',
     (await gValues([['Optik', 1], ['Haptik', 1], ['Preis', 1], ['Kundendienst', 1]])) === 1);
-  /* Der Extremfall: der kleinste Wert am kleinsten Gewicht gegen den groessten
-     am groessten. (1*0,2 + 5*2) / 2,2 = 4,64 -> 4,6. */
+  /* Kleinster Wert am kleinsten Gewicht gegen groessten am groessten:
+     (1*0,2 + 5*2) / 2,2 = 4,64 -> 4,6. */
   const gAgainst = await gValues([['Optik', 1], ['Haptik', 5], ['Preis', 0], ['Kundendienst', 0]]);
   check('1 bei 0,2 gegen 5 bei 2 bleibt zwischen 1 und 5',
     gAgainst === 4.6 && gAgainst >= 1 && gAgainst <= 5, `${gAgainst}`);
@@ -4997,8 +4336,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Ein Gewichtswechsel dreht die Rangfolge der Uebersicht',
     !equal(gRankA, gRankB), `${JSON.stringify(gRankA)} gegen ${JSON.stringify(gRankB)}`);
 
-  /* Ein Gewicht ist keine Aenderung AM EINTRAG. Ruehrte es updated_at an,
-     sortierte sich die Uebersicht bei jedem Dreh am Gewicht um. */
+  /* Sonst sortierte sich die Uebersicht bei jeder Gewichtsaenderung um. */
   const gState = () => {
     const d = open(path.join(levelEDir, 'katalog.sqlite'));
     const z = d.prepare('SELECT id, updated_at FROM items ORDER BY id').all();
@@ -5014,7 +4352,6 @@ async function sendImport(object, mode, withoutShare = false) {
   group('Gewichtung: was angenommen wird und was nicht');
 
   const gOld = gWeights().find(c => c.name === 'Preis')?.weight;
-  /* ABGEWIESEN WIRD, WAS ETWAS ANDERES BEDEUTET. */
   const gRefusals = [
     ['0', 0], ['-1', -1], ['-1,5', -1.5], ['2,1', 2.1], ['3', 3], ['0,19', 0.19],
     ['"abc"', 'abc'], ['null', null], ['Infinity', 'Infinity'], ['leerer Text', '']
@@ -5026,13 +4363,11 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und nach allen Absagen steht der alte Wert unveraendert in der Datenbank',
     gWeights().find(c => c.name === 'Preis')?.weight === gOld,
     JSON.stringify(gWeights()));
-  /* Die Message steht in einem deutschen Satz und traegt deshalb ein Komma.
-     "zwischen 0.2 und 2" waere ein Punkt mitten im Satz. */
+  /* Die Meldung ist ein deutscher Satz; „0.2" waere ein Punkt mitten im Satz. */
   const gMessage = (await gSet('Preis', 9)).content?.error || '';
   check('Die Absage nennt die Spanne mit Komma, nicht mit Punkt',
     /0,2/.test(gMessage) && !/0\.2/.test(gMessage), JSON.stringify(gMessage));
 
-  /* GERUNDET WIRD, WAS DASSELBE BEDEUTET. */
   const gRound = await gSet('Preis', 1.234);
   check('Feiner als ein Hundertstel wird gerundet statt abgewiesen',
     gRound.status === 200 && gRound.content?.weight === 1.23,
@@ -5045,22 +4380,18 @@ async function sendImport(object, mode, withoutShare = false) {
       `Status ${a.status}, ${JSON.stringify(a.content?.weight)}`);
   }
 
-  /* Das Umbenennen schickt kein Gewicht -- und darf es deshalb auch nicht
-     zuruecksetzen. Ohne COALESCE stuende hier nach jedem ✎ wieder 1. */
+  /* Umbenennen schickt kein Gewicht; ohne COALESCE stuende danach wieder 1. */
   await gSet('Preis', 1.5);
   const gRenamed = await eCall('cookie-e-eins', 'PUT', `/api/criteria/${gId('Preis')}`, { name: 'Preis' });
   check('Umbenennen ohne Gewichtsangabe laesst das Gewicht stehen',
     gRenamed.content?.weight === 1.5, JSON.stringify(gRenamed.content));
-  /* Ein neu angelegtes Kriterium startet auf der Vorgabe -- POST nimmt gar
-     kein Gewicht entgegen, und die Vorgabe steht nur in der DDL. */
+  /* POST nimmt kein Gewicht entgegen; die Vorgabe steht nur in der DDL. */
   const gFresh = await eCall('cookie-e-eins', 'POST', '/api/criteria', { name: 'Frisch', weight: 2 });
   check('Ein neues Kriterium startet auf 1, auch wenn ein Gewicht mitkommt',
     gFresh.status === 201 && gFresh.content?.weight === 1, JSON.stringify(gFresh.content));
   await eCall('cookie-e-eins', 'DELETE', `/api/criteria/${gFresh.content.id}`);
 
-  /* --- Die Klemme: zwei vorbereitete Sitzungen, echte zweite Cookie
-     --------- Zu jeder Verweigerung der Erfolgsfall daneben und die
-     Nachschau, dass nichts geschrieben wurde. */
+  /* --- Rechte: zwei Sitzungen, echte zweite Cookie --- */
   const gVorRight = gWeights().find(c => c.name === 'Preis')?.weight;
   const gNo = await gSet('Preis', 0.5, 'cookie-e-zwei');
   check('Ein gewoehnlicher Benutzer setzt kein Gewicht', gNo.status === 403,
@@ -5083,8 +4414,7 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify(gOut?.criteria));
   check('Der Export nennt die Gewichte in einem eigenen Feld',
     gOut?.criteriaWeights?.Haptik === 1.5, JSON.stringify(gOut?.criteriaWeights));
-  /* NUR ABWEICHUNGEN. Stuenden die Einsen mit drin, waere die Datei eines
-     ungewichteten Bestands nicht mehr zeichengleich zu der von vorher. */
+  /* Nur Abweichungen, damit der Export eines ungewichteten Bestands gleich bleibt. */
   check('Und nur die Abweichungen -- ein Kriterium mit Gewicht 1 fehlt darin',
     equal(Object.keys(gOut?.criteriaWeights || {}), ['Haptik']),
     JSON.stringify(gOut?.criteriaWeights));
@@ -5094,23 +4424,19 @@ async function sendImport(object, mode, withoutShare = false) {
     gOutEqual?.criteriaWeights && Object.keys(gOutEqual.criteriaWeights).length === 0,
     JSON.stringify(gOutEqual?.criteriaWeights));
 
-  /* ================= Der Rechenweg reist mit — 0.16.0 ================== DER
-     KASTEN AM EINTRAG LIEST DIE VORHANDENE RECHNUNG. */
   group('Der Rechenweg reist mit');
 
-  /* DIE GEWICHTE SIND SO GEWAEHLT, DASS DER QUOTIENT NICHT AUFGEHT -- 0,3
-     statt 1 macht den Teiler 3,3 statt 4. */
+  /* 0,3 statt 1 macht den Teiler 3,3; der Quotient geht nicht auf. */
   await gSet('Optik', 2); await gSet('Haptik', 1); await gSet('Preis', 0.3);
   const rwView = (await eCall('cookie-e-eins', 'GET', '/api/items/1')).content;
   const rw = rwView?.calc;
   check('Die Antwort am Eintrag traegt einen Rechenweg', !!rw && Array.isArray(rw.rows),
     JSON.stringify(rw));
-  /* UND DIE LAGE WIRD SELBST GEPRUEFT, nicht bloss angenommen: taugt sie
-     nicht mehr, wird DIESE Zeile rot statt der Zusage darunter stumm. */
+  /* Taugt die Lage nicht mehr, wird diese Zeile rot, statt dass die
+     Pruefungen darunter nichts mehr pruefen. */
   check('Die Prueflage taugt: der rohe Quotient hat mehr als zwei Stellen',
     typeof rw?.raw === 'number' && Math.round(rw.raw * 100) / 100 !== rw.raw,
     `${rw?.raw}`);
-  /* NUR DIE BEWERTETEN KRITERIEN. */
   check('Und nur die bewerteten Kriterien stehen darin',
     rw?.rows?.length === 3, JSON.stringify(rw?.rows?.map(z => z.criterionId)));
   check('Jede Zeile traegt Schnitt, Gewicht und Produkt',
@@ -5118,33 +4444,27 @@ async function sendImport(object, mode, withoutShare = false) {
       typeof z.average === 'number' && typeof z.weight === 'number' &&
       Math.abs(z.product - z.average * z.weight) < 1e-9),
     JSON.stringify(rw?.rows));
-  /* SUMME UND TEILER SIND DIE DER ZEILEN -- nachgerechnet HIER, aus der
-     Antwort. */
   const rwSum = (rw?.rows || []).reduce((n, z) => n + z.product, 0);
   const rwDivisor = (rw?.rows || []).reduce((n, z) => n + z.weight, 0);
   check('Summe und Teiler sind die der Zeilen',
     Math.abs(rw?.sum - rwSum) < 1e-9 && Math.abs(rw?.divisor - rwDivisor) < 1e-9,
     `${rw?.sum}/${rw?.divisor} gegen ${rwSum}/${rwDivisor}`);
-  /* DAS ERGEBNIS IST DIE ZAHL DARUEBER, und zwar bitgleich. */
   check('Das Ergebnis ist genau avgRating',
     rw?.result === rwView?.avgRating, `${rw?.result} gegen ${rwView?.avgRating}`);
-  /* UND DER ROHE QUOTIENT IST UNGERUNDET. Ohne ihn koennte der Kasten „gerundet
-     wird genau einmal" nicht zeigen, sondern nur behaupten. */
+  /* Mit dem rohen Quotienten zeigt der Kasten, dass genau einmal gerundet wird. */
   check('Der rohe Quotient steht ungerundet daneben',
     Math.abs(rw?.raw - rw?.sum / rw?.divisor) < 1e-12 &&
     Math.round(rw?.raw * 10) / 10 === rw?.result,
     `${rw?.raw} -> ${rw?.result}`);
-  /* ---- DIE VERGLEICHSZAHL OHNE GEWICHTE — 0.17.0 ---- WAS KAEME HERAUS,
-     WENN ALLE KRITERIEN GLEICH ZAEHLTEN? */
+  /* ---- Die Vergleichszahl ohne Gewichte ---- */
   check('Der Rechenweg traegt die Zahl ohne Gewichte',
     typeof rw?.equalResult === 'number' && typeof rw?.equalRaw === 'number',
     JSON.stringify([rw?.equalResult, rw?.equalRaw]));
   check('Die Prueflage taugt: gewichtet und ungewichtet ergeben Verschiedenes',
     rw?.equalResult !== rw?.result,
     `${rw?.result} gegen ${rw?.equalResult}`);
-  /* IHR TEILER IST DIE ZAHL DER BEWERTETEN KRITERIEN und nicht die aller:
-     sonst verglichen sich zwei Rechnungen ueber verschiedene Mengen, und der
-     Unterschied saehe nach Gewichtung aus, wo er keiner ist. */
+  /* Sonst verglichen sich zwei Rechnungen ueber verschiedene Mengen, und der
+     Unterschied saehe nach Gewichtung aus. */
   check('Ihr Teiler ist die Zahl der bewerteten Kriterien',
     rw?.equalDivisor === (rw?.rows || []).length,
     `${rw?.equalDivisor} gegen ${(rw?.rows || []).length}`);
@@ -5152,22 +4472,18 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Ihre Summe ist die der Kriterienschnitte, ohne jedes Gewicht',
     Math.abs(rw?.equalSum - rwEqualSum) < 1e-9,
     `${rw?.equalSum} gegen ${rwEqualSum}`);
-  /* UND SIE GEHT NICHT UEBER DIE GEWICHTE. */
   check('Und sie rechnet wirklich ohne Gewichte',
     Math.abs(rw?.equalRaw - rwEqualSum / (rw?.rows || []).length) < 1e-12,
     `${rw?.equalRaw}`);
   check('Gerundet wird auch bei ihr genau einmal',
     Math.round(rw?.equalRaw * 10) / 10 === rw?.equalResult,
     `${rw?.equalRaw} -> ${rw?.equalResult}`);
-  /* IN DER UEBERSICHT STEHT ER AUSDRUECKLICH NICHT. Tausend Eintraege
-     traegen tausend Aufstellungen fuer eine Zahl, die niemand aufklappt. */
+  /* Tausend Eintraege truegen sonst tausend Aufstellungen, die niemand aufklappt. */
   const rwList = (await eCall('cookie-e-eins', 'GET', '/api/items')).content;
   check('Die Uebersicht traegt ihn ausdruecklich nicht',
     Array.isArray(rwList) && rwList.every(i => i.calc === undefined),
     JSON.stringify(rwList?.map(i => i.calc)));
 
-  /* ================= Die Bewertung traegt ihren Zeitpunkt — 0.16.0 =====
-     OHNE IHN KANN DIE GLOCKE UEBER FREMDE BEWERTUNGEN NICHTS SAGEN. */
   group('Die Bewertung traegt ihren Zeitpunkt');
 
   const zpRows = (sql, ...args) => {
@@ -5179,29 +4495,24 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Die Spalte set_at steht an ratings',
     zpRows('PRAGMA table_info(ratings)').map(c => c.name).includes('set_at'),
     JSON.stringify(zpRows('PRAGMA table_info(ratings)').map(c => c.name)));
-  /* DIE ZEILEN AUS DEM AUFBAU SIND VON HAND EINGETRAGEN und tragen deshalb
-     keinen Zeitpunkt -- genau die Lage einer Instanz, die von 0.15.1 kommt. */
+  /* Die Zeilen aus dem Aufbau stehen ohne Zeitpunkt in der Tabelle. */
   check('Von Hand eingetragene Bewertungen tragen keinen',
     zpRows('SELECT COUNT(*) n FROM ratings WHERE set_at IS NULL')[0].n > 0,
     JSON.stringify(zpRows('SELECT COUNT(*) n FROM ratings WHERE set_at IS NULL')[0]));
-  /* DIE NUMMER KOMMT AUS DER ANTWORT und nicht aus einer eigenen Abfrage nach
-     einem NAMEN: die Lage weiter oben hat ein Kriterium umbenannt, und eine
-     Abfrage auf 'Service' liefe seither ins Leere -- still, denn sie faende
-     einfach nichts. */
+  /* Nummer aus der Antwort statt Abfrage per Name: ein Kriterium ist oben
+     umbenannt, eine Abfrage auf 'Service' faende still nichts. */
   const zpCriterionRow = rwView.ratings.find(r => r.avg == null)
     || rwView.ratings[rwView.ratings.length - 1];
   check('Die Prueflage findet ein Kriterium, an dem gesetzt werden kann',
     !!zpCriterionRow, JSON.stringify(rwView.ratings?.map(r => r.name)));
   const zpCriterion = zpCriterionRow.criterion_id;
-  /* DASS EINTRAG 2 AUF „getestet" STEHT, richtet die Lage selbst ein -- seit
-     0.22.1 muss sie das, denn die Route weist eine Bewertung an einem
-     ungetesteten Eintrag ab. */
+  /* Eintrag 2 steht aus dem Aufbau auf „getestet"; die Route weist
+     Bewertungen an ungetesteten Eintraegen ab. */
   await eCall('cookie-e-drei', 'PUT', '/api/items/2/ratings', { criterionId: zpCriterion, value: 4 });
   const zpFresh = zpRows('SELECT set_at FROM ratings WHERE item_id = 2 AND criterion_id = ?', zpCriterion);
   check('Eine ueber die Route gesetzte Bewertung traegt ihn',
     /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(zpFresh[0]?.set_at || ''),
     JSON.stringify(zpFresh[0]));
-  /* UND ER ZIEHT BEIM UEBERSCHREIBEN MIT. */
   const zpBefore = zpFresh[0].set_at;
   await nextSecond();
   await eCall('cookie-e-drei', 'PUT', '/api/items/2/ratings', { criterionId: zpCriterion, value: 2 });
@@ -5210,20 +4521,16 @@ async function sendImport(object, mode, withoutShare = false) {
     zpAfter.value === 2 && zpAfter.set_at > zpBefore,
     `${zpBefore} -> ${zpAfter.set_at}`);
 
-  /* ================= Die Glocke: was mit der Liste mitreist — 0.16.0 ===
-     BEIDE ZAHLEN HAENGEN AN EINER ANTWORT, DIE ES OHNEHIN GIBT. */
   group('Die Glocke: was mit der Liste mitreist');
 
   const glList = async (cookie) => (await eCall(cookie, 'GET', '/api/items')).content;
   const glEntry = async (cookie, id) => (await glList(cookie)).find(i => i.id === id);
 
-  /* OHNE BEZUGSPUNKT GIBT ES KEINE GLOCKE. */
   check('Ohne Bezugspunkt fallen die drei Angaben ganz aus der Antwort',
     (await glList('cookie-e-eins')).every(i =>
       !('newComments' in i) && !('newRatings' in i) && !('newFrom' in i)),
     JSON.stringify((await glList('cookie-e-eins'))
       .map(i => [i.newComments, i.newRatings, i.newFrom])));
-  /* UND DAS ALTE FELD GIBT ES NICHT MEHR. */
   check('Und eine Summe traegt die Antwort ausdruecklich nicht',
     (await glList('cookie-e-eins')).every(i => !('neuFremd' in i)),
     JSON.stringify((await glList('cookie-e-eins')).map(i => i.freshForeign)));
@@ -5232,8 +4539,7 @@ async function sendImport(object, mode, withoutShare = false) {
     'bellSeen' in glStand0 && glStand0.bellSeen === null,
     JSON.stringify(glStand0.bellSeen));
 
-  /* GESETZT WIRD UEBER PUT /api/settings -- kein eigener Weg, und damit
-     waechst F_ROUTES nicht. */
+  /* Ueber PUT /api/settings statt eigener Route; F_ROUTES waechst nicht. */
   await nextSecond();
   const glSet = await eCall('cookie-e-eins', 'PUT', '/api/settings', { bellSeen: 1 });
   const glAfterSet = (await eCall('cookie-e-eins', 'GET', '/api/settings')).content?.bellSeen;
@@ -5241,14 +4547,12 @@ async function sendImport(object, mode, withoutShare = false) {
     glSet.status === 200 &&
     /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(glAfterSet || ''),
     `Status ${glSet.status}, ${JSON.stringify(glAfterSet)}`);
-  /* DIE UHR DES AUFRUFERS IST EINE BEHAUPTUNG. */
   await eCall('cookie-e-eins', 'PUT', '/api/settings', { bellSeen: '1999-01-01 00:00:00' });
   check('Und die Uhr des Aufrufers wird dabei nicht uebernommen',
     ((await eCall('cookie-e-eins', 'GET', '/api/settings')).content?.bellSeen || '')
       .startsWith('20'),
     JSON.stringify((await eCall('cookie-e-eins', 'GET', '/api/settings')).content?.bellSeen));
-  /* ER IST PERSOENLICH: der Bezugspunkt des einen sagt nichts ueber den des
-     anderen. Ohne diese Zeile waere ein globaler Schluessel nicht zu bemerken. */
+  /* Ohne diese Pruefung fiele ein globaler Schluessel nicht auf. */
   check('Er ist persoenlich und faellt nicht bei den anderen mit',
     (await eCall('cookie-e-zwei', 'GET', '/api/settings')).content?.bellSeen === null,
     JSON.stringify((await eCall('cookie-e-zwei', 'GET', '/api/settings')).content?.bellSeen));
@@ -5265,29 +4569,24 @@ async function sendImport(object, mode, withoutShare = false) {
       Array.isArray(i.newFrom) && i.newFrom.length === 0),
     JSON.stringify((await glList('cookie-e-eins'))
       .map(i => [i.newComments, i.newRatings])));
-  /* DIE ALTEN BEWERTUNGEN OHNE ZEITPUNKT ZAEHLEN NICHT MIT -- sonst laeutete
-     die Glocke beim ersten Start fuer den ganzen Bestand. */
+  /* Sonst meldete die Glocke beim ersten Start den ganzen Bestand. */
   check('Bewertungen ohne Zeitpunkt bleiben ihr unsichtbar',
     (await glEntry('cookie-e-eins', 1))?.newRatings === 0,
     JSON.stringify(await glEntry('cookie-e-eins', 1)));
 
-  // Ein FREMDER Kommentar -- der Fall, um den es geht.
   await nextSecond();
   await eCall('cookie-e-zwei', 'POST', '/api/items/1/comments', { text: 'Von zwei' });
   check('Ein fremder Kommentar zaehlt',
     (await glEntry('cookie-e-eins', 1))?.newComments === 1,
     JSON.stringify((await glList('cookie-e-eins')).map(i => `${i.id}:${i.newComments}`)));
-  /* UND ER STEHT ALS BEWERTUNG AUSDRUECKLICH NICHT DA. */
   check('Und zwar als Kommentar und nicht als Bewertung',
     (await glEntry('cookie-e-eins', 1))?.newRatings === 0,
     JSON.stringify((await glEntry('cookie-e-eins', 1))?.newRatings));
-  /* WER ES WAR, STEHT DANEBEN -- als Verfasserobjekt wie ueberall sonst und
-     nicht als nackte Zugangsnummer. */
+  /* Als Verfasserobjekt wie ueberall, nicht als Zugangsnummer. */
   check('Und wer es war, steht daneben',
     (await glEntry('cookie-e-eins', 1))?.newFrom?.length === 1 &&
     (await glEntry('cookie-e-eins', 1))?.newFrom?.[0]?.name === 'zwei',
     JSON.stringify((await glEntry('cookie-e-eins', 1))?.newFrom));
-  /* ZWEIMAL UMGEDREHT UND NIE GELOESCHT. */
   await eCall('cookie-e-eins', 'POST', '/api/items/1/comments', { text: 'Von eins selbst' });
   check('Der eigene zaehlt seit 0.17.2 wieder nicht mit',
     (await glEntry('cookie-e-eins', 1))?.newComments === 1,
@@ -5295,37 +4594,30 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und der eigene Name steht nicht bei den Verfassern',
     ((await glEntry('cookie-e-eins', 1))?.newFrom || []).map(v => v?.name).sort().join(',') === 'zwei',
     JSON.stringify((await glEntry('cookie-e-eins', 1))?.newFrom));
-  /* DIE ZAHL WIRD JE ZUGANG GERECHNET UND NICHT GLOBAL. Der zweite Zugang
-     setzt seinen Strich spaeter und sieht deshalb weniger. */
+  /* Die Zahl gilt je Zugang; „zwei" setzt den Bezugspunkt spaeter und sieht weniger. */
   await nextSecond();
   await eCall('cookie-e-zwei', 'PUT', '/api/settings', { bellSeen: 1 });
   await nextSecond();
   await eCall('cookie-e-eins', 'POST', '/api/items/1/comments', { text: 'Noch einer von eins' });
-  /* ZWEI IST NICHT EINS: derselbe Kommentar von „eins" zaehlt fuer „zwei"
-     (fremd) und fuer „eins" nicht (eigen). */
+  /* Derselbe Kommentar von „eins" zaehlt fuer „zwei" (fremd), fuer „eins" nicht (eigen). */
   check('Jeder Zugang zaehlt hinter seinem eigenen Strich und ohne die eigene Hand',
     (await glEntry('cookie-e-zwei', 1))?.newComments === 1 &&
     (await glEntry('cookie-e-eins', 1))?.newComments === 1,
     `zwei: ${(await glEntry('cookie-e-zwei', 1))?.newComments}, ` +
     `eins: ${(await glEntry('cookie-e-eins', 1))?.newComments}`);
 
-  // Eine fremde BEWERTUNG zaehlt ebenso -- dafuer gibt es set_at.
   await eCall('cookie-e-drei', 'PUT', '/api/items/1/ratings', { criterionId: zpCriterion, value: 5 });
   check('Eine fremde Bewertung zaehlt ebenfalls',
     (await glEntry('cookie-e-eins', 1))?.newRatings === 1,
     JSON.stringify((await glEntry('cookie-e-eins', 1))?.newRatings));
-  /* UND SIE VERMEHRT DIE KOMMENTARE NICHT. Zwei Zahlen, die sich gegenseitig
-     hochzaehlen, waeren dieselbe Auskunft zweimal. */
+  /* Zaehlte sie bei beiden Zahlen mit, stuende dieselbe Auskunft zweimal da. */
   check('Und sie steht in der anderen Zahl, nicht bei den Kommentaren',
     (await glEntry('cookie-e-eins', 1))?.newComments === 1,
     JSON.stringify((await glEntry('cookie-e-eins', 1))?.newComments));
-  /* UND DER BEWERTER STEHT AUSDRUECKLICH NICHT BEI DEN VERFASSERN. */
   check('Der Bewerter steht ausdruecklich nicht bei den Verfassern',
     ((await glEntry('cookie-e-eins', 1))?.newFrom || []).map(v => v?.name).sort().join(',') ===
       'zwei',
     JSON.stringify(((await glEntry('cookie-e-eins', 1))?.newFrom || []).map(v => v?.name)));
-  /* DIE SCHAERFERE LAGE: ein Eintrag, an dem AUSSCHLIESSLICH eine fremde
-     Bewertung neu ist. */
   await eCall('cookie-e-drei', 'PUT', '/api/items/2/ratings', { criterionId: zpCriterion, value: 4 });
   check('Die Prueflage taugt: am zweiten Eintrag ist nur eine Bewertung neu',
     (await glEntry('cookie-e-eins', 2))?.newRatings === 1 &&
@@ -5335,26 +4627,19 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und dort steht kein einziger Name',
     (await glEntry('cookie-e-eins', 2))?.newFrom?.length === 0,
     JSON.stringify((await glEntry('cookie-e-eins', 2))?.newFrom));
-  // Eine zurueckgesetzte Bewertung ist keine Stimme und meldet nichts.
   await eCall('cookie-e-drei', 'PUT', '/api/items/1/ratings', { criterionId: zpCriterion, value: 0 });
   check('Eine zurueckgesetzte Bewertung meldet nichts',
     (await glEntry('cookie-e-eins', 1))?.newRatings === 0,
     JSON.stringify((await glEntry('cookie-e-eins', 1))?.newRatings));
-  /* UND DIE EIGENE BEWERTUNG ZAEHLT SO WENIG WIE DER EIGENE KOMMENTAR -- seit
-     0.17.2. */
   await eCall('cookie-e-eins', 'PUT', '/api/items/1/ratings', { criterionId: zpCriterion, value: 5 });
   check('Und die eigene Bewertung zaehlt ebenso wenig mit',
     (await glEntry('cookie-e-eins', 1))?.newRatings === 0,
     JSON.stringify((await glEntry('cookie-e-eins', 1))?.newRatings));
-  /* DIE GEGENLAGE AM ZWEITEN ZUGANG: fuer IHN ist dieselbe Bewertung fremd
-     und zaehlt sehr wohl. */
   check('Fuer einen anderen Zugang zaehlt genau dieselbe Bewertung sehr wohl',
     ((await glEntry('cookie-e-zwei', 1))?.newRatings || 0) > 0,
     JSON.stringify((await glEntry('cookie-e-zwei', 1))?.newRatings));
 
-  /* DAS OEFFNEN DER TAFEL SETZT ALLES AUF GESEHEN -- die bewusste Grenze der
-     schlanken Fassung: bei einem Zeitstempel gibt es keinen Lesestand je
-     Message. */
+  /* Ein Zeitstempel kennt keinen Lesestand je Nachricht. */
   await nextSecond();
   await eCall('cookie-e-eins', 'PUT', '/api/settings', { bellSeen: 1 });
   check('Ein neuer Bezugspunkt setzt alles auf gesehen',
@@ -5364,8 +4649,7 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify((await glList('cookie-e-eins'))
       .map(i => [i.newComments, i.newRatings])));
 
-  /* ---- UND DIE ZAHL DER OFFENEN AUFGABEN ---- SIE KOMMT AUS DERSELBEN
-     BEDINGUNG WIE /api/open (kind = 'task'). */
+  /* ---- Offene Aufgaben: dieselbe Bedingung wie /api/open (kind = 'task') ---- */
   const glComment = (await eCall('cookie-e-eins', 'GET', '/api/items/1')).content.comments;
   await eCall('cookie-e-eins', 'PUT', `/api/comments/${glComment[0].id}`, { kind: 'task' });
   check('Die Zahl der offenen Aufgaben steht an jedem Eintrag',
@@ -5375,24 +4659,17 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und sie stimmt mit der Ansicht „Offene Aufgaben" ueberein',
     (await glList('cookie-e-eins')).reduce((n, i) => n + i.openTasks, 0) === glOpen.length,
     `${(await glList('cookie-e-eins')).reduce((n, i) => n + i.openTasks, 0)} gegen ${glOpen.length}`);
-  /* DIE GEGENPROBE: eine erledigte Aufgabe faellt aus beiden Zahlen. */
   await eCall('cookie-e-eins', 'PUT', `/api/comments/${glComment[0].id}`, { kind: 'done' });
   const glAfter = (await glList('cookie-e-eins')).reduce((n, i) => n + i.openTasks, 0);
   check('Eine erledigte Aufgabe faellt aus beiden Zahlen',
     glAfter === (await eCall('cookie-e-eins', 'GET', '/api/open')).content.length &&
     glAfter < glOpen.length, `${glAfter} gegen ${glOpen.length}`);
 
-  /* ================= Einen anderen markieren — 0.32.0 ==================
-     BESTELLT AM 12. SEPTEMBER 2026 vom Betreiber: „das mit dem in
-     kommentaren, berichten und notizen, aufgaben das man ein user markieren
-     kann mit @username so das er deutlich hervorgehoben wird und auch eine
-     benachrichtigung in der glocke bekommt." GEPRUEFT WIRD AN DER LAUFENDEN
-     INSTANZ und nicht am Quelltext: ob der Server einen Namen wirklich in
-     eine NUMMER aufloest, sagt nur eine Antwort. */
+  /* An der laufenden Instanz: nur eine Antwort zeigt, ob der Server einen
+     Namen in eine Nummer aufloest. */
   group('Einen anderen markieren — 0.32.0');
 
-  /* ZUSAGE 3: DIE MARKIERUNG GILT EINEM. Der Kommentar nennt `zwei` und
-     niemanden sonst -- also bekommt `zwei` seine Glocke und `drei` nicht. */
+  /* Der Kommentar nennt nur `zwei`: `zwei` bekommt die Glocke, `drei` nicht. */
   await eCall('cookie-e-zwei', 'PUT', '/api/settings', { bellSeen: 1 });
   await eCall('cookie-e-drei', 'PUT', '/api/settings', { bellSeen: 1 });
   await nextSecond();
@@ -5402,15 +4679,13 @@ async function sendImport(object, mode, withoutShare = false) {
     mkPost.status === 201, `Status ${mkPost.status}`);
   const mkComment = (mkPost.content?.comments || [])
     .find(c => /Schau mal/.test(c.text));
-  /* DAS FELD STEHT IMMER DA, AUCH LEER -- „niemand markiert" und „das Feld
-     kennt diese Fassung nicht" sind zwei Lagen. */
+  /* Auch leer: „niemand markiert" und „Feld unbekannt" sind zwei Lagen. */
   check('Jeder Kommentar traegt das Feld — auch der ohne Markierung',
     (mkPost.content?.comments || []).every(c => Array.isArray(c.mentions)),
     JSON.stringify((mkPost.content?.comments || []).map(c => c.mentions)));
   check('Und genau EINER ist markiert — der Tippfehler und die Adresse nicht',
     mkComment?.mentions?.length === 1 && mkComment.mentions[0].handle === 'zwei',
     JSON.stringify(mkComment?.mentions));
-  /* DER NAME KOMMT AUS DER NUMMER. */
   check('Und er traegt das Verfasserobjekt aus der Nummer',
     mkComment?.mentions?.[0]?.author?.name === 'zwei' &&
     mkComment.mentions[0].author.deleted === false &&
@@ -5424,36 +4699,28 @@ async function sendImport(object, mode, withoutShare = false) {
     (await glEntry('cookie-e-drei', 1))?.newComments === 1,
     JSON.stringify([(await glEntry('cookie-e-drei', 1))?.newMarked,
                     (await glEntry('cookie-e-drei', 1))?.newComments]));
-  /* ZUSAGE 1: DIE GLOCKE RECHNET EINMAL. `newMarked` ist eine TEILMENGE von
-     `newComments` und keine Zahl daneben; eine Summe bildet niemand. */
   check('Zusage 1: die markierten sind eine Teilmenge der neuen und keine Zahl daneben',
     (await glList('cookie-e-zwei')).every(i =>
       (i.newMarked || 0) <= (i.newComments || 0)),
     JSON.stringify((await glList('cookie-e-zwei'))
       .map(i => `${i.id}: ${i.newMarked}/${i.newComments}`)));
-  /* UND DAS FELD FAELLT MIT DEN DREI ANDEREN WEG, wenn es keinen Bezugspunkt
-     gibt -- vier Angaben, die gemeinsam dastehen oder gar nicht. */
   const mkNoRef = (await eCall('cookie-e-drei', 'GET', '/api/items')).content;
   check('Und die vierte Angabe steht mit den drei anderen oder gar nicht',
     mkNoRef.every(i => ('newComments' in i) === ('newMarked' in i)),
     JSON.stringify(mkNoRef.map(i => [i.newComments, i.newMarked])));
-  /* UND DIE HERKUNFT DER ZWEITEN HAELFTE: `mine` sagt, wem der Eintrag
-     gehoert. */
   check('Und die Uebersicht sagt, wem der Eintrag gehoert — als Ja/Nein',
     (await glList('cookie-e-eins')).every(i => i.mine === true) &&
     (await glList('cookie-e-zwei')).every(i => i.mine === false) &&
     (await glList('cookie-e-eins')).every(i => !('user_id' in i)),
     JSON.stringify((await glList('cookie-e-zwei')).map(i => i.mine)));
 
-  /* DIE MARKIERUNG WIRD NEU AUFGELOEST, WENN DER TEXT SICH AENDERT. */
   const mkEdit = await eCall('cookie-e-eins', 'PUT', `/api/comments/${mkComment.id}`,
     { text: 'Doch lieber @drei' });
   const mkAfter = (mkEdit.content?.comments || []).find(c => c.id === mkComment.id);
   check('Ein geaenderter Text loest die Markierung neu auf',
     mkAfter?.mentions?.length === 1 && mkAfter.mentions[0].handle === 'drei',
     JSON.stringify(mkAfter?.mentions));
-  /* UND EIN UMGELEGTER HAKEN AENDERT SIE NICHT: das Datum und die Art sind
-     Angaben UEBER die Aussage und keine Aussage. */
+  /* Datum und Art sind Angaben ueber die Aussage, nicht die Aussage. */
   await eCall('cookie-e-eins', 'PUT', `/api/comments/${mkComment.id}`, { kind: 'task' });
   const mkKind = ((await eCall('cookie-e-eins', 'GET', '/api/items/1')).content?.comments || [])
     .find(c => c.id === mkComment.id);
@@ -5461,7 +4728,6 @@ async function sendImport(object, mode, withoutShare = false) {
     mkKind?.mentions?.length === 1 && mkKind.mentions[0].handle === 'drei',
     JSON.stringify(mkKind?.mentions));
 
-  /* ZUSAGE 4: DER GRABSTEINNAME GEHT AUCH HIER NICHT HINAUS. */
   {
     const d = open(path.join(levelEDir, 'katalog.sqlite'));
     d.prepare("UPDATE users SET username = 'deleted-3', status = 'deleted' WHERE id = 3").run();
@@ -5472,12 +4738,9 @@ async function sendImport(object, mode, withoutShare = false) {
       mkTomb?.mentions?.length === 1 && mkTomb.mentions[0].author?.name === null &&
       mkTomb.mentions[0].author?.deleted === true && mkTomb.mentions[0].author?.id === 3,
       JSON.stringify(mkTomb?.mentions));
-    /* UND DER GRABSTEINNAME STEHT AUCH NICHT IM `handle`. */
     check('Und `deleted-3` steht in keiner Angabe der Antwort',
       !JSON.stringify(mkTomb?.mentions).includes('deleted-3'),
       JSON.stringify(mkTomb?.mentions));
-    /* UND EIN GRABSTEIN LAESST SICH NICHT MEHR MARKIEREN: wer `@deleted-3`
-       tippt, meint keinen Menschen, er zitiert einen Grabstein. */
     const mkNew = await eCall('cookie-e-eins', 'POST', '/api/items/1/comments',
       { text: 'Und @deleted-3 dazu' });
     const mkNewComment = (mkNew.content?.comments || []).find(c => /@deleted-3/.test(c.text));
@@ -5488,19 +4751,14 @@ async function sendImport(object, mode, withoutShare = false) {
   await SE1.stop();
   fs.rmSync(levelEDir, { recursive: true, force: true });
 
-  /* ================= Endungen, Woerter und Zahlen — 0.32.1 ==============
-     DREI WAECHTER AUS DREI BEFUNDEN DES BETREIBERS, und alle drei fragen die
-     SPRACHDATEIEN und nicht den Bildschirm: was hier steht, erreicht jeden
-     Bildschirm, und ein Fund in einer Datei ist billiger als einer im
-     Betrieb. */
+  /* Geprueft werden die Sprachdateien: jeder Text der Oberflaeche kommt aus ihnen. */
   group('Endungen, Woerter und Zahlen — 0.32.1');
   {
     const spFiles = {};
     for (const code of ['de', 'en', 'tr'])
       spFiles[code] = JSON.parse(fs.readFileSync(
         path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
-    /* Jeden Wert flach, mit seinem Namen -- ein Mehrzahlpaar steht mit beiden
-       Zweigen da. Sonst sieht der Waechter die Einzahl nicht. */
+    /* Mehrzahlpaare mit beiden Formen, sonst fehlte die Einzahl. */
     const spValues = (file) => {
       const out = [];
       for (const [k, v] of Object.entries(file)) {
@@ -5515,13 +4773,12 @@ async function sendImport(object, mode, withoutShare = false) {
       'reportOne', 'reportMany', 'taskOne', 'taskMany', 'taskDone', 'grade',
       'potential', 'testedYes', 'testedNo', 'thing', 'word', 'name', 'username'];
 
-    /* ---- 1. KEINE BEFEHLSFORM UNMITTELBAR HINTER EINEM PLATZHALTER ----
-       „{entryOne} sil" ist der Fall: Platzhalter, Leerzeichen, Befehlsform. */
+    /* ---- Keine Befehlsform hinter einem Platzhalter, etwa „{entryOne} sil" ---- */
     const TR_IMPERATIVE = ['sil', 'aç', 'kapat', 'kaydet', 'seç', 'değiştir', 'kaldır',
       'göster', 'gizle', 'kopyala', 'taşı', 'yükle', 'indir', 'gönder', 'ayarla',
       'sıfırla', 'onayla', 'temizle', 'boşalt', 'başlat', 'durdur', 'ata'];
-    /* `çıkar` STEHT AUSDRUECKLICH NICHT IN DER LISTE. */
-    /* UND EINE STELLE IST BENANNT AUSGENOMMEN. */
+    /* `çıkar` fehlt: in den Saetzen heisst es „ergibt sich", nicht „nimm heraus". */
+    /* Dort steht der eingesetzte `card.partOrAll` schon im Akkusativ. */
     const TR_OBJECT_EXCEPT = ['card.confirmOnce'];
     const trObject = new RegExp(
       `\\{(?:${VOC.join('|')})\\}[”"']?\\s+(?:${TR_IMPERATIVE.join('|')})(?=$|[\\s.,;:!?)])`, 'u');
@@ -5530,14 +4787,15 @@ async function sendImport(object, mode, withoutShare = false) {
       .filter(([, v]) => trObject.test(v));
     check('Zusage: kein tuerkischer Befehl steht unmittelbar hinter einem Platzhalter — 0.32.1',
       trHits.length === 0, trHits.map(([k, v]) => `${k}: ${v}`).join(' · ') || 'keiner');
-    /* UND DER LESER LIEST WIRKLICH. Ohne diese Zeile bliebe die daruber auch
-       dann gruen, wenn das Muster gar nicht zuendete. */
+    /* Ohne diese Gegenprobe bliebe die Pruefung darueber auch gruen, wenn das
+       Muster nie traefe. */
     check('Und der Waechter wuerde „{entryOne} sil" finden',
       trObject.test('{entryOne} sil') && trObject.test('“{potential}” aç')
       && !trObject.test('{entryOne} kaydını sil'),
       'das Muster zuendet nicht');
 
-    /* ---- 2. */
+    /* ---- Kein harmonierendes Anhaengsel hinter einem Platzhalter ---- */
+    /* Partikel und Klitikon folgen dem letzten Vokal davor; hinter einem Platzhalter ist er unbekannt. */
     const trClitic = new RegExp(`\\{\\w+\\}[”"']?\\s+(?:m[ıiuü]|d[ae]|ki)(?=$|[\\s.,;:!?)])`, 'u');
     const trClitics = spValues(spFiles.tr).filter(([, v]) => trClitic.test(v));
     check('Zusage: kein harmonierendes Anhaengsel steht hinter einem Platzhalter — 0.32.1',
@@ -5547,7 +4805,7 @@ async function sendImport(object, mode, withoutShare = false) {
       && !trClitic.test('Bunlar da birlikte gider: {what}.'),
       'das Muster zuendet nicht');
 
-    /* ---- 3. */
+    /* ---- Kein Vokabelwort fest in einem Satz ---- */
     const VOC_EXCEPT = {
       'card.nameFallback': 'die ZEILE der Namenskarte, nicht die Vokabel',
       'card.nameRemove': 'dieselbe Zeile',
@@ -5565,13 +4823,10 @@ async function sendImport(object, mode, withoutShare = false) {
       'card.ratingMany': 'dieselbe Karte', 'card.potential': 'dieselbe Karte',
       'card.testedYes': 'dieselbe Karte', 'card.testedNo': 'dieselbe Karte',
       'card.grade': 'dieselbe Karte',
-      /* UND ZWEI IM ENGLISCHEN, wo das Vokabelwort ein gewoehnliches Wort
-         ist: „Done" und „Entry" heissen dort auch das, was sie heissen. */
+      /* Im Englischen sind „Done" und „Entry" auch gewoehnliche Woerter. */
       'card.convertFinished': 'englisch „Conversion done" — kein Vokabelwort',
       'card.languageComplete': 'englisch „every row has an entry" — die ZEILE der Namenskarte',
-      /* UND ZWEI, DIE NUR IN EINER SPRACHE ANFALLEN -- sie stehen deshalb MIT
-         ihrer Sprache davor und blenden den Waechter nicht in den anderen
-         beiden aus. */
+      /* Mit Sprachkuerzel: die Ausnahme gilt nur in dieser Sprache. */
       'en/error.serverStatus': 'englisch „The server reports an error" — das Verb',
       'tr/server.ratingBeforeTest': 'tuerkisch „değerlendirme yapılmaz" — das Verbalnomen von „bewerten"'
     };
@@ -5586,14 +4841,13 @@ async function sendImport(object, mode, withoutShare = false) {
         if (k.startsWith('vocabulary.')) continue;
         const plain = k.split('.').slice(0, 2).join('.');
         if (VOC_EXCEPT[plain] !== undefined || VOC_EXCEPT[`${code}/${plain}`] !== undefined) continue;
-        /* DIE PLATZHALTERNAMEN SIND KEIN TEXT. */
+        /* Platzhalternamen sind kein Text. */
         const m = rx.exec(String(v).replace(/\{\w+\}/g, ' '));
         if (m) vocLeaks.push(`${code}/${k}: „${m[1]}"`);
       }
     }
     check('Zusage: kein Vokabelwort steht fest in einem Satz — 0.32.1',
       vocLeaks.length === 0, vocLeaks.slice(0, 8).join(' · ') || 'keines');
-    /* UND JEDE AUSNAHME IST EINE ECHTE. */
     const vocStale = Object.keys(VOC_EXCEPT)
       .map(k => k.includes('/') ? k.split('/')[1] : k)
       .filter(k => spFiles.de[k] === undefined);
@@ -5604,8 +4858,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Verfasser in Export und Import');
 
-  /* Ein Bestand mit drei Verfassern und einer herrenlosen Zeile, aus drei
-     fertigen Sitzungen. */
+  /* Drei Verfasser mit fertigen Sitzungen und eine herrenlose Zeile. */
   function putAuthorInventoryAn() {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-stufee2-'));
     shortRun(`require('./db'); console.log('da');`, dir);
@@ -5636,23 +4889,20 @@ async function sendImport(object, mode, withoutShare = false) {
     for (const [text, u] of [['Kommentar von Anna', 1], ['Kommentar von Carla', 3],
                              ['Kommentar ohne Verfasser', 3]])
       d.prepare('INSERT INTO comments (item_id, text, user_id) VALUES (1, ?, ?)').run(text, u);
-    // Der fuenfte Traeger: drei Zeilen an EINEM Eintrag, damit "der Link
-    // gehoert seinem Eintrager" von "der Link gehoert dem Eintragsverfasser"
-    // ueberhaupt zu unterscheiden ist.
+    // Drei Links an einem Eintrag: nur so ist „gehoert seinem Eintrager" von
+    // „gehoert dem Verfasser des Eintrags" zu unterscheiden.
     for (const [url, u, pos] of [['https://link-von-anna.test', 1, 0],
                                  ['https://link-von-carla.test', 3, 1],
                                  ['https://link-ohne-verfasser.test', 3, 2]])
       d.prepare('INSERT INTO links (item_id, url, sort_order, user_id) VALUES (1, ?, ?, ?)')
         .run(url, pos, u);
-    // Und der sechste Traeger, mit denselben Lagen: zwei Verfasser, dazu eine
-// Zeile, die nach dem Start herrenlos gemacht wird.
+    // Anhaenge wie die Links: zwei Verfasser, eine Zeile wird nach dem Start herrenlos.
     for (const [name, u, pos] of [['datei-von-anna.txt', 1, 0],
                                   ['datei-von-carla.txt', 3, 1],
                                   ['datei-ohne-verfasser.txt', 3, 2]])
       d.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
                  VALUES (1, ?, 'text/plain', 3, ?, ?, ?)`).run(name, Buffer.from('abc'), pos, u);
-    // Anna markiert den zweiten Eintrag als Favorit -- fuer die Probe, dass
-// der Favorit NICHT mitwandert, sondern beim Exportierenden bleibt.
+    // Favorit von anna am Eintrag von bert.
     d.prepare('INSERT INTO item_pins (user_id, item_id) VALUES (1, 2)').run();
     d.close();
     return dir;
@@ -5675,10 +4925,9 @@ async function sendImport(object, mode, withoutShare = false) {
     try { content = await a.json(); } catch {}
     return { status: a.status, content };
   };
-  // Eigene Ausfertigung von sendImport: die vorhandene haengt fest am
-// Hauptserver und an dessen Cookie, hier braucht es drei nebeneinander.
+  // Eigene Fassung von sendImport: die vorhandene haengt am Hauptserver und dessen Cookie.
   const e2Import = async (cookieValue, object, mode) => {
-    // Die Freigabe zuerst -- genau wie die Oberflaeche es tut.
+    // Die Freigabe zuerst, wie in der Oberflaeche.
     await e2Call(cookieValue, 'POST', '/api/confirm', { password: e2Word, purpose: 'import', target: null });
     const limit = '----pruefunge2' + crypto.randomBytes(6).toString('hex');
     const part = (name, value, fileName) =>
@@ -5693,8 +4942,7 @@ async function sendImport(object, mode, withoutShare = false) {
     });
     return { status: a.status, content: await a.json().catch(() => null) };
   };
-  // Nachsehen, wem eine Zeile wirklich gehoert -- ueber den Namen, nicht ueber
-// die Id: nach einem ersetzenden Import sind die Ids der Eintraege neu.
+  // Ueber den Namen, nicht die Id: ein ersetzender Import vergibt neue Ids.
   const e2AnnaF = includingShare((m, p, k) => e2Call('cookie-e2-anna', m, p, k), e2Word);
   const e2Database = () => open(path.join(e2Dir, 'katalog.sqlite'));
   const e2Names = (sql, ...values) => {
@@ -5704,8 +4952,8 @@ async function sendImport(object, mode, withoutShare = false) {
     return rows;
   };
 
-  /* Die herrenlose Zeile wird ERST JETZT gesetzt, nach dem Start -- und das
-     ist kein Schoenheitsfehler, sondern der einzige Weg. */
+  /* Erst nach dem Start: beim Start weist assignInventory() in db.js
+     herrenlose Zeilen dem Eigentuemer zu. */
   {
     const d = e2Database();
     d.pragma('busy_timeout = 4000');
@@ -5734,27 +4982,22 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Der Export nennt den Verfasser jedes Kommentars',
     equal((e2Entry?.comments || []).map(c => c.author), ['anna', 'carla', null]),
     JSON.stringify(e2Entry?.comments?.map(c => `${c.text}:${c.author}`)));
-  /* Der fuenfte Traeger. */
   check('Der Export nennt den Verfasser jeder Linkzeile',
     equal((e2Entry?.links || []).map(l => `${l.url}/${l.author}`),
            ['https://link-von-anna.test/anna', 'https://link-von-carla.test/carla',
             'https://link-ohne-verfasser.test/null']),
     JSON.stringify(e2Entry?.links));
-  // Eine nackte Id liest niemand, und in einer Datei, die das Haus verlaesst,
-// hat sie nichts verloren.
   check('Der Export nennt nirgends die Verfasser-Id',
     !/"user_id"/.test(JSON.stringify(e2Out)),
     JSON.stringify(e2Out).slice(0, 200));
-  // Eine herrenlose Zeile sagt das ausdruecklich, statt das Feld wegzulassen --
-// sonst waere "kein Verfasser" von "altes Dateiformat" nicht zu unterscheiden.
+  // Sonst waere „kein Verfasser" nicht von „altes Dateiformat" zu unterscheiden.
   check('Eine herrenlose Zeile nennt ausdruecklich null',
     e2Entry?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')?.author === null &&
     'author' in (e2Entry?.comments?.find(c => c.text === 'Kommentar ohne Verfasser') || {}),
     JSON.stringify(e2Entry?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')));
   check('Die Formatnummer der Datei steht auf 19', e2Out?.version === 19, JSON.stringify(e2Out?.version));
 
-  /* Der sechste Traeger steht nur in einem Export MIT Dateien -- deshalb ein
-     zweiter Ruf. */
+  /* Anhaenge stehen nur in einem Export mit Dateien. */
   const e2IncludingFiles = (await e2AnnaF('GET', '/api/export?photos=0&files=1')).content;
   const e2FileEntry = e2IncludingFiles?.items?.find(i => i.title === 'Rundlauf');
   check('Ein Export mit Dateien traegt sie ueberhaupt',
@@ -5765,19 +5008,14 @@ async function sendImport(object, mode, withoutShare = false) {
            ['datei-von-anna.txt/anna', 'datei-von-carla.txt/carla',
             'datei-ohne-verfasser.txt/null']),
     JSON.stringify((e2FileEntry?.attachments || []).map(a2 => `${a2.filename}/${a2.author}`)));
-  // Ohne den Schalter bleiben die Dateien weg -- unveraendert, und die
-// Verfasserangabe aendert daran nichts.
   check('Ohne den Schalter bleiben die Dateien weiterhin weg',
     equal(e2Entry?.attachments, []), JSON.stringify(e2Entry?.attachments));
-  // Der Favorit ist KEIN Inhalt: er bleibt der des Exportierenden, auch
-// wenn der Eintrag jemand anderem gehoert.
   check('Der Favorit bleibt der des Exportierenden',
     e2Second?.favorite === true && e2Entry?.favorite === false,
     JSON.stringify(e2Out?.items?.map(i => `${i.title}:${i.favorite}`)));
 
-  /* --- Der Rundlauf: exportieren, ersetzend einspielen, nachsehen ----------
-     EINGESPIELT WIRD ALS ANNA, und zwar gezwungenermassen: der Import liegt
-     hinter dem Eigentuemer, und das ist hier der Zugang mit der kleinsten id. */
+  /* --- Rundlauf: exportieren, ersetzend einspielen, nachsehen --- */
+  /* Als anna: nur der Eigentuemer darf importieren, hier der Zugang mit der kleinsten id. */
   const e2Round = await e2Import('cookie-e2-anna', e2Out, 'replace');
   check('Der ersetzende Rundlauf gelingt', e2Round.status === 200, JSON.stringify(e2Round.content));
   check('Und meldet keinen unbekannten Verfasser',
@@ -5804,8 +5042,8 @@ async function sendImport(object, mode, withoutShare = false) {
     equal(e2RoundDays.map(z => `${z.day}/${z.rating}/${z.username}`),
            ['2024-03-01/4/anna', '2024-03-01/2/bert']),
     JSON.stringify(e2RoundDays));
-  /* Der eigentliche Beweis: INSERT OR REPLACE LOESCHT die getroffene Zeile,
-     und ueber ON DELETE CASCADE gehen deren Tags mit. */
+  /* INSERT OR REPLACE loescht die getroffene Zeile, ON DELETE CASCADE nimmt
+     deren Tags mit. */
   const e2RoundTagtags = e2Names(`SELECT t.rating, g.name FROM test_day_tags dt
                                  JOIN test_days t ON t.id = dt.test_day_id
                                  JOIN tags g ON g.id = dt.tag_id ORDER BY t.rating DESC`);
@@ -5815,8 +5053,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
   const e2RoundLinks = e2Names(`SELECT l.url, u.username FROM links l
                                LEFT JOIN users u ON u.id = l.user_id ORDER BY l.sort_order, l.id`);
-  /* Ohne das Feld author im Export kaemen alle drei Zeilen bei anna an -- die
-     Pruefung waere dann an genau einem Namen zu erkennen: carla. */
+  /* Ohne author im Export kaemen alle drei bei anna an; erkennbar nur an carla. */
   check('Nach dem Rundlauf gehoert jede Linkzeile wieder ihrem Eintrager',
     equal(e2RoundLinks.map(z => `${z.url}:${z.username}`),
            ['https://link-von-anna.test:anna', 'https://link-von-carla.test:carla',
@@ -5830,21 +5067,18 @@ async function sendImport(object, mode, withoutShare = false) {
            ['Kommentar von Anna:anna', 'Kommentar von Carla:carla',
             'Kommentar ohne Verfasser:anna']),
     JSON.stringify(e2RoundKom));
-  // Die herrenlose Zeile ist der Grenzfall: author null heisst "kein Name
-  // genannt" und faellt damit an den Einspielenden, wie eine alte Datei.
+  // author null heisst „kein Name genannt", wie in einer Datei ohne Verfasser.
   check('Eine herrenlose Zeile faellt an den Einspielenden',
     e2RoundKom.find(z => z.text === 'Kommentar ohne Verfasser')?.username === 'anna',
     JSON.stringify(e2RoundKom.find(z => z.text === 'Kommentar ohne Verfasser')));
-  // Der Favorit wandert nicht mit dem Eintrag: er gehoert dem Einspielenden.
-// Der Eintrag "Von Bert" faellt an bert, der Favorit daran an anna.
+  // „Von Bert" faellt an bert, der Favorit daran an anna.
   const e2RoundPins = e2Names(`SELECT i.title, u.username FROM item_pins p
                               JOIN items i ON i.id = p.item_id
                               JOIN users u ON u.id = p.user_id`);
   check('Der Import legt den Favoriten beim Einspielenden an',
     equal(e2RoundPins.map(z => `${z.title}:${z.username}`), ['Von Bert:anna']),
     JSON.stringify(e2RoundPins));
-  // Der ersetzende Import ruehrt users und
-// sessions nicht an -- taete er es, sperrte er im schlimmsten Fall alle aus.
+  // Sonst sperrte ein ersetzender Import im schlimmsten Fall alle aus.
   const e2Users = e2Names('SELECT username FROM users ORDER BY id');
   const e2Sessions = e2Names('SELECT token FROM sessions ORDER BY token');
   check('Der ersetzende Import laesst die Zugaenge unberuehrt',
@@ -5853,7 +5087,6 @@ async function sendImport(object, mode, withoutShare = false) {
     e2Sessions.length === 3, JSON.stringify(e2Sessions.map(z => z.token)));
 
   /* --- Namen, die es nicht gibt, und Namen in anderer Schreibweise --- */
-  /* Eingespielt wird als anna (Eigentuemerin, die einzige, die es darf). */
   const e2Foreign = await e2Import('cookie-e2-anna', { version: 14, title: 'F', items: [{
     title: 'Fremde Namen',
     author: 'BERT',
@@ -5867,8 +5100,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
   const e2ForeignE = e2Names(`SELECT i.title, u.username FROM items i
                             LEFT JOIN users u ON u.id = i.user_id WHERE i.title = ?`, 'Fremde Namen');
-  // COLLATE NOCASE steht an der Spalte username -- dieselbe Spalte, ueber die
-// sich auch die Anmeldung den Kandidaten sucht.
+  // COLLATE NOCASE an users.username, derselben Spalte wie beim Login.
   check('Gross- und Kleinschreibung entscheidet nicht',
     e2ForeignE[0]?.username === 'bert', JSON.stringify(e2ForeignE));
   const e2ForeignK = e2Names(`SELECT c.text, u.username FROM comments c
@@ -5878,8 +5110,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Ein unbekannter Name faellt an den Einspielenden',
     e2ForeignK.find(z => z.text === 'von unbekannt')?.username === 'anna',
     JSON.stringify(e2ForeignK));
-  // Nachgestellt vor dem Bauen: "anna " trifft die Spalte NICHT, obwohl sie
-  // COLLATE NOCASE traegt.
+  // „bert " trifft username trotz COLLATE NOCASE nicht; der Server muss kuerzen.
   check('Ein nachlaufendes Leerzeichen entscheidet ebenfalls nicht',
     e2ForeignK.find(z => z.text === 'mit Leerzeichen')?.username === 'bert',
     JSON.stringify(e2ForeignK));
@@ -5895,18 +5126,16 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Auch Bewertung und Testtag folgen der Regel',
     e2ForeignB[0]?.username === 'bert' && e2ForeignT[0]?.username === 'anna',
     JSON.stringify([e2ForeignB, e2ForeignT]));
-  // Die laute Haelfte: ohne sie zoege beim Einspielen einer fremden Sicherung
-// der gesamte Bestand wortlos um.
+  // Sonst zoege beim Einspielen einer fremden Sicherung der Bestand ohne Hinweis um.
   check('Die Antwort nennt die unbekannten Namen',
     equal(e2Foreign.content?.authorUnknown, ['dora']),
     JSON.stringify(e2Foreign.content?.authorUnknown));
-  // Gezaehlt werden nur FREMDE Zuordnungen: 'BERT' am Eintrag, 'bert ' am
-  // Kommentar, 'carla' am Kommentar, 'Bert' an der Bewertung -- vier.
+  // Nur fremde Zuordnungen: 'BERT' am Eintrag, 'bert ' und 'carla' an
+  // Kommentaren, 'Bert' an der Bewertung.
   check('Und zaehlt nur die wirklich fremden Zuordnungen',
     e2Foreign.content?.authorAssigned === 4,
     JSON.stringify(e2Foreign.content?.authorAssigned));
-  /* Ein unbekannter Name darf keinen Zugang anlegen -- sonst waere eine
-     Exportdatei ein Weg an der Verwaltung und am Passwort vorbei. */
+  /* Sonst waere eine Exportdatei ein Weg an der Verwaltung und am Passwort vorbei. */
   const e2AfterForeign = e2Names('SELECT username FROM users ORDER BY id');
   check('Ein unbekannter Name legt keinen Zugang an',
     equal(e2AfterForeign.map(z => z.username), ['anna', 'bert', 'carla']),
@@ -5932,9 +5161,7 @@ async function sendImport(object, mode, withoutShare = false) {
     equal(e2Old.content?.authorUnknown, []) && e2Old.content?.authorAssigned === 0,
     JSON.stringify([e2Old.content?.authorUnknown, e2Old.content?.authorAssigned]));
 
-  /* --- Beide Linkformen in einer Datei ------------------------------------
-     Bis Formatnummer 6 war ein Link eine nackte String, ab 7 ein Objekt mit
-     url und author. */
+  /* --- Linkformen: bis Formatnummer 6 ein String, ab 7 ein Objekt mit url und author --- */
   const e2LinkOld = await e2Import('cookie-e2-anna', { version: 14, title: 'L6', items: [{
     title: 'Links ohne Verfasser', author: 'bert',
     links: ['https://sechs.example/eins', 'Suchtext aus sechs'] }] }, 'merge');
@@ -5947,14 +5174,12 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Ihre Links fallen an den Verfasser des Eintrags, nicht an den Einspielenden',
     e2LinkOldRows.length === 2 && e2LinkOldRows.every(z => z.username === 'bert'),
     JSON.stringify(e2LinkOldRows));
-  // Und keine dieser Zeilen ist dabei herrenlos geblieben -- sonst schoebe sie
-// der Rueckfall beim naechsten Start dem Eigentuemer zu.
+  // Eine herrenlose Zeile wiese der Rueckfall beim naechsten Start dem Eigentuemer zu.
   check('Und keine davon bleibt herrenlos',
     e2Names(`SELECT COUNT(*) n FROM links WHERE user_id IS NULL`)[0].n === 0,
     JSON.stringify(e2Names('SELECT id, url, user_id FROM links WHERE user_id IS NULL')));
 
-  /* Die neue Form daneben, mit denselben drei Lagen wie am Kommentar: ein
-     bekannter Name, ein unbekannter, gar keine Angabe. */
+  /* Drei Lagen wie am Kommentar: bekannter Name, unbekannter, keine Angabe. */
   const e2LinkFresh = await e2Import('cookie-e2-anna', { version: 14, title: 'L7', items: [{
     title: 'Links mit Verfasser', author: 'bert',
     links: [{ url: 'https://sieben.example/carla', author: 'carla' },
@@ -5969,29 +5194,21 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Ein genannter Name an der Linkzeile entscheidet',
     e2LinkFreshRows.find(z => /carla$/.test(z.url))?.username === 'carla',
     JSON.stringify(e2LinkFreshRows));
-  /* Ein unbekannter Name faellt an den Einspielenden -- der vorhandene Weg
-     ueber verfasser() gilt unveraendert. */
   check('Ein unbekannter Name an der Linkzeile faellt an den Einspielenden',
     e2LinkFreshRows.find(z => /dora$/.test(z.url))?.username === 'anna',
     JSON.stringify(e2LinkFreshRows));
-  // author null heisst "kein Name genannt" -- dieselbe Antwort wie am
-// Kommentar: der Einspielende.
   check('Und author null ebenfalls',
     e2LinkFreshRows.find(z => /leer$/.test(z.url))?.username === 'anna',
     JSON.stringify(e2LinkFreshRows));
-  // Die laute Haelfte, auch hier: der unbekannte Name steht im Protokoll.
   check('Die Antwort nennt den unbekannten Namen der Linkzeile',
     equal(e2LinkFresh.content?.authorUnknown, ['dora']),
     JSON.stringify(e2LinkFresh.content?.authorUnknown));
-  // Gezaehlt wird eine einzige fremde Zuordnung: bert am Eintrag. carla an
-  // der Linkzeile ist die zweite.
+  // Zwei fremde Zuordnungen: bert am Eintrag, carla an der Linkzeile.
   check('Und zaehlt die fremde Zuordnung der Linkzeile mit',
     e2LinkFresh.content?.authorAssigned === 2,
     JSON.stringify(e2LinkFresh.content?.authorAssigned));
 
-  /* --- Beide Dateiformen ---------------------------------------------------
-     Bis Formatnummer 7 trug ein Anhang kein Feld `author`, ab 8 trägt er
-     eins. */
+  /* --- Anhaenge: bis Formatnummer 7 ohne Feld `author`, ab 8 mit --- */
   const e2Bytes = Buffer.from('inhalt').toString('base64');
   const e2FileOld = await e2Import('cookie-e2-anna', { version: 14, title: 'D7', items: [{
     title: 'Dateien ohne Verfasser', author: 'bert',
@@ -6026,7 +5243,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Ein unbekannter Name faellt an den Einspielenden',
     e2FileFreshRows.find(z => z.filename === 'von-dora.txt')?.username === 'anna',
     JSON.stringify(e2FileFreshRows));
-  /* author null heisst "kein Name genannt" -- der Einspielende. */
   check('Und author null ebenfalls, anders als ein fehlendes Feld',
     e2FileFreshRows.find(z => z.filename === 'ohne.txt')?.username === 'anna',
     JSON.stringify(e2FileFreshRows));
@@ -6038,10 +5254,8 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify(e2Names('SELECT id, filename, user_id FROM attachments WHERE user_id IS NULL')));
 
 
-  /* --- Videos in der Exportdatei, Formatnummer 10 -------------------------
-     OHNE DEN SCHALTER BLEIBT DIE ZEILE ALS MARKE STEHEN, ohne Bytes. */
-  /* Die Nummer wird geholt, nicht geraten: die ersetzenden Importe darueber
-     haben die Eintraege neu nummeriert. */
+  /* --- Videos in der Exportdatei --- */
+  /* Die ersetzenden Importe oben haben die Eintraege neu nummeriert. */
   const e2VidItem = e2Names('SELECT id, title FROM items ORDER BY id LIMIT 1')[0];
   check('Es gibt einen Eintrag, an den das Video kann', !!e2VidItem,
     JSON.stringify(e2Names('SELECT id, title FROM items')));
@@ -6089,8 +5303,6 @@ async function sendImport(object, mode, withoutShare = false) {
     e2VidPhotos.every(p2 => p2.kind === 'image' || p2.kind === 'video'),
     JSON.stringify(e2VidPhotos.map(p2 => p2.kind)));
 
-  /* Der Rundlauf mit Videos: ersetzend einspielen und nachsehen, dass Art,
-     Dauer und das Standbild wirklich ankommen. */
   const e2VidRound = await e2Import('cookie-e2-anna', e2IncludingVid, 'replace');
   check('Der Rundlauf mit Videos gelingt', e2VidRound.status === 200,
     JSON.stringify(e2VidRound.content));
@@ -6105,7 +5317,6 @@ async function sendImport(object, mode, withoutShare = false) {
     e2VidAfter[0]?.d === MP4().length && e2VidAfter[0]?.t > 0 && e2VidAfter[0]?.m > 0,
     JSON.stringify(e2VidAfter));
 
-  /* Und dieselbe Datei OHNE die Videobytes: kein Platz, aber eine Message. */
   const e2VidWithout = await e2Import('cookie-e2-anna', e2WithoutVid, 'replace');
   check('Eine Datei ohne Videobytes laesst sich trotzdem einspielen',
     e2VidWithout.status === 200, JSON.stringify(e2VidWithout.content));
@@ -6116,8 +5327,7 @@ async function sendImport(object, mode, withoutShare = false) {
     e2Names("SELECT COUNT(*) n FROM photos WHERE kind = 'video'")[0].n === 0,
     JSON.stringify(e2Names('SELECT kind FROM photos')));
 
-  /* Ein Video, dessen Standbild sich nicht durch sharp lesen laesst, wird
-     uebergangen und genannt -- dieselbe Regel wie beim Hochladen. */
+  /* Dieselbe Regel wie beim Hochladen: sharp kann das Standbild nicht lesen. */
   const e2VidBroken = await e2Import('cookie-e2-anna', { version: 14, title: 'K', items: [{
     title: 'Mit kaputtem Standbild',
     photos: [{ kind: 'video', duration: 3, mime_type: 'video/mp4',
@@ -6130,7 +5340,6 @@ async function sendImport(object, mode, withoutShare = false) {
     e2VidBroken.content?.videosUnreadable === 1 && e2VidBroken.content?.videos === 0,
     JSON.stringify({ unreadable: e2VidBroken.content?.videosUnreadable, videos: e2VidBroken.content?.videos }));
 
-  /* EINE AELTERE DATEI OHNE art AN IHREN FOTOS: alles darin ist ein Bild. */
   const e2VidOld = await e2Import('cookie-e2-anna', { version: 14, title: 'A9', items: [{
     title: 'Aus einer Datei ohne art',
     photos: [{ mime_type: 'image/png', data_base64: PNG_BASE64 }]
@@ -6152,8 +5361,6 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Der Papierkorb: die Tabelle legt sich selbst an');
 
-  /* DIE KERNFRAGE DER RUNDE, nachgestellt statt geglaubt: braucht eine NEUE
-     TABELLE ueberhaupt einen Migrationsblock? */
   {
     const tDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-pktab-'));
     shortRun(`require('./db'); console.log('da');`, tDir);
@@ -6176,7 +5383,6 @@ async function sendImport(object, mode, withoutShare = false) {
       const p = d.prepare("INSERT INTO trash (title, content) VALUES ('X', '{}')").run().lastInsertRowid;
       d.prepare('INSERT INTO trash_bytes (trash_id, part, data) VALUES (?, 0, ?)')
         .run(p, Buffer.from('bytes'));
-      // Beide Tabellen von Hand entfernen -- UND eine vorhandene Spalte dazu.
       d.exec('DROP TABLE trash_bytes');
       d.exec('DROP TABLE trash');
       d.close();
@@ -6201,8 +5407,7 @@ async function sendImport(object, mode, withoutShare = false) {
         .all().map(z => z.name);
       check('Und den Index auf das Datum, ebenfalls ohne Migration',
         idx.includes('idx_trash_at'), JSON.stringify(idx));
-      /* UND DIE TRAGENDE REGEL DER PAPIERKORBRUNDE AN DER SCHMALSTEN STELLE:
-         items bekommt KEINEN ZUSTAND. */
+      /* Der Papierkorb ist eine eigene Tabelle; items bekommt keinen Zustand. */
       const itemColumns = d.prepare('PRAGMA table_info(items)').all().map(c => c.name);
       check('items traegt genau seine dreizehn Spalten',
         equal(itemColumns, ['id', 'title', 'description', 'rejected', 'rejected_at',
@@ -6215,7 +5420,6 @@ async function sendImport(object, mode, withoutShare = false) {
       d.close();
     }
 
-    /* DIE GEGENLAGE: eine SPALTE kommt nicht von selbst zurueck. */
     {
       const d = open(tFile);
       d.pragma('foreign_keys = OFF');
@@ -6241,7 +5445,6 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Der Papierkorb: der Rundlauf');
 
-  /* DIE TRAGENDE PRUEFUNG DER RUNDE. */
   const pkPng = Buffer.from(PNG_BASE64, 'base64');
   const pkDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-papierkorb-'));
   let pkCriterionId, pkCriterionTwoId;
@@ -6259,18 +5462,15 @@ async function sendImport(object, mode, withoutShare = false) {
     pkCriterionTwoId = d.prepare("INSERT INTO rating_criteria (name, sort_order) VALUES ('Haptik', 1)")
       .run().lastInsertRowid;
     const categoryId = d.prepare("INSERT INTO product_categories (name) VALUES ('Werkzeug')").run().lastInsertRowid;
-    // Ein zweiter Eintrag daneben. Ohne ihn liesse sich nicht sehen, dass das
-// Loeschen NUR den einen trifft.
+    // Zweiter Eintrag: zeigt, dass das Loeschen nur den einen trifft.
     d.prepare('INSERT INTO items (title, user_id) VALUES (?, 1)').run('Bleibt stehen');
-    /* DIE ABLEHNUNG TRAEGT IHRE DREI ANGABEN, seit 0.14.0. */
     const itId = d.prepare(`INSERT INTO items (title, description, rejected,
         rejected_at, rejected_reason, rejected_by, tested,
         product_category_id, created_at, updated_at, user_id)
       VALUES (?, ?, 1, '2026-01-05 06:07:08', 'Lieferzeit über 6 Monate', 2, 1,
         ?, '2026-01-02 03:04:05', '2026-02-03 04:05:06', 3)`)
       .run('Vollständig', 'Erste Zeile\nZweite Zeile', categoryId).lastInsertRowid;
-    // Foto und Video in EINER Tabelle -- das Video ausdruecklich NICHT an
-// erster Stelle, sonst liesse sich das Hauptbild nicht unterscheiden.
+    // Das Video nicht an erster Stelle, sonst liesse sich das Hauptbild nicht unterscheiden.
     d.prepare(`INSERT INTO photos (item_id, mime_type, data, thumb, medium, focus_x, focus_y, sort_order, kind)
                VALUES (?, 'image/png', ?, ?, ?, 30, 70, 0, 'image')`)
       .run(itId, pkPng, pkPng, pkPng);
@@ -6285,13 +5485,12 @@ async function sendImport(object, mode, withoutShare = false) {
     // Zwei Links, verschiedene Eintrager.
     d.prepare("INSERT INTO links (item_id, url, sort_order, user_id) VALUES (?, 'https://eins.test', 0, 3)").run(itId);
     d.prepare("INSERT INTO links (item_id, url, sort_order, user_id) VALUES (?, 'https://zwei.test', 1, 2)").run(itId);
-    // Tags am Eintrag und am Testtag.
     const tagA = d.prepare("INSERT INTO tags (name) VALUES ('Alu')").run().lastInsertRowid;
     const tagB = d.prepare("INSERT INTO tags (name) VALUES ('Stahl')").run().lastInsertRowid;
     d.prepare('INSERT INTO item_tags (item_id, tag_id) VALUES (?, ?)').run(itId, tagA);
     d.prepare('INSERT INTO item_tags (item_id, tag_id) VALUES (?, ?)').run(itId, tagB);
-    // Vier Kommentararten, vier Lagen: Notiz (carla), Bericht (bert, angepinnt),
-// offene Aufgabe (dora -- wird Grabstein), erledigte Aufgabe (herrenlos).
+    // Notiz (carla), Bericht (bert, angepinnt), offene Aufgabe (dora, Zugang wird
+    // geloescht), erledigte Aufgabe (wird herrenlos).
     const kGrade = d.prepare(`INSERT INTO comments (item_id, text, kind, pinned, created_at, updated_at, user_id)
         VALUES (?, 'Eine Notiz', 'note', 0, '2026-03-01 10:00:00', NULL, 3)`).run(itId).lastInsertRowid;
     d.prepare(`INSERT INTO comments (item_id, text, kind, pinned, created_at, user_id)
@@ -6300,21 +5499,20 @@ async function sendImport(object, mode, withoutShare = false) {
         VALUES (?, 'Doras Aufgabe', 'task', 0, '2026-03-03 10:00:00', 4)`).run(itId);
     d.prepare(`INSERT INTO comments (item_id, text, kind, pinned, created_at, user_id)
         VALUES (?, 'Erledigt und herrenlos', 'done', 0, '2026-03-04 10:00:00', 3)`).run(itId);
-    // Ein ECHTES Bild am Kommentar: kodiereKommentarBild() jagt es beim
-// Einspielen durch sharp, ein Fantasie-Puffer fiele wortlos heraus.
+    // Ein echtes Bild: encodeCommentImage() in server.js schickt es beim Einspielen
+    // durch sharp, ein erfundener Puffer fiele ohne Meldung heraus.
     d.prepare("INSERT INTO comment_images (comment_id, filename, data, thumb, sort_order) VALUES (?, 'bild.png', ?, ?, 0)")
       .run(kGrade, pkPng, pkPng);
     // Bewertungen mehrerer Bewerter, dazu eine zurueckgesetzte mit Wert 0.
     d.prepare('INSERT INTO ratings (item_id, criterion_id, value, user_id) VALUES (?, ?, 5, 3)').run(itId, pkCriterionId);
     d.prepare('INSERT INTO ratings (item_id, criterion_id, value, user_id) VALUES (?, ?, 3, 2)').run(itId, pkCriterionId);
     d.prepare('INSERT INTO ratings (item_id, criterion_id, value, user_id) VALUES (?, ?, 0, 3)').run(itId, pkCriterionTwoId);
-    // Testtage zweier Verfasser am SELBEN Tag -- das sind zwei Zeilen, nicht eine.
+    // Testtage zweier Verfasser am selben Tag: zwei Zeilen, nicht eine.
     const tdA = d.prepare("INSERT INTO test_days (item_id, day, rating, user_id) VALUES (?, '2026-04-01', 4, 3)")
       .run(itId).lastInsertRowid;
     d.prepare("INSERT INTO test_days (item_id, day, rating, user_id) VALUES (?, '2026-04-01', 2, 2)").run(itId);
     d.prepare('INSERT INTO test_day_tags (test_day_id, tag_id) VALUES (?, ?)').run(tdA, tagA);
-    // Der Favorit der Verfasserin -- und einer von bert daneben. Nur EINER
-// kommt zurueck, und das gehoert belegt statt behauptet.
+    // Favorit der Verfasserin und einer von bert; nur einer kommt zurueck.
     d.prepare('INSERT INTO item_pins (user_id, item_id) VALUES (3, ?)').run(itId);
     d.prepare('INSERT INTO item_pins (user_id, item_id) VALUES (2, ?)').run(itId);
     d.close();
@@ -6366,13 +5564,12 @@ async function sendImport(object, mode, withoutShare = false) {
     d.close();
   };
 
-  /* Erst JETZT, nach dem Start: assignInventory() laeuft bei jedem Start und
-     wiese die herrenlose Zeile sonst der Eigentuemerin zu. */
+  /* Erst nach dem Start: assignInventory() in db.js wiese die herrenlose Zeile
+     sonst der Eigentuemerin zu. */
   pkWrite("UPDATE comments SET user_id = NULL WHERE text = 'Erledigt und herrenlos'");
   pkWrite("UPDATE users SET username = 'deleted-4', status = 'deleted', role = 'user', " +
              "password_hash = '' WHERE id = 4");
-  // bert bekommt die Adminrolle -- OHNE Eigentuemerrolle. Ohne diesen Zugang
-// liesse sich "Eigentuemer" von "Admin" gar nicht unterscheiden.
+  // bert wird Admin ohne Eigentuemerrolle; nur so sind die beiden Rollen zu unterscheiden.
   pkWrite("UPDATE users SET role = 'admin' WHERE username = 'bert'");
 
   const pkItemId = pkOne("SELECT id FROM items WHERE title = 'Vollständig'").id;
@@ -6387,11 +5584,8 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Die Frist steht in den Einstellungen und nicht nur in der Karte',
     pkRoles.content?.trashDays === 30, JSON.stringify(pkRoles.content?.trashDays));
 
-  /* Der Ausgangsstand, an dem hinterher Feld fuer Feld gemessen wird. */
-  /* Auch hier jede Lesestelle abgefangen: antwortet der
-     Server nicht mit dem Eintrag, sollen die Pruefungen darunter ROT werden
-     und nicht der Lauf abreissen -- ein abgerissener Lauf nennt keinen
-     einzigen Namen. */
+  /* Ausgangsstand fuer den Vergleich. `|| {}`: ohne Eintrag werden die Pruefungen
+     rot, statt dass der Lauf abreisst. */
   const pkBefore = (await pkCall('cookie-pk-carla', 'GET', `/api/items/${pkItemId}`)).content || {};
   const pkBeforeBytes = pkRows(
     "SELECT kind, sort_order, mime_type, focus_x, focus_y, duration, length(data) AS n, hex(data) AS h " +
@@ -6399,8 +5593,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const pkBeforeFiles = pkRows(
     'SELECT filename, mime_type, size, sort_order, user_id, hex(data) AS h FROM attachments ' +
     'WHERE item_id = ? ORDER BY sort_order', pkItemId);
-  /* DAS STANDBILD UND DIE KOMMENTARBILDER EBENSO -- sie gehen als eigene
-     Zeilen in den Papierkorb, und was dort liegt, wird gleich verglichen. */
+  /* Standbild und Kommentarbilder gehen als eigene Zeilen in den Papierkorb. */
   const pkBeforeStill = pkRows(
     "SELECT hex(COALESCE(medium, thumb)) AS h FROM photos WHERE item_id = ? AND kind = 'video' " +
     'ORDER BY sort_order', pkItemId);
@@ -6418,7 +5611,6 @@ async function sendImport(object, mode, withoutShare = false) {
     new Set((pkBefore.comments || []).map(c => JSON.stringify(c.author))).size === 4,
     JSON.stringify((pkBefore.comments || []).map(c => c.author)));
 
-  // Loeschen darf die Verfasserin selbst.
   const pkPath = await pkCall('cookie-pk-carla', 'DELETE', `/api/items/${pkItemId}`);
   check('Die Verfasserin loescht ihren Eintrag', pkPath.status === 204, `Status ${pkPath.status}`);
   check('Der Eintrag ist wirklich weg -- keine Zeile in items',
@@ -6435,24 +5627,20 @@ async function sendImport(object, mode, withoutShare = false) {
     pkRows('SELECT id FROM trash').length === 1,
     JSON.stringify(pkRows('SELECT id, title FROM trash')));
 
-  /* JEDE LESESTELLE ABGEFANGEN: faellt die Zeile weg,
-     sollen die Pruefungen darunter ROT werden und nicht der Lauf abreissen. */
+  /* `|| {}`: ohne Zeile werden die Pruefungen rot, statt dass der Lauf abreisst. */
   const pkRow = pkOne('SELECT id, title, deleted_by, length(content) AS n FROM trash') || {};
   check('Sie traegt den Titel als eigene Spalte',
     pkRow?.title === 'Vollständig', JSON.stringify(pkRow?.title));
   check('Und den Loeschenden', pkRow?.deleted_by === 3, JSON.stringify(pkRow?.deleted_by));
 
-  /* DER GRUND FUER DIE BAUFORM, an der Prueflage nachgemessen: die Bytes
-     liegen NICHT in der JSON. */
   const pkBytesRows = pkRows('SELECT part, length(data) AS n FROM trash_bytes ' +
     'WHERE trash_id = ? ORDER BY part', pkRow.id ?? -1);
   check('Die Bytes liegen daneben, eine Zeile je Blob',
     pkBytesRows.length === 6, JSON.stringify(pkBytesRows));
   check('Ihre Nummern sind lueckenlos ab null',
     equal(pkBytesRows.map(z => z.part), [0, 1, 2, 3, 4, 5]), JSON.stringify(pkBytesRows.map(z => z.part)));
-  /* UND SIE TRAGEN DIESELBEN BYTES WIE VORHER DIE TRAEGER -- kopiert wird
-     innerhalb von SQLite, und eine Kopie, die etwas anderes ablegt, faellt
-     erst beim Zurueckholen auf. */
+  /* Kopiert wird innerhalb von SQLite; eine falsche Kopie fiele sonst erst beim
+     Zurueckholen auf. */
   const pkBytesHex = pkRows('SELECT hex(data) AS h FROM trash_bytes WHERE trash_id = ? ' +
     'ORDER BY part', pkRow.id ?? -1).map(z => z.h);
   const pkExpectHex = [
@@ -6466,7 +5654,6 @@ async function sendImport(object, mode, withoutShare = false) {
     equal(pkBytesHex, pkExpectHex),
     JSON.stringify(pkBytesHex.map((h, i) => `${(h || '').length}/${(pkExpectHex[i] || '').length}`)));
   const pkBytesSum = pkBytesRows.reduce((s, z) => s + z.n, 0);
-  /* DER EIGENTLICHE BELEG: die Videodatei steht NICHT in der JSON. */
   check('Die Videobytes stehen nicht in der JSON',
     !(pkOne('SELECT content FROM trash')?.content || '').includes(MP4().toString('base64').slice(0, 60)),
     MP4().toString('base64').slice(0, 60));
@@ -6478,8 +5665,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Sondern data_ref',
     (pkOne('SELECT content FROM trash')?.content || '').includes('"data_ref"'));
 
-  /* DIE KENNZAHLEN WEISEN IHN GETRENNT AUS -- sonst wundert sich jemand ueber
-     eine Datenbank, die nach dem Aufraeumen groesser ist als vorher. */
+  /* Sonst waere die Datenbank nach dem Aufraeumen ohne Erklaerung groesser. */
   const pkStats = (await pkCall('cookie-pk-anna', 'GET', '/api/stats')).content;
   check('Die Kennzahlen nennen den Papierkorb',
     pkStats?.trashCount === 1, JSON.stringify(pkStats?.trashCount));
@@ -6491,10 +5677,7 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify({ items: pkStats?.itemCount, photos: pkStats?.photoCount,
                      videos: pkStats?.videoCount, comments: pkStats?.commentCount }));
 
-  // Die Liste, wie die Karte sie sieht.
   const pkList = (await pkCall('cookie-pk-anna', 'GET', '/api/trash')).content || {};
-  // Erst das Vorhandensein, dann jede Aussage darueber -- und jede Lesestelle
-// abgefangen.
   const pkFirst = (pkList.rows || [])[0] || {};
   check('Die Liste nennt die Frist', pkList.days === 30, JSON.stringify(pkList.days));
   check('Und eine Zeile mit Titel, Datum und Loeschendem',
@@ -6525,8 +5708,7 @@ async function sendImport(object, mode, withoutShare = false) {
     pkAfter?.title === pkBefore.title && pkAfter?.description === pkBefore.description &&
     pkAfter?.rejected === pkBefore.rejected && pkAfter?.tested === pkBefore.tested,
     JSON.stringify({ t: pkAfter?.title, r: pkAfter?.rejected, g: pkAfter?.tested }));
-  /* ERST DER GEGENSTAND: truege der Ausgangsstand keine
-     Ablehnung mit Angaben, verglichen die drei Zeilen darunter null mit null. */
+  /* Ohne Ablehnung im Ausgangsstand verglichen die Pruefungen darunter null mit null. */
   check('Der Ausgangsstand trug wirklich eine begruendete Ablehnung',
     pkBefore.rejected === true && !!pkBefore.rejected_at && !!pkBefore.rejected_reason &&
     pkBefore.rejectedAuthor?.name === 'bert',
@@ -6536,8 +5718,7 @@ async function sendImport(object, mode, withoutShare = false) {
     pkAfter?.rejected_at === pkBefore.rejected_at &&
     pkAfter?.rejected_reason === pkBefore.rejected_reason,
     JSON.stringify([pkAfter?.rejected_at, pkAfter?.rejected_reason]));
-  /* UND DER ABLEHNENDE, und zwar der richtige: bert hat abgelehnt, anna hat
-     wiederhergestellt. */
+  /* bert hat abgelehnt, anna stellt wieder her. */
   check('Und der Ablehnende ist wieder bert und nicht die Einspielende',
     pkAfter?.rejectedAuthor?.name === 'bert',
     JSON.stringify(pkAfter?.rejectedAuthor));
@@ -6563,8 +5744,6 @@ async function sendImport(object, mode, withoutShare = false) {
     equal((pkAfter?.comments || []).map(c => [c.text, c.kind, c.pinned]),
            (pkBefore.comments || []).map(c => [c.text, c.kind, c.pinned])),
     JSON.stringify((pkAfter?.comments || []).map(c => [c.text, c.kind, c.pinned])));
-  /* Die Verfasser, und zwar die genannten: der lebende, der Admin und der
-     GRABSTEIN. */
   check('Und ihre genannten Verfasser -- der lebende, der Admin und der GRABSTEIN',
     equal((pkAfter?.comments || []).filter(c => c.text !== 'Erledigt und herrenlos').map(c => c.author),
            (pkBefore.comments || []).filter(c => c.text !== 'Erledigt und herrenlos').map(c => c.author)),
@@ -6610,8 +5789,7 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify(pkOne("SELECT thumb IS NOT NULL AS t, medium IS NOT NULL AS m FROM photos " +
                           "WHERE item_id = ? AND kind = 'video'", pkFreshId ?? -1)));
 
-  /* WAS NICHT ZURUECKKOMMT, und es gehoert belegt statt verschwiegen: der
-     Favorit heisst "habe ICH markiert" und steht so schon im Austauschformat. */
+  /* Der Favorit bedeutet „von mir markiert", wie im Austauschformat. */
   const pkPins = pkRows('SELECT user_id FROM item_pins WHERE item_id = ? ORDER BY user_id', pkFreshId ?? -1);
   check('Der Favorit kommt bei der Wiederherstellenden an',
     equal(pkPins.map(z => z.user_id), [1]), JSON.stringify(pkPins));
@@ -6619,15 +5797,12 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Der Papierkorb: dieselbe Transaktion');
 
-  /* DIE ZUSICHERUNG DER RUNDE, mit erzwungenem Fehlschlag nachgestellt:
-     entweder liegt der Eintrag im Papierkorb UND ist geloescht, oder er steht
-     unveraendert da. */
+  /* Mit erzwungenem Fehlschlag: entweder liegt der Eintrag im Papierkorb und ist
+     geloescht, oder er steht unveraendert da. */
   {
     const tItem = pkOne("SELECT id FROM items WHERE title = 'Bleibt stehen'").id;
     const before = pkOne('SELECT title, user_id, updated_at FROM items WHERE id = ?', tItem);
 
-    /* ERSTE LAGE: das EINFUEGEN scheitert. Danach darf nichts geschehen sein --
-       weder eine Zeile im Papierkorb noch ein geloeschter Eintrag. */
     pkWrite(`CREATE TRIGGER pk_bremse BEFORE INSERT ON trash
                 BEGIN SELECT RAISE(ABORT, 'Probe: der Papierkorb nimmt nichts an'); END`);
     const gescheitert2 = await pkCall('cookie-pk-anna', 'DELETE', `/api/items/${tItem}`);
@@ -6641,8 +5816,8 @@ async function sendImport(object, mode, withoutShare = false) {
       JSON.stringify(pkRows('SELECT id, title FROM trash')));
     pkWrite('DROP TRIGGER pk_bremse');
 
-    /* ZWEITE LAGE, UND SIE IST DIE, FUER DIE DIE TRANSAKTION DA IST: das
-       Einfuegen geht durch, das LOESCHEN scheitert. */
+    /* Die Lage, fuer die es die Transaktion gibt: das Einfuegen geht durch,
+       das Loeschen scheitert. */
     pkWrite(`CREATE TRIGGER pk_bremse2 BEFORE DELETE ON items
                 BEGIN SELECT RAISE(ABORT, 'Probe: der Eintrag laesst sich nicht loeschen'); END`);
     const gescheitert3 = await pkCall('cookie-pk-anna', 'DELETE', `/api/items/${tItem}`);
@@ -6658,14 +5833,12 @@ async function sendImport(object, mode, withoutShare = false) {
       pkRows('SELECT id FROM trash_bytes').length === 0,
       JSON.stringify(pkRows('SELECT id FROM trash_bytes')));
     pkWrite('DROP TRIGGER pk_bremse2');
-    // Und der Beleg, dass es ohne die Bremse durchgeht -- sonst bliebe die
-// Probe daruber auch dann gruen, wenn das Loeschen gar nicht mehr ginge.
+    // Sonst bliebe die Probe darueber auch gruen, wenn das Loeschen nie ginge.
     const goes = await pkCall('cookie-pk-anna', 'DELETE', `/api/items/${tItem}`);
     check('Ohne die Bremse geht derselbe Griff durch', goes.status === 204, `Status ${goes.status}`);
     check('Und die Zeile liegt jetzt im Papierkorb',
       pkRows('SELECT id FROM trash').length === 1);
-    // Aufraeumen: die Zeile endgueltig entfernen, damit die Lagen darunter
-// von einem bekannten Stand ausgehen.
+    // Aufraeumen, damit die Lagen darunter von einem bekannten Stand ausgehen.
     const removed = pkOne('SELECT id FROM trash').id;
     check('Endgueltig entfernen nimmt die Zeile',
       (await pkCall('cookie-pk-anna', 'DELETE', `/api/trash/${removed}`)).status === 204);
@@ -6676,11 +5849,11 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Der Papierkorb: die dreissig Tage');
 
-  /* DER AUSGANGSWERT WIRD VON HAND GESETZT: datetime('now')
-     loest nur Sekunden auf, und dreissig Tage lassen sich nicht abwarten. */
+  /* Von Hand gesetzt: dreissig Tage lassen sich nicht abwarten, und
+     datetime('now') loest nur Sekunden auf. */
   {
-    /* datetime() nimmt seine Modifikatoren EINZELN -- "-30 days +1 seconds"
-       in EINEM String ergibt NULL, und die Spalte ist NOT NULL. */
+    /* datetime() nimmt Modifikatoren einzeln; "-30 days +1 seconds" in einem
+       String ergibt NULL, und die Spalte ist NOT NULL. */
     const set = (title, ...offset) => {
       pkWrite("INSERT INTO trash (title, content, deleted_by, deleted_at) " +
                  `VALUES (?, '{}', 1, datetime('now'${offset.map(() => ', ?').join('')}))`,
@@ -6696,7 +5869,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Vier Zeilen liegen bereit',
       pkRows('SELECT id FROM trash').length === 4);
 
-    // ZWEITE AUFRUFSTELLE: das Oeffnen der Karte.
+    // Zweite Aufrufstelle: das Oeffnen der Karte.
     const afterCard = (await pkCall('cookie-pk-anna', 'GET', '/api/trash')).content;
     const left = (afterCard?.rows || []).map(z => z.title).sort();
     check('Beim Oeffnen der Karte faellt heraus, was aelter als dreissig Tage ist',
@@ -6716,14 +5889,11 @@ async function sendImport(object, mode, withoutShare = false) {
       (afterCard.rows || []).find(z => z.title === 'von gestern')?.daysOpen === 29,
       JSON.stringify((afterCard.rows || []).find(z => z.title === 'von gestern')));
 
-    // ERSTE AUFRUFSTELLE: der Start. Eigens belegt, sonst bliebe offen, ob
-// ueberhaupt zwei Stellen aufraeumen.
+    // Erste Aufrufstelle: der Start. Sonst bliebe offen, ob beide Stellen aufraeumen.
     pkWrite("UPDATE trash SET deleted_at = datetime('now', '-40 days') WHERE id = ?", idFresh);
     check('Die Zeile ist von Hand alt gemacht worden',
       pkRows('SELECT id FROM trash WHERE id = ?', idFresh).length === 1);
-    // Ein eigener kurzer Lauf auf demselben Verzeichnis -- er laedt server.js
-    // nicht, sondern nur db.js; deshalb wird der Start hier ueber einen
-    // zweiten Server gefahren.
+    // shortRun() laedt nur db.js, nicht server.js; deshalb ein zweiter Server.
     const PK2 = startFurtherServer(pkDir, {}, 4260);
     await PK2.ready;
     check('Schon der Start raeumt sie weg',
@@ -6740,8 +5910,6 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Der Papierkorb: die Rechte');
 
-  /* ZU JEDER VERWEIGERUNG DER ERFOLGSFALL DANEBEN und die Nachschau in der
-     Datenbank, dass wirklich nichts geschrieben wurde. */
   {
     const victimId = (await pkCall('cookie-pk-carla', 'POST', '/api/items',
       { title: 'Zum Wegwerfen' })).content?.id;
@@ -6812,20 +5980,15 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Der Papierkorb: zweimal gleichzeitig zurueckholen');
 
-  /* Dasselbe Muster wie der Link in Abschnitt 7 der Tokengruppe: zwischen dem
-     SELECT auf die Zeile und dem DELETE wird auf das Einspielen gewartet, und
-     dieses Warten gibt den Event Loop frei. Zwei gleichzeitige Anfragen sahen
-     beide dieselbe Zeile und legten den Eintrag zweimal an.
-     DER WEG NACHEINANDER FAENGT DAS NICHT: die zweite Anfrage bekommt dort
-     404, weil die Zeile schon fort ist -- eine andere Lage. */
+  /* Zwischen SELECT und DELETE wartet die Route auf das Einspielen und gibt den
+     Event Loop frei; zwei gleichzeitige Anfragen saehen dieselbe Zeile.
+     Nacheinander bekaeme die zweite 404, eine andere Lage. */
   {
     const twiceId = (await pkCall('cookie-pk-carla', 'POST', '/api/items',
       { title: 'Zweimal zurueck' })).content?.id;
-    /* ZWOELF FOTOS, UND SIE SIND DER PUNKT: das Einspielen rechnet je Foto
-       zwei Varianten, und erst dieses Rechnen haelt den Vorgang lange genug
-       offen, dass die zweite Anfrage die Zeile wirklich noch sieht. Mit einem
-       leeren Eintrag ist der erste Aufruf fertig, bevor der zweite die Route
-       erreicht -- dann steht 404 da, und die Probe belegt nichts. */
+    /* Zwoelf Fotos mit je zwei Varianten halten das Einspielen lange genug offen,
+       dass die zweite Anfrage die Zeile noch sieht; ohne sie kaeme 404, und die
+       Probe belegte nichts. */
     for (let i = 0; i < 12; i++)
       pkWrite('INSERT INTO photos (item_id, mime_type, data, thumb, medium, sort_order) ' +
         "VALUES (?, 'image/png', ?, ?, ?, ?)", twiceId, pkPng, pkPng, pkPng, i);
@@ -6841,8 +6004,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Zwei gleichzeitige Wiederherstellungen derselben Zeile: genau eine gelingt',
       [twiceA, twiceB].filter(z => z.status === 200).length === 1,
       `${twiceA.status} / ${twiceB.status}`);
-    /* UND DAS IST DER EIGENTLICHE SCHADEN: gelingen beide, steht der Eintrag
-       danach zweimal in der Liste, und keine der beiden Antworten sagt es. */
+    /* Gelingen beide, steht der Eintrag zweimal da, und keine Antwort sagt es. */
     check('Und der Eintrag steht genau einmal da',
       pkRows("SELECT id FROM items WHERE title = 'Zweimal zurueck'").length === 1,
       JSON.stringify(pkRows("SELECT id FROM items WHERE title = 'Zweimal zurueck'")));
@@ -6856,10 +6018,8 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und ihre Bytes mit',
       pkRows('SELECT id FROM trash_bytes WHERE trash_id = ?', twiceRow.id ?? -1).length === 0);
 
-    /* DIE NUMMER WIRD WIEDER FREIGEGEBEN -- sonst waere jeder weitere Versuch
-       auf dieselbe Nummer bis zum Neustart gesperrt. Gefragt wird auf dem
-       FEHLERWEG, denn nur dort bleibt die Zeile liegen: nach einem gelungenen
-       Zurueckholen ist die Nummer fort und kommt nie wieder. */
+    /* Die Nummer muss wieder frei werden, sonst bliebe sie bis zum Neustart
+       gesperrt. Nur auf dem Fehlerweg bleibt die Zeile liegen. */
     pkWrite("INSERT INTO trash (title, content, deleted_by) VALUES ('Unlesbar', 'kein JSON', 1)");
     const brokenRow = pkOne("SELECT id FROM trash WHERE title = 'Unlesbar'") || {};
     const brokenFirst = await pkCall('cookie-pk-anna', 'POST', `/api/trash/${brokenRow.id ?? -1}/restore`);
@@ -6888,19 +6048,15 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Die Bildablage: die Rechte');
 
-  /* DIESELBE PRUEFLAGE, DIESELBEN DREI ROLLEN -- anna ist Eigentuemerin, bert
-     Admin ohne Eigentuemerrolle, carla gewoehnliche Benutzerin. */
+  /* anna Eigentuemerin, bert Admin ohne Eigentuemerrolle, carla gewoehnliche Benutzerin. */
   {
-    /* ZUSAGE 3: EINE FRISCHE INSTALLATION STEHT AUF „WebP verlustfrei". */
     const fresh = await pkCall('cookie-pk-anna', 'GET', '/api/settings');
     check('Eine frische Installation steht auf „WebP verlustfrei"',
       fresh.content?.imageStore === 'webp-lossless', JSON.stringify(fresh.content?.imageStore));
-    /* UND SIE STEHT DA, OHNE DASS EINE ZEILE GESCHRIEBEN WAERE. */
     check('Und zwar abgeleitet, ohne Zeile in der Einstellungstabelle',
       pkRows("SELECT key FROM settings WHERE key = 'imageStore'").length === 0,
       JSON.stringify(pkRows("SELECT key, value FROM settings WHERE key = 'imageStore'")));
 
-    /* ZUSAGE 1: GENAU DREI WERTE, UND EIN VIERTER WIRD ABGEWIESEN. */
     check('Die Antwort nennt genau drei Verfahren',
       Array.isArray(fresh.content?.imageStores) && fresh.content.imageStores.length === 3 &&
       ['png', 'webp-lossless', 'webp-lossy'].every(k => fresh.content.imageStores.includes(k)),
@@ -6911,8 +6067,6 @@ async function sendImport(object, mode, withoutShare = false) {
       `Status ${fourth.status}: ${JSON.stringify(fourth.content)}`);
     check('Und die Absage sagt, woran es liegt',
       /Verfahren zum Speichern von Bildern/.test(fourth.content?.error || ''), fourth.content?.error);
-    /* UND DIE ABSAGE HAT NICHTS GESCHRIEBEN -- weder den vierten Wert noch
-       sonst etwas. */
     check('Und sie hat nichts in die Einstellungstabelle geschrieben',
       pkRows("SELECT key FROM settings WHERE key = 'imageStore'").length === 0);
     for (const wrong of [true, false, null, 42, ['png']]) {
@@ -6921,7 +6075,6 @@ async function sendImport(object, mode, withoutShare = false) {
         `Status ${r.status}`);
     }
 
-    /* ZUSAGE 2: SIE GEHOERT DEM EIGENTUEMER. */
     const toggleCarla = await pkCall('cookie-pk-carla', 'PUT', '/api/settings',
       { imageStore: 'png' });
     check('Ein gewoehnlicher Benutzer stellt die Bildablage nicht um',
@@ -6932,7 +6085,6 @@ async function sendImport(object, mode, withoutShare = false) {
       toggleBert.status === 403, `Status ${toggleBert.status}`);
     check('Und die Absage nennt den Eigentuemer',
       /nur der Eigentümer/.test(toggleBert.content?.error || ''), toggleBert.content?.error);
-    /* UND DIE STELLUNG HAT SICH DABEI NICHT VERSCHOBEN. */
     check('Und die Wahl steht danach unveraendert auf „WebP verlustfrei"',
       (await pkCall('cookie-pk-anna', 'GET', '/api/settings')).content?.imageStore === 'webp-lossless');
     const toggleAnna = await pkCall('cookie-pk-anna', 'PUT', '/api/settings',
@@ -6941,7 +6093,6 @@ async function sendImport(object, mode, withoutShare = false) {
       JSON.stringify(toggleAnna.content).slice(0, 120));
     check('Und die Wahl steht danach wirklich auf „PNG"',
       (await pkCall('cookie-pk-anna', 'GET', '/api/settings')).content?.imageStore === 'png');
-    /* UND ALLE DREI LASSEN SICH WIRKLICH SETZEN. */
     for (const k of ['webp-lossy', 'png', 'webp-lossless']) {
       const r = await pkCall('cookie-pk-anna', 'PUT', '/api/settings', { imageStore: k });
       check(`Das Verfahren „${k}" laesst sich setzen`,
@@ -6949,8 +6100,7 @@ async function sendImport(object, mode, withoutShare = false) {
         `Status ${r.status}: ${JSON.stringify(r.content?.imageStore)}`);
     }
 
-    /* DIE WAHL IST NICHT PERSOENLICH, sondern global -- sie beschreibt, wie
-       DIESE INSTANZ ablegt, nicht wie jemand sie ansieht. */
+    /* Die Wahl ist global: sie beschreibt, wie die Instanz ablegt. */
     check('Lesen darf sie jeder',
       (await pkCall('cookie-pk-carla', 'GET', '/api/settings')).content?.imageStore === 'webp-lossless');
 
@@ -6962,20 +6112,12 @@ async function sendImport(object, mode, withoutShare = false) {
       buttonBert.status === 403, `Status ${buttonBert.status}`);
     check('Und die Absage nennt auch hier den Eigentuemer',
       /nur der Eigentümer/.test(buttonBert.content?.error || ''), buttonBert.content?.error);
-    /* DIE ROLLE ALLEIN GENUEGT AUCH DER EIGENTUEMERIN NICHT: der Waechter
-       steht VOR der zweiten Bestaetigung, und beide muessen halten. */
+    /* Die Rolle allein genuegt nicht; danach folgt die zweite Bestaetigung. */
     const buttonAnnaWithout = await pkCall('cookie-pk-anna', 'POST', '/api/images/convert', {});
     check('Und die Eigentuemerin braucht zusaetzlich ihr Passwort',
       buttonAnnaWithout.status === 403 && buttonAnnaWithout.content?.confirm === 'images',
       JSON.stringify(buttonAnnaWithout.content));
   }
-
-  /* ================= WAS HIER BIS 0.35.2 STAND, UND WARUM ES FORT IST =====
-     Die Gruppe „Ein einzelner Eintrag als Datei" -- sechzehn Zusagen ueber
-     GET /api/items/:id/export: dass die Datei denselben Umschlag traegt wie
-     der volle Export, sich einspielen laesst und nur dem Eigentuemer gehoert.
-     Die Route ist mit 0.35.2 ausgebaut. Was sie belegt hat, belegt der volle
-     Export weiterhin: er traegt dieselben Buendel aus entryAsBundle(). */
 
   await PK.stop();
   fs.rmSync(pkDir, { recursive: true, force: true });
@@ -6983,9 +6125,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Die Sicherung auf Knopfdruck');
 
-  /* VACUUM INTO an einer ECHTEN, verschluesselten Instanz: die Kopie
-     entsteht, sie ist OHNE Schluessel nicht lesbar, MIT Schluessel
-     vollstaendig, und der Ausgangsstand ist danach unveraendert. */
+  /* VACUUM INTO an einer echten, verschluesselten Instanz. */
   const siRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-sicherungsort-'));
   fs.mkdirSync(path.join(siRoot, 'taeglich'));
   fs.mkdirSync(path.join(siRoot, 'leer'));
@@ -7000,12 +6140,11 @@ async function sendImport(object, mode, withoutShare = false) {
     d.prepare("INSERT INTO items (title, user_id) VALUES ('Ein Merkmal', 1)").run();
     d.close();
   }
-  /* EIN SYMLINK, DER AUS DER WURZEL HERAUSFUEHRT -- und zwar ausgerechnet ins
-     DATENVERZEICHNIS. */
+  /* Ein Symlink aus der Wurzel heraus, ausgerechnet ins Datenverzeichnis. */
   fs.symlinkSync(siDir, path.join(siRoot, 'zeigtAufDaten'));
   const SI = startFurtherServer(siDir, { BACKUP_DIR: siRoot }, 4300);
   await SI.ready;
-  // bert bekommt die Adminrolle -- OHNE Eigentuemerrolle.
+  // bert wird Admin ohne Eigentuemerrolle.
   {
     const d = open(path.join(siDir, 'katalog.sqlite'));
     d.pragma('busy_timeout = 4000');
@@ -7039,13 +6178,13 @@ async function sendImport(object, mode, withoutShare = false) {
     siStatus.content?.reachable === true && siStatus.content?.last === null,
     JSON.stringify(siStatus.content?.last));
 
-  /* --- LIEGT DER SICHERUNGSORT IM ARBEITSVERZEICHNIS? */
+  /* --- Sicherungsort im Arbeitsverzeichnis --- */
   check('Ein Ort ausserhalb des Arbeitsverzeichnisses meldet sich als solcher',
     siStatus.content?.inWorkDir === false,
     JSON.stringify(siStatus.content?.inWorkDir));
 
   {
-    // Die Wurzel liegt diesmal UNTER dem Verzeichnis, in dem server.js steht.
+    // Die Wurzel liegt diesmal unter dem Verzeichnis von server.js.
     const siInside = fs.mkdtempSync(path.join(__dirname, 'kriterion-sicherung-probe-'));
     const siInsideData = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-innen-'));
     try {
@@ -7081,9 +6220,7 @@ async function sendImport(object, mode, withoutShare = false) {
     }
   }
 
-  /* --- DER ZIELORT IN BEIDE RICHTUNGEN --- Zu jeder Absage die Nachschau,
-     dass DANACH KEINE DATEI DA LIEGT -- eine Absage, nach der trotzdem etwas
-     geschrieben wurde, waere das Schlimmste. */
+  /* --- Zielort: zu jeder Absage die Nachschau, dass keine Datei entstanden ist --- */
   const siDenials = [
     ['../raus', 'ein Pfad nach oben', /Unterordner liegt im eingerichteten Backup-Ordner/],
     ['/etc', 'ein absoluter Pfad', /Unterordner liegt im eingerichteten Backup-Ordner/],
@@ -7116,7 +6253,7 @@ async function sendImport(object, mode, withoutShare = false) {
     (await siCall('cookie-si-anna', 'PUT', '/api/backup/dir', { place: '' })).status === 200);
   await siCall('cookie-si-anna', 'PUT', '/api/backup/dir', { place: 'taeglich' });
 
-  /* --- DIE KOPIE SELBST --- */
+  /* --- Die Kopie --- */
   const siBeforeBytes = fs.statSync(path.join(siDir, 'katalog.sqlite')).size;
   const siBeforeEntries = (() => {
     const d = open(path.join(siDir, 'katalog.sqlite'));
@@ -7134,14 +6271,10 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und nirgendwo sonst',
     siFiles('').length === 0 && siFiles('leer').length === 0,
     siAllFiles().join(' · '));
-  /* JEDE LESESTELLE ABGEFANGEN: faellt der Name aus der
-     Antwort, sollen die Pruefungen darunter ROT werden und nicht der Lauf
-     abreissen. */
+  /* Ohne Namen in der Antwort werden die Pruefungen rot, statt dass der Lauf abreisst. */
   const siCopy = path.join(siRoot, 'taeglich',
     siGo.content?.file || '(keine-datei-in-der-antwort)');
-  /* OHNE SCHLUESSEL IST SIE NICHT LESBAR -- das ist die Zusicherung, um
-     derentwillen VACUUM INTO gewaehlt wurde, und sie steht nicht nur im
-     Projektstand. */
+  /* Deshalb VACUUM INTO: die Kopie ist ohne Schluessel nicht lesbar. */
   let siWithout = '';
   try {
     if (!fs.existsSync(siCopy)) throw new Error('(die Kopie gibt es nicht)');
@@ -7177,7 +6310,6 @@ async function sendImport(object, mode, withoutShare = false) {
              return n === siBeforeEntries; })(),
     `vorher ${siBeforeEntries} Eintraege, Datei vorher ${siBeforeBytes} Bytes`);
 
-  /* DER ARBEITSNAME. */
   check('Nach einer geglueckten Sicherung liegt keine Arbeitsdatei mehr da',
     fs.readdirSync(path.join(siRoot, 'taeglich')).filter(n => n.endsWith('.wird')).length === 0,
     fs.readdirSync(path.join(siRoot, 'taeglich')).join(' · '));
@@ -7193,11 +6325,10 @@ async function sendImport(object, mode, withoutShare = false) {
     fs.unlinkSync(leftBehind);
   }
 
-  /* EINE VORHANDENE ZIELDATEI WIRD NICHT UEBERSCHRIEBEN. */
   {
     const d = open(path.join(siDir, 'katalog.sqlite'));
     const target = path.join(siRoot, 'leer', 'schon-da.sqlite');
-    // Erst eine ECHTE Kopie dorthin, dann noch einmal auf denselben Pfad.
+    // Erst eine echte Kopie dorthin, dann noch einmal auf denselben Pfad.
     d.prepare('VACUUM INTO ?').run(target);
     const before = fs.statSync(target).size;
     let message = '(sie ging durch)';
@@ -7207,8 +6338,7 @@ async function sendImport(object, mode, withoutShare = false) {
       /already exists/.test(message), message);
     check('Und die vorhandene Datei ist unangetastet',
       fs.statSync(target).size === before, `${fs.statSync(target).size} statt ${before}`);
-    // Und dasselbe an einer Datei, die gar keine Datenbank ist: auch sie wird
-// nicht ueberschrieben, nur mit einer anderen Message.
+    // Eine Datei, die keine Datenbank ist, ergibt eine andere Meldung als „already exists".
     const foreign = path.join(siRoot, 'leer', 'fremd.sqlite');
     fs.writeFileSync(foreign, 'nicht anfassen');
     const d2 = open(path.join(siDir, 'katalog.sqlite'));
@@ -7222,8 +6352,6 @@ async function sendImport(object, mode, withoutShare = false) {
     fs.unlinkSync(target);
     fs.unlinkSync(foreign);
   }
-  /* Und der zweite Griff am laufenden Server legt eine ZWEITE Datei an, statt
-     die erste zu fressen. Eine Sicherung, die die vorige frisst, ist keine. */
   await nextSecond();
   const siSecond = await siCall('cookie-si-anna', 'POST', '/api/backup');
   check('Ein zweiter Griff legt eine zweite Datei an',
@@ -7233,9 +6361,7 @@ async function sendImport(object, mode, withoutShare = false) {
     siFiles('taeglich').length === 2 && fs.existsSync(siCopy),
     siFiles('taeglich').join(' · '));
 
-  /* "LETZTE SICHERUNG VOR N TAGEN" KOMMT AUS DEM DATEISYSTEM, nicht aus einem
-     Schluessel in der Datenbank -- die Sache statt der Behauptung, wie beim
-     Merker gegen den Index in 0.6.2. */
+  /* „Letzte Sicherung vor n Tagen" kommt aus dem Dateisystem, nicht aus der Datenbank. */
   {
     const vorDays = (n) => new Date(Date.now() - n * 86400000);
     const both = siFiles('taeglich');
@@ -7251,8 +6377,7 @@ async function sendImport(object, mode, withoutShare = false) {
       JSON.stringify(r.content?.last));
     check('Und die juengste Datei ist die genannte',
       r.content?.number === 2, JSON.stringify(r.content?.number));
-    // Ein Schluessel in settings darf nichts bewirken -- es gibt ihn nicht,
-// und wer ihn einfuehrt, faellt hier auf.
+    // Diesen Schluessel gibt es nicht; wird er eingefuehrt, faellt es hier auf.
     const d = open(path.join(siDir, 'katalog.sqlite'));
     d.pragma('busy_timeout = 4000');
     d.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('lastBackup', ?)")
@@ -7269,9 +6394,8 @@ async function sendImport(object, mode, withoutShare = false) {
 
   group('Die Sicherung: zwei Schluessel im Umlauf');
 
-  /* ZWEI SCHLUESSEL IM UMLAUF -- seit 0.8.91. Wird der Schluessel gewechselt
-     (keytool.js auf dem Wirt), bleiben die Sicherungen, die dann schon
-     dastehen, mit dem ALTEN verschluesselt. */
+  /* Nach einem Wechsel mit keytool.js bleiben vorhandene Sicherungen mit dem
+     alten Schluessel verschluesselt. */
   {
     const siSetMark = (value) => {
       const d = open(path.join(siDir, 'katalog.sqlite'));
@@ -7281,8 +6405,7 @@ async function sendImport(object, mode, withoutShare = false) {
         .run(JSON.stringify(value));
       d.close();
     };
-    // Die Schreibweise der Instanz, in UTC -- dieselbe, die keytool.js
-// schreibt und die letzteSicherung() zurueckliest.
+    // In UTC, wie keytool.js schreibt und changeMark() in server.js liest.
     const asMark = (ms) => new Date(ms).toISOString().slice(0, 19).replace('T', ' ');
     // Die beiden Dateien liegen aus der Gruppe darueber auf 9 und 4 Tagen.
     const now = Date.now();
@@ -7294,8 +6417,7 @@ async function sendImport(object, mode, withoutShare = false) {
       withoutPhotos.content?.outdated === 0 && withoutPhotos.content?.last?.outdated === false,
       JSON.stringify([withoutPhotos.content?.outdated, withoutPhotos.content?.last?.outdated]));
 
-    // Zwischen die beiden gelegt: die von vor 9 Tagen ist veraltet, die von
-// vor 4 Tagen nicht.
+    // Zwischen beide gelegt: die von vor 9 Tagen ist veraltet, die von vor 4 Tagen nicht.
     siSetMark(asMark(now - 6 * 86400000));
     const half = await siCall('cookie-si-anna', 'GET', '/api/backup');
     check('Die Marke steht in der Antwort',
@@ -7307,8 +6429,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und die juengste ist es NICHT -- sie passt zum heutigen Schluessel',
       half.content?.last?.outdated === false, JSON.stringify(half.content?.last));
 
-    // Hinter beide gelegt: dann passt keine einzige mehr, und das ist die
-// schaerfste Lage -- es gibt ueberhaupt keine brauchbare Kopie.
+    // Hinter beide gelegt: keine Kopie ist brauchbar.
     siSetMark(asMark(now - 3600000));
     const whole = await siCall('cookie-si-anna', 'GET', '/api/backup');
     check('Liegt der Wechsel hinter allen, sind alle veraltet',
@@ -7316,13 +6437,11 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und auch die juengste ist dann veraltet',
       whole.content?.last?.outdated === true, JSON.stringify(whole.content?.last));
 
-    /* DIE MARKE WIRD IN UTC GELESEN. */
     siSetMark(asMark(now - 5 * 86400000));
     const utc = await siCall('cookie-si-anna', 'GET', '/api/backup');
     check('Die Grenze liegt genau am Zeitpunkt der Marke, in UTC gerechnet',
       utc.content?.outdated === 1, JSON.stringify([utc.content?.changedAt, utc.content?.outdated]));
 
-    // Ein unbrauchbarer Wert ist keine Marke -- und macht auch keine Kopie alt.
     siSetMark('das ist kein Zeitpunkt');
     const broken = await siCall('cookie-si-anna', 'GET', '/api/backup');
     check('Ein unlesbarer Wert gilt als keine Marke',
@@ -7331,14 +6450,10 @@ async function sendImport(object, mode, withoutShare = false) {
     siSetMark(null);
   }
 
-  // Zurueck in die Gruppe, in der diese Prueflage steht: die Zeilen darunter
-// gehoeren wieder zur Sicherung auf Knopfdruck.
   group('Die Sicherung auf Knopfdruck, Fortsetzung');
 
-  /* EIN UNERREICHBARER ZIELORT LIEFERT KEINE AUSKUNFT -- und die Karte sagt
-     GENAU DAS statt einer Zahl. */
   {
-    /* EIN EIGENES VERZEICHNIS, das verschwinden darf. */
+    /* Ein eigenes Verzeichnis, das verschwinden darf. */
     fs.mkdirSync(path.join(siRoot, 'verschwindet'));
     await siCall('cookie-si-anna', 'PUT', '/api/backup/dir', { place: 'verschwindet' });
     fs.rmdirSync(path.join(siRoot, 'verschwindet'));
@@ -7356,8 +6471,7 @@ async function sendImport(object, mode, withoutShare = false) {
     await siCall('cookie-si-anna', 'PUT', '/api/backup/dir', { place: 'taeglich' });
   }
 
-  /* --- DIE RECHTE. Zu jeder Verweigerung der Erfolgsfall daneben und die
-     Nachschau, dass nichts geschrieben wurde. */
+  /* --- Rechte --- */
   {
     const before = siFiles('taeglich').length;
     for (const [actor, name] of [['cookie-si-carla', 'Ein gewoehnlicher Benutzer'],
@@ -7374,17 +6488,13 @@ async function sendImport(object, mode, withoutShare = false) {
     }
     check('Der eingestellte Ort steht danach unveraendert auf taeglich',
       (await siCall('cookie-si-anna', 'GET', '/api/backup')).content?.place === 'taeglich');
-    /* Eine Sekunde Abstand: der Dateiname traegt Datum und UHRZEIT auf die
-       Sekunde genau, und zwei Sicherungen in derselben Sekunde sind eine
-       Kollision -- die 409 ist richtig, hier aber nicht die Frage. */
+    /* Der Dateiname ist sekundengenau; zwei Sicherungen in derselben Sekunde
+       ergeben 409. */
     await nextSecond();
     const go = await siCall('cookie-si-anna', 'POST', '/api/backup');
     check('Die Eigentuemerin kommt durch', go.status === 200, JSON.stringify(go.content));
   }
-  /* ================= DIE SICHERUNGSPROBE -- 0.29.0, Befund 1 =============
-     GEFAHREN UND NICHT GELESEN: die Probe laeuft an den Dateien, die diese
-     Gruppe eben geschrieben hat, und ihre Zahlen werden gegen den Bestand
-     derselben Instanz gehalten. */
+  /* An den Dateien, die diese Gruppe geschrieben hat, gegen den Bestand derselben Instanz. */
   group('Die Sicherungsprobe — 0.29.0');
   {
     const siPlace = (await siCall('cookie-si-anna', 'GET', '/api/backup')).content;
@@ -7392,7 +6502,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Es liegen Sicherungen zum Pruefen da',
       siList.length >= 1, JSON.stringify(siList.map(z => z.nr)));
 
-    /* DIE ZAHLEN AUS DER LAUFENDEN DATENBANK -- sie sind der Massstab. */
+    /* Die Zahlen der laufenden Datenbank sind der Massstab. */
     const siWant = (() => {
       const d = open(path.join(siDir, 'katalog.sqlite'));
       d.pragma('busy_timeout = 4000');
@@ -7421,7 +6531,6 @@ async function sendImport(object, mode, withoutShare = false) {
       Number.isFinite(siProbe.content?.at) && Number.isFinite(siProbe.content?.bytes) &&
       siProbe.content?.nr === 1, JSON.stringify(siProbe.content));
 
-    /* SIE FASST DIE LAUFENDE DATENBANK NICHT AN. */
     const siCount = () => {
       const d = open(path.join(siDir, 'katalog.sqlite'));
       d.pragma('busy_timeout = 4000');
@@ -7436,8 +6545,6 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und sie fasst die laufende Datenbank nicht an',
       equal(siBefore, siAfter), `${JSON.stringify(siBefore)} gegen ${JSON.stringify(siAfter)}`);
 
-    /* EINE SICHERUNG MIT FREMDEM SCHLUESSEL WIRD ALS SOLCHE GEMELDET und
-       nicht als Fehler (F4). */
     {
       const siStrangeKey = crypto.randomBytes(32).toString('hex');
       const siStrangeFile = path.join(siRoot, 'taeglich', 'kriterion-2020-01-01-000000.sqlite');
@@ -7458,7 +6565,6 @@ async function sendImport(object, mode, withoutShare = false) {
       fs.unlinkSync(siStrangeFile);
     }
 
-    /* EINE NUMMER, DIE ES NICHT GIBT, ist eine Absage und kein Absturz. */
     const siGone = await siCall('cookie-si-anna', 'POST', '/api/backup/check', { nr: 9999 });
     const siZero = await siCall('cookie-si-anna', 'POST', '/api/backup/check', { nr: 0 });
     const siNone = await siCall('cookie-si-anna', 'POST', '/api/backup/check', {});
@@ -7466,12 +6572,10 @@ async function sendImport(object, mode, withoutShare = false) {
       siGone.status === 404 && siZero.status === 404 && siNone.status === 404,
       `${siGone.status} / ${siZero.status} / ${siNone.status}`);
 
-    /* UND SIE GEHOERT DER EIGENTUEMERIN. */
     const siAdmin = await siCall('cookie-si-bert', 'POST', '/api/backup/check', { nr: 1 });
     check('Ein Admin kommt an die Probe nicht heran',
       siAdmin.status === 403, `${siAdmin.status} ${JSON.stringify(siAdmin.content)}`);
 
-    /* UND DER WEG IST DER BENANNTE. */
     const siSource = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
     check('Der Weg heisst POST /api/backup/check und nimmt eine NUMMER',
       /app\.post\('\/api\/backup\/check', ownerOnly,/.test(siSource) &&
@@ -7483,18 +6587,15 @@ async function sendImport(object, mode, withoutShare = false) {
       (siSource.match(/new Database\(full[^\n]*/) || ['(nicht gefunden)'])[0]);
   }
 
-  /* DER PROTOKOLLBELEG ZULETZT: die Ausgabe des Kindprozesses wird gepuffert,
-     und unmittelbar nach dem Start ist die Zeile womoeglich noch gar nicht
-     angekommen. */
+  /* Zuletzt: die Ausgabe des Kindprozesses ist gepuffert, direkt nach dem
+     Start fehlt die Zeile womoeglich noch. */
   check('Der Start nennt den Sicherungsort im Protokoll',
     /\[Kriterion\] Backup location: /.test(SI.log()), SI.log().slice(0, 400));
   check('Und jede geschriebene Sicherung steht ebenfalls darin',
     (SI.log().match(/\[Kriterion\] Backup written: /g) || []).length >= 3,
     (SI.log().match(/\[Kriterion\] Backup written: .*/g) || []).join(' · '));
-  /* ================= DIE ZEIT AN JEDER ZEILE — 0.35.2, BA 5 ==============
-     Gemessen am laufenden Server und nicht am Quelltext: eine Zeile, die den
-     Zeitstempel im Ruf traegt und ihn beim Schreiben verliert, faellt hier
-     auf und sonst nirgends. */
+  /* Am laufenden Server: eine Zeile, die den Zeitstempel beim Schreiben
+     verliert, faellt nur hier auf. */
   {
     const siStamped = SI.log().split('\n').filter(z => z.includes('[Kriterion]'));
     const siClock = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2} \[Kriterion\] /;
@@ -7506,7 +6607,7 @@ async function sendImport(object, mode, withoutShare = false) {
   }
   await SI.stop();
 
-  /* --- DER SICHERUNGSORT DARF NICHT IM DATENVERZEICHNIS LIEGEN. */
+  /* --- Sicherungsort im Datenverzeichnis --- */
   {
     const dDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-sicherung-daneben-'));
     shortRun(`require('./db'); console.log('da');`, dDir);
@@ -7528,19 +6629,15 @@ async function sendImport(object, mode, withoutShare = false) {
       (await (await fetch(SD.base + '/api/backup', { method: 'POST',
         headers: H.withCsrf('kriterion_session=cookie-sd-anna') })).json()
       ).error?.includes('Datenverzeichnis'), 'keine sprechende Absage');
-    /* DIESE ZUSAGE HAT DEN FEHLER FESTGENAGELT und ist deshalb UMGEDREHT und
-       nicht geloescht. */
     check('Der Start sagt es im Protokoll',
       /Backup location: off -- The backup folder must not be inside the data directory/
         .test(SD.log()), SD.log().slice(0, 500));
-    /* UND KEIN SCHLUESSEL STEHT MEHR DARIN. */
     check('Und kein roher Schluessel steht mehr in seiner Ausgabe — 0.33.2',
       !/Backup location:[^\n]*server\.[a-zA-Z]/.test(SD.log()),
       SD.log().split('\n').filter(z => /Backup location/.test(z)).join(' | '));
     await SD.stop();
 
-    /* UND DIE WERTE REISEN MIT -- 0.33.2. Drei der fuenf Gruende nennen den
-       Ordner. */
+    /* Drei der fuenf Gruende nennen den Ordner. */
     const goneDirectory = path.join(dDir, 'gibt-es-nicht');
     const SF = startFurtherServer(dDir, { BACKUP_DIR: goneDirectory }, 4360);
     await SF.ready;
@@ -7554,8 +6651,7 @@ async function sendImport(object, mode, withoutShare = false) {
     fs.rmSync(dDir, { recursive: true, force: true });
   }
 
-  /* --- OHNE BACKUP_DIR bleibt die Karte aus und sagt es. Das ist der
-     Zustand jeder Instanz, die den Einhaengepunkt noch nicht hat. --- */
+  /* --- Ohne BACKUP_DIR --- */
   {
     const oDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-sicherung-ohne-'));
     shortRun(`require('./db'); console.log('da');`, oDir);
@@ -7575,9 +6671,8 @@ async function sendImport(object, mode, withoutShare = false) {
     fs.rmSync(oDir, { recursive: true, force: true });
   }
 
-  /* --- ES GIBT KEINEN ZWEITEN WEG, nachgestellt statt geglaubt: db.backup()
-     liefe schrittweise und blockierte den Server nicht -- und scheitert an
-     einer verschluesselten Instanz. */
+  /* db.backup() liefe schrittweise und blockierte den Server nicht, scheitert
+     aber an einer verschluesselten Instanz. */
   {
     const d = open(path.join(siDir, 'katalog.sqlite'));
     check('better-sqlite3 bringt einen schrittweisen Weg ueberhaupt mit',
@@ -7598,8 +6693,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Die Aufraeumregel an der Tafel');
 
-  /* DIE REGEL AN EINER TAFEL -- und zwar die ECHTE Regel und nicht ihre
-     Nacherzaehlung. */
+  /* Geprueft wird die Funktion aus server.js selbst, keine Nachbildung. */
   const auSource = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
   const auAverage = (head) => {
     const from = auSource.indexOf(head);
@@ -7612,7 +6706,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Die Regel steht in server.js als eine Funktion',
     auRuleSource.length > 100 && auTagMs === '86400000',
     `${auRuleSource.length} Zeichen, DAY_MS ${JSON.stringify(auTagMs)}`);
-  /* UND SIE STEHT GENAU EINMAL. */
   check('Und zwar genau einmal',
     (auSource.match(/function ruleHit\(/g) || []).length === 1,
     `${(auSource.match(/function ruleHit\(/g) || []).length} Stellen`);
@@ -7621,17 +6714,12 @@ async function sendImport(object, mode, withoutShare = false) {
     ? new Function(`const DAY_MS = ${auTagMs};\n${auRuleSource}\nreturn ruleHit;`)()
     : () => { throw new Error('ruleHit nicht gefunden'); };
 
-  /* DIE TAFEL. */
   const auNow = Date.parse('2026-09-03T12:00:00Z');
   const auTag = 86400000;
   const auVor = (days) => auNow - days * auTag;
-  /* DIE NAMEN SIND ABSICHTLICH IRREFUEHREND, und zwar in BEIDE Richtungen:
-     eine Datei mit dem Namen von heute und dem Alter von 400 Tagen, und eine
-     mit dem Namen von 2020 und dem Alter von null Tagen. */
   const auK = (name, days) => ({ name, time: auVor(days), bytes: 1000 + days });
   const auNames = (list) => list.map(d => d.name).sort();
-  /* SIEBEN LAGEN, und keine ist entbehrlich: jede einzelne Bedingung der Regel
-     ist ausgerechnet in einer davon falsch. */
+  /* Jede Bedingung der Regel ist in einer der sieben Lagen falsch. */
   const auCases = [
     { event: 'nichts da', files: [], expected: [] },
     { event: 'weniger als N Kopien, und beide jung',
@@ -7648,8 +6736,7 @@ async function sendImport(object, mode, withoutShare = false) {
     { event: 'alle alt, aber unter dem Boden',
       files: [auK('a.sqlite', 300), auK('b.sqlite', 301), auK('c.sqlite', 302)],
       expected: [] },
-    /* DIE LAGE AUS ENTSCHEIDUNG 5, und hier darf NICHTS fallen: drei Kopien,
-       von denen zwei vor dem Wechsel entstanden sind, sind in Wahrheit eine. */
+    /* Kopien vor dem Schluesselwechsel bleiben stehen. */
     { event: 'N Kopien, von denen zwei vor dem Schluesselwechsel liegen',
       files: [auK('a.sqlite', 1), auK('b.sqlite', 2), auK('c.sqlite', 3),
                 auK('alt1.sqlite', 200), auK('alt2.sqlite', 300)],
@@ -7661,9 +6748,6 @@ async function sendImport(object, mode, withoutShare = false) {
       equal(auNames(outcome), l.expected.slice().sort()),
       `geliefert: ${auNames(outcome).join(' ') || '—'}`);
   }
-  /* UND DIE GEGENLAGE ZUR SIEBTEN: liegen MEHR brauchbare Kopien da als der
-     Boden deckt, fallen die alten davon -- die veralteten aber weiterhin
-     nicht. */
   {
     const files = [auK('a.sqlite', 1), auK('b.sqlite', 2), auK('c.sqlite', 3),
                      auK('d.sqlite', 90), auK('alt1.sqlite', 200), auK('alt2.sqlite', 300)];
@@ -7671,7 +6755,6 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Ueber dem Boden faellt die alte brauchbare Kopie -- die veralteten nicht',
       equal(auNames(outcome), ['d.sqlite']), auNames(outcome).join(' ') || '—');
   }
-  /* OHNE WECHSEL ZAEHLEN ALLE. */
   {
     const files = [auK('a.sqlite', 1), auK('b.sqlite', 2), auK('c.sqlite', 3),
                      auK('d.sqlite', 90), auK('alt1.sqlite', 200), auK('alt2.sqlite', 300)];
@@ -7680,8 +6763,6 @@ async function sendImport(object, mode, withoutShare = false) {
       equal(auNames(outcome), ['alt1.sqlite', 'alt2.sqlite', 'd.sqlite']),
       auNames(outcome).join(' ') || '—');
   }
-  /* DIE GRENZE DER SCHERE IST SCHARF: "aelter ALS X Tage". Eine Kopie, die
-     genau X Tage alt ist, faellt NICHT -- und eine Sekunde aelter faellt sie. */
   {
     const grenz = [auK('a.sqlite', 0), auK('b.sqlite', 1), auK('c.sqlite', 2),
                    { name: 'genau.sqlite', time: auVor(30), bytes: 1 }];
@@ -7694,23 +6775,19 @@ async function sendImport(object, mode, withoutShare = false) {
       equal(auNames(ruleHit(above, 3, 30, auNow, null)), ['genau.sqlite']),
       auNames(ruleHit(above, 3, 30, auNow, null)).join(' ') || '—');
   }
-  /* DER BODEN VON EINS ist die engste erlaubte Stellung, und sie ist die, bei
-     der ein Fehler am meisten kostet: die juengste Kopie muss auch dann
-     stehenbleiben, wenn sie selbst alt ist. */
+  /* Boden eins ist die engste Stellung; dort kostet ein Fehler am meisten. */
   {
     const all = [auK('a.sqlite', 100), auK('b.sqlite', 200), auK('c.sqlite', 300)];
     check('Der Boden von eins laesst die juengste stehen, auch wenn sie alt ist',
       equal(auNames(ruleHit(all, 1, 30, auNow, null)), ['b.sqlite', 'c.sqlite']),
       auNames(ruleHit(all, 1, 30, auNow, null)).join(' ') || '—');
   }
-  /* DIE REGEL SORTIERT SELBST. */
   {
     const jumbled = [auK('c.sqlite', 2), auK('e.sqlite', 400), auK('a.sqlite', 0),
                   auK('d.sqlite', 60), auK('b.sqlite', 1)];
     check('Eine ungeordnete Liste ergibt dasselbe Ergebnis',
       equal(auNames(ruleHit(jumbled, 3, 30, auNow, null)), ['d.sqlite', 'e.sqlite']),
       auNames(ruleHit(jumbled, 3, 30, auNow, null)).join(' ') || '—');
-    /* UND SIE LAESST DIE HEREINGEGEBENE LISTE IN RUHE. */
     check('Und die hereingegebene Liste bleibt unangetastet',
       equal(jumbled.map(d => d.name),
              ['c.sqlite', 'e.sqlite', 'a.sqlite', 'd.sqlite', 'b.sqlite']),
@@ -7720,12 +6797,10 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Alte Sicherungen aufraeumen: der echte Ordner');
 
-  /* UND DER ORDNER WIRD ECHT ANGELEGT. */
   const auRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-aufraeumort-'));
   const auFolder = path.join(auRoot, 'kopien');
   fs.mkdirSync(auFolder);
-  /* EIN ZIEL AUSSERHALB DER WURZEL, auf das gleich ein Symlink IM Ordner
-     zeigt. */
+  /* Ziel ausserhalb der Wurzel fuer einen Symlink im Ordner. */
   const auOutside = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-aufraeumfremd-'));
   const auOutsideFile = path.join(auOutside, 'kriterion-fremd.sqlite');
   fs.writeFileSync(auOutsideFile, 'diese Datei liegt ausserhalb und bleibt liegen');
@@ -7745,8 +6820,7 @@ async function sendImport(object, mode, withoutShare = false) {
   for (const n of ['anna', 'bert', 'carla']) setPasswordImInventory(auDir, n, AU_WORD);
   const AU = startFurtherServer(auDir, { BACKUP_DIR: auRoot }, 4300);
   await AU.ready;
-  /* bert BEKOMMT DIE ADMINROLLE ERST JETZT -- ohne ihn waere "Eigentuemer"
-     von "Admin" gar nicht zu unterscheiden. */
+  /* bert wird Admin ohne Eigentuemerrolle; nur so sind die Rollen zu unterscheiden. */
   {
     const d = open(path.join(auDir, 'katalog.sqlite'));
     d.pragma('busy_timeout = 4000');
@@ -7765,7 +6839,7 @@ async function sendImport(object, mode, withoutShare = false) {
     try { content = await a.json(); } catch {}
     return { status: a.status, content };
   };
-  // Eine Freigabe holen. Sie wird VERBRAUCHT -- vor jedem Aufruf eine neue.
+  // Eine Freigabe gilt fuer einen Aufruf; vor jedem eine neue holen.
   const auFree = (cookieValue = 'cookie-au-anna') =>
     auCall(cookieValue, 'POST', '/api/confirm',
           { password: AU_WORD, purpose: 'backup', target: null });
@@ -7784,9 +6858,8 @@ async function sendImport(object, mode, withoutShare = false) {
       const p = path.join(auFolder, n);
       fs.rmSync(p, { recursive: true, force: true });
     }
-    /* SIEBEN KOPIEN, UND ZWEI NAMEN LUEGEN ABSICHTLICH:
-       `…2026-09-03-23-59-59` sieht nach heute aus und ist 400 Tage alt,
-       `…2020-01-01-00-00-00` sieht nach vorgestern aus und ist von heute. */
+    /* Zwei Namen fuehren absichtlich in die Irre: `…2026-09-03-23-59-59` ist
+       200 Tage alt, `…2020-01-01-00-00-00` von heute. */
     auPut('kriterion-2026-09-03-10-00-00.sqlite', 0);
     auPut('kriterion-2020-01-01-00-00-00.sqlite', 0);
     auPut('kriterion-2026-09-02-10-00-00.sqlite', 1);
@@ -7794,12 +6867,9 @@ async function sendImport(object, mode, withoutShare = false) {
     auPut('kriterion-2026-07-25-10-00-00.sqlite', 40);
     auPut('kriterion-2026-07-05-10-00-00.sqlite', 60);
     auPut('kriterion-2026-09-03-23-59-59.sqlite', 200);
-    /* UND DAS, WAS NICHT ANGEFASST WERDEN DARF -- vier Dinge, und jedes
-       stellt eine andere Frage: notizen.txt -- passt gar nicht auf das Muster
-       kriterion-alt.sqlite.bak -- faengt richtig an und endet falsch
-       unterordner/ -- ein Verzeichnis wird nicht betreten
-       kriterion-verweis.sqlite -- ein Symlink ist keine Sicherung */
-    /* UND SIE SIND ALLE ALT. */
+    /* Nicht anzufassen, obwohl alt: notizen.txt (anderes Muster), kriterion-alt.sqlite.bak
+       (falsche Endung), unterordner/ (wird nicht betreten), kriterion-verweis.sqlite
+       (Symlink). */
     const old = (Date.now() - 900 * AU_TAG) / 1000;
     fs.writeFileSync(path.join(auFolder, 'notizen.txt'), 'von Hand abgelegt');
     fs.utimesSync(path.join(auFolder, 'notizen.txt'), old, old);
@@ -7808,7 +6878,7 @@ async function sendImport(object, mode, withoutShare = false) {
     fs.mkdirSync(path.join(auFolder, 'unterordner'));
     fs.writeFileSync(path.join(auFolder, 'unterordner', 'kriterion-tief.sqlite'), 'eine Etage tiefer');
     fs.utimesSync(path.join(auFolder, 'unterordner', 'kriterion-tief.sqlite'), old, old);
-    /* DER SYMLINK UND SEIN ZIEL SIND BEIDE ALT -- aus demselben Grund. */
+    /* Symlink und Ziel sind ebenfalls alt. */
     fs.utimesSync(auOutsideFile, old, old);
     fs.symlinkSync(auOutsideFile, path.join(auFolder, 'kriterion-verweis.sqlite'));
     fs.lutimesSync(path.join(auFolder, 'kriterion-verweis.sqlite'), old, old);
@@ -7824,8 +6894,7 @@ async function sendImport(object, mode, withoutShare = false) {
                       'notizen.txt', 'unterordner'];
   auSetState();
 
-  /* --- DIE VORSCHAU. Sie steht IMMER da, auch mit ausgeschaltetem Schalter --
-     sie ist die Auskunft darueber, was die Regel bei diesen Werten bedeutet. */
+  /* --- Vorschau: steht auch bei ausgeschaltetem Schalter da --- */
   {
     const r = await auCall('cookie-au-anna', 'GET', '/api/backup');
     const a = r.content?.cleanup || {};
@@ -7847,28 +6916,23 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und die Summe der Bytes, die frei wuerden',
       a.bytes === (a.matched || []).reduce((n, t) => n + t.bytes, 0) && a.bytes > 0,
       JSON.stringify(a.bytes));
-    /* DIE VORSCHAU HAT NICHTS GELOESCHT. Ohne diese Zeile belegte die Gruppe
-       nichts ueber den Satz, der sie traegt: sehen, bevor etwas geschieht. */
     check('Und der Ordner ist danach unveraendert',
       auDa().length === 11, auDa().join(' · '));
   }
 
-  /* --- DIE VOLLSTAENDIGE LISTE IN DER ANTWORT -- das Feld, aus dem die Karte
-     ihre Liste zeichnet, seit 0.20.1. */
+  /* --- Vollstaendige Liste: aus ihr zeichnet die Karte ihre Liste --- */
   {
     const r = await auCall('cookie-au-anna', 'GET', '/api/backup');
     const list = r.content?.cleanup?.files || [];
     check('Die Antwort traegt die vollstaendige Liste der Sicherungen',
       list.length === 7, `${list.length} Eintraege, 7 erwartet`);
-    /* JUENGSTE ZUERST, UND NUMMER 1 IST SIE -- dieselbe Richtung, in der die
-       Mindestzahl zaehlt. */
+    /* Juengste zuerst, in derselben Richtung, in der die Mindestzahl zaehlt. */
     check('Die Nummern laufen von 1 bis 7',
       equal(list.map(z => z.nr), [1, 2, 3, 4, 5, 6, 7]),
       JSON.stringify(list.map(z => z.nr)));
     check('Und Nummer 1 ist die JUENGSTE',
       list[0]?.daysAgo === 0 && list[list.length - 1]?.daysAgo === 200,
       JSON.stringify(list.map(z => z.daysAgo)));
-    // Und die Reihenfolge ist wirklich nach Alter geordnet und nicht zufaellig.
     check('Die Liste ist nach Alter geordnet',
       list.every((z, i) => i === 0 || list[i - 1].daysAgo <= z.daysAgo),
       JSON.stringify(list.map(z => z.daysAgo)));
@@ -7876,38 +6940,28 @@ async function sendImport(object, mode, withoutShare = false) {
       list.every(z => /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(z.at) &&
         Number.isInteger(z.daysAgo) && z.bytes > 0),
       JSON.stringify(list[0]));
-    /* DIE MARKE `affected` STEHT AN GENAU DEN DREI EINTRAEGEN, die die Regel
-       trifft -- gegen die Trefferliste daneben gehalten. */
     check('Die Marke `faellt` steht an genau den Kopien, die die Regel trifft',
       equal(list.filter(z => z.affected).map(z => z.file).sort(), AU_CASES),
       list.filter(z => z.affected).map(z => z.file).join(' · '));
     check('Und ohne Schluesselwechsel traegt keine die Marke `veraltet`',
       list.every(z => z.outdated === false), JSON.stringify(list.map(z => z.outdated)));
-    /* UND KEIN DATEINAME FEHLT IN DER ANTWORT: die Karte zeigt ihn nicht
-       mehr, die Antwort traegt ihn trotzdem -- er ist die einzige Angabe, an
-       der sich ein Eintrag ueber zwei Abrufe hinweg wiedererkennen laesst. */
+    /* Nur am Dateinamen ist ein Eintrag ueber zwei Abrufe wiederzuerkennen. */
     check('Jeder Eintrag traegt seinen Dateinamen, auch wenn die Karte ihn nicht zeigt',
       list.every(z => /^kriterion-.+\.sqlite$/.test(z.file)),
       JSON.stringify(list.map(z => z.file).slice(0, 2)));
-    // Und die fremden Dinge im Ordner stehen NICHT darin.
     check('Und nichts Fremdes steht in der Liste',
       !list.some(z => /notizen|\.bak|unterordner|verweis/.test(z.file)),
       list.map(z => z.file).join(' · '));
   }
 
-  /* EIN ANDERER WERT RECHNET SIE NEU, OHNE ETWAS ZU SPEICHERN. Wer die Zahl
-     von 3 auf 1 stellt, sieht sofort, was das kostet. */
+  /* Andere Werte in der Abfrage rechnen die Vorschau neu, ohne zu speichern. */
   {
-    /* EIN HOEHERER BODEN NIMMT DER REGEL EINE KOPIE WEG. */
     const eng = await auCall('cookie-au-anna', 'GET', '/api/backup?keep=5&days=30');
     const a = eng.content?.cleanup || {};
     check('Mit Boden 5 treffen es nur noch zwei Kopien',
       equal((a.matched || []).map(t => t.file).sort(),
              ['kriterion-2026-07-05-10-00-00.sqlite', 'kriterion-2026-09-03-23-59-59.sqlite']),
       (a.matched || []).map(t => t.file).join(' · '));
-    /* UND GESPEICHERT WURDE DABEI NICHTS -- der naechste Abruf ohne Abfrage
-       steht wieder auf 3 und 30. Eine Vorschau, die nebenbei die Einstellung
-       verstellt, waere die schlimmste Ueberraschung dieser Karte. */
     const back = await auCall('cookie-au-anna', 'GET', '/api/backup');
     check('Und gespeichert hat die Vorschau dabei nichts',
       back.content?.cleanup?.keep === 3 && back.content?.cleanup?.days === 30,
@@ -7915,7 +6969,6 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und der Ordner ist auch danach unveraendert',
       auDa().length === 11, auDa().join(' · '));
   }
-  /* TRIFFT DIE REGEL NICHTS, STEHT DER GRUND DA. */
   {
     const wide = await auCall('cookie-au-anna', 'GET', '/api/backup?keep=20&days=30');
     check('Deckt der Boden alles, sagt der Grund genau das',
@@ -7930,8 +6983,7 @@ async function sendImport(object, mode, withoutShare = false) {
       late.content?.cleanup?.reason);
   }
 
-  /* --- DIE GRENZEN HALTEN AM SERVER, und zwar BEVOR irgendetwas geloescht
-     wird. `min`/`max` im HTML ist eine Bitte, keine Klemme. --- */
+  /* --- Grenzen am Server; `min`/`max` im HTML hindert niemanden --- */
   {
     const before = auDa();
     for (const [field, value] of [['keep', 0], ['keep', 999], ['keep', '"drei"'],
@@ -7957,7 +7009,6 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und die eingestellten Werte stehen unveraendert auf 3 und 30',
       status.content?.cleanup?.keep === 3 && status.content?.cleanup?.days === 30,
       JSON.stringify(status.content?.cleanup));
-    // Die Gegenlage: ein Wert INNERHALB der Grenzen geht durch.
     const good = await auCall('cookie-au-anna', 'PUT', '/api/settings',
       { backupKeep: 4, backupDays: 45 });
     check('Ein Wert innerhalb der Grenzen geht dagegen durch',
@@ -7966,8 +7017,7 @@ async function sendImport(object, mode, withoutShare = false) {
       { backupKeep: 3, backupDays: 30 });
   }
 
-  /* --- DIE RECHTE UND DIE ZWEITE BESTAETIGUNG. Zu jeder Verweigerung die
-     Nachschau, dass wirklich nichts geloescht wurde. --- */
+  /* --- Rechte und zweite Bestaetigung --- */
   {
     const before = auDa();
     const withoutPhotos = await auCall('cookie-au-anna', 'POST', '/api/backup/cleanup', { kind: 'rule' });
@@ -7979,9 +7029,8 @@ async function sendImport(object, mode, withoutShare = false) {
                                ['cookie-au-bert', 'Ein Admin ohne Eigentuemerrolle']]) {
       const r = await auCall(actor, 'POST', '/api/backup/cleanup', { kind: 'rule' });
       check(`${name} bekommt die Route nicht`, r.status === 403, `Status ${r.status}`);
-      // Und er kommt auch nicht an die Freigabe: der Zweck steht ihm zu, die
-      // Route nicht -- ohne diese Zeile bliebe offen, ob nur die Reihenfolge
-      // der beiden Klemmen die Absage erzeugt hat.
+      // Die Freigabe bekommt er, die Route nicht; sonst bliebe offen, ob nur
+      // die Reihenfolge der beiden Pruefungen die Absage erzeugt.
       const free = await auCall(actor, 'POST', '/api/confirm',
         { password: AU_WORD, purpose: 'backup', target: null });
       const repeatCall = await auCall(actor, 'POST', '/api/backup/cleanup', { kind: 'rule' });
@@ -7991,7 +7040,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und nach allen Absagen liegt jede Datei noch da',
       equal(auDa(), before), auDa().join(' · '));
   }
-  /* --- DIE ROUTE NIMMT KEINE DATEINAMEN ENTGEGEN. */
+  /* --- Die Route nimmt keine Dateinamen entgegen --- */
   {
     await auFree();
     const r = await auCall('cookie-au-anna', 'POST', '/api/backup/cleanup',
@@ -8000,8 +7049,6 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Ein Rumpf mit Dateinamen aendert am Ergebnis nichts',
       r.status === 200 && r.content?.removed === 3,
       `Status ${r.status} · ${JSON.stringify(r.content?.removed)}`);
-    /* WAS DIE REGEL GENANNT HAT, IST WEG -- und ALLES ANDERE IST NOCH DA,
-       namentlich nachgesehen. */
     check('Was die Regel genannt hat, ist weg -- und alles andere ist noch da',
       equal(auDa(), AU_STAY), auDa().join(' · '));
     for (const [n, why] of [['notizen.txt', 'passt gar nicht auf das Muster'],
@@ -8017,9 +7064,6 @@ async function sendImport(object, mode, withoutShare = false) {
       fs.existsSync(auOutsideFile) &&
       fs.readFileSync(auOutsideFile, 'utf8').startsWith('diese Datei liegt ausserhalb'),
       'die Datei ausserhalb ist weg oder veraendert');
-    /* DIE VORSCHAU UND DAS LOESCHEN SAGEN DASSELBE -- an derselben Lage
-       gegeneinander gehalten: die Vorschau nannte drei Namen, drei sind
-       gefallen, und es sind dieselben. */
     check('Die Vorschau und das Loeschen sagen dasselbe',
       AU_CASES.every(n => !fs.existsSync(path.join(auFolder, n))) &&
       r.content?.removed === AU_CASES.length,
@@ -8027,19 +7071,15 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und die Antwort nennt die freigegebenen Bytes',
       Number.isInteger(r.content?.bytes) && r.content.bytes > 0 && r.content?.notDeleted === 0,
       JSON.stringify([r.content?.bytes, r.content?.notDeleted]));
-    /* UND DIE ANTWORT TRAEGT DIE FRISCHE VORSCHAU. */
     check('Und die frische Vorschau daneben ist leer',
       (r.content?.cleanup?.matched || []).length === 0 &&
       !!r.content?.cleanup?.reason, JSON.stringify(r.content?.cleanup?.reason));
-    /* EIN ZWEITER LAUF FINDET NICHTS MEHR und sagt das mit 0 statt mit einem
-       Fehler -- ein Aufraeumen, das nichts zu tun hat, ist kein Fehlschlag. */
     await auFree();
     const second = await auCall('cookie-au-anna', 'POST', '/api/backup/cleanup', { kind: 'rule' });
     check('Ein zweiter Lauf entfernt nichts mehr und sagt es mit 0',
       second.status === 200 && second.content?.removed === 0, JSON.stringify(second.content?.removed));
   }
-  /* --- DAS SICHERHEITSPROTOKOLL. EINE ZEILE JE ENTFERNTER KOPIE, ohne
-     Dateinamen und ohne Pfad. --- */
+  /* --- Sicherheitsprotokoll --- */
   {
     const d = open(path.join(auDir, 'katalog.sqlite'));
     d.pragma('busy_timeout = 4000');
@@ -8049,19 +7089,16 @@ async function sendImport(object, mode, withoutShare = false) {
       rows.length === 3, `${rows.length} Zeilen`);
     check('Und jede nennt den Handelnden',
       rows.every(z => z.actor === 1), JSON.stringify(rows.map(z => z.actor)));
-    /* KEIN DATEINAME, KEIN PFAD, KEIN MERKMAL. */
     check('Und keine traegt ein Merkmal, ein Ziel oder gar einen Namen',
       rows.every(z => z.detail === null && z.target === null) &&
       !JSON.stringify(rows).includes('kriterion-') &&
       !JSON.stringify(rows).includes(auFolder),
       JSON.stringify(rows));
   }
-  /* --- DIE VERALTETEN KOPIEN: ein zweiter Weg, ausdruecklich und getrennt. */
+  /* --- Veraltete Kopien: ein eigener Weg --- */
   {
     auSetState();
-    /* DIE MARKE DES SCHLUESSELWECHSELS wird in die laufende Instanz
-       geschrieben: changeMark() liest sie bei jeder Anfrage neu, ein Neustart
-       ist also nicht noetig. */
+    /* changeMark() liest die Marke bei jeder Anfrage neu; kein Neustart noetig. */
     {
       const d = open(path.join(auDir, 'katalog.sqlite'));
       d.pragma('busy_timeout = 4000');
@@ -8077,7 +7114,6 @@ async function sendImport(object, mode, withoutShare = false) {
       a.oldCount === 1 && a.oldBytes > 0 &&
       equal((a.oldFiles || []).map(x => x.file), ['kriterion-2026-09-03-23-59-59.sqlite']),
       JSON.stringify([a.oldCount, a.oldBytes, (a.oldFiles || []).map(x => x.file)]));
-    /* UND DIE REGEL FASST SIE NICHT AN. */
     check('Und die Regel nennt sie nicht mehr',
       equal((a.matched || []).map(x => x.file).sort(),
              ['kriterion-2026-07-05-10-00-00.sqlite', 'kriterion-2026-07-25-10-00-00.sqlite']),
@@ -8092,8 +7128,6 @@ async function sendImport(object, mode, withoutShare = false) {
       ['kriterion-2026-07-05-10-00-00.sqlite', 'kriterion-2026-07-25-10-00-00.sqlite']
         .every(n => fs.existsSync(path.join(auFolder, n))),
       auDa().join(' · '));
-    // Und eine Art, die es nicht gibt, ist eine Absage -- kein stiller Lauf
-// nach der Regel.
     await auFree();
     const wrong = await auCall('cookie-au-anna', 'POST', '/api/backup/cleanup', { kind: 'alles' });
     check('Eine Art, die es nicht gibt, ist eine Absage',
@@ -8108,8 +7142,6 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Alte Sicherungen aufraeumen: der Anschluss an die Sicherung');
 
-  /* AUFGERAEUMT WIRD IM ANSCHLUSS AN EINE SICHERUNG, DIE GELUNGEN IST -- und
-     nur, wenn der Schalter an ist. */
   {
     auSetState();
     // Die Marke des Wechsels wieder weg: sie gehoert zur Gruppe darueber.
@@ -8125,8 +7157,7 @@ async function sendImport(object, mode, withoutShare = false) {
       backupOut.status === 200 && backupOut.content?.cleaned === null &&
       auDa().length === before + 1,
       `Status ${backupOut.status} · ${JSON.stringify(backupOut.content?.cleaned)} · ${auDa().length} Dateien`);
-    // Die eben geschriebene Kopie wieder weg -- sie ist die juengste und
-// verschoebe sonst den Boden der naechsten Lage.
+    // Die eben geschriebene Kopie ist die juengste und verschoebe sonst den Boden.
     for (const n of auDa())
       if (/^kriterion-/.test(n) && !AU_STAY.includes(n) && !AU_CASES.includes(n))
         fs.rmSync(path.join(auFolder, n));
@@ -8136,8 +7167,8 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Der Schalter laesst sich einschalten und steht dann an',
       an.content?.cleanup?.an === true, JSON.stringify(an.content?.cleanup?.an));
 
-    /* --- NACH EINER GESCHEITERTEN SICHERUNG WIRD NICHT AUFGERAEUMT
-       (Entscheidung 3) -- die wichtigste Zeile der Runde. */
+    /* --- Gescheiterte Sicherung --- */
+    /* Die Namen der naechsten Sekunden belegen, damit die Sicherung mit 409 scheitert. */
     const auTimeName = (ms) =>
       'kriterion-' + new Date(ms).toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.sqlite';
     const auLock = [];
@@ -8148,23 +7179,20 @@ async function sendImport(object, mode, withoutShare = false) {
       auLock.push(n);
     }
     const vorFail = auDa();
-    /* NUR DER NEUE TEIL DES CONTAINERPROTOKOLLS ZAEHLT: weiter oben in dieser
-       Gruppe ist schon einmal auf Knopfdruck aufgeraeumt worden, und die
-       Zeile davon steht laengst darin. */
+    /* Nur der neue Teil des Protokolls: weiter oben wurde schon aufgeraeumt. */
     const vorFailLog = AU.log().length;
     const fail = await auCall('cookie-au-anna', 'POST', '/api/backup');
     check('Die Sicherung scheitert, weil die Sekunde schon belegt ist',
       fail.status === 409, `Status ${fail.status} · ${JSON.stringify(fail.content)}`);
     check('Nach einer gescheiterten Sicherung wird nicht aufgeraeumt',
       equal(auDa(), vorFail), auDa().join(' · '));
-    /* UND ES WURDE NICHT EINMAL VERSUCHT. */
     check('Und der Aufruf ist dabei gar nicht erst gelaufen',
       !/Old backups removed/.test(AU.log().slice(vorFailLog)) &&
       !/nicht entfernt/.test(AU.log().slice(vorFailLog)),
       AU.log().slice(vorFailLog).trim() || '(nichts neu)');
     for (const n of auLock) fs.rmSync(path.join(auFolder, n), { force: true });
 
-    /* --- UND NACH EINER GELUNGENEN SICHERUNG WIRD AUFGERAEUMT. */
+    /* --- Gelungene Sicherung --- */
     await nextSecond();
     const ok = await auCall('cookie-au-anna', 'POST', '/api/backup');
     check('Nach einer gelungenen Sicherung raeumt der Anschluss auf',
@@ -8175,9 +7203,6 @@ async function sendImport(object, mode, withoutShare = false) {
       ['notizen.txt', 'kriterion-alt.sqlite.bak', 'unterordner', 'kriterion-verweis.sqlite']
         .every(n => fs.existsSync(path.join(auFolder, n))),
       auDa().join(' · '));
-    /* DAS AUFRAEUMEN REISST DIE SICHERUNG NICHT MIT: die Antwort ist die
-       einer gelungenen Sicherung, und was das Aufraeumen meldet, steht NEBEN
-       ihr. */
     check('Und die Antwort bleibt die einer gelungenen Sicherung',
       ok.content?.ok === true && /^kriterion-.+\.sqlite$/.test(ok.content?.file || '') &&
       ok.content?.bytes > 0, JSON.stringify(ok.content?.file));
@@ -8190,7 +7215,7 @@ async function sendImport(object, mode, withoutShare = false) {
       (AU.log().match(/\[Kriterion\] Alte Sicherungen entfernt.*/g) || []).join(' · '));
   }
 
-  /* --- UND DIE ZUSAGEN AM QUELLTEXT. */
+  /* --- Am Quelltext --- */
   {
     const from = auSource.indexOf("app.post('/api/backup', ownerOnly");
     const to = auSource.indexOf("app.post('/api/backup/cleanup'");
@@ -8202,7 +7227,6 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Der Aufruf des Aufraeumens steht darin genau einmal',
       callAn >= 0 && core.indexOf('cleanupStatus()', callAn + auRuleRow.length) < 0,
       `Stelle ${callAn}, weitere bei ${core.indexOf('cleanupStatus()', callAn + auRuleRow.length)}`);
-    /* KEIN FEHLERAUSGANG HINTER IHM. */
     check('Und hinter ihm steht kein Fehlerausgang mehr',
       !/return res\.status\((4|5)\d\d\)/.test(core.slice(callAn)),
       (core.slice(callAn).match(/return res\.status\(\d+\)/g) || []).join(' · '));
@@ -8213,7 +7237,6 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und er haengt in seinem eigenen try',
       /let cleaned = null;\n  try \{\n    const rule = cleanupStatus\(\);/.test(core),
       (core.match(/let cleaned[^\n]*\n[^\n]*\n[^\n]*/) || ['(nicht gefunden)'])[0]);
-    /* UND DIE LOESCHROUTE LIEST AUS DEM RUMPF NUR DIE ART. */
     const lFrom = auSource.indexOf("app.post('/api/backup/cleanup'");
     const lTo = auSource.indexOf('\n});', lFrom);
     const lCore = lFrom >= 0 && lTo > lFrom ? auSource.slice(lFrom, lTo) : '';
@@ -8222,8 +7245,6 @@ async function sendImport(object, mode, withoutShare = false) {
       lCore.length > 500 && lAccesses.length === 1 &&
       lAccesses[0].startsWith("req.body?.kind || ''"),
       JSON.stringify(lAccesses));
-    /* UND SIE HAELT JEDEN NAMEN NOCH EINMAL GEGEN DAS MUSTER, unmittelbar vor
-       dem unlink. */
     const eFrom = auSource.indexOf('function removeBackups(');
     const eTo = auSource.indexOf('\n}\n', eFrom);
     const eCore = eFrom >= 0 ? auSource.slice(eFrom, eTo) : '';
@@ -8232,8 +7253,7 @@ async function sendImport(object, mode, withoutShare = false) {
       /if \(short !== String\(n\) \|\| !BACKUP_PATTERN\.test\(short\)\)/.test(eCore) &&
       eCore.indexOf('BACKUP_PATTERN.test(short)') < eCore.indexOf('fs.unlinkSync('),
       (eCore.match(/BACKUP_PATTERN[^\n]*/) || ['(nicht gefunden)'])[0]);
-    // UND ES FOLGT KEINEM SYMLINK: lstatSync sieht den Verweis selbst, statSync
-// saehe die Datei am anderen Ende und meldete sie als regulaer.
+    // lstatSync sieht den Symlink selbst; statSync saehe die Datei am anderen Ende.
     check('Und es fragt mit lstatSync statt mit statSync',
       /fs\.lstatSync\(full\)/.test(eCore) && !/fs\.statSync\(/.test(eCore),
       (eCore.match(/fs\.l?statSync\([^\n]*/) || ['(nicht gefunden)'])[0]);
@@ -8247,8 +7267,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Rechte am Eintrag');
 
-  /* Drei Zugaenge, drei fertige Sitzungen. Eine Rechteschicht laesst sich nur
-     mit zwei echten Rufern nebeneinander belegen. */
+  /* Rechte lassen sich nur mit zwei echten Aufrufern nebeneinander pruefen. */
   function putRightsInventoryAn() {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-stufef-'));
     shortRun(`require('./db'); console.log('da');`, dir);
@@ -8264,27 +7283,20 @@ async function sendImport(object, mode, withoutShare = false) {
     // An Berts Eintrag haengt alles, was ein Fremder anfassen koennte.
     d.prepare("INSERT INTO photos (item_id, mime_type, data, sort_order) VALUES (2, 'image/jpeg', ?, 0)")
       .run(Buffer.from('kein echtes Bild, wird nur geloescht'));
-    /* Die Datei traegt ihren Verfasser ausdruecklich -- derselbe Grund wie an
-       der Linkzeile darunter: ohne user_id schoebe sie
-       assignInventory() beim Start der Eigentuemerin zu, und "der Admin
-       loescht eine FREMDE Datei" loeschte dann eine eigene. */
+    /* Ohne user_id wiese assignInventory() sie beim Start der Eigentuemerin zu,
+       und „der Admin loescht eine fremde Datei" loeschte eine eigene. */
     d.prepare("INSERT INTO attachments (item_id, filename, mime_type, size, data, user_id) VALUES (2, 'zettel.txt', 'text/plain', 5, ?, 2)")
       .run(Buffer.from('hallo'));
-    /* Der Link traegt seinen Verfasser ausdruecklich: ohne user_id schoebe
-       ihn assignInventory() beim Start der Eigentuemerin zu, und "der Admin
-       loescht einen FREMDEN Link" weiter unten loeschte dann einen eigenen --
-       gruen, aber ueber etwas anderes. */
+    /* Mit user_id aus demselben Grund wie die Datei. */
     d.prepare("INSERT INTO links (item_id, url, sort_order, user_id) VALUES (2, 'https://beispiel.test', 0, 2)").run();
-    // Ids abholen statt raten: db.js legt auf einer frischen Datenbank drei
-    // Vorgabekriterien an, und danach faengt die Nummerierung nicht bei 1 an
-    // -- geratene Ids reissen den Lauf mit "FOREIGN KEY constraint failed"
-    // ab.
+    // Ids abfragen: db.js legt Vorgabekriterien an, geratene Ids scheitern an
+    // "FOREIGN KEY constraint failed".
     const markId = d.prepare("INSERT INTO tags (name) VALUES ('Marke')").run().lastInsertRowid;
     d.prepare('INSERT INTO item_tags (item_id, tag_id) VALUES (2, ?)').run(markId);
     // Kommentare: einer von bert (mit Bild), einer von anna.
     d.prepare("INSERT INTO comments (item_id, text, user_id) VALUES (2, 'Berts Kommentar', 2)").run();
     d.prepare("INSERT INTO comments (item_id, text, user_id) VALUES (2, 'Annas Kommentar', 1)").run();
-    // ZWEI Bilder: eines loescht der Verfasser selbst, eines der Admin.
+    // Zwei Bilder: eines loescht der Verfasser selbst, eines der Admin.
     for (const n of ['berts-bild.jpg', 'berts-zweites-bild.jpg'])
       d.prepare("INSERT INTO comment_images (comment_id, filename, data) VALUES (1, ?, ?)")
         .run(n, Buffer.from('kein echtes Bild'));
@@ -8315,7 +7327,7 @@ async function sendImport(object, mode, withoutShare = false) {
     try { content = await a.json(); } catch {}
     return { status: a.status, content };
   };
-  /* Ein echter Multipart-Upload gegen DIESEN Server, mit DIESEM Cookie. */
+  /* Echter Multipart-Upload gegen diesen Server mit diesem Cookie. */
   const fUpload = async (cookieValue, itemId, name, content) => {
     const limit = '----pruefungf' + crypto.randomBytes(6).toString('hex');
     const parts = [
@@ -8348,8 +7360,8 @@ async function sendImport(object, mode, withoutShare = false) {
     d.close();
   };
 
-  /* Die herrenlose Zeile ERST JETZT, nach dem Start: assignInventory() laeuft
-     bei jedem Start und wiese sie sonst der Eigentuemerin zu. */
+  /* Erst nach dem Start: assignInventory() wiese die herrenlose Zeile sonst
+     der Eigentuemerin zu. */
   {
     const d = fDatabase();
     d.pragma('busy_timeout = 4000');
@@ -8373,8 +7385,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Der Admin aendert auch einen fremden Eintrag', fAdminTitle.status === 200,
     `Status ${fAdminTitle.status}`);
 
-  /* Die Ausnahme, und sie ist der Kern dieser Route: der Favorit ist
-     persoenlich. */
+  /* Ausnahme: der Favorit ist persoenlich. */
   const fFavor = await fCall('cookie-f-carla', 'PUT', '/api/items/2', { favorite: true });
   check('Ein Fremder setzt seinen eigenen Favoriten an einem fremden Eintrag',
     fFavor.status === 200, `Status ${fFavor.status}`);
@@ -8382,8 +7393,8 @@ async function sendImport(object, mode, withoutShare = false) {
     equal(fRows('SELECT user_id, item_id FROM item_pins').map(z => `${z.user_id}/${z.item_id}`), ['3/2']),
     JSON.stringify(fRows('SELECT user_id, item_id FROM item_pins')));
 
-  /* Beides in einem Ruf: die Absage muss kommen, BEVOR der Favorit
-     geschrieben ist. Sonst waere ein abgelehnter Ruf halb ausgefuehrt. */
+  /* Die Absage muss kommen, bevor der Favorit geschrieben ist; sonst waere der
+     Ruf halb ausgefuehrt. */
   const fBoth = await fCall('cookie-f-carla', 'PUT', '/api/items/2', { favorite: false, title: 'Gekapert' });
   check('Favorit und Titel zusammen werden abgewiesen', fBoth.status === 403,
     `Status ${fBoth.status}`);
@@ -8404,11 +7415,7 @@ async function sendImport(object, mode, withoutShare = false) {
     equal(fRows('SELECT tag_id FROM item_tags WHERE item_id = 2').map(z => z.tag_id), [fMarkId]),
     JSON.stringify(fRows('SELECT tag_id FROM item_tags WHERE item_id = 2')));
 
-  /* ---- Die Linkzeile, seit 0.8.30 der fuenfte Traeger ---------------------
-     UMGEDREHT MIT 0.8.30, NICHT GELOESCHT: bis 0.8.20 stand
-     hier "Ein Fremder haengt keinen Link an einen fremden Eintrag" mit 403.
-     Genau das ist jetzt erlaubt -- und die Zeile daneben belegt, dass sie
-     dabei SEINEN Namen bekommt und nicht den des Eintragsverfassers. */
+  /* ---- Links ---- */
   const fLink = await fCall('cookie-f-carla', 'POST', '/api/items/2/links', { url: 'https://fremd.test' });
   check('Ein Fremder haengt einen Link an einen fremden Eintrag', fLink.status === 201,
     `Status ${fLink.status}`);
@@ -8416,8 +7423,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und die Zeile gehoert ihm, nicht dem Verfasser des Eintrags',
     fLinkFresh !== undefined && fLinkFresh.user_id === 3,
     JSON.stringify(fRows('SELECT id, url, user_id FROM links WHERE item_id = 2')));
-  // Der Erfolgsfall hat die Liste wirklich verlaengert -- sonst waere ein 201
-// ohne Wirkung von einem mit nicht zu unterscheiden.
+  // Sonst waere ein 201 ohne Wirkung nicht von einem mit Wirkung zu unterscheiden.
   check('Die Linkliste ist um genau eine Zeile laenger',
     fRows('SELECT id FROM links WHERE item_id = 2').length === 2,
     JSON.stringify(fRows('SELECT id, url, user_id FROM links WHERE item_id = 2')));
@@ -8426,7 +7432,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Ein Fremder loescht keinen fremden Link', fLinkPath.status === 403, `Status ${fLinkPath.status}`);
   check('Und der fremde Link steht noch', fRows('SELECT id FROM links WHERE id = 1').length === 1);
 
-  /* SORTIEREN BLEIBT BEIM EINTRAGSVERFASSER UND ADMIN. */
+  /* Sortieren bleibt beim Verfasser des Eintrags und beim Admin. */
   const fLinkOrderBefore = fRows('SELECT id, sort_order FROM links WHERE item_id = 2 ORDER BY id');
   const fLinkSort = await fCall('cookie-f-carla', 'PUT', '/api/items/2/link-order',
     { order: [fLinkFresh?.id, 1] });
@@ -8457,9 +7463,7 @@ async function sendImport(object, mode, withoutShare = false) {
     equal(fRows('SELECT focus_x, focus_y FROM photos WHERE id = 1'), [{ focus_x: 50, focus_y: 50 }]),
     JSON.stringify(fRows('SELECT focus_x, focus_y FROM photos')));
 
-  /* ---- Das Video, seit 0.8.50 an der Stelle des Fotos --------------------
-     NICHT wie die Datei umgedreht: ein Video haengt am Eintrag und gehoert
-     damit seinem Verfasser, genau wie ein Foto. */
+  /* ---- Video: gehoert wie ein Foto dem Verfasser des Eintrags ---- */
   const fVideoAn = async (cookieValue, itemId) => {
     const limit = '----pruefungv' + crypto.randomBytes(6).toString('hex');
     const part = (name, fileName, type, content) => [
@@ -8484,7 +7488,6 @@ async function sendImport(object, mode, withoutShare = false) {
   const fVideoForeign = await fVideoAn('cookie-f-carla', 2);
   check('Ein Fremder laedt kein Video an einen fremden Eintrag', fVideoForeign.status === 403,
     `Status ${fVideoForeign.status}`);
-  // Die Nachschau: nach dem 403 steht KEINE Zeile in photos.
   check('Und nach der Absage steht keine neue Zeile in photos',
     fRows('SELECT id FROM photos WHERE item_id = 2').length === fBefore,
     JSON.stringify(fRows("SELECT id, kind FROM photos WHERE item_id = 2")));
@@ -8500,9 +7503,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und das Video liegt noch da',
     fRows('SELECT id FROM photos WHERE id = ?', fVideoRow?.id).length === 1);
 
-  /* ---- Die Datei, seit 0.8.31 der sechste Traeger ------------------------
-     UMGEDREHT MIT 0.8.31, NICHT GELOESCHT: bis 0.8.30 stand
-     hier nur die Verweigerung. */
+  /* ---- Dateien ---- */
   const fFileAn = await fUpload('cookie-f-carla', 2, 'von-carla.txt', 'inhalt von carla');
   check('Ein Fremder haengt eine Datei an einen fremden Eintrag', fFileAn.status === 201,
     `Status ${fFileAn.status}`);
@@ -8530,7 +7531,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und auch diese Zeile ist weg',
     fRows('SELECT id FROM attachments WHERE id = 1').length === 0);
 
-  /* Eine herrenlose Zeile gehoert dem Admin. */
   const fOrphanForeign = await fCall('cookie-f-carla', 'PUT', '/api/items/3', { title: 'Genommen' });
   check('Eine herrenlose Zeile gehoert nicht jedem', fOrphanForeign.status === 403,
     `Status ${fOrphanForeign.status}`);
@@ -8546,7 +7546,6 @@ async function sendImport(object, mode, withoutShare = false) {
   const fTextForeign = await fCall('cookie-f-carla', 'PUT', '/api/comments/1', { text: 'umgeschrieben' });
   check('Ein Fremder aendert keinen fremden Kommentartext', fTextForeign.status === 403,
     `Status ${fTextForeign.status}`);
-  /* Die schaerfste Zeile der ganzen Schicht: AUCH DER ADMIN NICHT. */
   const fTextAdmin = await fCall('cookie-f-anna', 'PUT', '/api/comments/1', { text: 'vom Admin umgeschrieben' });
   check('Und der Admin aendert ihn auch nicht', fTextAdmin.status === 403,
     `Status ${fTextAdmin.status}`);
@@ -8555,9 +7554,8 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Der Verfasser aendert seinen eigenen Text',
     fTextOwn.status === 200 && fText(1)?.text === 'Berts Kommentar, berichtigt', fText(1)?.text);
 
-  /* Die Merkmale dagegen darf der Admin: die Anpinnung wirkt auf die
-     Sortierung fuer ALLE (pinned DESC steht ganz vorn), aendert keine Aussage
-     und ist umkehrbar. */
+  /* Anpinnen darf der Admin: es wirkt auf die Sortierung fuer alle (pinned DESC),
+     aendert keine Aussage und ist umkehrbar. */
   const fPinAdmin = await fCall('cookie-f-anna', 'PUT', '/api/comments/1', { pinned: 1 });
   check('Der Admin pinnt einen fremden Kommentar an',
     fPinAdmin.status === 200 && fText(1)?.pinned === 1, `Status ${fPinAdmin.status} / ${fText(1)?.pinned}`);
@@ -8567,9 +7565,8 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und aendert auch die Art nicht', fKindForeign.status === 403, `Status ${fKindForeign.status}`);
   check('Die Anpinnung steht noch, wie der Admin sie gesetzt hat', fText(1)?.pinned === 1);
 
-  /* Text und Merkmal in einem Ruf: die Absage muss kommen, bevor irgendetwas
-     geschrieben ist -- sonst haette der Admin die Anpinnung durchgebracht und
-     nur der Text waere abgewiesen worden. */
+  /* Die Absage muss vor jedem Schreiben kommen; sonst ginge die Anpinnung
+     durch und nur der Text waere abgewiesen. */
   const fBothK = await fCall('cookie-f-anna', 'PUT', '/api/comments/1',
     { text: 'doch umgeschrieben', pinned: 0 });
   check('Text und Anpinnung zusammen weist der Admin sich selbst ab', fBothK.status === 403,
@@ -8578,8 +7575,8 @@ async function sendImport(object, mode, withoutShare = false) {
     fText(1)?.text === 'Berts Kommentar, berichtigt' && fText(1)?.pinned === 1,
     JSON.stringify(fText(1)));
 
-  /* AN DER LOESCHROUTE GILT GENAU EINES VON BEIDEN, NIE BEIDES UND NIE
-     KEINES: updated_at beim Verfasser, der Vermerk beim Fremden. */
+  /* An der Loeschroute gilt genau eines: updated_at beim Verfasser, der
+     Vermerk beim Fremden. */
   const fGrade = () => fOne('SELECT images_removed FROM comments WHERE id = 1')?.images_removed;
   const fEdited = () => fOne('SELECT updated_at FROM comments WHERE id = 1')?.updated_at;
   fWrite('UPDATE comments SET updated_at = NULL WHERE id = 1');
@@ -8589,8 +7586,6 @@ async function sendImport(object, mode, withoutShare = false) {
   const fImageAdmin = await fCall('cookie-f-anna', 'POST', '/api/comments/1/images', {});
   check('Der Admin haengt kein Bild an einen fremden Kommentar', fImageAdmin.status === 403,
     `Status ${fImageAdmin.status}`);
-  /* ANHAENGEN IST BEARBEITEN -- und weil der Admin gar nicht anhaengen darf,
-     ist auch sein abgewiesener Versuch keine. Weder das eine noch das andere. */
   check('Und sein abgewiesener Versuch aendert an beidem nichts',
     fGrade() === 0 && fEdited() === null, JSON.stringify([fGrade(), fEdited()]));
 
@@ -8598,10 +7593,8 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Der Verfasser loescht sein eigenes Bild',
     fImageOwnPath.status === 200 && fRows('SELECT id FROM comment_images').length === 1,
     `Status ${fImageOwnPath.status}`);
-  /* DER EINGRIFFSVERMERK, erste Haelfte. */
   check('Raeumt der Verfasser bei sich auf, entsteht kein Vermerk',
     fGrade() === 0, `images_removed = ${fGrade()}`);
-  // Die andere Haelfte desselben Vorgangs: ENTFERNEN IST BEARBEITEN.
   check('Aber es gilt als Bearbeitung durch ihn selbst',
     fEdited() !== null && fEdited() !== undefined, `updated_at = ${fEdited()}`);
   check('Die Antwort sagt dasselbe',
@@ -8624,15 +7617,11 @@ async function sendImport(object, mode, withoutShare = false) {
     `Status ${fImageAdminPath.status}`);
   check('Und DAS hinterlaesst den Vermerk am Kommentar',
     fGrade() === 1, `images_removed = ${fGrade()}`);
-  /* DIE SCHAERFSTE ZEILE DES PUNKTES: der Eingriff des Admins setzt NIE
-     "bearbeitet". */
   check('Aber ausdruecklich KEIN bearbeitet -- das waere eine fremde Aussage',
     fEdited() === null, `updated_at = ${fEdited()}`);
   check('Auch in der Antwort steht kein bearbeitet',
     fImageAdminPath.content?.comments?.find(k => k.id === 1)?.updated_at === null,
     JSON.stringify(fImageAdminPath.content?.comments?.find(k => k.id === 1)?.updated_at));
-  /* In der Antwort heisst es bilderEntfernt, nicht images_removed -- und die
-     nackte Spalte steht nirgends, wie schon bei user_id. */
   const fGradeResponse = fImageAdminPath.content.comments.find(k => k.id === 1);
   check('Die Antwort nennt den Vermerk als bilderEntfernt',
     fGradeResponse?.imagesRemoved === 1, JSON.stringify(fGradeResponse?.imagesRemoved));
@@ -8683,8 +7672,8 @@ async function sendImport(object, mode, withoutShare = false) {
   const fGradeForeign = await fCall('cookie-f-carla', 'PUT', '/api/test-days/1', { rating: 1 });
   check('Ein Fremder aendert die Note eines fremden Testtags nicht', fGradeForeign.status === 403,
     `Status ${fGradeForeign.status}`);
-  /* Auch der Admin nicht: die Note IST die Aussage dieser Zeile, genau wie
-     eine Bewertung. Loeschen ja, umschreiben nein. */
+  /* Die Note ist die Aussage der Zeile, wie eine Bewertung: loeschen ja,
+     umschreiben nein. */
   const fGradeAdmin = await fCall('cookie-f-anna', 'PUT', '/api/test-days/1', { rating: 1 });
   check('Und der Admin auch nicht', fGradeAdmin.status === 403, `Status ${fGradeAdmin.status}`);
   check('Die Note steht unveraendert', fOne('SELECT rating FROM test_days WHERE id = 1')?.rating === 4,
@@ -8709,8 +7698,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Ein Fremder loescht keinen fremden Testtag', fTtagDeleteForeign.status === 403,
     `Status ${fTtagDeleteForeign.status}`);
   check('Und der Testtag steht noch', fRows('SELECT id FROM test_days WHERE id = 1').length === 1);
-  /* Loeschen darf der Admin -- der Unterschied zum Aendern ist die ganze
-     Regel, und er wird hier in zwei aufeinanderfolgenden Rufen belegt. */
+  /* Loeschen darf der Admin; der Unterschied zum Aendern ist die ganze Regel. */
   const fTtagDeleteAdmin = await fCall('cookie-f-anna', 'DELETE', '/api/test-days/1');
   check('Der Admin loescht einen fremden Testtag',
     fTtagDeleteAdmin.status === 200 && fRows('SELECT id FROM test_days WHERE id = 1').length === 0,
@@ -8723,15 +7711,12 @@ async function sendImport(object, mode, withoutShare = false) {
     equal(fRows('SELECT user_id, value FROM ratings WHERE item_id = 2 ORDER BY user_id')
       .map(z => `${z.user_id}/${z.value}`), ['2/5', '3/2']),
     JSON.stringify(fRows('SELECT user_id, value FROM ratings WHERE item_id = 2')));
-  /* ZURUECKGESETZT WIRD SEIT 0.21.0 UEBER `PUT` MIT 0 -- die Sammelroute ist
-     weggefallen. */
   await fCall('cookie-f-carla', 'PUT', '/api/items/2/ratings',
     { criterionId: fLookId, value: 0 });
   check('Zuruecksetzen trifft nur die eigenen Zeilen -- ohne jeden Waechter',
     equal(fRows('SELECT user_id, value FROM ratings WHERE item_id = 2 ORDER BY user_id')
       .map(z => `${z.user_id}/${z.value}`), ['2/5', '3/0']),
     JSON.stringify(fRows('SELECT user_id, value FROM ratings WHERE item_id = 2')));
-  /* UND DIE ALTE ROUTE GIBT ES NICHT MEHR. */
   check('Und die alte Sammelroute gibt es nicht mehr',
     (await fCall('cookie-f-carla', 'DELETE', '/api/items/2/ratings')).status === 404,
     `Status ${(await fCall('cookie-f-carla', 'DELETE', '/api/items/2/ratings')).status}`);
@@ -8740,13 +7725,9 @@ async function sendImport(object, mode, withoutShare = false) {
       .map(z => `${z.user_id}/${z.value}`), ['2/5']),
     JSON.stringify(fRows('SELECT user_id, value FROM ratings WHERE item_id = 2')));
 
-  /* --- VOR DEM TEST WIRD NICHT BEWERTET, UND ZWAR FUER JEDEN — 0.22.1 ---
-     DIE KLEMME KENNT KEINE ROLLE, und genau das ist hier zu belegen: sie ist
-     keine Rechtefrage, sondern eine Aussage ueber den Eintrag. */
-  /* EIN EIGENER EINTRAG FUER DIESE FRAGE, und er wird angelegt statt
-     umgeschaltet: „Getestet" laesst sich nicht zuruecknehmen, solange
-     Testtage eingetragen sind (0.13.x), und die beiden Eintraege dieser Lage
-     tragen welche. */
+  /* --- Vor dem Test wird nicht bewertet, fuer keine Rolle --- */
+  /* Neuer Eintrag statt Umschalten: „Getestet" laesst sich nicht zuruecknehmen,
+     solange Testtage eingetragen sind. */
   const fIdea = (await fCall('cookie-f-bert', 'POST', '/api/items', { title: 'Eine Idee' })).content;
   check('Die Prueflage steht: ein frisch angelegter Eintrag ist ungetestet',
     fIdea && fIdea.tested === false, JSON.stringify(fIdea && fIdea.tested));
@@ -8761,13 +7742,11 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Es steht danach keine einzige Stimme da',
     fRows('SELECT user_id, value FROM ratings WHERE item_id = ?', fIdea.id).length === 0,
     JSON.stringify(fRows('SELECT user_id, value FROM ratings WHERE item_id = ?', fIdea.id)));
-  /* WEGNEHMEN BLEIBT OFFEN -- fuer jeden und in jedem Zustand. */
   const fNullUng = await fCall('cookie-f-carla', 'PUT', `/api/items/${fIdea.id}/ratings`,
     { criterionId: fLookId, value: 0 });
   check('Wegnehmen bleibt auch am ungetesteten Eintrag offen',
     fNullUng.status === 200, `Status ${fNullUng.status}`);
-  /* UND DANACH GEHT ES WIEDER. Ohne diese Zeile bliebe gruen, wer die Route
-     ueberhaupt gesperrt haette. */
+  /* Ohne diese Pruefung bliebe auch eine ganz gesperrte Route gruen. */
   await fCall('cookie-f-bert', 'PUT', `/api/items/${fIdea.id}`, { tested: true });
   const fAgainBert = await fCall('cookie-f-bert', 'PUT', `/api/items/${fIdea.id}/ratings`,
     { criterionId: fLookId, value: 4 });
@@ -8817,8 +7796,8 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und den Suchanbietervorrat auch nicht', fProvider.status === 403, `Status ${fProvider.status}`);
   check('Das Vokabular steht unveraendert',
     (await fCall('cookie-f-anna', 'GET', '/api/settings')).content?.vocabulary?.entryOne === 'Eintrag');
-  /* Gemischt: die persoenliche Haelfte darf NICHT geschrieben sein, wenn die
-     globale abgewiesen wird. Deshalb steht die Frage vor dem ersten Schreiben. */
+  /* Die Rechtepruefung steht vor dem ersten Schreiben; sonst waere die
+     persoenliche Haelfte schon geschrieben. */
   const fMixed = await fCall('cookie-f-bert', 'PUT', '/api/settings',
     { font: 80, vocabulary: { entryOne: 'Ding' } });
   check('Persoenlich und global zusammen wird abgewiesen', fMixed.status === 403,
@@ -8835,8 +7814,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Was dem Eigentuemer gehoert');
 
-  /* Bis hierher war anna beides. Jetzt bekommt CARLA die Rolle admin -- damit
-     steht zum ersten Mal ein Admin da, dem die Instanz NICHT gehoert. */
+  /* Ab hier ist carla Admin, dem die Instanz nicht gehoert. */
   {
     const d = fDatabase();
     d.pragma('busy_timeout = 4000');
@@ -8867,12 +7845,9 @@ async function sendImport(object, mode, withoutShare = false) {
     fExportAnna.status === 200 && Array.isArray(fExportAnna.content?.items),
     `Status ${fExportAnna.status}`);
 
-  /* Der Import: eine Exportdatei kann unter FREMDEM NAMEN
-     schreiben. Beide Modi liegen dahinter, nicht nur "ersetzen". */
-  /* Die Freigabe wird NUR fuer die Eigentuemerin geholt: die beiden Absagen
-     darunter kommen aus der Rollenleiter, und die steht VOR der
-     Bestaetigungsfrage -- wer ohnehin nicht darf, wird gar nicht erst nach
-     seinem Passwort gefragt. */
+  /* Eine Exportdatei kann unter fremdem Namen schreiben; beide Modi gehoeren dem Eigentuemer. */
+  /* Freigabe nur fuer die Eigentuemerin: die Rollenpruefung steht vor der
+     Bestaetigung, die anderen werden nicht nach dem Passwort gefragt. */
   const fImport = async (cookieValue, object, mode) => {
     if (cookieValue === 'cookie-f-anna')
       await fCall(cookieValue, 'POST', '/api/confirm', { password: fWord, purpose: 'import', target: null });
@@ -8914,25 +7889,18 @@ async function sendImport(object, mode, withoutShare = false) {
   const fStatsBert = await fCall('cookie-f-bert', 'GET', '/api/stats');
   const fStatsCarla = await fCall('cookie-f-carla', 'GET', '/api/stats');
   const fStatsAnna = await fCall('cookie-f-anna', 'GET', '/api/stats');
-  // Der Schluessel liegt in dieser Prueflage als Datei neben der Datenbank --
-// nur dann gibt es ueberhaupt etwas auszuliefern.
+  // Der Schluessel liegt hier als Datei neben der Datenbank; nur dann gibt es etwas auszuliefern.
   check('Der Schluesselwert steht ueberhaupt zur Verfuegung',
     fStatsAnna.content?.keyFromEnv === false && typeof fStatsAnna.content?.keyHex === 'string',
     JSON.stringify([fStatsAnna.content?.keyFromEnv, typeof fStatsAnna.content?.keyHex]));
-  /* UMGEDREHT SEIT 0.8.5, nicht geloescht: bis 0.8.4 hiess diese Prueflage
-     "Aber nur die Eigentuemerin bekommt ihn" und fragte bert und carla
-     zugleich. */
   check('Aber den Schluesselwert bekommt nur die Eigentuemerin',
     fStatsCarla.status === 200 && fStatsCarla.content?.keyHex === null,
     JSON.stringify([fStatsCarla.status, fStatsCarla.content?.keyHex]));
-  /* UMGEDREHT SEIT 0.8.5, nicht geloescht: bis 0.8.4 hiess
-     die Prueflage "Die Kennzahlen selbst sieht weiterhin jeder". */
   check('Die Kennzahlen selbst sieht seit 0.8.5 nur noch der Admin',
     fStatsBert.status === 403, `Status ${fStatsBert.status}`);
   check('Die Absage nennt dabei den Admin',
     /Admin/.test(fStatsBert.content?.error || ''), fStatsBert.content?.error);
-  // Der Erfolgsfall daneben, und zwar an BEIDEN Rollen darueber: ohne ihn
-// waere "403 fuer jeden" von "403 fuer den Benutzer" nicht zu unterscheiden.
+  // Sonst waere „403 fuer jeden" nicht von „403 fuer den Benutzer" zu unterscheiden.
   check('Ein Admin ohne Eigentuemerrecht sieht sie',
     fStatsCarla.status === 200 && typeof fStatsCarla.content?.itemCount === 'number',
     `Status ${fStatsCarla.status}`);
@@ -8940,28 +7908,24 @@ async function sendImport(object, mode, withoutShare = false) {
     fStatsAnna.status === 200 && typeof fStatsAnna.content?.itemCount === 'number',
     `Status ${fStatsAnna.status}`);
 
-  /* Der eigene Name in den Einstellungen -- fuer die Kopfzeile. */
+  /* Der eigene Name fuer die Kopfzeile. */
   const fNameAnna = (await fCall('cookie-f-anna', 'GET', '/api/settings')).content;
   const fNameBert = (await fCall('cookie-f-bert', 'GET', '/api/settings')).content;
   check('Die Einstellungen nennen den eigenen Namen',
     fNameAnna?.name === 'anna', JSON.stringify(fNameAnna?.name));
   check('Und jedem seinen eigenen, nicht den der Eigentuemerin',
     fNameBert?.name === 'bert', JSON.stringify(fNameBert?.name));
-  // Dieselbe Angabe steht unveraendert unter /api/account -- die Kopfzeile
-// spart sich damit nur den zweiten Abruf.
+  // Die Kopfzeile spart sich damit nur den zweiten Abruf.
   check('Dieselbe Angabe steht weiterhin unter /api/account',
     (await fCall('cookie-f-bert', 'GET', '/api/account')).content?.username === 'bert',
     JSON.stringify((await fCall('cookie-f-bert', 'GET', '/api/account')).content));
 
-  /* ---------------------------------------------------------------- Ab hier
-     ist carla Admin OHNE Eigentuemerrecht -- die wichtigste Lage fuer alles,
-     was folgt: an ihr faellt auf, wenn eine Regel den Admin meint und der
-     Eigentuemer sie ohnehin passiert haette. */
+  /* ---------------------------------------------------------------- */
+  /* An carla faellt auf, wenn eine Regel den Admin meint, aber nur der
+     Eigentuemer sie passiert. */
   group('Verfasser in der Antwort');
 
-  /* Eine EIGENE Lage statt der gewachsenen: die Zahlen des Loeschdialogs
-     sollen vorhersagbar sein und nicht davon abhaengen, was die Gruppen davor
-     stehengelassen haben. */
+  /* Eigene Lage: die Zahlen des Loeschdialogs haengen nicht von den Gruppen davor ab. */
   const fVId = (await fCall('cookie-f-bert', 'POST', '/api/items', { title: 'Zum Loeschen' })).content.id;
   await fCall('cookie-f-bert', 'POST', `/api/items/${fVId}/comments`, { text: 'Kommentar von bert' });
   await fCall('cookie-f-bert', 'POST', `/api/items/${fVId}/test-days`, { day: '2024-06-01', rating: 3 });
@@ -8969,16 +7933,13 @@ async function sendImport(object, mode, withoutShare = false) {
   await fCall('cookie-f-anna', 'POST', `/api/items/${fVId}/comments`, { text: 'Kommentar von anna' });
   await fCall('cookie-f-anna', 'POST', `/api/items/${fVId}/test-days`, { day: '2024-06-02', rating: 5 });
   await fCall('cookie-f-anna', 'PUT', `/api/items/${fVId}/ratings`, { criterionId: fLookId, value: 2 });
-  // Zwei Linkzeilen, eine je Verfasser: seit 0.8.30 kann auch ein Link fremd
-  // sein, und ohne beide Sorten liesse sich die Trennung im Dialog nicht
-  // belegen.
+  // Je ein Link pro Verfasser, sonst liesse sich die Trennung im Dialog nicht pruefen.
   await fCall('cookie-f-bert', 'POST', `/api/items/${fVId}/links`, { url: 'https://berts-link.test' });
   await fCall('cookie-f-anna', 'POST', `/api/items/${fVId}/links`, { url: 'https://annas-link.test' });
-  // Dasselbe am sechsten Traeger: je eine Datei von bert und von anna.
+  // Ebenso je eine Datei.
   await fUpload('cookie-f-bert', fVId, 'von-bert.txt', 'berts Datei');
   await fUpload('cookie-f-anna', fVId, 'von-anna.txt', 'annas Datei');
-  // Carla setzt ihre wieder zurueck: die Zeile bleibt mit 0 stehen und ist
-// KEINE Stimme -- weder in der Liste noch in der Zahl des Dialogs.
+  // Carla setzt zurueck: die Zeile bleibt mit 0 stehen und ist keine Stimme.
   await fCall('cookie-f-carla', 'PUT', `/api/items/${fVId}/ratings`, { criterionId: fLookId, value: 5 });
   await fCall('cookie-f-carla', 'PUT', `/api/items/${fVId}/ratings`, { criterionId: fLookId, value: 0 });
   {
@@ -8986,9 +7947,7 @@ async function sendImport(object, mode, withoutShare = false) {
     d.pragma('busy_timeout = 4000');
     d.prepare('INSERT INTO comments (item_id, text, user_id) VALUES (?, ?, NULL)')
       .run(fVId, 'Herrenloser Kommentar');
-    // Ein VIERTER Rufer, der weder Verfasser noch Admin ist: ohne ihn liesse
-    // sich an den neuen Wegen gar keine Verweigerung herstellen -- bert ist
-    // Verfasser, anna und carla sind Admin.
+    // Weder Verfasser noch Admin: bert ist Verfasser, anna und carla sind Admin.
     const dirkId = d.prepare("INSERT INTO users (username, password_hash, role) VALUES ('dirk', 'x', 'user')")
       .run().lastInsertRowid;
     d.prepare("INSERT INTO sessions (token, user_id) VALUES ('cookie-f-dirk', ?)").run(dirkId);
@@ -8999,7 +7958,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Der Eintrag nennt seinen Verfasser mit Namen',
     fVEntry?.author?.name === 'bert' && fVEntry?.author?.deleted === false,
     JSON.stringify(fVEntry?.author));
-  // Die nackte Nummer stand bis 0.8.1 in der Antwort und war nie zu gebrauchen.
   check('Und nicht mehr die nackte Nummer', fVEntry?.user_id === undefined,
     JSON.stringify(fVEntry?.user_id));
 
@@ -9008,8 +7966,6 @@ async function sendImport(object, mode, withoutShare = false) {
     fVKom('Kommentar von bert')?.author?.name === 'bert' &&
     fVKom('Kommentar von anna')?.author?.name === 'anna',
     JSON.stringify((fVEntry?.comments || []).map(c => c.author)));
-  /* Eine herrenlose Zeile bekommt ausdruecklich null -- und das Feld FEHLT
-     nicht. */
   check('Eine herrenlose Zeile nennt ausdruecklich keinen Verfasser',
     fVKom('Herrenloser Kommentar') !== undefined &&
     'author' in fVKom('Herrenloser Kommentar') &&
@@ -9018,9 +7974,8 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Kein Kommentar traegt noch eine nackte Verfassernummer',
     (fVEntry?.comments || []).every(c => c.user_id === undefined));
 
-  /* DIE LINKZEILE, seit 0.8.30 der fuenfte Traeger -- und diese Gruppe ist
-     die EINZIGE Stelle, an der die Antwort des echten Servers dazu angesehen
-     wird. */
+  /* Einzige Stelle, an der die Linkzeilen in der Antwort des echten Servers
+     geprueft werden. */
   const fVLink = (part) => (fVEntry?.links || []).find(l => l.url.includes(part));
   check('Die Linkliste der Antwort ist ueberhaupt gefuellt',
     (fVEntry?.links || []).length === 2, JSON.stringify(fVEntry?.links));
@@ -9028,8 +7983,7 @@ async function sendImport(object, mode, withoutShare = false) {
     fVLink('berts-link')?.author?.name === 'bert' &&
     fVLink('annas-link')?.author?.name === 'anna',
     JSON.stringify((fVEntry?.links || []).map(l => l.author)));
-  /* mine steht daneben und ersetzt den Namen nicht: daran haengt das
-     Loeschkreuz. Gefragt hat bert -- seine Zeile ist seine, annas nicht. */
+  /* An mine haengt das Loeschkreuz. Gefragt hat bert. */
   check('Und sagt, ob sie mir gehoert',
     fVLink('berts-link')?.mine === true && fVLink('annas-link')?.mine === false,
     JSON.stringify((fVEntry?.links || []).map(l => [l.url, l.mine])));
@@ -9046,15 +8000,13 @@ async function sendImport(object, mode, withoutShare = false) {
     fVTag('2024-06-01')?.author?.name === 'bert' &&
     fVTag('2024-06-02')?.author?.name === 'anna',
     JSON.stringify((fVEntry?.testDays || []).map(d => [d.day, d.author])));
-  /* Der Name steht NEBEN mine, er ersetzt es nicht: die Zeitleiste
-     unterscheidet weiter ueber die Fuellung und liest keinen Namen. */
+  /* Die Zeitleiste unterscheidet ueber die Fuellung und liest keinen Namen. */
   check('Und mine steht unveraendert daneben',
     fVTag('2024-06-01')?.mine === true && fVTag('2024-06-02')?.mine === false,
     JSON.stringify((fVEntry?.testDays || []).map(d => [d.day, d.mine])));
 
   const fVLook = (fVEntry?.ratings || []).find(r => r.criterion_id === fLookId);
-  /* UMGEHAENGT MIT 0.8.6, nicht geloescht: bis 0.8.5 stand die Stimmenliste
-     an jeder Kriterienzeile DIESER Antwort -- und die geht an jeden. */
+  /* Die Eintragsantwort geht an jeden; die Stimmen stehen nur unter /votes. */
   check('Der Eintrag selbst nennt seit 0.8.6 keine Stimmen mehr',
     (fVEntry?.ratings || []).length > 0 &&
     (fVEntry?.ratings || []).every(r => !('stimmen' in r)),
@@ -9067,17 +8019,13 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Auch die Uebersicht nennt den Verfasser je Eintrag',
     (fVList || []).find(i => i.id === fVId)?.author?.name === 'bert',
     JSON.stringify((fVList || []).find(i => i.id === fVId)?.author));
-  /* SEIT 0.19.3 STEHT HIER DIE GEGENRICHTUNG, und die Zeile ist umgedreht
-     worden statt geloescht: bis 0.19.2 stand hier, dass
-     auch jeder Testtag der UEBERSICHT seinen Verfasser nennt. */
   const fVListDays = (fVList || []).find(i => i.id === fVId)?.testDays || [];
   check('Die Uebersicht traegt die Testtage ueberhaupt',
     fVListDays.length === 2, JSON.stringify(fVListDays));
   check('Und sie sind schmal: id, day, rating und mine, sonst nichts',
     fVListDays.every(d => equal(Object.keys(d).sort(), ['day', 'id', 'mine', 'rating'])),
     JSON.stringify(fVListDays.map(d => Object.keys(d))));
-  /* mine BLEIBT, und zwar richtig herum: daran haengt die Fuellung der Punkte
-     in der Zeitleiste. Bert hat gefragt -- seine Zeile ist seine, annas nicht. */
+  /* Daran haengt die Fuellung der Punkte in der Zeitleiste. Gefragt hat bert. */
   check('Und mine sagt weiter, welcher Punkt mir gehoert',
     fVListDays.find(d => d.day === '2024-06-01')?.mine === true &&
     fVListDays.find(d => d.day === '2024-06-02')?.mine === false,
@@ -9086,8 +8034,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Der Loeschdialog am Eintrag');
 
-  /* Dieselbe Lage, drei Sichten. Das ist der eigentliche Gegenstand: "fremd"
-     meint, was dem LOESCHENDEN fremd ist, nicht was dem Verfasser fremd ist. */
+  /* „fremd" meint, was dem Loeschenden fremd ist, nicht dem Verfasser. */
   const fInventory = async (cookieValue) =>
     (await fCall(cookieValue, 'GET', `/api/items/${fVId}/inventory`)).content;
   const fBBert = await fInventory('cookie-f-bert');
@@ -9106,38 +8053,28 @@ async function sendImport(object, mode, withoutShare = false) {
     fBAnna?.ownRatings === 1 && fBAnna?.foreignRatings === 1 &&
     fBAnna?.ownTestDays === 1 && fBAnna?.foreignTestDays === 1,
     JSON.stringify(fBAnna));
-  /* Carla loescht als Admin einen Eintrag, an dem sie selbst nichts hat --
-     dann ist ALLES fremd. Genau diese Zahl soll der Dialog nennen. */
   check('Ein Admin ohne eigenen Beitrag sieht alles als fremd',
     fBCarla?.ownComments === 0 && fBCarla?.foreignComments === 3 &&
     fBCarla?.ownTestDays === 0 && fBCarla?.foreignTestDays === 2,
     JSON.stringify(fBCarla));
-  /* IS NOT statt !=: die herrenlose Zeile ist eine fremde. Bei != fiele sie
-     aus dem Vergleich heraus und taeuchte in keiner der drei Sichten auf. */
+  /* IS NOT statt !=: bei != fiele die herrenlose Zeile (NULL) aus jeder Sicht heraus. */
   check('Die herrenlose Zeile zaehlt bei jedem als fremd',
     fBBert?.foreignComments === 2 && fBAnna?.foreignComments === 2 &&
     fBCarla?.foreignComments === 3,
     JSON.stringify([fBBert?.foreignComments, fBAnna?.foreignComments, fBCarla?.foreignComments]));
-  // Eine zurueckgesetzte Bewertung ist auch hier keine: carlas 0-Zeile darf
-// weder als ihre eigene noch als fremde auftauchen.
   check('Eine zurueckgesetzte Bewertung erscheint in keiner Zahl',
     fBCarla?.ownRatings === 0 && fBCarla?.foreignRatings === 2,
     JSON.stringify(fBCarla));
   check('Die Fotos stehen mit einer Zahl im Dialog',
     fBBert?.photos === 0, JSON.stringify(fBBert));
-  /* UMGESTELLT MIT 0.8.31: die Dateien stehen nicht mehr mit EINER Zahl da.
-     Seit sie einen Verfasser haben, koennen sie fremd sein. */
   check('Und die Dateien getrennt nach eigen und fremd',
     fBBert?.ownFiles === 1 && fBBert?.foreignFiles === 1, JSON.stringify(fBBert));
   check('Fuer den Admin ohne eigenen Beitrag sind beide Dateien fremd',
     fBCarla?.ownFiles === 0 && fBCarla?.foreignFiles === 2, JSON.stringify(fBCarla));
-  /* UMGESTELLT MIT 0.8.30, nicht geloescht: bis 0.8.20 stand hier EINE Zahl
-     fuer die Links. */
   check('Und die Links getrennt nach eigen und fremd',
     fBBert?.ownLinks === 1 && fBBert?.foreignLinks === 1, JSON.stringify(fBBert));
   check('Fuer den Admin ohne eigenen Beitrag sind beide Links fremd',
     fBCarla?.ownLinks === 0 && fBCarla?.foreignLinks === 2, JSON.stringify(fBCarla));
-  // Und die Gegenrichtung: fuer anna ist genau die andere Zeile die eigene.
   check('Fuer den zweiten Verfasser sind dieselben zwei Zeilen andersherum verteilt',
     fBAnna?.ownLinks === 1 && fBAnna?.foreignLinks === 1, JSON.stringify(fBAnna));
 
@@ -9150,8 +8087,6 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Wer hat bewertet -- die Ansicht des Admins');
 
-  /* Die Liste stand bis 0.8.5 an jeder Kriterienzeile der Eintragsantwort und
-     ging damit an jeden. */
   const fStCall = (cookieValue) => fCall(cookieValue, 'GET', `/api/items/${fVId}/votes`);
   const fStInventory = () => fRows('SELECT id, value, user_id FROM ratings WHERE item_id = ? ORDER BY id', fVId);
   const fStBefore = fStInventory();
@@ -9163,40 +8098,32 @@ async function sendImport(object, mode, withoutShare = false) {
 
   check('Wer welchen Wert vergeben hat, sieht nur der Admin',
     fStDirk.status === 403, `Status ${fStDirk.status}`);
-  /* Der Verfasser des Eintrags ausdruecklich auch nicht. */
   check('Auch der Verfasser des Eintrags nicht',
     fStBert.status === 403, `Status ${fStBert.status}`);
   check('Die Absage nennt den Admin',
     /Admin/.test(fStBert.content?.error || ''), fStBert.content?.error);
-  // Der Erfolgsfall daneben, an BEIDEN Rollen: ohne ihn waere "403 fuer jeden"
-// von "403 fuer den Benutzer" nicht zu unterscheiden.
+  // Sonst waere „403 fuer jeden" nicht von „403 fuer den Benutzer" zu unterscheiden.
   check('Ein Admin ohne Eigentuemerrecht bekommt die Liste',
     fStCarla.status === 200 && Array.isArray(fStCarla.content), `Status ${fStCarla.status}`);
   check('Und die Eigentuemerin auch',
     fStAnna.status === 200 && Array.isArray(fStAnna.content), `Status ${fStAnna.status}`);
-  // Lesend heisst lesend: nach vier Abrufen steht jede Bewertungszeile
-// unveraendert da.
   check('Und geschrieben wird dabei nichts',
     equal(fStInventory(), fStBefore), JSON.stringify(fStInventory()));
 
-  /* UMGEHAENGT MIT 0.8.6, nicht geloescht: dieselben vier
-     Aussagen wie bis 0.8.5 an der Eintragsantwort -- nur eben hier. */
   const fStLook = (fStCarla.content || []).find(z => z.criterion_id === fLookId);
   check('Je Kriterium steht, wer welchen Wert vergeben hat',
     equal((fStLook?.votes || []).map(s => `${s.author?.name}/${s.value}`), ['bert/4', 'anna/2']),
     JSON.stringify(fStLook?.votes));
-  /* Die Bedingung value > 0 an genau dieser Stelle: carla hat bewertet und
-     zurueckgesetzt, ihre Zeile steht mit 0 in der Tabelle. */
+  /* value > 0: carla hat zurueckgesetzt, ihre Zeile steht mit 0 in der Tabelle. */
   check('Eine zurueckgesetzte Bewertung ist keine Stimme',
     !(fStLook?.votes || []).some(s => s.author?.name === 'carla') &&
     fRows('SELECT value FROM ratings WHERE item_id = ? AND user_id = 3', fVId)[0]?.value === 0,
     JSON.stringify(fRows('SELECT user_id, value FROM ratings WHERE item_id = ?', fVId)));
-  // Ohne die id gaebe es vom Bildschirm aus keinen Weg zu einer einzelnen
-// fremden Bewertung -- DELETE /api/ratings/:id waere unerreichbar.
+  // Ohne id waere DELETE /api/ratings/:id von der Oberflaeche aus unerreichbar.
   check('Jede Stimme nennt ihre Nummer',
     (fStLook?.votes || []).every(s => Number.isInteger(s.id)),
     JSON.stringify((fStLook?.votes || []).map(s => s.id)));
-  /* `mine` haengt am ABRUFENDEN, nicht an der Zeile. */
+  /* `mine` haengt am Abrufenden, nicht an der Zeile. */
   const fStLookAnna = (fStAnna.content || []).find(z => z.criterion_id === fLookId);
   check('Die eigene Stimme ist als solche gekennzeichnet',
     equal((fStLookAnna?.votes || []).map(s => s.mine), [false, true]),
@@ -9205,8 +8132,6 @@ async function sendImport(object, mode, withoutShare = false) {
     (fStLook?.votes || []).length === 2 &&
     (fStLook?.votes || []).every(s => s.mine === false),
     JSON.stringify((fStLook?.votes || []).map(s => s.mine)));
-  // Der Grabsteinname verlaesst den Server nicht -- hier gibt es keinen, aber
-// die Form ist dieselbe wie ueberall: ein Objekt, nie die nackte Nummer.
   check('Die Stimme nennt den Verfasser als Objekt, nicht als Nummer',
     (fStLook?.votes || []).every(s => s.author && s.user_id === undefined),
     JSON.stringify(fStLook?.votes));
@@ -9230,19 +8155,14 @@ async function sendImport(object, mode, withoutShare = false) {
   const fROwn = await fCall('cookie-f-bert', 'DELETE', `/api/ratings/${fRBert}`);
   check('Die eigene entfernt jeder', fROwn.status === 200 && !fRStands(fRBert),
     `Status ${fROwn.status}`);
-  /* Der Erfolgsfall daneben, und zwar mit dem Admin OHNE Eigentuemerrecht --
-     sonst bliebe die Pruefung auch dann gruen, wenn dort nurEigentuemer
-     stuende. */
+  /* Mit dem Admin ohne Eigentuemerrecht; sonst bliebe die Pruefung auch mit
+     ownerOnly gruen. */
   const fRAdmin = await fCall('cookie-f-carla', 'DELETE', `/api/ratings/${fRAnna}`);
   check('Der Admin entfernt eine fremde Bewertung',
     fRAdmin.status === 200 && !fRStands(fRAnna), `Status ${fRAdmin.status}`);
-  /* UMGEHAENGT MIT 0.8.6: bis 0.8.5 stand hier die Zahl der Stimmen in der
-     Antwort. */
   check('Die Antwort ist der neu gezeichnete Eintrag',
     (fRAdmin.content?.ratings || []).find(r => r.criterion_id === fLookId)?.count === 0,
     JSON.stringify(fRAdmin.content?.ratings?.find(r => r.criterion_id === fLookId)));
-  /* Und die Ansicht des Admins zeigt dort gar keine Zeile mehr: aufgenommen
-     werden nur Kriterien MIT Stimmen. */
   const fStEmpty = await fStCall('cookie-f-carla');
   check('Ein Kriterium ohne Stimme steht gar nicht in der Ansicht',
     fStEmpty.status === 200 &&
@@ -9252,9 +8172,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Eine Bewertung, die es nicht gibt, meldet 404', fRPath.status === 404,
     `Status ${fRPath.status}`);
 
-  /* Loeschen ja, umschreiben nein -- und das ist hier eine Aussage ueber den
-     Quelltext, nicht ueber einen Ruf: es darf gar keinen Weg geben, der eine
-     fremde Note VERAENDERT. */
   check('Es gibt keinen Weg, eine fremde Bewertung zu aendern',
     !/app\.(put|post|patch)\('\/api\/ratings/
       .test(fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')),
@@ -9268,8 +8185,6 @@ async function sendImport(object, mode, withoutShare = false) {
   const fCategoryNumber = () => fRows('SELECT id FROM product_categories').length;
   const fToggle = (k) => fOne('SELECT value FROM settings WHERE key = ?', k);
 
-  /* VORGABE AN, UND ZWAR ALS ABLEITUNG BEIM LESEN: in der Datenbank steht
-     dafuer nichts. */
   const fEinstBert = (await fCall('cookie-f-bert', 'GET', '/api/settings')).content;
   check('Beide Schalter stehen in der Antwort und auf an',
     fEinstBert?.tagsFreeCreate === true && fEinstBert?.categoriesFreeCreate === true,
@@ -9278,8 +8193,7 @@ async function sendImport(object, mode, withoutShare = false) {
     fToggle('tagsFreeCreate') === undefined && fToggle('categoriesFreeCreate') === undefined,
     JSON.stringify([fToggle('tagsFreeCreate'), fToggle('categoriesFreeCreate')]));
 
-  // Der Erfolgsfall ZUERST, mit eingeschaltetem Schalter: ohne ihn liesse sich
-// nicht sehen, ob der Weg ueberhaupt je offen ist.
+  // Erfolgsfall zuerst: sonst bliebe offen, ob der Weg je offen ist.
   const fTagBefore = fTagNumber();
   const fFreshTagAn = await fCall('cookie-f-bert', 'POST', '/api/items/2/tags', { name: 'Frisch' });
   check('Mit Schalter an legt auch ein gewoehnlicher Benutzer einen Tag an',
@@ -9300,8 +8214,8 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und in der Datenbank steht danach immer noch nichts',
     fToggle('tagsFreeCreate') === undefined, JSON.stringify(fToggle('tagsFreeCreate')));
 
-  /* Der Admin OHNE Eigentuemerrecht legt sie um -- sonst bliebe die Pruefung
-     auch dann gruen, wenn dort nurEigentuemer stuende. */
+  /* Der Admin ohne Eigentuemerrecht; sonst bliebe die Pruefung auch mit
+     ownerOnly gruen. */
   const fToggleOut = await fCall('cookie-f-carla', 'PUT', '/api/settings',
     { tagsFreeCreate: false, categoriesFreeCreate: false });
   check('Der Admin legt beide Schalter um',
@@ -9323,8 +8237,6 @@ async function sendImport(object, mode, withoutShare = false) {
     `${fTagOut} -> ${fTagNumber()}`);
   check('Die Absage sagt, woran es liegt',
     /Neue Tags/.test(fTagFreshOut.content?.error || ''), fTagFreshOut.content?.error);
-  /* DIE ZEILE, UM DIE ES GEHT: der vorhandene Tag laesst sich weiterhin
-     zuweisen. */
   const fTagAssigned = await fCall('cookie-f-bert', 'POST', '/api/items/2/tags', { name: 'Frisch' });
   check('Einen VORHANDENEN Tag vergibt er trotzdem',
     fTagAssigned.status === 201 &&
@@ -9332,8 +8244,7 @@ async function sendImport(object, mode, withoutShare = false) {
     `Status ${fTagAssigned.status}: ${JSON.stringify((fTagAssigned.content?.tags || []).map(t => t.name))}`);
   check('Und dabei entsteht keine zweite Zeile fuer denselben Namen',
     fTagNumber() === fTagOut, `${fTagOut} -> ${fTagNumber()}`);
-  // Der Admin kommt weiterhin durch: ihm gehoert das Aufraeumen, und ein
-// Schalter, den er erst umlegen muesste, waere eine Schranke gegen sich selbst.
+  // Dem Admin gehoert das Aufraeumen; der Schalter gilt nicht fuer ihn.
   const fTagAdmin = await fCall('cookie-f-carla', 'POST', '/api/items/2/tags', { name: 'Vom Admin' });
   check('Der Admin legt auch bei ausgeschaltetem Schalter an',
     fTagAdmin.status === 201 && fTagNumber() === fTagOut + 1,
@@ -9360,9 +8271,8 @@ async function sendImport(object, mode, withoutShare = false) {
     fCategoryAdmin.status === 201 && fCategoryNumber() === fCategoryOut + 1,
     `Status ${fCategoryAdmin.status}, ${fCategoryOut} -> ${fCategoryNumber()}`);
 
-  /* ---- Weg 3: Tags am Testtag ---- DER SONDERFALL: dort gibt es keine
-     Wolke, die Eingabe ist der einzige Zuweisungsweg und bleibt auf dem
-     Bildschirm stehen. */
+  /* ---- Weg 3: Tags am Testtag ---- */
+  /* Dort gibt es keine Wolke; die Eingabe ist der einzige Zuweisungsweg. */
   const fTtagFresh = await fCall('cookie-f-bert', 'POST', '/api/items/2/test-days',
     { day: '2024-09-09', rating: 3 });
   const fTtagId = fOne('SELECT id FROM test_days WHERE day = ? AND user_id = 2', '2024-09-09')?.id;
@@ -9384,8 +8294,7 @@ async function sendImport(object, mode, withoutShare = false) {
     fRows('SELECT tag_id FROM test_day_tags WHERE test_day_id = ?', fTtagId).length === 1,
     `Status ${fTtagKnown.status}`);
 
-  /* Und wieder an: der Weg muss sich auch oeffnen lassen, sonst belegte die
-     Pruefung nur, dass er zu ist. */
+  /* Sonst belegte die Pruefung nur, dass der Weg zu ist. */
   await fCall('cookie-f-anna', 'PUT', '/api/settings',
     { tagsFreeCreate: true, categoriesFreeCreate: true });
   const fAgainAn = fTagNumber();
@@ -9399,8 +8308,6 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Offene Aufgaben: die Ansicht');
 
-  /* Die Prueflage traegt NEBEN der offenen Aufgabe eine ERLEDIGTE, eine NOTIZ
-     und einen BERICHT. */
   const oA = (await fCall('cookie-f-anna', 'POST', '/api/items', { title: 'Aufgabenblatt A' })).content;
   const oB = (await fCall('cookie-f-bert', 'POST', '/api/items', { title: 'Aufgabenblatt B' })).content;
   const oWrite = async (cookie, itemId, text, kind) =>
@@ -9411,9 +8318,7 @@ async function sendImport(object, mode, withoutShare = false) {
   await oWrite('cookie-f-anna', oA.id, 'A-vier Notiz', 'note');
   await oWrite('cookie-f-anna', oA.id, 'A-fuenf Bericht', 'report');
   await oWrite('cookie-f-carla', oB.id, 'B-eins offen', 'task');
-  // Eine HERRENLOSE Aufgabe: der Verfasser fehlt, und das Feld muss trotzdem
-  // dastehen -- null heisst "diese Zeile hat keinen Verfasser", ein fehlendes
-  // Feld hiesse "diese Antwort kennt das Feld nicht".
+  // null heisst „kein Verfasser", ein fehlendes Feld hiesse „Feld unbekannt".
   await oWrite('cookie-f-anna', oB.id, 'B-zwei herrenlos', 'task');
   fWrite("UPDATE comments SET user_id = NULL WHERE text = 'B-zwei herrenlos'");
   // B ist juenger als A -- die Ansicht muss B deshalb zuerst nennen.
@@ -9424,10 +8329,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const oList = await oGet('cookie-f-anna');
   const oTexts = (l) => (l || []).map(z => z.text);
 
-  /* Erst das Vorhandensein, dann die Verneinung: dass die
-     erledigte Aufgabe, die Notiz und der Bericht ueberhaupt in der Datenbank
-     stehen, wird ausdruecklich geprueft -- sonst bliebe jede Aussage
-     darueber, dass sie NICHT erscheinen, auf einem leeren Bestand gruen. */
+  /* Sonst blieben die Pruefungen, dass sie nicht erscheinen, auf leerem Bestand gruen. */
   check('Die Prueflage traegt neben den offenen Aufgaben auch die drei anderen Arten',
     fRows("SELECT id FROM comments WHERE kind = 'done' AND text = 'A-drei erledigt'").length === 1 &&
     fRows("SELECT id FROM comments WHERE kind = 'note' AND text = 'A-vier Notiz'").length === 1 &&
@@ -9443,8 +8345,8 @@ async function sendImport(object, mode, withoutShare = false) {
     !oTexts(oList).includes('A-vier Notiz') && !oTexts(oList).includes('A-fuenf Bericht'),
     JSON.stringify(oTexts(oList)));
 
-  /* Die Reihenfolge ist die der Uebersicht: updated_at des Eintrags
-     absteigend, innerhalb des Eintrags die aelteste Aufgabe oben. */
+  /* Wie die Uebersicht: updated_at des Eintrags absteigend, darin die aelteste
+     Aufgabe oben. */
   check('Der juengere Eintrag steht oben, wie in der Uebersicht',
     equal(oTexts(oList), ['B-eins offen', 'B-zwei herrenlos', 'A-eins offen', 'A-zwei offen']),
     JSON.stringify(oTexts(oList)));
@@ -9452,8 +8354,7 @@ async function sendImport(object, mode, withoutShare = false) {
     equal((oList || []).map(z => z.item?.id), [oB.id, oB.id, oA.id, oA.id]),
     JSON.stringify((oList || []).map(z => z.item?.id)));
 
-  /* Jedes Feld, das die Oberflaeche aus der Antwort liest, an der ECHTEN
-     Antwort geprueft -- nicht nur am Mock. */
+  /* An der echten Antwort, nicht nur am Mock. */
   const oOne = (l, text) => (l || []).find(z => z.text === text);
   check('Jede Zeile nennt ihren Eintrag mit Nummer und Titel',
     oOne(oList, 'A-eins offen')?.item?.id === oA.id &&
@@ -9474,9 +8375,8 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Die Verfassernummer steht in keiner Zeile',
     !(oList || []).some(z => 'user_id' in z), JSON.stringify(Object.keys(oList?.[0] || {})));
 
-  /* mine ist die Grundlage des Hakens -- ohne die Angabe muesste die
-     Oberflaeche aus dem Verfasserobjekt zurueckrechnen, und bei einem
-     Grabstein ginge das gar nicht. */
+  /* Ohne mine muesste die Oberflaeche den Haken aus dem Verfasserobjekt
+     ableiten; bei einem geloeschten Zugang ginge das nicht. */
   const oListBert = await oGet('cookie-f-bert');
   check('mine steht an jeder Zeile',
     (oList || []).every(z => typeof z.mine === 'boolean'),
@@ -9496,24 +8396,20 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Der Haken am Aufgabenkommentar');
 
-  /* Der Haken geht ueber PUT /api/comments/:id -- dieselbe Route, dieselbe
-     Klemme wie im Eintrag: die Art setzt der Verfasser oder der Admin, sonst
-     niemand. */
+  /* Dieselbe Route wie im Eintrag: die Art setzt der Verfasser oder der Admin. */
   const oKind = (text) => fOne('SELECT kind FROM comments WHERE text = ?', text)?.kind;
   const oNr = (text) => fOne('SELECT id FROM comments WHERE text = ?', text)?.id;
   check('Vor allem anderen: die Aufgaben stehen als offen in der Datenbank',
     oKind('A-eins offen') === 'task' && oKind('A-zwei offen') === 'task',
     JSON.stringify([oKind('A-eins offen'), oKind('A-zwei offen')]));
 
-  /* DER FREMDE IST HIER BERT: carla traegt seit der Gruppe "Was dem
-     Eigentuemer gehoert" die Adminrolle und kaeme durch. */
+  /* Der Fremde ist bert: carla ist inzwischen Admin und kaeme durch. */
   const oCheckForeign = await fCall('cookie-f-bert', 'PUT', `/api/comments/${oNr('A-eins offen')}`,
     { kind: 'done' });
   check('Ein Fremder hakt eine fremde Aufgabe nicht ab',
     oCheckForeign.status === 403, `Status ${oCheckForeign.status}`);
   check('Und sie steht unveraendert offen da', oKind('A-eins offen') === 'task', oKind('A-eins offen'));
-  /* Auch die herrenlose nicht: eine Zeile ohne Verfasser gehoert dem Admin,
-     nicht allen. */
+  /* Eine Zeile ohne Verfasser gehoert dem Admin. */
   const oCheckOrphan = await fCall('cookie-f-bert', 'PUT',
     `/api/comments/${oNr('B-zwei herrenlos')}`, { kind: 'done' });
   check('Und eine herrenlose erst recht nicht', oCheckOrphan.status === 403,
@@ -9526,8 +8422,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Der Verfasser hakt seine eigene Aufgabe ab',
     oCheckOwn.status === 200 && oKind('A-zwei offen') === 'done',
     `Status ${oCheckOwn.status} / ${oKind('A-zwei offen')}`);
-  /* Der Admin am FREMDEN Haken -- das ist die Antwort auf die Rechtefrage
-     dieser Runde, und sie steht hier, damit sie nicht nur behauptet ist. */
   const oCheckAdmin = await fCall('cookie-f-carla', 'PUT', `/api/comments/${oNr('A-eins offen')}`,
     { kind: 'done' });
   check('Ein Admin ohne Eigentuemerrolle hakt eine fremde Aufgabe ab',
@@ -9542,8 +8436,7 @@ async function sendImport(object, mode, withoutShare = false) {
     equal(oTexts(oAfterCheck), ['B-eins offen', 'B-zwei herrenlos']),
     JSON.stringify(oTexts(oAfterCheck)));
 
-  /* Und zurueck: der Haken muss sich wegnehmen lassen, sonst belegte die
-     Pruefung nur, dass er in eine Richtung wirkt. */
+  /* Sonst belegte die Pruefung nur eine Richtung. */
   const oBack = await fCall('cookie-f-anna', 'PUT', `/api/comments/${oNr('A-eins offen')}`,
     { kind: 'task' });
   check('Der Haken laesst sich wieder wegnehmen',
@@ -9551,8 +8444,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und die Zeile steht wieder in der Ansicht',
     oTexts(await oGet('cookie-f-anna')).includes('A-eins offen'));
 
-  /* Die Ansicht liegt hinter der Anmeldung wie alles unter /api. Ohne diese
-     Zeile bliebe offen, ob ein neuer lesender Endpunkt die Schicht umgeht. */
+  /* Sonst bliebe offen, ob ein neuer lesender Endpunkt die Anmeldung umgeht. */
   const oWithoutCookie = await fetch(F.base + '/api/open');
   check('Ohne Anmeldung gibt es die Ansicht nicht', oWithoutCookie.status === 401,
     `Status ${oWithoutCookie.status}`);
@@ -9560,9 +8452,6 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Der Bezugspunkt: die Sekunde am Rand');
 
-  /* MITGENOMMEN MIT 0.17.0, NICHT GELOESCHT: diese Gruppe
-     hiess „Neu seit: die Sekunde am Rand" und fuhr auf `zuletztGesehen`, den
-     Merker der gestrichenen Pille. */
   const fClock = () => {
     const d = fDatabase();
     const t = d.prepare("SELECT datetime('now') AS t").get().t;
@@ -9577,9 +8466,8 @@ async function sendImport(object, mode, withoutShare = false) {
       { text: `Sekundenprobe ${attempt}` });
     secondsMark = JSON.parse(fOne(
       "SELECT value FROM user_settings WHERE user_id = 1 AND key = 'bellSeen'").value);
-    /* DIE ZEILE WIRD IN DER DATENBANK NACHGESEHEN und nicht aus der Antwort
-       gelesen: POST /api/items/:id/comments liefert den ganzen EINTRAG
-       zurueck, nicht den Kommentar. */
+    /* Aus der Datenbank: POST /api/items/:id/comments liefert den Eintrag,
+       nicht den Kommentar. */
     secondsStatus = fOne(
       'SELECT created_at FROM comments WHERE item_id = ? ORDER BY id DESC LIMIT 1',
       oA.id).created_at;
@@ -9587,19 +8475,14 @@ async function sendImport(object, mode, withoutShare = false) {
   }
   check('Die Prueflage trifft wirklich die Sekunde des Verlassens',
     secondsHit, `Verlassen ${secondsLeave}, Kommentar ${secondsStatus}`);
-  /* Und die eigentliche Zusicherung: der Kommentar aus genau dieser Sekunde
-     kommt an. */
   check('Ein Kommentar aus der Sekunde des Verlassens gilt danach als neu',
     secondsStatus > secondsMark, `gemerkt ${secondsMark}, Kommentar ${secondsStatus}`);
-  /* UND DIE GLOCKE SIEHT IHN WIRKLICH. Ohne diese Zeile belegte der Vergleich
-     darueber nur zwei Strings und nichts ueber die Instanz. */
+  /* Sonst verglich die Pruefung darueber nur zwei Strings. */
   check('Und die Glocke meldet ihn auch',
     ((await fCall('cookie-f-anna', 'GET', '/api/items')).content || [])
       .find(i => i.id === oA.id)?.newComments >= 1,
     JSON.stringify(((await fCall('cookie-f-anna', 'GET', '/api/items')).content || [])
       .map(i => `${i.id}:${i.newComments}`)));
-  /* Die Gegenrichtung gehoert dazu: was VOR dem Bezugspunkt liegt, ist nicht
-     neu. */
   fWrite("UPDATE comments SET created_at = '2020-01-01 00:00:00' WHERE item_id = ?", oB.id);
   check('Was aelter ist als der Bezugspunkt, ist nicht neu',
     ((await fCall('cookie-f-anna', 'GET', '/api/items')).content || [])
@@ -9610,8 +8493,6 @@ async function sendImport(object, mode, withoutShare = false) {
   await F.stop();
   fs.rmSync(fDir, { recursive: true, force: true });
 
-  /* ================= Die Entscheidung wird mitgeschrieben — 0.14.0 ===== Das
-     Haekchen "abgelehnt" wird zu einer Aussage: WANN, WARUM und VON WEM. */
   group('Die Entscheidung wird mitgeschrieben — 0.14.0');
 
   const agDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-ablehnung-'));
@@ -9624,9 +8505,7 @@ async function sendImport(object, mode, withoutShare = false) {
                           ['cookie-ag-carla', 3], ['cookie-ag-dora', 4]])
       d.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run(t, u);
     d.prepare("INSERT INTO items (title, user_id) VALUES ('Berts Saege', 2)").run();
-    /* Und ein zweiter Eintrag, der schon abgelehnt ist, ohne dass jemand
-       wuesste von wem -- genau der Stand, den der Migrationsblock
-       hinterlaesst. */
+    /* Abgelehnt, aber ohne rejected_by: der Stand nach dem Migrationsblock. */
     d.prepare("INSERT INTO items (title, rejected, user_id) VALUES ('Altbestand', 1, 2)").run();
     d.close();
   }
@@ -9646,8 +8525,8 @@ async function sendImport(object, mode, withoutShare = false) {
     try { content = await a.json(); } catch {}
     return { status: a.status, content };
   };
-  // Die Nachschau geht IN DIE DATENBANK und nicht ueber die Antwort: eine
-// Absage, nach der die Zeile trotzdem steht, waere sonst nicht zu sehen.
+  // Aus der Datenbank statt aus der Antwort: eine Absage mit dennoch
+  // geaenderter Zeile waere sonst nicht zu sehen.
   const agRow = (id = 1) => {
     const d = open(path.join(agDir, 'katalog.sqlite'));
     const z = d.prepare('SELECT rejected, rejected_at, rejected_reason, rejected_by FROM items WHERE id = ?').get(id);
@@ -9655,8 +8534,6 @@ async function sendImport(object, mode, withoutShare = false) {
     return z;
   };
 
-  /* ERST DER GEGENSTAND: steht am Eintrag noch gar nichts,
-     belegt keine Pruefung darunter etwas. */
   check('Der Eintrag ist zu Beginn nicht abgelehnt und traegt keine Angabe',
     agRow().rejected === 0 && agRow().rejected_at === null &&
     agRow().rejected_reason === null && agRow().rejected_by === null,
@@ -9672,7 +8549,7 @@ async function sendImport(object, mode, withoutShare = false) {
     agRow().rejected_reason === 'Lieferzeit über 6 Monate' &&
     /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(agRow().rejected_at || ''),
     JSON.stringify(agRow()));
-  /* DAS DATUM KOMMT VOM SERVER UND NIE AUS DEM RUMPF. */
+  /* Das Datum kommt vom Server, nie aus dem Rumpf. */
   await agCall('cookie-ag-carla', 'PUT', '/api/items/1', { rejected: false });
   const agDateCore = await agCall('cookie-ag-carla', 'PUT', '/api/items/1',
     { rejected: true, rejectedReason: 'Lieferzeit über 6 Monate',
@@ -9681,7 +8558,6 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify(agDateCore.content?.error));
   check('Ein Datum aus dem Rumpf wird nicht angenommen',
     !/1999/.test(agRow().rejected_at || ''), JSON.stringify(agRow().rejected_at));
-  /* UND DER SERVER SETZT WIRKLICH DIE JETZIGE ZEIT. */
   {
     const now = new Date();
     const today = now.toISOString().slice(0, 10);
@@ -9692,14 +8568,11 @@ async function sendImport(object, mode, withoutShare = false) {
       (set.startsWith(today) || set.startsWith(yesterday)),
       `${JSON.stringify(set)} gegen ${today}`);
   }
-  /* UND EIN NACHGETRAGENER GRUND ERFINDET AUCH DANN KEIN DATUM, wenn eines im
-     Rumpf steht: die Zeile bleibt, wie sie war. */
   const agVorDate = agRow().rejected_at;
   await agCall('cookie-ag-carla', 'PUT', '/api/items/1',
     { rejectedReason: 'Lieferzeit über 6 Monate', rejectedAt: '1999-01-01 00:00:00' });
   check('Und ein Nachtrag ruehrt das Datum ueberhaupt nicht an',
     agRow().rejected_at === agVorDate, JSON.stringify(agRow().rejected_at));
-  /* UND DIE NUMMER DES ABLEHNENDEN AUCH NICHT. */
   await agCall('cookie-ag-carla', 'PUT', '/api/items/1', { rejectedFrom: 1, rejected_by: 1 });
   check('Und ein Verfasser aus dem Rumpf ebenso wenig',
     agRow().rejected_by === 3, JSON.stringify(agRow().rejected_by));
@@ -9715,8 +8588,7 @@ async function sendImport(object, mode, withoutShare = false) {
     agView?.rejected_at === agRow().rejected_at &&
     agView?.rejected_reason === 'Lieferzeit über 6 Monate',
     JSON.stringify([agView?.rejected_at, agView?.rejected_reason]));
-  /* IN DER KACHELANSICHT BLEIBT DIE MARKE, WIE SIE IST: ein Grund gehoert an
-     den Eintrag und nicht in eine Kachelreihe. */
+  /* Die Uebersicht traegt nur die Marke; der Grund gehoert an den Eintrag. */
   const agList = (await agCall('cookie-ag-bert', 'GET', '/api/items')).content;
   check('Die Uebersicht traegt weiterhin die Marke',
     Array.isArray(agList) && agList.find(i => i.id === 1)?.rejected === true,
@@ -9727,8 +8599,7 @@ async function sendImport(object, mode, withoutShare = false) {
       i.rejected_by === undefined && i.rejectedAuthor === undefined),
     JSON.stringify(agList?.find(i => i.id === 1)));
 
-  /* ---- DIE KLEMME. Umschreiben darf die Begruendung nur, wer sie getroffen
-     hat -- und das ist WEDER der Verfasser des Eintrags NOCH ein Admin. ---- */
+  /* ---- Umschreiben darf nur die Verfasserin der Begruendung ---- */
   const agForeign = async (actor) => {
     const before = agRow().rejected_reason;
     const a = await agCall(actor, 'PUT', '/api/items/1', { rejectedReason: `Umgeschrieben von ${actor}` });
@@ -9747,30 +8618,25 @@ async function sendImport(object, mode, withoutShare = false) {
   const agDora = await agForeign('cookie-ag-dora');
   check('Und die Fremde erst recht',
     agDora.status === 403 && agDora.unchanged, JSON.stringify(agDora));
-  // Der Erfolgsfall daneben: die Verfasserin der Begruendung darf.
   const agCarla = await agCall('cookie-ag-carla', 'PUT', '/api/items/1',
     { rejectedReason: 'Lieferzeit über 8 Monate' });
   check('Die Verfasserin der Begruendung schreibt sie um',
     agCarla.status === 200 && agRow().rejected_reason === 'Lieferzeit über 8 Monate',
     JSON.stringify([agCarla.status, agRow().rejected_reason]));
 
-  /* ---- ZURUECKNEHMEN DARF, WER DEN EINTRAG AENDERN DARF. */
+  /* ---- Zuruecknehmen darf, wer den Eintrag aendern darf ---- */
   const agBack = await agCall('cookie-ag-bert', 'PUT', '/api/items/1', { rejected: false });
   check('Der Verfasser des Eintrags nimmt die Ablehnung zurueck',
     agBack.status === 200 && agRow().rejected === 0, JSON.stringify(agRow()));
-  /* UND DABEI WIRD NICHTS GELOESCHT. Eine Angabe, die niemand wiederherstellen
-     kann, wird nicht weggeworfen, nur weil ein Schalter umgelegt wird. */
   check('Datum, Grund und Verfasser bleiben dabei stehen',
     agRow().rejected_reason === 'Lieferzeit über 8 Monate' &&
     agRow().rejected_by === 3 && agRow().rejected_at !== null,
     JSON.stringify(agRow()));
-  // Und die Fremde nimmt sie nicht zurueck -- die grobe Klemme steht weiter.
   const agDoraBack = await agCall('cookie-ag-dora', 'PUT', '/api/items/1', { rejected: true });
   check('Eine Fremde legt den Schalter nicht um',
     agDoraBack.status === 403 && agRow().rejected === 0, JSON.stringify(agRow()));
 
-  /* ---- WER NEU ABLEHNT, TRIFFT EINE EIGENE ENTSCHEIDUNG: neues Datum, neuer
-     Name, neuer Text. */
+  /* ---- Neu ablehnen: neues Datum, neuer Verfasser, neuer Text ---- */
   const agFresh = await agCall('cookie-ag-anna', 'PUT', '/api/items/1',
     { rejected: true, rejectedReason: 'Preis zu hoch' });
   check('Wer neu ablehnt, wird Verfasser der neuen Begruendung',
@@ -9778,14 +8644,13 @@ async function sendImport(object, mode, withoutShare = false) {
     agRow().rejected_reason === 'Preis zu hoch', JSON.stringify(agRow()));
   check('Und danach darf die vorige Verfasserin nicht mehr umschreiben',
     (await agForeign('cookie-ag-carla')).status === 403, JSON.stringify(agRow()));
-  /* EIN EINSCHALTEN OHNE TEXT LAESST KEINEN FREMDEN SATZ STEHEN. */
   await agCall('cookie-ag-anna', 'PUT', '/api/items/1', { rejected: false });
   const agWithoutText = await agCall('cookie-ag-carla', 'PUT', '/api/items/1', { rejected: true });
   check('Ein Einschalten ohne Text uebernimmt den fremden Satz nicht',
     agWithoutText.status === 200 && agRow().rejected_reason === '' && agRow().rejected_by === 3,
     JSON.stringify(agRow()));
 
-  /* ---- DER BESTAND AUS 0.13.2: abgelehnt, aber ohne Verfasser. */
+  /* ---- Abgelehnt ohne Verfasser ---- */
   check('Der Altbestand steht abgelehnt und ohne Verfasser da',
     agRow(2).rejected === 1 && agRow(2).rejected_by === null &&
     agRow(2).rejected_at === null, JSON.stringify(agRow(2)));
@@ -9796,16 +8661,13 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Wer den Eintrag aendern darf, traegt die fehlende Begruendung nach',
     agOld.status === 200 && agRow(2).rejected_reason === 'Nachgetragen' &&
     agRow(2).rejected_by === 2, JSON.stringify(agRow(2)));
-  /* UND ERFINDET DABEI KEIN DATUM. Wann abgelehnt wurde, weiss diese Instanz
-     nicht; "am Tag des Nachtrags" waere eine Behauptung. */
   check('Und erfindet dabei kein Datum', agRow(2).rejected_at === null,
     JSON.stringify(agRow(2).rejected_at));
   check('Danach gilt die Klemme auch dort',
     (await agCall('cookie-ag-anna', 'PUT', '/api/items/2', { rejectedReason: 'Doch nicht' })).status === 403 &&
     agRow(2).rejected_reason === 'Nachgetragen', JSON.stringify(agRow(2)));
 
-  /* ---- DER ZUSCHNITT DES TEXTES. Eine Zeile heisst eine Zeile: Weissraum
-     eingeebnet, aussen getrimmt, bei 200 Zeichen gekappt. */
+  /* ---- Zuschnitt: Weissraum eingeebnet, getrimmt, bei 200 Zeichen gekappt ---- */
   await agCall('cookie-ag-bert', 'PUT', '/api/items/2',
     { rejectedReason: '  Zwei\nZeilen   und   viel Raum  ' });
   check('Der Text wird auf eine Zeile eingeebnet und getrimmt',
@@ -9814,8 +8676,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und bei 200 Zeichen gekappt',
     agRow(2).rejected_reason?.length === 200, `${agRow(2).rejected_reason?.length} Zeichen`);
 
-  /* ---- DER RUNDLAUF DURCH DAS AUSTAUSCHFORMAT, Feld fuer Feld. Ein Format,
-     dessen Rundlauf nicht geprueft ist, ist eine Behauptung. ---- */
+  /* ---- Rundlauf durch das Austauschformat ---- */
   await agCall('cookie-ag-carla', 'PUT', '/api/items/1',
     { rejected: true, rejectedReason: 'Lieferzeit über 6 Monate' });
   const agBefore = agRow(1);
@@ -9831,9 +8692,8 @@ async function sendImport(object, mode, withoutShare = false) {
       at: agPackage.rejected_at, reason: agPackage.rejected_reason, actor: agPackage.rejected_author }));
   check('Und ausdruecklich keine Nummer',
     typeof agPackage?.rejected_author === 'string', JSON.stringify(agPackage?.rejected_author));
-  /* DIE DREI GEHEN AUCH MIT, WENN rejected FALSCH IST -- beim Zuruecknehmen
-     loescht der Server sie nicht, und eine Datei, die sie dann wegliesse,
-     naehme dem Ziel genau die Angabe, die die Quelle noch hat. */
+  /* Der Server loescht die drei Angaben beim Zuruecknehmen nicht, also gehen
+     sie auch bei rejected = false in die Datei. */
   const agPackageOut = agFile?.items?.find(i => i.title === 'Altbestand');
   await agCall('cookie-ag-bert', 'PUT', '/api/items/2', { rejected: false });
   const agDatei2 = (await agCallF('GET', '/api/export?fotos=0')).content;
@@ -9841,12 +8701,10 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Auch ein zurueckgenommener Eintrag traegt seine Angaben in der Datei',
     agOutPackage?.rejected === false && (agOutPackage?.rejected_reason || '').length === 200,
     JSON.stringify({ r: agOutPackage?.rejected, len: (agOutPackage?.rejected_reason || '').length }));
-  // Und der Beleg, dass die Datei ueberhaupt beide Eintraege kennt.
   check('Die Datei kennt beide Eintraege', !!agPackage && !!agPackageOut,
     JSON.stringify(agFile?.items?.map(i => i.title)));
 
-  // Einspielen in eine ZWEITE, leere Instanz: dort gibt es carla auch, und der
-// Name muss wieder auf sie treffen.
+  // Zielinstanz mit eigener carla: der Name muss wieder auf sie treffen.
   const agTargetDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-ablehnung-ziel-'));
   shortRun(`require('./db'); console.log('da');`, agTargetDir);
   {
@@ -9870,8 +8728,7 @@ async function sendImport(object, mode, withoutShare = false) {
     try { content = await a.json(); } catch {}
     return { status: a.status, content };
   };
-  /* Eingespielt wird als DATEI und nicht als JSON-Rumpf -- genauso, wie die
-     Oberflaeche es tut. */
+  /* Als Datei statt als JSON-Rumpf, wie die Oberflaeche. */
   const agzImport = async (object) => {
     await agzCall('POST', '/api/confirm', { password: AG_WORD, purpose: 'import', target: null });
     const limit = '----pruefungag' + crypto.randomBytes(6).toString('hex');
@@ -9902,8 +8759,7 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify(agzDetail && { at: agzDetail.rejected_at, reason: agzDetail.rejected_reason,
                                   actor: agzDetail.rejectedAuthor }));
 
-  /* ---- EINE DATEI DER NUMMER 10 BLEIBT EINSPIELBAR. Dieselbe Zusage wie bei
-     jedem Formatsprung davor: die drei Felder fehlen dann und bleiben LEER. */
+  /* ---- Alte Formatnummer: die drei Felder fehlen und bleiben leer ---- */
   const agOldFile = { version: 14, title: 'Alt', criteria: [], items: [
     { title: 'Aus Nummer zehn', rejected: true, tested: false, author: 'carla' },
     { title: 'Offen aus Nummer zehn', rejected: false, tested: false, author: 'carla' }] };
@@ -9924,42 +8780,31 @@ async function sendImport(object, mode, withoutShare = false) {
   await AGZ.stop();
   fs.rmSync(agTargetDir, { recursive: true, force: true });
 
-  /* ================= Entfernen darf auch der Admin — 0.15.0 ============
-     0.15.0 NIMMT EINE ENTSCHEIDUNG AUS 0.14.0 ZURUECK. */
+  /* ---------------------------------------------------------------- */
   group('Entfernen darf auch der Admin — 0.15.0');
 
-  // ERST DER GEGENSTAND: ohne eine Begruendung in der Zeile
-// belegt kein Entfernen darunter etwas.
   await agCall('cookie-ag-carla', 'PUT', '/api/items/1', { rejectedReason: 'Lieferzeit über 6 Monate' });
   check('Die Begruendung steht vor dem Entfernen wirklich da',
     agRow().rejected_reason === 'Lieferzeit über 6 Monate' && agRow().rejected_by === 3,
     JSON.stringify(agRow()));
 
-  /* ---- DIE FREMDE KOMMT NICHT DURCH, und zwar schon an der ERSTEN Klemme:
-     `rejectedReason` steht in AUTHOR_ONLY_FIELDS, und dora darf den Eintrag
-     gar nicht aendern. */
+  /* dora scheitert schon an AUTHOR_ONLY_FIELDS: sie darf den Eintrag nicht aendern. */
   const agPathDora = await agCall('cookie-ag-dora', 'PUT', '/api/items/1', { rejectedReason: '' });
   check('Eine Fremde entfernt die Begruendung nicht',
     agPathDora.status === 403, JSON.stringify(agPathDora));
   check('Und der Text steht danach unveraendert da',
     agRow().rejected_reason === 'Lieferzeit über 6 Monate', JSON.stringify(agRow().rejected_reason));
 
-  /* ---- DER FREMDE ADMIN ENTFERNT -- das ist die Entscheidung dieser Runde.
-     Bis 0.14.0 war genau das ein 403. */
   const agPathAnna = await agCall('cookie-ag-anna', 'PUT', '/api/items/1', { rejectedReason: '' });
   check('Ein Admin entfernt eine fremde Begruendung',
     agPathAnna.status === 200, JSON.stringify(agPathAnna));
   check('Und der Text ist danach wirklich weg',
     agRow().rejected_reason === '', JSON.stringify(agRow().rejected_reason));
-  /* DATUM UND VERFASSER BLEIBEN STEHEN. "Abgelehnt am … von carla" ist
-     weiterhin wahr; nur der Grund fehlt. */
   check('Datum, Verfasser und Merkmal bleiben beim Entfernen stehen',
     agRow().rejected === 1 && agRow().rejected_by === 3 &&
     /^\d{4}-\d{2}-\d{2} /.test(agRow().rejected_at || ''), JSON.stringify(agRow()));
 
-  /* ---- UND DIE FOLGE, DIE GENANNT GEHOERT: bleibt rejected_by stehen, darf
-     carla danach eine neue Begruendung schreiben -- anna, die geloescht hat,
-     dagegen nicht. */
+  /* rejected_by bleibt carla: sie darf neu schreiben, anna nach dem Entfernen nicht. */
   const agFreshAnna = await agCall('cookie-ag-anna', 'PUT', '/api/items/1',
     { rejectedReason: 'Vom Admin nachgeschoben' });
   check('Wer entfernt hat, darf danach trotzdem keine neue schreiben',
@@ -9973,8 +8818,7 @@ async function sendImport(object, mode, withoutShare = false) {
     agFreshCarla.status === 200 && agRow().rejected_reason === 'Neu von der Ablehnenden',
     JSON.stringify([agFreshCarla.status, agRow().rejected_reason]));
 
-  /* ---- DER VERFASSER DES EINTRAGS DARF EBENSO ENTFERNEN und weiterhin NICHT
-     umschreiben. */
+  /* ---- Der Verfasser des Eintrags darf entfernen, nicht umschreiben ---- */
   const agUmBert = await agCall('cookie-ag-bert', 'PUT', '/api/items/1',
     { rejectedReason: 'Von Bert umgeschrieben' });
   check('Der Verfasser des Eintrags schreibt die fremde Begruendung nicht um',
@@ -9985,23 +8829,19 @@ async function sendImport(object, mode, withoutShare = false) {
     agPathBert.status === 200 && agRow().rejected_reason === '',
     JSON.stringify([agPathBert.status, agRow().rejected_reason]));
 
-  /* ---- DIE ABLEHNENDE ENTFERNT IHRE EIGENE -- der dritte Zugang, und er
-     stand nie in Frage. Ohne ihn belegte die Gruppe nur die Ausnahmen. ---- */
   await agCall('cookie-ag-carla', 'PUT', '/api/items/1', { rejectedReason: 'Noch einmal von carla' });
   const agPathCarla = await agCall('cookie-ag-carla', 'PUT', '/api/items/1', { rejectedReason: '' });
   check('Die Ablehnende entfernt ihre eigene Begruendung',
     agPathCarla.status === 200 && agRow().rejected_reason === '',
     JSON.stringify([agPathCarla.status, agRow().rejected_reason]));
 
-  /* ---- WAS "ENTFERNEN" HEISST, ENTSCHEIDET grundText() UND NICHT DER
-     ROHWERT. */
+  /* Ob entfernt wird, entscheidet grundText(), nicht der Rohwert. */
   await agCall('cookie-ag-carla', 'PUT', '/api/items/1', { rejectedReason: 'Vor dem Leerraum' });
   const agPathSpace = await agCall('cookie-ag-anna', 'PUT', '/api/items/1', { rejectedReason: '  \n  ' });
   check('Ein Rumpf aus lauter Leerraum gilt als Entfernen',
     agPathSpace.status === 200 && agRow().rejected_reason === '',
     JSON.stringify([agPathSpace.status, agRow().rejected_reason]));
 
-  /* ---- WER ENTFERNT, WIRD NICHT VERFASSER. */
   {
     const d = open(path.join(agDir, 'katalog.sqlite'));
     d.prepare("UPDATE items SET rejected = 1, rejected_by = NULL, rejected_at = NULL, " +
@@ -10012,14 +8852,14 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Ein Entfernen an einer herrenlosen Ablehnung macht niemanden zum Verfasser',
     agEmptyOld.status === 200 && agRow(2).rejected_by === null &&
     agRow(2).rejected_reason === '', JSON.stringify(agRow(2)));
-  /* DIE GEGENLAGE, sonst belegt die Zeile darueber nichts: derselbe Zugang,
-     derselbe Eintrag, aber mit TEXT -- dann wird er sehr wohl Verfasser. */
+  /* Gegenprobe: derselbe Zugang mit Text wird Verfasser, sonst belegt die
+     Pruefung darueber nichts. */
   const agTextOld = await agCall('cookie-ag-anna', 'PUT', '/api/items/2', { rejectedReason: 'Von anna nachgetragen' });
   check('Wer aber einen Text nachtraegt, wird sein Verfasser',
     agTextOld.status === 200 && agRow(2).rejected_by === 1 &&
     agRow(2).rejected_reason === 'Von anna nachgetragen', JSON.stringify(agRow(2)));
 
-  /* ---- UND DIE ZWEI ANGABEN AN DER ANTWORT (Punkt 2 dieser Runde). */
+  /* ---- rejectedMine und mine in der Antwort ---- */
   await agCall('cookie-ag-carla', 'PUT', '/api/items/1', { rejectedReason: 'Fuer die zwei Angaben' });
   const agViewCarla = (await agCall('cookie-ag-carla', 'GET', '/api/items/1')).content;
   const agViewBert = (await agCall('cookie-ag-bert', 'GET', '/api/items/1')).content;
@@ -10033,13 +8873,9 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und die Fremde sieht beide aus',
     agViewDora?.rejectedMine === false && agViewDora?.mine === false,
     JSON.stringify([agViewDora?.rejectedMine, agViewDora?.mine]));
-  /* DIE NACKTE NUMMER GEHT NICHT MIT HINAUS -- weder die des Eintrags noch
-     die des Ablehnenden. */
   check('Die Nummern selbst stehen nicht in der Antwort',
     agViewCarla?.user_id === undefined && agViewCarla?.rejected_by === undefined,
     JSON.stringify(Object.keys(agViewCarla || {}).filter(k => /user_id|rejected_by/.test(k))));
-  /* UND AN EINER ABLEHNUNG OHNE VERFASSER IST rejectedMine FALSE UND NICHT
-     NULL: eine Begruendung, die niemandem gehoert, gehoert auch mir nicht. */
   const agViewOld = (await agCall('cookie-ag-carla', 'GET', '/api/items/2')).content;
   await agCall('cookie-ag-anna', 'PUT', '/api/items/2', { rejectedReason: '' });
   {
@@ -10054,14 +8890,12 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und mit Ablehnendem trug dieselbe Zeile sehr wohl einen Verfasser',
     agViewOld?.rejectedAuthor?.id === 1, JSON.stringify(agViewOld?.rejectedAuthor));
 
-  // Die Zeile geht in dem Stand weiter, in dem die Gruppe von 0.14.0 sie
-// uebernimmt -- die Pruefung am Grabstein darunter liest genau diesen Text.
+  // Die Pruefung am Grabstein in der naechsten Gruppe liest genau diesen Text.
   await agCall('cookie-ag-carla', 'PUT', '/api/items/1', { rejectedReason: 'Lieferzeit über 6 Monate' });
 
   /* ---------------------------------------------------------------- */
   group('Die Entscheidung wird mitgeschrieben — 0.14.0');
 
-  /* ---- EIN ENTFERNTER ZUGANG NIMMT NUR SEINEN NAMEN MIT. */
   {
     const d = open(path.join(agDir, 'katalog.sqlite'));
     d.prepare("UPDATE users SET status = 'deleted', username = 'deleted-3' WHERE id = 3").run();
@@ -10082,9 +8916,8 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Der Selbstbezug');
 
-  /* Drei Stellen, an denen "der erste Benutzer" naheliegt, wo aber "der
-     angemeldete" gemeint ist -- mit einem Zugang unsichtbar, ab dem zweiten
-     schlagartig falsch. */
+  /* Drei Stellen meinen den angemeldeten, nicht den ersten Benutzer; der Fehler
+     zeigt sich erst ab dem zweiten Zugang. */
   const sbDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-stufef-sb-'));
   const SB = startFurtherServer(sbDir, {}, 5740);
   await SB.ready;
@@ -10117,15 +8950,12 @@ async function sendImport(object, mode, withoutShare = false) {
     return z;
   };
 
-  /* Erste Stelle: GET /api/account. Stuende dort holeBenutzer(), also
-     der erste Zugang, saehe bert den Namen der Eigentuemerin. */
+  /* Mit dem ersten statt dem angemeldeten Zugang saehe bert annas Namen. */
   const sbAccount = await sbCall('cookie-sb-bert', 'GET', '/api/account');
   check('Der Systembereich nennt den angemeldeten Namen, nicht den ersten',
     sbAccount.content?.username === 'bert', JSON.stringify(sbAccount.content));
 
-  /* Zweite Stelle, die schaerfste: naehme sich aendereZugang() den ersten
-     Benutzer, benannte bert hier mit ANNAS Passwort ihren Zugang um, weil
-     beides zusammenpasste. */
+  /* Mit dem ersten Benutzer benannte bert hier mit annas Passwort annas Zugang um. */
   const sbForeign = await sbCall('cookie-sb-bert', 'PUT', '/api/account',
     { oldPassword: 'annas-langes-wort', username: 'uebernommen', newPassword: '' });
   check('Ein Zweiter aendert mit fremdem Passwort nichts', sbForeign.status === 400,
@@ -10134,8 +8964,7 @@ async function sendImport(object, mode, withoutShare = false) {
     equal(sbRows('SELECT username FROM users ORDER BY id').map(z => z.username), ['anna', 'bert']),
     JSON.stringify(sbRows('SELECT username FROM users ORDER BY id')));
 
-  /* Dritte Stelle: der Passwortwechsel raeumte alle Sitzungen ab, nicht nur
-     die eigenen. Anna hat zwei, bert eine. */
+  /* Der Passwortwechsel entfernt nur die eigenen Sitzungen. anna hat zwei, bert eine. */
   check('Vor dem Wechsel stehen drei Sitzungen',
     sbRows('SELECT token FROM sessions').length === 3,
     JSON.stringify(sbRows('SELECT token, user_id FROM sessions')));
@@ -10151,8 +8980,8 @@ async function sendImport(object, mode, withoutShare = false) {
     (await sbCall('cookie-sb-bert', 'GET', '/api/account')).status === 200,
     JSON.stringify(sbRows('SELECT token, user_id FROM sessions')));
 
-  /* username traegt UNIQUE COLLATE NOCASE. Ohne eine eigene Frage kaeme ab
-     dem zweiten Zugang die rohe SQLite-Meldung als 400 heraus. */
+  /* username ist UNIQUE COLLATE NOCASE; ohne eigene Pruefung kaeme die rohe
+     SQLite-Meldung als 400 heraus. */
   const sbClash = await sbCall('cookie-sb-anna-zwei', 'PUT', '/api/account',
     { oldPassword: 'annas-neues-wort', username: 'BERT', newPassword: '' });
   check('Ein schon vergebener Name wird verstaendlich abgewiesen',
@@ -10168,7 +8997,6 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Der Token: die Tabelle legt sich selbst an');
 
-  /* NACHGESTELLT STATT ABGESCHRIEBEN. */
   {
     const tkDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-tokentab-'));
     shortRun(`require('./db'); console.log('da');`, tkDir);
@@ -10209,8 +9037,6 @@ async function sendImport(object, mode, withoutShare = false) {
         .all().map(z => z.name);
       check('Und den Index auf den Benutzer, ebenfalls ohne Migration',
         idx.includes('idx_tokens_user'), JSON.stringify(idx));
-      /* UND DIE ANDERE HAELFTE DERSELBEN ENTSCHEIDUNG: users bekommt KEINE
-         Spalte. */
       const uColumns = d.prepare('PRAGMA table_info(users)').all().map(c => c.name);
       check('users traegt unveraendert genau seine acht Spalten',
         equal(uColumns, ['id', 'username', 'password_hash', 'role', 'email',
@@ -10222,8 +9048,7 @@ async function sendImport(object, mode, withoutShare = false) {
         JSON.stringify(sColumns));
       d.close();
     }
-    /* DIE GEGENLAGE, wie in der Vorrunde: eine SPALTE kommt nicht von selbst
-       zurueck. */
+    /* Gegenprobe: eine fehlende Spalte legt der Start nicht selbst an. */
     {
       const d = open(tkFile);
       d.pragma('foreign_keys = OFF');
@@ -10249,13 +9074,8 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Der Token: der Rundlauf');
 
-  /* DIE TRAGENDE PRUEFUNG DER RUNDE: Admin laedt ein -> der Link fuehrt zum
-     Formular -> das Passwort wird gesetzt -> die Anmeldung gelingt ->
-     DERSELBE LINK EIN ZWEITES MAL GELINGT NICHT. */
   const tkDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-token-'));
-  // Ein echter scrypt-Wert, damit sich dora auch wirklich anmelden kann --
-  // ein Fantasiewert liesse jede Anmeldung scheitern und die Prueflage waere
-  // von einer kaputten nicht zu unterscheiden.
+  // Echter scrypt-Wert: mit einem erfundenen scheiterte jede Anmeldung.
   const TK_PASSWORD = 'doras-passwort';
   let tkHash;
   {
@@ -10266,9 +9086,8 @@ async function sendImport(object, mode, withoutShare = false) {
     const insert = (name, role, status, hash) =>
       d.prepare('INSERT INTO users (username, password_hash, role, status) VALUES (?, ?, ?, ?)')
         .run(name, hash, role, status);
-    /* anna und bert tragen seit 0.8.90 ein ECHTES Passwort: das Erzeugen
-       eines Links und das Entfernen eines Zugangs verlangen eine zweite
-       Bestaetigung, und ein Hash 'x' kommt daran nicht vorbei. */
+    /* Echtes Passwort: Link erzeugen und Zugang entfernen verlangen die zweite
+       Bestaetigung. */
     insert('anna', 'owner', 'active', tkHash);
     insert('bert', 'admin', 'active', tkHash);
     insert('carla', 'user', 'active', 'x');
@@ -10280,9 +9099,8 @@ async function sendImport(object, mode, withoutShare = false) {
       d.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run(t, u);
     d.close();
   }
-  /* PORTBASIS 4680, NICHT 5960: eine Basis deckt sechzig Nummern, und
-     5960..6019 enthaelt die 6000 -- die waehlt fetch() gar nicht erst an
-     (X11, Sperrliste der Fetch-Spezifikation). */
+  /* Nicht 5960: die Basis deckt sechzig Ports, und 6000 (X11) steht auf der
+     Sperrliste der Fetch-Spezifikation. */
   const TK = startFurtherServer(tkDir, {}, 4680);
   await TK.ready;
 
@@ -10307,7 +9125,7 @@ async function sendImport(object, mode, withoutShare = false) {
     return r;
   };
 
-  // 1. Der Admin laedt ein -- ein NEUER Zugang, ohne Passwort, in einem Zug.
+  // 1. Einladen: ein neuer Zugang ohne Passwort, in einem Zug.
   const tkNew = await tkCall('cookie-tk-anna', 'POST', '/api/users',
     { username: 'neuling', sendInvite: true });
   check('Der Admin legt einen Zugang mit Einladung an',
@@ -10334,7 +9152,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Der Mindestwert kommt vom Server, nicht aus der Oberflaeche',
     tkPruef.content?.minPassword === 10, JSON.stringify(tkPruef.content?.minPassword));
 
-  // 3. Der Mindestwert gilt auch auf diesem Weg -- die Regel ist alt, der Weg neu.
+  // 3. Die Mindestlaenge gilt auch auf diesem Weg.
   const tkShort = await tkCall(null, 'POST', '/api/token/redeem',
     { token: tkLink, password: 'kurz' });
   check('Ein zu kurzes Passwort wird auch ueber den Link abgewiesen',
@@ -10361,7 +9179,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Die Anmeldung mit dem neuen Passwort gelingt',
     tkAn.status === 200, `${tkAn.status} ${tkAn.raw}`);
 
-  // 6. DERSELBE LINK EIN ZWEITES MAL.
+  // 6. Derselbe Link ein zweites Mal.
   const tkTwice = await tkCall(null, 'POST', '/api/token/redeem',
     { token: tkLink, password: 'ein-anderes-passwort' });
   check('Derselbe Link ein zweites Mal gelingt NICHT',
@@ -10378,11 +9196,9 @@ async function sendImport(object, mode, withoutShare = false) {
       "SELECT used_at b FROM tokens WHERE user_id=(SELECT id FROM users WHERE username='neuling')")[0]?.b || ''),
     JSON.stringify(tkRows('SELECT purpose, used_at FROM tokens')));
 
-  /* 7. ZWEI GLEICHZEITIG -- 0.34.4. Die Frage nach used_at steht in
-     checkToken, das Schreiben in redeemToken, und dazwischen liegt das await
-     auf hashPassword. scrypt gibt den Event Loop frei, also sehen zwei
-     gleichzeitige Anfragen beide ein freies Token. Der Weg nacheinander
-     (Abschnitt 6) faengt das nicht -- er prueft eine andere Lage. */
+  /* 7. Zwei gleichzeitig. Zwischen checkToken und redeemToken liegt das await auf
+     hashPassword; scrypt gibt den Event Loop frei, also saehen beide Anfragen
+     ein freies Token. Schritt 6 prueft nur nacheinander. */
   const tkPar = await tkCall('cookie-tk-anna', 'POST', '/api/users',
     { username: 'gleichzeitig', sendInvite: true });
   const tkParLink = tkPar.content?.token || '';
@@ -10397,10 +9213,8 @@ async function sendImport(object, mode, withoutShare = false) {
   const tkWon = [tkRunA, tkRunB].filter(z => z.status === 200).length;
   check('Zwei gleichzeitige Einloesungen desselben Links: genau eine gelingt',
     tkWon === 1, `${tkRunA.status} / ${tkRunB.status}`);
-  /* UND DAS IST DER EIGENTLICHE SCHADEN: gelingen beide, steht am Ende das
-     Passwort des Zweiten da, und der, dem die 200 zugesagt wurde, kommt nicht
-     herein. Gefragt wird deshalb nach dem Gewinner und nicht danach, ob
-     irgendeines der beiden traegt -- das waere in beiden Faellen wahr. */
+  /* Gefragt wird nach dem Passwort des Gewinners: irgendeines der beiden
+     truege auch dann, wenn beide gelaengen. */
   const tkWinner = tkRunA.status === 200 ? 'passwort-eins-aa' : 'passwort-zwei-bb';
   const tkLoser = tkRunA.status === 200 ? 'passwort-zwei-bb' : 'passwort-eins-aa';
   const tkLoginWin = await tkCall(null, 'POST', '/api/login',
@@ -10418,8 +9232,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Der Token: gespeichert ist der Hash, nicht der Schluessel');
 
-  /* DIE NACHSCHAU IN DER DATENBANK, ueber ALLE Textspalten ALLER Tabellen --
-     nicht nur ueber tokens.hash. */
+  /* Sucht in allen Textspalten aller Tabellen, nicht nur in tokens.hash. */
   const tkSecret = (await tkF('cookie-tk-anna')('POST', '/api/users/4/token',
     { purpose: 'reset' })).content?.token || '';
   check('Es liegt ueberhaupt ein Schluessel vor',
@@ -10439,8 +9252,7 @@ async function sendImport(object, mode, withoutShare = false) {
     d.close();
     check('Der Klartext steht in KEINER Spalte KEINER Tabelle',
       matched.length === 0, matched.join(' · '));
-    // Und die Gegenprobe zur Nachschau selbst: sie findet etwas, wenn es da
-// ist -- sonst belegte eine leere Trefferliste gar nichts.
+    // Gegenprobe: ohne sie belegte eine leere Trefferliste nichts.
     const d2 = open(path.join(tkDir, 'katalog.sqlite'));
     const hashDa = d2.prepare('SELECT COUNT(*) n FROM tokens WHERE hash LIKE ?')
       .get(`%${crypto.createHash('sha256').update(tkSecret).digest('hex')}%`).n;
@@ -10449,8 +9261,6 @@ async function sendImport(object, mode, withoutShare = false) {
       hashDa === 1, `${hashDa} Zeilen`);
   }
 
-  /* DER SCHLUESSEL STEHT IN KEINER ANTWORT AN DEN BILDSCHIRM ausser der
-     einen, die ihn erzeugt. */
   for (const [name, filePath] of [['die Zugangsliste', '/api/users'],
                               ['die eigenen Anmeldungen', '/api/sessions'],
                               ['der eigene Zugang', '/api/account']]) {
@@ -10462,9 +9272,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Der Token: die sieben Tage an beiden Seiten');
 
-  /* DER AUSGANGSWERT WIRD VON HAND GESETZT: datetime('now')
-     loest nur auf die Sekunde auf, eine Frist von sieben Tagen liesse sich
-     sonst gar nicht abwarten. */
+  /* Ablauf von Hand setzen: sieben Tage lassen sich nicht abwarten. */
   const tkSetExpires = (userId, modifier) => {
     const d = open(path.join(tkDir, 'katalog.sqlite'));
     d.prepare("UPDATE tokens SET expires_at = datetime('now', ?) WHERE user_id = ? AND used_at IS NULL")
@@ -10483,7 +9291,7 @@ async function sendImport(object, mode, withoutShare = false) {
     Math.abs((Date.parse(tkDeadline.replace(' ', 'T') + 'Z') - Date.now()) / 86400000 - 7) < 0.02,
     `${tkDeadline} gegen jetzt`);
 
-  // EINE Sekunde vor Ablauf: er traegt noch.
+  // Eine Sekunde vor Ablauf: er traegt noch.
   const tkEqual = tkSetExpires(4, '+1 seconds');
   check('Der von Hand gesetzte Ablauf steht wirklich da',
     /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/.test(tkEqual || ''), JSON.stringify(tkEqual));
@@ -10491,7 +9299,7 @@ async function sendImport(object, mode, withoutShare = false) {
     (await tkCall(null, 'POST', '/api/token/check', { token: tkSecret })).status === 200,
     'der noch gueltige Link wird abgewiesen');
 
-  // EINE Sekunde nach Ablauf: er traegt nicht mehr.
+  // Eine Sekunde nach Ablauf: er traegt nicht mehr.
   const tkPath = tkSetExpires(4, '-1 seconds');
   check('Auch der abgelaufene Wert steht wirklich da',
     /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/.test(tkPath || ''), JSON.stringify(tkPath));
@@ -10506,8 +9314,8 @@ async function sendImport(object, mode, withoutShare = false) {
     (await tkCall(null, 'POST', '/api/login', { user: 'dora', password: TK_PASSWORD })).status === 200,
     'das abgelaufene Einloesen hat doch geschrieben');
 
-  /* DAS AUFRAEUMEN, und zwar an BEIDEN Aufrufstellen einzeln. Die Zeile ist
-     abgelaufen, aber noch keine dreissig Tage -- sie bleibt also stehen. */
+  /* Aufraeumen an beiden Aufrufstellen. Die Zeile ist abgelaufen, aber juenger
+     als dreissig Tage. */
   check('Eine frisch abgelaufene Zeile bleibt zunaechst stehen',
     tkRows('SELECT hash FROM tokens WHERE user_id = 4').length === 1,
     JSON.stringify(tkRows('SELECT expires_at, used_at FROM tokens WHERE user_id = 4')));
@@ -10520,9 +9328,7 @@ async function sendImport(object, mode, withoutShare = false) {
     tkRows('SELECT hash FROM tokens WHERE user_id = 4').length === 0,
     JSON.stringify(tkRows('SELECT expires_at FROM tokens WHERE user_id = 4')));
 
-  /* Die ERSTE Aufrufstelle -- der Start -- braucht einen eigenen Beleg: zwei
-     Aufrufstellen einer Funktion sind zwei Stellen, und eine deckt die andere
-     nicht. */
+  /* Die Aufrufstelle beim Start. */
   {
     const auDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-tokenraum-'));
     shortRun(`require('./db'); console.log('da');`, auDir);
@@ -10535,8 +9341,7 @@ async function sendImport(object, mode, withoutShare = false) {
     {
       const d = open(path.join(auDir, 'katalog.sqlite'));
       d.prepare("INSERT INTO users (username, password_hash) VALUES ('anna', 'x')").run();
-      // Eine uralte und eine frische -- ohne die zweite belegte der Lauf nur,
-// dass ueberhaupt geloescht wird, nicht dass die Schwelle greift.
+      // Die frische Zeile belegt, dass die Schwelle greift, nicht nur das Loeschen.
       d.prepare(`INSERT INTO tokens (hash, user_id, purpose, expires_at, used_at)
                  VALUES ('uralt', 1, 'invite', datetime('now', '-40 days'), datetime('now', '-39 days'))`).run();
       d.prepare(`INSERT INTO tokens (hash, user_id, purpose, expires_at)
@@ -10559,7 +9364,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Der Token: die Frist ab dem ersten Oeffnen');
 
-  /* SEIT 0.9.0, und sie ist die zweite Frist neben den sieben Tagen. */
+  /* Zweite Frist neben den sieben Tagen. */
   {
     const frDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frist-'));
     const FR = startFurtherServer(frDir, {}, 6310);
@@ -10569,12 +9374,10 @@ async function sendImport(object, mode, withoutShare = false) {
     const frToken = frFresh.content?.token;
     const frExpires = () => {
       const d = open(path.join(frDir, 'katalog.sqlite'));
-      /* DIE JUENGSTE ZEILE, nicht irgendeine: nach dem zweiten Link liegen
-         ZWEI offene Zeilen da -- erzeugeToken laesst die uebrigen stehen,
-         erst das Einloesen raeumt sie weg. */
+      /* Die juengste Zeile: nach dem zweiten Link sind zwei offen, erst das
+         Einloesen raeumt die uebrigen weg. */
       try { return d.prepare('SELECT expires_at FROM tokens WHERE used_at IS NULL ORDER BY rowid DESC').get()?.expires_at; }
-      // Schliessen auch im Fehlerfall, sonst haelt die offene
-      // Leseverbindung eine Sperre.
+      // Sonst haelt die offene Leseverbindung eine Sperre.
       finally { d.close(); }
     };
     const frMinutes = (value) => (Date.parse(String(value).replace(' ', 'T') + 'Z') - Date.now()) / 60000;
@@ -10582,7 +9385,6 @@ async function sendImport(object, mode, withoutShare = false) {
     const frBefore = frExpires();
     check('Vor dem ersten Oeffnen liegt der Ablauf sieben Tage voraus',
       Math.abs(frMinutes(frBefore) - 7 * 24 * 60) < 30, `${frBefore} — ${Math.round(frMinutes(frBefore))} Minuten`);
-    /* DER ADMIN HAT DEN LINK KOPIERT, ABER NIEMAND HAT IHN GEOEFFNET. */
     await FR.call('GET', '/api/users');
     check('Und das blosse Nachsehen in der Verwaltung startet sie nicht',
       Math.abs(frMinutes(frExpires()) - 7 * 24 * 60) < 30, frExpires());
@@ -10595,21 +9397,18 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Der Ablauf ist damit auf fuenfzehn Minuten heruntergeschrieben',
       Math.abs(frMinutes(frAfterFirst) - 15) < 1, `${frAfterFirst} — ${frMinutes(frAfterFirst).toFixed(1)} Minuten`);
 
-    /* INNERHALB DER FRIST DARF BELIEBIG OFT GEOEFFNET WERDEN, und das ist der
-       Punkt, an dem die Sache sonst kippt: wer neu laedt, weil er gerade
-       keine Zeit hatte, steht sonst vor einem toten Link. */
+    /* Naechste Sekunde: sonst faellt das zweite Oeffnen in dieselbe Sekunde, und
+       eine verschobene Frist waere nicht zu sehen. */
     await nextSecond();
     const frSecond = await FR.call('POST', '/api/token/check', { token: frToken });
     const frAfterSecond = frExpires();
     check('Das zweite Oeffnen traegt ebenfalls', frSecond.status === 200, `Status ${frSecond.status}`);
-    /* UND ES SCHIEBT DIE FRIST NICHT WEITER. */
     check('Und es schiebt die Frist nicht weiter',
       frAfterSecond === frAfterFirst, `vorher ${frAfterFirst}, nachher ${frAfterSecond}`);
     check('Das dritte ebenso wenig',
       (await FR.call('POST', '/api/token/check', { token: frToken })).status === 200 &&
       frExpires() === frAfterFirst, `${frExpires()} gegen ${frAfterFirst}`);
 
-    /* UND SIE LAEUFT WIRKLICH AB. */
     {
       const d = open(path.join(frDir, 'katalog.sqlite'));
       try { d.prepare("UPDATE tokens SET expires_at = datetime('now', '-1 seconds') WHERE used_at IS NULL").run(); }
@@ -10619,8 +9418,6 @@ async function sendImport(object, mode, withoutShare = false) {
       /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/.test(frExpires() || ''), JSON.stringify(frExpires()));
     const frFrom = await FR.call('POST', '/api/token/check', { token: frToken });
     check('Nach der Frist traegt der Link nicht mehr', frFrom.status === 400, `Status ${frFrom.status}`);
-    /* DIE ABSAGE BLEIBT DIE EINE aus 0.8.80 -- sie sagt NICHT, dass die Frist
-       schuld war. */
     check('Und die Absage ist die eine bekannte, ohne eigenen Grund',
       frFrom.content?.error === 'Dieser Link gilt nicht mehr. Bitte beim Admin einen neuen anfordern.' &&
       !/Minute|Frist/i.test(frFrom.content?.error || ''), JSON.stringify(frFrom.content?.error));
@@ -10629,14 +9426,11 @@ async function sendImport(object, mode, withoutShare = false) {
         { token: frToken, password: 'verspaetetes-passwort' })).status === 400,
       'ein Link nach der Frist setzt noch ein Passwort');
 
-    /* DER ZUGANG BLEIBT STEHEN. Wer die Frist verstreichen laesst, holt sich
-       einen neuen Link -- der Zugang selbst wird nicht abgeraeumt. */
     const frList = (await FR.call('GET', '/api/users')).content?.users || [];
     const frBert = frList.find(z => z.username === 'bert');
     check('Der Zugang steht danach unveraendert da',
       Boolean(frBert) && frBert.status === 'active' && frBert.withoutPassword === true,
       JSON.stringify(frBert));
-    /* UND EIN NEUER LINK TRAEGT WIEDER SIEBEN TAGE. */
     await FR.call('POST', '/api/confirm',
       { password: 'annas-langes-wort', purpose: 'link', target: frBert.id });
     const frAgain = await FR.call('POST', `/api/users/${frBert.id}/token`, { purpose: 'invite' });
@@ -10651,8 +9445,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Der Token: die Absage sieht immer gleich aus');
 
-  /* ENTSCHIEDEN: EINE Absage fuer alle Faelle -- abgelaufen, schon benutzt,
-     erfunden, Zugang gesperrt, Grabstein. */
+  /* Fuenf Faelle: abgelaufen, benutzt, erfunden, gesperrt, Grabstein. */
   const tkExpiresLink = (await tkF('cookie-tk-anna')('POST', '/api/users/3/token',
     { purpose: 'reset' })).content?.token || '';
   tkSetExpires(3, '-1 seconds');
@@ -10660,11 +9453,8 @@ async function sendImport(object, mode, withoutShare = false) {
     { purpose: 'invite' })).content?.token || '';
   await tkCall(null, 'POST', '/api/token/redeem',
     { token: tkUsedLink, password: 'ernas-passwort-1' });
-  /* DIE BEIDEN LAGEN "locked" UND "Grabstein" WERDEN VON HAND GESETZT, und
-     das ist kein Kunstgriff, sondern die einzige Art, sie ueberhaupt zu
-     erreichen: das Sperren und das Entfernen raeumen die offenen Links selbst
-     mit weg, und erzeugeToken() legt an einem nicht-aktiven Zugang gar keinen
-     erst an. */
+  /* locked und Grabstein von Hand: Sperren und Entfernen loeschen offene Links,
+     und an einem nicht aktiven Zugang entsteht keiner. */
   await tkCall('cookie-tk-anna', 'PUT', '/api/users/5', { status: 'locked' });
   const tkFromHand = (name, userId) => {
     const plainText = crypto.randomBytes(32).toString('hex');
@@ -10705,8 +9495,7 @@ async function sendImport(object, mode, withoutShare = false) {
     tkDenials.map(a => `${a.name}: ${a.status}`).join(' · '));
   check('Die Absage nennt das Heilmittel',
     /beim Admin einen neuen/.test(tkDenials[0].raw), tkDenials[0].raw);
-  /* UND DIE GEGENPROBE ZUR PRUEFUNG SELBST: sie darf nicht deshalb gruen
-     sein, weil alle Antworten leer sind. */
+  /* Gegenprobe: sonst waere die Pruefung auch bei lauter leeren Antworten gruen. */
   const tkGood = (await tkF('cookie-tk-anna')('POST', '/api/users/3/token',
     { purpose: 'reset' })).content?.token || '';
   const tkGoodResponse = await tkCall(null, 'POST', '/api/token/check', { token: tkGood });
@@ -10717,7 +9506,6 @@ async function sendImport(object, mode, withoutShare = false) {
     tkGoodResponse.raw.includes('carla') && !tkDenials.some(a => a.raw.includes('carla')),
     `${tkGoodResponse.raw} gegen ${tkDenials[0].raw}`);
   await tkCall('cookie-tk-anna', 'PUT', '/api/users/5', { status: 'active' });
-  /* DIE VON HAND GESETZTEN ZEILEN WERDEN AUCH VON HAND WIEDER WEGGERAEUMT. */
   {
     const d = open(path.join(tkDir, 'katalog.sqlite'));
     d.prepare('DELETE FROM tokens WHERE user_id IN (5, 6)').run();
@@ -10730,9 +9518,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Der Token: beim Einloesen faellt alles Offene');
 
-  /* DREI ZUSICHERUNGEN AUF EINMAL, und jede braucht ihren eigenen Beleg: die
-     Sitzungen DIESES Benutzers fallen, die eines ANDEREN bleiben stehen, und
-     alle uebrigen offenen Links desselben Benutzers fallen mit. */
+  /* Eigene Sitzungen fallen, fremde bleiben, uebrige offene Links fallen mit. */
   {
     const d = open(path.join(tkDir, 'katalog.sqlite'));
     for (const [t, u] of [['cookie-tk-erna-1', 5], ['cookie-tk-erna-2', 5], ['cookie-tk-dora', 4]])
@@ -10747,7 +9533,6 @@ async function sendImport(object, mode, withoutShare = false) {
     (await tkCall('cookie-tk-dora', 'GET', '/api/account')).status === 200,
     'die fremde Sitzung traegt schon vorher nicht');
 
-  // ZWEI offene Links fuer erna -- der zweite muss mitfallen.
   const tkErnaOne = (await tkF('cookie-tk-anna')('POST', '/api/users/5/token',
     { purpose: 'reset' })).content?.token || '';
   const tkErnaTwo = (await tkF('cookie-tk-anna')('POST', '/api/users/5/token',
@@ -10773,9 +9558,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Doras Sitzung bleibt unberuehrt stehen',
     (await tkCall('cookie-tk-dora', 'GET', '/api/account')).status === 200,
     'eine fremde Sitzung ist mitgefallen');
-  /* IN DER TABELLE BLEIBT GENAU EINE -- und das ist keine Ausnahme von der
-     Regel, sondern ihre Folge: erst fallen ALLE, dann entsteht die des
-     Einloesenden. */
   const tkErnaSitz = tkRows('SELECT token FROM sessions WHERE user_id = 5').map(z => z.token);
   check('In der Tabelle steht genau eine Sitzung von erna -- die frische',
     tkErnaSitz.length === 1 && !tkErnaSitz.includes('cookie-tk-erna-1') &&
@@ -10791,8 +9573,8 @@ async function sendImport(object, mode, withoutShare = false) {
     tkRows('SELECT hash FROM tokens WHERE user_id = 5 AND used_at IS NOT NULL').length === 1,
     JSON.stringify(tkRows('SELECT used_at FROM tokens WHERE user_id = 5')));
 
-  /* Und dieselbe Frage am SPERREN und am ENTFERNEN: ein offener Link, der
-     eine frische Sperre ueberlebte, waere ein Weg an ihr vorbei. */
+  /* Auch Sperren und Entfernen loeschen offene Links; sonst fuehrte ein Link an
+     der Sperre vorbei. */
   const tkLockLink = (await tkF('cookie-tk-anna')('POST', '/api/users/5/token',
     { purpose: 'reset' })).content?.token || '';
   check('Vor dem Sperren traegt der Link',
@@ -10820,8 +9602,6 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Der Zugang ohne Passwort kann sich nicht anmelden');
 
-  /* NACHGESTELLT STATT GEGLAUBT, und mit JEDEM Passwort -- auch mit dem
-     leeren und mit dem Wert, der im Feld steht. */
   const tkWithout = await tkCall('cookie-tk-anna', 'POST', '/api/users',
     { username: 'stumm', sendInvite: true });
   check('Ein Zugang ohne Passwort ist angelegt',
@@ -10838,13 +9618,11 @@ async function sendImport(object, mode, withoutShare = false) {
     check(`Die Anmeldung scheitert mit ${name} Passwort`,
       a.status === 401, `${a.status} ${a.raw}`);
   }
-  /* DER ERFOLGSFALL DANEBEN: ohne ihn belegte die Reihe
-     oben nur, dass sich ueberhaupt niemand anmelden kann. */
+  /* Gegenprobe: sonst belegte die Reihe oben nur, dass niemand hereinkommt. */
   check('Ein Zugang MIT Passwort kommt daneben herein',
     (await tkCall(null, 'POST', '/api/login', { user: 'dora', password: TK_PASSWORD })).status === 200,
     'auch der gute Fall scheitert -- die Prueflage taugt nichts');
-  /* UND DER VIERTE ZUSTAND, DEN ES NICHT GIBT: abgeleitet wird aus dem leeren
-     Hash, nicht aus einem neuen Wert in status. */
+  /* Kein vierter Wert in status: der Zustand folgt aus dem leeren Hash. */
   const tkList = (await tkCall('cookie-tk-anna', 'GET', '/api/users')).content?.users || [];
   const tkFind = (n) => tkList.find(z => z.username === n) || {};
   check('Die Liste ist ueberhaupt gefuellt',
@@ -10866,8 +9644,6 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Der Token: die Rechte am Einladen');
 
-  /* ZWEI VORBEREITETE SITZUNGEN, ZU JEDER VERWEIGERUNG DER ERFOLGSFALL
-     DANEBEN UND DIE NACHSCHAU, DASS NICHTS GESCHRIEBEN WURDE. */
   const tkOpen = () => tkRows('SELECT hash FROM tokens WHERE used_at IS NULL').length;
 
   // Erst der Erfolgsfall, damit die Verweigerungen daneben etwas bedeuten.
@@ -10882,11 +9658,8 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Ein Admin ohne Eigentuemerrolle darf einen Benutzer ebenfalls',
     tkBertMay.status === 200, `${tkBertMay.status} ${tkBertMay.raw}`);
 
-  /* Die Verweigerungen. */
-  /* DIE FREIGABE WIRD MITGEHOLT, und das gehoert begruendet: ohne sie
-     antwortete jeder dieser Wege mit der Bestaetigungsfrage statt mit der
-     Absage, die hier der Gegenstand ist -- die Pruefung waere gruen und
-     belegte etwas anderes. */
+  /* Mit Freigabe: sonst antwortete jeder Weg mit der Bestaetigungsfrage statt
+     mit der Absage, um die es hier geht. */
   const tkNothing = async (name, cookieValue, filePath, body, expected) => {
     const before = tkOpen();
     const a = await tkF(cookieValue)('POST', filePath, body);
@@ -10896,8 +9669,8 @@ async function sendImport(object, mode, withoutShare = false) {
   };
   await tkNothing('Eine gewoehnliche Benutzerin darf gar nicht einladen',
     'cookie-tk-dora-neu', '/api/users/4/token', { purpose: 'reset' }, 401);
-  // Eine echte Sitzung fuer dora, damit die Absage aus der ROLLE kommt und
-// nicht daraus, dass gar niemand angemeldet ist.
+  // Echte Sitzung fuer dora: die Absage soll aus der Rolle kommen, nicht aus
+  // der fehlenden Anmeldung.
   {
     const d = open(path.join(tkDir, 'katalog.sqlite'));
     d.prepare("INSERT INTO sessions (token, user_id) VALUES ('cookie-tk-dora-echt', 4)").run();
@@ -10920,17 +9693,12 @@ async function sendImport(object, mode, withoutShare = false) {
     'cookie-tk-anna', '/api/users/999/token', { purpose: 'reset' }, 404);
   await tkNothing('Einen Zweck, den es nicht gibt, weist der Server ab',
     'cookie-tk-anna', '/api/users/4/token', { purpose: 'irgendwas' }, 400);
-  /* Die Gegenrichtung zur Rollenleiter: an einen ADMIN kommt der EIGENTUEMER
-     sehr wohl. */
   const tkAnnaAnAdmin = await tkF('cookie-tk-anna')('POST', '/api/users/2/token',
     { purpose: 'reset' });
   check('An einen Admin kommt der Eigentuemer der Instanz',
     tkAnnaAnAdmin.status === 200, `${tkAnnaAnAdmin.status} ${tkAnnaAnAdmin.raw}`);
 
-  /* Dieselbe Frage am ANLEGEWEG: ein Admin darf einen Benutzer anlegen und
-     einladen, eine Rolle vergeben darf er nicht -- sonst waere die Rollen-
-     vergabe ueber das Anlegen fuer jeden Admin offen, ohne dass irgendwo
-     "Rolle" steht. */
+  /* Anlegen mit Einladung darf ein Admin, eine Rolle vergeben darf er dabei nicht. */
   const tkBertPutsAn = await tkCall('cookie-tk-bert', 'POST', '/api/users',
     { username: 'berts-neuer', sendInvite: true });
   check('Ein Admin legt einen Benutzer mit Einladung an',
@@ -10950,8 +9718,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Die Eigentuemerin darf es',
     tkAnnaAdmin.status === 200 && tkAnnaAdmin.content?.role === 'admin',
     `${tkAnnaAdmin.status} ${tkAnnaAdmin.raw}`);
-  /* Und der Weg ohne Einladung bleibt, wie er war: ein vergessenes
-     Passwortfeld legt KEINEN Zugang ohne Passwort an, sondern scheitert. */
   const tkForgotten = await tkCall('cookie-tk-anna', 'POST', '/api/users', { username: 'vergessen' });
   check('Ein vergessenes Passwortfeld scheitert weiter wie bisher',
     tkForgotten.status === 400 && /mindestens 10/.test(tkForgotten.content?.error || ''),
@@ -10966,9 +9732,8 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Der Token: die Bremse greift vor der Anmeldung');
 
-  /* EIGENER SERVER, und das ist keine Umstaendlichkeit: die Zaehler der
-     Anmeldebremse liegen im Arbeitsspeicher des Prozesses, und zehn
-     Fehlversuche vergifteten jede andere Prueflage auf derselben Adresse. */
+  /* Eigener Server: die Zaehler der Anmeldebremse liegen im Speicher des
+     Prozesses und stoerten sonst jede andere Prueflage auf derselben Adresse. */
   const tbDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-tokenbremse-'));
   {
     shortRun(`require('./db'); console.log('da');`, tbDir);
@@ -10978,8 +9743,7 @@ async function sendImport(object, mode, withoutShare = false) {
     d.prepare("INSERT INTO sessions (token, user_id) VALUES ('cookie-tb-anna', 1)").run();
     d.close();
   }
-  // Der eine Erfolgsfall dieser Lage laeuft ueber das Erzeugen eines Links --
-// und das verlangt seit 0.8.90 ein echtes Passwort.
+  // Der Erfolgsfall erzeugt einen Link, und das verlangt ein echtes Passwort.
   const tbWord = 'annas-langes-wort';
   setPasswordImInventory(tbDir, 'anna', tbWord);
   const TB = startFurtherServer(tbDir, {}, 4740);
@@ -10997,10 +9761,8 @@ async function sendImport(object, mode, withoutShare = false) {
     return { status: a.status, raw };
   };
 
-  // Ein gueltiger Link, damit der Erfolgsfall daneben steht.
-  /* DIE FREIGABE ZUERST -- und ausdruecklich VOR den zwoelf Fehlversuchen
-     darunter: die Bremse zaehlt je Adresse, und eine Bestaetigung nach dem
-     elften Versuch kaeme selbst nicht mehr durch. */
+  /* Die Freigabe vor den zwoelf Fehlversuchen: die Bremse zaehlt je Adresse und
+     liesse die Bestaetigung danach nicht mehr durch. */
   await tbCall('cookie-tb-anna', 'POST', '/api/confirm',
     { password: tbWord, purpose: 'link', target: 2 });
   const tbGood = JSON.parse((await tbCall('cookie-tb-anna', 'POST', '/api/users/2/token',
@@ -11013,9 +9775,8 @@ async function sendImport(object, mode, withoutShare = false) {
     const a = await tbCall(null, 'POST', '/api/token/check', { token: 'a'.repeat(64) });
     tbLevels.push(a.status);
   }
-  /* DER ZEHNTE VERSUCH WIRD NOCH BEANTWORTET, DER ELFTE IST DER ERSTE
-     GESPERRTE, und das ist kein Nebenbefund: checkThrottle liest den Zaehler,
-     BEVOR noteFailure ihn hochzaehlt. */
+  /* Der elfte Versuch ist der erste gesperrte: checkThrottle liest den Zaehler,
+     bevor noteFailure ihn erhoeht. */
   check('Die ersten zehn Fehlversuche werden abgewiesen, nicht gesperrt',
     tbLevels.slice(0, 10).every(s => s === 400), JSON.stringify(tbLevels));
   check('Ab dem elften schlaegt die Bremse zu -- 429 statt 400',
@@ -11030,14 +9791,9 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und die Sperre nennt die verbleibende Zeit',
     /Sekunden erneut/.test((await tbCall(null, 'POST', '/api/token/check',
       { token: tbGood })).raw), 'die Sperre sagt nicht, wie lange');
-  /* DIE ANMELDUNG STEHT HINTER DEMSELBEN ZAEHLER -- die IP-Haelfte ist EINE,
-     und das gehoert belegt: sonst waere die neue Route ein Umweg, der den
-     Zaehler der Anmeldung gar nicht beruehrt. */
   check('Der Zaehler ist derselbe wie bei der Anmeldung',
     (await tbCall(null, 'POST', '/api/login', { user: 'anna', password: 'x' })).status === 429,
     'die Anmeldung zaehlt getrennt');
-  /* Und die Gegenrichtung: das Passwort war NICHT falsch -- die vorbereitete
-     Sitzung traegt weiter. Die Bremse sperrt das Raten, nicht den Betrieb. */
   check('Eine bestehende Sitzung traegt trotz der Sperre weiter',
     (await tbCall('cookie-tb-anna', 'GET', '/api/account')).status === 200,
     'die Bremse wirft angemeldete Benutzer hinaus');
@@ -11048,8 +9804,6 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Meine Sitzungen: nur die eigenen');
 
-  /* ZWEI BENUTZER MIT JE ZWEI SITZUNGEN, und die Nachschau, dass keine fremde
-     Zeile durchkommt. */
   const msDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-sitzungen-'));
   {
     shortRun(`require('./db'); console.log('da');`, msDir);
@@ -11095,13 +9849,11 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Die eigenen Anmeldungen kommen ueberhaupt',
     msAnna.status === 200 && Array.isArray(msAnna.content?.sessions),
     `${msAnna.status} ${msAnna.raw}`);
-  /* JEDE LESESTELLE IST ABGEFANGEN. */
   const msList = (a) => (a && a.content && Array.isArray(a.content.sessions))
     ? a.content.sessions : [];
   check('Es sind genau die zwei eigenen',
     msList(msAnna).length === 2, `${msList(msAnna).length} Zeilen`);
-  /* DIE NACHSCHAU, DASS KEINE FREMDE ZEILE DURCHKOMMT -- gerechnet gegen die
-     Kennungen der fremden Sitzungen, nicht bloss gegen die Zahl. */
+  /* Gegen die Kennungen der fremden Sitzungen, nicht nur gegen die Zahl. */
   const msId = (t) => crypto.createHash('sha256').update(t).digest('hex');
   const msOwn = msList(msAnna).map(z => z.id);
   check('Und es sind wirklich annas beide',
@@ -11118,8 +9870,7 @@ async function sendImport(object, mode, withoutShare = false) {
       .every(z => [msId('cookie-ms-carla-1'), msId('cookie-ms-carla-2')].includes(z.id)),
     JSON.stringify(msList(await msCall('cookie-ms-carla-1', 'GET', '/api/sessions')).map(z => z.id)));
 
-  /* DER SITZUNGSTOKEN SELBST STEHT IN KEINER ANTWORT -- er ist das Geheimnis,
-     die Kennung ist nur sein Bild. Geprueft am vollen Rumpf. */
+  /* Die Kennung ist der Hash des Tokens; geprueft am vollen Rumpf. */
   check('Der Sitzungstoken steht in keiner Antwort',
     !msAnna.raw.includes('cookie-ms-anna-1') && !msAnna.raw.includes('cookie-ms-anna-2'),
     msAnna.raw.slice(0, 200));
@@ -11133,7 +9884,6 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify(msList(msAnna)));
   check('Und die Frist von dreissig Tagen rechnet der Server, nicht die Karte',
     msAnna.content.days === 30, JSON.stringify(msAnna.content.days));
-  /* WAS AUSDRUECKLICH NICHT DASTEHT: keine Adresse, kein Browserkopf. */
   check('Weder Adresse noch Browserkopf stehen in der Antwort',
     !/ip|agent|browser|gerae?t/i.test(msAnna.raw), msAnna.raw.slice(0, 200));
 
@@ -11146,14 +9896,11 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und es ist die, mit der gefragt wurde',
     msList(msAnna).find(z => z.current)?.id === msId('cookie-ms-anna-1'),
     JSON.stringify(msList(msAnna).find(z => z.current)));
-  /* DIE GEGENLAGE: dieselbe Liste, aus der ANDEREN Sitzung gefragt, markiert
-     die andere. */
   const msAnna2 = await msCall('cookie-ms-anna-2', 'GET', '/api/sessions');
   check('Aus der anderen Sitzung gefragt, ist die andere markiert',
     msList(msAnna2).find(z => z.current)?.id === msId('cookie-ms-anna-2'),
     JSON.stringify(msList(msAnna2).find(z => z.current)));
 
-  // Eine einzelne fremde Sitzung beenden.
   const msPath = await msCall('cookie-ms-anna-1', 'DELETE',
     `/api/sessions/${msId('cookie-ms-anna-2')}`);
   check('Eine einzelne andere Anmeldung laesst sich beenden',
@@ -11168,7 +9915,6 @@ async function sendImport(object, mode, withoutShare = false) {
     msRows('SELECT token FROM sessions WHERE user_id = 2').length === 2,
     JSON.stringify(msRows('SELECT token FROM sessions WHERE user_id = 2')));
 
-  // Eine FREMDE Sitzung ueber die Kennung -- geht nicht.
   const msForeign = await msCall('cookie-ms-anna-1', 'DELETE',
     `/api/sessions/${msId('cookie-ms-carla-1')}`);
   check('Eine fremde Anmeldung laesst sich nicht beenden',
@@ -11176,7 +9922,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und carlas Sitzung traegt weiter',
     (await msCall('cookie-ms-carla-1', 'GET', '/api/account')).status === 200,
     'die fremde Sitzung ist gefallen');
-  // Die EIGENE ueber diesen Weg -- ebenfalls nicht.
   const msSelf = await msCall('cookie-ms-anna-1', 'DELETE',
     `/api/sessions/${msId('cookie-ms-anna-1')}`);
   check('Die eigene geht ueber Abmelden, nicht ueber diesen Weg',
@@ -11186,7 +9931,7 @@ async function sendImport(object, mode, withoutShare = false) {
     (await msCall('cookie-ms-anna-1', 'GET', '/api/account')).status === 200,
     'die eigene ist doch gefallen');
 
-  // "Alle anderen beenden" -- und die eigene faellt NICHT mit.
+  // "Alle anderen beenden": die eigene faellt nicht mit.
   {
     const d = open(path.join(msDir, 'katalog.sqlite'));
     for (const t of ['cookie-ms-anna-3', 'cookie-ms-anna-4'])
@@ -11218,15 +9963,9 @@ async function sendImport(object, mode, withoutShare = false) {
   await MS.stop();
   fs.rmSync(msDir, { recursive: true, force: true });
 
-  /* ================================================================ 0.8.90 —
-     Das Sicherheitsprotokoll und die zweite Bestaetigung
-     ================================================================ EINE
-     LAGE FUER BEIDE, und das ist keine Bequemlichkeit: das Protokoll ist die
-     Tabelle, in die die zweite Bestaetigung schreibt, und jede Handlung
-     hinter der Schranke hinterlaesst dort ihre Zeile. */
+  /* ---------------------------------------------------------------- */
   group('Das Sicherheitsprotokoll: die Tabelle legt sich selbst an');
 
-  /* NACHGESTELLT STATT ABGESCHRIEBEN, ZUM DRITTEN MAL. */
   {
     const spDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-prottab-'));
     shortRun(`require('./db'); console.log('da');`, spDir);
@@ -11265,8 +10004,6 @@ async function sendImport(object, mode, withoutShare = false) {
         .all().map(z => z.name);
       check('Und den Index auf am, ebenfalls ohne Migration',
         idx.includes('idx_log_at'), JSON.stringify(idx));
-      /* UND DIE ANDERE HAELFTE DERSELBEN ENTSCHEIDUNG: sessions bekommt KEINE
-         Spalte. */
       const sColumns = d.prepare('PRAGMA table_info(sessions)').all().map(c => c.name);
       check('sessions traegt unveraendert genau seine vier Spalten',
         equal(sColumns, ['token', 'user_id', 'created_at', 'last_seen']), JSON.stringify(sColumns));
@@ -11276,8 +10013,7 @@ async function sendImport(object, mode, withoutShare = false) {
                           'status', 'last_login', 'created_at']), JSON.stringify(uColumns));
       d.close();
     }
-    /* DIE GEGENLAGE, wie in den beiden Runden zuvor: eine SPALTE kommt nicht
-       von selbst zurueck. */
+    /* Gegenprobe: eine fehlende Spalte legt der Start nicht selbst an. */
     {
       const d = open(spFile);
       d.pragma('foreign_keys = OFF');
@@ -11340,8 +10076,7 @@ async function sendImport(object, mode, withoutShare = false) {
     d.prepare(sql).run(...w);
     d.close();
   };
-  // Alles seit der letzten Marke. Ohne diese Form zaehlte jede Pruefung die
-// Zeilen aller vorherigen mit, und "genau eine" waere nie wahr.
+  // Zeilen seit der letzten Marke; sonst zaehlte jede Pruefung die vorherigen mit.
   const prMark = () => prRows('SELECT COALESCE(MAX(id), 0) m FROM security_log')[0].m;
   const prSince = (m) => prRows(
     'SELECT id, at, event, actor, target, detail FROM security_log WHERE id > ? ORDER BY id', m);
@@ -11349,8 +10084,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const PR_ANNA = 'annas-langes-wort', PR_BERT = 'berts-langes-wort';
   const PR_CARLA = 'carlas-langes-wort', PR_DORA = 'doras-langes-wort';
 
-  /* Die Einrichtung ist der erste Vorgang der Instanz -- und sie schreibt ZWEI
-     Zeilen: der Zugang entsteht, und die Anmeldung gelingt gleich mit. */
+  /* Zwei Zeilen: der Zugang entsteht, und die Anmeldung gelingt gleich mit. */
   await PR.call('POST', '/api/setup', { user: 'anna', password: PR_ANNA });
   const prFirst = prRows('SELECT event, actor, target, detail FROM security_log ORDER BY id');
   check('Die Einrichtung schreibt genau zwei Zeilen',
@@ -11366,8 +10100,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const prAnna = await prLogin('anna', PR_ANNA);
   const prAnnaF = includingShare((m, p, k) => prCall(prAnna, m, p, k), PR_ANNA);
 
-  // Die uebrigen Zugaenge entstehen ueber die Verwaltung -- die ist ja gerade
-// einer der Vorgaenge, die festgehalten werden.
+  // Ueber die Verwaltung, weil das Anlegen selbst protokolliert wird.
   let m = prMark();
   const prBertAn = await prCall(prAnna, 'POST', '/api/users', { username: 'bert', password: PR_BERT });
   const prBertId = prBertAn.content?.id;
@@ -11379,8 +10112,6 @@ async function sendImport(object, mode, withoutShare = false) {
   const prCarlaId = prRows("SELECT id FROM users WHERE username='carla'")[0].id;
   const prDoraId = prRows("SELECT id FROM users WHERE username='dora'")[0].id;
 
-  /* DIE GESCHEITERTE ANMELDUNG -- die einzige Zeile, die ein Fremder
-     ausloesen kann. */
   m = prMark();
   await PR.call('POST', '/api/login', { user: 'anna', password: 'ganz-falsch-hier' });
   check('Eine gescheiterte Anmeldung an einem bekannten Namen nennt ihn als Ziel',
@@ -11395,8 +10126,7 @@ async function sendImport(object, mode, withoutShare = false) {
     !JSON.stringify(prRows('SELECT * FROM security_log')).includes('gibtesnicht'),
     'der getippte Name ist in der Tabelle gelandet');
 
-  /* DIE VIER SCHWEREN WEGE AN EINEM FREMDEN ZUGANG, jeder einzeln und jeder
-     mit seiner Zeile. Gepruefte Reihenfolge: Rolle, Status, Passwort, Link. */
+  /* Vier Wege an einem fremden Zugang: Rolle, Status, Passwort, Link. */
   m = prMark();
   await prAnnaF('PUT', `/api/users/${prDoraId}`, { role: 'admin' });
   check('Eine vergebene Rolle schreibt eine Zeile mit der neuen Rolle',
@@ -11427,8 +10157,6 @@ async function sendImport(object, mode, withoutShare = false) {
     equal(prSince(m).map(z => [z.event, z.actor, z.target, z.detail]),
            [['link.new', 1, prDoraId, 'reset']]), JSON.stringify(prSince(m)));
 
-  /* DAS EINLOESEN. Der Einloesende handelt an sich selbst -- und weil dabei
-     eine Sitzung entsteht, steht die Anmeldung daneben. */
   m = prMark();
   await PR.call('POST', '/api/token/redeem',
     { token: prLink.content?.token, password: 'doras-linkwort-neu' });
@@ -11437,8 +10165,8 @@ async function sendImport(object, mode, withoutShare = false) {
            [['link.use', prDoraId, prDoraId, 'reset'],
             ['login.ok', prDoraId, prDoraId, null]]), JSON.stringify(prSince(m)));
 
-  /* DER EIGENE ZUGANG. Drei Lagen, drei Merkmale -- und die vierte, die KEINE
-     Zeile schreibt: ein Aufruf, der nichts bewegt, ist kein Vorgang. */
+  /* Eigener Zugang: drei Aenderungen mit je einem Merkmal; ein Aufruf ohne
+     Aenderung schreibt keine Zeile. */
   const prBert = await prLogin('bert', PR_BERT);
   m = prMark();
   await prCall(prBert, 'PUT', '/api/account', { oldPassword: PR_BERT, username: 'bert2' });
@@ -11461,7 +10189,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Ein Aufruf, der nichts bewegt, schreibt gar keine Zeile',
     prSince(m).length === 0, JSON.stringify(prSince(m)));
 
-  /* EXPORT UND IMPORT -- die beiden, die die Instanz als GANZES betreffen. */
   m = prMark();
   await prAnnaF('GET', '/api/export?photos=0');
   check('Ein Export schreibt eine Zeile ohne Ziel',
@@ -11490,15 +10217,13 @@ async function sendImport(object, mode, withoutShare = false) {
     equal(prSince(m).map(z => [z.event, z.actor, z.detail]), [['import', 1, 'merge']]),
     JSON.stringify(prSince(m)));
 
-  /* DAS ENTFERNEN steht ganz am Ende dieser Reihe: danach ist der Zugang ein
-     Grabstein, und alles Weitere an ihm scheiterte. */
+  /* Zuletzt: danach ist der Zugang ein Grabstein, und alles Weitere scheitert. */
   m = prMark();
   await prAnnaF('DELETE', `/api/users/${prDoraId}`);
   check('Ein entfernter Zugang schreibt eine Zeile',
     equal(prSince(m).map(z => [z.event, z.actor, z.target]), [['user.delete', 1, prDoraId]]),
     JSON.stringify(prSince(m)));
-  /* UND DIE ZEILE BLEIBT LESBAR: der Grabstein behaelt seine Nummer, ziel
-     zeigt weiterhin auf etwas -- nur der Name faellt weg, wie ueberall. */
+  /* Der Grabstein behaelt seine Nummer, nur der Name faellt weg. */
   const prAfterPath = (await prCall(prAnna, 'GET', '/api/security-log')).content?.rows || [];
   const prPathRow = prAfterPath.find(z => z.event === 'user.delete');
   check('Sie steht danach in der Antwort',
@@ -11507,8 +10232,6 @@ async function sendImport(object, mode, withoutShare = false) {
     prPathRow?.target === prDoraId && prPathRow?.targetName === null,
     JSON.stringify(prPathRow));
 
-  /* EIN GESCHEITERTER VORGANG SCHREIBT NICHTS -- mit den beiden benannten
-     Ausnahmen, bei denen das Scheitern selbst der Vorgang ist. */
   m = prMark();
   await prAnnaF('PUT', `/api/users/${prCarlaId}`, { password: 'kurz' });
   await prAnnaF('PUT', `/api/users/${prCarlaId}`, { role: 'kaiserin' });
@@ -11519,11 +10242,9 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Das Sicherheitsprotokoll: kein Geheimnis in einer Zeile');
 
-  /* GEPRUEFT AM VOLLSTAENDIGEN ZEILENINHALT UEBER ALLE SPALTEN ALLER ZEILEN,
-     nicht an einem Feld: eine Pruefung, die nur detail ansieht, bliebe gruen,
-     wenn ein Geheimnis in was oder in einer neuen Spalte landete. */
+  /* Alle Spalten aller Zeilen: ein Geheimnis in einer anderen Spalte als detail
+     bliebe sonst unentdeckt. */
   const prEverything = () => JSON.stringify(prRows('SELECT * FROM security_log'));
-  /* EIN FRISCHER LINK FUER DIESE GRUPPE. */
   const prFresh = await prAnnaF('POST', `/api/users/${prCarlaId}/token`, { purpose: 'reset' });
   const prFreshHash = crypto.createHash('sha256').update(String(prFresh.content?.token)).digest('hex');
   check('Es liegen ueberhaupt Zeilen vor',
@@ -11535,8 +10256,6 @@ async function sendImport(object, mode, withoutShare = false) {
     'der Schluessel eines Links steht im Protokoll');
   check('Und auch nicht sein HASH',
     !prEverything().includes(prFreshHash), 'der Hash des Links steht im Protokoll');
-  /* DIE GEGENPROBE ZUR NACHSCHAU SELBST: sie darf nicht deshalb gruen sein,
-     weil sie gar nichts sieht. */
   check('Die Nachschau sieht ueberhaupt etwas: in tokens steht der Hash',
     JSON.stringify(prRows('SELECT * FROM tokens')).includes(prFreshHash),
     'die Nachschau findet den Hash auch dort nicht');
@@ -11547,16 +10266,13 @@ async function sendImport(object, mode, withoutShare = false) {
   }
   check('Und kein scrypt-Hash steht darin',
     !prEverything().includes('scrypt$'), 'ein Hash steht im Protokoll');
-  /* DER SCHLUESSEL DER DATENBANK gehoert erst recht nicht hinein. */
   check('Und der Schluessel der Datenbank ebenso wenig',
     !prEverything().includes(KEY), 'der Schluessel steht im Protokoll');
 
   /* ---------------------------------------------------------------- */
   group('Das Sicherheitsprotokoll: die Frist an beiden Seiten');
 
-  /* DER AUSGANGSWERT WIRD VON HAND GESETZT: datetime('now')
-     loest nur Sekunden auf, und eine Frist von 180 Tagen laesst sich an einer
-     frisch geschriebenen Zeile gar nicht pruefen. */
+  /* Alter von Hand setzen: 180 Tage lassen sich nicht abwarten. */
   const prSetAge = (id, modifier) => {
     prWrite("UPDATE security_log SET at = datetime('now', ?) WHERE id = ?", modifier, id);
     return prRows('SELECT at FROM security_log WHERE id = ?', id)[0]?.at;
@@ -11589,9 +10305,8 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Das Sicherheitsprotokoll: das Aufraeumen an beiden Aufrufstellen');
 
-  /* BEIDE AUFRUFSTELLEN EINZELN, und die fuer den Start laeuft gegen einen
-     ECHTEN SERVERSTART -- nicht gegen einen kurzen Lauf, der die Funktion
-     selbst ruft. */
+  /* Die Aufrufstelle beim Start, gegen einen echten Serverstart statt einen
+     kurzen Lauf. */
   {
     const raDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-protraeum-'));
     shortRun(`require('./db'); console.log('da');`, raDir);
@@ -11628,15 +10343,11 @@ async function sendImport(object, mode, withoutShare = false) {
     await RA.stop();
     fs.rmSync(raDir, { recursive: true, force: true });
   }
-  /* Die zweite Aufrufstelle steht an GET /api/security-log und ist in der
-     Gruppe darueber belegt -- dort faellt die 181 Tage alte Zeile an einem
-     laufenden Server, ohne dass er neu startet. */
+  /* Die zweite Aufrufstelle, GET /api/security-log, prueft die Gruppe davor. */
 
   /* ---------------------------------------------------------------- */
   group('Das Sicherheitsprotokoll: wer es sehen darf');
 
-  /* ZWEI VORBEREITETE SITZUNGEN, ZU JEDER VERWEIGERUNG DER ERFOLGSFALL
-     DANEBEN -- UND EIN ADMIN OHNE EIGENTUEMERROLLE. */
   const prCarla = await prLogin('carla', PR_CARLA);
   const prBertFresh = await prLogin('bert', PR_BERT);
   const prView = await prCall(prAnna, 'GET', '/api/security-log');
@@ -11652,15 +10363,12 @@ async function sendImport(object, mode, withoutShare = false) {
     (await prCall(prBertFresh, 'GET', '/api/security-log')).status === 403);
   check('Und ohne Anmeldung gibt es gar nichts',
     (await prCall(null, 'GET', '/api/security-log')).status === 401);
-  /* UND KEIN WEG HINAUS AUSSER DER FRIST. */
   check('Es gibt keine Route, die das Protokoll leert',
     (await prCall(prAnna, 'DELETE', '/api/security-log')).status === 404,
     'eine Loeschroute antwortet');
   check('Auch nicht auf eine einzelne Zeile',
     (await prCall(prAnna, 'DELETE', '/api/security-log/1')).status === 404,
     'eine Loeschroute auf die Zeile antwortet');
-  /* Und die Zahl daneben: die Karte holt hoechstens hundert Zeilen, nennt
-     aber die Gesamtzahl. */
   check('Die Antwort nennt Grenze und Gesamtzahl',
     prView.content?.limit === 100 && prView.content?.total >= prView.content?.rows.length,
     JSON.stringify({ limit: prView.content?.limit, total: prView.content?.total }));
@@ -11668,11 +10376,7 @@ async function sendImport(object, mode, withoutShare = false) {
     prView.content?.rows[0]?.id > prView.content?.rows[1]?.id,
     JSON.stringify(prView.content?.rows.slice(0, 2).map(z => z.id)));
 
-  /* ---- DIE AUSWAHL AM ECHTEN SERVER -- 0.35.0 ----
-     SIE STAND BIS DAHIN IN KEINER PRUEFUNG. Die Route kennt die Auswahl seit
-     0.13.0, und geprueft war nur, dass der Browser sie anhaengt -- gegen
-     einen Mock, der denselben deutschen Namen las wie der Browser. Der echte
-     Server liest `group`, und damit hat die Auswahl nie gegriffen. */
+  /* ---- Die Auswahl am echten Server ---- */
   const prPick = await prCall(prAnna, 'GET', '/api/security-log?group=failed');
   check('Die Auswahl „failed" kommt durch',
     prPick.status === 200 && Array.isArray(prPick.content?.rows),
@@ -11681,9 +10385,8 @@ async function sendImport(object, mode, withoutShare = false) {
     (prPick.content?.rows || []).length > 0 &&
     (prPick.content?.rows || []).every(z => z.event === 'login.fail' || z.event === 'confirm.fail'),
     JSON.stringify([...new Set((prPick.content?.rows || []).map(z => z.event))]));
-  /* UND SIE SIEBT WIRKLICH -- ohne diese Zeile waere die darueber auch dann
-     gruen, wenn der Server jede Zeile zurueckgaebe und im Bestand zufaellig
-     nur gescheiterte Anmeldungen staenden. */
+  /* Gegenprobe: sonst waere die Pruefung darueber auch gruen, wenn der Server
+     nicht filterte und der Bestand nur gescheiterte Anmeldungen enthielte. */
   check('Und der ungefilterte Abruf traegt mehr Arten',
     new Set((prView.content?.rows || []).map(z => z.event)).size >
     new Set((prPick.content?.rows || []).map(z => z.event)).size,
@@ -11691,31 +10394,26 @@ async function sendImport(object, mode, withoutShare = false) {
     `${new Set((prPick.content?.rows || []).map(z => z.event)).size} Arten`);
   check('Die Antwort nennt die gewaehlte Ansicht',
     prPick.content?.group === 'failed', JSON.stringify(prPick.content?.group));
-  /* UND EINE ANSICHT, DIE ES NICHT GIBT, WIRD ABGEWIESEN. */
   const prBad = await prCall(prAnna, 'GET', '/api/security-log?group=gibtsnicht');
   check('Eine unbekannte Ansicht bekommt 400',
     prBad.status === 400, `Status ${prBad.status}`);
-  /* UND DER DEUTSCHE NAME GREIFT NICHT MEHR -- er ist kein zweiter Weg,
-     sondern ein unbekannter Parameter, und unbekannte Parameter ignoriert
-     die Route. */
+  /* Unbekannte Parameter wie `gruppe` ignoriert die Route. */
   const prGerman = await prCall(prAnna, 'GET', '/api/security-log?gruppe=failed');
   check('Der alte deutsche Name waehlt nichts aus',
     prGerman.status === 200 && prGerman.content?.group == null &&
     (prGerman.content?.rows || []).length === (prView.content?.rows || []).length,
     `Status ${prGerman.status}, Ansicht ${JSON.stringify(prGerman.content?.group)}`);
 
-  /* DIE LAGE WIRD BEENDET, und das ist keine Ordnungsliebe: ein Server, der
-     den Lauf ueberlebt, besetzt seinen Port weiter, und der naechste Lauf
-     bekommt auf demselben Port einen FREMDEN Server samt fremder Datenbank. */
+  /* Ein weiterlaufender Server besetzte den Port, und der naechste Lauf spraeche
+     mit ihm und seiner Datenbank. */
   await PR.stop();
   fs.rmSync(prDir, { recursive: true, force: true });
 
   /* ---------------------------------------------------------------- */
   group('Die zweite Bestaetigung: die Freigabe selbst');
 
-  /* WOGEGEN DAS VERTEIDIGT, gehoert vor die Pruefungen: nicht gegen einen
-     Fremden -- der kommt ohne Passwort gar nicht herein --, sondern gegen
-     eine FREMDE OFFENE SITZUNG. */
+  /* Schuetzt gegen eine fremde offene Sitzung, nicht gegen einen Fremden ohne
+     Passwort. */
   const zbDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-zweitbest-'));
   const ZB = startFurtherServer(zbDir, {}, 4520);
   await ZB.ready;
@@ -11765,12 +10463,11 @@ async function sendImport(object, mode, withoutShare = false) {
     (await zbFree(null, ZB_ANNA, 'export')).status === 401);
   const zbWrong = await zbFree(zbAnna, 'ganz-falsch-hier', 'export');
   check('Ein falsches Passwort wird abgewiesen', zbWrong.status === 403, `Status ${zbWrong.status}`);
-  /* DIE ABSAGE IST KLAR UND DEUTLICH, und das ist anders als bei den Token
-     aus 0.8.80: dort wusste der Server nicht, wer fragt, und die eine
-     verschleierte Absage schuetzte vor dem Durchprobieren. */
+  /* Anders als beim Token ist der Fragende hier angemeldet; eine verschleierte
+     Absage schuetzt vor nichts. */
   check('Und sie sagt geradeheraus, woran es lag',
     zbWrong.content?.error === 'Das Passwort stimmt nicht.', zbWrong.content?.error);
-  /* 403 UND NICHT 401: der Zugang gilt weiter, nur diese eine Handlung nicht. */
+  /* Die Sitzung gilt weiter, nur diese Handlung nicht. */
   check('Und zwar mit 403, nicht mit 401', zbWrong.status !== 401, `Status ${zbWrong.status}`);
   const zbFailRows = zbRows("SELECT event, actor, target FROM security_log WHERE event = 'confirm.fail'");
   check('Eine gescheiterte Bestaetigung steht im Sicherheitsprotokoll',
@@ -11786,8 +10483,6 @@ async function sendImport(object, mode, withoutShare = false) {
     zbGood.content?.purpose === 'export' && zbGood.content?.seconds === 120,
     JSON.stringify(zbGood.content));
 
-  /* GEBUNDEN AN DEN ZWECK: eine Freigabe fuer den Export entfernt keinen
-     Zugang. */
   const zbVorRole = zbRows('SELECT role FROM users WHERE id = ?', zbEmil)[0]?.role;
   const zbForeignPurpose = await zbCall(zbAnna, 'PUT', `/api/users/${zbEmil}`, { role: 'admin' });
   check('Eine Freigabe fuer den Export vergibt keine Rolle',
@@ -11798,11 +10493,8 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Die Absage nennt die Bestaetigung beim Namen',
     zbForeignPurpose.content?.confirm === 'role', JSON.stringify(zbForeignPurpose.content));
 
-  /* UND DIE ZWECKBINDUNG BEI GLEICHEM ZIEL -- die drei Zeilen darueber taugen
-     dafuer nicht, und das ist ein Befund aus der Gegenprobe: sie halten eine
-     Freigabe fuer den Export (Ziel leer) gegen einen Rollenwechsel (Ziel
-     emil) und waeren auch dann gruen, wenn der Schluessel den ZWECK gar nicht
-     traegt -- die ZIELE unterscheiden sich ja schon. */
+  /* Gleiches Ziel, anderer Zweck: die Pruefungen darueber unterscheiden sich
+     schon im Ziel und waeren auch ohne Zweck im Schluessel gruen. */
   await zbFree(zbAnna, ZB_ANNA, 'export');
   const zbExportAgainstImport = await zbCall(zbAnna, 'POST', '/api/confirm',
     { password: 'nur-damit-nichts-liegenbleibt', purpose: 'export', target: null });
@@ -11833,7 +10525,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und die Rolle steht weiterhin unveraendert da',
     zbRows('SELECT role FROM users WHERE id = ?', zbEmil)[0]?.role === zbVorRole,
     zbRows('SELECT role FROM users WHERE id = ?', zbEmil)[0]?.role);
-  /* Die Gegenlage daneben: mit dem RICHTIGEN Zweck kommt derselbe Weg durch. */
   await zbFree(zbAnna, ZB_ANNA, 'role', zbEmil);
   check('Mit dem richtigen Zweck kommt er durch',
     (await zbCall(zbAnna, 'PUT', `/api/users/${zbEmil}`, { role: 'admin' })).status === 200,
@@ -11841,8 +10532,6 @@ async function sendImport(object, mode, withoutShare = false) {
   await zbFree(zbAnna, ZB_ANNA, 'role', zbEmil);
   await zbCall(zbAnna, 'PUT', `/api/users/${zbEmil}`, { role: 'user' });
 
-  /* GEBUNDEN AN DAS ZIEL: eine Freigabe fuer Zugang A entfernt nicht Zugang B.
-     Der Dialog nennt den Menschen; die Freigabe muss ihn deshalb auch nennen. */
   await zbFree(zbAnna, ZB_ANNA, 'remove', zbEmil);
   const zbForeignTarget = await zbCall(zbAnna, 'DELETE', `/api/users/${zbFrida}`);
   check('Eine Freigabe fuer einen anderen Zugang traegt nicht',
@@ -11851,9 +10540,6 @@ async function sendImport(object, mode, withoutShare = false) {
     zbRows('SELECT status FROM users WHERE id = ?', zbFrida)[0]?.status === 'active',
     zbRows('SELECT status FROM users WHERE id = ?', zbFrida)[0]?.status);
 
-  /* GEBUNDEN AN DIE SITZUNG, nicht an den Menschen -- und das ist der ganze
-     Punkt der Runde: eine zweite offene Sitzung desselben Menschen muss
-     selbst bestaetigen. */
   const zbAnnaTwo = await zbLogin('anna', ZB_ANNA);
   await zbFree(zbAnna, ZB_ANNA, 'link', zbGustav);
   const zbOtherSession = await zbCall(zbAnnaTwo, 'POST', `/api/users/${zbGustav}/token`,
@@ -11863,20 +10549,17 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und es ist dabei kein Link entstanden',
     zbRows('SELECT COUNT(*) n FROM tokens WHERE user_id = ?', zbGustav)[0].n === 0,
     JSON.stringify(zbRows('SELECT * FROM tokens')));
-  /* Die Gegenrichtung daneben: dieselbe Sitzung kommt sehr wohl durch. */
   const zbOwnSession = await zbCall(zbAnna, 'POST', `/api/users/${zbGustav}/token`,
     { purpose: 'reset' });
   check('Dieselbe Sitzung kommt damit durch',
     zbOwnSession.status === 200, `${zbOwnSession.status} ${zbOwnSession.raw.slice(0, 120)}`);
 
-  /* EINMAL GUELTIG: wer drei Zugaenge nacheinander entfernt, tippt dreimal.
-     Der Preis ist benannt, und er wird auch geprueft. */
   const zbAgain = await zbCall(zbAnna, 'POST', `/api/users/${zbGustav}/token`,
     { purpose: 'reset' });
   check('Und ein zweites Mal nicht -- die Freigabe ist verbraucht',
     zbAgain.status === 403, `Status ${zbAgain.status}`);
 
-  /* MIT DER ABMELDUNG FAELLT SIE -- UND DAS IST VON AUSSEN NICHT ZU SEHEN. */
+  /* Das Abmelden ist von aussen nicht zu sehen, daher direkt ueber auth.js. */
   {
     const fwDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-freigabe-'));
     shortRun(`require('./db'); console.log('da');`, fwDir);
@@ -11898,7 +10581,6 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Die zweite Bestaetigung: jeder schwere Weg einzeln');
 
-  /* SIEBEN WEGE HEISST SIEBEN REIHEN. */
   zbAnna = await zbLogin('anna', ZB_ANNA);
   const zbWithout = async (name, method, filePath, body, lookup, expectedValue) => {
     const a = await zbCall(zbAnna, method, filePath, body);
@@ -12007,8 +10689,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Die zweite Bestaetigung: was NICHT dahinter liegt');
 
-  /* DIE GRENZE IST NICHT "GEFAEHRLICH", sondern dieselbe, an der schon die
-     Eigentuemerrolle liegt. */
+  /* Die Grenze ist dieselbe wie bei der Eigentuemerrolle, nicht "gefaehrlich". */
   const zbGustavStatus = () => zbRows('SELECT status FROM users WHERE id = ?', zbGustav)[0]?.status;
   check('Sperren geht ohne Bestaetigung -- es ist umkehrbar',
     (await zbCall(zbAnna, 'PUT', `/api/users/${zbGustav}`, { status: 'locked' })).status === 200 &&
@@ -12028,7 +10709,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und ein Eintrag erst recht',
     (await zbCall(zbAnna, 'POST', '/api/items', { title: 'Ohne Bestaetigung' })).status === 201,
     'ein Eintrag verlangt eine Bestaetigung');
-  /* UND DIE ERSTEINRICHTUNG. */
   {
     const seDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-setupbest-'));
     const SE = startFurtherServer(seDir, {}, 4580);
@@ -12039,16 +10719,15 @@ async function sendImport(object, mode, withoutShare = false) {
     await SE.stop();
     fs.rmSync(seDir, { recursive: true, force: true });
   }
-  // Und auch diese Lage wird beendet -- derselbe Grund wie bei PR darueber.
+  // Aus demselben Grund wie PR.stop() darueber.
   await ZB.stop();
   fs.rmSync(zbDir, { recursive: true, force: true });
 
   /* ---------------------------------------------------------------- */
   group('Die zweite Bestaetigung: die Bremse greift auch dahinter');
 
-  /* EIGENER SERVER, und das ist keine Umstaendlichkeit: die Zaehler der
-     Anmeldebremse liegen im Arbeitsspeicher des Prozesses, und zwoelf
-     Fehlversuche vergifteten jede andere Prueflage auf derselben Adresse. */
+  /* Eigener Server: die Zaehler der Anmeldebremse liegen im Speicher des
+     Prozesses und stoerten sonst jede andere Prueflage auf derselben Adresse. */
   {
     const bbDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-bestbremse-'));
     const BB = startFurtherServer(bbDir, {}, 4640);
@@ -12086,7 +10765,6 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Der Uebergang liegt also genau zwischen zehn und elf',
       bbLevels.slice(0, 10).every(s => s === 403) && bbLevels.slice(10).every(s => s === 429),
       JSON.stringify(bbLevels));
-    /* UND DIE GESPERRTEN VERSUCHE SCHREIBEN NICHTS. */
     const bbRows = (sql) => {
       const d = open(path.join(bbDir, 'katalog.sqlite'));
       const r = d.prepare(sql).all();
@@ -12096,8 +10774,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und die gesperrten Versuche schreiben keine Zeile mehr',
       bbRows("SELECT COUNT(*) n FROM security_log WHERE event = 'confirm.fail'")[0].n === 10,
       JSON.stringify(bbRows("SELECT COUNT(*) n FROM security_log WHERE event = 'confirm.fail'")));
-    /* Und die Gegenrichtung: die Sperre gilt der ADRESSE, also auch dem
-       richtigen Passwort. Sonst waere sie an dieser Route wirkungslos. */
+    /* Die Sperre gilt der Adresse; sonst waere sie an dieser Route wirkungslos. */
     check('Auch das richtige Passwort kommt waehrend der Sperre nicht durch',
       (await bbCall(bbCookie, 'POST', '/api/confirm',
         { password: 'annas-langes-wort', purpose: 'export', target: null })).status === 429);
@@ -12108,10 +10785,8 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Die oeffentliche Adresse: die Pruefung des Werts');
 
-  /* GEPRUEFT UEBER EINEN KURZEN LAUF, nicht ueber zwoelf Serverstarts: die
-     Pruefung des Werts steht in auth.js -- dieselbe Sorte Einstellung wie
-     BEHIND_PROXY, und beide entscheiden ueber Netzwerkvertrauen statt ueber
-     eine Vorliebe. */
+  /* Ein kurzer Lauf statt zwoelf Serverstarts: die Pruefung des Werts steht in
+     auth.js. */
   {
     const oaDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-oeffadr-'));
     shortRun(`require('./db'); console.log('da');`, oaDir);
@@ -12143,8 +10818,8 @@ async function sendImport(object, mode, withoutShare = false) {
         oaResult[i]?.address === wanted,
         `"${value}" -> ${JSON.stringify(oaResult[i])}`);
     });
-    /* UND DER UNTERSCHIED ZWISCHEN "LEER" UND "UNBRAUCHBAR": beide fallen auf
-       den Browserweg zurueck, aber nur der zweite gehoert laut gemeldet. */
+    /* Leer und unbrauchbar fallen beide auf den Browser zurueck; gemeldet wird nur
+       unbrauchbar. */
     check('Ein leerer Wert ist kein Fehler',
       oaResult[6]?.set === false && !oaResult[6]?.problem,
       JSON.stringify(oaResult[6]));
@@ -12157,15 +10832,13 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Die oeffentliche Adresse: beide Zustaende am Server');
 
-  /* BEIDE ZUSTAENDE AN ECHTEN SERVERN, denn sie enden verschieden: leer baut
-     der Browser, gesetzt gibt der Server den fertigen Link heraus. */
+  /* Echte Server: leer baut der Browser den Link, gesetzt der Server. */
   {
     const oaMake = async (extraEnv, portBase) => {
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-oeffsrv-'));
       const S = startFurtherServer(dir, extraEnv, portBase);
       await S.ready;
       await S.call('POST', '/api/setup', { user: 'anna', password: 'annas-langes-wort' });
-      /* DIESE INSTALLATION GIBT DEUTSCH VOR -- 0.24.3, F2. */
       await S.call('PUT', '/api/settings', { languageDefault: 'de' });
       const fresh = await S.call('POST', '/api/users', { username: 'bert', sendInvite: true });
       return { dir, S, fresh };
@@ -12181,9 +10854,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Der Start sagt, dass sie nicht gesetzt ist',
       /Public address: not set/.test(withoutPhotos.S.log()),
       withoutPhotos.S.log().split('\n').filter(z => /Adresse/.test(z)).join(' | ') || '(keine Zeile)');
-    /* DIE ADRESSE STEHT NICHT IN /api/config, und das gehoert geprueft: der
-       Endpunkt liegt VOR der Anmeldung und darf ueber die Instanz nichts
-       verraten, was nicht ohnehin dasteht. */
+    /* /api/config liegt vor der Anmeldung und nennt die Adresse nicht. */
     const withoutCfg = await withoutPhotos.S.call('GET', '/api/config');
     check('Und /api/config nennt hier ohnehin nichts',
       !JSON.stringify(withoutCfg.content).toLowerCase().includes('address'),
@@ -12202,19 +10873,13 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Die Adresse steht NICHT in /api/config',
       !JSON.stringify(includingCfg.content).includes('kriterion.beispiel.de'),
       JSON.stringify(includingCfg.content));
-    /* Und die Gegenprobe zur Nachschau: /api/config antwortet ueberhaupt und
-       traegt die Felder, die es tragen soll. */
-    /* Die Versionsnummer kommt aus package.json und steht hier NICHT als
-       Zahl: eine abgeschriebene Nummer faerbt diese Pruefung bei jeder Runde
-       rot, ohne je etwas ueber /api/config zu sagen. */
+    /* Version aus package.json: eine feste Nummer waere nach jeder Runde falsch. */
     check('Und /api/config traegt trotzdem seine bekannten Felder',
       includingCfg.content?.version === require('./package.json').version &&
       typeof includingCfg.content?.title === 'string',
       JSON.stringify(includingCfg.content));
 
-    /* DER UNBRAUCHBARE WERT: der Start meldet es laut und die Instanz laeuft
-       weiter, mit dem Browserweg als Rueckfall -- dieselbe Form wie bei
-       AUTH_RESET und beim fehlenden Sicherungsort. */
+    /* Ein unbrauchbarer Wert wird beim Start gemeldet, der Browser baut den Link. */
     const broken = await oaMake({ PUBLIC_ADDRESS: 'kein-richtiger-wert' }, 4820);
     check('Ein unbrauchbarer Wert bricht den Start nicht ab',
       broken.fresh.status === 200, `Status ${broken.fresh.status}`);
@@ -12225,8 +10890,8 @@ async function sendImport(object, mode, withoutShare = false) {
       broken.fresh.content?.link === null && broken.fresh.content?.linkSource === 'browser',
       JSON.stringify(broken.fresh.content?.linkSource));
 
-    /* http:// HINTER EINEM PROXY IST EIN WIDERSPRUCH IN SICH -- und trotzdem
-       nur eine Warnung: ein falscher Link ist ein toter Link, kein Verlust. */
+    /* http:// hinter einem Proxy ergibt nur eine Warnung: ein falscher Link
+       verliert keine Daten. */
     const contradiction = await oaMake(
       { BEHIND_PROXY: '1', PUBLIC_ADDRESS: 'http://kriterion.beispiel.de' }, 4880);
     check('http hinter einem Proxy wird gewarnt, nicht abgewiesen',
@@ -12242,17 +10907,12 @@ async function sendImport(object, mode, withoutShare = false) {
     }
   }
 
-  /* ================= Der Mailversand, 0.9.0 ================= ERFUNDENE
-     WERTE, und sie stehen als Konstanten da statt verstreut im Text: das
-     Geheimnis wird an einem halben Dutzend Stellen GESUCHT -- in der
-     Datenbank, im Containerprotokoll, in jeder Antwort und in jedem Brief --,
-     und ein abgeschriebener zweiter Wert liesse eine dieser Suchen ins Leere
-     laufen, ohne dass es auffiele. */
+  /* ---- Mailversand ---- */
   const MAIL_PASSWORD_ANNA = 'annas-langes-wort';
   const MAIL_PASSWORD_CARLA = 'carlas-langes-wort';
   const MAIL_USER = 'kriterion@beispiel.de';
   const MAIL_SECRET = 'erfundenes-mailwort-' + crypto.randomBytes(4).toString('hex');
-  /* Ein Ruf, bei dem der KOPF frei gesetzt werden kann. */
+  /* Anfrage mit frei gesetzten Kopfzeilen. */
   const mailRawCall = (S, filePath, head, body) => new Promise((done, error) => {
     const http = require('http');
     const u = new URL(S.base + filePath);
@@ -12280,12 +10940,10 @@ async function sendImport(object, mode, withoutShare = false) {
       const S = startFurtherServer(dir, extraEnv, portBase);
       await S.ready;
       await S.call('POST', '/api/setup', { user: 'anna', password: MAIL_PASSWORD_ANNA });
-      /* DIESE INSTALLATION GIBT DEUTSCH VOR -- 0.24.3, F2. */
       await S.call('PUT', '/api/settings', { languageDefault: 'de' });
       return { dir, S };
     };
-    // Die Freigabe fuer die zweite Bestaetigung. Sie steht hier als eigener
-// Ruf, weil PUT /api/mail sie an JEDER Aufrufstelle braucht.
+    // PUT /api/mail verlangt an jeder Aufrufstelle die zweite Bestaetigung.
     const mailFree = (S, purpose = 'mail') =>
       S.call('POST', '/api/confirm', { password: MAIL_PASSWORD_ANNA, purpose, target: null });
     const mailSet = async (S, empf) => {
@@ -12304,24 +10962,20 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Der Mailzugang laesst sich setzen', set.status === 200, `Status ${set.status}`);
     check('Und die Karte sagt danach "eingerichtet"',
       set.content?.configured === true, JSON.stringify(set.content?.configured));
-    /* DAS PASSWORT STEHT IN KEINER ANTWORT -- geprueft am VOLLSTAENDIGEN
-       Antwortkoerper und nicht an einem einzelnen Feld: eines, das nur das
-       Feld `passwort` ansieht, bliebe gruen, wenn es woanders wieder
-       herauskaeme. */
+    /* Am ganzen Antwortkoerper: ein einzelnes Feld uebersaehe das Passwort an
+       anderer Stelle. */
     check('Das Passwort steht NICHT in der Antwort',
       !JSON.stringify(set.content).includes(MAIL_SECRET),
       'das Geheimnis steht im Antwortkoerper');
     check('Sie sagt nur, DASS eines gesetzt ist',
       set.content?.passwordSet === true, JSON.stringify(set.content?.passwordSet));
-    /* UND DASSELBE AN DER LESENDEN ANTWORT. */
     const mailRead = await A.S.call('GET', '/api/mail');
     check('Auch die gelesene Karte traegt das Passwort NICHT',
       mailRead.status === 200 && !JSON.stringify(mailRead.content).includes(MAIL_SECRET),
       'das Geheimnis steht in der Antwort von GET /api/mail');
     check('Und auch sie sagt nur, DASS eines gesetzt ist',
       mailRead.content?.passwordSet === true, JSON.stringify(mailRead.content?.passwordSet));
-    /* Und die Gegenlage dazu: die Karte sagt es auch, wenn KEINES gesetzt ist.
-       Ohne sie bliebe "passwortGesetzt" eine Behauptung, die immer wahr ist. */
+    /* Gegenprobe ohne Passwort: sonst koennte passwordSet immer true sein. */
     const emptyA = await mailInstance({}, 5260);
     const emptyCard = await emptyA.S.call('GET', '/api/mail');
     check('Ohne Zugang sagt die Karte "nicht gesetzt"',
@@ -12336,18 +10990,14 @@ async function sendImport(object, mode, withoutShare = false) {
     const letters = E.letters();
     check('Der Empfaenger hat genau EINEN Brief bekommen', letters.length === 1,
       `${letters.length} Briefe`);
-    // (Ein zweiter kommt weiter unten dazu, an der zweiten Tokenroute.)
+    // Der zweite Brief kommt weiter unten von der zweiten Tokenroute.
     const reportWord = letters[0] || { head: '', core: '', raw: '' };
     check('Der Empfaenger stimmt', /^To: bert@beispiel\.de$/m.test(reportWord.head), reportWord.head.slice(0, 200));
     check('Der Absender stimmt', /^From: instanz@beispiel\.de$/m.test(reportWord.head), reportWord.head.slice(0, 200));
-    /* DER LINK IM RUMPF, und er wird DEKODIERT gesucht: quoted-printable
-       bricht die Adresse nach 76 Zeichen weich um, und wer im rohen Text
-       sucht, findet sie nicht. */
+    /* Im dekodierten Rumpf: quoted-printable bricht nach 76 Zeichen weich um. */
     check('Der Link steht vollstaendig im Rumpf',
       reportWord.core.includes(`https://kriterion.beispiel.de/#/invite/${fresh.content?.token}`),
       reportWord.core.slice(0, 300));
-    // Und die Gegenlage zum Empfaenger selbst: im ROHEN Brief steht er wegen
-    // des weichen Umbruchs eben NICHT.
     check('Im rohen Brief steht er umbrochen -- die Dekodierung tut wirklich etwas',
       !reportWord.raw.includes(fresh.content?.token) && /quoted-printable/i.test(reportWord.head),
       'der rohe Brief traegt den Schluessel unumbrochen');
@@ -12359,28 +11009,19 @@ async function sendImport(object, mode, withoutShare = false) {
       /7 Tage/.test(reportWord.core), reportWord.core.slice(0, 400));
     check('Und was danach zu tun ist',
       /einen neuen Link vom Admin/.test(reportWord.core), reportWord.core.slice(0, 400));
-    /* UND SIE IST WIRKLICH KUERZER: der Satz, der dasselbe ein zweites Mal
-       sagte, steht nicht mehr da. */
     check('Der Satz, der dasselbe zweimal sagte, steht nicht mehr da',
       !/Innerhalb dieser Zeit darfst du die Seite so oft neu laden/.test(reportWord.core),
       reportWord.core.slice(0, 400));
-    /* DAS PASSWORT STEHT IN KEINER MAIL. Der Mailserver sieht jede Zeile, die
-       durch ihn geht -- ausgerechnet dort duerfte es am wenigsten stehen. */
     check('Und das Mailpasswort steht in keinem Brief',
       !reportWord.raw.includes(MAIL_SECRET), 'das Geheimnis steht im Brief');
 
-    /* Der Link steht ZUSAETZLICH in der Antwort, und das ist der Kern des
-       ganzen Entwurfs: die Mail ersetzt ihn nicht. */
     check('Der Link steht trotzdem in der Antwort',
       fresh.content?.link === `https://kriterion.beispiel.de/#/invite/${fresh.content?.token}`,
       JSON.stringify(fresh.content?.link));
     check('Und die Antwort nennt die Frist als Zahl',
       fresh.content?.minutes === 15, JSON.stringify(fresh.content?.minutes));
 
-    /* DIESELBE FRAGE AN DER ZWEITEN TOKENROUTE, und sie steht hier, weil eine
-       Gegenprobe sie gefordert hat: der Rueckbau "der Link faellt aus der
-       Antwort, wenn der Versand traegt" blieb an POST /api/users/:id/token
-       VOLLSTAENDIG STUMM. */
+    /* Dieselbe Frage an POST /api/users/:id/token. */
     const bertId = ((await A.S.call('GET', '/api/users')).content?.users || [])
       .find(z => z.username === 'bert')?.id;
     check('Der eingeladene Zugang steht in der Liste', Boolean(bertId), JSON.stringify(bertId));
@@ -12403,7 +11044,6 @@ async function sendImport(object, mode, withoutShare = false) {
 
     group('Der Mailversand: das Offline-Prinzip in beide Richtungen');
 
-    /* OHNE MAILZUGANG ENTSTEHT DER TOKEN TROTZDEM. */
     const withoutFresh = await emptyA.S.call('POST', '/api/users', { username: 'bert', sendInvite: true });
     check('Ohne Mailzugang entsteht der Token trotzdem',
       /^[0-9a-f]{64}$/.test(withoutFresh.content?.token || ''), JSON.stringify(withoutFresh.content?.token));
@@ -12412,12 +11052,10 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Mit einem Grund, der den Weg nennt',
       /kein Mailzugang/i.test(withoutFresh.content?.deliveryReason || ''),
       JSON.stringify(withoutFresh.content?.deliveryReason));
-    // Ohne oeffentliche Adresse baut der Browser -- unveraendert aus 0.8.90.
     check('Und der Browserweg traegt weiter',
       withoutFresh.content?.link === null && withoutFresh.content?.linkSource === 'browser',
       JSON.stringify([withoutFresh.content?.link, withoutFresh.content?.linkSource]));
 
-    /* EIN ZUGANG OHNE ADRESSE -- an einer Instanz, an der der Versand STEHT. */
     const withoutAdr = await A.S.call('POST', '/api/users', { username: 'egon', sendInvite: true });
     check('Ein Zugang ohne Adresse wird gar nicht erst beschickt',
       withoutAdr.content?.delivery === 'aus', JSON.stringify(withoutAdr.content?.delivery));
@@ -12432,8 +11070,6 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und der Empfaenger hat davon nichts gesehen',
       E.letters().length === 2, `${E.letters().length} Briefe`);
 
-    /* DER EMPFAENGER ANTWORTET MIT EINEM FEHLER. Der Token entsteht trotzdem,
-       der Link steht da, und der GRUND steht daneben. */
     const F = smtpEmpfaenger('fehler');
     const FA = await mailInstance({ PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 5320);
     await mailSet(FA.S, F);
@@ -12448,7 +11084,6 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und nennt den Grund',
       /550/.test(fFresh.content?.deliveryReason || ''), JSON.stringify(fFresh.content?.deliveryReason));
 
-    /* DER EMPFAENGER BRICHT DIE VERBINDUNG AB. Dieselbe Zusage. */
     const X = smtpEmpfaenger('abbruch');
     const XA = await mailInstance({ PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 5380);
     await mailSet(XA.S, X);
@@ -12463,16 +11098,11 @@ async function sendImport(object, mode, withoutShare = false) {
 
     group('Der Mailversand: die Frist wird gemessen, nicht behauptet');
 
-    /* JEDE MESSUNG WIRD EINZELN ABGEFANGEN: geprueft wird hier ein Vorgang, der
-       SCHEITERN kann -- und die Gegenprobe nimmt ihm absichtlich genau die
-       Frist weg, die ihn beendet. */
-    /* DIE GRENZE IST DAS DOPPELTE DER ZUSAGE, und die Zusage ist die Frist
-       dieses Laufs -- nicht mehr die Zahl 40 000. Kurz gestellt waeren 40
-       Sekunden keine Grenze, sondern ein Freibrief: jede der drei Lagen kaeme
-       darunter durch, auch wenn gar keine Frist mehr greift. */
+    /* includingNet bricht jede Messung nach MEASURE_LIMIT_MS ab: die Gegenprobe
+       nimmt dem Versand die Frist, die ihn beendet. */
+    /* Das Doppelte der Frist dieses Laufs: feste 40 s liessen bei kurz gestellten
+       Fristen jede Lage durch, auch ohne greifende Frist. */
     const MEASURE_LIMIT_MS = Math.max(2000, MAIL_TIMES.SEND_MS * 2);
-    /* DIE OBERE SCHRANKE EINER MESSUNG: die Frist plus ein Zehntel,
-       mindestens aber 300 ms Anlauf. */
     const sendLimit = MAIL_TIMES.SEND_MS + Math.max(300, MAIL_TIMES.SEND_MS * 0.1);
     const pastGreeting = MAIL_TIMES.GREETING_MS * 1.05;
     const includingNet = async (promise) => {
@@ -12482,8 +11112,7 @@ async function sendImport(object, mode, withoutShare = false) {
       finally { clearTimeout(clock); }
     };
 
-    /* DREI LAGEN, UND SIE SIND VERSCHIEDEN -- ohne alle drei waere nicht
-       belegt, WELCHE Frist traegt. */
+    /* Drei Lagen, damit belegt ist, welche Frist greift. */
     const St = smtpEmpfaenger('stumm');
     const StA = await mailInstance({ PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 5440);
     await mailSet(StA.S, St);
@@ -12509,8 +11138,8 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Ein Empfaenger, der gruesst und dann schweigt, ebenso wenig',
       !swFresh.overdue && swDuration < sendLimit,
       swFresh.overdue ? `nach ${MEASURE_LIMIT_MS} ms keine Antwort` : `gemessen ${swDuration} ms`);
-    /* UND DIE UNTERGRENZE: dieser Fall darf nicht am GRUSS haengenbleiben.
-       Bliebe er unter sieben Sekunden, haette ihn greetingTimeout gefangen. */
+    /* Unter der Gruss-Frist haette greetingTimeout gegriffen und nicht die
+       gepruefte Frist. */
     check('Und er kommt wirklich am Gruss vorbei',
       swDuration > pastGreeting,
       `gemessen ${swDuration} ms -- unter ${Math.round(pastGreeting)} ms haette der Gruss gehalten`);
@@ -12518,7 +11147,7 @@ async function sendImport(object, mode, withoutShare = false) {
       /^[0-9a-f]{64}$/.test(swFresh.content?.token || '') && Boolean(swFresh.content?.link),
       JSON.stringify([swFresh.content?.token, swFresh.content?.link]));
 
-    /* UND DIE LAGE, DIE DIE AEUSSERE SCHRANKE ERST RECHTFERTIGT. */
+    /* Diese Lage beendet nur die aeussere Frist SEND_MS. */
     const Tr = smtpEmpfaenger('troepfelt');
     const TrA = await mailInstance({ PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 6490);
     await mailSet(TrA.S, Tr);
@@ -12542,8 +11171,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
     group('Der Mailversand: die oeffentliche Adresse ist Pflicht');
 
-    /* PFLICHT FUER DEN VERSAND, NICHT FUER DEN START. Der Server laeuft, die
-       Instanz ist vollstaendig, und es wird nur nichts verschickt. */
+    /* Ohne PUBLIC_ADDRESS startet der Server und verschickt nur nichts. */
     const O = smtpEmpfaenger('ok');
     const OA = await mailInstance({}, 6020);
     await mailSet(OA.S, O);
@@ -12564,9 +11192,8 @@ async function sendImport(object, mode, withoutShare = false) {
       (await OA.S.call('GET', '/api/mail')).content?.addressSet === false,
       JSON.stringify((await OA.S.call('GET', '/api/mail')).content?.addressSet));
 
-    /* DIE ADRESSE KOMMT NIE AUS DEM Host-KOPF, und das ist die Stelle, an der
-       ein gefaelschter Kopf am meisten wert waere: eine verschickte Mail
-       traegt den Link zu einem fremden Empfaenger. */
+    /* Die Adresse kommt nie aus dem Host-Kopf: sonst truege die Mail einen
+       gefaelschten Link zum Empfaenger. */
     const H = smtpEmpfaenger('ok');
     const HA = await mailInstance({ PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 6130);
     await mailSet(HA.S, H);
@@ -12585,8 +11212,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
     group('Der Mailversand: das Passwort steht nirgends');
 
-    /* GEPRUEFT AM VOLLSTAENDIGEN INHALT UEBER ALLE SPALTEN ALLER ZEILEN --
-       nicht an der einen Tabelle, in der es erwartet wird. */
+    /* Alle Spalten aller Tabellen, nicht nur die erwartete. */
     const pDb = open(path.join(A.dir, 'katalog.sqlite'));
     let pHit = [];
     try {
@@ -12596,18 +11222,16 @@ async function sendImport(object, mode, withoutShare = false) {
         for (const z of pDb.prepare(`SELECT * FROM "${t.name}"`).all()) {
           for (const [column, value] of Object.entries(z)) {
             const s = value === null ? '' : String(value);
-            // settings traegt den Zugang -- dort MUSS es stehen, sonst koennte
-// die Instanz gar nicht verschicken. Ueberall sonst nicht.
+            // In settings muss es stehen, sonst koennte die Instanz nicht verschicken.
             if (s.includes(MAIL_SECRET) && !(t.name === 'settings' && z.key === 'mailzugang'))
               pHit.push(`${t.name}.${column}`);
           }
         }
       }
-    } finally { pDb.close(); }   // schliessen auch im Fehlerfall
+    } finally { pDb.close(); }
     check('Das Mailpasswort steht in keiner anderen Zeile der Datenbank',
       pHit.length === 0, pHit.join(' · '));
-    /* Und die Gegenlage, damit die Suche nicht deshalb leer ist, weil sie
-       nichts findet: in settings steht es sehr wohl. */
+    /* Gegenprobe: in settings findet die Suche es. */
     const pDb2 = open(path.join(A.dir, 'katalog.sqlite'));
     let pInSettings = false;
     try {
@@ -12617,7 +11241,6 @@ async function sendImport(object, mode, withoutShare = false) {
     check('In settings steht es sehr wohl -- die Suche findet ueberhaupt etwas',
       pInSettings, 'die Suche findet den Wert nicht einmal dort, wo er stehen muss');
 
-    /* UND IM CONTAINERPROTOKOLL: was Start und Versand schreiben. */
     check('Und in keiner Zeile des Containerprotokolls',
       !A.S.log().includes(MAIL_SECRET), 'das Geheimnis steht im Protokoll');
     check('Der Start nennt den Mailversand trotzdem',
@@ -12626,16 +11249,14 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und sagt an einer Instanz ohne Zugang, dass keiner eingerichtet ist',
       /Mail delivery: not set up/.test(emptyA.S.log()),
       emptyA.S.log().split('\n').filter(z => /Mail delivery/.test(z)).join(' | ') || '(keine Zeile)');
-    /* UND DIE ZEILE AN EINER INSTANZ, DIE MIT ZUGANG STARTET. */
+    /* Neustart mit gespeichertem Mailzugang. */
     await A.S.stop();
     const A2 = startFurtherServer(A.dir, { PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 6370);
     await A2.ready;
-    /* DER ANBIETERNAME STEHT SEIT 0.33.1 AUF ENGLISCH. */
     check('Nach einem Neustart nennt die Startzeile Anbieter, Server und Absender',
       /Mail delivery: Own server via 127\.0\.0\.1:/.test(A2.log()) &&
       /instanz@beispiel\.de/.test(A2.log()),
       A2.log().split('\n').filter(z => /Mail delivery/.test(z)).join(' | ') || '(keine Zeile)');
-    /* UND DAS DEUTSCHE WORT STEHT NIRGENDS IN SEINER AUSGABE. */
     check('Und „Eigener Server" steht nirgends in seiner Ausgabe — 0.33.1',
       !/Eigener Server/.test(A2.log()),
       A2.log().split('\n').filter(z => /Eigener/.test(z)).join(' | ') || '(kein Treffer)');
@@ -12645,22 +11266,20 @@ async function sendImport(object, mode, withoutShare = false) {
 
     group('Der Mailversand: die Testmail geht an die eigene Adresse');
 
-    /* AN DIE EIGENE ADRESSE, NIRGENDWO SONST -- und ein mitgegebenes
-       Adressfeld aendert daran nichts, in keiner der drei Formen. */
+    /* Die Testmail geht nur an die eigene Adresse, auch mit Adressfeld in Rumpf,
+       Abfrage oder Kopf. */
     const T = smtpEmpfaenger('ok');
     const TA = await mailInstance({ PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 6190);
     await mailSet(TA.S, T);
     const tWithoutAddress = await TA.S.call('POST', '/api/mail/test', {});
     check('Ohne eigene Adresse wird die Testmail abgesagt',
       tWithoutAddress.status === 400, `Status ${tWithoutAddress.status}`);
-    /* DER WEG DORTHIN, und zwar der GANZE: das Wort "Zugang" allein genuegt
-       nicht -- es steht schon im ersten Satz der Absage ("Fuer deinen Zugang
-       ist keine Adresse hinterlegt"). */
+    /* "Zugang" allein genuegt nicht: das Wort steht schon im ersten Satz der
+       Absage. */
     check('Und die Absage nennt den Weg dorthin -- den Ort, nicht nur das Wort',
       /Einstellungen/.test(tWithoutAddress.content?.error || '') &&
       (tWithoutAddress.content?.error || '').includes(D.DE_TEXTS['card.myAccount']),
       JSON.stringify(tWithoutAddress.content?.error));
-    // Jetzt die eigene Adresse setzen -- ueber den eigenen Zugang, wie gebaut.
     const tAccount = await TA.S.call('PUT', '/api/account',
       { oldPassword: MAIL_PASSWORD_ANNA, username: 'anna', email: 'anna@beispiel.de' });
     check('Die eigene Adresse laesst sich am eigenen Zugang setzen',
@@ -12679,7 +11298,6 @@ async function sendImport(object, mode, withoutShare = false) {
       tLetters.map(b => b.head.split('\n')[1]).join(' | '));
     check('Die fremde Adresse aus dem Rumpf taucht nirgends auf',
       tLetters.every(b => !b.raw.includes('fremd@boese.net')), 'die fremde Adresse steht im Brief');
-    // Dieselbe Frage ueber die Abfrage und ueber einen Kopf.
     const tQuery = await TA.S.call('POST', '/api/mail/test?an=fremd2@boese.net', {});
     check('Auch ein Adressfeld in der Abfrage aendert nichts',
       tQuery.content?.sentTo === 'anna@beispiel.de', JSON.stringify(tQuery.content?.sentTo));
@@ -12694,9 +11312,7 @@ async function sendImport(object, mode, withoutShare = false) {
       T.letters().filter(b => /boese\.net/.test(b.raw)).length);
     check('Und die Marke steht danach in der Karte',
       Boolean(tIncluding.content?.testedAt), JSON.stringify(tIncluding.content?.testedAt));
-    /* DIE MARKE GILT NUR ZU DEN WERTEN, MIT DENEN SIE ENTSTANDEN IST, und das
-       ist der Kern ihrer Aussage: sie belegt "mit DIESEN Werten ist einmal
-       wirklich eine Mail hinausgegangen". */
+    /* testedAt gilt nur fuer die Werte, mit denen die Testmail hinausging. */
     await mailFree(TA.S);
     const tAfterChange = await TA.S.call('PUT', '/api/mail', {
       provider: 'eigen', server: '127.0.0.1', port: T.port, secure: false,
@@ -12709,16 +11325,14 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Auch die gelesene Karte sagt jetzt "noch nie"',
       (await TA.S.call('GET', '/api/mail')).content?.testedAt === null,
       JSON.stringify((await TA.S.call('GET', '/api/mail')).content?.testedAt));
-    // Und der Zugang steht trotzdem: das leere Passwortfeld hat ihn nicht
-// geleert, sondern unveraendert gelassen.
+    // Ein leeres Passwortfeld laesst das gespeicherte Passwort stehen.
     check('Der Zugang ist dabei erhalten geblieben',
       tAfterChange.content?.configured === true && tAfterChange.content?.passwordSet === true,
       JSON.stringify([tAfterChange.content?.configured, tAfterChange.content?.passwordSet]));
 
     group('Der Mailzugang: wer ihn setzen darf');
 
-    /* NUR DER EIGENTUEMER -- eintragen, einsehen UND testen. Ein Admin kommt
-       an keines der drei. */
+    /* Eintragen, einsehen und testen darf nur der Eigentuemer. */
     const RA = await mailInstance({ PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 6250);
     await RA.S.call('POST', '/api/users', { username: 'carla', password: MAIL_PASSWORD_CARLA });
     const rList = (await RA.S.call('GET', '/api/users')).content?.users || [];
@@ -12743,8 +11357,6 @@ async function sendImport(object, mode, withoutShare = false) {
       (await RA.S.call('POST', '/api/mail/test', {})).status === 403,
       `Status ${(await RA.S.call('POST', '/api/mail/test', {})).status}`);
 
-    /* UND DIE ZWEITE BESTAETIGUNG: ohne sie kommt auch der Eigentuemer nicht
-       durch, und die Karte bleibt danach unveraendert. */
     RA.S.cookieRemove();
     await RA.S.call('POST', '/api/login', { user: 'anna', password: MAIL_PASSWORD_ANNA });
     const rWithoutFree = await RA.S.call('PUT', '/api/mail',
@@ -12759,9 +11371,7 @@ async function sendImport(object, mode, withoutShare = false) {
     const rIncludingFree = await RA.S.call('PUT', '/api/mail',
       { provider: 'gmx', user: 'a@gmx.de', password: MAIL_SECRET, sender: 'a@gmx.de' });
     check('Mit Bestaetigung geht es durch', rIncludingFree.status === 200, `Status ${rIncludingFree.status}`);
-    /* DIE VORLAGE FUELLT SERVER UND PORT AUS DEM QUELLTEXT, nicht aus dem
-       Rumpf: wer GMX waehlt, bekommt GMX -- auch wenn er etwas anderes
-       mitschickt. */
+    /* Server und Port kommen aus der Vorlage, nicht aus dem Rumpf. */
     check('Die Vorlage fuellt Server und Port',
       rIncludingFree.content?.server === 'mail.gmx.net' && rIncludingFree.content?.port === 587,
       JSON.stringify([rIncludingFree.content?.server, rIncludingFree.content?.port]));
@@ -12772,7 +11382,6 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Ein mitgeschickter Server wird bei einer Vorlage nicht uebernommen',
       rSmuggled.content?.server === 'mail.gmx.net' && rSmuggled.content?.port === 587,
       JSON.stringify([rSmuggled.content?.server, rSmuggled.content?.port]));
-    /* UND DIE ZWEITE SCHICHT EINZELN. */
     {
       const d = open(path.join(RA.dir, 'katalog.sqlite'));
       try {
@@ -12786,11 +11395,8 @@ async function sendImport(object, mode, withoutShare = false) {
       rSaved.content?.server === 'mail.gmx.net' && rSaved.content?.port === 587 &&
       rSaved.content?.secure === false,
       JSON.stringify([rSaved.content?.server, rSaved.content?.port, rSaved.content?.secure]));
-    /* DIE BENANNTE ABSAGE, nicht irgendein 400. Eine Gegenprobe, die die
-       Klemme entfernte, blieb stumm: der naechste Griff lief dann in einen
-       TypeError, den die Route ebenfalls als 400 herausgab -- abgewiesen war
-       es also, nur aus dem falschen Grund und mit einer Message, die niemand
-       versteht. */
+    /* Die benannte Absage, nicht irgendein 400: ohne die Pruefung fiele ein
+       TypeError ebenfalls als 400 heraus. */
     await mailFree(RA.S);
     const rInvented = await RA.S.call('PUT', '/api/mail', { provider: 'erfunden',
       user: 'a', password: 'b', sender: 'a@b.de' });
@@ -12799,25 +11405,20 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und zwar mit der benannten Absage, nicht mit einem Fehler',
       rInvented.content?.error === 'Diesen Anbieter gibt es nicht.',
       JSON.stringify(rInvented.content?.error));
-    // Die drei Hinweise haengen am Anbieter und kommen vom Server.
     check('Der Hinweis zum Anbieter kommt vom Server',
       /fremde Programme/.test(rIncludingFree.content?.hint || ''),
       JSON.stringify(rIncludingFree.content?.hint));
     check('Und der Hinweis zur Absenderadresse steht immer da',
       /Absenderadresse muss zum Konto/.test(rIncludingFree.content?.hintAlways || ''),
       JSON.stringify(rIncludingFree.content?.hintAlways));
-    /* ---- DIE ANBIETERLISTE TRAEGT, WAS DER DIALOG BRAUCHT — 0.17.3 ----
-       Seit dieser Runde stellt ein Dialog den Zugang ein, und dort wechselt
-       mit der Auswahl ZWEIERLEI: der Hinweis zu genau diesem Anbieter und die
-       drei festen Werte, die dann gelten. */
+    /* ---- Anbieterliste: Hinweis und feste Werte je Anbieter fuer den Dialog ---- */
     const rAnbList = rIncludingFree.content?.providerList || [];
     check('Die Anbieterliste kommt weiterhin mit sechs Eintraegen',
       rAnbList.length === 6, `${rAnbList.length}`);
     check('Und in derselben Folge wie in mail.js',
       rAnbList.map(a => a.key).join(',') === 'gmx,web,gmail,strato,ionos,eigen',
       rAnbList.map(a => a.key).join(','));
-    /* UND DER EINE NAME, DER KEINE MARKE IST, KOMMT IN DER SPRACHE DES LESERS
-       -- 0.32.0, Bauabschnitt 5. */
+    /* Der eine Name, der keine Marke ist, kommt in der Sprache des Lesers. */
     const mailCard = async (langCode) => {
       const a = await fetch(`${RA.S.base}/api/mail`,
         { headers: { cookie: RA.S.cookieValue(), 'accept-language': langCode } });
@@ -12843,19 +11444,15 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und die Werte sind die der Vorlage',
       rAnbGmx?.server === 'mail.gmx.net' && rAnbGmx?.port === 587 && rAnbGmx?.secure === false,
       JSON.stringify(rAnbGmx));
-    /* DER HINWEIS HAENGT JETZT AM EINTRAG UND NICHT MEHR NUR AM GESPEICHERTEN
-       ANBIETER. */
     check('Der Anbieterhinweis haengt am Eintrag',
       /fremde Programme/.test(rAnbGmx?.hint || ''), JSON.stringify(rAnbGmx?.hint));
     check('Und ein Anbieter ohne Hinweis traegt einen leeren',
       rAnbList.find(a => a.key === 'strato')?.hint === '',
       JSON.stringify(rAnbList.find(a => a.key === 'strato')?.hint));
-    /* DAS PASSWORT KOMMT AUCH HIER NICHT HERAUS -- die Liste ist eine neue
-       Auskunft, und jede neue Auskunft wird daraufhin angesehen. */
     check('Und aus der Liste kommt kein Geheimnis heraus',
       !rAnbList.some(a => 'password' in a || 'user' in a),
       JSON.stringify(Object.keys(rAnbList[0] || {})));
-    /* UND DIESELBE BESCHREIBUNG EIN ZWEITES MAL -- in der ZEILE der Karte. */
+    /* Dieselbe Beschreibung in der Zeile der Karte. */
     await mailFree(RA.S);
     const rOwn = await RA.S.call('PUT', '/api/mail',
       { provider: 'eigen', server: 'mail.beispiel.de', port: 465, secure: true,
@@ -12869,17 +11466,15 @@ async function sendImport(object, mode, withoutShare = false) {
       JSON.stringify([rOwn.status, nOwnDe, nOwnEn, nOwnTr]));
 
     for (const l of [E, F, X, St, Sw, Tr, O, H, T]) await l.stop();
-    // A ist oben beim Neustart schon gestoppt worden -- endKind fragt vorher,
-    // ob das Kind schon vorbei ist, ein zweiter Aufruf
-    // haengt also nicht.
+    // A ist schon gestoppt; endKind prueft das vorher, ein zweiter Aufruf haengt
+    // nicht.
     for (const x of [A, emptyA, FA, XA, StA, SwA, TrA, OA, HA, TA, RA]) {
       await x.S.stop();
       fs.rmSync(x.dir, { recursive: true, force: true });
     }
   }
 
-  /* ================= Die Selbstanmeldung, 0.9.1 ================= DER ADMIN
-     SCHALTET FREI -- IMMER. */
+  /* ---- Selbstanmeldung: der Admin schaltet immer frei ---- */
   {
     const REG_PASSWORD = 'annas-langes-wort-91';
     const REG_MAILWORT = 'erfundenes-mailwort-' + crypto.randomBytes(4).toString('hex');
@@ -12906,7 +11501,7 @@ async function sendImport(object, mode, withoutShare = false) {
         { oldPassword: REG_PASSWORD, username: 'anna', email: 'anna@beispiel.de' });
       return S.call('POST', '/api/mail/test', {});
     };
-    /* Der Bestaetigungsschluessel aus dem Brief AN EINE BESTIMMTE ADRESSE. */
+    /* Der Bestaetigungsschluessel aus dem Brief an eine bestimmte Adresse. */
     const regKey = (empf, an) => {
       const b = empf.letters().filter(x =>
         new RegExp(`^To: ${an.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'm').test(x.head) &&
@@ -12921,8 +11516,8 @@ async function sendImport(object, mode, withoutShare = false) {
     const regSql = (dir, sql) => JSON.parse(shortRun(
       `const { db } = require('./db'); console.log(JSON.stringify(db.prepare(${JSON.stringify(sql)}).all()));`,
       dir));
-    // Ein roher Ruf OHNE Cookie: die Anfrageroute steht vor der Anmeldung, und
-// verglichen wird der Antwortkoerper als Text, nicht ein Feld daraus.
+    // Ohne Cookie, weil die Route vor der Anmeldung steht; verglichen wird der
+    // Antwortkoerper als Text.
     const regRaw = async (S, filePath, body) => {
       const t0 = process.hrtime.bigint();
       const a = await fetch(S.base + filePath, {
@@ -12944,12 +11539,10 @@ async function sendImport(object, mode, withoutShare = false) {
     const gAn = await gA.S.call('PUT', '/api/signup/toggle', { an: true });
     check('Und damit laesst sich der Schalter einschalten',
       gAn.status === 200 && gAn.content?.an === true, JSON.stringify(gAn.content));
-    // Ein bestehender Zugang mit Adresse -- fuer "Name vergeben" und
-// "Adresse vergeben".
+    // Bestehender Zugang fuer die Lagen "Name vergeben" und "Adresse vergeben".
     await gA.S.call('POST', '/api/users',
       { username: 'bert', password: 'berts-langes-wort', email: 'bert@beispiel.de' });
-    /* JETZT AUF DEN TROEPFELNDEN UMSTELLEN. Ab hier haengt jeder Versand
-       zwanzig Sekunden -- und der Schalter bleibt trotzdem an. */
+    /* Ab hier haengt jeder Versand zwanzig Sekunden am troepfelnden Empfaenger. */
     await regMailSet(gA.S, gTr);
     check('Der Schalter bleibt an, wenn der Versand kaputtgeht',
       (await gA.S.call('GET', '/api/requests')).content?.an === true,
@@ -12959,8 +11552,6 @@ async function sendImport(object, mode, withoutShare = false) {
       gBroken?.deliveryReady === false && /Testmail/.test(gBroken?.deliveryReason || ''),
       JSON.stringify([gBroken?.deliveryReady, gBroken?.deliveryReason]));
 
-    /* VIER LAGEN, UND VERGLICHEN WIRD DER ROHE ANTWORTKOERPER -- nicht ein
-       Feld daraus. */
     const gCases = [
       ['unbekannter Name', { name: 'neuling', address: 'neuling@beispiel.de' }],
       ['bekannter Name', { name: 'bert', address: 'ganz-anders@beispiel.de' }],
@@ -12975,9 +11566,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und mit demselben Rumpf -- Byte fuer Byte',
       gE.every(([, e]) => e.raw === REG_RESPONSE),
       gE.map(([w, e]) => `${w}: ${e.raw.length} Zeichen`).join(' · '));
-    /* ---- DIE FORM WIRD GEPRUEFT, DER BESTAND NICHT -- 0.32.0, BA 6 -------
-       ZUSAGE 9: die Zugangsanfrage weist eine leere Form ab -- und sonst
-       nichts. */
+    /* ---- Geprueft wird die Form, nicht der Bestand ---- */
     const gForm = [];
     for (const [event, body] of [
       ['leerer Name', { name: '  ', address: 'wer@beispiel.de' }],
@@ -12987,30 +11576,25 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Die unbrauchbare Form wird abgewiesen — und sonst nichts (Zusage 9)',
       gForm.every(([, e]) => e.status === 400),
       gForm.map(([w, e]) => `${w}: ${e.status}`).join(' · '));
-    /* UND DIE ABSAGE SAGT, WAS FEHLT -- sie ist der ganze Gewinn der Zusage. */
     check('Und sie sagt, was an der Form fehlt',
       /Benutzernamen|username|kullanıcı/i.test(gForm[0][1].raw) &&
       /Adresse|address|adres/i.test(gForm[1][1].raw) &&
       /Adresse|address|adres/i.test(gForm[2][1].raw),
       gForm.map(([w, e]) => `${w}: ${e.raw.slice(0, 60)}`).join(' · '));
-    /* UND SIE LEGT NICHTS AN. Eine Absage, die die Zeile trotzdem schriebe,
-       waere schlimmer als keine -- der Deckel fuellte sich mit Unbrauchbarem. */
     check('Und keine der drei legt eine Anfrage an',
       regSql(gA.dir, "SELECT username FROM requests WHERE username = 'dritter'").length === 0,
       JSON.stringify(regSql(gA.dir, 'SELECT username FROM requests')));
-    /* ERST DER GEGENSTAND: ein leerer Rumpf waere in allen
-       vier Lagen gleich und belegte nichts. */
+    /* Gegenprobe: ein leerer Rumpf waere in allen vier Lagen gleich. */
     check('Der Rumpf sagt ueberhaupt etwas -- und nennt den naechsten Schritt',
       /E-Mail/.test(REG_RESPONSE) && /Admin/.test(REG_RESPONSE), REG_RESPONSE.slice(0, 160));
     check('Und er verraet in keiner Lage, welche es war',
       gE.every(([, e]) => !/vergeben|bereits|Deckel|unbekannt|ungültig|ungueltig/i.test(e.raw)),
       REG_RESPONSE.slice(0, 160));
-    /* DIE LAUFZEITEN. Die erste Lage verschickt wirklich, und der Empfaenger
-       dahinter troepfelt zwanzig Sekunden. */
+    /* Die erste Lage verschickt wirklich, und der Empfaenger troepfelt zwanzig
+       Sekunden. */
     check('Keine der vier Lagen wartet auf den Mailserver',
       gE.every(([, e]) => e.ms < 500), gE.map(([w, e]) => `${w}: ${Math.round(e.ms)} ms`).join(' · '));
-    /* UND DIE GEGENLAGE ZUR MESSUNG SELBST: der troepfelnde Empfaenger muss
-       ueberhaupt gehalten haben. Gewartet wird, ob ein Brief ausbleibt. */
+    /* Gegenprobe: wartet, ob der Brief ausbleibt, der Empfaenger also haelt. */
     await new Promise(r => setTimeout(r, 600));
     check('Der troepfelnde Empfaenger haelt den Versand dabei wirklich fest',
       gTr.letters().length === 0, `${gTr.letters().length} Briefe angekommen`);
@@ -13021,8 +11605,7 @@ async function sendImport(object, mode, withoutShare = false) {
       regSql(gA.dir, 'SELECT username FROM requests').every(z => z.username === 'neuling'),
       JSON.stringify(regSql(gA.dir, 'SELECT username FROM requests')));
 
-    /* JE ADRESSE HOECHSTENS EINE OFFENE ANFRAGE -- UND JE NAME EBENSO, und
-       beide muessen EINZELN geprueft werden. */
+    /* Hoechstens eine offene Anfrage je Adresse und je Name, beide einzeln. */
     const gSameAddress = await regRaw(gA.S, '/api/signup',
       { name: 'ganz-anderer-name', address: 'neuling@beispiel.de' });
     check('Dieselbe Adresse unter anderem Namen bekommt DIESELBE Antwort',
@@ -13039,16 +11622,13 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und auch dabei bleibt es bei der einen Zeile',
       regSql(gA.dir, 'SELECT username FROM requests').length === 1,
       JSON.stringify(regSql(gA.dir, 'SELECT username, email FROM requests')));
-    /* UND DIE GEGENLAGE ZU BEIDEN: eine Anfrage mit NEUEM
-       Namen UND NEUER Adresse geht durch. */
     await regRaw(gA.S, '/api/signup',
       { name: 'beides-neu', address: 'beides-neu@beispiel.de' });
     check('Neuer Name UND neue Adresse gehen dagegen durch',
       regSql(gA.dir, "SELECT id FROM requests WHERE username = 'beides-neu'").length === 1,
       JSON.stringify(regSql(gA.dir, 'SELECT username FROM requests').map(z => z.username)));
 
-    /* WAS VON AUSSEN HEREINKOMMT, IST BEGRENZT -- und zwar an der einzigen
-       Stelle im Projekt, an der ein FREMDER in die Datenbank schreibt. */
+    /* Laengengrenzen: nur hier schreibt ein Fremder in die Datenbank. */
     const gLang = await regRaw(gA.S, '/api/signup',
       { name: 'x'.repeat(65), address: 'lang@beispiel.de' });
     check('Ein zu langer Name bekommt DIESELBE Antwort',
@@ -13060,8 +11640,6 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und keine von beiden hat eine Zeile angelegt',
       regSql(gA.dir, 'SELECT username FROM requests').length === 2,
       JSON.stringify(regSql(gA.dir, 'SELECT username FROM requests').map(z => z.username.length)));
-    /* UND DIE GEGENLAGE ZUR GRENZE: ein Name knapp DARUNTER
-       geht durch. */
     const gTight = await regRaw(gA.S, '/api/signup',
       { name: 'z'.repeat(64), address: 'knapp@beispiel.de' });
     check('Ein Name von genau 64 Zeichen geht dagegen durch',
@@ -13074,8 +11652,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('GET /api/config sagt, dass sie an ist',
       (await gA.S.call('GET', '/api/config')).content?.signup === true,
       JSON.stringify((await gA.S.call('GET', '/api/config')).content?.signup));
-    /* DIE LISTE IN /api/config BLEIBT ABGESCHLOSSEN. Sie steht vor der
-       Anmeldung; was hier dazukommt, sieht jeder, der die Adresse kennt. */
+    /* /api/config steht vor der Anmeldung; jedes neue Feld saehe jeder. */
     check('Und vor der Anmeldung wird sonst weiterhin nichts verraten',
       equal(Object.keys((await gA.S.call('GET', '/api/config')).content).sort(),
         ['language', 'minPassword', 'setupRequired', 'signup', 'title', 'version']),
@@ -13089,15 +11666,12 @@ async function sendImport(object, mode, withoutShare = false) {
     const gBefore = regSql(gA.dir, 'SELECT id FROM requests').length;
     const gZu = await regRaw(gA.S, '/api/signup',
       { name: 'waehrend-aus', address: 'aus@beispiel.de' });
-    /* DER SCHALTER AUS FUEHRT ZU DERSELBEN ANTWORT und nicht zu einer eigenen
-       Absage -- sonst waere er die eine Lage, an der sich die Antwort doch
-       unterscheidet, und die Route ein zweiter Weg, den Zustand abzufragen. */
+    /* Eine eigene Absage verriete den Zustand des Schalters. */
     check('Die Anfrage bei ausgeschaltetem Schalter bekommt DIESELBE Antwort',
       gZu.status === 200 && gZu.raw === REG_RESPONSE, `${gZu.status} · ${gZu.raw.slice(0, 60)}`);
     check('Und es entsteht dabei keine Zeile',
       regSql(gA.dir, 'SELECT id FROM requests').length === gBefore,
       `vorher ${gBefore}, nachher ${regSql(gA.dir, 'SELECT id FROM requests').length}`);
-    /* UND DER SCHALTER LAESST SICH JETZT NICHT MEHR EINSCHALTEN. */
     const gAgainAn = await gA.S.call('PUT', '/api/signup/toggle', { an: true });
     check('Nach einer Aenderung am Mailzugang laesst er sich nicht mehr einschalten',
       gAgainAn.status === 400, `Status ${gAgainAn.status}`);
@@ -13109,7 +11683,6 @@ async function sendImport(object, mode, withoutShare = false) {
 
     group('Die Selbstanmeldung: der Schalter braucht drei Dinge');
 
-    /* DREI VORAUSSETZUNGEN, EINZELN GEPRUEFT. */
     const iOk = smtpEmpfaenger('ok');
     const iA = await regInstance({}, 6760);
     const iWithout = await iA.S.call('PUT', '/api/signup/toggle', { an: true });
@@ -13149,17 +11722,13 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Die Anfrage wird angenommen', hRequest.status === 200 && hRequest.raw === REG_RESPONSE,
       `${hRequest.status} · ${hRequest.raw.slice(0, 60)}`);
     const hKey = await regWaitOnMail(hOk, 'clara@beispiel.de');
-    /* GESUCHT WIRD DER BRIEF AN DIESE ADRESSE, nicht "einer mehr als vorher":
-       der Versand laeuft NACH der Antwort, und unter mehreren Nebenspuren
-       kommt er frueher oder spaeter an. */
+    /* Nach Adresse statt "einer mehr als vorher": der Versand laeuft nach der
+       Antwort, und unter mehreren Nebenspuren schwankt der Zeitpunkt. */
     const hLetters = hOk.letters().filter(b => /^To: clara@beispiel\.de$/m.test(b.head));
     check('Die Bestaetigungsmail geht am echten SMTP-Gespraech hinaus',
       hLetters.length === 1, `${hLetters.length} Briefe an clara, ` +
       `${hOk.letters().length - hVorLetters} neue insgesamt`);
-    /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT -- und in
-       einer Gruppe ueber einen Vorgang, der scheitern KANN, ist jede
-       Lesestelle danach abgefangen: kommt der Brief nicht, soll die Gruppe
-       rot werden und nicht abreissen. */
+    /* Abgefangen: kommt kein Brief, wird die Gruppe rot, statt abzubrechen. */
     const hMail = hLetters[0] || { head: '', core: '', raw: '' };
     check('Der Empfaenger ist die angefragte Adresse',
       /^To: clara@beispiel\.de$/m.test(hMail.head), hMail.head.split('\n').slice(0, 4).join(' | '));
@@ -13178,7 +11747,6 @@ async function sendImport(object, mode, withoutShare = false) {
       D.shows(hMail.core, 'mail.confirm.body'), hMail.core.slice(0, 400));
     check('Er ist reiner Text -- kein HTML im Brief',
       !/<html|<body|Content-Type: text\/html/i.test(hMail.raw), 'HTML im Brief');
-    // Der Schluessel selbst steht in der Datenbank NICHT im Klartext.
     check('In der Tabelle steht nur der Hash, nie der Schluessel',
       Boolean(hKey) && (regSql(hA.dir, 'SELECT hash FROM requests')[0] || {}).hash ===
         crypto.createHash('sha256').update(String(hKey)).digest('hex'),
@@ -13190,8 +11758,8 @@ async function sendImport(object, mode, withoutShare = false) {
 
     group('Die Selbstanmeldung: der Bestaetigungslink hat keine Passwortkraft');
 
-    /* WER IHN ANKLICKT, SAGT "ja, das bin ich" -- MEHR NICHT. Er legt keinen
-       Zugang an, er setzt kein Passwort, er meldet niemanden an. */
+    /* Die Bestaetigung legt keinen Zugang an, setzt kein Passwort und meldet
+       niemanden an. */
     const hUsersVor = regSql(hA.dir, 'SELECT id FROM users').length;
     const hTokensVor = regSql(hA.dir, 'SELECT hash FROM tokens').length;
     const hSessionsVor = regSql(hA.dir, 'SELECT token FROM sessions').length;
@@ -13214,13 +11782,11 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Die Zeile traegt jetzt einen Bestaetigungszeitpunkt',
       Boolean((regSql(hA.dir, 'SELECT confirmed_at FROM requests')[0] || {}).confirmed_at),
       JSON.stringify(regSql(hA.dir, 'SELECT confirmed_at FROM requests')[0]));
-    // Zweimal klicken ist unschaedlich -- wer neu laedt, soll nicht vor einer
-// Absage stehen.
+    // Zweimal klicken ist unschaedlich: nach einem Neuladen keine Absage.
     const hTwice = await hA.S.call('POST', '/api/signup/confirm',
       { key: hKey });
     check('Zweimal bestaetigen ist unschaedlich', hTwice.status === 200,
       `Status ${hTwice.status}`);
-    // Und ein erfundener Schluessel bekommt DIE EINE Absage.
     const hInvented = await hA.S.call('POST', '/api/signup/confirm',
       { key: 'a'.repeat(64) });
     check('Ein erfundener Schluessel wird abgewiesen', hInvented.status === 400,
@@ -13234,9 +11800,8 @@ async function sendImport(object, mode, withoutShare = false) {
 
     group('Die Selbstanmeldung: die unbestaetigte Anfrage');
 
-    /* SIE ERSCHEINT BEIM ADMIN NICHT -- sonst stuende dort die Adresse eines
-       Menschen, der von der ganzen Sache nichts weiss, und der Admin koennte
-       sie freischalten. */
+    /* Unbestaetigt erscheint sie beim Admin nicht: die Adresse koennte einem
+       Unbeteiligten gehoeren. */
     await regRaw(hA.S, '/api/signup', { name: 'dora', address: 'dora@beispiel.de' });
     await regWaitOnMail(hOk, 'dora@beispiel.de');
     const hCard = (await hA.S.call('GET', '/api/requests')).content || { requests: [] };
@@ -13249,7 +11814,6 @@ async function sendImport(object, mode, withoutShare = false) {
       JSON.stringify((hCard.requests || []).map(a => a.username)));
     check('Der Deckel zaehlt trotzdem beide',
       hCard.used === 2, `${hCard.used} von ${hCard.cap}`);
-    /* UND SIE LAESST SICH AUCH NICHT UEBER IHRE NUMMER FREISCHALTEN. */
     const hDoraId = (regSql(hA.dir, 'SELECT id, username FROM requests')
       .find(z => z.username === 'dora') || { id: 0 }).id;
     const hDoraFree = await hA.S.call('POST', `/api/requests/${hDoraId}/approve`);
@@ -13263,7 +11827,6 @@ async function sendImport(object, mode, withoutShare = false) {
 
     group('Die Selbstanmeldung: das Verfallen und das Aufraeumen');
 
-    /* NUR DAS UNBESTAETIGTE VERFAELLT. */
     const hOld = (hours) => shortRun(
       `const { db } = require('./db');` +
       `db.prepare("UPDATE requests SET created_at = datetime('now', ?) WHERE username = 'dora'")` +
@@ -13281,8 +11844,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Eine von 25 Stunden faellt -- zweite Aufrufstelle, die Karte',
       regSql(hA.dir, "SELECT id FROM requests WHERE username = 'dora'").length === 0,
       'sie steht noch da');
-    /* NUR DAS UNBESTAETIGTE VERFAELLT, und das wird an einer BESTAETIGTEN
-       ZEILE GLEICHEN ALTERS geprueft. */
+    /* Gegenprobe an einer bestaetigten Zeile gleichen Alters. */
     shortRun(
       `const { db } = require('./db');` +
       `db.prepare("UPDATE requests SET created_at = datetime('now', '-72 hours') ` +
@@ -13299,8 +11861,7 @@ async function sendImport(object, mode, withoutShare = false) {
       ((await hA.S.call('GET', '/api/requests')).content.requests || [])
         .some(a => a.username === 'clara'),
       JSON.stringify((await hA.S.call('GET', '/api/requests')).content.requests));
-    /* DIE DRITTE AUFRUFSTELLE, und sie ist die besondere: sie steht VOR der
-       Deckelpruefung. */
+    /* Die dritte Aufrufstelle steht vor der Deckelpruefung. */
     shortRun(
       `const { db } = require('./db'); const s = db.prepare(` +
       `"INSERT INTO requests (hash, username, email, created_at) VALUES (?, ?, ?, datetime('now','-48 hours'))");` +
@@ -13322,7 +11883,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
     group('Die Selbstanmeldung: der Deckel');
 
-    /* ZWANZIG, UND ER ZAEHLT BESTAETIGTE UND UNBESTAETIGTE ZUSAMMEN. */
+    /* Der Deckel liegt bei zwanzig und zaehlt bestaetigte und unbestaetigte. */
     shortRun(
       `const { db } = require('./db'); db.prepare('DELETE FROM requests').run();` +
       `const s = db.prepare('INSERT INTO requests (hash, username, email) VALUES (?, ?, ?)');` +
@@ -13345,8 +11906,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Die Karte nennt den Stand gegen den Deckel',
       hCapCard.used === 20 && hCapCard.cap === 20,
       `${hCapCard.used} von ${hCapCard.cap}`);
-    // Platz schaffen, und die naechste geht wieder durch -- sonst belegte die
-// Pruefung nur, dass gar nichts mehr geht.
+    // Gegenprobe: sonst belegte die Pruefung nur, dass gar nichts mehr geht.
     shortRun(`const { db } = require('./db');` +
       `db.prepare("DELETE FROM requests WHERE username = 'voll0'").run(); console.log('weg');`, hA.dir);
     await regRaw(hA.S, '/api/signup', { name: 'zwanzigster', address: 'zwanzig@beispiel.de' });
@@ -13356,8 +11916,6 @@ async function sendImport(object, mode, withoutShare = false) {
 
     group('Die Selbstanmeldung: die Freischaltung');
 
-    /* AUS DER ANFRAGE WIRD EIN ZUGANG MIT TOKEN, die Zeile ist weg, und die
-       Protokollzeilen stehen. */
     shortRun(`const { db } = require('./db'); db.prepare('DELETE FROM requests').run();` +
       `console.log('leer');`, hA.dir);
     const fVorLetters = hOk.letters().length;
@@ -13369,13 +11927,9 @@ async function sendImport(object, mode, withoutShare = false) {
       (fCard.requests || []).length === 1 &&
       ((fCard.requests || [])[0] || {}).username === 'frieda',
       JSON.stringify(fCard.requests));
-    /* JEDE LESESTELLE DANACH ABGEFANGEN: kommt
-       die Zeile nicht, soll die Gruppe rot werden und nicht abreissen -- eine
-       Gegenprobe, die den Lauf mitnimmt, sagt nichts darueber, welche
-       Pruefung den Rueckbau bemerkt haette. */
-    /* ZU JEDEM FELD, DAS DIE OBERFLAECHE LIEST, EINE PRUEFUNG AN DER ECHTEN
-       ANTWORT -- das ist die Quelle von vier stummen
-       Gegenproben der Vorrunde. */
+    /* Abgefangen: fehlt die Zeile, wird die Gruppe rot, statt abzubrechen; sonst
+       zeigte eine Gegenprobe nicht, welche Pruefung den Rueckbau bemerkt. */
+    /* Je Feld, das die Oberflaeche liest, eine Pruefung an der echten Antwort. */
     const fRow = (fCard.requests || [])[0] || {};
     check('Die Antwort traegt den Namen', fRow.username === 'frieda', JSON.stringify(fRow));
     check('Und die Adresse', fRow.email === 'frieda@beispiel.de', JSON.stringify(fRow));
@@ -13385,7 +11939,6 @@ async function sendImport(object, mode, withoutShare = false) {
       /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(fRow.confirmed_at || ''), JSON.stringify(fRow));
     check('Und eine Nummer, ueber die sie sich ansprechen laesst',
       Number.isInteger(fRow.id) && fRow.id > 0, JSON.stringify(fRow.id));
-    /* UND DER SCHLUESSEL KOMMT NICHT MIT -- weder im Klartext noch als Hash. */
     check('Der Bestaetigungsschluessel steht in der Antwort nicht',
       !('hash' in fRow) && Boolean(fKey) &&
       !JSON.stringify(fCard).includes(String(fKey)),
@@ -13415,9 +11968,8 @@ async function sendImport(object, mode, withoutShare = false) {
       .catch(() => {});
     check('Die Einladungsmail geht hinaus', fFree.content?.delivery === 'ok',
       `${fFree.content?.delivery} · ${fFree.content?.deliveryReason}`);
-    /* GESUCHT WIRD DER BRIEF MIT DIESEM LINK und nicht der letzte in der
-       Liste: die Bestaetigungsmails der vorigen Gruppen gehen NACH ihrer
-       Antwort hinaus und koennen deshalb jederzeit dazwischenfallen. */
+    /* Nach Link statt nach Position: Bestaetigungsmails der vorigen Gruppen gehen
+       nach ihrer Antwort hinaus und koennen dazwischenfallen. */
     const fLetters = hOk.letters();
     const fInvite = fLetters.filter(b => b.core.includes(
       `https://kriterion.beispiel.de/#/invite/${fFree.content?.token}`));
@@ -13430,7 +11982,6 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Der Link steht dabei im Fragment und wird nicht abgeschnitten',
       fInvite.length === 1 && /#\/invite\/[0-9a-f]{64}/.test(fInvite[0].core),
       (fInvite[0]?.core || '').split('\n').find(z => /einladung/.test(z)) || '(keine Zeile)');
-    /* DIE PROTOKOLLZEILEN. */
     const fLog = regSql(hA.dir,
       "SELECT event, actor, target, detail FROM security_log ORDER BY id");
     const fFrei1 = fLog.filter(z => z.event === 'request.approve');
@@ -13445,15 +11996,13 @@ async function sendImport(object, mode, withoutShare = false) {
       fLog.some(z => z.event === 'user.new' && z.target === fFree.content?.id) &&
       fLog.some(z => z.event === 'link.new' && z.target === fFree.content?.id),
       JSON.stringify(fLog.map(z => `${z.event}/${z.target}`)));
-    /* DER NAME DES ANFRAGENDEN STEHT IN KEINER ZEILE. */
     check('Und der Name steht in KEINER Spalte KEINER Zeile',
       !JSON.stringify(regSql(hA.dir, 'SELECT * FROM security_log')).includes('frieda'),
       'der Name steht im Protokoll');
     check('Die Adresse ebenso wenig',
       !JSON.stringify(regSql(hA.dir, 'SELECT * FROM security_log')).includes('beispiel.de'),
       'die Adresse steht im Protokoll');
-    /* UND DER TOKENWEG AUS 0.8.80 IST UNVERAENDERT: pruefen, einloesen,
-       angemeldet. */
+    /* Der Tokenweg: pruefen, einloesen, angemeldet. */
     const fCheck = await fetch(hA.S.base + '/api/token/check', {
       method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ token: fFree.content?.token })
@@ -13480,17 +12029,15 @@ async function sendImport(object, mode, withoutShare = false) {
 
     group('Die Selbstanmeldung: die Rolle ist immer user');
 
-    /* AUS EINER ANFRAGE WIRD NIE ETWAS ANDERES ALS EIN BENUTZER, und das ist
-       baulich wahr und nicht durchgesetzt: die Route ruft legeZugangAn mit
-       fest verdrahtetem 'user' und liest an KEINER Stelle eine Rolle aus der
-       Anfrage. */
+    /* Aus einer Anfrage wird immer ein Benutzer: die Route setzt die Rolle 'user'
+       fest und liest keine Rolle aus der Anfrage. */
     const rolesState = async (name, address) => {
       await regRaw(hA.S, '/api/signup', { name, address });
       const s = await regWaitOnMail(hOk, address);
       await hA.S.call('POST', '/api/signup/confirm', { key: s });
       const k = (await hA.S.call('GET', '/api/requests')).content || {};
-      // Eine fehlende Antwort ist abgefangen: eine Nummer, die es nicht
-      // gibt, faerbt die Pruefung rot statt den Lauf abzureissen.
+      // Fehlt die Antwort, macht die Nummer 0 die Pruefung rot, statt den Lauf
+      // abzubrechen.
       return ((k.requests || []).find(a => a.username === name) || { id: 0 }).id;
     };
     const rCoreId = await rolesState('gustav', 'gustav@beispiel.de');
@@ -13512,16 +12059,12 @@ async function sendImport(object, mode, withoutShare = false) {
         .every(z => z.role === 'user'),
       JSON.stringify(regSql(hA.dir,
         "SELECT username, role FROM users WHERE username IN ('gustav','heidi','ida')")));
-    /* UND DIE ROLLENLEITER BLEIBT HEIL: die Zahl der Eigentuemer und Admins
-       hat sich durch drei Freischaltungen nicht bewegt. */
     check('Die Zahl der Eigentuemer und Admins hat sich nicht bewegt',
       regSql(hA.dir, "SELECT role FROM users WHERE role != 'user'").length === 1,
       JSON.stringify(regSql(hA.dir, 'SELECT username, role FROM users')));
 
     group('Die Selbstanmeldung: die Ablehnung');
 
-    /* DIE ZEILE IST WEG, ES ENTSTEHT KEIN ZUGANG, und die Protokollzeile
-       steht -- ohne den Namen. */
     const fromId = await rolesState('konrad', 'konrad@beispiel.de');
     const fromUsersVor = regSql(hA.dir, 'SELECT id FROM users').length;
     const fromLettersVor = hOk.letters().length;
@@ -13558,8 +12101,8 @@ async function sendImport(object, mode, withoutShare = false) {
 
     group('Die Selbstanmeldung: keine Zeile, die ein Fremder ausloesen kann');
 
-    /* DIE GESCHEITERTE ANMELDUNG IST DIE EINZIGE ZEILE, DIE EIN FREMDER
-       AUSLOESEN KANN, und ihr Deckel ist die Bremse. */
+    /* Die einzige Zeile, die ein Fremder ausloesen kann, ist die gescheiterte
+       Anmeldung; ihre Menge begrenzt die Bremse. */
     shortRun(`const { db } = require('./db'); db.prepare('DELETE FROM security_log').run();` +
       `db.prepare('DELETE FROM requests').run(); console.log('leer');`, hA.dir);
     await regRaw(hA.S, '/api/signup', { name: 'ludwig', address: 'ludwig@beispiel.de' });
@@ -13569,8 +12112,6 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Anfrage, Bestaetigung und geratene Bestaetigung schreiben zusammen keine Zeile',
       regSql(hA.dir, 'SELECT id FROM security_log').length === 0,
       JSON.stringify(regSql(hA.dir, 'SELECT event FROM security_log')));
-    /* ERST DER GEGENSTAND: die Tabelle muss ueberhaupt
-       beschreibbar sein. */
     const ludwigId = ((((await hA.S.call('GET', '/api/requests')).content || {})
       .requests || []).find(a => a.username === 'ludwig') || { id: 0 }).id;
     await hA.S.call('DELETE', `/api/requests/${ludwigId}`);
@@ -13580,10 +12121,8 @@ async function sendImport(object, mode, withoutShare = false) {
 
     group('Die Selbstanmeldung: die Bremse greift an beiden Routen');
 
-    /* GEFAHREN WIRD AUF DER INSTANZ AUS DER GRUPPE DAVOR, und zwar als
-       LETZTES auf ihr: die Zaehler der Anmeldebremse liegen im
-       Arbeitsspeicher des Prozesses, und zwoelf Fehlversuche vergiften jede
-       weitere Lage auf derselben Adresse. */
+    /* Auf iA und als Letztes dort: die Zaehler der Anmeldebremse liegen im
+       Speicher des Prozesses und stoerten jede weitere Lage auf derselben Adresse. */
     const bA = iA;
     const bLevels = [];
     for (let i = 1; i <= 12; i++) {
@@ -13599,7 +12138,6 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Der Uebergang liegt genau zwischen zehn und elf',
       bLevels.slice(0, 10).every(s => s === 400) && bLevels.slice(10).every(s => s === 429),
       JSON.stringify(bLevels));
-    /* UND DIE ANFRAGEROUTE LIEGT HINTER DERSELBEN BREMSE. */
     const bRequest = await fetch(bA.S.base + '/api/signup', {
       method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ name: 'waehrend-gesperrt', address: 'gesperrt@beispiel.de' })
@@ -13608,8 +12146,6 @@ async function sendImport(object, mode, withoutShare = false) {
       `Status ${bRequest.status}`);
     check('Und die Absage nennt die Wartezeit',
       /Sekunden/.test(JSON.stringify(await bRequest.json())), 'keine Wartezeit genannt');
-    /* UND DIE GESPERRTEN VERSUCHE SCHREIBEN NICHTS -- weder in anfragen noch
-       ins Protokoll. */
     check('Es ist dabei keine Zeile entstanden',
       regSql(bA.dir, 'SELECT id FROM requests').length === 0 &&
       regSql(bA.dir, "SELECT id FROM security_log WHERE event LIKE 'anfrage%'").length === 0,
@@ -13617,9 +12153,8 @@ async function sendImport(object, mode, withoutShare = false) {
 
     group('Die Selbstanmeldung: die Tabelle legt sich selbst an');
 
-    /* KEIN MIGRATIONSBLOCK -- und das ist zum vierten Mal NACHGESTELLT statt
-       abgeschrieben: anders als eine SPALTE legt CREATE TABLE IF NOT EXISTS
-       eine fehlende TABELLE bei jedem Start an. */
+    /* Ohne Migrationsblock: CREATE TABLE IF NOT EXISTS legt eine fehlende Tabelle
+       bei jedem Start an, eine fehlende Spalte nicht. */
     {
       const nDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-anfragentab-'));
       shortRun(`require('./db'); console.log('da');`, nDir);
@@ -13656,9 +12191,8 @@ async function sendImport(object, mode, withoutShare = false) {
         nTables().includes('requests'), JSON.stringify(nTables()));
       check('Und das Schema ist danach dasselbe wie in einer frischen Instanz',
         equal(nColumnsFrom('requests'), nFresh), JSON.stringify(nColumnsFrom('requests')));
-      /* UND DIE ZUSAGE, DIE DER PRUEFSTAND DIESER RUNDE AUSDRUECKLICH GIBT:
-         das Schema einer GEWACHSENEN Instanz ist nach dem Start dasselbe wie
-         das einer frischen. */
+      /* Nach dem Start gleicht das Schema einer gewachsenen Instanz dem einer
+         frischen. */
       const nGrown = nTables();
       const nFreshDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-anfragenfrisch-'));
       shortRun(`require('./db'); console.log('da');`, nFreshDir);
@@ -13673,7 +12207,7 @@ async function sendImport(object, mode, withoutShare = false) {
         equal(nGrown, nFreshTables),
         `gewachsen: ${nGrown.join(' ')} · frisch: ${nFreshTables.join(' ')}`);
       fs.rmSync(nFreshDir, { recursive: true, force: true });
-      /* DIE GEGENLAGE: eine SPALTE kommt nicht von selbst zurueck. */
+      /* Gegenprobe: eine fehlende Spalte legt der Start nicht selbst an. */
       {
         const d = open(nFile);
         d.exec('ALTER TABLE requests DROP COLUMN confirmed_at');
@@ -13692,8 +12226,7 @@ async function sendImport(object, mode, withoutShare = false) {
     }
 
     for (const l of [gOk, gTr, iOk, hOk]) await l.stop();
-    // bA IST iA -- die Bremsprobe laeuft auf derselben Instanz. Ein zweiter
-// Eintrag hier waere ein zweites Aufraeumen desselben Verzeichnisses.
+    // bA ist iA und steht deshalb nicht zusaetzlich in der Liste.
     for (const x of [gA, iA, hA]) {
       await x.S.stop();
       fs.rmSync(x.dir, { recursive: true, force: true });
@@ -13702,15 +12235,14 @@ async function sendImport(object, mode, withoutShare = false) {
 
 
 
-  /* ================= Der zweite Faktor, 0.10.0 ================= WER WILL,
-     SICHERT SEINEN ZUGANG MIT EINEM CODE AUS EINER APP AUF SEINEM TELEFON. */
+  /* ---- Zweiter Faktor ---- */
   {
     const ZF = require('./twofactor');
 
     group('Der zweite Faktor: die Rechnung gegen den Standard');
 
-    /* DIE TESTVEKTOREN AUS RFC 6238, Anhang B -- Geheimnis
-       "12345678901234567890" als ASCII, HMAC-SHA1. */
+    /* Testvektoren aus RFC 6238, Anhang B: Geheimnis "12345678901234567890" als
+       ASCII, HMAC-SHA1. */
     const zfVectorSecret = ZF.base32Encode(Buffer.from('12345678901234567890', 'ascii'));
     check('Das Testgeheimnis kodiert nach RFC 4648 zu GEZDGNBVGY3TQOJQ…',
       zfVectorSecret === 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ', zfVectorSecret);
@@ -13733,17 +12265,12 @@ async function sendImport(object, mode, withoutShare = false) {
       zfWrong.length === 0,
       zfWrong.map(([t, s]) => `T=${t} soll ${s.slice(-ZF.DIGITS)}, ist ` +
         ZF.code(zfVectorSecret, ZF.stepOf(t * 1000))).join(' · '));
-    /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT: eine leere
-       Vektorliste machte die Zeile darueber wahr, ohne etwas zu belegen. */
+    /* Gegenprobe: eine leere Vektorliste machte die Pruefung darueber wahr. */
     check('Und die Liste der Vektoren ist wirklich gefuellt',
       ZF_VECTORS.length === 6 && ZF_VECTORS.every(([, s]) => s.length === 8));
-    /* DIE OBERE HAELFTE DES ZAEHLERS ERREICHT KEIN TESTVEKTOR AUS RFC 6238 --
-       nachgerechnet statt angenommen: der groesste (T = 20 000 000 000)
-       ergibt den Zaehler 666 666 666 und liegt damit UNTER 2^32. Ueber die
-       obere Haelfte laeuft er erst ab dem Jahr 6053. GEPRUEFT WIRD SIE
-       TROTZDEM, und zwar gegen eine ZWEITE, UNABHAENGIGE Bauform des
-       Zaehlers: writeBigUInt64BE schreibt die acht Bytes in einem Zug,
-       twofactor.js schreibt sie in zwei Haelften. */
+    /* Kein Testvektor erreicht die obere Haelfte des Zaehlers (erst ab dem Jahr
+       6053). Geprueft wird sie gegen writeBigUInt64BE; twofactor.js schreibt die
+       acht Bytes in zwei Haelften. */
     check('Kein Testvektor aus RFC 6238 erreicht die obere Haelfte des Zaehlers',
       ZF.stepOf(20000000000 * 1000) < 2 ** 32,
       `groesster Zaehler ${ZF.stepOf(20000000000 * 1000)}, Grenze ${2 ** 32}`);
@@ -13763,13 +12290,11 @@ async function sendImport(object, mode, withoutShare = false) {
       zfUpWrong.length === 0 && ZF_UP.every(z => z >= 2 ** 32),
       zfUpWrong.map(z => `${z}: ${ZF.code(zfVectorSecret, z)} statt ` +
         zfHmacDirekt(zfVectorSecret, z)).join(' · '));
-    /* UND DIE GEGENLAGE ZUR PRUEFUNG SELBST: stimmten die
-       beiden Wege IMMER ueberein, auch bei verschiedenen Zaehlern, belegte
-       die Zeile darueber nichts. */
+    /* Gegenprobe: stimmten die Wege immer ueberein, belegte die Pruefung darueber
+       nichts. */
     check('Und die beiden Wege unterscheiden sich sehr wohl bei verschiedenen Zaehlern',
       zfHmacDirekt(zfVectorSecret, 2 ** 32) !== zfHmacDirekt(zfVectorSecret, 2 ** 32 + 1));
 
-    /* DIE VIER KENNWERTE STEHEN FEST UND WERDEN AUSDRUECKLICH GEPRUEFT. */
     check('Das Verfahren ist HMAC-SHA1', ZF.ALGORITHM === 'sha1', ZF.ALGORITHM);
     check('Der Code hat sechs Ziffern', ZF.DIGITS === 6, String(ZF.DIGITS));
     check('Der Schritt ist dreissig Sekunden', ZF.STEP_SECONDS === 30,
@@ -13780,7 +12305,7 @@ async function sendImport(object, mode, withoutShare = false) {
       ZF.SECRET_BYTES === 20 && ZF.newSecret().length === 32 &&
       !ZF.newSecret().includes('='), ZF.newSecret());
 
-    /* DIE ZWEI FORMEN IN EINEM FELD. */
+    /* Code aus der App und Wiederherstellungscode im selben Feld. */
     check('Sechs Ziffern sind ein Code aus der App',
       ZF.isCodeForm('012345') && !ZF.isCodeForm('12345') && !ZF.isCodeForm('0123456') &&
       !ZF.isCodeForm('abcdef') && !ZF.isCodeForm(''));
@@ -13803,9 +12328,8 @@ async function sendImport(object, mode, withoutShare = false) {
       ZF.base32Decode(ZF.groupsOfFour(zfVectorSecret)).toString('ascii')
         === '12345678901234567890', ZF.groupsOfFour(zfVectorSecret));
 
-    /* DAS WINDOW, an der reinen Rechnung und ohne Uhr des Servers -- hier
-       laesst sich der Zeitpunkt uebergeben, und deshalb steht die schaerfste
-       Fassung dieser Probe hier und nicht an einem Server. */
+    /* Das Zeitfenster an der Rechnung selbst: nur hier laesst sich der Zeitpunkt
+       uebergeben. */
     const zfT = 1111111111 * 1000, zfN = ZF.stepOf(zfT);
     check('Ein Code aus dem laufenden Fenster traegt',
       ZF.checkCode(zfVectorSecret, ZF.code(zfVectorSecret, zfN), zfT) === zfN);
@@ -13820,7 +12344,6 @@ async function sendImport(object, mode, withoutShare = false) {
       ZF.checkCode(zfVectorSecret, 'abcdef', zfT) === null &&
       ZF.checkCode(zfVectorSecret, '', zfT) === null &&
       ZF.checkCode(zfVectorSecret, '00000', zfT) === null);
-    /* DIE ZEILE, DIE DIE OTPAUTH-ZEILE ZUSAMMENHAELT. */
     const zfRow = ZF.otpauthLine('Kriterion', 'anna', zfVectorSecret);
     check('Die otpauth-Zeile nennt Instanz, Zugang, Geheimnis und alle drei Kennwerte',
       zfRow.startsWith('otpauth://totp/') && zfRow.includes('Kriterion%3Aanna') &&
@@ -13860,9 +12383,7 @@ async function sendImport(object, mode, withoutShare = false) {
       const start = await zfS.call('POST', '/api/two-factor/start', { password });
       await zfQuiet();
       const counter = ZF.nowStep();
-      /* ABGEFANGEN: gibt /start kein Geheimnis her,
-         laeuft alles Weitere trotzdem durch -- mit einem erfundenen Wert, der
-         zuverlaessig nicht traegt. */
+      /* Ohne Geheimnis aus /start laeuft es mit einem Wert weiter, der nicht traegt. */
       const secret = (start.content && start.content.secret) || 'A'.repeat(32);
       const an = await zfS.call('POST', '/api/two-factor/on',
         { password, code: ZF.code(secret, counter) });
@@ -13872,9 +12393,8 @@ async function sendImport(object, mode, withoutShare = false) {
                an: { status: an.status, content: an.content || {} } };
     };
 
-    // Anmeldung in zwei Schritten, mit einem Code fuer einen bestimmten
-    // Zaehler.
-    /* DAS ABFANGEN IST DER GANZE PUNKT DIESER FUNKTION. */
+    // Anmeldung in zwei Schritten mit einem Code fuer einen bestimmten Zaehler.
+    /* Ohne Ausweis aus Schritt 1 liefert sie status 0 statt einer Ausnahme. */
     const zfLogin = async (z, counter, raw) => {
       await zfS.cookieRemove();
       const one = await zfS.call('POST', '/api/login', { user: z.name, password: z.password });
@@ -13924,9 +12444,7 @@ async function sendImport(object, mode, withoutShare = false) {
       zfRound.one.status === 200 && zfRound.one.content.twoFactor === true &&
       typeof zfRound.one.content.ticket === 'string' && !zfRound.one.content.ok,
       JSON.stringify(zfRound.one.content));
-    /* DIE FRIST DES AUSWEISES WIRD UEBER DIE ZAHL GEHALTEN und nicht
-       gemessen: zwei Minuten zu warten waere eine Prueflage, die jeder Lauf
-       bezahlt. */
+    /* Die Frist wird an der Zahl geprueft: zwei Minuten Warten kostete jeden Lauf. */
     check('Der Ausweis nennt seine Frist, und sie ist die der zweiten Bestaetigung',
       zfRound.one.content.seconds === 120, String(zfRound.one.content.seconds));
     check('Und Schritt 2 meldet an',
@@ -13934,8 +12452,6 @@ async function sendImport(object, mode, withoutShare = false) {
       JSON.stringify(zfRound.two.content));
     check('Danach ist die Sitzung wirklich da',
       (await zfS.call('GET', '/api/session')).content.authenticated === true);
-    /* KEINE HALBE SITZUNG: zwischen den beiden Schritten entsteht KEINE Zeile
-       in sessions. */
     {
       await zfS.cookieRemove();
       const before = zfSql('SELECT COUNT(*) n FROM sessions')[0].n;
@@ -13948,8 +12464,8 @@ async function sendImport(object, mode, withoutShare = false) {
         !JSON.stringify(zfSql('SELECT * FROM sessions')).includes(one.content.ticket) &&
         !JSON.stringify(zfSql('SELECT * FROM two_factor')).includes(one.content.ticket));
     }
-    // Ausschalten: hinter Passwort UND Code, und danach ist der Zugang wieder
-// einstufig. Der letzte Wiederherstellungscode belegt hier den Faktor.
+    // Ausschalten verlangt Passwort und Code; der letzte Wiederherstellungscode
+    // belegt hier den Faktor.
     await zfLogin(zfA, 0, zfA.codes[7]);
     const zfOut = await zfS.call('DELETE', '/api/two-factor',
       { password: zfA.password, code: zfA.codes[6] });
@@ -13973,7 +12489,7 @@ async function sendImport(object, mode, withoutShare = false) {
       zfProt.filter(z => z.event === 'twofactor.reset').length === 2,
       String(zfProt.filter(z => z.event === 'twofactor.reset').length));
 
-    /* SOLANGE NICHT BESTAETIGT IST, VERLANGT DIE ANMELDUNG NICHTS. */
+    /* Solange der Faktor nicht bestaetigt ist, verlangt die Anmeldung keinen Code. */
     {
       await zfS.cookieRemove();
       await zfS.call('POST', '/api/login', { user: 'anna', password: ZF_PASSWORD });
@@ -14014,8 +12530,6 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Der verbrauchte Zaehler steht in der Zeile',
       zfSql(`SELECT last_counter l FROM two_factor WHERE user_id = ${zfB.id}`)[0].l === zfOnce,
       JSON.stringify(zfSql(`SELECT last_counter l FROM two_factor WHERE user_id = ${zfB.id}`)));
-    /* SCHAERFER ALS "DERSELBE CODE NICHT ZWEIMAL": nach einer Anmeldung ist
-       auch das Fenster DAVOR tot. */
     const zfLoginBefore = await zfLogin(zfB, zfOnce - 1);
     check('Auch der Code aus dem Fenster DAVOR ist danach tot',
       zfLoginBefore.two.status === 401, JSON.stringify(zfLoginBefore.two.content));
@@ -14023,17 +12537,15 @@ async function sendImport(object, mode, withoutShare = false) {
     /* ---------------------------------------------------------------- */
     group('Der zweite Faktor: das Zeitfenster');
 
-    /* GEPRUEFT WIRD AN VIER EIGENEN ZUGAENGEN und nicht an einem: sobald ein
-       Code getragen hat, steht der verbrauchte Zaehler im Weg, und die
-       naechste Lage praefte dann nicht mehr das Fenster, sondern die
-       Wiederverwendung. */
+    /* Vier eigene Zugaenge: nach einem getragenen Code pruefte die naechste Lage
+       die Wiederverwendung statt des Fensters. */
     await zfQuiet();
     const zfW = { vor: await zfUserIncludingFactor('wvor'), after: await zfUserIncludingFactor('wnach'),
                   wide: await zfUserIncludingFactor('wweit'), back: await zfUserIncludingFactor('wzur') };
     await zfQuiet();
     const zfNow = ZF.nowStep();
-    /* DIE ZUGAENGE SIND IM LAUFENDEN WINDOW BESTAETIGT WORDEN, ihr Zaehler
-       steht also auf jetzt oder davor. */
+    /* Beim Bestaetigen steht der Zaehler auf dem laufenden Fenster; daher
+       zuruecksetzen. */
     shortRun(`const { db } = require('./db');` +
       `db.prepare('UPDATE two_factor SET last_counter = NULL').run(); console.log('zurueck');`,
       zfDir);
@@ -14075,7 +12587,6 @@ async function sendImport(object, mode, withoutShare = false) {
       { ticket: 'a'.repeat(64), code: ZF.code(zfC.secret, ZF.nowStep()) });
     check('Ein erfundener Ausweis ebenso wenig', zfInvented.status === 401,
       JSON.stringify(zfInvented.content));
-    /* DER AUSWEIS GILT GENAU EINMAL. */
     await zfQuiet();
     const zfOneB = await zfS.call('POST', '/api/login',
       { user: zfC.name, password: zfC.password });
@@ -14089,15 +12600,13 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und danach nie wieder', zfNutz2.status === 401, JSON.stringify(zfNutz2.content));
     check('Auch die Absage auf einen verbrauchten Ausweis fuehrt zurueck an den Anfang',
       !zfNutz2.content.ticket, JSON.stringify(zfNutz2.content));
-    /* DIE BENUTZERNUMMER KOMMT AUS DEM AUSWEIS UND NIE AUS DEM RUMPF. */
+    /* Die Benutzernummer kommt aus dem Ausweis, nie aus dem Rumpf. */
     await zfQuiet();
     await zfS.cookieRemove();
     const zfForeign = await zfS.call('POST', '/api/login',
       { user: zfC.name, password: zfC.password });
-    /* MIT EINEM WIEDERHERSTELLUNGSCODE und nicht mit einem aus der App: die
-       Zaehler dieses Zugangs sind in diesem Fenster verbraucht, und eine
-       Prueflage, die auf das naechste Fenster wartet, haengt dreissig
-       Sekunden an einer Frage, um die es hier gar nicht geht. */
+    /* Wiederherstellungscode statt App-Code: die Zaehler sind in diesem Fenster
+       verbraucht, und das naechste Fenster kostete bis zu dreissig Sekunden. */
     const zfForeignOut = await zfS.call('POST', '/api/login/second',
       { ticket: zfForeign.content.ticket, id: 1, user: 'anna', user: 1,
         code: zfC.codes[0] });
@@ -14109,8 +12618,7 @@ async function sendImport(object, mode, withoutShare = false) {
     /* ---------------------------------------------------------------- */
     group('Der zweite Faktor: die Auskunft kommt erst nach richtigem Passwort');
 
-    /* SONST WAERE DIE ANMELDESEITE EIN WERKZEUG ZUM DURCHPROBIEREN VON NAMEN:
-       "dieser hat einen zweiten Faktor" hiesse "diesen Namen gibt es". */
+    /* Sonst verriete die Auskunft ueber den Faktor, dass es den Namen gibt. */
     const zfRaw = async (body) => {
       const a = await fetch(zfS.base + '/api/login', {
         method: 'POST', headers: { 'content-type': 'application/json' },
@@ -14129,9 +12637,8 @@ async function sendImport(object, mode, withoutShare = false) {
       `${zfIncludingFactor.status} ${zfWithoutFactor.status} ${zfUnknown.status}`);
     check('Kein Wort ueber den zweiten Faktor steht darin',
       !/zweifaktor|ausweis|faktor|code/i.test(zfIncludingFactor.raw), zfIncludingFactor.raw);
-    /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT: die drei
-       Antworten oben waeren auch dann gleich, wenn die Instanz ueberhaupt nie
-       etwas ueber den Faktor sagte. */
+    /* Gegenprobe: die drei Antworten oben waeren auch gleich, wenn die Instanz den
+       Faktor nie erwaehnte. */
     const zfIncludingWord = await zfRaw({ user: zfC.name, password: zfC.password });
     check('Bei RICHTIGEM Passwort steht die Auskunft dann sehr wohl da',
       zfIncludingWord.status === 200 && /"twoFactor":true/.test(zfIncludingWord.raw), zfIncludingWord.raw);
@@ -14146,8 +12653,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und jede traegt einen SHA-256, nicht den Klartext',
       zfDb.every(z => /^[0-9a-f]{64}$/.test(z.hash)) &&
       zfDb.every(z => z.used_at === null), JSON.stringify(zfDb[0]));
-    /* DER KLARTEXT STEHT IN KEINER SPALTE KEINER ZEILE, und gesucht wird in
-       ALLEN Tabellen -- nicht nur in der einen, in der man ihn vermutet. */
+    /* Gesucht wird in allen Tabellen, nicht nur in der erwarteten. */
     const zfEverything = shortRun(
       `const { db } = require('./db');` +
       `const t = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();` +
@@ -14157,8 +12663,6 @@ async function sendImport(object, mode, withoutShare = false) {
     const zfHit = zfD.codes.filter(c => zfEverything.includes(ZF.recoveryNormal(c)));
     check('Kein Klartext eines Wiederherstellungscodes steht in irgendeiner Spalte',
       zfHit.length === 0, zfHit.join(' '));
-    /* UND DIE GEGENLAGE ZUR SUCHE SELBST: findet sie
-       ueberhaupt etwas, wo etwas stehen MUSS? */
     check('Und die Suche findet sehr wohl, was dort stehen muss',
       zfEverything.includes(zfD.secret) && zfEverything.includes('erik'),
       'das Geheimnis und der Name stehen in der Datenbank -- so soll es sein');
@@ -14172,8 +12676,7 @@ async function sendImport(object, mode, withoutShare = false) {
       JSON.stringify(zfW2.two.content));
     const zfW3 = await zfLogin(zfD, 0, zfD.codes[1]);
     check('Ein anderer aus demselben Satz sehr wohl', zfW3.two.status === 200);
-    // Ueber ?. gelesen: nimmt ein Rueckbau das Feld aus der Antwort, soll die
-// Pruefung ROT werden und der Lauf nicht abreissen.
+    // Mit ?. wird die Pruefung bei fehlendem Feld rot, statt den Lauf abzubrechen.
     check('Und die Karte zaehlt herunter',
       (await zfS.call('GET', '/api/account')).content?.twoFactor?.codesOpen === 6,
       JSON.stringify((await zfS.call('GET', '/api/account')).content?.twoFactor));
@@ -14183,8 +12686,7 @@ async function sendImport(object, mode, withoutShare = false) {
     const zfInventedW = await zfLogin(zfD, 0, 'ZZZZZZZZZZ');
     check('Ein erfundener Wiederherstellungscode traegt nicht',
       zfInventedW.two.status === 401, JSON.stringify(zfInventedW.two.content));
-    /* NEUE CODES, wenn die alten zur Neige gehen -- der Fall, den niemand
-       plant. */
+    /* Neue Codes, wenn die alten zur Neige gehen. */
     await zfLogin(zfD, 0, zfD.codes[2]);
     const zfWithoutCode = await zfS.call('POST', '/api/two-factor/codes',
       { password: zfD.password });
@@ -14200,9 +12702,7 @@ async function sendImport(object, mode, withoutShare = false) {
       zfFresh.status === 200 && zfFresh.content.codes.length === 8 &&
       zfFresh.content.codesOpen === 8 && zfFresh.content.codesTotal === 8,
       JSON.stringify(zfFresh.content.codesOpen));
-    /* ABGEFANGEN: gibt die Route keine Codes her -- weil
-       ein Rueckbau sie hat scheitern lassen --, laeuft die Zeile trotzdem
-       durch und faellt rot. */
+    /* Ohne Codes aus der Route wird die Pruefung rot, statt den Lauf abzubrechen. */
     const zfNewCodes = (zfFresh.content && zfFresh.content.codes) || [];
     check('Und keiner davon ist einer der alten',
       zfNewCodes.length === 8 && zfNewCodes.every(c => !zfD.codes.includes(c)),
@@ -14234,13 +12734,10 @@ async function sendImport(object, mode, withoutShare = false) {
       JSON.stringify(zfSecondStart.content));
     check('Und das Geheimnis steht danach unveraendert da',
       zfSql(`SELECT secret FROM two_factor WHERE user_id = ${zfE.id}`)[0].secret === zfE.secret);
-    /* IN KEINER KONTROLLAUSGABE. Dieselbe Linie wie beim Mailpasswort aus
-       0.9.0: die Startzeile nennt, was laeuft, und kein Geheimnis. */
     check('Und in keiner Zeile der Serverausgabe',
       !zfS.log().includes(zfE.secret) &&
       !zfE.codes.some(c => zfS.log().includes(ZF.recoveryNormal(c))),
       'Serverausgabe durchsucht');
-    // Der Eigentuemer sieht am fremden Zugang ohnehin nichts davon.
     await zfS.cookieRemove();
     await zfS.call('POST', '/api/login', { user: 'anna', password: ZF_PASSWORD });
     const zfList = await zfS.call('GET', '/api/users');
@@ -14252,10 +12749,8 @@ async function sendImport(object, mode, withoutShare = false) {
     /* ---------------------------------------------------------------- */
     group('Der zweite Faktor: der Tokenweg aus 0.8.80 fragt ebenfalls');
 
-    /* OHNE DAS WAERE DER RUECKSETZLINK DER WEG DARAN VORBEI, und zwar fuer
-       genau den, gegen den er nicht schuetzen soll: ein Admin erzeugt einen
-       Link fuer einen fremden Zugang, oeffnet ihn selbst und waere
-       angemeldet. */
+    /* Sonst kaeme ein Admin mit einem selbst erzeugten Ruecksetzlink ohne Code in
+       einen fremden Zugang. */
     await zfQuiet();
     const zfF = await zfUserIncludingFactor('gustav');
     await zfS.cookieRemove();
@@ -14284,8 +12779,8 @@ async function sendImport(object, mode, withoutShare = false) {
       (await (async () => { await zfS.cookieRemove();
         return zfS.call('POST', '/api/login',
           { user: zfF.name, password: 'ein-ganz-neues-wort-100' }); })()).content.twoFactor === true);
-    /* DER SONDERFALL: ein Zugang, der seinen ERSTEN Link einloest, hat noch
-       kein Passwort -- und kann deshalb keinen bestaetigten Faktor haben. */
+    /* Beim ersten Link hat der Zugang kein Passwort und daher keinen bestaetigten
+       Faktor. */
     await zfS.cookieRemove();
     await zfS.call('POST', '/api/login', { user: 'anna', password: ZF_PASSWORD });
     const zfFirstLink = await zfS.call('POST', '/api/users',
@@ -14305,8 +12800,8 @@ async function sendImport(object, mode, withoutShare = false) {
     /* ---------------------------------------------------------------- */
     group('Der zweite Faktor: ein Admin kommt an einen fremden nicht heran');
 
-    /* EINSCHALTEN KANN NUR, WER DAS GEHEIMNIS AUF SEIN TELEFON BEKOMMT;
-       AUSSCHALTEN DARF NUR DER BETROFFENE. */
+    /* Einschalten kann nur, wer das Geheimnis bekommt; ausschalten nur der
+       Betroffene. */
     await zfQuiet();
     const zfG = await zfUserIncludingFactor('helga');
     await zfS.cookieRemove();
@@ -14327,7 +12822,6 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und der Admin kaeme mit dem selbst gesetzten Passwort nicht herein',
       zfAdminIn.content.twoFactor === true && !zfAdminIn.content.ok,
       JSON.stringify(zfAdminIn.content));
-    /* SPERREN UND FREIGEBEN STREIFT IHN NICHT AB. */
     await zfS.cookieRemove();
     await zfS.call('POST', '/api/login', { user: 'anna', password: ZF_PASSWORD });
     await zfS.call('PUT', `/api/users/${zfG.id}`, { status: 'locked' });
@@ -14339,7 +12833,6 @@ async function sendImport(object, mode, withoutShare = false) {
     await zfS.call('PUT', `/api/users/${zfG.id}`, { status: 'active' });
     check('Und nach dem Freigeben verlangt die Anmeldung ihn weiterhin',
       equal(zfSql(`SELECT * FROM two_factor WHERE user_id = ${zfG.id}`), zfRowsBefore));
-    // Es gibt keine Adresse, unter der ein Fremder gemeint sein koennte.
     const zfNoPath = await zfS.call('DELETE', `/api/two-factor/${zfG.id}`,
       { password: ZF_PASSWORD });
     check('Es gibt keine Route DELETE /api/two-factor/:id',
@@ -14348,11 +12841,8 @@ async function sendImport(object, mode, withoutShare = false) {
       { password: ZF_PASSWORD, code: '000000' });
     check('Und der Admin schaltet ueber die eigene Route nur den EIGENEN ab -- den er nicht hat',
       zfSelfOut.status === 400, JSON.stringify(zfSelfOut.content));
-    /* UND DER EIGENTUEMER AUCH NICHT. Ohne diese Zeile bliebe offen, ob die
-       Sperre eine Rollenfrage ist -- sie ist keine, sie ist die Bauform. */
     check('Auch der Eigentuemer hat keinen Weg an einen fremden Faktor',
       zfSql(`SELECT * FROM two_factor WHERE user_id = ${zfG.id}`).length === 1);
-    // Entfernen nimmt ihn dagegen mit -- den Zugang gibt es danach nicht mehr.
     await zfS.call('POST', '/api/confirm',
       { password: ZF_PASSWORD, purpose: 'remove', target: zfG.id });
     await zfS.call('DELETE', `/api/users/${zfG.id}`);
@@ -14363,9 +12853,6 @@ async function sendImport(object, mode, withoutShare = false) {
     /* ---------------------------------------------------------------- */
     group('Der zweite Faktor: die zweite Bestaetigung fragt zusaetzlich');
 
-    /* SIE VERTEIDIGT GEGEN DIE UEBERNOMMENE OFFENE SITZUNG -- und genau dort
-       traegt ein zweiter Faktor am meisten: das Passwort mag mitgelesen sein,
-       das Telefon liegt woanders. */
     await zfQuiet();
     const zfH = await zfUserIncludingFactor('ida');
     await zfS.cookieRemove();
@@ -14394,8 +12881,8 @@ async function sendImport(object, mode, withoutShare = false) {
       JSON.stringify(zfBestIncluding.content));
     check('Und der Export laeuft damit durch',
       (await zfS.call('GET', '/api/export')).status === 200);
-    /* DIE REIHENFOLGE: PASSWORT, DANN CODE. Wer das Passwort nicht hat, soll
-       nicht erfahren, ob am Zugang ein Faktor haengt. */
+    /* Erst Passwort, dann Code: ohne Passwort soll niemand erfahren, ob ein Faktor
+       am Zugang haengt. */
     const zfBestWord = await zfS.call('POST', '/api/confirm',
       { password: 'falsches-langes-wort', purpose: 'export', target: null, code: zfH.codes[2] });
     check('Bei falschem Passwort steht kein Wort ueber den Faktor in der Antwort',
@@ -14405,8 +12892,8 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und der mitgeschickte Code ist dabei NICHT verbraucht worden',
       (await zfS.call('POST', '/api/confirm',
         { password: zfH.password, purpose: 'export', target: null, code: zfH.codes[2] })).status === 200);
-    // CONFIRM_PURPOSES bewegt sich hier nicht -- es kommt kein Zweck dazu,
-// sondern eine zweite Frage an derselben Stelle.
+    // Kein neuer Zweck in CONFIRM_PURPOSES, nur eine zweite Frage an derselben
+    // Stelle.
     const zfPurpose = await zfS.call('POST', '/api/confirm',
       { password: zfH.password, purpose: 'twofactor', target: null, code: zfH.codes[3] });
     check('Es gibt keinen Zweck namens zweifaktor',
@@ -14415,19 +12902,16 @@ async function sendImport(object, mode, withoutShare = false) {
     /* ---------------------------------------------------------------- */
     group('Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt');
 
-    /* SECHS DIGITS SIND EINE MILLION; ungebremst ist das kein Faktor, sondern
-       eine Verzoegerung. */
+    /* Sechs Ziffern sind eine Million Moeglichkeiten; ohne Bremse sind sie schnell
+       durchprobiert. */
     await zfQuiet();
     const zfI = await zfUserIncludingFactor('jonas');
-    /* ERST DIE GEGENLAGE: SOLANGE NICHT GESPERRT IST,
-       antwortet derselbe Ruf mit 401 ueber den Ausweis. */
     const zfVorLock = await zfS.call('POST', '/api/login/second',
       { ticket: 'f'.repeat(64), code: '000000' });
     check('Ungesperrt antwortet der zweite Schritt mit 401 ueber den Ausweis',
       zfVorLock.status === 401, `${zfVorLock.status} · ${JSON.stringify(zfVorLock.content)}`);
-    /* NEUN DURCHGAENGE, AUSGERECHNET UND NICHT GERATEN: der Ruf darueber hat
-       bereits einen Fehlversuch gezaehlt, und die harte Sperre faellt beim
-       ZEHNTEN (HARD_LIMIT = 10, gelesen bevor er erhoeht wird). */
+    /* Neun Durchgaenge: der Ruf darueber zaehlt schon einen, und die Sperre greift
+       beim zehnten (HARD_LIMIT = 10, gelesen vor dem Erhoehen). */
     const zfThrottle = [];
     for (let i = 0; i < 9; i++) {
       await zfS.cookieRemove();
@@ -14441,7 +12925,6 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Bis zur zehnten Fehleingabe wird abgewiesen, aber nicht gesperrt',
       zfThrottle.length === 9 && zfThrottle.every(x => x.step === 2 && x.status === 401),
       zfThrottle.map(x => `${x.step}:${x.status}`).join(' '));
-    /* DIE ENTSCHEIDENDE ZEILE, UND SIE FRAGT DEN ZWEITEN SCHRITT UNMITTELBAR. */
     const zfDirekt = await zfS.call('POST', '/api/login/second',
       { ticket: 'f'.repeat(64), code: '000000' });
     check('Der ZWEITE SCHRITT selbst antwortet gesperrt mit 429, nicht mit einer Absage',
@@ -14449,13 +12932,11 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und die Sperre gilt ebenso fuer den ersten Schritt -- es ist dieselbe Bremse',
       (await zfS.call('POST', '/api/login',
         { user: 'anna', password: ZF_PASSWORD })).status === 429);
-    /* JEDER FEHLSCHLAG SCHREIBT anmeldung.fehl UND KEINEN EIGENEN VORGANG:
-       eine gescheiterte zweite Stufe IST eine gescheiterte Anmeldung. */
+    /* Eine gescheiterte zweite Stufe schreibt login.fail, keinen eigenen Vorgang. */
     const zfFail = zfSql(
       `SELECT COUNT(*) n FROM security_log WHERE event = 'login.fail' AND target = ${zfI.id}`);
-    /* NEUN, und nicht zehn: der Ruf mit dem erfundenen Ausweis scheitert,
-       BEVOR ein Zugang bekannt ist -- er zaehlt in der Bremse und schreibt
-       keine Zeile. */
+    /* Neun, nicht zehn: der erfundene Ausweis scheitert, bevor ein Zugang bekannt
+       ist, und schreibt keine Zeile. */
     check('Und jeder Fehlschlag an einem bekannten Zugang steht als anmeldung.fehl im Protokoll',
       zfFail[0].n === 9, String(zfFail[0].n));
     check('Ein eigener Vorgang fuer den falschen Code steht nirgends',
@@ -14466,8 +12947,7 @@ async function sendImport(object, mode, withoutShare = false) {
     /* ---------------------------------------------------------------- */
     group('Der zweite Faktor: usertool.js auf dem Wirt');
 
-    /* DER NOTWEG, UND ER SCHALTET NUR AUS. Ohne ihn waere "Telefon weg und
-       Wiederherstellungscodes verbraucht" ein Zustand ohne Ausweg. */
+    /* Notweg, wenn Telefon und Wiederherstellungscodes fehlen; er schaltet nur aus. */
     const zfCommand = (args, input = '') => {
       const { execFileSync } = require('child_process');
       const environment = { ...process.env, DATA_DIR: zfDir, ENCRYPTION_KEY: KEY };
@@ -14505,9 +12985,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Das Passwort bleibt dabei unangetastet',
       zfSql(`SELECT password_hash h FROM users WHERE id = ${zfI.id}`)[0].h.startsWith('scrypt'),
       zfSql(`SELECT password_hash h FROM users WHERE id = ${zfI.id}`)[0].h.slice(0, 12));
-    /* DAS LEERE `actor` HEISST "UEBER DEN WIRT" -- daran ist der Notweg im
-       Protokoll zu erkennen, und ein eigenes Feld dafuer waere eine zweite
-       Wahrheit daneben. */
+    /* Das leere actor kennzeichnet den Notweg im Protokoll. */
     const zfHost = zfSql(
       `SELECT actor, target FROM security_log WHERE event = 'twofactor.off' ORDER BY id DESC LIMIT 1`);
     check('Die Protokollzeile traegt das leere wer des Wirts',
@@ -14526,9 +13004,8 @@ async function sendImport(object, mode, withoutShare = false) {
     /* ---------------------------------------------------------------- */
     group('Der zweite Faktor: die Tabellen legen sich selbst an');
 
-    /* KEIN MIGRATIONSBLOCK -- zum fuenften Mal NACHGESTELLT statt
-       abgeschrieben: anders als eine SPALTE legt CREATE TABLE IF NOT EXISTS
-       eine fehlende TABELLE bei jedem Start an. */
+    /* Ohne Migrationsblock: CREATE TABLE IF NOT EXISTS legt eine fehlende Tabelle
+       bei jedem Start an, eine fehlende Spalte nicht. */
     {
       const tDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-zftab-'));
       shortRun(`require('./db'); console.log('da');`, tDir);
@@ -14583,7 +13060,7 @@ async function sendImport(object, mode, withoutShare = false) {
         equal(tColumns('two_factor'), tFresh) && equal(tColumns('two_factor_codes'), tFreshC));
       check('Der Index kommt dabei mit zurueck',
         tIndexes().includes('idx_two_factor_codes_user'));
-      /* DIE GEGENLAGE: eine SPALTE kommt nicht von selbst zurueck. */
+      /* Gegenprobe: eine fehlende Spalte legt der Start nicht selbst an. */
       {
         const d = open(tFile);
         d.exec('ALTER TABLE two_factor DROP COLUMN last_counter');
@@ -14598,20 +13075,17 @@ async function sendImport(object, mode, withoutShare = false) {
       } catch { tAfter = ['(Start gescheitert)']; }
       check('Eine fehlende SPALTE traegt CREATE TABLE IF NOT EXISTS NICHT nach',
         !tAfter.includes('last_counter'), JSON.stringify(tAfter));
-      /* UND ES STEHT KEINE MARKE MEHR DA -- 0.33.0. */
       const tSource = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
       const tBlocks = [...new Set(
         (tSource.match(
           /MIGRATION [0-9.]+x?\s*—[^\n]*\n?\s*(?:\*|\/\/)?\s*ENTFAELLT MIT 1\.0/g) || []))];
       check('Es steht keine markierte Migration mehr in db.js — 0.33.0',
         tBlocks.length === 0, `${tBlocks.length}: ${tBlocks.join(' · ')}`);
-      /* UND KEINE DER ACHTZEHN FUNKTIONEN. */
       check('Und keine der achtzehn Funktionen',
         !/function migration\w+\s*\(/.test(tSource),
         (tSource.match(/function migration\w+/g) || []).join(' · ') || 'keine'); 
       check('Und es gibt keinen Block fuer 0.10.0',
         !/MIGRATION 0\.10/.test(tSource) && !/migration0100/.test(tSource));
-      /* UND KEINEN FUER 0.11.0. */
       check('Und keinen fuer 0.11.0',
         !/MIGRATION 0\.11/.test(tSource) && !/migration0110/.test(tSource));
       fs.rmSync(tDir, { recursive: true, force: true });
@@ -14620,11 +13094,7 @@ async function sendImport(object, mode, withoutShare = false) {
     fs.rmSync(zfDir, { recursive: true, force: true });
   }
 
-  /* ================================================================
-     Verwaltung, Rollen, Sperren, Grabstein
-     ================================================================ Die
-     Zugaenge entstehen hier NICHT von Hand in der Datenbank, sondern ueber
-     die Verwaltung selbst -- die ist ja gerade der Pruefgegenstand. */
+  /* Die Zugaenge entstehen ueber die Verwaltung, nicht von Hand in der Datenbank. */
   group('Die Rollenleiter');
 
   const gDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-stufeg-'));
@@ -14643,8 +13113,6 @@ async function sendImport(object, mode, withoutShare = false) {
     try { content = await a.json(); } catch {}
     return { status: a.status, content };
   };
-  // Meldet an und gibt den Cookie zurueck. Die Anmeldung ist hier kein
-// Beiwerk -- ohne sie gaebe es keine Sitzung mit der richtigen Rolle.
   const gLogin = async (name, password, address) => {
     const head = { 'content-type': 'application/json' };
     if (address) head['x-forwarded-for'] = address;
@@ -14668,8 +13136,7 @@ async function sendImport(object, mode, withoutShare = false) {
     d.prepare(sql).run(...values);
     d.close();
   };
-  /* Der Rufer mit Freigabe -- einer je Cookie, mit dem Passwort dieses
-     Zugangs. */
+  /* gCall mit Passwortbestaetigung ueber /api/confirm; das Passwort steht in gWord. */
   const gWord = { anna: 'annas-langes-wort', bert: 'berts-langes-wort',
                   carla: 'carlas-langes-wort', dora: 'doras-langes-wort' };
   const gF = (cookieValue, actor) =>
@@ -14683,7 +13150,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Die Einrichtung macht den ersten Zugang zum Eigentuemer',
     gRole('anna') === 'owner', gRole('anna'));
   const gAnnaPlace = (await gCall(gAnna, 'GET', '/api/settings')).content;
-  /* Die Leiter selbst: anna traegt role='owner' und NICHT 'admin'. */
+  /* anna traegt role='owner', nicht 'admin'. */
   check('Der Eigentuemer ist ohne zweite Angabe auch Admin',
     gAnnaPlace?.isAdmin === true && gAnnaPlace?.isOwner === true,
     JSON.stringify([gAnnaPlace?.isAdmin, gAnnaPlace?.isOwner]));
@@ -14729,7 +13196,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und die Zeile entsteht auch nicht',
     gRows('SELECT id FROM users WHERE username = ?', 'heimlich').length === 0);
 
-  /* Der Admin darf anlegen -- aber keine Rolle vergeben. */
   const gCreateCarla = await gCall(gCarla, 'POST', '/api/users',
     { username: 'dora', password: 'doras-langes-wort' });
   check('Ein Admin legt einen Benutzer an', gCreateCarla.status === 200,
@@ -14751,7 +13217,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Ein vergebener Name wird verstaendlich abgewiesen',
     gTwice.status === 400 && /gibt es bereits/.test(gTwice.content?.error || ''),
     JSON.stringify(gTwice.content));
-  /* Das Grabsteinmuster ist gesperrt. */
   const gDisguise = await gCall(gAnna, 'POST', '/api/users',
     { username: 'geloescht-9', password: 'ein-langes-tarnwort' });
   check('Ein Name im Grabsteinmuster wird abgewiesen',
@@ -14763,8 +13228,6 @@ async function sendImport(object, mode, withoutShare = false) {
     gTarnung2.status === 400 && /reserviert/.test(gTarnung2.content?.error || ''),
     JSON.stringify(gTarnung2.content));
 
-  /* Die Kernregel der Verwaltung: der Admin ist der Sheriff im Dorf, aber an
-     seinesgleichen kommt er nicht. */
   const gDoraId = gRows('SELECT id FROM users WHERE username = ?', 'dora')[0].id;
   const gAnnaId = gRows('SELECT id FROM users WHERE username = ?', 'anna')[0].id;
   const gCarlaId = gRows('SELECT id FROM users WHERE username = ?', 'carla')[0].id;
@@ -14800,22 +13263,18 @@ async function sendImport(object, mode, withoutShare = false) {
     gRole('bert'));
   await gF(gAnna, 'anna')('PUT', `/api/users/${gBertId}`, { role: 'user' });
 
-  /* Die Selbstsperre. */
   const gSelfLock = await gCall(gCarla, 'PUT', `/api/users/${gCarlaId}`, { status: 'locked' });
   check('Ein Admin sperrt auch sich selbst nicht', gSelfLock.status === 403,
     `Status ${gSelfLock.status}`);
   check('Und bleibt aktiv', gStatus('carla') === 'active', gStatus('carla'));
 
-  /* Der letzte Eigentuemer darf nicht verschwinden -- weder durch Herabstufen
-     noch durch Sperren noch durch Loeschen. */
   const gLastPath = await gF(gAnna, 'anna')('PUT', `/api/users/${gAnnaId}`, { role: 'admin' });
   check('Der letzte Eigentuemer stuft sich nicht selbst herab',
     gLastPath.status === 400 && /letzte Eigentümer/.test(gLastPath.content?.error || ''),
     JSON.stringify(gLastPath.content));
   check('Und bleibt Eigentuemer', gRole('anna') === 'owner', gRole('anna'));
   await gF(gAnna, 'anna')('PUT', `/api/users/${gCarlaId}`, { role: 'owner' });
-  /* Jetzt gibt es zwei Eigentuemer -- und erst jetzt laesst sich die
-     Selbstklemme belegen. */
+  /* Mit zwei Eigentuemern bleibt nur die Sperre gegen sich selbst. */
   const gSelfOwn = await gCall(gAnna, 'PUT', `/api/users/${gAnnaId}`, { status: 'locked' });
   check('Auch der Eigentuemer sperrt sich nicht selbst aus, wenn nichts mehr dagegen spricht',
     gSelfOwn.status === 403, `Status ${gSelfOwn.status}`);
@@ -14823,7 +13282,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Mit einem zweiten Eigentuemer geht die Herabstufung',
     (await gF(gAnna, 'anna')('PUT', `/api/users/${gAnnaId}`, { role: 'admin' })).status === 200 &&
     gRole('anna') === 'admin', gRole('anna'));
-  // Und zurueck, damit die folgenden Gruppen auf der gewohnten Lage stehen.
+  // Ausgangslage fuer die folgenden Gruppen wiederherstellen.
   const gCarlaCookie2 = (await gLogin('carla', 'carlas-langes-wort')).cookie;
   await gF(gCarlaCookie2, 'carla')('PUT', `/api/users/${gAnnaId}`, { role: 'owner' });
   await gF(gCarlaCookie2, 'carla')('PUT', `/api/users/${gCarlaId}`, { role: 'admin' });
@@ -14834,29 +13293,25 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Gesperrt kommt nicht herein');
 
-  /* ZWEI STELLEN, ZWEI EIGENE GEGENPROBEN: die Anmeldung weist einen
-     gesperrten Zugang ab, und requireAuth laesst eine LAUFENDE Sitzung nicht
-     weiterlaufen. */
+  /* Zwei Stellen: die Anmeldung und requireAuth fuer eine laufende Sitzung. */
   await gCall(gAnna, 'PUT', `/api/users/${gDoraId}`, { status: 'locked' });
   const gDoraAn = await gLogin('dora', 'doras-langes-wort');
   check('Ein gesperrter Zugang kommt mit richtigem Passwort nicht herein',
     gDoraAn.status === 403, `Status ${gDoraAn.status}`);
-  /* Er MUSS erfahren, dass er gesperrt ist -- sonst liest sich das wie ein
-     falsches Passwort und er probiert weiter, bis die Bremse zuschlaegt. */
+  /* Ohne Grund saehe die Sperre aus wie ein falsches Passwort. */
   check('Und erfaehrt den Grund', /gesperrt/.test(gDoraAn.content?.error || ''),
     JSON.stringify(gDoraAn.content));
   check('Es entsteht dabei keine Sitzung',
     gRows('SELECT s.token FROM sessions s WHERE s.user_id = ?', gDoraId).length === 0,
     JSON.stringify(gRows('SELECT user_id FROM sessions')));
-  /* Die Gegenrichtung, und sie ist der Grund fuer die Reihenfolge im Code:
-     mit FALSCHEM Passwort darf dieselbe Message nicht kommen. */
+  /* Deshalb prueft die Anmeldung erst das Passwort und dann die Sperre. */
   const gDoraWrong = await gLogin('dora', 'ganz-falsches-wort');
   check('Mit falschem Passwort verraet dieselbe Anmeldung die Sperre nicht',
     gDoraWrong.status === 401 && !/gesperrt/.test(gDoraWrong.content?.error || ''),
     JSON.stringify(gDoraWrong.content));
   await gCall(gAnna, 'PUT', `/api/users/${gDoraId}`, { status: 'active' });
 
-  /* Zweite Stelle. */
+  /* Zweite Stelle: requireAuth. */
   const gDora = (await gLogin('dora', 'doras-langes-wort')).cookie;
   check('Die frische Sitzung des Freigegebenen laeuft',
     (await gCall(gDora, 'GET', '/api/settings')).status === 200);
@@ -14868,8 +13323,6 @@ async function sendImport(object, mode, withoutShare = false) {
     gRows('SELECT token FROM sessions WHERE token = ?', gDora).length === 0);
   gWrite("UPDATE users SET status = 'active' WHERE id = ?", gDoraId);
 
-  /* Und das Sperren ueber die Route raeumt sie ebenfalls weg -- das ist die
-     erste der beiden Schichten und wirkt sofort. */
   const gDora2 = (await gLogin('dora', 'doras-langes-wort')).cookie;
   await gCall(gAnna, 'PUT', `/api/users/${gDoraId}`, { status: 'locked' });
   check('Das Sperren beendet die laufende Sitzung sofort',
@@ -14877,7 +13330,6 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify(gRows('SELECT user_id FROM sessions')));
   await gCall(gAnna, 'PUT', `/api/users/${gDoraId}`, { status: 'active' });
 
-  /* Das Passwort zuruecksetzen: der Admin kennt das bisherige nicht. */
   const gDora3 = (await gLogin('dora', 'doras-langes-wort')).cookie;
   const gNewWord = await gF(gCarla, 'carla')('PUT', `/api/users/${gDoraId}`, { password: 'doras-neues-wort' });
   check('Ein Admin setzt das Passwort eines Benutzers zurueck', gNewWord.status === 200,
@@ -14892,17 +13344,13 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Loeschen entwertet, es loescht nicht');
 
-  /* Der Kern des Grabsteins. */
   const gBertItem = (await gCall(gBert, 'POST', '/api/items', { title: 'Berts Eintrag' })).content;
   const gAnnaItem = (await gCall(gAnna, 'POST', '/api/items', { title: 'Annas Eintrag' })).content;
   await gCall(gAnna, 'POST', `/api/items/${gBertItem.id}/comments`, { text: 'Annas Kommentar bei Bert' });
   await gCall(gBert, 'POST', `/api/items/${gAnnaItem.id}/comments`, { text: 'Berts Kommentar bei Anna' });
   await gCall(gBert, 'POST', `/api/items/${gAnnaItem.id}/test-days`, { day: '2026-05-05', rating: 4 });
-  // Beide Richtungen am fuenften Traeger: ein fremder Link an SEINEM Eintrag
-// und sein Link in einem FREMDEN Eintrag.
   await gCall(gAnna, 'POST', `/api/items/${gBertItem.id}/links`, { url: 'https://annas-link-bei-bert.test' });
   await gCall(gBert, 'POST', `/api/items/${gAnnaItem.id}/links`, { url: 'https://berts-link-bei-anna.test' });
-  // Und am sechsten Traeger, wieder in beide Richtungen.
   gWrite("INSERT INTO attachments (item_id, filename, size, data, user_id) VALUES (?, 'von-anna.txt', 3, ?, ?)",
     gBertItem.id, Buffer.from('abc'), gAnnaId);
   gWrite("INSERT INTO attachments (item_id, filename, size, data, user_id) VALUES (?, 'von-bert.txt', 3, ?, ?)",
@@ -14913,8 +13361,6 @@ async function sendImport(object, mode, withoutShare = false) {
     gInventory.content?.entries === 1 && gInventory.content?.foreignComments === 1 &&
     gInventory.content?.comments === 1 && gInventory.content?.testDays === 1,
     JSON.stringify(gInventory.content));
-  /* Der fuenfte Traeger, in beiden Richtungen. Ohne ihn saehe ein Zugang, der
-     zwanzig Links in fremden Eintraegen hinterlassen hat, im Dialog leer aus. */
   check('Und die Links in beiden Richtungen',
     gInventory.content?.foreignLinks === 1 && gInventory.content?.links === 1,
     JSON.stringify(gInventory.content));
@@ -14932,8 +13378,6 @@ async function sendImport(object, mode, withoutShare = false) {
     gTomb?.status === 'deleted' && gTomb?.password_hash === '',
     JSON.stringify([gTomb?.status, gTomb?.password_hash]));
   check('Und keine Rechte mehr', gTomb?.role === 'user', gTomb?.role);
-  /* Das eigentliche Versprechen: die Beitraege bleiben sichtbar UND behalten
-     ihren Verfasser. */
   check('Seine Eintraege stehen noch und gehoeren weiterhin ihm',
     gRows('SELECT user_id FROM items WHERE id = ?', gBertItem.id)[0]?.user_id === gBertId,
     JSON.stringify(gRows('SELECT id, title, user_id FROM items')));
@@ -14952,9 +13396,8 @@ async function sendImport(object, mode, withoutShare = false) {
     gRows('SELECT COUNT(*) n FROM test_days WHERE user_id IS NULL')[0]?.n === 0 &&
     gRows('SELECT COUNT(*) n FROM links WHERE user_id IS NULL')[0]?.n === 0 &&
     gRows('SELECT COUNT(*) n FROM attachments WHERE user_id IS NULL')[0]?.n === 0);
-  /* Und wie der stehengebliebene Beitrag jetzt auf den Bildschirm kommt: die
-     Antwort nennt die NUMMER und sagt "deleted", die Oberflaeche macht daraus
-     "Geloeschter Benutzer <nr>". */
+  /* Die Antwort nennt id und deleted; "Geloeschter Benutzer <nr>" setzt die
+     Oberflaeche daraus zusammen. */
   const gAfterTomb = (await gCall(gAnna, 'GET', `/api/items/${gAnnaItem.id}`)).content;
   const gKomVomTomb = (gAfterTomb?.comments || []).find(c => c.text === 'Berts Kommentar bei Anna');
   check('Der Beitrag eines Grabsteins nennt ihn als geloescht, mit seiner Nummer',
@@ -14969,15 +13412,12 @@ async function sendImport(object, mode, withoutShare = false) {
 
   check('Anmelden kann sich der Grabstein nicht mehr',
     (await gLogin('bert', 'berts-langes-wort')).status === 401);
-  // Der Name ist frei. Das ist der Preis dafuer, dass er nirgends aufbewahrt
-// wird -- und zugleich der Gewinn.
   const gFreshBert = await gCall(gAnna, 'POST', '/api/users',
     { username: 'bert', password: 'zweiter-bert-lang' });
   check('Der Name ist danach wieder frei', gFreshBert.status === 200, JSON.stringify(gFreshBert.content));
   check('Und der neue bert ist eine andere Nummer',
     gFreshBert.content?.id !== gBertId, `${gFreshBert.content?.id} gegen ${gBertId}`);
-  // Ein Grabstein ist kein zweiter Bewerter -- die Durchschnittsspalte haengt
-// an dieser Zahl.
+  // Die Durchschnittsspalte rechnet mit userCount.
   const gNumber = (await gCall(gAnna, 'GET', '/api/settings')).content?.userCount;
   check('Die Benutzerzahl zaehlt den Grabstein nicht mit',
     gNumber === gRows("SELECT COUNT(*) n FROM users WHERE status != 'deleted'")[0].n, `${gNumber}`);
@@ -14985,7 +13425,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Ein Grabstein laesst sich nicht noch einmal entfernen',
     gAgain.status === 400, `Status ${gAgain.status}`);
 
-  /* Die beiden Haekchen. */
+  /* Die beiden Haekchen im Loeschdialog: entries und posts. */
   const gEmil = await gCall(gAnna, 'POST', '/api/users',
     { username: 'emil', password: 'emils-langes-wort' });
   const gEmilId = gEmil.content.id;
@@ -15021,8 +13461,6 @@ async function sendImport(object, mode, withoutShare = false) {
     gRows('SELECT COUNT(*) n FROM comments WHERE item_id = ?', gAnnaItem.id)[0].n
       === gAnnaCommentBefore - 1,
     `${gRows('SELECT COUNT(*) n FROM comments WHERE item_id = ?', gAnnaItem.id)[0].n} von ${gAnnaCommentBefore}`);
-  /* Und sein Link ebenso. Eine Zahl im Dialog, die nichts bewirkt, waere
-     schlimmer als keine: der Haken sagt "mitloeschen". */
   check('Und sein Link im fremden Eintrag desgleichen',
     gRows('SELECT COUNT(*) n FROM links WHERE item_id = ?', gAnnaItem.id)[0].n
       === gAnnaLinksBefore - 1,
@@ -15044,9 +13482,8 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Herrenloser Bestand faellt nicht an einen Grabstein');
 
-  /* assignInventory() muss die ROLLE lesen, nicht die kleinste Nummer: die
-     kleinste Nummer kann ein Grabstein sein -- ein Zugang, der sich nie
-     wieder anmeldet. */
+  /* assignInventory() liest die Rolle, nicht die kleinste Nummer: Nummer 1 kann
+     ein Grabstein sein. */
   const hDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-erbe-'));
   shortRun(`require('./db'); console.log('da');`, hDir);
   {
@@ -15069,7 +13506,6 @@ async function sendImport(object, mode, withoutShare = false) {
       hOwner === hSuccessor, `user_id ${hOwner}, Eigentuemer ${hSuccessor}`);
     check('Und ausdruecklich nicht an den Grabstein mit der kleinsten Nummer',
       hOwner !== hTomb, `user_id ${hOwner}, Grabstein ${hTomb}`);
-    // Und die Startregel befoerdert den Grabstein auch nicht nachtraeglich.
     check('Ein Grabstein wird nicht zum Eigentuemer befoerdert',
       d.prepare('SELECT role FROM users WHERE id = ?').get(hTomb)?.role === 'user',
       JSON.stringify(d.prepare('SELECT id, username, role FROM users').all()));
@@ -15080,10 +13516,8 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Ohne Proxy ist der Kopf nur eine Behauptung');
 
-  /* EIN KOPF VOM AUFRUFER IST NIE EINE FESTSTELLUNG. */
-  /* DER COOKIE ZUERST UND DIE SPERRE DANACH, und die Reihenfolge ist seit
-     0.13.0 eine Korrektur: die zwoelf Fehlversuche sperren die Adresse hart,
-     und eine Anmeldung DANACH liefert 429 und gar keinen Cookie. */
+  /* Den Cookie vor den Fehlversuchen holen: danach liefert die Anmeldung 429
+     und keinen Cookie. */
   const gCookieHead = await (async () => {
     const a = await fetch(G.base + '/api/login', { method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -15091,17 +13525,13 @@ async function sendImport(object, mode, withoutShare = false) {
     return a.headers.get('set-cookie') || '';
   })();
   check('Ohne Proxy kommt ueberhaupt ein Cookie zurueck', gCookieHead !== '', gCookieHead);
-  // Der Cookie der Instanz ohne Proxy: kein Secure, kein Praefix. Beides waere
-// hier falsch -- der Browser verwuerfe den Cookie ueber http.
+  // Ueber http verwirft der Browser einen Cookie mit Secure oder __Host-.
   check('Ohne Proxy traegt der Cookie kein Secure',
     !/;\s*Secure/i.test(gCookieHead), gCookieHead);
   check('Und er heisst weiterhin kriterion_session',
     gCookieHead.startsWith('kriterion_session='), gCookieHead.split(';')[0]);
-  /* OHNE DIE EINSTELLUNG WIRD AUCH X-FORWARDED-PROTO GAR NICHT ANGESEHEN --
-     dieselbe Linie wie bei X-Forwarded-For, und seit 0.13.0 gehoert sie
-     ausdruecklich belegt: waere der Kopf ohne Einstellung wirksam, holte sich
-     jeder Aufrufer auf Port 3100 einen __Host--Cookie samt HSTS und sperrte
-     sich selbst aus. */
+  /* Wirkte X-Forwarded-Proto ohne BEHIND_PROXY, bekaeme jeder Aufrufer auf
+     Port 3100 einen __Host--Cookie samt HSTS und sperrte sich aus. */
   const gProtoHead = await fetch(G.base + '/api/config',
     { headers: { 'x-forwarded-proto': 'https' } });
   check('Ohne BEHIND_PROXY bewirkt ein X-Forwarded-Proto gar nichts',
@@ -15130,11 +13560,10 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Hinter dem Proxy wird der Kopf gelesen');
 
-  /* DIESELBE INSTANZ, EINE EINSTELLUNG ANDERS. Derselbe Bestand, derselbe
-     Zugang -- nur BEHIND_PROXY=1. */
+  /* Dasselbe Datenverzeichnis, nur mit BEHIND_PROXY=1. */
   const P = startFurtherServer(gDir, { BEHIND_PROXY: '1' }, 5700);
   await P.ready;
-  /* SEIT 0.13.0 TRAEGT DER RUFER DEN WEG. */
+  /* proto waehlt den Weg: 'https' ueber den Proxy, leer ueber das Heimnetz. */
   const pLogin = async (name, password, address, proto) => {
     const head = { 'content-type': 'application/json' };
     if (address) head['x-forwarded-for'] = address;
@@ -15152,26 +13581,20 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Die Anmeldung gelingt auch hinter dem Proxy', pGood.status === 200,
     `${pGood.status}: ${JSON.stringify(pGood.content)}`);
   check('Der Cookie traegt hinter dem Proxy Secure', /;\s*Secure/i.test(pGood.setCookie), pGood.setCookie);
-  // Das Praefix __Host- ist eine Zusage an den Browser: nur ueber HTTPS, ohne
-// Domain, mit Path=/. Es verlangt den Namen woertlich.
+  // __Host- verlangt Secure, Path=/ und keine Domain, sonst verwirft der Browser den Cookie.
   check('Und er heisst __Host-kriterion_session',
     pGood.setCookie.startsWith('__Host-kriterion_session='), pGood.setCookie.split(';')[0]);
   check('Path=/ und HttpOnly stehen weiterhin dabei',
     /;\s*Path=\//.test(pGood.setCookie) && /;\s*HttpOnly/i.test(pGood.setCookie), pGood.setCookie);
   check('Ohne Domain -- sonst waere das Praefix ungueltig',
     !/;\s*Domain=/i.test(pGood.setCookie), pGood.setCookie);
-  // Der Cookie mit dem neuen Namen wird auch wirklich gelesen: sonst waere die
-// Umbenennung eine Instanz, in die niemand mehr hineinkaeme.
   const pCookieValue = pGood.setCookie.split(';')[0];
   const pSession = await fetch(P.base + '/api/settings',
     { headers: { cookie: pCookieValue, 'x-forwarded-proto': 'https' } });
   check('Mit diesem Cookie laesst sich weiterarbeiten', pSession.status === 200, `${pSession.status}`);
-  /* AUF DEM HTTPS-WEG WIRD DER HEIMNETZNAME NICHT GELESEN, und das ist die
-     Absage an "ein Name mit bedingtem Secure": ein Klartextcookie geht auch
-     an die HTTPS-Seite (er traegt kein Secure), und wer ihn dort gelten
-     liesse, haette __Host- fuer nichts -- wer im eigenen Netz eine
-     Klartextverbindung verbiegen kann, setzte damit einen Cookie, den die
-     HTTPS-Seite annaehme. */
+  /* Ein Klartextcookie traegt kein Secure und geht auch an die HTTPS-Seite.
+     Galte er dort, koennte jemand im Heimnetz der HTTPS-Seite einen Cookie
+     unterschieben. */
   const pAgeName = await fetch(P.base + '/api/settings',
     { headers: { cookie: 'kriterion_session=' + pCookieValue.split('=')[1],
                  'x-forwarded-proto': 'https' } });
@@ -15185,7 +13608,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Zwei Netze, ein Zugang — 0.13.0');
 
-  /* DERSELBE SERVER, DIESELBE EINSTELLUNG, DER ANDERE WEG. */
+  /* Ohne X-Forwarded-Proto: der Heimnetzweg. */
   const pHome = await pLogin('anna', 'annas-langes-wort', '10.1.0.2');
   check('Die Anmeldung gelingt auch ueber das Heimnetz, mit BEHIND_PROXY=1',
     pHome.status === 200, `${pHome.status}: ${JSON.stringify(pHome.content)}`);
@@ -15193,30 +13616,23 @@ async function sendImport(object, mode, withoutShare = false) {
     !/;\s*Secure/i.test(pHome.setCookie), pHome.setCookie);
   check('Und er heisst kriterion_session, nicht __Host-kriterion_session',
     pHome.setCookie.startsWith('kriterion_session='), pHome.setCookie.split(';')[0]);
-  // Und der Name ist wirklich ein anderer: zwei Wege mit demselben Namen
-// waeren der Fehler aus (b), und die Zeile darueber saehe genauso aus.
   check('Die beiden Wege bekommen verschiedene Namen',
     pHome.setCookie.split('=')[0] !== pGood.setCookie.split('=')[0],
     `${pHome.setCookie.split('=')[0]} gegen ${pGood.setCookie.split('=')[0]}`);
   const pHomeValue = pHome.setCookie.split(';')[0];
   check('Mit dem Heimnetzcookie laesst sich weiterarbeiten',
     (await fetch(P.base + '/api/settings', { headers: { cookie: pHomeValue } })).status === 200);
-  /* HSTS GILT NUR AUF DEM HTTPS-WEG. */
   check('Auf dem Heimnetzweg steht KEIN Strict-Transport-Security',
     !(await fetch(P.base + '/api/config')).headers.get('strict-transport-security'),
     String((await fetch(P.base + '/api/config')).headers.get('strict-transport-security')));
-  // Und umgekehrt: der __Host--Cookie gilt auf dem Heimnetzweg nicht.
   check('Auf dem Heimnetzweg gilt der HTTPS-Name nicht',
     (await fetch(P.base + '/api/settings', { headers: { cookie: pCookieValue } })).status === 401);
-  /* BEIDE SITZUNGEN STEHEN NEBENEINANDER -- das ist "zwei Netze, EIN Zugang":
-     derselbe Mensch, dieselbe Instanz, zwei Wege hinein, und keiner wirft den
-     anderen hinaus. */
   check('Beide Sitzungen stehen zugleich und werfen einander nicht hinaus',
     (await fetch(P.base + '/api/settings',
       { headers: { cookie: pCookieValue, 'x-forwarded-proto': 'https' } })).status === 200 &&
     (await fetch(P.base + '/api/settings', { headers: { cookie: pHomeValue } })).status === 200);
-  /* EIN GEFAELSCHTER KOPF AUS DEM HEIMNETZ HOLT SICH HOECHSTENS EINEN COOKIE,
-     DEN SEIN BROWSER WEGWIRFT. */
+  /* Ein gefaelschtes X-Forwarded-Proto aus dem Heimnetz bringt nur einen
+     Cookie, den der Browser ueber http verwirft. */
   const pWrong = await pLogin('anna', 'annas-langes-wort', '10.1.0.3', 'https');
   check('Wer den Kopf selbst setzt, bekommt den Secure-Cookie und sonst nichts',
     pWrong.status === 200 && /;\s*Secure/i.test(pWrong.setCookie) &&
@@ -15225,7 +13641,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Die Anmeldebremse zaehlt auch den Namen');
 
-  /* Die IP-Bremse sieht verteiltes Raten gegen EINEN Namen nicht: zehn
+  /* Die IP-Bremse sieht verteiltes Raten gegen einen Namen nicht: zehn
      Rechner mit je neun Versuchen bleiben unter jeder Schwelle. */
   const gAttempt = async (name, address) => {
     const a = await pLogin(name, 'ganz-sicher-falsch', address);
@@ -15236,13 +13652,11 @@ async function sendImport(object, mode, withoutShare = false) {
     const a = await gAttempt('anna', `10.0.0.${i}`);
     if (a.status === 429 && !gNameLock) gNameLock = i;
   }
-  // Frische Adresse, bekannter Name: die IP hat null Fehlversuche, gebremst
-// wird trotzdem. Ohne den Namenszaehler kaeme die Antwort sofort.
+  // Neue Adresse, bekannter Name: hier bremst nur der Namenszaehler.
   const gForeignAddress = await gAttempt('anna', '10.0.9.1');
   check('Ein oft geratener Name wird auch von einer frischen Adresse gebremst',
     gForeignAddress.ms >= BRAKE_STEP, `${gForeignAddress.ms} ms, Grenze ${BRAKE_STEP} ms`);
-  // Dieselbe frische Adresse, anderer Name: keine Bremse. Sonst waere es doch
-// die IP gewesen, und die Pruefung darueber belegte nichts.
+  // Gegenprobe: bremste es hier, waere es doch die IP-Bremse.
   const gOtherOneName = await gAttempt('zzz-gibt-es-nicht', '10.0.9.1');
   check('Ein anderer Name von derselben Adresse dagegen nicht',
     gOtherOneName.ms < BRAKE_STEP, `${gOtherOneName.ms} ms, Grenze ${BRAKE_STEP} ms`);
@@ -15252,8 +13666,6 @@ async function sendImport(object, mode, withoutShare = false) {
   }
   check('Und der Name wird auch nach zwoelf Fehlversuchen nie hart gesperrt',
     gNameLock === 0, `gesperrt ab Versuch ${gNameLock}`);
-  // Die richtige Anmeldung kommt trotzdem durch -- nur eben verzoegert. Das
-// ist der ganze Unterschied zur harten Sperre der IP.
   const gAnyway = await pLogin('anna', 'annas-langes-wort', '10.0.9.2');
   check('Das richtige Passwort kommt trotz Bremse durch', gAnyway.status === 200,
     `Status ${gAnyway.status}`);
@@ -15263,9 +13675,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Welcher Eintrag der Kette zaehlt');
 
-  /* DER LETZTE, NICHT DER ERSTE. */
-  // Jeder Versuch mit EIGENEM Namen: sonst zaehlte die Namensbremse mit, und
-// die Gruppe belegte nicht, welcher Eintrag der Kette gemeint ist.
+  // Je Versuch ein eigener Name, damit die Namensbremse nicht mitzaehlt.
   for (let i = 1; i <= 11; i++)
     await gAttempt(`kette-${i}`, `172.16.0.${i}, 203.0.113.7`);
   const kLast = await gAttempt('kette-x', '172.16.9.9, 203.0.113.7');
@@ -15281,8 +13691,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('AUTH_RESET und usertool.js');
 
-  /* AUTH_RESET ist wirkungslos; an seiner Stelle steht ein Befehl auf dem
-     Wirt, wie ihn Nextcloud, GitLab und Grafana halten. */
+  /* AUTH_RESET ist wirkungslos; zurueckgesetzt wird mit usertool.js auf dem Host. */
   const zDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-zugang-'));
   function zCommand(args, input = '') {
     const { execFileSync } = require('child_process');
@@ -15325,7 +13734,6 @@ async function sendImport(object, mode, withoutShare = false) {
     zFresh.status === 200 && zOld.status === 401, `neu ${zFresh.status}, alt ${zOld.status}`);
   await Z2.stop();
 
-  // Zwei verschiedene Eingaben: der Befehl darf dann NICHTS setzen.
   const zTap = zCommand(['password', 'bert'], 'wort-eins-lang\nwort-zwei-lang\n');
   check('Zwei verschiedene Eingaben aendern nichts',
     zTap.code === 1 && /nicht überein/.test(zTap.stdout), zTap.stdout.split('\n').filter(Boolean).pop());
@@ -15361,8 +13769,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('usertool.js schreibt ins Sicherheitsprotokoll');
 
-  /* DER NOTWEG BEKOMMT KEINE RECHTEFRAGE -- Zugriff auf den Wirt IST die
-     Berechtigung, und eine Rechtefrage dort waere eine Kulisse. */
+  /* usertool.js fragt keine Rechte ab: Zugriff auf den Host ist die Berechtigung. */
   {
     const zjDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-zugangprot-'));
     const zjCommand = (args, input = '') => {
@@ -15394,8 +13801,6 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Vor den Befehlen steht keine Zeile ohne Handelnden da',
       zjSince().length === 0, JSON.stringify(zjSince()));
 
-    // ES TUT SEINE DINGE WEITERHIN OHNE RUECKFRAGE -- keine Bestaetigung,
-// keine Rechtefrage, nur der Befehl.
     const zjPass = zjCommand(['password', 'bert'], 'berts-neues-wort\nberts-neues-wort\n');
     check('usertool.js setzt das Passwort weiterhin ohne jede Rueckfrage',
       zjPass.code === 0 && /gesetzt/.test(zjPass.stdout), zjPass.stdout.split('\n').filter(Boolean).pop());
@@ -15413,8 +13818,7 @@ async function sendImport(object, mode, withoutShare = false) {
               ['user.delete', null, zjBertId]]), JSON.stringify(zjSince()));
     check('Und die Rollenzeile nennt die neue Rolle',
       zjSince()[1]?.detail === 'owner', JSON.stringify(zjSince()[1]));
-    /* DIE GEGENPROBE ZUR ERKENNUNG: ueber eine Route steht sehr wohl ein
-       Handelnder. */
+    /* Gegenprobe: actor IS NULL trennt usertool.js von einer Route. */
     check('Ueber eine Route steht dagegen ein Handelnder',
       zjRows("SELECT COUNT(*) n FROM security_log WHERE event = 'user.new' AND actor IS NOT NULL")[0].n === 3,
       JSON.stringify(zjRows("SELECT event, actor FROM security_log WHERE event = 'user.new'")));
@@ -15422,16 +13826,11 @@ async function sendImport(object, mode, withoutShare = false) {
     fs.rmSync(zjDir, { recursive: true, force: true });
   }
 
-  /* ================================================================ DER
-     HINWEIS AUF EINEN UNVOLLSTAENDIGEN BESTAND — 0.33.0 HIER STANDEN BIS
-     0.32.1 ACHT PRUEFGRUPPEN mit zusammen 1441 Zeilen und 121 Pruefungen,
-     eine je Migrationsblock: jede legte eine Datenbank im alten Zustand an,
-     rief ihren Block und sah nach, was danach dastand. */
+  /* ---------------------------------------------------------------- */
   group('Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0');
 
-  /* DIE ACHTZEHN SPALTEN, DIE DIE ACHTZEHN BLOECKE NACHGERUESTET HAETTEN --
-     jede mit dem Namen, unter dem sie frueher dalag, oder null. Seit 0.37.0
-     nennt der Kasten diesen Namen statt der Fassung. */
+  /* Tabelle, Spalte, frueherer Spaltenname oder null. Der Hinweis aus db.js
+     nennt den frueheren Namen mit. */
   const uhTable = [
     ['comments',           'images_removed',  null],
     ['links',              'user_id',         null],
@@ -15454,11 +13853,8 @@ async function sendImport(object, mode, withoutShare = false) {
   ];
   const uhDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-hinweis-'));
   const uhFreshDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-hinweis-frisch-'));
-  /* GEFAHREN UND NICHT GELESEN: die Instanz wird wirklich hochgezogen, wie in
-     den acht Gruppen davor. */
-  /* GELESEN WERDEN BEIDE KANAELE, und das ist keine Bequemlichkeit: der
-     Kasten geht ueber `console.warn` und damit auf STDERR -- genau wie der
-     Schluesselhinweis in keys.js, dessen Form er hat. */
+  /* stdout und stderr zusammen: der Hinweis geht ueber console.warn auf stderr,
+     wie der Schluesselhinweis in keys.js. */
   const uhRun = (directory) => {
     const r = require('child_process').spawnSync(process.execPath, ['-e', "require('./db');"], {
       cwd: __dirname, encoding: 'utf8',
@@ -15466,10 +13862,8 @@ async function sendImport(object, mode, withoutShare = false) {
     });
     return { ok: r.status === 0, out: `${r.stdout || ''}${r.stderr || ''}` };
   };
-  /* DIE ZUSAGE GILT DER GANZEN INSTANZ UND NICHT db.js ALLEIN: ein Gesuch,
-     das beim Laden von server.js scheitert, haelt sie unten. PORT=0 nimmt
-     eine beliebige freie Nummer -- gefragt wird, ob das Modul LAEDT, und mit
-     keinem Server geredet. */
+  /* Auch server.js muss laden: ein Statement, das beim Laden an einer fehlenden
+     Spalte scheitert, haelt die Instanz unten. PORT=0 nimmt einen freien Port. */
   const uhServer = (directory) => {
     const r = require('child_process').spawnSync(process.execPath,
       ['-e', "require('./server.js'); setTimeout(() => process.exit(0), 50);"], {
@@ -15484,15 +13878,13 @@ async function sendImport(object, mode, withoutShare = false) {
     d.close();
     return s;
   };
-  /* EINE SPALTE ENTFERNEN, OHNE `ALTER TABLE ... DROP COLUMN`. */
+  /* Entfernt eine Spalte durch Umkopieren statt ALTER TABLE ... DROP COLUMN. */
   const uhDropColumn = (directory, table, column) => {
     const d = open(path.join(directory, 'katalog.sqlite'));
     d.pragma('foreign_keys = OFF');
     const kept = d.prepare(`PRAGMA table_info(${table})`).all().filter(c => c.name !== column);
-    /* DER VORGABEWERT GEHT IN KLAMMERN, und das ist kein Schoenheitsgriff:
-       `PRAGMA table_info` liefert `datetime('now')` OHNE die aeusseren
-       Klammern, und SQLite nimmt einen AUSDRUCK als Vorgabe nur geklammert an
-       -- `DEFAULT datetime('now')` ist ein Syntaxfehler. */
+    /* PRAGMA table_info liefert datetime('now') ohne Klammern; SQLite nimmt einen
+       Ausdruck als DEFAULT nur geklammert an. */
     const shape = kept.map(c => `${c.name} ${c.type}${c.pk ? ' PRIMARY KEY' : ''}` +
       (c.notnull ? ' NOT NULL' : '') +
       (c.dflt_value === null ? '' : ` DEFAULT (${c.dflt_value})`)).join(', ');
@@ -15503,8 +13895,6 @@ async function sendImport(object, mode, withoutShare = false) {
             ALTER TABLE ${table}__alt RENAME TO ${table};`);
     d.close();
   };
-  /* UND DIE PRUEFLAGE BEKOMMT EINEN EIGENTUEMER -- der Fund des
-     Gegenprobenlaufs dieser Runde. */
   const uhGrow = (directory) => {
     const d = open(path.join(directory, 'katalog.sqlite'));
     d.prepare("INSERT INTO users (username, password_hash, role, status) VALUES (?,?,?,?)")
@@ -15512,8 +13902,6 @@ async function sendImport(object, mode, withoutShare = false) {
     d.close();
   };
 
-  /* DIE GEGENLAGE ZUERST: eine frische Instanz bekommt jede Spalte aus der
-     DDL, und sie sagt dazu KEIN Wort. */
   const uhFresh = uhRun(uhFreshDir);
   check('Eine frische Instanz kommt ueberhaupt hoch',
     uhFresh.ok, uhFresh.out.trim().slice(-300));
@@ -15536,8 +13924,6 @@ async function sendImport(object, mode, withoutShare = false) {
       return marker === 0 && userVersion === 0;
     })(), 'ein Merker steht da');
 
-  /* UND JETZT DIE ACHTZEHN PRUEFLAGEN, EINE JE SPALTE. Je Lage: die Spalte
-     wegnehmen, die Instanz hochziehen, und drei Dinge festhalten -- 1. */
   const uhMissed = [], uhUnnamed = [], uhNoOldName = [], uhDead = [], uhServerDead = [];
   for (const [table, column, oldName] of uhTable) {
     fs.rmSync(uhDir, { recursive: true, force: true });
@@ -15550,18 +13936,15 @@ async function sendImport(object, mode, withoutShare = false) {
       uhDead.push(`${table}.${column}: ${run.out.trim().split('\n').pop()}`);
       continue;
     }
-    /* UND DIE GANZE INSTANZ, nicht nur db.js. Gemessen am 21. September 2026:
-       sechzehn der achtzehn Spalten hielten sie unten, weil dreiunddreissig
-       Gesuche beim Laden vorbereitet wurden. */
+    /* Gemessen: 16 der 18 Spalten hielten server.js unten, weil 33 Statements
+       beim Laden vorbereitet werden. */
     const runServer = uhServer(uhDir);
     if (!runServer.ok)
       uhServerDead.push(`${table}.${column}: ` +
         (runServer.out.split('\n').find(z => /Error:/.test(z)) || '').trim());
     if (uhColumns(uhDir, table).includes(column)) uhMissed.push(`${table}.${column}`);
     if (!run.out.includes(`${table}.${column}`)) uhUnnamed.push(`${table}.${column}`);
-    /* NEUN DER ACHTZEHN HABEN EINEN ALTEN NAMEN. Der Kasten nennt ihn auch
-       dann, wenn die alte Spalte nicht mehr dasteht -- das ist die schaerfere
-       Auskunft. */
+    /* Der alte Name wird auch genannt, wenn die alte Spalte fehlt. */
     if (oldName && !new RegExp(`${table}\\.${column}\\b[^\\n]*${table}\\.${oldName}\\b`).test(run.out))
       uhNoOldName.push(`${table}.${column} (${oldName})`);
   }
@@ -15573,13 +13956,9 @@ async function sendImport(object, mode, withoutShare = false) {
     uhNoOldName.length === 0, uhNoOldName.join(' · ') || 'alle neun mit altem Namen');
   check('Und die Instanz kommt in jedem der achtzehn Faelle hoch',
     uhDead.length === 0, uhDead.join(' · ') || 'alle achtzehn oben');
-  /* DAS IST DIE ZUSAGE DES KASTENS, und sie wird hier gemessen und nicht
-     geglaubt: „THIS INSTANCE STARTS ANYWAY". */
   check('Und die ganze Instanz ebenso — das ist die Zusage des Kastens',
     uhServerDead.length === 0, uhServerDead.join(' · ') || 'alle achtzehn oben');
 
-  /* DER KASTEN NENNT AUSSERDEM DEN WEG HERAUS. Ein Hinweis, der sagt, was
-     fehlt, aber nicht, was zu tun ist, ist eine Beunruhigung. */
   fs.rmSync(uhDir, { recursive: true, force: true });
   fs.mkdirSync(uhDir, { recursive: true });
   uhRun(uhDir);
@@ -15593,15 +13972,12 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify(uhOut.trim().slice(0, 400)));
   check('Und dass die Instanz trotzdem startet',
     /starts anyway/i.test(uhOut), JSON.stringify(uhOut.trim().slice(0, 400)));
-  /* UND ER STEHT IN DERSELBEN FORM WIE DER SCHLUESSELHINWEIS AUS keys.js. */
+  /* Dieselbe Form wie der Schluesselhinweis in keys.js. */
   check('Und er traegt den Rahmen des Schluesselhinweises',
     /-{60,}/.test(uhOut) && /WARNING/.test(uhOut), JSON.stringify(uhOut.trim().slice(0, 120)));
-  /* UND KEIN STAPELABZUG. Der Betreiber sieht einen Kasten und keine
-     Ausnahme. */
   check('Und nirgends ein Stapelabzug',
     !/\bat .*\.js:\d+/.test(uhOut), JSON.stringify(uhOut.trim().slice(0, 300)));
 
-  /* UND DER WAECHTER FAENGT WIRKLICH ETWAS. */
   const { incompleteDatabase: uhProbe } = require('./db');
   check('Die Probe gibt es, und an dieser Instanz findet sie nichts',
     typeof uhProbe === 'function' && uhProbe().length === 0,
@@ -15614,9 +13990,7 @@ async function sendImport(object, mode, withoutShare = false) {
   group('Anordnung der Blöcke');
 
   const bl = (await call('GET', '/api/settings')).content.blocks;
-  /* VIER BLOECKE IN DER SEITENSPALTE SEIT 0.21.0 -- `potenzial` ist
-     dazugekommen und steht VOR `bewertung`: geschaetzt wird, bevor bewertet
-     wird. */
+  /* potenzial steht vor bewertung: geschaetzt wird vor dem Bewerten. */
   check('Vorgabeanordnung wird geliefert',
     equal(bl.side, ['kategorie', 'tags', 'potenzial', 'bewertung']) &&
     equal(bl.bottom, ['beschreibung', 'testtage', 'links', 'dateien', 'kommentare']) &&
@@ -15641,13 +14015,11 @@ async function sendImport(object, mode, withoutShare = false) {
   const sb = dirt.content.blocks;
   check('Fremde Namen fliegen raus', !sb.side.includes('kommentare') && !sb.side.includes('quatsch'));
   check('Doppelte Namen fliegen raus', sb.side.filter(k => k === 'bewertung').length === 1);
-  /* UND `potenzial` HAENGT SICH HINTEN AN -- die Liste, die hineingeht, kennt
-     ihn gar nicht. */
+  /* potenzial fehlt in der gesendeten Liste und wird hinten angehaengt. */
   check('Fehlende Blöcke hängen sich hinten an',
     equal(sb.side, ['bewertung', 'kategorie', 'tags', 'potenzial']) &&
     equal(sb.bottom, ['kommentare', 'beschreibung', 'testtage', 'links', 'dateien']), JSON.stringify(sb));
   check('Unbekannter Einklappzustand wird verworfen', equal(sb.closed, ['links']));
-  /* UND DIE BEIDEN STERNKAESTEN FALLEN AUS `zu` HERAUS -- 0.21.0. */
   const blZu = await call('PUT', '/api/settings', { blocks: {
     side: ['kategorie', 'tags', 'potenzial', 'bewertung'],
     bottom: ['beschreibung', 'testtage', 'links', 'dateien', 'kommentare'],
@@ -15679,10 +14051,8 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Unbekanntes Foto meldet 404',
     (await call('PUT', '/api/photos/99999/focus', { x: 10, y: 10 })).status === 404);
 
-  /* --- DER ENGERE AUSSCHNITT, seit 0.19.0 --- Der dritte Wert derselben Art
-     und ueber DIESELBE Route: er wird dort eingestellt, wo der Punkt
-     eingestellt wird, und eine zweite schreibende Route liesse F_ROUTES
-     wachsen, ohne dass es etwas Neues zu bewachen gaebe. */
+  /* zoom laeuft ueber dieselbe Route wie der Fokuspunkt; eine eigene Route
+     liesse F_ROUTES wachsen. */
   check('Neues Foto steht auf dem weitesten Ausschnitt', image.zoom === 100, String(image.zoom));
   const zSet = await call('PUT', `/api/photos/${image.id}/focus`, { x: 20, y: 70, zoom: 240 });
   check('Der Ausschnitt laesst sich enger ziehen',
@@ -15690,8 +14060,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const zRound = await call('PUT', `/api/photos/${image.id}/focus`, { x: 20, y: 70, zoom: 137.4 });
   check('Und er wird auf ganze Prozent gerundet',
     zRound.content.photos[0].zoom === 137, String(zRound.content.photos[0].zoom));
-  /* BESCHNITTEN, NICHT ABGEWIESEN -- wie beim Fokuspunkt: der Wert kommt aus
-     einem Schieber, der gar nichts anderes senden kann. */
+  /* Beschnitten, nicht abgewiesen: der Wert kommt aus einem Schieberegler. */
   const zEng = await call('PUT', `/api/photos/${image.id}/focus`, { x: 20, y: 70, zoom: 20 });
   check('Ein Wert unter 100 wird auf 100 eingefangen',
     zEng.content.photos[0].zoom === 100, String(zEng.content.photos[0].zoom));
@@ -15700,7 +14069,6 @@ async function sendImport(object, mode, withoutShare = false) {
     String(zWide.content.photos[0].zoom));
   check('Text als Ausschnitt wird abgewiesen',
     (await call('PUT', `/api/photos/${image.id}/focus`, { x: 20, y: 70, zoom: 'nah' })).status === 400);
-  /* UND EIN FEHLENDES FELD BEHAELT DEN WERT. */
   await call('PUT', `/api/photos/${image.id}/focus`, { x: 20, y: 70, zoom: 300 });
   const withoutZoom = await call('PUT', `/api/photos/${image.id}/focus`, { x: 25, y: 65 });
   check('Ein Ruf ohne Ausschnitt laesst ihn stehen',
@@ -15708,8 +14076,8 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify(withoutZoom.content.photos[0]));
 
   await call('PUT', `/api/photos/${image.id}/focus`, { x: 20, y: 70, zoom: 180 });
-  /* MIT KLAMMER: ein Rueckbau, der die Uebersicht scheitern laesst, soll die
-     Zusagen darunter rot faerben und nicht den Lauf abreissen. */
+  /* Die Rueckfallwerte halten den Lauf, wenn ein Rueckbau die Uebersicht
+     scheitern laesst; dann werden nur die Pruefungen darunter rot. */
   const overviewF = ((await call('GET', '/api/items')).content || [])
     .find(i => i.id === fp.id) || { mainPhoto: {} };
   const overviewPhoto = overviewF.mainPhoto || {};
@@ -15743,23 +14111,20 @@ async function sendImport(object, mode, withoutShare = false) {
     String((includingF.mainPhoto || {}).zoom));
   check('Ältere Exportdatei ohne Fokuspunkt landet in der Mitte',
     (withoutF.mainPhoto || {}).focus_x === 50 && (withoutF.mainPhoto || {}).focus_y === 50);
-  /* DIE DATEI DER FORMATNUMMER 11 KENNT KEIN `zoom` -- dann gilt die Vorgabe,
-     und das ist genau der weiteste Ausschnitt. */
+  /* Dateien im Format 11 kennen kein zoom; die Vorgabe 100 ist der weiteste
+     Ausschnitt. */
   check('Und eine Datei ohne Ausschnitt auf dem weitesten',
     (withoutF.mainPhoto || {}).zoom === 100, String((withoutF.mainPhoto || {}).zoom));
-  /* EIN UNSINNIGER WERT IN DER DATEI BRICHT DAS EINSPIELEN NICHT AB -- die
-     Datei ist, wie sie ist, und ein Abbruch waere die schlechtere Antwort. */
   check('Ein unsinniger Ausschnitt in der Datei faellt auf die Vorgabe',
     (wildF.mainPhoto || {}).zoom === 100, String((wildF.mainPhoto || {}).zoom));
   await call('DELETE', `/api/items/${includingF.id}`);
   await call('DELETE', `/api/items/${withoutF.id}`);
   await call('DELETE', `/api/items/${wildF.id}`);
 
-  /* ================= Die Bildablage ================= */
+  /* ---------------------------------------------------------------- */
   group('Die Bildablage: PNG kommt herein, WebP geht in die Tabelle');
 
-  // Die rohen Bytes einer Fotozeile. Ueber die Auslieferung und nicht ueber
-// die Datenbank: das ist der Weg, den ein Browser auch geht.
+  // Ueber die Auslieferung statt ueber die Datenbank, wie ein Browser.
   const imageRaw = async (id2, query = '') => {
     const a2 = await fetch(`${BASE}/api/photos/${id2}/raw${query}`, { headers: { cookie: H.cookie } });
     return { status: a2.status, h: Object.fromEntries(a2.headers),
@@ -15768,13 +14133,12 @@ async function sendImport(object, mode, withoutShare = false) {
   const loadImage = async (itemId, name, type, content) =>
     (await sendMultipart(`/api/items/${itemId}/photos`, 'photos',
       [{ name, type, content }])).content;
-  /* DAS ZULETZT ANGELEGTE FOTO -- UND EIN LEERES OBJEKT, WENN ES KEINES GIBT. */
+  /* Leere Rueckfallwerte: fehlt ein Feld in der Antwort, wird die Pruefung rot
+     und der Lauf geht weiter. */
   const lastPhoto = (response) => {
     const list = Array.isArray(response && response.photos) ? response.photos : [];
     return list[list.length - 1] || {};
   };
-  // Dasselbe fuer die Aufstellung nach Format: faellt sie aus der Antwort
-// (Rueckbau 441), soll die Zeile rot werden und nicht der Lauf enden.
   const formats = (stats) => (stats && stats.imageFormats) || {};
   const formatNumber = (stats, k) => (formats(stats)[k] || {}).count || 0;
 
@@ -15787,13 +14151,11 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und liegt danach als WebP in der Tabelle', baPhoto.mime_type === 'image/webp',
     baPhoto.mime_type);
   const baBytes = (await imageRaw(baPhoto.id)).bytes;
-  /* AM INHALT GEPRUEFT UND NICHT AN DER SPALTE. */
   check('Und die Bytes sind wirklich WebP',
     baBytes.slice(0, 4).toString('latin1') === 'RIFF' &&
     baBytes.slice(8, 12).toString('latin1') === 'WEBP',
     baBytes.slice(0, 12).toString('hex'));
-  /* UND ES IST DER VERLUSTFREIE BITSTROM. WebP hat zwei: VP8
-     (verlustbehaftet, franst an harten Kanten aus) und VP8L (verlustfrei). */
+  /* WebP hat zwei Bitstroeme: VP8 (verlustbehaftet) und VP8L (verlustfrei). */
   check('Und zwar der verlustfreie Bitstrom VP8L',
     baBytes.slice(12, 16).toString('latin1') === 'VP8L',
     baBytes.slice(12, 16).toString('latin1'));
@@ -15803,27 +14165,23 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Die abgelegte Fassung ist kleiner als die Vorlage',
     baBytes.length < templatePNG.length, `${baBytes.length} gegen ${templatePNG.length}`);
 
-  /* ---- DIE ZUSAGE, AUF DIE ES ANKOMMT ---- Nicht „eine Funktion wurde
-     gerufen", sondern „das Bild ist unversehrt". */
   const baAbw = await largestDeviation(templatePNG, baBytes);
   check('Das Bild ist unversehrt: größte Abweichung höchstens 2 von 255',
     baAbw >= 0 && baAbw <= 2, `groesste Abweichung ${baAbw}`);
   const baSize = await sharp(baBytes).metadata();
   check('Und es hat dieselben Maße wie die Vorlage',
     baSize.width === 96 && baSize.height === 96, `${baSize.width}x${baSize.height}`);
-  /* DIE GEGENPROBE ZUR PRUEFUNG SELBST: sie darf nicht
-     deshalb gruen sein, weil sie JEDEN Unterschied durchliesse. */
   const baBad = await sharp(templatePNG).webp({ quality: 70 }).toBuffer();
   check('Und die Messung fände einen verlustbehafteten Kodierer wirklich',
     (await largestDeviation(templatePNG, baBad)) > 2,
     `groesste Abweichung ${await largestDeviation(templatePNG, baBad)}`);
-  /* UND SIE FAENDE AUCH EIN BILD ANDERER MASSE -- sonst bliebe gruen, wer
-     versehentlich die 1600px-Ableitung ins Original schriebe. */
+  /* Sonst bliebe gruen, wenn versehentlich die 1600px-Ableitung im Original
+     landet. */
   const baLower = await sharp(templatePNG).resize(48, 48).png().toBuffer();
   check('Und ein Bild anderer Maße ebenso',
     (await largestDeviation(templatePNG, baLower)) === -1);
 
-  /* ---- WAS NICHT ANGEFASST WIRD ---- */
+  /* ---- Was nicht angefasst wird ---- */
   const jpegTemplate = await sharp(templatePNG).jpeg({ quality: 90 }).toBuffer();
   const jpegDetail = await loadImage(ba.id, 'foto.jpg', 'image/jpeg', jpegTemplate);
   const jpegPhoto = lastPhoto(jpegDetail);
@@ -15834,8 +14192,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const gifTemplate = Buffer.from(GIF_BASE64, 'base64');
   const gifDetail = await loadImage(ba.id, 'bewegt.gif', 'image/gif', gifTemplate);
   const gifPhoto = lastPhoto(gifDetail);
-  /* GIF WIRD NICHT UMGEWANDELT, und der Grund ist nicht Bequemlichkeit: sharp
-     liest ohne `animated: true` nur die erste Seite. */
+  /* GIF bleibt, weil sharp ohne animated: true nur die erste Seite liest. */
   check('Ein GIF behält seinen Typ', gifPhoto.mime_type === 'image/gif', gifPhoto.mime_type);
   check('Und liegt ebenfalls byte-genau da',
     (await imageRaw(gifPhoto.id)).bytes.equals(gifTemplate));
@@ -15846,7 +14203,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Vorhandenes WebP wird nicht noch einmal kodiert',
     (await imageRaw(webpPhoto.id)).bytes.equals(webpTemplate));
 
-  /* ---- DER RUECKFALL ---- WEBP KANN HOECHSTENS 16383 px JE KANTE. */
+  /* ---- Rueckfall: WebP fasst hoechstens 16383 px je Kante ---- */
   const bigPNG = await sharp({ create: { width: 16400, height: 4, channels: 3,
                                            background: '#888' } }).png().toBuffer();
   const bigDetail = await loadImage(ba.id, 'breit.png', 'image/png', bigPNG);
@@ -15855,16 +14212,12 @@ async function sendImport(object, mode, withoutShare = false) {
     bigPhoto.mime_type === 'image/png', bigPhoto.mime_type);
   check('Und zwar byte-genau',
     (await imageRaw(bigPhoto.id)).bytes.equals(bigPNG));
-  /* UND DER UPLOAD IST DABEI NICHT GESCHEITERT. */
   const rowsNumber = (a) => (Array.isArray(a && a.photos) ? a.photos.length : -1);
   check('Und die Zeile ist wirklich angelegt worden',
     rowsNumber(bigDetail) === rowsNumber(webpDetail) + 1,
     `${rowsNumber(webpDetail)} vorher, ${rowsNumber(bigDetail)} nachher`);
 
-  /* ---- ZUSAGE 6: DIE ABLEITUNGEN SIND WEBP, UND IHR MIME-TYP SAGT ES ----
-     BIS 0.26.0 STAND HIER DAS GEGENTEIL: „Die Ableitungen bleiben JPEG",
-     begruendet damit, dass 0.19.0 das ARCHIV unversehrt macht und die ANZEIGE
-     laesst, wie sie ist. */
+  /* ---- Die Ableitungen sind WebP ---- */
   const isWebpBytes = (b2) => b2.length >= 12 &&
     b2.slice(0, 4).toString('latin1') === 'RIFF' && b2.slice(8, 12).toString('latin1') === 'WEBP';
   for (const size of ['thumb', 'medium']) {
@@ -15874,20 +14227,18 @@ async function sendImport(object, mode, withoutShare = false) {
     check(`Und der Kopf von ${size} sagt image/webp`,
       String(der.h['content-type'] || '') === 'image/webp', der.h['content-type']);
   }
-  /* UND SIE IST DABEI NICHT LEER GEBLIEBEN. */
   check('Und beide tragen wirklich Bytes',
     (await imageRaw(baPhoto.id, '?size=thumb')).bytes.length > 100 &&
     (await imageRaw(baPhoto.id, '?size=medium')).bytes.length > 100);
 
 
-  /* ---- DIE AUFSTELLUNG NACH FORMAT ---- */
+  /* ---- Die Aufstellung nach Format ---- */
   const baStats = (await call('GET', '/api/stats')).content;
   check('Die Kennzahlen führen die Fotos nach Format auf',
     !!(baStats && baStats.imageFormats), JSON.stringify(baStats && baStats.imageFormats));
   check('WebP, JPEG, GIF und PNG stehen darin',
     ['webp', 'jpeg', 'gif', 'png'].every(k => formatNumber(baStats, k) > 0),
     JSON.stringify(formats(baStats)));
-  /* DIE SUMME DER AUFTEILUNG IST DIE ALTE ZAHL. */
   const baSum = Object.values(formats(baStats)).reduce((a2, f) => a2 + f.count, 0);
   check('Und ihre Summe ist genau photoCount', baSum === baStats.photoCount,
     `${baSum} gegen ${baStats.photoCount}`);
@@ -15898,8 +14249,7 @@ async function sendImport(object, mode, withoutShare = false) {
     baStats.videoCount === 0 || baSum === baStats.photoCount,
     `${baSum} / ${baStats.photoCount} / ${baStats.videoCount}`);
 
-  /* ---- DIE WAHL: ZUSAGE 4, ZUSAGE 5 UND ZUSAGE 8 ---- BIS 0.26.0 STAND HIER
-     EIN SCHALTER MIT ZWEI STELLUNGEN. */
+  /* ---- Die Wahl des Verfahrens ---- */
   const stored = {};
   for (const method of ['png', 'webp-lossless', 'webp-lossy']) {
     const set = await call('PUT', '/api/settings', { imageStore: method });
@@ -15910,7 +14260,6 @@ async function sendImport(object, mode, withoutShare = false) {
     const raw = (await imageRaw(one.id)).bytes;
     stored[method] = { mime: one.mime_type, bytes: raw };
   }
-  /* „PNG" HEISST BYTE-GENAU UND NICHT „fast unveraendert". */
   check('„PNG" laesst ein ankommendes PNG byte-genau PNG',
     stored['png'].mime === 'image/png' && stored['png'].bytes.equals(templatePNG),
     stored['png'].mime);
@@ -15920,25 +14269,20 @@ async function sendImport(object, mode, withoutShare = false) {
   check('„WebP verlustbehaftet" ebenfalls',
     stored['webp-lossy'].mime === 'image/webp' && isWebpBytes(stored['webp-lossy'].bytes),
     stored['webp-lossy'].mime);
-  /* UND DIE DREI SIND WIRKLICH DREI. */
   check('Und dreimal dasselbe Bild ergibt dreimal ein anderes Ergebnis',
     !stored['png'].bytes.equals(stored['webp-lossless'].bytes) &&
     !stored['png'].bytes.equals(stored['webp-lossy'].bytes) &&
     !stored['webp-lossless'].bytes.equals(stored['webp-lossy'].bytes),
     `${stored['png'].bytes.length} · ${stored['webp-lossless'].bytes.length} · ` +
     `${stored['webp-lossy'].bytes.length}`);
-  /* ZUSAGE 5: DIE GROESSENPRUEFUNG GILT IN JEDEM VERFAHREN -- auch im
-     verlustbehafteten. */
   for (const method of ['png', 'webp-lossless', 'webp-lossy']) {
     check(`In „${method}" ist das Abgelegte nie groesser als die Vorlage`,
       stored[method].bytes.length <= templatePNG.length,
       `${stored[method].bytes.length} gegen ${templatePNG.length}`);
   }
-  /* UND DAS IST DIE PROBE, DIE WIRKLICH ZIEHT -- ein FUND der Gegenprobe 817.
-     DIE ZEILEN DARUEBER BLIEBEN STUMM, und der Grund ist der Prueffall und
-     nicht die Zusage: an einem Bild mit weichen Verlaeufen gewinnt JEDES
-     WebP-Verfahren ueber die Groesse, und dann fragt die Pruefung eine Regel
-     ab, die ohnehin nie greift. */
+  /* Bei weichen Verlaeufen gewinnt jedes WebP-Verfahren, und die
+     Groessenpruefung greift nie. Bei harten Kanten ist verlustbehaftetes WebP
+     groesser als das PNG. */
   {
     const boxes = Array.from({ length: 400 }, (unused, i) =>
       `<rect x="${i * 17 % 1200}" y="${i * 23 % 800}" width="9" height="9" fill="#000"/>`).join('');
@@ -15952,8 +14296,6 @@ async function sendImport(object, mode, withoutShare = false) {
       const one = lastPhoto(await loadImage(ba.id, `kanten-${method}.png`, 'image/png', hardEdges));
       harsh[method] = { mime: one.mime_type, bytes: (await imageRaw(one.id)).bytes };
     }
-    /* ZUERST DIE GEGENLAGE: das Bild ist wirklich eines, an dem
-       verlustbehaftet verliert. */
     const wouldBe = (await sharp(hardEdges).webp({ quality: 90, effort: 4 }).toBuffer()).length;
     check('Die Gegenlage steht: verlustbehaftet waere hier GROESSER als das PNG',
       wouldBe > hardEdges.length, `${wouldBe} gegen ${hardEdges.length}`);
@@ -15961,22 +14303,18 @@ async function sendImport(object, mode, withoutShare = false) {
       harsh['webp-lossy'].mime === 'image/png' &&
       harsh['webp-lossy'].bytes.equals(hardEdges),
       `${harsh['webp-lossy'].mime}, ${harsh['webp-lossy'].bytes.length} Bytes`);
-    /* UND VERLUSTFREI GEWINNT AN DEMSELBEN BILD. */
     check('Verlustfrei gewinnt am selben Bild und wird genommen',
       harsh['webp-lossless'].mime === 'image/webp' &&
       harsh['webp-lossless'].bytes.length < hardEdges.length,
       `${harsh['webp-lossless'].mime}, ${harsh['webp-lossless'].bytes.length} gegen ${hardEdges.length}`);
     await call('PUT', '/api/settings', { imageStore: 'webp-lossless' });
   }
-  /* ZUSAGE 8: UMSCHALTEN ALLEIN RUEHRT DEN BESTAND NICHT AN (F5). Wer die
-     Wahl probiert, soll nicht 500 MB umkodiert bekommen. */
   const untouchedId = lastPhoto(await loadImage(ba.id, 'stillstand.png', 'image/png', templatePNG)).id;
   const untouchedBefore = (await imageRaw(untouchedId)).bytes;
   const pngBefore = formatNumber((await call('GET', '/api/stats')).content, 'png');
   for (const method of ['png', 'webp-lossy', 'webp-lossless']) {
     await call('PUT', '/api/settings', { imageStore: method });
-    /* KEIN WARTEN DAZWISCHEN, UND DAS IST DIE PROBE: liefe ein Lauf am
-       Umschalten mit, staende er JETZT in den Kennzahlen. */
+    /* Ohne Wartezeit: liefe ein Lauf mit, stuende er jetzt in /api/stats. */
     const st = (await call('GET', '/api/stats')).content;
     check(`Das Umschalten auf „${method}" startet keinen Lauf`,
       !(st && st.conversion && st.conversion.running),
@@ -15991,9 +14329,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und die Wahl laesst sich wieder auf die Vorgabe stellen',
     (await call('GET', '/api/settings')).content.imageStore === 'webp-lossless');
 
-  /* ---- DER IMPORT WANDELT AUSDRÜCKLICH NICHT UM ---- Begruendet: der Import
-     ist EIN Aufruf ueber den ganzen Bestand und rechnet ohnehin schon zwei
-     Ableitungen je Bild. */
+  /* ---- Der Import wandelt nicht um ---- */
   const baImpResponse = await sendImport({ version: 14, title: 'B', items: [
     { title: 'Eingespieltes PNG',
       photos: [{ mime_type: 'image/png', data_base64: templatePNG.toString('base64') }] }
@@ -16006,10 +14342,9 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und zwar byte-genau',
     (await imageRaw(impPhoto.id)).bytes.equals(templatePNG));
 
-  /* ---- DER KNOPF: den vorhandenen Bestand nachziehen ---- */
+  /* ---- Der Knopf: vorhandenen Bestand umstellen ---- */
   const vorPNG = formatNumber((await call('GET', '/api/stats')).content, 'png');
   check('Vor dem Lauf liegt noch PNG da', vorPNG >= 2, String(vorPNG));
-  /* OHNE ZWEITE BESTAETIGUNG GEHT ES NICHT. */
   const withoutShare = await call('POST', '/api/images/convert', {});
   check('Ohne zweite Bestätigung sagt die Umstellung ab',
     withoutShare.status === 403 && withoutShare.content?.confirm === 'images',
@@ -16018,30 +14353,22 @@ async function sendImport(object, mode, withoutShare = false) {
     formatNumber((await call('GET', '/api/stats')).content, 'png') === vorPNG);
 
   const run = await callF('POST', '/api/images/convert', {});
-  /* SIE KEHRT SOFORT ZURUECK. Acht Minuten Rechenzeit an einer offenen
-     HTTP-Verbindung sind das, was beim Import ausdruecklich vermieden wird. */
+  /* 202 statt Warten: minutenlange Rechenzeit an einer offenen HTTP-Verbindung
+     wird vermieden. */
   check('Die Umstellung kehrt sofort zurück (202)', run.status === 202,
     `Status ${run.status}: ${JSON.stringify(run.content)}`);
-  /* UND NENNT DABEI, WIE VIELE ZEILEN SIE ANSIEHT -- 0.27.0, und die Zahl ist
-     eine andere geworden. */
   const photoRowsNow = (await call('GET', '/api/stats')).content?.photoCount;
   check('Und nennt dabei, wie viele Zeilen sie ansieht',
     !!run.content && run.content.running === true && run.content.total === photoRowsNow,
     `${JSON.stringify(run.content)} gegen photoCount ${photoRowsNow}`);
-  /* UND ES SIND MEHR ALS DIE OFFENEN PNG. */
   check('Und das sind mehr Zeilen als die offenen PNG',
     run.content.total > vorPNG, `${run.content.total} gegen ${vorPNG} PNG`);
-  /* ZWEIMAL DRUECKEN STARTET NICHT ZWEIMAL. */
   const secondCall = await callF('POST', '/api/images/convert', {});
   check('Ein zweiter Druck startet keinen zweiten Lauf', secondCall.status === 409,
     `Status ${secondCall.status}: ${JSON.stringify(secondCall.content)}`);
 
-  // Warten, bis der Lauf durch ist -- der Fortschritt steht in /api/stats und
-// ausdruecklich NICHT in einer zweiten Route.
-  /* GEWARTET WIRD MIT GRENZE UND MIT KLAMMER: faellt der Fortschritt aus der
-     Antwort (Rueckbau 440), bleibt `baStatus` leer, die Schleife laeuft in
-     ihre Grenze und die Zusagen darunter werden rot -- der Lauf laeuft
-     weiter. */
+  /* Mit Grenze und .catch(): fehlt der Fortschritt in der Antwort, werden nur
+     die Pruefungen darunter rot. */
   let baStatus = null;
   await until(null, async () => {
     const st = (await call('GET', '/api/stats')).content;
@@ -16054,7 +14381,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und am Ende ist jedes vorgesehene Bild erledigt',
     baStatus && baStatus.done === baStatus.total, JSON.stringify(baStatus));
   const afterStats = (await call('GET', '/api/stats')).content;
-  /* DAS ZU BREITE PNG BLEIBT LIEGEN -- WebP kann es nicht fassen. */
   check('Nach dem Lauf bleibt genau das eine PNG liegen, das WebP nicht fassen kann',
     formatNumber(afterStats, 'png') === 1,
     `${formatNumber(afterStats, 'png')} PNG uebrig, Lauf: ${JSON.stringify(status)}`);
@@ -16066,30 +14392,23 @@ async function sendImport(object, mode, withoutShare = false) {
   const afterPhoto = (baImpAfter && baImpAfter.mainPhoto) || {};
   check('Das eingespielte PNG ist jetzt WebP',
     afterPhoto.mime_type === 'image/webp', JSON.stringify(afterPhoto.mime_type));
-  /* UND ES IST DABEI UNVERSEHRT GEBLIEBEN -- dieselbe Messung wie oben, nur
-     am anderen Weg. */
   const afterBytes = (await imageRaw(afterPhoto.id)).bytes;
   check('Und dabei unversehrt geblieben',
     afterBytes.length > 0 && (await largestDeviation(templatePNG, afterBytes)) <= 2,
     `${afterBytes.length} Bytes`);
-  /* ---- ZUSAGE 7, UMGEDREHT: DER LAUF ZIEHT NUR NOCH ORIGINALE ---- DIESE
-     ZEILE HAT SCHON EINMAL IHR VORZEICHEN GEWECHSELT. */
+  /* ---- Der Lauf stellt nur Originale um ---- */
   check('Die Ableitungen sind danach WebP', isWebpBytes(
     (await imageRaw(afterPhoto.id, '?size=thumb')).bytes));
-  /* UND DAS IST DIE EIGENTLICHE PROBE: eine Zeile, deren Ableitungen
-     ausdruecklich JPEG sind -- so, wie eine Instanz aus 0.26.0 sie traegt. */
+  /* Eine Zeile mit JPEG-Ableitungen, wie aeltere Instanzen sie tragen. */
   {
-    /* DIE JPEG-ABLEITUNGEN WERDEN HIER GEBAUT UND NICHT VOM SERVER GEHOLT --
-       der KANN seit dieser Runde keine mehr. */
+    /* Die JPEG-Ableitungen entstehen hier, weil der Server keine mehr erzeugt. */
     const asJpeg = (short) => sharp(templatePNG)
       .resize(short, short, { fit: 'inside', withoutEnlargement: true })
       .jpeg({ quality: 80, mozjpeg: true }).toBuffer();
     const jpegThumb = await asJpeg(512);
     const jpegMedium = await asJpeg(1600);
     const oldRow = lastPhoto(await loadImage(ba.id, 'altbestand.png', 'image/png', templatePNG));
-    /* GESCHRIEBEN WIRD AN DER DATENBANK VORBEI AM SERVER, und das ist hier
-       richtig: es gibt keinen Weg durch die Schnittstelle, der eine
-       JPEG-Ableitung erzeugt -- genau deshalb ist es ein ALTBESTAND. */
+    /* Direkt in die Datenbank: keine Route erzeugt eine JPEG-Ableitung. */
     {
       const d2 = open(path.join(DATA, 'katalog.sqlite'));
       d2.prepare('UPDATE photos SET thumb = ?, medium = ? WHERE id = ?')
@@ -16099,8 +14418,6 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Eine Zeile traegt jetzt JPEG-Ableitungen wie aus 0.26.0',
       (await imageRaw(oldRow.id, '?size=thumb')).bytes.slice(0, 2).toString('hex') === 'ffd8' &&
       (await imageRaw(oldRow.id, '?size=medium')).bytes.slice(0, 2).toString('hex') === 'ffd8');
-    /* UND IHR ORIGINAL IST SCHON WEBP -- die erste Haelfte hat an ihr also
-       nichts zu tun. */
     check('Und ihr Original ist schon WebP -- die erste Haelfte hat nichts zu tun',
       isWebpBytes((await imageRaw(oldRow.id)).bytes));
     const catchUp = await callF('POST', '/api/images/convert', {});
@@ -16113,19 +14430,14 @@ async function sendImport(object, mode, withoutShare = false) {
       return s2 && !s2.running;
     }, 20000, 'das Ende des Nachlaufs', 50).catch(() => {});
     check('Und er laeuft aus', s2 && s2.running === false, JSON.stringify(s2));
-    /* ER ZAEHLT KEINE ABLEITUNGEN MEHR -- die vierte Zahl ist mit ihrer
-       Haelfte gefallen. */
     check('Der Stand nennt keine Ableitungen mehr — 0.33.0',
       s2 && s2.derived === undefined, JSON.stringify(s2));
-    /* UND DIE JPEG-ABLEITUNGEN LIEGEN DANACH UNVERAENDERT DA. */
     check('Und die JPEG-Ableitungen liegen unveraendert da -- beide',
       (await imageRaw(oldRow.id, '?size=thumb')).bytes.equals(jpegThumb) &&
       (await imageRaw(oldRow.id, '?size=medium')).bytes.equals(jpegMedium),
       (await imageRaw(oldRow.id, '?size=thumb')).bytes.slice(0, 12).toString('hex'));
-    /* UND DIE ERSTE HAELFTE TUT, WAS SIE TAT. */
     check('Und der Lauf hat sie als „nichts zu tun" gezaehlt',
       s2 && s2.stayed >= 1 && s2.converted === 0, JSON.stringify(s2));
-    /* UND DAS ORIGINAL DIESER ZEILE IST DABEI BYTE-GENAU DASSELBE GEBLIEBEN. */
     check('Und das Original ist dabei byte-genau dasselbe geblieben',
       (await imageRaw(oldRow.id)).bytes.equals((await imageRaw(oldRow.id)).bytes) &&
       isWebpBytes((await imageRaw(oldRow.id)).bytes));
@@ -16134,15 +14446,12 @@ async function sendImport(object, mode, withoutShare = false) {
     (await imageRaw(jpegPhoto.id)).bytes.equals(jpegTemplate) &&
     (await imageRaw(gifPhoto.id)).bytes.equals(gifTemplate));
 
-  /* ---- DIE KARTE ZAEHLT NACH mime_type, DER KNOPF SUCHT AM INHALT — 0.19.1
-     Die Aufteilung nach Format kommt seit 0.19.1 aus der SPALTE und nicht
-     mehr aus den ersten Bytes: gemessen 0,2 ms gegen 919 ms, und die Abfrage
-     laeuft bei JEDEM Zeichnen des Systembereichs. */
+  /* Die Karte liest mime_type statt der ersten Bytes: 0,2 ms gegen 919 ms,
+     bei jedem Zeichnen der Einstellungen. Der Knopf prueft den Inhalt. */
   {
     const vorWrong = (await call('GET', '/api/stats')).content;
     const pngVor = formatNumber(vorWrong, 'png');
     const jpegVor = formatNumber(vorWrong, 'jpeg');
-    /* JPEG-BYTES UNTER DEM NAMEN image/png. */
     const wrongDetail = await loadImage(ba.id, 'falsch.png', 'image/png', jpegTemplate);
     const wrongPhoto = lastPhoto(wrongDetail);
     check('Ein JPEG unter dem Namen „image/png" kommt herein',
@@ -16155,7 +14464,6 @@ async function sendImport(object, mode, withoutShare = false) {
       formatNumber(afterWrong, 'jpeg') === jpegVor,
       `png ${pngVor} -> ${formatNumber(afterWrong, 'png')}, ` +
       `jpeg ${jpegVor} -> ${formatNumber(afterWrong, 'jpeg')}`);
-    /* UND DER KNOPF FASST SIE NICHT AN -- ER SIEHT IN DIE BYTES. */
     const before2 = (await imageRaw(wrongPhoto.id)).bytes;
     const run2 = await callF('POST', '/api/images/convert', {});
     check('Der Lauf sieht auch die falsch benannte Zeile an',
@@ -16171,29 +14479,22 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und die falsch benannte Zeile liegt danach unverändert da',
       (await imageRaw(wrongPhoto.id)).bytes.equals(jpegTemplate) &&
       before2.equals(jpegTemplate));
-    /* UND IHRE SPALTE LUEGT WEITER, und das ist richtig so: sie sagt, was der
-       Hochladende gemeldet hat. */
+    /* mime_type gibt wieder, was beim Hochladen gemeldet wurde. */
     check('Und die Karte zaehlt sie weiterhin als PNG',
       formatNumber((await call('GET', '/api/stats')).content, 'png') === pngVor + 1,
       `${formatNumber((await call('GET', '/api/stats')).content, 'png')} gegen ${pngVor + 1}`);
   }
 
-  /* ---- WORAUS DIE ABFRAGEN DER BESTANDSKARTE GEBAUT SIND — 0.19.1 GEPRUEFT
-     WIRD AM TEXT, und der Grund ist derselbe wie beim Stilblatt: die Zusage
-     ist eine ueber die LAUFZEIT, und die laesst sich am Pruefstand nicht
-     messen -- eine Prueflage mit 400 Zeilen a 512 kB dauerte laenger als der
-     ganze Lauf. */
+  /* Geprueft am Quelltext: eine Prueflage fuer die Laufzeit (400 Zeilen zu
+     512 kB) dauerte laenger als der ganze Lauf. */
   {
     const serverSource = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
     const oneLine = serverSource.replace(/\s+/g, ' ');
     const dbSource = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
-    /* 1. `kind` KOMMT AUS DEM INDEX. Ohne ihn kostet jede Frage nach der Art
-       den ganzen Satz, und keine Umformung der Abfrage hilft dagegen. */
+    /* Ohne Index auf kind liest jede Frage nach der Art die ganze Zeile. */
     check('Es gibt einen Index auf photos(kind)',
       /CREATE INDEX IF NOT EXISTS idx_photos_kind ON photos\(kind\)/.test(dbSource),
       (dbSource.match(/CREATE INDEX[^\n]*photos\(kind[^\n]*/) || ['(kein Index)'])[0]);
-    /* UND BEIDE INDIZES STEHEN HINTER DER LETZTEN MIGRATION, nicht in der
-       DDL. */
     const lastMigration = Math.max(
       ...(dbSource.match(/\/\/ ENDE MIGRATION [\d.]+/g) || [])
         .map(m => dbSource.lastIndexOf(m)));
@@ -16201,8 +14502,7 @@ async function sendImport(object, mode, withoutShare = false) {
       .filter(n => dbSource.indexOf(`CREATE INDEX IF NOT EXISTS ${n}`) < lastMigration);
     check('Und beide Indizes stehen hinter der letzten Migration',
       zuEarly.length === 0, zuEarly.join(' · ') || `letzte Migration bei ${lastMigration}`);
-    /* 2. GEFRAGT WIRD MIT `IS ?` UND NICHT MIT `!= 'video'`. Eine
-       Ungleichheit schlaegt den Index aus -- gemessen 1334 ms gegen 0,5 ms. */
+    /* Eine Ungleichheit nutzt den Index nicht: 1334 ms gegen 0,5 ms. */
     check('Die Aufteilung fragt je Art mit einer Gleichheit',
       oneLine.includes("FROM photos WHERE kind IS ?") &&
       !/const qPerKind[^;]*kind != 'video'/.test(oneLine),
@@ -16210,58 +14510,47 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und die Arten kommen aus einer eigenen, blobfreien Abfrage',
       oneLine.includes("const qImageKinds = lateStatement('SELECT kind AS a FROM photos GROUP BY 1')"),
       (oneLine.match(/const qImageKinds = lateStatement\([^;]*/) || ['(nicht gefunden)'])[0]);
-    /* 3. DIE FORMATZEILE BLEIBT MATERIALISIERT -- dort ist die Gruppierung
-       ueber eine Blob-Laenge der Kostenpunkt. */
+    /* In der Formatzeile kostet die Gruppierung ueber eine Blob-Laenge; deshalb
+       MATERIALIZED. */
     check('Die Aufteilung nach Format laeuft ueber eine materialisierte Zwischenabfrage',
       oneLine.includes('WITH x AS MATERIALIZED ( SELECT mime_type AS m, length(data) AS o FROM photos WHERE kind IS ?)'),
       (oneLine.match(/WITH x AS MATERIALIZED \( SELECT mime_type[^)]*\)/) || ['(nicht gefunden)'])[0]);
-    /* UND SIE LIEST KEINEN INHALT MEHR. */
     check('Die Formatabfrage liest keinen Blob-Inhalt mehr',
       !/WITH x AS MATERIALIZED \( SELECT mime_type[\s\S]{0,240}?hex\(substr/.test(oneLine),
       (oneLine.match(/WITH x AS MATERIALIZED \( SELECT mime_type[\s\S]{0,240}/) || [''])[0]);
-    /* 4. DIE EXPORTGROESSE DER BILDER WIRD NICHT EIN ZWEITES MAL GEFRAGT. */
     check('Die Exportgroesse der Bilder kommt aus derselben Schleife',
       oneLine.includes('...exchangeParts({ withFiles: true })') &&
       oneLine.includes('photos: Math.round(exportPhotoBytes * 4 / 3)'),
       (oneLine.match(/\.\.\.exchangeParts\([^)]*\)/) || ['(nicht gefunden)'])[0]);
-    /* 5. DIE UEBERSICHT LIEST IHRE FOTOS AUS EINEM DECKENDEN INDEX, und die
-       Spaltenliste steht an EINER Stelle. */
     const columns = (oneLine.match(/const PHOTO_COLUMNS = '([^']+)'/) || [])[1] || '';
     const indexColumns = ((dbSource.replace(/\s+/g, ' ')
       .match(/idx_photos_tile ON photos\((.+?)\)`\)/) || [])[1] || '');
     const asList = (t) => t.split(',').map(x => x.trim()).filter(Boolean);
     check('Die Spaltenliste der Fotoabfrage steht an einer Stelle',
       asList(columns).length === 10, columns || '(nicht gefunden)');
-    /* DIE FASSUNG GEHOERT MIT IN DEN INDEX: sie haengt an derselben Abfrage,
-       und ohne den Ausdruck liest SQLite die Zeile. */
+    /* Die Fassung gehoert in den Index: ohne den Ausdruck liest SQLite die Zeile. */
     const version = ((oneLine.match(/const PHOTO_VERSION = '([^']+)'/) || [])[1] || '')
       .replace(/\s+AS\s+\w+$/, '');
     const wanted = [...asList(columns), version];
-    /* GLEICHE MENGE, NICHT GLEICHE FOLGE: der Index darf anders sortiert sein
-       -- er MUSS nur jede Spalte tragen, die die Abfrage liest. */
+    /* Gleiche Menge, nicht gleiche Folge: der Index darf anders sortiert sein. */
     check('Und der deckende Index traegt genau diese Spalten samt der Fassung',
       wanted.length === 11 &&
       wanted.every(x => asList(indexColumns).includes(x)) &&
       asList(indexColumns).every(x => wanted.includes(x)),
       `Abfrage: ${columns}, ${version} · Index: ${indexColumns}`);
-    /* UND DIE UEBERSICHT FRAGT EINMAL STATT JE EINTRAG. Ohne diese Zeile
-       bliebe gruen, wer den Index anlegt und die Schleife stehen laesst. */
+    /* Sonst bliebe gruen, wenn der Index angelegt und die Schleife belassen wird. */
     check('Die Uebersicht holt die Fotos in einer Abfrage',
       oneLine.includes('const qAllPhotos = lateStatement(') &&
       oneLine.includes('const ph = photosPer.get(it.id) || [];'),
       (oneLine.match(/const ph = [^;]*/) || ['(nicht gefunden)'])[0]);
-    /* UND detail() BENUTZT WEITER DIESELBEN SPALTEN. */
     check('Und die Einzelabfrage liest dieselben Spalten',
       oneLine.includes('const qPhotos = lateStatement(`SELECT ${PHOTO_COLUMNS}, ${PHOTO_VERSION} FROM photos WHERE item_id = ?'),
       (oneLine.match(/const qPhotos = lateStatement\([^;]*/) || ['(nicht gefunden)'])[0]);
-    /* UND DIE FASSUNG STEHT NEBEN DER LISTE UND NICHT IN IHR -- 0.19.5. */
     check('Die Fassung steht neben der Spaltenliste und nicht in ihr',
       oneLine.includes("const PHOTO_VERSION = 'length(thumb) AS thumbLength'") &&
       !/PHOTO_COLUMNS = '[^']*thumb/.test(oneLine) &&
       oneLine.includes('const qAllPhotos = lateStatement(`SELECT ${PHOTO_COLUMNS}, ${PHOTO_VERSION} FROM photos'),
       (oneLine.match(/const PHOTO_VERSION = [^;]*/) || ['(nicht gefunden)'])[0]);
-    /* DER KNOPF WAEHLT SEIT 0.27.0 GROSSZUEGIG AUS -- und die Zusage ist
-       mitgegangen statt geloescht zu werden. */
     check('Die Auswahl des Knopfs liest keinen Blob-Inhalt mehr',
       /qConvertRows = lateStatement\(\s*"SELECT id FROM photos WHERE kind != 'video'"\);/.test(oneLine.replace(/\s+/g, ' ')) ||
       /qConvertRows = lateStatement\([\s\S]{0,200}?SELECT id FROM photos WHERE kind != 'video'\"\);/.test(serverSource),
@@ -16269,7 +14558,6 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und sie nennt kein hex(substr(...)) mehr',
       !/qConvertRows = lateStatement\([\s\S]{0,200}?hex\(substr/.test(serverSource),
       (serverSource.match(/qConvertRows = lateStatement\([\s\S]{0,200}/) || [''])[0]);
-    /* UND DIE FRAGE NACH DEN BYTES STEHT NICHT MEHR IM THREAD -- 0.33.0. */
     const batchSource = fs.readFileSync(path.join(__dirname, 'batchrun.js'), 'utf8');
     const batchCode = batchSource.split('\n')
       .filter(z => { const t = z.trim();
@@ -16282,7 +14570,6 @@ async function sendImport(object, mode, withoutShare = false) {
       /UPDATE photos SET mime_type = \?, data = \? WHERE id = \?/.test(batchCode) &&
       !/UPDATE photos SET mime_type = \?, data = \?, thumb/.test(batchCode),
       (batchCode.match(/UPDATE photos SET mime_type[^\n]*/) || ['(nicht gefunden)'])[0]);
-    /* DIE ZUORDNUNG mime_type -> SCHLUESSEL STEHT AN EINER STELLE. */
     const appSource = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
     check('Die Zuordnung von mime_type auf den Schluessel steht nur im Server',
       /const IMAGE_MIME_FORMAT = \{/.test(serverSource) && !/image\/webp'\s*:/.test(appSource),
@@ -16293,8 +14580,6 @@ async function sendImport(object, mode, withoutShare = false) {
   if (baImpItem) await call('DELETE', `/api/items/${baImpItem.id}`);
 
   /* ---------------------------------------------------------------- */
-  /* ================= Der Potenzialmodus am Server — 0.26.0 ================
-     ZWEI ZUSAGEN, UND BEIDE SIND VERSPRECHEN AN DEN BESTAND. */
   group('Der Potenzialmodus am Server — 0.26.0');
   {
     const pmCrit = await call('POST', '/api/criteria', { name: 'Aussicht', phase: 'before' });
@@ -16307,8 +14592,7 @@ async function sendImport(object, mode, withoutShare = false) {
       { criterionId: pmCrit.content.id, value: 4 });
     const pmRead = async () => (await call('GET', `/api/items/${pmItem.content.id}`)).content;
     const pmBefore = await pmRead();
-    /* ERST DAS VORHANDENSEIN, DANN JEDE AUSSAGE DARUEBER:
-       ohne eine Zahl belegte „sie steht noch da" gar nichts. */
+    /* Erst die Zahl pruefen: ohne sie belegt "steht noch da" nichts. */
     check('Der Eintrag traegt eine Potenzialzahl',
       pmBefore.potentialRating === 4, JSON.stringify(pmBefore.potentialRating));
 
@@ -16319,8 +14603,8 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Er laesst sich ausschalten',
       pmOff.status === 200 && pmOff.content.potentialMode === false,
       `${pmOff.status} ${JSON.stringify(pmOff.content.potentialMode)}`);
-    /* UND DER SERVER RECHNET WEITER -- das ist F1, und es ist die Zusage, an
-       der Export, Vergleich und Einzelansicht haengen. */
+    /* Export, Vergleich und Einzelansicht brauchen die Zahl auch bei
+       ausgeschaltetem Modus. */
     const pmWhileOff = await pmRead();
     check('Und liefert die Potenzialzahl trotzdem weiter aus',
       pmWhileOff.potentialRating === 4, JSON.stringify(pmWhileOff.potentialRating));
@@ -16334,13 +14618,10 @@ async function sendImport(object, mode, withoutShare = false) {
       pmBack.content.potentialMode === true && pmAfter.potentialRating === 4,
       JSON.stringify([pmBack.content.potentialMode, pmAfter.potentialRating]));
 
-    /* DIE KLEMME -- F3, UND SIE IST DIE EINE ANTWORT, DIE GEGEN DEN VORSCHLAG
-       AUSFAELLT. */
     const pmServerSource = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
     const pmOwnerLine = (pmServerSource.match(/const OWNER_KEYS = \[[^\]]*\]/) || [''])[0];
     check('Der Modus steht in der Eigentuemerliste und nicht in der Adminhaelfte',
       /'potentialMode'/.test(pmOwnerLine), pmOwnerLine.replace(/\s+/g, ' '));
-    /* UND ER STEHT IN KEINER ANDEREN ROLLENLISTE. */
     check('Und in keiner anderen Rollenliste',
       !/const PERSONAL_KEYS = \[[^\]]*'potentialMode'/.test(pmServerSource),
       (pmServerSource.match(/const PERSONAL_KEYS = \[[^\]]*\]/) || [''])[0].replace(/\s+/g, ' '));
@@ -16352,7 +14633,6 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Die Ableitung folgt der Anzeige — 0.19.4');
 
-  /* WAS HIER BELEGT WIRD, UND WARUM ES OHNE PIXEL NICHT GEHT. */
   {
     const { makeVariants: mvGeo } = require('./images');
     const area = (b, h) => sharp({ create: { width: b, height: h, channels: 3,
@@ -16363,34 +14643,28 @@ async function sendImport(object, mode, withoutShare = false) {
       return { t: `${t.width}x${t.height}`, m: `${m.width}x${m.height}` };
     };
 
-    /* 1. DER FEHLER, DEN 0.19.4 ZURUECKGEBAUT HAT. */
     const landscape = await withoutCrop(1920, 1080);
     check('Ein 16:9-Bild bekommt seine KURZE Kante auf 512',
       landscape.t === '910x512', `${landscape.t} statt 910x512`);
-    /* 2. UND `medium` IST NICHT ANGEFASST. Es wird mit `object-fit: contain`
-       gezeigt, und dafuer ist die LANGE Kante die richtige. */
+    /* medium wird mit object-fit: contain gezeigt; dafuer zaehlt die lange Kante. */
     check('Und `medium` bleibt bei 1600 auf der LANGEN Kante',
       landscape.m === '1600x900', `${landscape.m} statt 1600x900`);
-    /* 3. HOCHFORMAT. Die Kiste dreht mit -- sonst laege die 512 auf der
-       langen Kante und die kurze bekaeme 288. */
+    /* Die Kiste dreht mit: sonst laege 512 auf der langen Kante und die kurze
+       bekaeme 288. */
     const up = await withoutCrop(1080, 1920);
     check('Ein hochkantes Bild bekommt seine kurze Kante ebenso',
       up.t === '512x910', `${up.t} statt 512x910`);
-    /* 4. DER DECKEL. */
     const wideImage = await withoutCrop(7680, 1080);
     check('Ein 32:9-Bild stoesst an den Deckel von 1280 auf der langen Kante',
       wideImage.t === '1280x180', wideImage.t);
-    /* 5. UND DIE UNGESCHNITTENE ABLEITUNG SKALIERT WEITER, SIE SCHNEIDET
-       NICHT. */
     check('Und behält dabei sein Seitenverhältnis — ohne Zuschnitt wird skaliert',
       Math.abs((1280 / 180) - (7680 / 1080)) < 0.02,
       `${(1280 / 180).toFixed(2)}:1 statt ${(7680 / 1080).toFixed(2)}:1`);
-    /* 6. UND EIN KLEINES BILD WIRD NICHT AUFGEBLASEN. */
     const lower = await withoutCrop(300, 200);
     check('Ein kleines Bild wird nicht vergrößert',
       lower.t === '300x200', `${lower.t} statt 300x200`);
 
-    /* 7. DIE REGEL IM STYLESHEET, GEGEN DIE DIE ABLEITUNG GEBAUT IST. */
+    /* Die Ableitungen passen zu diesen Regeln in public/style.css. */
     const cssGeo = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
     const includingCover = ['.card-img img', '.thumb img', '.cmt-img img', '.lb-thumb img'];
     const missing = includingCover.filter(w => {
@@ -16405,24 +14679,17 @@ async function sendImport(object, mode, withoutShare = false) {
       /\.lb-stage img \{[^}]*object-fit: contain/.test(cssGeo),
       (cssGeo.match(/\.viewer img \{[^}]*\}/) || ['(keine Regel)'])[0]);
 
-    /* 8. DIE TAFEL TRAEGT DIE UNTERSCHEIDUNG UND KEIN `if` IN DER SCHLEIFE. */
     const quGeoImages = fs.readFileSync(path.join(__dirname, 'images.js'), 'utf8');
-    /* DIE GUETEZAHLEN SIND MIT 0.27.0 NEUE -- 82 statt 78 und 78 statt 84.
-       Sie heissen seither WebP-Guete und nicht mehr JPEG-Guete, und dieselbe
-       Zahl bedeutet in den beiden Verfahren NICHT dasselbe: WebP q84 macht
-       `medium` an einem Foto gemessen um 49,3 % GROESSER als JPEG q84. Wer
-       die alten Zahlen stehen liesse, machte die Datenbank groesser und
-       hielte es fuer eine Ersparnis. */
+    /* WebP-Guete ist nicht JPEG-Guete: WebP q84 macht medium an einem Foto
+       49,3 % groesser als JPEG q84. */
     check('Die Tafel nennt jeder Ableitung ihre Kiste aus kurzer und langer Kante',
       /thumb:\s*\{ short: 512,\s*long: 1280, q: 82, crops: true\s*\}/.test(quGeoImages) &&
       /medium:\s*\{ short: 1600, long: 1600, q: 78, crops: false \}/.test(quGeoImages),
       (quGeoImages.match(/const VARIANTS = \{[\s\S]{0,180}/) || ['(nicht gefunden)'])[0]);
-    /* UND DIE ABLEITUNG WIRD MIT DIESER ZAHL ALS WEBP KODIERT. */
     check('Und die Schleife kodiert damit WebP und nicht JPEG',
       /\.webp\(variantWebp\(v\.q\)\)\.toBuffer\(\)/.test(quGeoImages) &&
       !/\.jpeg\(/.test(quGeoImages),
       (quGeoImages.match(/out\[name\] = await[\s\S]{0,220}/) || ['(nicht gefunden)'])[0]);
-    /* UND DAS KOMMENTARBILD HOLT SEINE GUETE AUS DERSELBEN TAFEL. */
     const quGeoServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
     check('Das Kommentarbild holt seine Guete aus VARIANTS',
       /quality: VARIANTS\.medium\.q/.test(quGeoServer) &&
@@ -16434,8 +14701,7 @@ async function sendImport(object, mode, withoutShare = false) {
       !/if \([^)]*name === 'thumb'/.test(quGeoImages),
       (quGeoImages.match(/const cropped = [^\n]*/) || ['(nicht gefunden)'])[0]);
 
-    /* 9. WELCHE KANTE DIE KURZE IST, SAGT DER KOPF -- UND ER SAGT ES NICHT
-       ALLEIN. */
+    /* Die kurze Kante ergibt sich erst mit dem EXIF-Vermerk zur Drehung. */
     {
       const rawUp = await sharp({ create: { width: 600, height: 1200, channels: 3,
         background: { r: 200, g: 80, b: 20 } } }).jpeg().toBuffer();
@@ -16447,7 +14713,6 @@ async function sendImport(object, mode, withoutShare = false) {
         `${m.width}x${m.height} statt 1024x512`);
     }
 
-    /* 9a. UND DIE UHR VERFOLGT BEIDE LAEUFE. */
     const quGeoApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
     check('Die Uhr verfolgt beide Läufe und nicht nur die Umstellung',
       /const BATCH_RUNS = \[/.test(quGeoApp) &&
@@ -16465,17 +14730,13 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Der Ausschnitt steckt in der Kachel — 0.19.5');
 
-  /* WAS DIESE GRUPPE BELEGT, IN EINEM SATZ: der Ausschnitt steckt ab jetzt IM
-     BILD und nicht mehr im Stilblatt. */
   {
     const zu = (await call('POST', '/api/items', { title: 'Zuschnitt' })).content;
-    /* EINE UEBERGANGENE PRUEFUNG WIRD GEZAEHLT UND GENANNT, nicht verschwiegen:
-       ein Lauf, der stillschweigend weniger prueft, meldet am Ende zu viel. */
+    /* Uebersprungene Pruefungen werden gezaehlt; sonst meldet der Lauf zu viel. */
     const skip = (name, reason) => {
       H.skipped++; console.log(`  … uebersprungen: ${name} (${reason})`);
     };
-    /* VIER VIERTEL, VIER FARBEN: links oben rot, rechts oben gruen, links
-       unten blau, rechts unten weiss. */
+    /* Links oben rot, rechts oben gruen, links unten blau, rechts unten weiss. */
     const quartered = async (b, h) => {
       const px = Buffer.alloc(b * h * 3);
       for (let y = 0; y < h; y++) for (let x = 0; x < b; x++) {
@@ -16502,8 +14763,7 @@ async function sendImport(object, mode, withoutShare = false) {
       return { size: `${m.width}x${m.height}`, bytes: raw.length,
                color: `${channel(0)},${channel(1)},${channel(2)}` };
     };
-    /* WELCHE ECKE DIE KACHEL ZEIGT, aus ihrem Mittelwert. Rot heisst links
-       oben, Gruen rechts oben, Blau links unten, Weiss rechts unten. */
+    /* Welche Ecke die Kachel zeigt, aus ihrem Mittelwert. */
     const corner = (f) => {
       const [r, g, b] = f.split(',').map(Number);
       if (r > 180 && g < 80 && b < 80) return 'links oben';
@@ -16513,19 +14773,14 @@ async function sendImport(object, mode, withoutShare = false) {
       return `gemischt (${f})`;
     };
 
-    /* 1. EIN FRISCH HOCHGELADENES FOTO TRAEGT SCHON EINE ZUGESCHNITTENE
-       KACHEL. */
     const photo = await putAn('viertel.png', await quartered(1920, 1080));
     const k0 = await tile(photo.id);
     check('Ein frisch hochgeladenes 16:9-Foto trägt eine quadratische 512er Kachel',
       k0.size === '512x512', `${k0.size} statt 512x512`);
-    /* UND SIE ZEIGT DIE MITTE, weil Vorgabe 50/50/100 ist -- an einem
-       gevierteilten Bild also alle vier Farben zu gleichen Teilen. */
+    /* Die Vorgabe 50/50/100 zeigt die Mitte, also alle vier Farben. */
     check('Und sie zeigt bei den Vorgabewerten die Mitte',
       corner(k0.color).startsWith('gemischt'), `${corner(k0.color)}`);
 
-    /* 2. DIE FASSUNG STEHT AN DER FOTOZEILE -- in detail() UND in der
-       Uebersicht. */
     check('Die Fassung der Kachel steht an der Fotozeile',
       photo.thumbLength === k0.bytes, `${photo.thumbLength} gegen ${k0.bytes} Bytes`);
     {
@@ -16536,8 +14791,7 @@ async function sendImport(object, mode, withoutShare = false) {
         JSON.stringify(card && card.mainPhoto && card.mainPhoto.thumbLength));
     }
 
-    /* 3. DAS SPEICHERN DES AUSSCHNITTS ERZEUGT DIE KACHEL NEU, UND DIE
-       ANTWORT WARTET DARAUF. */
+    /* Die Antwort kommt erst, wenn die neue Kachel steht. */
     const afterCorner = async (x, y, zoom) => {
       const a = await call('PUT', `/api/photos/${photo.id}/focus`, { x, y, zoom });
       const z = ((a.content || {}).photos || []).find(p2 => p2.id === photo.id) || {};
@@ -16552,14 +14806,13 @@ async function sendImport(object, mode, withoutShare = false) {
     const ru = await afterCorner(100, 100, 400);
     check('Die gegenüberliegende Ecke ebenso',
       corner(ru.tile.color) === 'rechts unten', corner(ru.tile.color));
-    /* DIE ECKE IST DER FALL, DER OHNE DIE KLAMMERN IN schnittRechteck()
-       WIRFT: gerundet kann `left + width` einen Bildpunkt ueber den Rand
-       ragen, und sharp quittiert das mit einem Fehler. */
+    /* An der Ecke ragt left + width gerundet einen Bildpunkt ueber den Rand;
+       ohne die Klammern in cropRectOf() wirft sharp. */
     check('Und die Kachel am Rand ist überhaupt entstanden',
       ru.tile.size === '270x270', ru.tile.size);
 
-    /* 4. `medium` WIRD NICHT GESCHNITTEN. Es wird mit `object-fit: contain`
-       gezeigt -- ganz --, und der Editor zeichnet den Rahmen darauf. */
+    /* medium wird ganz gezeigt (object-fit: contain); der Editor zeichnet den
+       Rahmen darauf. */
     {
       const a = await fetch(`${BASE}/api/photos/${photo.id}/raw?size=medium`, { headers: { cookie: H.cookie } });
       const m = await sharp(Buffer.from(await a.arrayBuffer())).metadata();
@@ -16567,13 +14820,9 @@ async function sendImport(object, mode, withoutShare = false) {
         m.width === 1600 && m.height === 900, `${m.width}x${m.height} statt 1600x900`);
     }
 
-    /* 5. KEIN HOCHRECHNEN AUF DIE ZIELKANTE. */
     const engK = (await afterCorner(50, 50, 400)).tile;
     check('Ein Ausschnitt unter der Zielkante wird nicht hochgerechnet',
       engK.size === '270x270', `${engK.size} statt 270x270`);
-    /* UND EINE GROSSE VORLAGE ERREICHT SIE AUCH BEI ENGEM AUSSCHNITT -- das
-       ist der ganze Punkt der Runde: die Kachel ist von der Weite des
-       Ausschnitts unabhaengig. */
     {
       const big = await putAn('gross.png', await quartered(4032, 3024));
       await call('PUT', `/api/photos/${big.id}/focus`, { x: 50, y: 50, zoom: 400 });
@@ -16583,7 +14832,6 @@ async function sendImport(object, mode, withoutShare = false) {
       await call('DELETE', `/api/photos/${big.id}`);
     }
 
-    /* 6. DER EXIF-VERMERK, AN DER ZWEITEN STELLE. */
     {
       const b = 1200, h = 900;
       const px = Buffer.alloc(b * h * 3, 30);
@@ -16603,7 +14851,8 @@ async function sendImport(object, mode, withoutShare = false) {
         `rechts oben ${tr.join(',')} · links oben ${tl.join(',')}`);
     }
 
-    /* 7. DIE BEIDEN RECHNUNGEN, GEGENEINANDER GEHALTEN. */
+    /* images.js und public/app.js rechnen den Ausschnitt getrennt; beide muessen
+       uebereinstimmen. */
     {
       const { cropSpecBox: amServer } = require('./images');
       let JSDOMz;
@@ -16630,8 +14879,8 @@ async function sendImport(object, mode, withoutShare = false) {
       }
     }
 
-    /* 8. DIE FRAGE, MIT DER DER BESTANDSLAUF SEINE ZEILEN FINDET, ALS REGEL
-       -- ohne Bild und ohne Datenbank. */
+    /* Die Regel, mit der der Bestandslauf ungeschnittene Kacheln findet, ohne
+       Bild und ohne Datenbank. */
     {
       const { hasNoCropSpec } = require('./images');
       const caseList = [
@@ -16654,8 +14903,7 @@ async function sendImport(object, mode, withoutShare = false) {
         'quadratisch = fertig');
     }
 
-    /* 9. DER ZUSCHNITT IST IM BROWSER WEG. Stuende er noch dort, wuerde
-       zweimal geschnitten -- man saehe einen Ausschnitt des Ausschnitts. */
+    /* Stuende der Zuschnitt noch im Browser, wuerde zweimal geschnitten. */
     {
       const cssZ = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
       const appZ = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
@@ -16668,22 +14916,19 @@ async function sendImport(object, mode, withoutShare = false) {
         !/object-position/.test(appWithoutComment) && !/--zoom/.test(appWithoutComment) &&
         !/function ausschnitt\(/.test(appZ),
         (appWithoutComment.match(/[^\n]*(object-position|--zoom)[^\n]*/) || ['(keins)'])[0]);
-      /* DIE DREI PROZENT BEIM UEBERFAHREN BLEIBEN. */
-      // ZWEI PROZENT SEIT 0.22.0 (Stilblatt 1.2: Kacheln −2 px, Bild ×1,02).
       check('Die zwei Prozent beim Überfahren bleiben — 0.22.0',
         /\.card:hover \.card-img img \{ transform: scale\(1\.02\); \}/.test(cssZ),
         (cssZ.match(/\.card:hover \.card-img img[^\n]*/) || ['(keine Regel)'])[0]);
     }
 
-    /* 10. DIE ADRESSE TRAEGT DIE FASSUNG -- an EINER Stelle gebaut. */
+    /* Die Adresse traegt die Fassung (v=), damit max-age keine neue Kachel
+       verdeckt. */
     {
       const appZ = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
       check('Die Kachel-Adresse entsteht nur in imageSource()',
         (appZ.match(/\/api\/photos\/\$\{[^}]*\}\/raw\?size=thumb/g) || []).length === 0 &&
         /const version = filesize === 'thumb' && Number\.isFinite\(f\) \? `&v=\$\{f\}` : '';/.test(appZ),
         (appZ.match(/\/api\/photos\/[^\n]*raw\?size=thumb[^\n]*/) || ['(nur in imageSource)'])[0]);
-      /* UND DIE AUSLIEFERUNG SETZT WEITER max-age -- das ist der Grund fuer
-         die ganze Uebung. */
       const attachmentsQ = fs.readFileSync(path.join(__dirname, 'attachments.js'), 'utf8');
       const srvQ = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
       check('Und die Auslieferung setzt weiterhin max-age',
@@ -16691,8 +14936,8 @@ async function sendImport(object, mode, withoutShare = false) {
         (attachmentsQ.match(/[^\n]*private, max-age[^\n]*/) || ['(nicht gefunden)'])[0]);
     }
 
-    /* 11. UND DIE VIDEOKACHEL ENTSTEHT AUS `medium`. In `data` steht die
-       Videodatei -- der Server oeffnet nie ein Video. */
+    /* Die Videokachel entsteht aus medium; data ist die Videodatei, und der
+       Server oeffnet kein Video. */
     {
       const stillFrame = await quartered(1600, 1200);
       const response = await sendVideo(zu.id, { stillFrame, stillFrameName: 's.png',
@@ -16709,8 +14954,7 @@ async function sendImport(object, mode, withoutShare = false) {
         const kv = await tile(video.id);
         check('Und das Speichern des Ausschnitts erzeugt sie aus dem Standbild neu',
           corner(kv.color) === 'links oben', corner(kv.color));
-        /* SEIN `medium` BLEIBT DABEI STEHEN. Es IST die Vorlage -- es aus
-           sich selbst neu zu kodieren machte es nur schlechter. */
+        /* medium ist die Vorlage; neu kodiert wuerde es nur schlechter. */
         const a = await fetch(`${BASE}/api/photos/${video.id}/raw?size=medium`, { headers: { cookie: H.cookie } });
         const m = await sharp(Buffer.from(await a.arrayBuffer())).metadata();
         check('Sein `medium` bleibt dabei unverändert',
@@ -16718,8 +14962,6 @@ async function sendImport(object, mode, withoutShare = false) {
       }
     }
 
-    /* 12. UND DER IMPORT SCHNEIDET MIT. Die drei Zahlen kommen aus der Datei,
-       und die Kachel muss sie zeigen. */
     {
       const raw = await quartered(1200, 900);
       const imp = await sendImport({ version: 14, title: 'Zuschnittprobe', items: [
@@ -16739,8 +14981,8 @@ async function sendImport(object, mode, withoutShare = false) {
         skip('Der Import rechnet den Ausschnitt in die Kachel', 'kein Foto angelegt');
       } else {
         const ki = await tile(foto2.id);
-        /* 900 kurze Kante bei zoom 400 sind 225 -- und der Punkt 0/0 zeigt in
-           die linke obere Ecke, also auf das rote Viertel. */
+        /* 900 kurze Kante bei zoom 400 ergibt 225; Punkt 0/0 zeigt auf das rote
+           Viertel. */
         check('Der Import rechnet den Ausschnitt in die Kachel',
           ki.size === '225x225' && corner(ki.color) === 'links oben',
           `${ki.size} · ${corner(ki.color)}`);
@@ -16761,8 +15003,8 @@ async function sendImport(object, mode, withoutShare = false) {
     const fd = { text, ...fields };
     return (await sendComment(km.id, fd)).content;
   };
-  // Reihenfolge des Anlegens: N1, B1, N2, B2, B3 -- verschraenkt, damit sich
-  // zeigt, dass die Gruppen die Chronologie zerreissen.
+  // Verschraenkt angelegt, damit sich zeigt, dass die Gruppen die Reihenfolge
+  // des Anlegens aufbrechen.
   await write('Notiz eins');
   await write('Bericht eins', { kind: 'report' });
   await write('Notiz zwei');
@@ -16790,15 +15032,12 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Mehrere Angepinnte stehen älteste zuerst',
     equal(sequence().slice(0, 2), ['Bericht eins', 'Notiz zwei']), JSON.stringify(sequence()));
 
-  // Der Block der Angepinnten ist einer, egal welcher Art -- auch mit drei
-  // Stueck entscheidet allein das Alter.
   const gradeOneEarly = kmDetail.comments.find(c => c.text === 'Notiz eins');
   kmDetail = (await call('PUT', `/api/comments/${gradeOneEarly.id}`, { pinned: true })).content;
   check('Im gemischten Block der Angepinnten zählt nur das Alter',
     equal(sequence().slice(0, 3), ['Notiz eins', 'Bericht eins', 'Notiz zwei']), JSON.stringify(sequence()));
   kmDetail = (await call('PUT', `/api/comments/${gradeOneEarly.id}`, { pinned: false })).content;
 
-  // Die beiden Merkmale sind unabhaengig und frei kombinierbar.
   check('Angepinntes behält seine Art',
     kmDetail.comments.find(c => c.text === 'Bericht eins').kind === 'report' &&
     kmDetail.comments.find(c => c.text === 'Notiz zwei').kind === 'note');
@@ -16807,8 +15046,7 @@ async function sendImport(object, mode, withoutShare = false) {
     equal(sequence(), ['Notiz zwei', 'Bericht eins', 'Bericht zwei', 'Bericht drei', 'Notiz eins']),
     JSON.stringify(sequence()));
 
-  // Merkmale aendern ist keine Textbearbeitung. Beide Merkmale einmal
-// umschalten -- sonst deckt die Pruefung nur eines der beiden ab.
+  // Beide Merkmale einmal umschalten, sonst deckt die Pruefung nur eines ab.
   const gradeOne = kmDetail.comments.find(c => c.text === 'Notiz eins');
   kmDetail = (await call('PUT', `/api/comments/${gradeOne.id}`, { kind: 'report' })).content;
   kmDetail = (await call('PUT', `/api/comments/${gradeOne.id}`, { kind: 'note' })).content;
@@ -16826,8 +15064,7 @@ async function sendImport(object, mode, withoutShare = false) {
     (await call('PUT', `/api/comments/${reportOne.id}`, { kind: 'quatsch' }))
       .content.comments.find(c => /Bericht eins/.test(c.text)).kind === 'note');
 
-  // Eigene Probe fuer die dritte Art, damit die Erwartungen oben unberuehrt
-  // bleiben.
+  // Eigener Eintrag fuer die dritte Art, damit die Erwartungen oben gelten.
   const ag = (await call('POST', '/api/items', { title: 'Aufgabenprobe' })).content;
   const writeA = async (text, fields = {}) => (await sendComment(ag.id, { text, ...fields })).content;
   await writeA('Notiz eins');
@@ -16847,14 +15084,13 @@ async function sendImport(object, mode, withoutShare = false) {
                       'Bericht eins', 'Bericht zwei', 'Notiz eins', 'Notiz zwei']),
     JSON.stringify(rowA()));
 
-  // Anpinnen schlaegt auch die Aufgabe: der Block der Angepinnten ist einer.
   const gradeTwoA = agD.comments.find(c => c.text === 'Notiz zwei');
   agD = (await call('PUT', `/api/comments/${gradeTwoA.id}`, { pinned: true })).content;
   check('Eine angepinnte Notiz steht über allen Aufgaben',
     rowA()[0] === 'Notiz zwei', JSON.stringify(rowA()));
   agD = (await call('PUT', `/api/comments/${gradeTwoA.id}`, { pinned: false })).content;
 
-  // Umschalten in beide Richtungen -- sonst deckt die Pruefung nur einen Weg ab.
+  // Beide Richtungen, sonst deckt die Pruefung nur einen Weg ab.
   const aufgOne = agD.comments.find(c => c.text === 'Aufgabe eins');
   agD = (await call('PUT', `/api/comments/${aufgOne.id}`, { kind: 'note' })).content;
   check('Eine zur Notiz zurückgenommene Aufgabe reiht sich nach Alter ein',
@@ -16867,8 +15103,8 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Umschalten auf Aufgabe setzt kein „bearbeitet"',
     !agD.comments.find(c => c.text === 'Aufgabe eins').updated_at);
 
-  // Erledigt: faellt ueber das ELSE zu den Notizen und reiht sich dort nach
-// Alter ein -- kein eigener Zweig in der Sortierregel, das ist Absicht.
+  // done faellt in der Sortierregel in den else-Zweig zu den Notizen; ein
+  // eigener Zweig fehlt absichtlich.
   agD = (await call('PUT', `/api/comments/${aufgOne.id}`, { kind: 'done' })).content;
   check('Ein erledigtes Todo verlaesst die Spitze',
     rowA()[0] === 'Aufgabe zwei', JSON.stringify(rowA()));
@@ -16935,7 +15171,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Das Bild liefert keine Bytes in der Übersicht mit',
     !('data' in bild1) && !('thumb' in bild1));
 
-  /* ANHAENGEN IST BEARBEITEN, also ist Entfernen es auch. */
   check('Ein neu angelegter Kommentar mit Bild gilt nicht als bearbeitet',
     includingImage.content.comments[0].updated_at === null,
     JSON.stringify(includingImage.content.comments[0].updated_at));
@@ -16945,7 +15180,6 @@ async function sendImport(object, mode, withoutShare = false) {
     return { status: a2.status, h: Object.fromEntries(a2.headers), bytes: Buffer.from(await a2.arrayBuffer()) };
   };
   const raw = await bResponse(bild1.id);
-  /* SEIT 0.27.0 IST AUCH DAS KOMMENTARBILD WEBP. */
   check('Kommentarbild wird als WebP ausgeliefert', raw.h['content-type'] === 'image/webp', raw.h['content-type']);
   check('Es wird neu kodiert, nicht durchgereicht',
     raw.bytes.slice(0, 4).toString('latin1') === 'RIFF' &&
@@ -16958,7 +15192,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Es gibt ein kleineres Vorschaubild', lower.bytes.length > 0 && lower.bytes.length <= raw.bytes.length,
     `${lower.bytes.length} / ${raw.bytes.length}`);
 
-  // Der entscheidende Unterschied zu den Anhaengen: hier kommt nur Bild rein.
+  // Anders als bei Anhaengen ist hier nur ein Bild erlaubt.
   const noImage = await sendComment(bk.id, { text: 'Getarnt' },
     [{ name: 'boese.png', type: 'image/png', content: '<html><script>1</scr' + 'ipt></html>' }]);
   check('Als Bild getarnte Datei wird abgewiesen', noImage.status === 400,
@@ -16979,12 +15213,10 @@ async function sendImport(object, mode, withoutShare = false) {
   const kAfter = suppliedLater.content.comments.find(k2 => k2.id === kid);
   check('Ein nachgereichtes Bild setzt „bearbeitet"',
     !!kAfter?.updated_at, JSON.stringify(kAfter?.updated_at));
-  /* Und ausdruecklich NICHT den Eingriffsvermerk. An diesem Weg kann er gar
-     nicht entstehen -- er steht dem Verfasser offen und sonst niemandem. */
+  /* Kein Eingriffsvermerk: dieser Weg steht nur dem Verfasser offen. */
   check('Und dabei entsteht kein Eingriffsvermerk',
     kAfter?.imagesRemoved === 0, JSON.stringify(kAfter?.imagesRemoved));
 
-  /* Kein Bild, keine Bearbeitung. */
   const withoutImage = await sendComment(bk.id, { text: 'Noch ohne Bild' });
   const withoutImageId = withoutImage.content.comments.find(k2 => k2.text === 'Noch ohne Bild')?.id;
   const emptyAfter = await sendMultipart(`/api/comments/${withoutImageId}/images`, 'images', []);
@@ -17002,8 +15234,6 @@ async function sendImport(object, mode, withoutShare = false) {
   const afterPath = (await call('DELETE', `/api/comment-images/${imagesBefore[0].id}`)).content;
   check('Einzelnes Bild lässt sich entfernen', afterPath.comments[0].images.length === 1);
   check('Sortiernummern bleiben lückenlos', afterPath.comments[0].images[0].sort_order === 0);
-  /* Der Verfasser raeumt bei sich auf -- ein Vermerk entsteht dabei
-     ausdruecklich nicht. */
   const kPath = afterPath.comments.find(k2 => k2.id === kid);
   check('Räumt der Verfasser bei sich auf, entsteht auch hier kein Vermerk',
     kPath?.imagesRemoved === 0, JSON.stringify(kPath?.imagesRemoved));
@@ -17038,8 +15268,6 @@ async function sendImport(object, mode, withoutShare = false) {
 
   const at = (await call('POST', '/api/items', { title: 'Anhangprobe' })).content;
 
-  // Die schaerfste Probe: eine echte HTML-Seite mit Skript, hochgeladen mit
-  // dem Typ text/html.
   const bad = '<html><body><script>document.write("AUSGEFUEHRT")</scr' + 'ipt></body></html>';
   const up = await sendFiles(at.id, [
     { name: 'boese.html', type: 'text/html', content: bad },
@@ -17090,8 +15318,7 @@ async function sendImport(object, mode, withoutShare = false) {
     !/allow-scripts/.test(png.h['content-security-policy'] || ''),
     png.h['content-security-policy']);
 
-  // PDF ist die eine bewusste Ausnahme: ohne allow-scripts bleibt der
-// eingebaute Betrachter leer. allow-same-origin bleibt aber verboten.
+  // PDF ist die Ausnahme: ohne allow-scripts bleibt der eingebaute Betrachter leer.
   const pdfFile = await sendFiles(at.id, [
     { name: 'doku.pdf', type: 'application/pdf', content: '%PDF-1.4 kein echtes PDF' }]);
   const pdfA = pdfFile.content.attachments.find(x => x.filename === 'doku.pdf');
@@ -17119,8 +15346,8 @@ async function sendImport(object, mode, withoutShare = false) {
     afterName['egal.bin'].mime_type === 'application/x-msdownload' &&
     bin.h['content-type'] === 'application/octet-stream');
 
-  // Dateiname mit Zeilenumbruch. Ueber den Multipart-Koerper kommt so etwas
-  // gar nicht erst an -- der Header endet am Zeilenumbruch.
+  // Ueber Multipart kommt so ein Name nicht an, der Header endet am
+  // Zeilenumbruch; deshalb ueber den Import.
   const badName = 'a"b\r\nX-Eingeschleust: ja.txt';
   await sendImport({ version: 14, title: 'B', items: [{ title: 'Boeser Name',
     attachments: [{ filename: badName, mime_type: 'text/plain',
@@ -17135,15 +15362,13 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Header bleibt wohlgeformt',
     /^attachment; filename="[^"]*"; filename\*=UTF-8''/.test(headBad.h['content-disposition']),
     headBad.h['content-disposition']);
-  // Express haengt an Text-Typen von sich aus ein charset an -- deshalb auf
-// den Anfang pruefen, nicht auf Gleichheit.
+  // Express haengt an Text-Typen ein charset an; deshalb nur der Anfang.
   check('Und die Auslieferung bleibt ein Download',
     /^text\/plain\b/.test(headBad.h['content-type']) &&
     /^attachment;/.test(headBad.h['content-disposition']),
     `${headBad.h['content-type']} / ${headBad.h['content-disposition']}`);
   await call('DELETE', `/api/items/${bnItem.id}`);
 
-  // Pfadangaben: sowohl beim Hochladen als auch beim Import.
   const pathName = await sendFiles(at.id, [
     { name: '../../etc/passwd', type: 'text/plain', content: 'x' }
   ]);
@@ -17162,9 +15387,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Fotos: Auslieferung (Sicherheitsregel)');
 
-  /* Dieselbe Regel wie bei den Anhaengen, nur an einem Weg, der sie lange
-     nicht hatte: der gemeldete Typ des Hochladenden wird gespeichert und
-     angezeigt, aber NIE ausgeliefert. */
+  /* Der gemeldete Typ wird gespeichert und angezeigt, aber nie ausgeliefert. */
   const fo = (await call('POST', '/api/items', { title: 'Fotoprobe' })).content;
   const SVG_BAD = '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8">' +
     '<scr' + 'ipt>document.title="AUSGEFUEHRT"</scr' + 'ipt><rect width="8" height="8"/></svg>';
@@ -17173,14 +15396,12 @@ async function sendImport(object, mode, withoutShare = false) {
     [{ name: 'boese.svg', type: 'image/svg+xml', content: SVG_BAD }]);
   check('Eine SVG wird als Foto abgewiesen', svgUp.status === 400,
     `${svgUp.status}: ${JSON.stringify(svgUp.content)}`);
-  // Erst das Vorhandensein, dann die Eigenschaft: ohne den Erfolgsfall
-  // daneben bliebe die Abweisung auch dann gruen, wenn gar nichts mehr
+  // Ohne den Erfolgsfall bliebe die Abweisung auch gruen, wenn nichts mehr
   // hochladbar waere.
   const pngUp = await sendMultipart(`/api/items/${fo.id}/photos`, 'photos',
     [{ name: 'gut.png', type: 'image/png', content: Buffer.from(PNG_BASE64, 'base64') }]);
   check('Ein echtes PNG geht durch', pngUp.status === 201 && pngUp.content.photos.length >= 1,
     `${pngUp.status}: ${JSON.stringify(pngUp.content?.error)}`);
-  // Die Nachschau: die abgewiesene Datei ist auch wirklich nicht angekommen.
   const foAfter = (await call('GET', `/api/items/${fo.id}`)).content;
   check('Die abgewiesene SVG steht in keiner Zeile', foAfter.photos.length === 1,
     `${foAfter.photos.length} Foto(s)`);
@@ -17190,9 +15411,7 @@ async function sendImport(object, mode, withoutShare = false) {
     return { status: a2.status, h: Object.fromEntries(a2.headers), bytes: Buffer.from(await a2.arrayBuffer()) };
   };
   const fPng = await fResponse(foAfter.photos[0].id);
-  /* DER AUSGELIEFERTE TYP KOMMT AUS DEN BYTES, nie aus mime_type -- und seit
-     0.19.0 laesst sich das an dieser Stelle wirklich zeigen: das hochgeladene
-     PNG liegt als WebP in der Tabelle. */
+  /* Der ausgelieferte Typ kommt aus den Bytes, nie aus mime_type. */
   const fContentType = fPng.bytes.slice(0, 4).toString('latin1') === 'RIFF' &&
                       fPng.bytes.slice(8, 12).toString('latin1') === 'WEBP'
     ? 'image/webp' : 'image/png';
@@ -17209,7 +15428,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Das Foto darf kein Skript ausfuehren',
     !/allow-scripts/.test(fPng.h['content-security-policy'] || ''), fPng.h['content-security-policy']);
   const fThumb = await fResponse(foAfter.photos[0].id, '?size=thumb');
-  /* SEIT 0.27.0 KOMMT DIE ABLEITUNG ALS WEBP -- bis 0.26.0 stand hier JPEG. */
   check('Das Vorschaubild kommt als WebP', fThumb.h['content-type'] === 'image/webp',
     fThumb.h['content-type']);
   check('Und es sind wirklich WebP-Bytes',
@@ -17217,7 +15435,7 @@ async function sendImport(object, mode, withoutShare = false) {
     fThumb.bytes.slice(8, 12).toString('latin1') === 'WEBP',
     fThumb.bytes.slice(0, 12).toString('hex'));
 
-  /* BESTANDSDATEN. */
+  /* Eine SVG-Zeile aus aelteren Daten, direkt in die Datenbank. */
   {
     const d = open(path.join(DATA, 'katalog.sqlite'));
     d.pragma('busy_timeout = 4000');
@@ -17234,7 +15452,6 @@ async function sendImport(object, mode, withoutShare = false) {
     !!fSvg && fSvg.h['content-type'] === 'application/octet-stream', fSvg?.h['content-type']);
   check('Sie wird heruntergeladen statt angezeigt',
     !!fSvg && /^attachment;/.test(fSvg.h['content-disposition'] || ''), fSvg?.h['content-disposition']);
-  /* Die Kontrolle am AUSGELIEFERTEN BYTESTROM. */
   check('Der Bytestrom ist unveraendert die SVG',
     !!fSvg && fSvg.bytes.toString('utf8') === SVG_BAD,
     fSvg ? fSvg.bytes.slice(0, 40).toString('utf8') : '');
@@ -17246,21 +15463,18 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Videos am Fotoplatz');
 
-  /* DIESELBE TABELLE, KEINE ZWEITE. */
+  /* Videos stehen in der Tabelle photos. */
   const vi = (await call('POST', '/api/items', { title: 'Videoprobe' })).content;
   await sendMultipart(`/api/items/${vi.id}/photos`, 'photos',
     [{ name: 'eins.png', type: 'image/png', content: Buffer.from(PNG_BASE64, 'base64') }]);
   const vUp = await sendVideo(vi.id, { duration: 42 });
   check('Ein echtes MP4 mit Standbild geht durch', vUp.status === 201,
     `${vUp.status}: ${JSON.stringify(vUp.content?.error)}`);
-  // Erst das Vorhandensein, dann die Eigenschaft: ohne die
-// Zeile belegte alles Weitere nichts.
   check('Der Eintrag traegt jetzt zwei Zeilen, Foto und Video',
     vUp.content?.photos?.length === 2, JSON.stringify(vUp.content?.photos?.length));
   const vPhoto = vUp.content?.photos?.[0], vVideo = vUp.content?.photos?.[1];
 
-  /* ZU JEDEM FELD, DAS DIE OBERFLAECHE LIEST, EINE PRUEFUNG AN DER ECHTEN
-     ANTWORT: woran sie ein Video erkennt, ist allein kind. */
+  /* Die Oberflaeche erkennt ein Video allein an kind. */
   check('Die Videozeile nennt ihre Art und ihre Dauer',
     vVideo?.kind === 'video' && vVideo?.duration === 42,
     JSON.stringify({ kind: vVideo?.kind, duration: vVideo?.duration }));
@@ -17271,8 +15485,8 @@ async function sendImport(object, mode, withoutShare = false) {
     vPhoto?.sort_order === 0 && vVideo?.sort_order === 1,
     JSON.stringify([vPhoto?.sort_order, vVideo?.sort_order]));
 
-  /* DER INHALT ENTSCHEIDET, nicht die Endung im Namen. Beide Richtungen, sonst
-     belegte die eine nichts ueber die andere. */
+  /* Der Inhalt entscheidet, nicht die Endung. Beide Richtungen, sonst belegte
+     die eine nichts ueber die andere. */
   const vWrongExtension = await sendVideo(vi.id, { name: 'gar-kein-video.txt' });
   check('Videobytes unter falscher Endung kommen trotzdem herein',
     vWrongExtension.status === 201, `${vWrongExtension.status}: ${JSON.stringify(vWrongExtension.content?.error)}`);
@@ -17283,37 +15497,31 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Eine echte WebM geht ebenfalls durch', vWebm.status === 201,
     `${vWebm.status}: ${JSON.stringify(vWebm.content?.error)}`);
 
-  // Das Standbild geht denselben Weg wie jedes Foto: was sharp nicht als Bild
-// lesen kann, kommt nicht herein.
   const vWithoutSb = await sendVideo(vi.id, { withoutStillFrame: true });
   check('Ohne Standbild kein Video', vWithoutSb.status === 400,
     `${vWithoutSb.status}: ${JSON.stringify(vWithoutSb.content)}`);
   const vBrokenSb = await sendVideo(vi.id, { stillFrame: Buffer.from('kein Bild, nur Text') });
   check('Ein unlesbares Standbild wird abgewiesen', vBrokenSb.status === 400,
     `${vBrokenSb.status}: ${JSON.stringify(vBrokenSb.content)}`);
-  // Die grobe erste Schranke am gemeldeten Typ, wie am Fotoweg.
+  // Die erste Schranke am gemeldeten Typ, wie am Fotoweg.
   const vWrongField = await sendVideo(vi.id, { type: 'text/plain' });
   check('Ein Feld, das sich nicht als Video meldet, faellt schon vor multer',
     vWrongField.status === 400, `${vWrongField.status}`);
-  // Die Grenze steht an genau einer Stelle im Server; hier wird sie gereizt.
+  // Die Grenze von 20 MB steht nur in server.js.
   const vZuBig = await sendVideo(vi.id,
     { video: Buffer.concat([MP4(), Buffer.alloc(20 * 1024 * 1024)]) });
   check('Ein Video ueber 20 MB wird abgewiesen', vZuBig.status === 400,
     `${vZuBig.status}: ${JSON.stringify(vZuBig.content)}`);
 
-  // Die Nachschau: die abgewiesenen Vorgaenge sind auch wirklich nicht
-  // angekommen.
   const vStatus = (await call('GET', `/api/items/${vi.id}`)).content;
   check('Nur die vier gueltigen Zeilen stehen da',
     vStatus.photos.length === 4 &&
     equal(vStatus.photos.map(p2 => p2.kind), ['image', 'video', 'video', 'video']),
     JSON.stringify(vStatus.photos.map(p2 => p2.kind)));
 
-  /* REIHENFOLGE, KASKADE UND LOESCHEN GELTEN VON SELBST -- sie arbeiten auf
-     Zeilen, nicht auf Arten. */
-  /* JEDE LESESTELLE ABGEFANGEN: kam oben nichts herein,
-     werden die Pruefungen hier rot, statt den Lauf abzureissen und KEINEN
-     Namen zu nennen. */
+  /* Reihenfolge, Kaskade und Loeschen arbeiten auf Zeilen, nicht auf Arten. */
+  /* Optional Chaining: kam oben nichts herein, werden die Pruefungen rot, statt
+     den Lauf abzubrechen. */
   const vIds = vStatus.photos.map(p2 => p2.id);
   const vFresh = [vIds[1], vIds[0], vIds[2], vIds[3]].filter(x => x !== undefined);
   const vSort = await call('PUT', `/api/items/${vi.id}/photo-order`, { order: vFresh });
@@ -17331,14 +15539,13 @@ async function sendImport(object, mode, withoutShare = false) {
     vFocus.content?.photos?.[0]?.focus_x === 20 && vFocus.content?.photos?.[0]?.focus_y === 80,
     JSON.stringify([vFocus.content?.photos?.[0]?.focus_x, vFocus.content?.photos?.[0]?.focus_y]));
 
-  /* DER LOESCHDIALOG WEIST VIDEOS GETRENNT AUS. */
   const vInventory = (await call('GET', `/api/items/${vi.id}/inventory`)).content;
   check('Der Loeschdialog zaehlt Fotos und Videos getrennt',
     vInventory?.photos === 1 && vInventory?.videos === 2,
     JSON.stringify({ photos: vInventory?.photos, videos: vInventory?.videos }));
 
-  // Und dieselbe Trennung in der Uebersicht: mainPhoto ist die erste Zeile,
-// gleich welcher Art -- hier also das Standbild eines Videos.
+  // mainPhoto ist die erste Zeile, gleich welcher Art, hier das Standbild eines
+  // Videos.
   const vList = (await call('GET', '/api/items')).content.find(x => x.id === vi.id);
   check('Die Uebersicht zaehlt ebenfalls getrennt',
     vList?.photoCount === 1 && vList?.videoCount === 2,
@@ -17346,14 +15553,12 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und das erste Element ist das Hauptbild, auch wenn es ein Video ist',
     vList?.mainPhoto?.kind === 'video', JSON.stringify(vList?.mainPhoto?.kind));
 
-  /* DIE KENNZAHLEN. photoCount und photoBytes behalten ihre Bedeutung -- sie
-     zaehlen Fotos -- und bekommen Nachbarn. */
+  /* photoCount und photoBytes zaehlen nur Fotos; Videos haben eigene Felder. */
   const vStats = (await call('GET', '/api/stats')).content;
   check('Die Kennzahlen nennen Videos mit eigener Zahl und eigener Groesse',
     vStats?.videoCount >= 2 && vStats?.videoBytes >= MP4().length + WEBM().length,
     JSON.stringify({ videoCount: vStats?.videoCount, videoBytes: vStats?.videoBytes }));
   {
-    // Gegenprobe zur Bedeutung: die Fotozahl darf die Videos NICHT enthalten.
     const d = open(path.join(DATA, 'katalog.sqlite'));
     d.pragma('busy_timeout = 4000');
     const nImage = d.prepare("SELECT COUNT(*) n FROM photos WHERE kind != 'video'").get().n;
@@ -17364,24 +15569,20 @@ async function sendImport(object, mode, withoutShare = false) {
       `${vStats?.photoCount}/${nImage} Fotos, ${vStats?.videoCount}/${nVideo} Videos`);
   }
 
-  /* --- 0.12.3: die erwartete Exportgroesse steht in denselben Kennzahlen ---
-     ZWEI FRAGEN, ZWEI ZAHLEN. */
+  /* ---- Die erwartete Exportgroesse ---- */
   const exStats = (await call('GET', '/api/stats')).content;
-  // ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT: ohne
-// dieses Feld blieben alle Pruefungen darunter auf undefined stehen.
+  // Ohne dieses Feld blieben alle Pruefungen darunter auf undefined stehen.
   check('Die Kennzahlen nennen die Teile der Exportgroesse',
     exStats?.export && ['envelope', 'photos', 'videos', 'attachments', 'commentImages']
       .every(k => typeof exStats.export[k] === 'number'),
     JSON.stringify(exStats?.export));
-  /* DIE GRENZEN GEHEN MIT. */
   check('Und alle drei Grenzen dazu, damit die Oberflaeche sie nicht selbst kennt',
     exStats?.export?.warnFrom === 300 * 1024 * 1024 && exStats?.export?.limit > 4e8 &&
     exStats?.export?.string === require('buffer').constants.MAX_STRING_LENGTH,
     JSON.stringify(exStats?.export && { warnFrom: exStats.export.warnFrom,
       limit: exStats.export.limit, string: exStats.export.string }));
-  /* DREI ZAHLEN UND NICHT ZWEI, weil sie drei verschiedene Dinge sagen: wo
-     gewarnt wird, wo abgesagt wird, und wie lang ein Text ueberhaupt werden
-     kann. */
+  /* Drei Zahlen: ab wann gewarnt wird, ab wann abgesagt wird, wie lang ein
+     String werden kann. */
   check('Und sie stehen in dieser Ordnung: warnen, absagen, Tatsache',
     exStats?.export?.warnFrom < exStats?.export?.limit &&
     exStats?.export?.limit < exStats?.export?.string,
@@ -17392,8 +15593,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Der Umschlag faellt an, auch ohne jeden Blob',
     exStats?.export?.envelope > 0, String(exStats?.export?.envelope));
   {
-    /* GEZAEHLT WIRD, WAS DER EXPORT WIRKLICH SCHREIBT -- nicht, was in der
-       Datenbank liegt. */
+    /* Gezaehlt wird, was der Export schreibt: Base64, ohne Vorschaubilder. */
     const d = open(path.join(DATA, 'katalog.sqlite'));
     d.pragma('busy_timeout = 4000');
     const one = (sql) => d.prepare(sql).get().n || 0;
@@ -17405,8 +15605,6 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Die Fotogroesse ist die Base64-Groesse der Daten, nicht der Bytes',
       exStats?.export?.photos === b64(photoRaw),
       `${exStats?.export?.photos} gegen ${b64(photoRaw)}`);
-    // Und die Gegenprobe zur Gegenrechnung: gaebe es keine Vorschaubilder,
-// liesse sich nicht zeigen, dass sie NICHT mitgezaehlt werden.
     check('Es gibt ueberhaupt Vorschaubilder, an denen sich das zeigen laesst',
       thumbRaw > 0, String(thumbRaw));
     check('Und die Vorschaubilder sind NICHT eingerechnet — sie gehen nie mit',
@@ -17419,28 +15617,24 @@ async function sendImport(object, mode, withoutShare = false) {
       typeof exStats?.commentImageCount === 'number' && typeof exStats?.commentImageBytes === 'number',
       JSON.stringify({ n: exStats?.commentImageCount, o: exStats?.commentImageBytes }));
   }
-  /* DIE DATEI ENTSTEHT STUECKWEISE, und die Koepfe stehen vor dem ersten
-     Schreiben. */
   {
     const core = (fSource.match(/app\.get\('\/api\/export'[\s\S]*?\n\}\);/) || [''])[0];
     check('Die Exportroute steht ueberhaupt da', core.length > 200, String(core.length));
     check('Sie schreibt stueckweise und baut keinen einzigen String',
       /await writeExport\(res, rows, situation\)/.test(core) && !/res\.json\(/.test(core),
       core.replace(/\s+/g, ' ').slice(-240));
-    /* DIE BEIDEN KOEPFE STEHEN VOR DEM ERSTEN SCHREIBEN -- danach geht keiner
-       mehr hinaus. */
+    /* Nach dem ersten Schreiben geht kein Kopf mehr hinaus. */
     check('Und die beiden Koepfe stehen vor dem ersten Schreiben',
       core.indexOf("res.set('Content-Type'") > 0 &&
       core.indexOf("res.set('Content-Disposition'") > core.indexOf("res.set('Content-Type'") &&
       core.indexOf("res.set('Content-Disposition'") < core.indexOf('writeExport'),
       `${core.indexOf("res.set('Content-Type'")} / ` +
       `${core.indexOf("res.set('Content-Disposition'")} / ${core.indexOf('writeExport')}`);
-    // Die Grenze des Gesamtexports ist fort; abgesagt wird nur wegen eines einzelnen Eintrags.
     check('Und sie sagt nur ab, wenn ein einzelner Eintrag zu gross ist',
       /const oversized = exchangePlan\(switches\)\.tooBig;/.test(core) && /res\.status\(413\)/.test(core)
       && !/RangeError/.test(core), core.replace(/\s+/g, ' ').slice(0, 240));
-    /* DER RUECKSTAU WIRD BEACHTET: ohne das sammelt sich die ganze Datei im
-       Puffer des Sockets, und der Umbau haette nichts gebracht. */
+    /* Ohne Beachtung des Rueckstaus sammelt sich die ganze Datei im Puffer des
+       Sockets. */
     const fWrite = (fSource.match(/async function writeExport\([\s\S]*?\n\}/) || [''])[0];
     check('Der Schreiber haelt bei Rueckstau an',
       /if \(!res\.write\(text\)\) await untilDrained\(res\);/.test(fWrite),
@@ -17448,15 +15642,12 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und er wartet dabei wirklich auf drain',
       /res\.once\('drain', ready\);/.test(fSource),
       (fSource.match(/.*once\('drain'.*/) || ['(keine Zeile)'])[0].trim());
-    /* Und die Gegenprobe zum Waechter: er darf nicht gruen sein, weil er auf
-       einen Namen zielt, den es gar nicht mehr gibt. */
+    /* Sonst waere die Pruefung gruen, weil sie auf einen Namen zielt, den es
+       nicht mehr gibt. */
     check('Der Waechter zielt auf eine Rechnung, die es wirklich gibt',
       /function exchangeEnvelopeBytes\(\)/.test(fSource) &&
       /function exchangeParts\(switches\)/.test(fSource),
       'eine der beiden Rechnungen heisst anders');
-    /* UND DER ZWEIG FUER EINEN EINZELNEN EINTRAG IST FORT -- 0.35.2, F2.
-       Er gehoerte dem Einzelexport; ohne dessen Route konnte er nur noch
-       falsch sein, denn beide verbliebenen Rufer reichten `null`. */
     check('Die Rechnung kennt keinen einzelnen Eintrag mehr',
       !/const onlyOne = itemId !== null;/.test(fSource)
       && !/\$\{wo\('item_id'\)\}/.test(fSource) && !/\$\{and\('item_id'\)\}/.test(fSource),
@@ -17466,7 +15657,6 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Videos: Auslieferung (Sicherheitsregel)');
 
-  /* DIESELBE SCHAERFE WIE BEI DER SVG-PROBE. */
   const vResponse = async (id2, query = '', header = {}) => {
     const a2 = await fetch(`${BASE}/api/photos/${id2}/raw${query}`,
       { headers: { cookie: H.cookie, ...header } });
@@ -17479,8 +15669,8 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Es gibt eine Videozeile und eine Fotozeile zum Vergleich',
     !!vMp4Id && !!vImageId, JSON.stringify(vOut.photos.map(p2 => `${p2.id}:${p2.kind}`)));
 
-  // Abgefangen wie jede Lesestelle: fehlt die Zeile, werden die Pruefungen
-// darunter rot, statt den Lauf abzureissen.
+  // vEmpty: fehlt die Zeile, werden die Pruefungen darunter rot, statt den Lauf
+  // abzubrechen.
   const vEmpty = { status: 0, h: {}, bytes: Buffer.alloc(0) };
   const vRaw = vMp4Id ? await vResponse(vMp4Id) : vEmpty;
   check('Ein MP4 wird als video/mp4 ausgeliefert', vRaw.h['content-type'] === 'video/mp4',
@@ -17505,10 +15695,9 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und auch sie kommt bytegleich heraus',
     !!vWebmRaw && vWebmRaw.bytes.equals(WEBM()), `${vWebmRaw?.bytes.length} Bytes`);
 
-  /* MIT GROESSE DAS STANDBILD, OHNE GROESSE DIE VIDEODATEI. */
-  /* DAS STANDBILD IST SEIT 0.27.0 EBENFALLS WEBP -- und das ist eine Folge
-     und keine Entscheidung dieser Zeile: der Browser schickt es als JPEG, und
-     der Server rechnet daraus mit makeVariants() `thumb` und `medium`. */
+  /* Mit size das Standbild, ohne size die Videodatei. */
+  /* Das Standbild kommt vom Browser als JPEG; makeVariants() rechnet daraus
+     thumb und medium als WebP. */
   for (const filesize of ['thumb', 'medium']) {
     const s2 = vMp4Id ? await vResponse(vMp4Id, `?size=${filesize}`) : vEmpty;
     check(`size=${filesize} an einer Videozeile liefert ein Bild`,
@@ -17518,8 +15707,8 @@ async function sendImport(object, mode, withoutShare = false) {
       s2.bytes.slice(8, 12).toString('latin1') === 'WEBP', s2.bytes.slice(0, 12).toString('hex'));
   }
 
-  /* BEREICHE. Ohne sie kann der Browser im Video nicht springen, und manche
-     Abspieler beginnen gar nicht erst. */
+  /* Ohne Ranges kann der Browser im Video nicht springen, und manche Abspieler
+     starten nicht. */
   check('Das Video bietet Ranges an', vRaw.h['accept-ranges'] === 'bytes',
     JSON.stringify(vRaw.h['accept-ranges']));
   const vPart = vMp4Id ? await vResponse(vMp4Id, '', { range: 'bytes=10-19' }) : vEmpty;
@@ -17545,21 +15734,19 @@ async function sendImport(object, mode, withoutShare = false) {
       badRange.h['content-range'] === `bytes */${MP4().length}`, badRange.h['content-range']);
   }
 
-  /* AN DER AUSLIEFERUNG VORHANDENER FOTOS AENDERT DIESE RUNDE NICHTS. */
   const vPhotoRaw = vImageId ? await vResponse(vImageId) : vEmpty;
   check('Ein Foto bietet weiterhin KEINE Ranges an',
     vPhotoRaw.h['accept-ranges'] === undefined, JSON.stringify(vPhotoRaw.h['accept-ranges']));
   const vPhotoRange = vImageId ? await vResponse(vImageId, '', { range: 'bytes=0-3' }) : vEmpty;
-  /* VERGLICHEN WIRD GEGEN DEN VOLLEN ABRUF DERSELBEN ZEILE und nicht gegen
-     die hochgeladene Datei: seit 0.19.0 liegt ein PNG als WebP in der
-     Tabelle, und die Zusage lautet „der ganze Blob geht hinaus", nicht „genau
-     diese Bytes kamen herein". */
+  /* Verglichen mit dem vollen Abruf derselben Zeile, nicht mit der hochgeladenen
+     Datei: das PNG liegt als WebP in der Tabelle. */
   check('Und ein Range am Foto wird uebergangen, nicht beantwortet',
     vPhotoRange.status === 200 && vPhotoRange.bytes.length > 4 &&
     vPhotoRange.bytes.equals(vPhotoRaw.bytes),
     `Status ${vPhotoRange.status}, ${vPhotoRange.bytes.length} gegen ${vPhotoRaw.bytes.length} Bytes`);
 
-  /* BESTANDSDATEN UND UNBEKANNTE MARKEN. */
+  /* Eine Videozeile aus aelteren Daten mit unbekannter ISO-Marke, direkt in die
+     Datenbank. */
   {
     const d = open(path.join(DATA, 'katalog.sqlite'));
     d.pragma('busy_timeout = 4000');
@@ -17578,10 +15765,8 @@ async function sendImport(object, mode, withoutShare = false) {
     /^attachment;/.test(vForeignRaw?.h['content-disposition'] || ''), vForeignRaw?.h['content-disposition']);
   await call('DELETE', `/api/items/${vi.id}`);
 
-  /* --- Das Nachruesten der Vorschaubilder geht Videos nichts an -----------
-     BEFUND DIESER RUNDE, und er stand im Papier nicht: backfillVariants()
-     holt beim Start jede Zeile mit fehlender Kachel und erzeugt beide
-     Varianten NEU aus data. */
+  /* backfillVariants() erzeugt beim Start fuer jede Zeile mit fehlender Kachel
+     beide Varianten neu aus data; bei einem Video ist data keine Bilddatei. */
   {
     const bfDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-backfill-'));
     shortRun(`require('./db'); console.log('da');`, bfDir);
@@ -17593,16 +15778,14 @@ async function sendImport(object, mode, withoutShare = false) {
       d.prepare(`INSERT INTO photos (item_id, mime_type, data, thumb, medium, sort_order, kind, duration)
                  VALUES (1, 'video/mp4', ?, ?, NULL, 0, 'video', 9)`)
         .run(MP4(), Buffer.from(PNG_BASE64, 'base64'));
-      // Und eine echte Fotozeile ohne beides daneben -- ohne sie bliebe offen,
-// ob das Nachruesten ueberhaupt noch etwas tut.
+      // Die Fotozeile ohne beide Varianten zeigt, dass das Nachruesten noch arbeitet.
       d.prepare(`INSERT INTO photos (item_id, mime_type, data, sort_order)
                  VALUES (1, 'image/png', ?, 1)`).run(Buffer.from(PNG_BASE64, 'base64'));
       d.close();
     }
     const BF = startFurtherServer(bfDir, {}, 5740);
     await BF.ready;
-    // Das Nachruesten startet 1,5 Sekunden nach dem Zuhoeren und macht je
-    // Zeile 30 ms Pause.
+    // Das Nachruesten startet 1,5 s nach listen() und pausiert 30 ms je Zeile.
     await until(null, () => /Vorschaubild\(er\) erzeugt/.test(BF.log()), 6000,
       'die Meldung des Nachruestens').catch(() => {});
     await BF.stop();
@@ -17627,47 +15810,43 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Die Sicherheitsregel fuer die Anwendung selbst');
 
-  /* Die Regel greift zweimal fuer denselben Fehler: waere der Typ am Fotoweg
-     doch einmal falsch, verboete sie das Ausfuehren trotzdem. */
+  /* Zweite Schranke: waere der Typ am Fotoweg doch falsch, verboete die Regel
+     das Ausfuehren trotzdem. */
   const cspSide = await fetch(`${BASE}/`);
   const cspValue = cspSide.headers.get('content-security-policy') || '';
   check('Die Seite selbst traegt eine Sicherheitsregel', cspValue.length > 0, cspValue);
   check('Nichts wird von fremden Adressen geladen', /default-src 'self'/.test(cspValue), cspValue);
-  /* media-src TRAEGT DIE VIDEOS, und beide Angaben sind noetig. */
   const mediaPart = (cspValue.match(/media-src[^;]*/) || [''])[0];
   check('Videos duerfen aus der eigenen Instanz abgespielt werden',
     /media-src[^;]*'self'/.test(cspValue), cspValue);
   check('Und das Standbild darf vor dem Hochladen aus einer blob-Adresse kommen',
     /media-src[^;]*blob:/.test(cspValue), cspValue);
-  // Die Gegenprobe zu dieser Pruefung: eine Regel OHNE blob: wird von genau
-// diesem Muster nicht angenommen -- sonst bliebe sie gruen, ohne zu greifen.
+  // Gegenprobe: sonst bliebe die Pruefung darueber gruen, ohne zu greifen.
   check('Eine Regel ohne blob: wuerde hier auffallen',
     !/media-src[^;]*blob:/.test("default-src 'self'; media-src 'self'; script-src 'self'"),
     'das Muster nimmt auch eine Regel ohne blob: an');
   check('media-src steht wirklich in der Regel und nicht nur im Muster',
     mediaPart.length > 0, cspValue);
   check('Skript nur aus der eigenen Instanz', /script-src 'self'/.test(cspValue), cspValue);
-  /* DIE TRAGENDE ZEILE: script-src ohne 'unsafe-inline'. Eine Regel, die
-     eingebettetes Skript erlaubte, koennte man sich sparen. */
+  /* Eine Regel, die eingebettetes Skript erlaubt, waere wirkungslos. */
   check('Und ausdruecklich KEIN eingebettetes Skript',
     !/script-src[^;]*unsafe-inline/.test(cspValue), cspValue);
   check('Die Instanz laesst sich nicht in einen fremden Rahmen setzen',
     /frame-ancestors 'none'/.test(cspValue), cspValue);
   check('base-uri und form-action sind zu',
     /base-uri 'none'/.test(cspValue) && /form-action 'none'/.test(cspValue), cspValue);
-  /* frame-src 'self' GEHOERT HINEIN und ist keine Nachlaessigkeit: die
-     PDF-Vorschau bindet ein iframe auf den eigenen Ursprung ein. */
+  /* frame-src 'self' braucht die PDF-Vorschau: sie bindet ein iframe auf den
+     eigenen Ursprung ein. */
   const cspApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
-  /* Und die Oberflaeche macht von der media-src-Freigabe wirklich Gebrauch --
-     ohne diese Zeile stuende die Erweiterung ohne Grund da. */
+  /* Ohne Nutzung in app.js stuende die media-src-Freigabe ohne Grund da. */
   check('Die Standbildfunktion setzt wirklich eine blob-Adresse an ein <video>',
     cspApp.includes('URL.createObjectURL(file)') && /async function stillFrame\(/.test(cspApp),
     'die Standbildfunktion fehlt in app.js');
   check('Die PDF-Vorschau bindet wirklich ein iframe ein',
     cspApp.includes('<iframe src="/api/attachments/'), 'kein iframe gefunden');
   check('Und die Regel erlaubt genau das', /frame-src 'self'/.test(cspValue), cspValue);
-  /* style-src 'unsafe-inline' ist NOETIG: die Oberflaeche setzt Abstaende,
-     Rasterspalten und den Fokuspunkt als style="..."-Attribut. */
+  /* style-src 'unsafe-inline' ist noetig: die Oberflaeche setzt Abstaende,
+     Rasterspalten und den Fokuspunkt als style-Attribut. */
   const styleAttribute = (cspApp.match(/style="/g) || []).length;
   check('Die Oberflaeche setzt style-Attribute, die Freigabe hat also einen Grund',
     styleAttribute > 0, `${styleAttribute} Stellen`);
@@ -17675,8 +15854,7 @@ async function sendImport(object, mode, withoutShare = false) {
     /style-src[^;]*unsafe-inline/.test(cspValue), cspValue);
   check('Auch eine Antwort der Schnittstelle traegt die Regel',
     ((await fetch(`${BASE}/api/config`)).headers.get('content-security-policy') || '') === cspValue);
-  /* Die Instanz ohne Proxy spricht kein HTTPS -- ein HSTS-Kopf sperrte sie
-     aus. */
+  /* Ohne Proxy gibt es kein HTTPS; ein HSTS-Kopf sperrte die Instanz aus. */
   check('Ohne Proxy steht kein Strict-Transport-Security',
     cspSide.headers.get('strict-transport-security') === null,
     cspSide.headers.get('strict-transport-security'));
@@ -17684,20 +15862,16 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Fehler nach Rang');
 
-  /* 400 heisst "du hast falsch gefragt", 500 heisst "bei mir ist etwas
-     kaputt". */
+  /* 400: falsche Anfrage. 500: Fehler im Server. */
   const fhItem = (await call('POST', '/api/items', { title: 'Fehlerprobe' })).content;
 
-  // ABSICHT BEHAELT IHREN RANG: ein Fehler von multer -- hier ein Feldname,
-// den die Route nicht kennt -- ist eine echte 400 und behaelt seine Message.
+  // Ein Fehler von multer (hier ein unbekannter Feldname) ist eine echte 400.
   const fhMulter = await sendMultipart(`/api/items/${fhItem.id}/photos`, 'gibtsnicht',
     [{ name: 'a.png', type: 'image/png', content: Buffer.from(PNG_BASE64, 'base64') }]);
   check('Ein Fehler von multer bleibt eine 400', fhMulter.status === 400,
     `${fhMulter.status}: ${JSON.stringify(fhMulter.content)}`);
   check('Und behaelt seine Meldung', !!fhMulter.content?.error, JSON.stringify(fhMulter.content));
 
-  // Und die markierten Fehler der Anwendung ebenso: eine Datei, die kein Bild
-// ist, wird weiterhin mit ihrer eigenen Message abgewiesen.
   const fhNoImage = await sendMultipart(`/api/items/${fhItem.id}/photos`, 'photos',
     [{ name: 'a.txt', type: 'text/plain', content: 'kein Bild' }]);
   check('Eine abgewiesene Datei bleibt eine 400', fhNoImage.status === 400,
@@ -17705,8 +15879,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Mit der Meldung, die dem Benutzer weiterhilft',
     /Bilddatei/.test(fhNoImage.content?.error || ''), JSON.stringify(fhNoImage.content));
 
-  /* EIN ECHTER SERVERFEHLER. Eine Einspieldatei, in der "photos" keine Liste
-     ist: der Server stolpert beim Durchgehen. */
+  /* "photos" ist keine Liste; der Server scheitert beim Durchgehen. */
   const fhBroken = await sendImport(
     { version: 14, title: 'T', items: [{ title: 'Kaputt', photos: 5 }] }, 'merge');
   check('Ein Fehler des Servers kommt als 500', fhBroken.status === 500,
@@ -17714,7 +15887,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und verraet nichts ueber sein Inneres',
     !!fhBroken.content?.error && !/iterable|photos|SQL|SQLITE/i.test(fhBroken.content.error),
     JSON.stringify(fhBroken.content));
-  // Die Nachschau: der halbe Eintrag ist auch nicht angekommen.
   check('Und dabei entsteht kein halber Eintrag',
     !(await call('GET', '/api/items')).content.some(i => i.title === 'Kaputt'));
   await call('DELETE', `/api/items/${fhItem.id}`);
@@ -17729,8 +15901,7 @@ async function sendImport(object, mode, withoutShare = false) {
   await H2.call('POST', '/api/items', { title: 'Vor dem Herunterfahren' });
 
   const walPath = path.join(hDir2, 'katalog.sqlite-wal');
-  // Erst das Vorhandensein, dann die Eigenschaft: waere die WAL schon vorher
-// leer, belegte die Zeile danach nichts.
+  // Sonst belegte die Pruefung nach SIGTERM nichts.
   const walBefore = fs.existsSync(walPath) ? fs.statSync(walPath).size : 0;
   check('Vor dem Herunterfahren steht etwas in der WAL', walBefore > 0, `${walBefore} Bytes`);
 
@@ -17738,28 +15909,20 @@ async function sendImport(object, mode, withoutShare = false) {
   await until(null, () => { try { process.kill(H2.pid, 0); return false; } catch { return true; } },
     3000, 'das Ende des Servers');
   const walAfter = fs.existsSync(walPath) ? fs.statSync(walPath).size : 0;
-  /* Nach SIGTERM ist die WAL abgeschlossen. */
   check('Nach SIGTERM ist die WAL abgeschlossen', walAfter === 0, `${walAfter} Bytes`);
-  // Und der Bestand ist wirklich in der Hauptdatei angekommen, nicht bloss
-// die WAL geloescht.
   {
     const d = open(path.join(hDir2, 'katalog.sqlite'));
     check('Der Bestand steht danach in der Datenbank',
       d.prepare('SELECT COUNT(*) n FROM items').get().n === 1);
-    /* DER INDEX AUF sessions.user_id. Jede Frage nach den Sitzungen EINES
-       Benutzers laese sonst die ganze Tabelle. */
+    /* Ohne Index liest jede Frage nach den Sitzungen eines Benutzers die ganze
+       Tabelle. */
     const idx = d.prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'sessions'").all();
     check('Der Index auf sessions.user_id ist da',
       idx.some(i => i.name === 'idx_sessions_user'), JSON.stringify(idx.map(i => i.name)));
-    // Er wird auch wirklich benutzt -- ein Index, den der Abfrageplaner
-// uebergeht, waere nur eine Zeile im Schema.
     const plan = d.prepare('EXPLAIN QUERY PLAN SELECT token FROM sessions WHERE user_id = 1').all();
     check('Und der Abfrageplaner nimmt ihn',
       plan.some(z => String(z.detail || '').includes('idx_sessions_user')),
       JSON.stringify(plan.map(z => z.detail)));
-    // KEIN MIGRATIONSCODE NOETIG, und das wird hier belegt statt geglaubt:
-    // der Index wird entfernt, der Server einmal gestartet -- und er ist
-    // wieder da.
     d.prepare('DROP INDEX idx_sessions_user').run();
     check('Zur Gegenprobe entfernt', !d.prepare(
       "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_sessions_user'").get());
@@ -17777,11 +15940,10 @@ async function sendImport(object, mode, withoutShare = false) {
   group('Die Spaltenfolge: data steht am Ende');
 
   {
-    /* SQLite liest eine Zeile von vorn. Was hinter einem grossen BLOB steht,
-       ist nur ueber dessen Overflow-Kette erreichbar. */
-    /* GELESEN WIRD DER SCHEMA-STRING AUS db.js und nicht eine Abschrift. Was
-       nicht mit einem Spaltennamen anfaengt, ist eine Bedingung der Tabelle:
-       UNIQUE(trash_id, part) steht hinter data und ist keine Spalte. */
+    /* SQLite liest eine Zeile von vorn; was hinter einem grossen BLOB steht, ist
+       nur ueber dessen Overflow-Kette erreichbar. */
+    /* Gelesen wird das Schema aus db.js. Zeilen ohne Spaltennamen am Anfang sind
+       Bedingungen: UNIQUE(trash_id, part) steht hinter data. */
     const sfSource = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
     const SF_CONSTRAINT = /^(UNIQUE|PRIMARY|FOREIGN|CHECK|CONSTRAINT)\b/i;
     const sfColumns = (table) => {
@@ -17797,8 +15959,7 @@ async function sendImport(object, mode, withoutShare = false) {
     };
     const SF_TABLES = ['photos', 'comment_images', 'attachments'];
     const sfRead = [...SF_TABLES, 'trash_bytes'].map(t => [t, sfColumns(t)]);
-    /* ERST DER GEGENSTAND: eine leere Liste haette data nicht am Ende und
-       machte die Verneinung darunter trotzdem wahr. */
+    /* Eine leere Liste machte die Verneinung darunter ebenfalls wahr. */
     check('Die vier BLOB-Tabellen stehen im Schema und tragen ihre Spalten',
       sfRead.length === 4 && sfRead.every(([, c]) => c.length >= 4),
       sfRead.map(([t, c]) => `${t}: ${c.length}`).join(', '));
@@ -17808,7 +15969,6 @@ async function sendImport(object, mode, withoutShare = false) {
       sfNotLast.map(([t, c]) => `${t} endet auf ${c[c.length - 1]}`).join(' \u00b7 '));
     check('Und in trash_bytes ebenso',
       sfColumns('trash_bytes').pop() === 'data', sfColumns('trash_bytes').join(', '));
-    /* UND DIE ANGELEGTE DATENBANK HAELT ES AUCH. */
     const d = open(path.join(hDir2, 'katalog.sqlite'));
     const sfLast = [...SF_TABLES, 'trash_bytes'].map(t =>
       [t, d.prepare(`PRAGMA table_info("${t}")`).all().map(c => c.name).pop()]);
@@ -17823,30 +15983,26 @@ async function sendImport(object, mode, withoutShare = false) {
 
   {
     const d = open(path.join(hDir2, 'katalog.sqlite'));
-    // Was der Abfrageplaner sagt, und nicht, was im Schema steht.
     const plan = (sql) => d.prepare('EXPLAIN QUERY PLAN ' + sql).all()
       .map(z => String(z.detail || '')).join(' · ');
-    /* 1. DIE KRITERIENKARTE zaehlt je Kriterium ueber alle Bewertungen.
-       Ohne diesen Index laeuft sie ueber die ganze Tabelle. */
+    /* Ohne idx_ratings_criterion laeuft die Kriterienkarte ueber die ganze Tabelle. */
     const pCriteria = plan(
       'SELECT COUNT(DISTINCT r.item_id) FROM ratings r WHERE r.criterion_id = 1 AND r.value > 0');
     check('Die Kriterienzaehlung nimmt idx_ratings_criterion',
       pCriteria.includes('idx_ratings_criterion'), pCriteria);
-    /* 2. DIE DATEIEN EINES EINTRAGS werden ohne ihren Inhalt gelesen; jede
-       gelesene Spalte steht hinter `data`. */
+    /* Die Dateiliste liest keinen Inhalt; der deckende Index erspart das Lesen
+       der Zeile. */
     const pAttachments = plan('SELECT id, filename, mime_type, size, sort_order, ' +
       'created_at, user_id FROM attachments WHERE item_id = 1 ORDER BY sort_order, id');
     check('Die Dateiliste nimmt idx_attachments_list, und er deckt sie',
       pAttachments.includes('COVERING INDEX idx_attachments_list'), pAttachments);
-    /* 3. DIE UEBERSICHT holt die Fotospalten samt der Fassung. Fehlte
-       `length(thumb)` im Index, faellt sie auf idx_photos_item zurueck. */
+    /* Fehlt length(thumb) im Index, faellt die Abfrage auf idx_photos_item zurueck. */
     const pPhotos = plan('SELECT id, item_id, mime_type, focus_x, focus_y, zoom, ' +
       'sort_order, created_at, kind, duration, length(thumb) AS thumbLength ' +
       'FROM photos ORDER BY item_id, sort_order, id');
     check('Die Fotoabfrage nimmt idx_photos_tile, und er deckt sie',
       pPhotos.includes('COVERING INDEX idx_photos_tile'), pPhotos);
-    /* UND EINE GEAENDERTE SPALTENLISTE ZIEHT AN EINER BESTEHENDEN DATENBANK
-       NACH: `CREATE INDEX IF NOT EXISTS` allein faengt das nicht. */
+    /* CREATE INDEX IF NOT EXISTS erneuert einen Index mit alter Spaltenliste nicht. */
     d.prepare('DROP INDEX idx_photos_tile').run();
     d.exec('CREATE INDEX idx_photos_tile ON photos(item_id, sort_order, id)');
     d.close();
@@ -17864,8 +16020,6 @@ async function sendImport(object, mode, withoutShare = false) {
   group('Die mitgelieferten Kriterien an einer bestehenden Instanz');
 
   {
-    /* DIE LAGE: eine Instanz, die schon gelaufen ist und ihre Kriterien
-       umbenannt hat. Sie darf beim naechsten Start nichts dazubekommen. */
     const d = open(path.join(hDir2, 'katalog.sqlite'));
     d.prepare('DELETE FROM rating_criteria WHERE sort_order > 0').run();
     d.prepare('DELETE FROM criterion_names').run();
@@ -17882,12 +16036,10 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Eine Instanz mit vorhandenen Kriterien bekommt keines dazu',
       after.length === 1 && after[0].name === 'Eigener Name' && after[0].language === 'de',
       JSON.stringify(after));
-    // Und auch keinen Namen daneben in eine der anderen Sprachen.
     check('Und auch keinen uebersetzten Namen daneben',
       f.prepare('SELECT COUNT(*) n FROM criterion_names').get().n === 0,
       JSON.stringify(f.prepare('SELECT * FROM criterion_names').all()));
-    /* ---- UND IN EINE GELEERTE TABELLE WIRD WIEDER EINGESETZT ---- Die
-       Bedingung ist die leere Tabelle und kein Merker daneben. */
+    /* Eingesetzt wird, wenn die Tabelle leer ist; einen Merker gibt es nicht. */
     f.prepare('DELETE FROM rating_criteria').run();
     f.close();
     const H4 = startFurtherServer(hDir2, {}, 5640);
@@ -17971,7 +16123,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Die Volltextsuche');
 
-  /* JE EINE LAGE FUER JEDE DER SIEBEN QUELLEN DES SUCHTEXTS. */
+  /* Je ein Eintrag fuer jede der sieben Quellen des Suchtexts. */
   const vsCategory = (await call('POST', '/api/product-categories',
     { name: 'Vollkategorie' })).content;
   const vsCreate = async (title, beschr = '') =>
@@ -17996,7 +16148,6 @@ async function sendImport(object, mode, withoutShare = false) {
 
   const vsSearch = async (q) => (await call('GET', `/api/items?q=${encodeURIComponent(q)}`)).content;
   const vsIds = async (q) => (await vsSearch(q) || []).map(i => i.id);
-  // Genau einer, und zwar der erwartete.
   const vsOnly = async (q, id) => {
     const t = await vsIds(q);
     return { ok: t.length === 1 && t[0] === id, how: `${t.length} Treffer: ${t.join(' ')}` };
@@ -18015,7 +16166,6 @@ async function sendImport(object, mode, withoutShare = false) {
     check(`Die Suche findet über ${event}`, r.ok, r.how);
   }
 
-  /* DIE SCHREIBUNG SPIELT KEINE ROLLE, AUCH BEI UMLAUTEN. */
   const vsUml = await vsOnly('übergross', vsTitle.id);
   check('Und zwar ohne Rücksicht auf Groß- und Kleinschreibung — auch bei Umlauten',
     vsUml.ok, vsUml.how);
@@ -18024,28 +16174,24 @@ async function sendImport(object, mode, withoutShare = false) {
   const vsBeschrBig = await vsOnly('MÜNCHENQUELLE', vsBeschr.id);
   check('Auch in der Beschreibung', vsBeschrBig.ok, vsBeschrBig.how);
 
-  /* EIN EINZELNES ZEICHEN FINDET WEITERHIN. */
   const vsOne = await vsOnly('ü', vsTitle.id);
   check('Ein Teilstring aus einem einzigen Zeichen findet weiterhin',
-    // 'ü' steht in ÜBERGROSS und in MÜNCHENQUELLE und in Grünspanig -- also
-// nicht vsOnly, sondern die drei ausdruecklich.
+    // 'ü' steht in drei Eintraegen, deshalb nicht vsOnly.
     (await vsIds('ü')).length >= 3, `${(await vsIds('ü')).length} Treffer`);
   const vsTwo = await vsOnly('xy', vsLink.id);
   check('Und einer aus zwei Zeichen ebenso', vsTwo.ok, vsTwo.how);
 
-  /* PROZENT UND UNTERSTRICH SIND TEXT UND KEINE WILDCARDS. */
   const vsPz = await vsOnly('%', vsPercent.id);
   check('Das Prozentzeichen wirkt als Text und nicht als Wildcard', vsPz.ok, vsPz.how);
   const vsUs = await vsOnly('_', vsUnder.id);
   check('Der Unterstrich ebenso', vsUs.ok, vsUs.how);
-  /* UND DIE GEGENLAGE: man muss die beiden auch SUCHEN koennen. */
   const vsPzText = await vsOnly('50 %', vsPercent.id);
   check('Und man kann das Prozentzeichen wirklich suchen', vsPzText.ok, vsPzText.how);
   const vsUsText = await vsOnly('_mit_', vsUnder.id);
   check('Und den Unterstrich auch', vsUsText.ok, vsUsText.how);
 
-  /* DIE SUCHE LIEFERT NICHT MEHR ALS DIE LISTE. Sie liest dieselbe Tabelle
-     ohne weitere Einschraenkung; ein Papierkorbeintrag steht gar nicht darin. */
+  /* Die Suche liest dieselbe Tabelle ohne weitere Einschraenkung; ein Eintrag
+     im Papierkorb steht nicht darin. */
   const vsRejected = await vsCreate('Abgelehnt Wummerklotz');
   await call('PUT', `/api/items/${vsRejected.id}`, { rejected: true });
   const vsAll = (await call('GET', '/api/items')).content;
@@ -18060,9 +16206,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Die Suche liefert nichts, was die Liste verschweigt',
     vsWidest.length > 0 && vsWidest.every(id => vsAllIds.has(id)),
     `${vsWidest.filter(id => !vsAllIds.has(id)).join(' ') || '—'} zusätzlich`);
-  // Und die Gegenrichtung an derselben Menge: der weiteste Begriff findet
-  // wirklich mehr als eine Handvoll -- eine Teilmenge aus null Zeilen waere
-  // jede Teilmenge.
+  // Eine leere Treffermenge waere Teilmenge von allem.
   check('Und der weiteste Begriff trifft wirklich einen grossen Teil davon',
     vsWidest.length >= 5, `${vsWidest.length} von ${vsAll.length}`);
   const vsPath = await vsCreate('Papierkorbprobe Zwirbelwurz');
@@ -18073,23 +16217,20 @@ async function sendImport(object, mode, withoutShare = false) {
     (await vsIds('zwirbelwurz')).length === 0,
     `${(await vsIds('zwirbelwurz')).length} Treffer`);
 
-  // Ein Begriff, von dem nach dem Trimmen nichts uebrig ist, ist KEINE Suche
-// ohne Treffer, sondern gar keine Suche.
+  // Nach dem Trimmen leer heisst: keine Suche, nicht: keine Treffer.
   check('Ein Begriff aus lauter Leerzeichen ist keine Suche',
     (await vsIds('   ')).length === vsAll.length,
     `${(await vsIds('   ')).length} statt ${vsAll.length}`);
   check('Ein leerer Begriff ebenso',
     (await vsIds('')).length === vsAll.length);
-  // Aussen getrimmt wird wie vorher im Browser: derselbe Zuschnitt, damit
-// dieselbe Eingabe dieselbe Menge trifft.
+  // Aussen getrimmt, damit dieselbe Eingabe mit und ohne Leerraum dieselbe
+  // Menge trifft.
   const vsTrim = await vsOnly('  xyzzyquux  ', vsLink.id);
   check('Der Begriff wird außen getrimmt', vsTrim.ok, vsTrim.how);
 
   /* ---------------------------------------------------------------- */
   group('Der Trefferkontext an der Antwort');
 
-  /* WARUM EIN EINTRAG IN DER TREFFERLISTE STEHT -- 0.18.0. Die Suche fand
-     schon vorher richtig; sie sagte nur nicht, WO. */
   const fkFinding = async (q, id) => (await vsSearch(q) || []).find(i => i.id === id)?.foundAt;
 
   check('Ohne Begriff traegt kein Eintrag einen Trefferkontext',
@@ -18118,10 +16259,9 @@ async function sendImport(object, mode, withoutShare = false) {
       !!f && f.text.toLowerCase().includes(word), JSON.stringify(f?.text));
   }
 
-  /* DER AUSSCHNITT IST EINE ZEILE. */
   const fkParagraph = await vsCreate('Absatzprobe Quirlgurke');
-  /* DER UMBRUCH UND DER DOPPELTE LEERRAUM STEHEN UNMITTELBAR AN DER
-     FUNDSTELLE und nicht irgendwo im Text. */
+  /* Umbruch und doppelter Leerraum stehen direkt an der Fundstelle, damit der
+     Ausschnitt sie enthaelt. */
   await sendComment(fkParagraph.id,
     { text: 'Zeile eins\nund\nSchlingerpfad  steht mit doppeltem Leerraum dahinter' });
   const fkRow = await fkFinding('schlingerpfad', fkParagraph.id);
@@ -18130,9 +16270,9 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und keinen doppelten Leerraum',
     !!fkRow && !/\s\s/.test(fkRow.text), JSON.stringify(fkRow?.text));
 
-  /* VOR DER FUNDSTELLE STEHEN HOECHSTENS VIER ZEICHEN, und das ist gemessen
-     und nicht gewaehlt: auf der schmalsten Kachel (173 px bei 390 px
-     Schirmbreite) bleiben nach der Quelle 55,3 px -- gemessen neun Zeichen. */
+  /* Hoechstens vier Zeichen vor der Fundstelle, gemessen: auf der schmalsten
+     Kachel (173 px bei 390 px Schirmbreite) bleiben nach der Quelle 55,3 px,
+     also neun Zeichen. */
   const fkLang = await vsCreate('Vorlaufprobe',
     'weit vorne steht viel Text und erst dann kommt das Wort Kringelzange und danach noch mehr Text, deutlich mehr als in eine Zeile passt');
   const fkV = await fkFinding('kringelzange', fkLang.id);
@@ -18143,22 +16283,19 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Vor der Fundstelle stehen hoechstens vier Zeichen',
     !!fkV && fkV.text.toLowerCase().indexOf('kringelzange') <= 5,
     `${fkV?.text.toLowerCase().indexOf('kringelzange')} (mit dem Auslassungszeichen)`);
-  /* UND NICHT NULL -- die Gegenrichtung. Ein Ausschnitt, der genau bei der
-     Fundstelle beginnt, verschwiege, dass sie mitten in einem Wort steht. */
+  /* Ein Ausschnitt, der genau an der Fundstelle beginnt, verschwiege, dass sie
+     mitten in einem Wort steht. */
   check('Und mindestens eines, wenn davor ueberhaupt etwas steht',
     !!fkV && fkV.text.toLowerCase().indexOf('kringelzange') >= 2,
     JSON.stringify(fkV?.text));
   check('Der Ausschnitt bleibt kurz genug fuer eine Kachelzeile',
     !!fkV && fkV.text.length <= 60, `${fkV?.text.length} Zeichen`);
 
-  /* EIN KURZER TEXT WIRD NICHT GEKUERZT und traegt deshalb auch kein
-     Auslassungszeichen. */
   const fkShort = await fkFinding('grünspanig', vsTag.id);
   check('Ein Tag, der ganz hineinpasst, steht ohne Auslassungszeichen da',
     fkShort?.text === 'Grünspanig', JSON.stringify(fkShort?.text));
 
-  /* DIE FESTE FOLGE. Sie beginnt bei dem, was die Kachel NICHT zeigt:
-     Beschreibung, Kommentar, Link, Tag am Testtag, Tag, Kategorie, Titel. */
+  /* Die Folge beginnt bei dem, was die Kachel nicht zeigt. */
   const fkCategory = (await call('POST', '/api/product-categories', { name: 'Siebenfach Kategorie' })).content;
   const fkSeven = await vsCreate('Siebenfach im Titel', 'siebenfach in der Beschreibung');
   await call('PUT', `/api/items/${fkSeven.id}`, { productCategoryId: fkCategory.id });
@@ -18173,8 +16310,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und zaehlt die uebrigen sechs als weitere Stellen',
     fkS?.others === 6, `${fkS?.others}`);
 
-  /* DIE FOLGE WIRD SCHRITT FUER SCHRITT ABGERAEUMT. Faellt die Beschreibung
-     weg, uebernimmt der Kommentar; faellt der weg, der Link -- und so fort. */
   const fkFollow = [];
   await call('PUT', `/api/items/${fkSeven.id}`, { description: 'ohne das Wort' });
   fkFollow.push((await fkFinding('siebenfach', fkSeven.id))?.source);
@@ -18194,18 +16329,14 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Die Folge ist Kommentar, Link, Tag am Testtag, Tag, Kategorie, Titel',
     equal(fkFollow, ['comment', 'link', 'testDay', 'tag', 'category', 'title']),
     JSON.stringify(fkFollow));
-  /* TRIFFT NUR DER TITEL, STEHT DIE ZEILE TROTZDEM DA -- eine Regel und keine
-     Ausnahme. */
   const fkOnlyTitle = await fkFinding('siebenfach', fkSeven.id);
   check('Trifft nur der Titel, steht die Zeile trotzdem da',
     fkOnlyTitle?.source === 'title' && fkOnlyTitle?.others === 0,
     JSON.stringify(fkOnlyTitle));
 
-  /* WELCHER KOMMENTAR GENANNT WIRD, IST BESTIMMT UND NICHT ZUFAELLIG. */
   const fkMore = await vsCreate('Zwei Kommentare Wurzelzwerg');
-  /* DAS UNTERSCHEIDENDE WORT STEHT NEBEN DER FUNDSTELLE und nicht am
-     Zeilenanfang: der Ausschnitt wird um die Fundstelle herum geschnitten,
-     und ein Kennwort weit davor stuende gar nicht darin. */
+  /* Das unterscheidende Wort steht neben der Fundstelle, denn der Ausschnitt
+     wird um sie herum geschnitten. */
   await sendComment(fkMore.id, { text: 'hier steht Wurzelzwerg zum ersten Mal' });
   await sendComment(fkMore.id, { text: 'hier steht Wurzelzwerg zum zweiten Mal' });
   const fkFirst = await fkFinding('wurzelzwerg', fkMore.id);
@@ -18216,7 +16347,6 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify(await fkFinding('wurzelzwerg', fkMore.id)) === JSON.stringify(fkFirst),
     JSON.stringify(await fkFinding('wurzelzwerg', fkMore.id)));
 
-  /* EIN KOMMENTAR, DER DEN BEGRIFF NICHT TRAEGT, KOMMT NICHT AUF DIE KACHEL. */
   const fkSecond = await vsCreate('Nur der zweite Kommentar Schlummerkiste');
   await sendComment(fkSecond.id, { text: 'dieser hier sagt nichts zur Sache' });
   await sendComment(fkSecond.id, { text: 'und dieser nennt die Schlummerkiste' });
@@ -18225,7 +16355,6 @@ async function sendImport(object, mode, withoutShare = false) {
     !!fkZ && /Schlummerkiste/.test(fkZ.text) && !/zur Sache/.test(fkZ.text),
     JSON.stringify(fkZ?.text));
 
-  /* PROZENT UND UNTERSTRICH GELTEN AUCH HIER ALS TEXT. */
   const fkPz = await fkFinding('50 %', vsPercent.id);
   check('Auch ein Prozentzeichen findet seine Stelle im Ausschnitt',
     !!fkPz && fkPz.text.includes('50 %'), JSON.stringify(fkPz?.text));
@@ -18234,23 +16363,18 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und ein Punkt im Begriff wird als Zeichen gelesen, nicht als Muster',
     !!fkP && fkP.text.includes('Zwirbel.Knoten'), JSON.stringify(fkP?.text));
 
-  /* DAS FELD IST EINE ERWEITERUNG UND KEINE WEGNAHME. Was vorher in der
-     Antwort stand, steht Zeichen fuer Zeichen weiter da. */
   const fkFields = new Set(Object.keys((await vsSearch('volltext'))[0] || {}));
   check('Und die Antwort auf eine Suche traegt weiterhin alle bekannten Felder',
     ['id', 'title', 'tags', 'category', 'avgRating', 'linkCount'].every(f => fkFields.has(f)),
     JSON.stringify([...fkFields]));
 
-  /* DER BEGRIFF STEHT ALLEIN IM ZIEL EINES LINKS. Geschnitten wird auf dem
-     eingeebneten Text, und dort faellt das Ziel weg. */
+  /* Geschnitten wird auf dem eingeebneten Text, in dem das Ziel des Links fehlt. */
   const fkTarget = await vsCreate('Zielprobe Klemmbock');
   await sendComment(fkTarget.id,
     { text: 'der Hinweis steht in [dieser Quelle](https://beispiel.test/schrankgriff) und sonst nirgends' });
   const fkT = await fkFinding('schrankgriff', fkTarget.id);
   check('Steht der Begriff allein im Ziel eines Links, zeigt ihn der Ausschnitt',
     !!fkT && fkT.text.toLowerCase().includes('schrankgriff'), JSON.stringify(fkT?.text));
-  /* UND DIE GEGENLAGE: steht er im sichtbaren Text, bleiben die Marken
-     weiterhin draussen. */
   const fkMark = await vsCreate('Markenprobe Riffelblech');
   await sendComment(fkMark.id, { text: 'hier steht **Riffelblech** in Fettschrift' });
   const fkM = await fkFinding('riffelblech', fkMark.id);
@@ -18261,7 +16385,6 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('searchText ist fort, und sonst nichts');
 
-  /* FELD FUER FELD GEGEN DIE ALTE ANTWORT. */
   const vsFields = new Set(Object.keys(vsAll[0] || {}));
   const VS_EXPECTED = ['id', 'title', 'created_at', 'updated_at', 'tested', 'rejected',
     'product_category_id', 'author', 'favorite', 'mainPhoto', 'photoCount', 'videoCount',
@@ -18274,29 +16397,22 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und kein anderes Feld ist dabei verschwunden',
     VS_EXPECTED.every(f => vsFields.has(f)),
     'fehlt: ' + VS_EXPECTED.filter(f => !vsFields.has(f)).join(' '));
-  // Auch nicht in der Antwort auf eine SUCHE: sie ist dieselbe Form, und ein
-// zweiter Zuschnitt dafuer waere eine zweite Wahrheit ueber dieselbe Liste.
   const vsHitFields = new Set(Object.keys((await vsSearch('volltext'))[0] || {}));
   check('Die Antwort auf eine Suche trägt dieselben Felder',
     VS_EXPECTED.every(f => vsHitFields.has(f)) && !vsHitFields.has('searchText'),
     JSON.stringify([...vsHitFields]));
-  // Und die Beschreibung bleibt draussen, wie bisher: sie stand nie in der
-// Liste, und das Wegfallen des Suchfelds darf sie nicht hereinholen.
   check('Die Beschreibung bleibt aus der Liste heraus',
     vsAll.every(i => i.description === undefined));
 
   /* ---------------------------------------------------------------- */
   group('testDays hängt an der Zeitleiste');
 
-  /* DAS FELD KOSTET GEMESSEN 6 PROZENT DER ANTWORT und wird nur von der
-     Zeitleiste gebraucht. */
+  /* testDays kostet gemessen 6 % der Antwort und wird nur von der Zeitleiste
+     gebraucht. */
   const vsIncludingZl = (await call('GET', '/api/items')).content;
   check('Mit eingeschalteter Zeitleiste steht testDays in der Antwort',
     vsIncludingZl.every(i => Array.isArray(i.testDays)), 'nicht überall');
   const vsIncludingTest = vsIncludingZl.find(i => i.id === vsTagTag.id);
-  /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT -- und
-     hier ist es keine Formsache: die erste Fassung las
-     `vsIncludingTest.testDays.length` ungeschuetzt. */
   check('Der Aufbau steht: ein Eintrag trägt wirklich einen Testtag',
     !!vsIncludingTest && (vsIncludingTest.testDays || []).length === 1 && vsIncludingTest.testCount === 1,
     JSON.stringify(vsIncludingTest && { n: (vsIncludingTest.testDays || []).length, c: vsIncludingTest.testCount }));
@@ -18306,8 +16422,8 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Ausgeschaltet fehlt das Feld ganz',
     vsWithoutZl.every(i => i.testDays === undefined), 'es steht noch da');
   const vsWithoutTest = vsWithoutZl.find(i => i.id === vsTagTag.id);
-  /* testLast IST DIE LETZTE NOTE UND KEIN DATUM -- die Kachel schreibt
-     "zuletzt 4", und die Sortierung testlast_desc vergleicht Zahlen. */
+  /* testLast ist die letzte Note, kein Datum: die Kachel zeigt "zuletzt 4", und
+     testlast_desc vergleicht Zahlen. */
   check('Und die Kachelzahlen bleiben trotzdem richtig',
     vsWithoutTest && vsWithoutTest.testCount === 1 && vsWithoutTest.testAvg === 4
       && vsWithoutTest.testLast === 4,
@@ -18315,8 +16431,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Auch der Detailweg liefert die Testtage weiter',
     Array.isArray((await call('GET', `/api/items/${vsTagTag.id}`)).content.testDays),
     'die Detailansicht hat sie verloren');
-  // Und die Suche haelt sich an dieselbe Einstellung -- eine Antwort, die je
-// nach Parameter anders geformt ist, waere zwei Formen fuer eine Liste.
   check('Und die Suche antwortet in derselben Form',
     (await vsSearch('volltext')).every(i => i.testDays === undefined),
     'die Suche liefert testDays trotz ausgeschalteter Zeitleiste');
@@ -18327,22 +16441,19 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3');
 
-  /* WAS 0.19.3 GEBAUT HAT UND WAS DIESE GRUPPE DAVON PRUEFT. */
   const ueCategory = (await call('POST', '/api/product-categories', { name: 'Buendelprobe' })).content;
   const ueA = (await call('POST', '/api/items', { title: 'Buendel A' })).content;
   const ueB = (await call('POST', '/api/items', { title: 'Buendel B' })).content;
   await call('PUT', `/api/items/${ueA.id}`, { productCategoryId: ueCategory.id });
-  /* DIE DREI SCHLAGWORTE STEHEN ABSICHTLICH IN VERKEHRTER FOLGE: die
-     gebuendelte Abfrage sortiert zuerst nach item_id und DANN nach Namen. */
+  /* Schlagworte in verkehrter Folge: die Abfrage sortiert nach item_id und dann
+     nach Namen. */
   for (const n of ['Zange', 'Amboss', 'Meissel'])
     await call('POST', `/api/items/${ueA.id}/tags`, { name: n });
   await call('POST', `/api/items/${ueB.id}/tags`, { name: 'Nurbei B' });
   await call('POST', `/api/items/${ueA.id}/links`, { url: 'https://buendel.test/eins' });
   await call('POST', `/api/items/${ueA.id}/links`, { url: 'https://buendel.test/zwei' });
   await call('POST', `/api/items/${ueB.id}/links`, { url: 'https://buendel.test/drei' });
-  /* DREI TESTTAGE, IN VERKEHRTER FOLGE EINGETRAGEN: die Liste sortiert
-     absteigend nach Tag, und das faellt nur auf, wenn die Eingabefolge eine
-     andere ist. */
+  /* Testtage in verkehrter Folge; die absteigende Sortierung faellt nur so auf. */
   for (const [date, score] of [['2026-05-03', 5], ['2026-05-01', 3], ['2026-05-07', 1]])
     await call('POST', `/api/items/${ueA.id}/test-days`, { day: date, rating: score });
   await call('POST', `/api/items/${ueB.id}/test-days`, { day: '2026-04-04', rating: 2 });
@@ -18352,8 +16463,7 @@ async function sendImport(object, mode, withoutShare = false) {
   await call('PUT', `/api/items/${ueB.id}/ratings`, { criterionId: ueCriterion[0].id, value: 5 });
 
   const ueList = (await call('GET', '/api/items')).content;
-  /* JEDER ZUGRIFF GEHT DURCH EINE KLAMMER, und das ist keine Zierde: die
-     Rueckbauten 499 bis 504 nehmen genau diese Felder weg. */
+  /* Die Rueckfallwerte halten den Lauf, wenn ein Rueckbau diese Felder wegnimmt. */
   const ueTile = (id) => (ueList || []).find(i => i.id === id) || {};
   const ueDetail = async (id) => (await call('GET', `/api/items/${id}`)).content || {};
   const ueDA = await ueDetail(ueA.id), ueDB = await ueDetail(ueB.id);
@@ -18363,8 +16473,7 @@ async function sendImport(object, mode, withoutShare = false) {
     (ueList || []).some(i => i.id === ueA.id) &&
     (ueList || []).some(i => i.id === ueB.id), `${(ueList || []).length} Eintraege`);
 
-  /* --- Die Schlagworte: gleiche Felder, gleiche Folge, und beim richtigen
-         Eintrag --- */
+  /* ---- Schlagworte ---- */
   check('Die Kachel traegt dieselben Schlagworte wie der Eintrag',
     ueTags(ueDA).length === 3 && equal(ueTags(ueTile(ueA.id)), ueTags(ueDA)),
     JSON.stringify(ueTags(ueTile(ueA.id))));
@@ -18374,7 +16483,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und das Schlagwort des zweiten Eintrags steht nur bei ihm',
     equal(ueTags(ueTile(ueB.id)).map(t => t.name), ['Nurbei B']),
     JSON.stringify(ueTags(ueTile(ueB.id)).map(t => t.name)));
-  /* `t.*` IST SEIT 0.19.3 EINE SPALTENLISTE. */
   check('Ein Schlagwort traegt nur noch id und name — an der Kachel',
     ueTags(ueTile(ueA.id)).length === 3 &&
     ueTags(ueTile(ueA.id)).every(t => equal(Object.keys(t).sort(), ['id', 'name'])),
@@ -18384,27 +16492,26 @@ async function sendImport(object, mode, withoutShare = false) {
     ueTags(ueDA).every(t => equal(Object.keys(t).sort(), ['id', 'name'])),
     JSON.stringify(ueTags(ueDA).map(t => Object.keys(t))));
 
-  /* --- Die Zahlen: gezaehlt statt geholt, und beim richtigen Eintrag --- */
+  /* ---- Zahlen ---- */
   const ueLinks = (o) => ((o && o.links) || []).length;
   check('Die Linkzahl der Kachel ist die Zahl der Links am Eintrag',
     ueTile(ueA.id).linkCount === ueLinks(ueDA) && ueLinks(ueDA) === 2 &&
     ueTile(ueB.id).linkCount === ueLinks(ueDB) && ueLinks(ueDB) === 1,
     `${ueTile(ueA.id).linkCount}/${ueLinks(ueDA)} und ` +
     `${ueTile(ueB.id).linkCount}/${ueLinks(ueDB)}`);
-  /* EIN EINTRAG OHNE LINKS TRAEGT 0 UND NICHT undefined. */
   check('Ein Eintrag ohne Links traegt die Zahl 0',
     ueTile(vsTagTag.id).linkCount === 0 &&
     ueTile(vsTagTag.id).attachmentCount === 0,
     JSON.stringify([ueTile(vsTagTag.id).linkCount,
                     ueTile(vsTagTag.id).attachmentCount]));
 
-  /* --- Der Schnitt: dieselbe Rechnung, aus einer anderen Abfrage --- */
+  /* ---- Schnitt ---- */
   check('Der Schnitt der Kachel ist der Schnitt des Eintrags',
     ueTile(ueA.id).avgRating === ueDA.avgRating && ueDA.avgRating !== null &&
     ueTile(ueB.id).avgRating === ueDB.avgRating && ueDB.avgRating !== null,
     `${ueTile(ueA.id).avgRating}/${ueDA.avgRating} und ` +
     `${ueTile(ueB.id).avgRating}/${ueDB.avgRating}`);
-  /* UND DIE BEIDEN SIND WIRKLICH VERSCHIEDEN. */
+  /* Verschiedene Schnitte, sonst belegte der Vergleich darueber nichts. */
   check('Und die beiden Eintraege haben dabei verschiedene Schnitte',
     ueTile(ueA.id).avgRating !== ueTile(ueB.id).avgRating,
     `${ueTile(ueA.id).avgRating} gegen ${ueTile(ueB.id).avgRating}`);
@@ -18412,7 +16519,7 @@ async function sendImport(object, mode, withoutShare = false) {
     ueTile(vsTagTag.id).avgRating === null,
     JSON.stringify(ueTile(vsTagTag.id).avgRating));
 
-  /* --- Die Kategorie: einmal geholt, nicht je Eintrag --- */
+  /* ---- Kategorie ---- */
   check('Die Kategorie der Kachel ist die des Eintrags',
     equal(ueTile(ueA.id).category, ueDA.category) &&
     (ueTile(ueA.id).category || {}).name === 'Buendelprobe',
@@ -18420,7 +16527,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und ein Eintrag ohne Kategorie traegt null',
     ueTile(ueB.id).category === null, JSON.stringify(ueTile(ueB.id).category));
 
-  /* --- Die Testtage: schmal in der Liste, voll am Eintrag, gleiche Folge --- */
+  /* ---- Testtage ---- */
   check('Die Testtage der Liste stehen in derselben Folge wie am Eintrag',
     ueDays(ueDA).length === 3 &&
     equal(ueDays(ueTile(ueA.id)).map(d => d.day), ueDays(ueDA).map(d => d.day)) &&
@@ -18430,8 +16537,6 @@ async function sendImport(object, mode, withoutShare = false) {
     equal(ueDays(ueTile(ueA.id)).map(d => d.day),
            ['2026-05-07', '2026-05-03', '2026-05-01']),
     JSON.stringify(ueDays(ueTile(ueA.id)).map(d => [d.day, d.id])));
-  /* DIE WEGNAHME, UND SIE STEHT AN BEIDEN SEITEN DA: die Liste traegt vier
-     Felder, der Eintrag traegt daneben weiter Schlagworte und Verfasser. */
   check('Der Testtag der Liste traegt id, day, rating und mine — sonst nichts',
     ueDays(ueTile(ueA.id)).length === 3 &&
     ueDays(ueTile(ueA.id)).every(d =>
@@ -18441,13 +16546,11 @@ async function sendImport(object, mode, withoutShare = false) {
     ueDays(ueDA).length === 3 &&
     ueDays(ueDA).every(d => Array.isArray(d.tags) && d.author !== undefined),
     JSON.stringify(ueDays(ueDA).map(d => Object.keys(d))));
-  /* DIE NOTEN GEHEN DABEI NICHT VERLOREN -- ohne sie zeichnete die Zeitleiste
-     lauter Punkte auf derselben Hoehe. */
+  /* Ohne Noten zeichnete die Zeitleiste alle Punkte auf derselben Hoehe. */
   check('Die Noten der Liste sind die des Eintrags',
     ueDays(ueDA).length === 3 &&
     equal(ueDays(ueTile(ueA.id)).map(d => d.rating), ueDays(ueDA).map(d => d.rating)),
     JSON.stringify(ueDays(ueTile(ueA.id)).map(d => d.rating)));
-  /* UND DIE KENNZAHLEN BLEIBEN UNGEBUENDELT. */
   check('Und die Kennzahlen der Kachel stimmen mit dem Eintrag ueberein',
     ueTile(ueA.id).testCount === ueDA.testCount &&
     ueTile(ueA.id).testAvg === ueDA.testAvg &&
@@ -18456,12 +16559,10 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify([ueTile(ueA.id).testCount, ueTile(ueA.id).testAvg,
                     ueTile(ueA.id).testLast]));
 
-  /* --- Und der Quelltext dazu: eine Spaltenliste, zwei Abfragen --- */
+  /* ---- Quelltext ---- */
   {
     const ueSource = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
     const ueOneLine = ueSource.replace(/\s+/g, ' ');
-    /* DIE SPALTENLISTE DER SCHLAGWORTE STEHT AN EINER STELLE -- dieselbe
-       Bauform wie PHOTO_SPALTEN. */
     check('Die Spaltenliste der Schlagworte steht an einer Stelle',
       /const TAG_COLUMNS = 't\.id, t\.name';/.test(ueSource),
       (ueSource.match(/const TAG_COLUMNS = [^\n]*/) || ['(nicht gefunden)'])[0]);
@@ -18469,23 +16570,20 @@ async function sendImport(object, mode, withoutShare = false) {
       ueOneLine.includes('const qTags = db.prepare(`SELECT ${TAG_COLUMNS} FROM tags t') &&
       ueOneLine.includes('const qAllTags = db.prepare(`SELECT it.item_id, ${TAG_COLUMNS} FROM tags t'),
       (ueOneLine.match(/const qAllTags = db\.prepare\([^;]*/) || ['(nicht gefunden)'])[0]);
-    /* DIE ORDNUNG DER GEBUENDELTEN TESTTAGE STEHT AM QUELLTEXT: zuerst
-       item_id, dann WIE BISHER. */
     check('Die gebuendelten Testtage sortieren zuerst nach Eintrag, dann wie bisher',
       ueOneLine.includes(
         "'SELECT item_id, id, day, rating, user_id FROM test_days ORDER BY item_id, day DESC, id DESC'") &&
       ueOneLine.includes(
         "FROM test_days WHERE item_id = ? ORDER BY day DESC, id DESC'"),
       (ueOneLine.match(/qAllTestDaysNarrow = db\.prepare\([^;]*/) || ['(nicht gefunden)'])[0]);
-    /* KEIN `IN (…)` MIT VIERHUNDERT NUMMERN -- dieselbe Begruendung wie bei
-       den Fotos: die gefilterte Uebersicht wirft dann etwas weg, und das ist
-       billiger als die Liste zu binden. */
+    /* Kein IN (...) mit hunderten Nummern: die gefilterte Uebersicht verwirft
+       ueberzaehlige Zeilen, das ist billiger als die Liste zu binden. */
     check('Keine der gebuendelten Abfragen bindet eine Nummernliste',
       !/qAllTags|qLinkCounts|qAttachmentCounts|qAllCategories|qAllTestDaysNarrow|qAveragePerCriterionAll/
         .test((ueOneLine.match(/IN \(\$\{[^)]*\)/g) || []).join(' ')),
       (ueOneLine.match(/IN \(\$\{[^)]*\)/g) || []).join(' ') || '(keine)');
-    /* UND testStats BLEIBT UNGEBUENDELT. Ohne diese Zeile bliebe gruen, wer es
-       aus lauter Ordnungsliebe mitnimmt -- und die Route waere langsamer. */
+    /* Gebuendelt waere die Route langsamer; sonst bliebe gruen, wenn testStats
+       mitgebuendelt wird. */
     check('testStats fragt weiterhin je Eintrag',
       ueOneLine.includes('Object.assign(it, testStats(it.id));') &&
       !/qTestStatsAlle|testStatsJeEintrag/.test(ueSource),
@@ -18499,10 +16597,10 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Gespeicherte Ansichten');
 
-  /* SIE STEHEN IN settings UNTER EINEM PERSOENLICHEN SCHLUESSEL und brauchen
-     kein Schema. */
-  /* DIE ALTE FORM MIT ABSICHT: `categoryId` als einzelner Wert ist das, was
-     in jedem vorhandenen Bestand steht. */
+  /* Ansichten stehen in settings unter einem persoenlichen Schluessel, ohne
+     eigenes Schema. */
+  /* Absichtlich die alte Form: categoryId als einzelner Wert steht in
+     vorhandenen Daten. */
   const vaSetting = { categoryId: null, tagIds: [], tagMode: 'and', tested: 'untested',
                        favorite: false, fresh: false, sort: 'title_asc' };
   await call('PUT', '/api/settings', { filters: vaSetting });
@@ -18525,18 +16623,13 @@ async function sendImport(object, mode, withoutShare = false) {
     vaAfter.views.length === 1 && vaAfter.views[0].name === vaOne.name
       && vaAfter.views[0].filters.sort === 'title_asc',
     JSON.stringify(vaAfter.views));
-  /* DER SUCHBEGRIFF GEHOERT DAZU. */
   check('Und der Suchbegriff steht mit darin',
     vaAfter.views[0].q === 'volltext', JSON.stringify(vaAfter.views[0].q));
-  /* DIE EINE GEMERKTE STELLUNG BLEIBT UNANGETASTET. Wer 0.10.0 fuhr, hat
-     eine, und sie ist seine. */
   check('Die eine gemerkte Filterstellung steht unverändert daneben',
     vaAfter.filters && vaAfter.filters.tested === 'untested'
       && vaAfter.filters.sort === 'title_asc',
     JSON.stringify(vaAfter.filters));
 
-  // Der Deckel. Acht gehen, neun nicht -- und die abgewiesene Liste darf
-// nichts veraendert haben (geprueft VOR dem ersten Schreiben).
   const vaEight = Array.from({ length: 8 }, (_, i) => ({ name: 'Ansicht ' + i, q: '', filters: {} }));
   check('Acht Ansichten gehen durch',
     (await call('PUT', '/api/settings', { views: vaEight })).status === 200);
@@ -18556,7 +16649,6 @@ async function sendImport(object, mode, withoutShare = false) {
     { views: [{ name: 'Gleich', q: '', filters: {} }, { name: 'GLEICH', q: '', filters: {} }] });
   check('Zwei mit demselben Namen ebenso — ohne Rücksicht auf die Schreibung',
     vaTwice.status === 400, `${vaTwice.status}`);
-  /* UND DIE ABSAGE KOMMT VOR DEM ERSTEN SCHREIBEN. */
   const vaVorDenial = (await call('GET', '/api/settings')).content.filters;
   const vaBoth = await call('PUT', '/api/settings', {
     filters: { ...vaSetting, sort: 'rating_desc' },
@@ -18568,8 +16660,8 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify((await call('GET', '/api/settings')).content.filters) === JSON.stringify(vaVorDenial),
     JSON.stringify((await call('GET', '/api/settings')).content.filters));
 
-  /* EINE ANSICHT MIT EINER GELOESCHTEN KATEGORIE ODER EINEM GELOESCHTEN TAG.
-     JSON kennt keine Kaskade -- die Nummer bleibt stehen. */
+  /* JSON kennt keine Kaskade: die Nummer einer geloeschten Kategorie bleibt in
+     der Ansicht stehen. */
   const vaCategory = (await call('POST', '/api/product-categories', { name: 'Bald weg' })).content;
   const vaTag = (await call('POST', `/api/items/${vsTag.id}/tags`, { name: 'Baldweg' })).content;
   const vaTagId = (await call('GET', '/api/tags')).content.find(t => t.name === 'Baldweg').id;
@@ -18585,7 +16677,6 @@ async function sendImport(object, mode, withoutShare = false) {
       && equal(vaAfterRemove.content.views[0].filters.tagIds, [vaTagId]),
     JSON.stringify(vaAfterRemove.content.views[0].filters));
 
-  /* PERSOENLICH, GANZ. */
   await call('PUT', '/api/settings', { views: [{ name: 'Nur meine', q: 'secret', filters: {} }] });
   const vaSecond = await call('POST', '/api/users',
     { username: 'ansichtsleser', password: 'ansichts-wort-1234', role: 'user' });
@@ -18612,8 +16703,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Ein anderer Zugang sieht die Ansichten NICHT',
     Array.isArray(vaForeign.views) && vaForeign.views.length === 0,
     JSON.stringify(vaForeign.views));
-  /* UND SIE UEBERLEBEN ABMELDEN UND ANMELDEN. Sie liegen in der Datenbank und
-     nicht in der Sitzung -- ohne diese Zeile bliebe das eine Behauptung. */
+  /* Ansichten liegen in der Datenbank, nicht in der Sitzung. */
   await vaCall('PUT', '/api/settings', { views: [{ name: 'Seine eigene', q: '', filters: {} }] });
   await vaCall('POST', '/api/logout');
   await vaCall('POST', '/api/login', { user: 'ansichtsleser', password: 'ansichts-wort-1234' });
@@ -18623,23 +16713,14 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify(vaAfterAgain.views));
   check('Und die des ersten Zugangs sind davon unberührt',
     (await call('GET', '/api/settings')).content.views[0].name === 'Nur meine');
-  /* EIN GEWOEHNLICHER ZUGANG DARF SIE SETZEN. */
   check('Ein gewöhnlicher Zugang darf eigene Ansichten speichern',
     (await vaCall('PUT', '/api/settings',
       { views: [{ name: 'Zweite eigene', q: '', filters: {} }] })).status === 200);
 
-  /* ================================================================ Zwei
-     Kaesten, zwei Durchschnitte — 0.21.0
-     ================================================================ DIE EINE
-     PRUEFUNG, DIE DIESE RUNDE TRAEGT, steht ganz unten in dieser Gruppe: ein
-     Eintrag mit zwei Nachher-Kriterien (4 und 4) und einem Vorher-Kriterium
-     (1) hat avgRating 4,0 und potenzialRating 1,0 -- in der Uebersicht wie im
-     Detail, und nach dem Umlegen von `tested` unveraendert. */
+  /* ---------------------------------------------------------------- */
   group('Zwei Kaesten, zwei Durchschnitte — 0.21.0');
 
-  /* DIE ZWEI WERTE, UND SONST KEINER -- hier ausgeschrieben und nicht aus dem
-     Server gelesen: eine Zahl im Pruefstand ist ein Beleg, eine aus dem
-     Gegenstand gelesene waere ein Echo. */
+  /* Ausgeschrieben statt vom Server gelesen: eine gelesene Zahl belegte nichts. */
   const PHASES_EXPECTED = ['before', 'after'];
 
   const PH_WORD = 'annas-langes-wort';
@@ -18648,7 +16729,7 @@ async function sendImport(object, mode, withoutShare = false) {
   await PH.ready;
   await PH.call('POST', '/api/setup', { user: 'anna', password: PH_WORD });
 
-  /* Export und Import an einem ZWEITSERVER. */
+  /* Export und Import am Zweitserver. */
   const phExport = async (S) => {
     await S.call('POST', '/api/confirm', { password: PH_WORD, purpose: 'export', target: null });
     return (await S.call('GET', '/api/export')).content;
@@ -18670,22 +16751,18 @@ async function sendImport(object, mode, withoutShare = false) {
     return { status: a.status, content: await a.json().catch(() => null) };
   };
 
-  /* --- Die Migration, umgedreht --------------------------------------- BIS
-     0.32.1 STAND HIER DIE PROBE AUF DEN BLOCK 0.21.0: eine Datei, der die
-     Spalte `phase` von Hand genommen wurde, zweimal geoeffnet -- beim ersten
-     Mal ruestete der Block sie nach und sagte es, beim zweiten Mal war er
-     stumm. */
+  /* ---- Fehlende Spalte phase ---- */
   {
     const phMigDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-phase-mig-'));
     shortRun(`require('./db'); console.log('da');`, phMigDir);
     const d1 = open(path.join(phMigDir, 'katalog.sqlite'));
     d1.prepare("INSERT INTO rating_criteria (name, sort_order) VALUES ('Alt eins', 0)").run();
     d1.prepare("INSERT INTO rating_criteria (name, sort_order) VALUES ('Alt zwei', 1)").run();
-    /* UND DIE BESTANDSZEILEN STEHEN SCHON JETZT AUF 'after' -- aus dem
-       DEFAULT der Spalte und nicht aus einem UPDATE. */
+    /* Die Zeilen stehen aus dem DEFAULT der Spalte auf 'after', nicht aus einem
+       UPDATE. */
     const phFreshRows = d1.prepare(
       "SELECT name, phase FROM rating_criteria WHERE name LIKE 'Alt %' ORDER BY sort_order").all();
-    // Die Spalte wieder herausnehmen -- SQLite kann das seit 3.35.
+    // SQLite kann DROP COLUMN seit 3.35.
     d1.exec('ALTER TABLE rating_criteria DROP COLUMN phase');
     const before = d1.prepare('PRAGMA table_info(rating_criteria)').all().map(c => c.name);
     d1.close();
@@ -18695,8 +16772,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Die Prueflage traegt die Spalte phase wirklich nicht',
       !before.includes('phase'), before.join(', '));
 
-    /* GEFAHREN WIRD DAS BLOSSE OEFFNEN, wie bisher: db.js fuehrt aus, was es
-       auszufuehren hat, beim require -- so wie beim Start der Installation. */
+    /* db.js fuehrt beim require aus, was es auszufuehren hat, wie beim Start. */
     const phOpen = () => {
       const r = require('child_process').spawnSync(
         process.execPath, ['-e', "require('./db'); console.log('OBEN');"], {
@@ -18711,28 +16787,22 @@ async function sendImport(object, mode, withoutShare = false) {
     const phStill = d2.prepare('PRAGMA table_info(rating_criteria)').all().map(c => c.name);
     const allAfter = d2.prepare('SELECT COUNT(*) n FROM rating_criteria').get().n;
     d2.close();
-    /* DAS OEFFNEN RUESTET DIE SPALTE NICHT MEHR NACH -- das ist die umgedrehte
-       Zusage, und sie ist der Grund fuer den Kasten zwei Zeilen tiefer. */
     check('Das Oeffnen der Datei ruestet die Spalte NICHT mehr nach',
       !phStill.includes('phase'), phStill.join(', '));
     check('Sondern benennt sie im Protokoll',
       /rating_criteria\.phase\s+is missing/.test(first.out),
       first.out.trim().slice(-400));
-    /* UND DIE INSTANZ KOMMT TROTZDEM HOCH -- Leitplanke L3, und hier ist sie
-       gefahren und nicht behauptet: der Prozess endet mit 0, und die Zeile
-       hinter dem require steht in der Ausgabe. */
+    /* Exitcode 0 und OBEN in der Ausgabe: die Zeile hinter dem require wurde
+       erreicht. */
     check('Und die Instanz kommt trotzdem hoch',
       first.status === 0 && /OBEN/.test(first.out), `Status ${first.status}`);
-    /* UND DIE ZEILEN SIND DABEI UNANGETASTET GEBLIEBEN. Es sind die beiden
-       von Hand gesetzten: das Oeffnen der Datei legt keine mehr an. */
+    /* Das Oeffnen legt keine Kriterien an; es bleiben die beiden von Hand
+       gesetzten. */
     check('Und die Kriterien stehen unveraendert da',
       allAfter === 2, `${allAfter} Kriterien`);
-    /* UND DER ZWEITE LAUF SAGT DASSELBE. */
     check('Und der zweite Lauf sagt dasselbe — der Hinweis ist kein Merker',
       second.status === 0 && /rating_criteria\.phase/.test(second.out),
       second.out.trim().slice(-400));
-    /* UND `migration0210` GIBT ES NICHT MEHR -- weder als Funktion noch als
-       Ausgang. */
     const phDb = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
     check('Und migration0210 gibt es weder in db.js noch am Ausgang',
       !/migration0210/.test(phDb) && require('./db').migration0210 === undefined,
@@ -18740,20 +16810,17 @@ async function sendImport(object, mode, withoutShare = false) {
     fs.rmSync(phMigDir, { recursive: true, force: true });
   }
 
-  /* --- Die Route zum Anlegen ------------------------------------------- */
+  /* ---- Die Route zum Anlegen ---- */
   const phBefore = (await PH.call('POST', '/api/criteria', { name: 'Wunsch', phase: 'before' }));
   check('Ein Kriterium laesst sich im Kasten „vorher" anlegen',
     phBefore.status === 201 && phBefore.content.phase === 'before',
     `${phBefore.status} ${JSON.stringify(phBefore.content)}`);
   const phWithout = (await PH.call('POST', '/api/criteria', { name: 'Optik' }));
-  /* OHNE ANGABE GILT 'after'. */
   check('Ohne Angabe steht es im Kasten „nachher"',
     phWithout.status === 201 && phWithout.content.phase === 'after',
     `${phWithout.status} ${JSON.stringify(phWithout.content)}`);
   const phNonsense = (await PH.call('POST', '/api/criteria', { name: 'Unfug', phase: 'spaeter' }));
-  /* UNFUG IST EINE ABSAGE MIT MELDUNG und kein stilles Zurechtbiegen: ein auf
-     'after' gebogenes Kriterium stuende im falschen Kasten, ohne dass es
-     jemand saehe. */
+  /* Ein auf 'after' gebogenes Kriterium stuende unbemerkt im falschen Kasten. */
   check('Ein anderer Wert ist eine Absage mit Meldung',
     phNonsense.status === 400 && /gehört entweder zu „Potenzial“ oder zu „Bewertung“/.test(phNonsense.content.error || ''),
     `${phNonsense.status} ${JSON.stringify(phNonsense.content)}`);
@@ -18761,51 +16828,44 @@ async function sendImport(object, mode, withoutShare = false) {
     !(await PH.call('GET', '/api/criteria')).content.some(c => c.name === 'Unfug'),
     JSON.stringify((await PH.call('GET', '/api/criteria')).content.map(c => c.name)));
 
-  /* --- Der Kasten laesst sich nicht wechseln --------------------------- */
+  /* ---- Der Kasten laesst sich nicht wechseln ---- */
   const phChange = await PH.call('PUT', `/api/criteria/${phBefore.content.id}`,
     { name: 'Wunsch', phase: 'after' });
   check('Der Kasten laesst sich nicht nachtraeglich aendern',
     phChange.status === 400 && /lässt sich später nicht ändern/.test(phChange.content.error || ''),
     `${phChange.status} ${JSON.stringify(phChange.content)}`);
-  /* UND ER STEHT DANACH UNVERAENDERT DA. Eine Absage, die trotzdem schreibt,
-     waere schlimmer als eine stille Uebernahme. */
   check('Und die Phase steht danach unveraendert',
     (await PH.call('GET', '/api/criteria')).content
       .find(c => c.id === phBefore.content.id)?.phase === 'before',
     JSON.stringify((await PH.call('GET', '/api/criteria')).content));
-  /* EIN UMBENENNEN OHNE DAS FELD GEHT WEITER. */
   const phRenamed = await PH.call('PUT', `/api/criteria/${phWithout.content.id}`, { name: 'Optik neu' });
   check('Umbenennen ohne das Feld geht weiter',
     phRenamed.status === 200 && phRenamed.content.name === 'Optik neu' &&
     phRenamed.content.phase === 'after',
     `${phRenamed.status} ${JSON.stringify(phRenamed.content)}`);
 
-  /* --- Die Route, die gefallen ist ------------------------------------- */
+  /* ---- Die entfernte Route ---- */
   const phItem = (await PH.call('POST', '/api/items', { title: 'Der Traeger' })).content;
-  /* ER STEHT AUF „getestet" -- seit 0.22.1. Die Route weist eine Bewertung an
-     einem ungetesteten Eintrag ab, und dieser Traeger bekommt gleich drei. */
+  /* tested: true, weil die Route eine Bewertung an einem ungetesteten Eintrag
+     abweist. */
   await PH.call('PUT', `/api/items/${phItem.id}`, { tested: true });
   await PH.call('PUT', `/api/items/${phItem.id}/ratings`,
     { criterionId: phWithout.content.id, value: 4 });
   const phPath = await PH.call('DELETE', `/api/items/${phItem.id}/ratings`);
-  /* 404 UND NICHT 200: die Route ist weg. Das Zuruecksetzen sitzt an der
-     Zeile und laeuft ueber PUT mit `value: 0`. */
+  /* Zurueckgesetzt wird ueber PUT mit value: 0 an der Zeile. */
   check('DELETE /api/items/:id/ratings gibt es nicht mehr',
     phPath.status === 404, `${phPath.status}`);
-  /* UND DER STERN STEHT NOCH -- die Absage hat nichts geleert. */
   check('Und die Sterne stehen danach unveraendert',
     (await PH.call('GET', `/api/items/${phItem.id}`)).content.avgRating === 4,
     JSON.stringify((await PH.call('GET', `/api/items/${phItem.id}`)).content.avgRating));
-  /* DER WEG, DER GEBLIEBEN IST: PUT mit 0. Eine Zeile mit 0 ist keine
-     Stimme, also faellt die Zahl weg. */
+  /* Eine Zeile mit 0 ist keine Stimme, also faellt die Zahl weg. */
   await PH.call('PUT', `/api/items/${phItem.id}/ratings`,
     { criterionId: phWithout.content.id, value: 0 });
   check('PUT mit value 0 setzt zurueck',
     (await PH.call('GET', `/api/items/${phItem.id}`)).content.avgRating === null,
     JSON.stringify((await PH.call('GET', `/api/items/${phItem.id}`)).content.avgRating));
 
-  /* --- DIE EINE PRUEFUNG, DIE DIESE RUNDE TRAEGT ------------------------
-     Zwei Nachher-Kriterien mit 4 und 4, ein Vorher-Kriterium mit 1. */
+  /* Zwei Nachher-Kriterien mit 4 und 4, ein Vorher-Kriterium mit 1. */
   const phSecond = (await PH.call('POST', '/api/criteria', { name: 'Haptik' })).content;
   await PH.call('PUT', `/api/items/${phItem.id}/ratings`, { criterionId: phWithout.content.id, value: 4 });
   await PH.call('PUT', `/api/items/${phItem.id}/ratings`, { criterionId: phSecond.id, value: 4 });
@@ -18819,7 +16879,6 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und in der Uebersicht dieselben beiden Zahlen',
     phL.avgRating === 4 && phL.potentialRating === 1,
     `avgRating ${phL.avgRating}, potenzialRating ${phL.potentialRating}`);
-  /* UND BEIDE ABFRAGEN NENNEN DIE PHASE -- im SELECT und im GROUP BY. */
   {
     const phSource = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
     const phQuery = (name) =>
@@ -18833,43 +16892,35 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und die gebuendelte Abfrage der Uebersicht genauso',
       Boolean(phAll) && namesPhase(phAll), phAll.replace(/\s+/g, ' ').trim() || '(nicht gefunden)');
   }
-  /* DAS UMLEGEN VON `tested` AENDERT KEINE DER BEIDEN. */
   await PH.call('PUT', `/api/items/${phItem.id}`, { tested: false });
   const phAfter = await phDetail(), phAfterL = await phList();
   check('Nach dem Umlegen von tested stehen beide Zahlen unveraendert',
     phAfter.avgRating === 4 && phAfter.potentialRating === 1 &&
     phAfterL.avgRating === 4 && phAfterL.potentialRating === 1,
     `${phAfter.avgRating}/${phAfter.potentialRating} und ${phAfterL.avgRating}/${phAfterL.potentialRating}`);
-  /* ERST DAS OBJEKT, DANN SEIN INHALT, und hier nicht aus
-     Ordnungsliebe: Rueckbau 573 nimmt `it.potenzialRechenweg` aus der
-     Antwort, und die Kette `phD.potenzialRechenweg.zeilen.length` warf
-     daraufhin, statt rot zu werden. */
+  /* Erst das Objekt, dann sein Inhalt: ein Rueckbau kann potentialCalc aus der
+     Antwort nehmen. */
   check('Beide Rechenwege stehen ueberhaupt in der Antwort',
     Boolean(phD.calc) && Boolean(phD.potentialCalc),
     `rechenweg ${typeof phD.calc}, potenzialRechenweg ${typeof phD.potentialCalc}`);
-  /* UND DIE BEIDEN RECHENWEGE TRAGEN JE NUR IHRE EIGENEN ZEILEN. */
   check('Der Rechenweg der Bewertung nennt zwei Zeilen, der des Potenzials eine',
     phD.calc?.rows?.length === 2 && phD.potentialCalc?.rows?.length === 1 &&
     phD.potentialCalc?.rows?.[0]?.criterionId === phBefore.content.id,
     `${phD.calc?.rows?.length} und ${phD.potentialCalc?.rows?.length}`);
-  /* UND DIE STERNZEILEN TRAGEN IHRE PHASE MIT -- der Browser filtert danach
-     und rechnet nichts. */
-  /* Die Prueflage traegt neben den drei hier angelegten die drei
-     mitgelieferten Kriterien, die der Server in eine frische Datei legt --
-     also sechs Zeilen, davon EINE im Kasten „before". */
+  /* Die Sternzeilen tragen ihre Phase; der Browser filtert danach und rechnet
+     nichts. */
+  /* Drei hier angelegte und drei mitgelieferte Kriterien, davon eines im Kasten
+     before. */
   check('Jede Sternzeile traegt ihre Phase',
     phD.ratings.length === 6 &&
     phD.ratings.every(r => PHASES_EXPECTED.includes(r.phase)) &&
     phD.ratings.filter(r => r.phase === 'before').map(r => r.name).join() === 'Wunsch',
     JSON.stringify(phD.ratings.map(r => `${r.name}:${r.phase}`)));
 
-  /* --- VOR DEM TEST WIRD NICHT BEWERTET — 0.22.1 ----------------------- DER
-     BEFUND AUS DEM BETRIEB: an einem ungetesteten Eintrag stand der
-     Bewertungskasten zugeklappt da, und ein Klick liess Sterne vergeben. */
+  /* ---- Vor dem Test wird nicht bewertet ---- */
   {
     const phBew = (criterion, value) => PH.call('PUT', `/api/items/${phItem.id}/ratings`,
       { criterionId: criterion, value: value });
-    /* ERST DIE PRUEFLAGE. */
     const phVorState = await phDetail();
     check('Die Prueflage steht: ungetestet, und mit Bewertungssternen',
       !phVorState.tested && phVorState.avgRating === 4,
@@ -18878,52 +16929,47 @@ async function sendImport(object, mode, withoutShare = false) {
     const phDenial = await phBew(phWithout.content.id, 5);
     check('Eine Bewertung am ungetesteten Eintrag wird abgewiesen',
       phDenial.status === 400, `${phDenial.status} ${JSON.stringify(phDenial.content)}`);
-    /* UND SIE SAGT, WARUM. Eine Absage ohne Grund ist auf dem Bildschirm ein
-       roter Streifen ohne Auskunft. */
+    /* Ohne Grund sieht der Benutzer nur einen roten Streifen. */
     check('Und die Absage nennt den Grund',
       /ungetestet|Vor dem Test/.test(phDenial.content?.error || ''),
       JSON.stringify(phDenial.content));
-    /* EINE ABSAGE, DIE TROTZDEM SCHREIBT, WAERE SCHLIMMER ALS KEINE. */
     check('Sie hat dabei nichts geschrieben',
       (await phDetail()).avgRating === 4, JSON.stringify((await phDetail()).avgRating));
 
-    /* DAS POTENZIAL GEHT WEITER -- es ist die Frage VOR dem Test und an einer
-       Idee die einzige, die sich stellt. */
+    /* Das Potenzial ist die Frage vor dem Test und bleibt deshalb offen. */
     const phBeforeOk = await phBew(phBefore.content.id, 3);
     check('Das Potenzial laesst sich am ungetesteten Eintrag weiter setzen',
       phBeforeOk.status === 200 && phBeforeOk.content.potentialRating === 3,
       `${phBeforeOk.status}, potenzialRating ${phBeforeOk.content?.potentialRating}`);
 
-    /* UND WEGNEHMEN MUSS IMMER GEHEN. */
     const phNullOk = await phBew(phWithout.content.id, 0);
     check('Wegnehmen geht auch am ungetesteten Eintrag',
       phNullOk.status === 200 && phNullOk.content.calc?.rows?.length === 1,
       `${phNullOk.status}, Zeilen ${phNullOk.content?.calc?.rows?.length}`);
 
-    /* UND MIT „getestet" IST DER WEG WIEDER OFFEN. Ohne diese Zeile bliebe
-       gruen, wer die Bewertung ueberhaupt gesperrt haette. */
+    /* Sonst bliebe gruen, wenn die Bewertung ganz gesperrt waere. */
     await PH.call('PUT', `/api/items/${phItem.id}`, { tested: true });
     const phAgainOk = await phBew(phWithout.content.id, 4);
     check('Am getesteten Eintrag geht sie wieder',
       phAgainOk.status === 200 && phAgainOk.content.calc?.rows?.length === 2,
       `${phAgainOk.status}, Zeilen ${phAgainOk.content?.calc?.rows?.length}`);
-    // Die Lage wird zurueckgestellt, wie sie vorgefunden wurde.
+    // Ausgangslage wiederherstellen.
     await phBew(phBefore.content.id, 1);
     await PH.call('PUT', `/api/items/${phItem.id}`, { tested: false });
   }
 
-  /* --- Das Austauschformat --------------------------------------------- */
+  /* ---- Das Austauschformat ---- */
   const phEx = await phExport(PH);
   check('Die Formatnummer steht auf 19', phEx.version === 19, `${phEx.version}`);
-  /* NUR ABWEICHUNGEN, wie bei den Gewichten: ein Nachher-Kriterium taucht in
-     criteriaPhase gar nicht auf. */
+  /* Nur Abweichungen, wie bei den Gewichten: Nachher-Kriterien fehlen in
+     criteriaPhase. */
   check('criteriaPhase nennt nur die Vorher-Kriterien',
     phEx.criteriaPhase && Object.keys(phEx.criteriaPhase).length === 1 &&
     phEx.criteriaPhase['Wunsch'] === 'before',
     JSON.stringify(phEx.criteriaPhase));
 
-  /* Eine Datei aus dem VORIGEN Format -- ohne das Feld. Alles darin ist
-     'after', ohne Sonderweg und ohne Fallunterscheidung nach Nummer. */
+  /* Eine Datei ohne criteriaPhase: alles darin gilt als after, ohne Sonderweg
+     nach Formatnummer. */
   const phOldDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-phase-alt-'));
   const PHA = startFurtherServer(phOldDir, {}, 7240);
   await PHA.ready;
@@ -18936,8 +16982,8 @@ async function sendImport(object, mode, withoutShare = false) {
     (await PHA.call('GET', '/api/criteria')).content.every(c => c.phase === 'after'),
     JSON.stringify((await PHA.call('GET', '/api/criteria')).content.map(c => `${c.name}:${c.phase}`)));
 
-  /* DER KONFLIKT UEBER DIE KAESTEN HINWEG. „Aus alter Datei" steht hier im
-     Kasten „after"; die Datei nennt es als Vorher-Kriterium. */
+  /* „Aus alter Datei" steht hier im Kasten after; die Datei nennt es als
+     Vorher-Kriterium. */
   const phVorRows = () => {
     const d = open(path.join(phOldDir, 'katalog.sqlite'));
     d.pragma('busy_timeout = 4000');
@@ -18959,15 +17005,12 @@ async function sendImport(object, mode, withoutShare = false) {
     phConflict.status === 400 && D.shows(phConflict.content.error, 'server.criteriaConflict') &&
     /Aus alter Datei/.test(phConflict.content.error || ''),
     `${phConflict.status} ${JSON.stringify(phConflict.content)}`);
-  /* UND ZWAR VOR DEM ERSTEN SCHREIBEN: an JEDER Tabelle steht dieselbe
-     Zeilenzahl wie vorher. Eine Absage nach halbem Schreiben waere keine. */
+  /* Verglichen wird jede Tabelle: die Absage kommt vor dem ersten Schreiben. */
   const phAfterConflict = phVorRows();
   check('Und es ist nichts geschrieben worden',
     JSON.stringify(phVor) === JSON.stringify(phAfterConflict),
     `${JSON.stringify(phVor)} gegen ${JSON.stringify(phAfterConflict)}`);
 
-  /* Und der Rundlauf: exportieren und in eine frische Instanz einspielen --
-     dieselben Zahlen in BEIDEN Kaesten. */
   const phFreshDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-phase-neu-'));
   const PHN = startFurtherServer(phFreshDir, {}, 7300);
   await PHN.ready;
@@ -18980,8 +17023,7 @@ async function sendImport(object, mode, withoutShare = false) {
     phRoundItem && phRoundItem.avgRating === 4 && phRoundItem.potentialRating === 1,
     JSON.stringify(phRoundItem && [phRoundItem.avgRating, phRoundItem.potentialRating]));
 
-  /* --- Die Bloecke ------------------------------------------------------
-     DIE BEIDEN STERNKAESTEN FUEHREN IHREN EINKLAPPZUSTAND NICHT MEHR IN `zu`. */
+  /* ---- Die Bloecke ---- */
   const phBl = await PH.call('PUT', '/api/settings', { blocks: {
     side: ['kategorie', 'tags', 'potenzial', 'bewertung'], bottom: [],
     closed: ['bewertung', 'potenzial', 'links'] } });
@@ -18991,40 +17033,30 @@ async function sendImport(object, mode, withoutShare = false) {
     equal(phBl.content.blocks.side, ['kategorie', 'tags', 'potenzial', 'bewertung']),
     JSON.stringify(phBl.content.blocks.side));
 
-  /* MIT await -- 0.34.0, aus demselben Grund wie in test/ui_translator.js:
-     ein nicht abgewartetes Ende laesst den Server in der Meldung an den
-     Treiber als offen erscheinen. */
+  /* Mit await: ein nicht abgewartetes Ende laesst den Server in der Meldung an
+     den Treiber als offen erscheinen. */
   await PH.stop(); await PHA.stop(); await PHN.stop();
   fs.rmSync(phDir, { recursive: true, force: true });
   fs.rmSync(phOldDir, { recursive: true, force: true });
   fs.rmSync(phFreshDir, { recursive: true, force: true });
 
   /* ---------------------------------------------------------------- */
-
-  /* ---------------------------------------------------------------- */
-  /* Der Schlussdurchlauf. */
   group('Keine Zeile ohne Benutzer');
 
-  /* Zuvor auffuellen -- und zwar ueber BEIDE Wege, ueber die eine Zeile
-     entstehen kann. */
+  /* Auffuellen ueber beide Wege, auf denen eine Zeile entsteht: Route und
+     Import. */
   const fillItem = (await call('POST', '/api/items', { title: 'Schlussdurchlauf' })).content;
   await call('POST', `/api/items/${fillItem.id}/test-days`, { day: '2024-07-07', rating: 2 });
   await sendComment(fillItem.id, { text: 'Kommentar zum Schlussdurchlauf' });
-  // Der fuenfte Traeger seit 0.8.30, ueber beide Wege: von Hand eingetragen
-// (hier) und eingespielt (unten in der Importdatei, in beiden Formen).
   await call('POST', `/api/items/${fillItem.id}/links`, { url: 'https://schluss.test/eins' });
   await call('POST', `/api/items/${fillItem.id}/links`, { url: 'Schlusssuchtext' });
-  // Der sechste Traeger seit 0.8.31, ebenfalls ueber beide Wege: echter Upload
-// hier, eingespielt unten in der Importdatei.
   await sendFiles(fillItem.id, [{ name: 'schluss.txt', type: 'text/plain', content: 'Schlussdurchlauf' }]);
-  // Auch ratings gehoert mit in den Durchlauf -- ueber beide Wege, auf
-// denen eine Bewertungszeile entsteht: von Hand gesetzt und eingespielt.
   const endCriteria = (await call('GET', '/api/criteria')).content;
   await call('PUT', `/api/items/${fillItem.id}/ratings`,
     { criterionId: endCriteria[0].id, value: 4 });
   await sendImport({ version: 14, title: 'S', items: [
-    // Formatnummer 5: die Linkzeile ist eine nackte String ohne
-// Verfasser -- sie muss trotzdem eine user_id bekommen.
+    // Formatnummer 5: ein Link ist ein String ohne Verfasser und bekommt trotzdem
+    // eine user_id.
     { title: 'Schluss eins', testDays: [{ day: '2024-07-08', rating: 3 }],
       ratings: [{ name: endCriteria[0].name, value: 5 }],
       links: ['https://schluss.example/alt', 'Alter Suchtext'],
@@ -19035,8 +17067,7 @@ async function sendImport(object, mode, withoutShare = false) {
                 { name: 'Frisch erfundenes Kriterium', value: 3 }],
       links: [{ url: 'https://schluss.example/neu', author: null },
               { url: 'https://schluss.example/wer', author: 'gibtesnicht' }],
-      // Eine Datei ohne author-Feld (Format bis 7) und eine mit -- beide
-// muessen eine user_id bekommen.
+      // Eine Datei ohne author-Feld (Format bis 7) und eine mit.
       attachments: [
         { filename: 'schluss-alt.txt', mime_type: 'text/plain',
           data_base64: Buffer.from('alt').toString('base64') },
@@ -19061,11 +17092,7 @@ async function sendImport(object, mode, withoutShare = false) {
     `${endNumber.links} Links, ${endNumber.attachments} Dateien`);
   end.close();
 
-  /* ============= Eine ungeeignete Datei laesst nichts zurueck — 0.35.0 =====
-     BEFUND server.js:3053 DER MESSUNG ZUR 0.35.0: die Schleife prueft,
-     wandelt und schreibt jede Datei in einem Durchgang. Scheitert gridImage
-     bei der fuenften von zehn, stehen vier Fotos schon in der Datenbank --
-     und die Antwort ist trotzdem 400. */
+  /* ---------------------------------------------------------------- */
   group('Eine ungeeignete Datei laesst nichts zurueck — 0.35.0');
   {
     const uzItem = (await call('POST', '/api/items', { title: 'Halber Upload' })).content;
@@ -19076,11 +17103,9 @@ async function sendImport(object, mode, withoutShare = false) {
       { name: 'zwei.png', type: 'image/png', content: uzBad }
     ]);
     check('Die Antwort sagt ab', uzAnswer.status === 400, `Status ${uzAnswer.status}`);
-    /* UND DIE ERSTE DATEI IST NICHT ANGEKOMMEN. Genau das war der Befund. */
     const uzAfter = (await call('GET', `/api/items/${uzItem.id}`)).content;
     check('Und die gueltige Datei davor ist nicht angekommen',
       (uzAfter.photos || []).length === 0, `${(uzAfter.photos || []).length} Fotos`);
-    /* DIE GEGENPROBE: zwei gueltige Dateien kommen beide an. */
     const uzBoth = await sendMultipart(`/api/items/${uzItem.id}/photos`, 'photos', [
       { name: 'eins.png', type: 'image/png', content: uzGood },
       { name: 'zwei.png', type: 'image/png', content: uzGood }
@@ -19091,11 +17116,8 @@ async function sendImport(object, mode, withoutShare = false) {
     await call('DELETE', `/api/items/${uzItem.id}`);
   }
 
-  /* ============= Mehr als 40 Fotos auf einmal — 0.35.2, BA 4 ==============
-     GEMELDET AUS DEM BETRIEB: multer zaehlt je Feldnamen herunter und wirft
-     beim 41. Bild LIMIT_UNEXPECTED_FILE. Der Handler lief nie, es wurde kein
-     einziges Foto gespeichert, und am Bildschirm stand „Unexpected field" --
-     die Message von multer, englisch und aus seinen eigenen Woertern. */
+  /* ---------------------------------------------------------------- */
+  /* multer wirft beim 41. Bild eines Feldes LIMIT_UNEXPECTED_FILE. */
   group('Mehr als 40 Fotos auf einmal — 0.35.2');
   {
     const fzItem = (await call('POST', '/api/items', { title: 'Viele Fotos' })).content;
@@ -19105,8 +17127,6 @@ async function sendImport(object, mode, withoutShare = false) {
       Array.from({ length: 41 }, fzOne));
     check('Einundvierzig Fotos in einer Anfrage werden abgewiesen',
       fzOver.status === 400, `Status ${fzOver.status}`);
-    /* UND DIE ABSAGE IST DEUTSCH UND NENNT DIE ZAHL. Genau das war der
-       Befund: bis 0.35.2 stand hier „Unexpected field". */
     check('Und die Absage steht in der Sprache des Lesers und nennt die 40',
       /40/.test(fzOver.content?.error || '')
       && !/Unexpected|field/i.test(fzOver.content?.error || ''),
@@ -19114,15 +17134,13 @@ async function sendImport(object, mode, withoutShare = false) {
     const fzAfter = (await call('GET', `/api/items/${fzItem.id}`)).content;
     check('Und es ist kein einziges Foto angekommen',
       (fzAfter.photos || []).length === 0, `${(fzAfter.photos || []).length} Fotos`);
-    /* DIE GEGENPROBE: genau vierzig gehen durch. Die Zahl ist die Schranke
-       der ANFRAGE und keine Obergrenze je Eintrag. */
+    /* 40 ist die Schranke der Anfrage, keine Obergrenze je Eintrag. */
     const fzFull = await sendMultipart(`/api/items/${fzItem.id}/photos`, 'photos',
       Array.from({ length: 40 }, fzOne));
     check('Genau vierzig kommen durch',
       fzFull.status === 201 && (fzFull.content.photos || []).length === 40,
       `Status ${fzFull.status}, ${(fzFull.content.photos || []).length} Fotos`);
-    /* UND EIN ZWEITER ZUG LEGT WEITERE VIERZIG DAZU -- es gibt keine
-       Obergrenze je Eintrag, und der Browser teilt genau so auf. */
+    /* Der Browser teilt groessere Mengen genauso in Zuege zu 40 auf. */
     const fzAgain = await sendMultipart(`/api/items/${fzItem.id}/photos`, 'photos',
       Array.from({ length: 40 }, fzOne));
     check('Und ein zweiter Zug legt weitere vierzig dazu — achtzig am Eintrag',
@@ -19131,17 +17149,11 @@ async function sendImport(object, mode, withoutShare = false) {
     await call('DELETE', `/api/items/${fzItem.id}`);
   }
 
-  /* ================= Die Auslieferung geht gezippt hinaus — 0.35.0 =========
-     DER SCHWERSTE EINZELBEFUND DER MESSUNG: public/style.css mass 300.472
-     Bytes, davon 211.862 in 408 Kommentarbloecken -- 70,5 Prozent. Der Server
-     hat bis 0.34.4 nicht komprimiert, also lud jeder Browser den ganzen Text
-     bei jedem Aufruf. Diese Runde tut beides: sie kuerzt die Kommentare und
-     zippt die Auslieferung. */
+  /* ---------------------------------------------------------------- */
   group('Die Auslieferung geht gezippt hinaus — 0.35.0');
   {
-    /* ROH HOLEN HEISST: die Antwort NICHT entpacken lassen. fetch() entpackt
-       gzip von selbst, und dann waere die Ersparnis nicht zu sehen -- deshalb
-       hier der Weg ueber node:http. */
+    /* fetch() entpackt gzip selbst; deshalb node:http, damit die Ersparnis
+       sichtbar bleibt. */
     const gzBytes = (file, encoding, extra = {}) => new Promise((done, fail) => {
       const rq = require('http').request(
         `${BASE}/${file}`, { headers: { 'accept-encoding': encoding, ...extra } }, (rs) => {
@@ -19164,37 +17176,30 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und ohne Wunsch wie bisher',
       !gzPlain.head('content-encoding'),
       String(gzPlain.head('content-encoding')));
-    /* DIE ZAHL GEHOERT IN DIE PRUEFUNG UND NICHT NUR INS PROTOKOLL. */
     check('Gezippt ist es hoechstens halb so gross',
       gzCss.raw.length * 2 < gzPlain.raw.length,
       `${gzPlain.raw.length} roh, ${gzCss.raw.length} gezippt`);
-    /* UND ES IST DIESELBE DATEI: entpackt Byte fuer Byte der Stand auf der
-       Platte. Eine Ersparnis, die den Inhalt aendert, waere keine. */
     const gzOnDisk = fs.readFileSync(path.join(__dirname, 'public', 'style.css'));
     check('Und entpackt ist es Byte fuer Byte dieselbe Datei',
       require('zlib').gunzipSync(gzCss.raw).equals(gzOnDisk),
       `${require('zlib').gunzipSync(gzCss.raw).length} entpackt, ${gzOnDisk.length} auf der Platte`);
     check('Und ungezippt ebenso', gzPlain.raw.equals(gzOnDisk),
       `${gzPlain.raw.length} gegen ${gzOnDisk.length}`);
-    /* DIE MARKE SAGT, DASS ES DIE GEZIPPTE FASSUNG IST -- zwei Fassungen
-       unter einer Marke waeren eine Zusage, die nicht stimmt. */
+    /* Gezippt und ungezippt duerfen nicht dasselbe ETag tragen. */
     check('Die gezippte Fassung traegt eine eigene Marke',
       /-gz"$/.test(gzCss.head('etag') || ''),
       String(gzCss.head('etag')));
     check('Und sie sagt, dass die Antwort von der Kopfzeile abhaengt',
       /Accept-Encoding/i.test(gzCss.head('vary') || ''),
       String(gzCss.head('vary')));
-    /* UND EINE BEKANNTE MARKE SPART DIE ANTWORT GANZ. */
     const gzAgain = await gzBytes('style.css', 'gzip', { 'if-none-match': gzCss.head('etag') });
     check('Eine bekannte Marke bekommt 304 und keine Bytes',
       gzAgain.status === 304 && gzAgain.raw.length === 0,
       `Status ${gzAgain.status}, ${gzAgain.raw.length} Bytes`);
-    /* DER TYP BLEIBT DER TYP DER DATEI UND WIRD NICHT ZU application/gzip. */
     check('Der Typ ist derselbe wie bei der ungezippten Auslieferung',
       gzCss.head('content-type') === gzPlain.head('content-type')
       && /^text\/css/.test(gzCss.head('content-type') || ''),
       `${gzCss.head('content-type')} gegen ${gzPlain.head('content-type')}`);
-    /* UND DIE UEBRIGEN AUSGELIEFERTEN TEXTDATEIEN EBENSO. */
     const gzMore = [], gzWrongType = [];
     for (const file of ['app.js', 'index.html', 'languages/de.json', 'favicon.svg']) {
       const one = await gzBytes(file, 'gzip');

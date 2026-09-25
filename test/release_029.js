@@ -1,6 +1,5 @@
-/* Kriterion — Pruefstand: der Stand 0.29.0 Der Fingerprint nennt die Datei,
-   das Faelligkeitsdatum, die eindeutige Adresse, die Filterzeile und die
-   Umkehr der Sortierung nach Titel. */
+/* Kriterion — Pruefstand: Fingerprint je Datei, Faelligkeitsdatum,
+   eindeutige Adresse, Filterzeile, Kategoriekasten und Sortierung nach Titel. */
 const H = require('./frame.js');
 
 async function run() {
@@ -8,18 +7,10 @@ async function run() {
    fs, os, path, crypto, CODE, COMMENT, __dirname, require, group, check,
    equal, PASSWORD, open, shortRun, shortRunAll, call, names
   } = H;
-  /* Dieses Modul ruft den Hauptserver. Es startet ihn fuer sich --
-     siehe mainServerReady() in test/frame.js. */
   await H.mainServerReady();
 
-/* ======================================================================
-   0.29.0 — „Worauf man sich verlassen können muss" WAS HIER STEHT UND WAS
-   NICHT: die Sicherungsprobe hat ihre eigenen Zusagen in der Gruppe „Die
-   Sicherungsprobe — 0.29.0" weiter oben, weil sie eine Instanz mit
-   eingerichtetem Sicherungsort braucht. */
 async function check0290() {
 
-  /* ---- BA 2: der Fingerprint nennt die Datei ------------------------- */
   group('Der Fingerprint nennt die Datei — 0.29.0');
   {
     const fpStats = (await call('GET', '/api/stats')).content;
@@ -27,7 +18,7 @@ async function check0290() {
     check('Die Kennzahlen tragen die Einzelwerte mit',
       Array.isArray(fpFiles) && fpFiles.length >= 15,
       `${fpFiles.length} Dateien`);
-    /* DIESELBE LISTE WIE DER GESAMTWERT -- und nicht eine zweite daneben (F6). */
+    /* Dieselbe Dateiliste wie der Gesamtwert, keine zweite. */
     check('Es sind genau die ausgelieferten und ausgefuehrten Dateien',
       fpFiles.some(z => z.name === 'server.js') &&
       fpFiles.some(z => z.name === 'public/app.js') &&
@@ -37,8 +28,7 @@ async function check0290() {
     check('Und sie stehen sortiert, wie der Gesamtwert sie liest',
       equal(fpFiles.map(z => z.name), [...fpFiles.map(z => z.name)].sort()),
       fpFiles.map(z => z.name).join(' · '));
-    /* DIE WERTE LASSEN SICH MIT sha256sum NACHRECHNEN -- genau das ist ihr
-       Zweck: der Handgriff in der README liefert dieselben acht Zeichen. */
+    /* Muss zum Befehl mit sha256sum in der README passen. */
     const fpWrong = fpFiles.filter(z => {
       const expected = crypto.createHash('sha256')
         .update(fs.readFileSync(path.join(__dirname, z.name))).digest('hex').slice(0, 8);
@@ -47,7 +37,6 @@ async function check0290() {
     check('Jeder Einzelwert ist der sha256 seiner Datei, acht Zeichen',
       fpWrong.length === 0 && fpFiles.every(z => /^[0-9a-f]{8}$/.test(z.hash)),
       fpWrong.map(z => z.name).join(' · ') || 'alle gleich');
-    /* UND SIE ENTSTEHEN IN DERSELBEN SCHLEIFE. */
     const fpServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
     const fpBody = fpServer.slice(fpServer.indexOf('function buildFingerprint()'),
                                   fpServer.indexOf('const FINGERPRINT = buildFingerprint()'));
@@ -56,8 +45,6 @@ async function check0290() {
       /const bytes = fs\.readFileSync/.test(fpBody) &&
       /h\.update\(bytes\)/.test(fpBody) && /\.update\(bytes\)\.digest/.test(fpBody),
       `${(fpBody.match(/fs\.readFileSync/g) || []).length} Lesevorgaenge in der Schleife`);
-    /* KEINE DAUERHAFTE ZEILE UND KEIN UEBERFAHRTEXT. Die Liste steht im Baum,
-       aber `hidden`; sichtbar wird sie erst auf Verlangen (F16). */
     const fpApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
     check('Die Dateiliste steht zugeklappt da und traegt keinen Ueberfahrtext',
       /<div class="fp-list" id="fp-list" hidden>/.test(fpApp) &&
@@ -69,7 +56,6 @@ async function check0290() {
       'der Verweis fehlt oder sagt nichts');
   }
 
-  /* ---- BA 3: das Faelligkeitsdatum ----------------------------------- */
   group('Das Faelligkeitsdatum — 0.29.0');
   {
     const dueItem = (await call('POST', '/api/items', { title: 'Faelligkeit' })).content;
@@ -90,35 +76,28 @@ async function check0290() {
       dueGood.status === 201 &&
       (dueGood.content?.comments || []).some(c => c.dueDate === today),
       JSON.stringify((dueGood.content?.comments || []).map(c => c.dueDate)));
-    /* EINE AUFGABE OHNE DATUM VERHAELT SICH WIE VORHER -- die Zusage, die
-       belegt, dass das Feld FREIWILLIG ist. */
     const dueNone = await dueAdd('ohne Datum', null);
     check('Und ohne Datum bleibt sie, was sie war',
       dueNone.status === 201 &&
       (dueNone.content?.comments || []).some(c => c.text === 'ohne Datum' && c.dueDate === null),
       JSON.stringify((dueNone.content?.comments || []).map(c => [c.text, c.dueDate])));
-    /* DER KALENDER WIRD GEPRUEFT UND NICHT NUR DIE FORM: "2026-02-31" hat die
-       richtige Form und gibt es nicht. */
+    /* "2026-02-31" hat die richtige Form, den Tag gibt es aber nicht. */
     const dueBad = await dueAdd('krumm', '2026-02-31');
     const dueWord = await dueAdd('wort', 'morgen');
     check('Ein Tag, den es nicht gibt, wird abgewiesen',
       dueBad.status === 400 && dueWord.status === 400,
       `${dueBad.status} / ${dueWord.status}`);
-    /* DAS FELD HAENGT NICHT AN kind: wer zur Notiz zurueckschaltet und wieder
-       zur Aufgabe, findet sein Datum vor. */
     const dueRow = (dueGood.content?.comments || []).find(c => c.dueDate === today);
     await call('PUT', `/api/comments/${dueRow.id}`, { kind: 'note' });
     const dueBack = await call('PUT', `/api/comments/${dueRow.id}`, { kind: 'task' });
     check('Das Datum ueberlebt den Weg ueber die Notiz',
       (dueBack.content?.comments || []).some(c => c.id === dueRow.id && c.dueDate === today),
       JSON.stringify((dueBack.content?.comments || []).map(c => [c.id, c.dueDate])));
-    /* UND DER RUECKWEG IST DAS LEERE FELD -- und es gibt keinen zweiten. */
     const dueClear = await call('PUT', `/api/comments/${dueRow.id}`, { dueDate: '' });
     check('Ein leeres Feld nimmt das Datum wieder weg',
       (dueClear.content?.comments || []).some(c => c.id === dueRow.id && c.dueDate === null),
       JSON.stringify((dueClear.content?.comments || []).map(c => [c.id, c.dueDate])));
 
-    /* „OFFEN" ORDNET UEBERFAELLIG, HEUTE, SPAETER -- UND OHNE DATUM HINTEN. */
     const dueOrderItem = (await call('POST', '/api/items', { title: 'Ordnung' })).content;
     for (const [text, d] of [['spaeter', tag(5)], ['ueberfaellig', tag(-5)],
                              ['ohne', null], ['heute', today]])
@@ -129,7 +108,6 @@ async function check0290() {
     check('„Offen" ordnet ueberfaellig · heute · spaeter, ohne Datum hinten',
       equal(dueOpen, ['ueberfaellig', 'heute', 'spaeter', 'ohne']),
       dueOpen.join(' · '));
-    /* UND DIE ZWEITE SORTIERSTUFE HAELT DIE GRUPPIERUNG (F18). */
     const dueA = (await call('POST', '/api/items', { title: 'Gruppe A' })).content;
     const dueB = (await call('POST', '/api/items', { title: 'Gruppe B' })).content;
     for (const it of [dueA, dueB, dueA, dueB])
@@ -142,8 +120,6 @@ async function check0290() {
     check('Und die Zeilen eines Eintrags bleiben beieinander',
       dueBroken.length === 0, dueGroup.join(' · '));
 
-    /* DAS AUSTAUSCHFORMAT: das Feld steht NUR an den Zeilen, die eines tragen
-       -- dieselbe Regel wie „nur Abweichungen" bei den Gewichten. */
     await call('POST', '/api/confirm', { password: PASSWORD, purpose: 'export' });
     const dueFile = (await call('GET', '/api/export?photos=0')).content;
     const dueComments = (dueFile?.items || []).flatMap(i => i.comments || []);
@@ -151,7 +127,6 @@ async function check0290() {
       dueComments.some(c => c.dueDate === tag(9)) &&
       dueComments.filter(c => c.text === 'ohne Datum').every(c => !('dueDate' in c)),
       JSON.stringify(dueComments.filter(c => c.dueDate).map(c => c.dueDate).slice(0, 5)));
-    /* UND DER IMPORT PRUEFT ES WIE DIE OBERFLAECHE. */
     const dueServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
     check('Der Import laesst das Datum durch dieselbe Pruefung',
       /const cDue = c\.dueDate === undefined \? \{ value: null \} : dueValue\(c\.dueDate\);/
@@ -159,7 +134,6 @@ async function check0290() {
       'der Import schreibt roh in die Spalte');
   }
 
-  /* ---- BA 4: die Adresse bekommt ihr Schloss ------------------------- */
   group('Die Adresse ist eindeutig — 0.29.0');
   {
     const emServer = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
@@ -168,8 +142,7 @@ async function check0290() {
       /ON users\(email COLLATE NOCASE\) WHERE email IS NOT NULL/.test(emServer),
       (emServer.match(/CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email[\s\S]{0,90}/) ||
         ['(nicht gefunden)'])[0]);
-    /* GEFAHREN UND NICHT GELESEN: der Index selbst weist ab, nicht die Frage
-       davor. */
+    /* Direkt in SQLite geschrieben: abweisen muss der Index, nicht der Server. */
     const emDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-adresse-'));
     shortRun(`require('./db'); console.log('da');`, emDir);
     const emOut = shortRun(`const { db } = require('./db');
@@ -190,8 +163,7 @@ async function check0290() {
     check('Und er laesst mehrere Zugaenge OHNE Adresse zu',
       /ohnedritte:DURCH/.test(emAll), emAll.split('\n').slice(-3).join(' | '));
 
-    /* BESTEHENDE DOPPELADRESSEN LASSEN DIE INSTANZ LAUFEN (F10) und werden
-       benannt. */
+    /* Ohne Index lassen sich doppelte Adressen anlegen. */
     const emOldDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-doppelt-'));
     shortRun(`require('./db'); console.log('da');`, emOldDir);
     shortRun(`const { db } = require('./db');
@@ -212,7 +184,7 @@ async function check0290() {
     check('Und die Karte „Benutzer" bekommt Adresse und Zugaenge',
       /GEMELDET \[\{"address":"doppelt@haus\.de","n":2,"names":"eins, zwei"\}\]/.test(emStart),
       (emStart.match(/GEMELDET .*/) || ['(nichts gemeldet)'])[0]);
-    /* UND DER KLARTEXT GILT NUR HINTER DER ANMELDUNG. */
+    /* requestAccess ist ohne Anmeldung erreichbar und verraet keine vergebene Adresse. */
     const emAuth = fs.readFileSync(path.join(__dirname, 'auth.js'), 'utf8');
     const emRequest = emAuth.slice(emAuth.indexOf('function requestAccess'),
                                    emAuth.indexOf('function requestAccess') + 3000);
@@ -224,15 +196,12 @@ async function check0290() {
     fs.rmSync(emOldDir, { recursive: true, force: true });
   }
 
-  /* ---- BA 6 und 7: die beiden Bildschirmbefunde ---------------------- */
   group('Die Filterzeile und der Kategoriekasten — 0.29.0');
   {
     const csSource = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
     const csApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
-    /* JSDOM RECHNET KEIN CSS. */
-    /* DIE UMBRUCHSTELLE HEISST 700 UND NICHT 760, und sie traegt zwei weitere
-       Bedingungen: `(max-height: 500px) and (max-width: 960px)` faengt das
-       Telefon im Querformat. */
+    /* jsdom rechnet kein CSS, daher wird der Text des Stilblatts geprueft.
+       Der zweite Teil der Bedingung trifft Telefone im Querformat. */
     const CS_NARROW = '@media (max-width: 700px), (max-height: 500px) and (max-width: 960px) {';
     check('Die Umbruchstelle des schmalen Schirms steht, wo sie stand',
       csSource.includes(CS_NARROW), '(die Umbruchstelle heisst anders)');
@@ -247,27 +216,19 @@ async function check0290() {
       /\.frow > \.frow-right-end \{ grid-column: 3; \}/.test(csNarrow) &&
       /\.frow > \.frow-right \{ grid-column: 1 \/ -1; \}/.test(csNarrow),
       'die Spaltenzuweisung fehlt oder trifft alle Verweise');
-    /* DER RUECKSETZER DER SORTIERZEILE BLEIBT DRAUSSEN, und das ist der Kern
-       von F17: mit ihm in Spalte 3 schrumpft die Sortierwahl auf 30 px, und
-       der NAME der Sortierung ist nicht mehr zu sehen. */
-    /* EINER SEIT 0.30.0, vorher zwei: der Umschalter „Tags" ist gefallen
-       (F9), und mit ihm der zweite Traeger der Klasse. */
+    /* Stuende der Ruecksetzer (right5) in Spalte 3, schrumpfte die Sortierwahl
+       auf 30 px und ihr Name waere nicht mehr zu sehen. */
     const csEnd = (csApp.match(/className = '[^']*frow-right-end[^']*'/g) || []);
     check('Genau ein Verweis traegt die Klasse — und der Ruecksetzer nicht',
       csEnd.length === 1 && !/right5\.className = '[^']*frow-right-end/.test(csApp),
       csEnd.join(' · '));
-    /* UND „und/Oder" STEHT SEIT 0.30.0 IN SPALTE EINS, in der ZWEITEN
-       Rasterzeile: unter der Beschriftung und nicht mehr neben ihr (Befund 6,
-       F9). */
     check('Der Und/Oder-Umschalter steht unter der Beschriftung — Spalte eins, Zeile zwei',
       /\.frow-tags > \.tagmode \{ grid-column: 1; grid-row: 2;/.test(csNarrow) &&
       !/\.frow > \.tagmode \{ grid-column: 2; \}/.test(csNarrow),
       (csNarrow.match(/\.frow-tags > \.tagmode[^\n]*/) || ['(nicht gefunden)'])[0]);
-    /* UND DIE WOLKE SPANNT UEBER ALLE RASTERZEILEN. */
     check('Und die Wolke spannt ueber alle Rasterzeilen',
       /\.frow-tags > \.pills\.cloud \{ grid-row: 1 \/ -1;/.test(csNarrow),
       (csNarrow.match(/\.frow-tags > \.pills\.cloud[^\n]*/) || ['(nicht gefunden)'])[0]);
-    /* DER KATEGORIEKASTEN: geteilt statt ausgerechnet. */
     check('Auswahl und Feld teilen sich, was der Knopf uebrig laesst',
       /\[data-block="kategorie"\] \.row-in > #cat,\s*\n\s*\[data-block="kategorie"\] \.row-in > \.input \{ flex: 1 1 0; min-width: 0; \}/
         .test(csNarrow),
@@ -276,16 +237,12 @@ async function check0290() {
       /#cat \{ min-width: 148px; \}/.test(csSource) &&
       !/id="cat"[^>]*min-width/.test(csApp),
       (csApp.match(/id="cat"[^>]*/) || ['(nicht gefunden)'])[0]);
-    /* AM SCHREIBTISCH AENDERT SICH NICHTS: keine der vier Regeln steht
-       ausserhalb der Umbruchstelle. */
     const csWide = csSource.slice(0, csSource.lastIndexOf(CS_NARROW));
     check('Und am Schreibtisch aendert sich nichts',
       !/frow-right-end/.test(csWide) &&
       !/grid-template-columns: auto minmax\(0, 1fr\) auto/.test(csWide) &&
       !/\[data-block="kategorie"\] \.row-in > #cat/.test(csWide),
       'eine der Regeln steht ausserhalb der Umbruchstelle');
-    /* DER PLATZHALTER IST GEKUERZT, in drei Sprachen -- und der SCHLUESSEL
-       bleibt. Ein neuer Schluessel waere eine Wegnahme an der Sprachdatei. */
     const csWords = ['de', 'en', 'tr'].map(code =>
       JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'))
         ['entry.newCategoryHint']);
@@ -293,7 +250,6 @@ async function check0290() {
       equal(csWords, ['Name', 'Name', 'Ad']), JSON.stringify(csWords));
   }
 
-  /* ---- BA 8: „Titel" kehrt um ---------------------------------------- */
   group('„Titel" kehrt um — 0.29.0');
   {
     const tiApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
@@ -303,13 +259,12 @@ async function check0290() {
     check('Und der Vergleicher kennt title_desc',
       /case 'title_desc':\s*return b\.title\.localeCompare\(a\.title, LOCALE\);/.test(tiApp),
       'die Gegenrichtung fehlt im Vergleicher');
-    /* JEDE DER SIEBEN GRUNDLAGEN SAGT, WORAUF EIN WECHSEL LANDET. */
+    /* Sieben Sortiergrundlagen; nur „Titel" startet aufsteigend. */
     const tiStarts = (tiApp.match(/start: '(up|down)'/g) || []);
     check('Jede Grundlage sagt, worauf ein Wechsel landet',
       tiStarts.length === 7 && tiStarts.filter(z => /up/.test(z)).length === 1,
       tiStarts.join(' · '));
-    /* UND DER SONDERFALL IST GANZ GEFALLEN (F21). */
-    /* GELESEN WIRD DER CODE UND NICHT DER KOMMENTAR. */
+    /* Ohne Kommentare, damit nur der Code zaehlt. */
     const tiCode = tiApp.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
     check('Der gesperrte Knopf und seine Weiche sind fort',
       !/twoWays/.test(tiCode) && !/dirBtn\.disabled/.test(tiCode) &&
@@ -324,7 +279,6 @@ async function check0290() {
       tiKeys.every(([where]) => where), JSON.stringify(tiKeys));
     check('Und „Z → A" steht in allen dreien',
       tiKeys.every(([, word]) => word === 'Z → A'), JSON.stringify(tiKeys));
-    /* GEFAHREN UND NICHT GELESEN: die Sortierung selbst, am laufenden Server. */
     const tiWhich = (await call('GET', '/api/items')).content;
     const tiTitles = (Array.isArray(tiWhich) ? tiWhich : tiWhich?.items || [])
       .map(i => i.title).filter(Boolean);

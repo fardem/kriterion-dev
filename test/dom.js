@@ -1,5 +1,4 @@
-/* Kriterion — Pruefstand: der Rahmen der Oberflaechenpruefungen buildDom()
-   baut ein vollstaendiges jsdom-Fenster mit einem gestellten Server dahinter. */
+/* Kriterion — Pruefstand: buildDom() baut ein jsdom-Fenster mit einem Mock des Servers. */
 const H = require('./frame.js');
 
 module.exports = (function (__dirname, require) {
@@ -8,13 +7,11 @@ const {
   check, equal, BASE, open, shortRun, names
 } = H;
 
-/* ================= Oberflaeche (echtes DOM) ================= */
-// Baut eine Oberflaeche im echten DOM auf.
-/* Das Passwort der Prueflage fuer die zweite Bestaetigung. */
+/* ---- Oberflaeche (echtes DOM) ---- */
+/* Passwort fuer die zweite Bestaetigung. */
 const DOM_PASSWORD = 'chefinnen-langes-wort';
 
-/* Das Sicherheitsprotokoll der Prueflage. */
-/* `zahlen` SEIT 0.13.0: die Zahlen an den Filterpillen. */
+/* counts: die Zahlen an den Filterpillen. */
 const DOM_LOG = {
   days: 180, limit: 100, total: 7,
   counts: { all: 7, failed: 2, logins: 1, users: 3, twofactor: 0, inventory: 1 },
@@ -30,8 +27,7 @@ const DOM_LOG = {
   ]
 };
 
-/* DIE GRUPPEN DES PROTOKOLLFILTERS FUER DEN MOCK -- GELESEN und nicht
-   abgeschrieben. */
+/* Aus auth.js gelesen, damit der Mock dieselben Gruppen kennt wie der Server. */
 const DOM_PROT_GROUPS = (() => {
   const q = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-protgruppen-'));
   const g = JSON.parse(shortRun(
@@ -40,8 +36,7 @@ const DOM_PROT_GROUPS = (() => {
   return g;
 })();
 
-/* Fuellt den Dialog der zweiten Bestaetigung und drueckt den Knopf. */
-/* DIE RUECKFRAGE AUS confirmBox() BEANTWORTEN -- 0.22.0. */
+/* Beantwortet jede Rueckfrage aus confirmBox() mit Ja oder Nein. */
 function placeConfirm(w, ja = true, transcript = null) {
   const observer = new w.MutationObserver(() => {
     for (const bd of w.document.querySelectorAll('.backdrop')) {
@@ -98,10 +93,7 @@ const DOM_PROVIDER = [
   { key: 'eigen3', name: '', template: '', own: true, present: false, active: false, isDefault: false }
 ];
 
-/* criteriaWeights und ownValues sind die beiden Stellschrauben der
-   Gewichtung. */
-/* DIESELBE ZUORDNUNG WIE `HINTS` IN mail.js, und sie steht hier, weil der
-   Nachbau den Server nicht fragen kann. Die TEXTE stehen nicht hier. */
+/* Wie `HINTS` in mail.js; der Mock kann den Server nicht fragen. */
 const MAIL_HINT_KEYS = { gmail: 'mail.hintGmail', gmx: 'mail.hintGmx', web: 'mail.hintWebDe' };
 const DE_TEXTS = JSON.parse(fs.readFileSync(
   path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8'));
@@ -118,55 +110,41 @@ const shows = (text, key) => {
 };
 
 function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }, hash = '', tags = [], overviewItems = null, setup = false, loggedIn = true, users = null, testDays = null, secondEntry = null, criteriaWeights = [1.5, 1, 0.5], ownValues = [3, 3, 3], withoutRating = false,
-  /* ZU WELCHEM KASTEN JEDES DER DREI KRITERIEN GEHOERT, seit 0.21.0. */
+  /* Kasten je Kriterium. */
   criteriaPhases = ['after', 'after', 'after'],
-  /* UND WELCHE ZAHL DER POTENZIALKASTEN DANN TRAEGT. Stellbar, weil „ohne
-     Zahl kein Knopf" auch fuer den zweiten Kasten zu belegen ist. */
+  /* Kopfzahl des Potenzialkastens; stellbar, um „ohne Zahl kein Knopf"
+     auch dort zu pruefen. */
   potentialValue = undefined,
-  /* OB DER BEISPIELEINTRAG UNGETESTET IST, seit 0.21.0. */
-  /* DIE KOMMENTARE DES BEISPIELEINTRAGS, stellbar seit 0.30.0 -- wie
-     `openInventory` fuer die Ansicht „Offen". */
+  /* null: die Kommentare und Testtage der Vorgabe. */
   commentInventory = null,
-  /* DIE TESTTAGE DES BEISPIELEINTRAGS, stellbar seit 0.30.1 -- wie
-     `commentInventory` fuer die Kommentare. */
   dayInventory = null,
   untested = false, openInventory = null, trashInventory = null, backupStatus = null, backupCopies = null, sessionsInventory = null, logInventory = null,
   publicAddress = '', mailStatus = null, mailError = false, ownAddress = 'chefin@beispiel.de',
   tokenThrottle = 0, signup = false, requestsStatus = null, twoFactorState = null, statsExport = null,
   statsMethod = undefined,
-  /* DIE BILDABLAGE IN DEN KENNZAHLEN, seit 0.19.0 -- stellbar, weil die Karte
-     drei Lagen zeigen muss: es liegt PNG da (der Knopf ist bedienbar), es
-     liegt keines mehr da (er ist es nicht), und ein Lauf ist unterwegs. */
+  /* Drei Lagen: PNG liegt da, keines liegt da, ein Lauf ist unterwegs. */
   statsImageFormats = undefined,
   statsSwitch = null,
-  /* DER ZWEITE BESTANDSLAUF, seit 0.19.4 -- eigenes Feld und nicht dasselbe:
-     die Karte muss auseinanderhalten koennen, welcher der beiden laeuft. */
+  /* Eigenes Feld: die Karte muss unterscheiden, welcher der beiden Laeufe laeuft. */
   statsGeometry = null,
   convertImages = true,
   uploadLimits = null,
   twoFactorCodes = null, loginFactor = false, searchError = false, searchThrottles = null,
   categories = [{ id: 21, name: 'Werkzeug', usage_count: 2, language: 'de' },
                 { id: 22, name: 'Material', usage_count: 0, language: 'de' }],
-  /* DIE ERSTELLUNGSSPRACHE DER DREI KRITERIEN -- 0.25.0. */
   criteriaLanguages = ['de', 'de', 'de'],
-  /* DIE NAMEN JE SPRACHE, seit 0.24.5 -- `{ en: { 21: 'Tool' }, tr: { … } }`. */
+  /* Form: `{ en: { 21: 'Tool' }, tr: { … } }`. */
   categoryNames = null, criterionNames = null,
-  /* Die Ablehnung am Beispieleintrag, seit 0.14.0. */
   rejection = null,
-  /* WEM DER EINTRAG GEHOERT, seit 0.15.0. Vorgabe ist "einem anderen" (bert)
-     -- so stand er hier immer. */
-  /* WELCHE VERGLEICHSZAHL DER RECHENWEG TRAEGT, seit 0.17.0. */
+  /* Vergleichszahl ohne Gewichte im Rechenweg. */
   calculationEqual = undefined,
-  /* WIE VIELE STIMMEN JE KRITERIENZEILE STECKEN, seit 0.17.2. */
+  /* Schnitt und Stimmenzahl je Kriterienzeile. */
   voteColumns = null,
   entryMine = false } = {}) {
-  // Aus demselben Paket wie JSDOM, das der Aufrufer mitbringt -- require ist
-// hier ein Griff in den Zwischenspeicher, kein zweites Laden.
+  // Kommt aus dem jsdom-Paket des Aufrufers; require liest nur den Modulcache.
   const { VirtualConsole } = require('jsdom');
-  // Die Anbieter kommen ueber /api/settings. Wer eigene Einstellungen
-// mitgibt, ueberschreibt gezielt -- alles Uebrige bleibt bei der Vorgabe.
   settings = { searchProviders: DOM_PROVIDER, searchNames: 3, ...settings };
-  /* DIE DREI VOKABELTAFELN, WIE SIE DER ECHTE SERVER SCHICKT -- 0.24.4. */
+  /* Die drei Vokabeltafeln wie vom Server. */
   {
     const languageDirectory = path.join(__dirname, 'public', 'languages');
     const codes = fs.readdirSync(languageDirectory)
@@ -183,37 +161,28 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     if (!settings.vocabulariesOwn)
       settings.vocabulariesOwn = Object.fromEntries(
         codes.map(c => [c, c === readerLanguage ? { ...entered } : {}]));
-    /* UND DER RUECKFALL WIE AM SERVER: was fuer EINE Sprache eingetragen ist,
-       steht in jeder anderen, fuer die nichts dasteht -- „lieber ein Wort in
-       der falschen Sprache als gar keines" (0.24.3, F3). */
+    /* Rueckfall wie am Server: ein Eintrag fuer eine Sprache gilt in jeder
+       Sprache ohne eigenen Eintrag. */
     if (!settings.vocabularies)
       settings.vocabularies = Object.fromEntries(
         codes.map(c => [c, { ...settings.vocabularyDefaults[c], ...entered }]));
   }
-  /* DIE ZWEI NAMENSTAFELN WERDEN KOPIERT -- 0.24.5. */
+  /* Kopien, weil writeNameMock die Tafeln aendert. */
   categoryNames = categoryNames ? JSON.parse(JSON.stringify(categoryNames)) : null;
   criterionNames = criterionNames ? JSON.parse(JSON.stringify(criterionNames)) : null;
-  /* Vier Zugaenge, und jeder steht fuer eine andere Lage -- die Eigentuemerin
-     (die Fragende selbst), ein zweiter Admin, ein gewoehnlicher Benutzer und
-     ein Grabstein. */
+  /* Eigentuemerin (die Fragende), zweiter Admin, gewoehnlicher Benutzer, Grabstein. */
   users = users || {
     ich: 1, mayRoles: true, owner: 1,
     users: [
       { id: 1, username: 'chefin', role: 'owner', status: 'active', last_login: '2026-08-01 09:00:00', created_at: '2026-01-01 09:00:00', entries: 5 },
-      /* bert TRAEGT ohnePasswort UND der Grabstein AUCH, und das ist die
-         eigentliche Lage: beide tragen in Wahrheit den leeren Hash. */
+      /* bert und der Grabstein haben beide den leeren Hash. */
       { id: 2, username: 'bert', role: 'admin', status: 'active', last_login: null, created_at: '2026-02-01 09:00:00', entries: 2, withoutPassword: true },
       { id: 3, username: 'carla', role: 'user', status: 'locked', last_login: null, created_at: '2026-03-01 09:00:00', entries: 0, withoutPassword: false },
       { id: 4, username: 'deleted-4', role: 'user', status: 'deleted', last_login: null, created_at: '2026-04-01 09:00:00', entries: 1, withoutPassword: true }
     ]
   };
-  /* Der Papierkorb der Prueflage. Zwei Zeilen, zwei Lagen: eine von einem
-     lebenden Zugang, eine von einem Grabstein. */
-  /* Die eigenen Anmeldungen der Prueflage. */
   const log = logInventory || DOM_LOG;
-  /* Der Mailzugang der Prueflage. */
-  /* Die Warteschlange der Prueflage, 0.9.1. VORGABE IST "AN, MIT ZWEI
-     ZEILEN": der interessantere Zustand ist der mit Inhalt. */
+  /* Vorgabe: an, mit zwei Zeilen; der Zustand mit Inhalt prueft mehr. */
   requestsStatus = requestsStatus || {
     an: true, deliveryReady: true, deliveryReason: '', cap: 20, hours: 24,
     requests: [
@@ -223,10 +192,9 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
         created_at: '2026-08-21 10:00:00', confirmed_at: '2026-08-21 10:30:00' }
     ]
   };
-  // belegt wird GERECHNET und nicht gestellt -- am echten Server zaehlt es die
-// Zeilen, und ein Mock mit eigener Zahl deckte genau das zu.
+  // used wird gezaehlt wie am Server; eine feste Zahl im Mock verdeckte Fehler.
   const requestsMock = () => ({ ...requestsStatus, used: requestsStatus.requests.length });
-  /* ---- Der zweite Faktor im Mock, 0.10.0 ---- FESTE, ERFUNDENE WERTE. */
+  /* ---- Zweiter Faktor im Mock: feste, erfundene Werte ---- */
   const ZF_MOCK_SECRET = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
   const ZF_MOCK_GROUPS = 'GEZD GNBV GY3T QOJQ GEZD GNBV GY3T QOJQ';
   const ZF_MOCK_ROW = 'otpauth://totp/Kriterion%3Achefin?secret=' + ZF_MOCK_SECRET +
@@ -238,8 +206,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     ['AAAAA-BBBBB', 'CCCCC-DDDDD', 'EEEEE-FFFFF', 'GGGGG-HHHHH',
      'JJJJJ-KKKKK', 'MMMMM-NNNNN', 'PPPPP-QQQQQ', 'RRRRR-SSSSS'];
   const MAIL_DENIED = DE_TEXTS['server.deniedOwner'];
-  /* DIE ANBIETERLISTE, WIE SIE ÜBER /api/mail HEREINKOMMT -- seit 0.17.3 samt
-     Hinweis und den drei festen Werten je Anbieter. */
+  /* Wie aus /api/mail: Hinweis und drei feste Werte je Anbieter. */
   const MAIL_PROVIDER_MOCK = [
     { key: 'gmx', name: 'GMX', server: 'mail.gmx.net', port: 587, secure: false,
       hint: 'GMX verlangt, den Versand über fremde Programme im Konto erst freizuschalten.' },
@@ -260,8 +227,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     server: mailStatus.server || '', port: mailStatus.port || 0, secure: mailStatus.secure === true,
     user: mailStatus.user || '', sender: mailStatus.sender || '',
     passwordSet: Boolean(mailStatus.passwordSet),
-    /* DIE DREI HINWEISE KOMMEN AUS DER SPRACHDATEI UND NICHT AUS DIESER ZEILE
-       -- 0.31.1. */
+    /* Hinweise aus der Sprachdatei, wie am Server. */
     hint: MAIL_HINT_KEYS[mailStatus.provider]
       ? DE_TEXTS[MAIL_HINT_KEYS[mailStatus.provider]] : '',
     hintAlways: DE_TEXTS['mail.hintAlways'],
@@ -271,7 +237,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     addressSet: Boolean(publicAddress), address: publicAddress,
     deadlineMinutes: 15, testedAt: mailStatus.testedAt || null, seconds: 20
   });
-  /* Was der Server ueber den Versand sagt -- NACHGERECHNET, nicht gesetzt. */
+  /* Aus Mailzugang, Adresse und Empfaenger berechnet, wie am Server. */
   const deliveryState = (empfaenger) => {
     const k = mailCardMock();
     if (!k.configured) return { delivery: 'aus', deliveryReason: 'Es ist kein Mailzugang eingerichtet.' };
@@ -284,7 +250,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       ? { delivery: 'fehlgeschlagen', deliveryReason: 'Message failed: 550 abgelehnt' }
       : { delivery: 'ok', deliveryReason: '' };
   };
-  /* Welcher Zugang eine Adresse hinterlegt hat. */
+  /* E-Mail-Adresse je Benutzernummer. */
   const userAddresses = { 1: 'chefin@beispiel.de', 2: 'bert@beispiel.de', 3: '', 4: '' };
   const sessions = sessionsInventory || [
     { id: 'a'.repeat(64), loggedInAt: '2026-08-20 08:00:00',
@@ -303,9 +269,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       deletedBy: { id: 4, name: null, deleted: true },
       files: 0, bytes: 512, daysOpen: 27 }
   ];
-  /* Die Sicherung der Prueflage. Vorgabe: eingerichtet, mit einer Sicherung
-     von vor drei Tagen. */
-  // Die Grenzen beim Hochladen in MB, mit der Spanne des Servers.
+  // Grenzen beim Hochladen in MB, mit der Spanne des Servers.
   const uploadLimitsMock = { photo: 30, commentImage: 20, video: 20, commentVideo: 20, attachment: 50,
     ...(uploadLimits || {}) };
   const UPLOAD_RANGES_MOCK = { photo: { min: 1, max: 50, fallback: 30 },
@@ -313,25 +277,21 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     commentVideo: { min: 1, max: 100, fallback: 20 }, attachment: { min: 1, max: 100, fallback: 50 } };
   const backup = backupStatus || {
     configured: true, root: '/backup', place: 'taeglich', filePath: '/backup/taeglich',
-    // Die Vorgabe ist die EMPFOHLENE Lage -- ausserhalb. Die Gegenlage steht
-// als eigener Aufbau in der Gruppe darunter.
+    // Vorgabe ist die empfohlene Lage ausserhalb des Arbeitsordners.
     inWorkDir: false,
     dbBytes: 52428800, durationSeconds: 1, reachable: true, number: 2,
     last: { file: 'kriterion-2026-08-20-03-00-00.sqlite', bytes: 52428800,
               at: '2026-08-20 03:00:00', daysAgo: 3, outdated: false },
-    // Seit 0.8.91: die Vorgabe ist "nie gewechselt". Die drei Lagen des
-// Wechsels bekommen ihre eigenen Aufbauten in der Gruppe darunter.
     changedAt: null, outdated: 0,
-    /* DIE AUFRAEUMREGEL, seit 0.20.0. VORGABE: Schalter AUS, 3 und 30, und
-       die Regel trifft nichts -- genau die Lage einer frischen Installation. */
+    /* Vorgabe wie bei einer frischen Installation: Schalter aus, 3 und 30,
+       die Regel trifft nichts. */
     cleanup: {
       an: false, keep: 3, days: 30,
       limits: { keep: { fallback: 3, min: 1, max: 20 },
                  days: { fallback: 30, min: 7, max: 365 } },
       reachable: true, matched: [], bytes: 0,
       reason: 'Alle 2 Backups sind unter den jüngsten 3.',
-      /* DIE VOLLSTAENDIGE LISTE -- in der Vorgabelage die beiden Kopien, die
-         `zahl: 2` daneben behauptet. */
+      /* Die beiden Backups, die `number: 2` nennt. */
       files: [
         { nr: 1, file: 'kriterion-2026-08-20-03-00-00.sqlite', at: '2026-08-20 03:00:00',
           daysAgo: 3, bytes: 52428800, affected: false, outdated: false },
@@ -341,20 +301,15 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       oldCount: 0, oldBytes: 0, oldFiles: []
     }
   };
-  /* DIE KOPIEN AM ORT -- die Liste, aus der der Mock seine Vorschau WIRKLICH
-     rechnet. */
+  /* Aus dieser Liste rechnet der Mock die Vorschau. */
   const cleanupCopies = (backupCopies || []).slice();
-  // DER QUELLTEXT STEHT OBEN UND WIRD EINMAL GELESEN -- 0.30.0, F4.
   const source = BASE_SOURCE;
-  /* Die dreistellige Stimmenzahl der zweiten Kriterienzeile. */
+  /* Dreistellige Stimmenzahl der zweiten Kriterienzeile. */
   const MATCH_MANY = 128;
-  /* SCHNITT UND STIMMENZAHL STEHEN ALS PAAR und nicht als zwei Listen: sie
-     gehoeren zusammen, und zwei getippte Listen liefen frueher oder spaeter
-     auseinander. */
+  /* Schnitt und Stimmenzahl als Paar, damit sie nicht auseinanderlaufen. */
   const columns = voteColumns || [{ avg: 3.4, count: 5 },
     { avg: 4.1, count: MATCH_MANY }, { avg: null, count: 0 }];
-  /* JEDE ZEILE TRAEGT IHRE ERSTELLUNGSSPRACHE -- 0.25.0, wie am echten Server
-     (`rating_criteria.language`). */
+  /* language wie `rating_criteria.language` am Server. */
   const criteria = [
     { id: 7, name: 'Zuerst', sort_order: 0, usage_count: 2, weight: criteriaWeights[0],
       phase: criteriaPhases[0], language: criteriaLanguages[0] },
@@ -363,38 +318,32 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     { id: 9, name: 'Zuletzt', sort_order: 2, usage_count: 1, weight: criteriaWeights[2],
       phase: criteriaPhases[2], language: criteriaLanguages[2] }
   ];
-  /* Verfasser im Mock: der falsche Server muss antworten wie der echte, sonst
-     verschwindet genau die Pruefung, fuer die er gebaut ist. */
   const vChefin = { id: 1, name: 'chefin', deleted: false };
   const vBert = { id: 2, name: 'bert', deleted: false };
   const vTomb = { id: 4, name: null, deleted: true };
   // Ein Benutzername ist Eingabe, keine Konstante.
   const vBad = { id: 5, name: 'Verfasser <b id="boese-link">X</b>', deleted: false };
-  /* DIE KOPFZAHL DES POTENZIALKASTENS -- 0.21.0. */
+  /* Kopfzahl des Potenzialkastens. */
   const potentialAverage = criteriaPhases.includes('before')
     ? (potentialValue === undefined ? 4.2 : potentialValue) : null;
   const example = {
     id: 1, title: 'Beispiel', description: 'Eine Beschreibung.\nZweite Zeile.',
     rejected: !!rejection, tested: !untested, favorite: false, category: null,
-    /* Der echte Server liefert die drei Felder IMMER aus -- leer, wenn nichts
-       dasteht. */
+    /* Der Server liefert die drei Felder immer, ohne Wert als null. */
     rejected_at: rejection?.at ?? null,
     rejected_reason: rejection?.reason ?? null,
     rejectedAuthor: rejection?.author ?? null,
-    /* ZWEI ANGABEN NACH HAUSMUSTER, seit 0.15.0, und sie werden GERECHNET wie
-       im echten Server: `mine` aus dem Verfasser des EINTRAGS, `rejectedMine`
-       aus dem der BEGRUENDUNG -- beide gegen die Nummer der Fragenden. */
+    /* Wie am Server: mine aus dem Verfasser des Eintrags, rejectedMine aus dem
+       der Begruendung, beide gegen die Nummer der Fragenden. */
     mine: entryMine,
     rejectedMine: !!(rejection?.author && rejection.author.id === users.ich),
     author: entryMine ? vChefin : vBert,
-    /* ZWEI ZEILEN, UND SIE SIND VERSCHIEDENER ART -- ein Mock mit lauter
-       Bildern naehme genau die Pruefungen weg, fuer die er hier gebraucht
-       wird. */
+    /* Ein Bild und ein Video: beide Arten werden geprueft. */
     photos: [{ id: 5, mime_type: 'image/png', focus_x: 50, focus_y: 50, sort_order: 0,
                kind: 'image', duration: null },
              { id: 6, mime_type: 'video/mp4', focus_x: 50, focus_y: 50, sort_order: 1,
                kind: 'video', duration: 42 }],
-    /* Sieben Adressen und eine Suchzeile -- an der letzten haengt die
+    /* Sieben Adressen und eine Suchzeile; an der Suchzeile haengt die
        Pruefung der Kennzeichnung. */
     links: [
       ...Array.from({ length: 4 }, (_, i) => ({
@@ -410,9 +359,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
         created_at: '2026-08-04 13:00:00', mine: false, author: vTomb }
     ],
     comments: commentInventory || [
-      /* mine und bilderEntfernt an JEDEM Kommentar: der echte Server liefert
-         beides seit 0.8.3, und ein Mock, der die Antwort vereinfacht, loescht
-         genau die Pruefung, fuer die er gebaut ist. */
+      /* mine und imagesRemoved stehen wie am Server an jedem Kommentar. */
       { id: 61, text: 'Angepinnte Notiz', kind: 'note', pinned: true, author: vChefin,
         mine: true, imagesRemoved: 0,
         created_at: '2026-08-03 09:00:00', updated_at: null, images: [] },
@@ -421,15 +368,12 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
         created_at: '2026-08-02 09:00:00', updated_at: null,
         images: [{ id: 71, filename: 'a.jpg', sort_order: 0 },
                  { id: 72, filename: 'b.jpg', sort_order: 1 }] },
-      // Der Grabstein: die Antwort nennt nur die Nummer, die Beschriftung
-      // entsteht in app.js.
+      // Grabstein: die Antwort nennt nur die Nummer, die Beschriftung setzt app.js.
       { id: 63, text: 'Gewöhnliche Notiz', kind: 'note', pinned: false, author: vTomb,
         mine: false, imagesRemoved: 2,
         created_at: '2026-08-01 09:00:00', updated_at: '2026-08-01 10:00:00', images: [] },
-      // Der vierte traegt alles, was am Kommentartext haengt: Markup, das
-      // niemals Markup werden darf; eine Adresse mit & in der Abfragezeile
-      // (zerlegt wird der Rohtext, nicht der maskierte); ein nachlaufendes
-      // Komma und ein nachlaufender Punkt; www.
+      // Markup, das Text bleiben muss; eine Adresse mit & (zerlegt wird der
+      // Rohtext, nicht der maskierte); nachlaufendes Komma und Punkt; www.
       { id: 64, text: 'Siehe <b>hier</b>: https://beispiel.de/pfad?a=1&b=2, dazu www.beispiel.de. '
           + 'Nicht beispiel.de und nicht javascript:alert(1)',
         kind: 'note', pinned: false, author: null, mine: false, imagesRemoved: 0,
@@ -442,9 +386,8 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
         created_at: '2026-07-29 09:00:00', updated_at: null, images: [] }
     ],
     attachments: [
-      /* Vier Verfasserlagen wie an der Linkzeile: zwei vom Verfasser des
-         Eintrags (dort steht kein Name), eine von der Fragenden (mine) und
-         eine herrenlose. */
+      /* Wie an der Linkzeile: zwei vom Verfasser des Eintrags (ohne Name),
+         eine eigene (mine), eine herrenlose. */
       { id: 41, filename: 'notiz.txt', mime_type: 'text/plain', size: 120, sort_order: 0, preview: 'text',
         created_at: '2026-08-01 10:00:00', mine: false, author: vBert },
       { id: 42, filename: 'foto.png', mime_type: 'image/png', size: 2048, sort_order: 1, preview: 'image',
@@ -455,42 +398,31 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
         created_at: '2026-08-03 13:00:00', mine: false, author: null }
     ],
     tags: tags.filter(t => t.assigned),
-    // mine: der echte Server sagt zu jedem Testtag, ob er dem Abrufenden
-    // gehoert.
+    // mine: ob der Testtag dem Abrufenden gehoert, wie am Server.
     testDays: dayInventory || [{ id: 3, day: '2026-08-01', rating: 4, mine: true, author: vChefin,
                  tags: [{ id: 91, name: 'Regen' }] }],
-    // avg und count stehen an jeder Zeile.
-    /* DREI ZEILEN, UND SIE SIND VERSCHIEDEN LANG -- das ist seit 0.14.0 keine
-       Zierde mehr, sondern der Gegenstand: die Sternreihen sollen an
-       derselben Stelle beginnen, und eine Prueflage, in der alle Zahlen
-       gleich lang sind, kann diesen Fehler gar nicht tragen. */
+    /* Zahlen verschiedener Laenge: die Sternreihen muessen trotzdem an
+       derselben Stelle beginnen. */
     ratings: criteria.map((c, i) => ({
       criterion_id: c.id, name: c.name, value: ownValues[i], weight: c.weight,
-      // DIE PHASE REIST AN DER ZEILE MIT, wie beim echten Server -- der
-// Browser teilt `ratings` danach in seine beiden Kaesten.
+      // phase wie am Server; der Browser teilt `ratings` danach in zwei Kaesten.
       phase: c.phase,
       avg: columns[i].avg, count: columns[i].count })),
     avgRating: withoutRating ? null : 3, testCount: 1, testAvg: 4, testLast: 4,
-    /* ---- DER RECHENWEG -- 0.16.0 ------------------------------------------
-       WIE DER ECHTE SERVER: er entsteht dort IN gesamtSchnitt(), also in
-       derselben Schleife wie avgRating -- nur die bewerteten Kriterien, das
-       dritte hat kein avg und faellt heraus. */
+    /* Wie gesamtSchnitt() im Server: nur bewertete Kriterien, das dritte hat kein avg. */
     calc: (() => {
       const rows = criteria
         .map((c, i) => ({ criterionId: c.id, average: columns[i].avg, weight: c.weight,
                           phase: c.phase }))
-        // NUR DER KASTEN „after" -- wie im echten Server, wo die Menge nach
-        // Phase geschnitten ist, BEVOR gesamtSchnitt() sie sieht.
+        // Nur „after": der Server schneidet nach Phase, bevor gesamtSchnitt() rechnet.
         .filter(z => z.phase === 'after')
         .filter(z => z.average != null)
         .map(z => ({ ...z, product: z.average * z.weight }));
       const sum = rows.reduce((n, z) => n + z.product, 0);
       const divisor = rows.reduce((n, z) => n + z.weight, 0);
-      /* OHNE JEDE BEWERTUNG GIBT ES KEINE ZAHL UND KEINEN RECHENWEG -- der
-         echte Server liefert dann avgRating null und einen Weg ohne Zeilen. */
-      /* ---- DIE VERGLEICHSZAHL OHNE GEWICHTE -- 0.17.0 ---- WIE DER ECHTE
-         SERVER: sie entsteht dort IN derselben Schleife, aus DERSELBEN Menge,
-         und ihr Teiler ist die ZAHL der bewerteten Kriterien. */
+      /* Ohne Bewertung wie am Server: avgRating null, Rechenweg ohne Zeilen. */
+      /* Vergleichszahl ohne Gewichte wie am Server: dieselbe Menge, Teiler ist
+         die Zahl der bewerteten Kriterien. */
       const equalSum = rows.reduce((n, z) => n + z.average, 0);
       const equal = calculationEqual === undefined ? 4 : calculationEqual;
       if (withoutRating) return { rows: [], sum: 0, divisor: 0, raw: null, result: null,
@@ -500,9 +432,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
         equalRaw: rows.length ? equalSum / rows.length : null,
         equalResult: equal };
     })(),
-    /* ---- DIE ZWEITE KOPFZAHL UND IHR RECHENWEG -- 0.21.0
-       ------------------- WIE DER ECHTE SERVER, und das heisst hier vor
-       allem: aus der ANDEREN Menge, durch DIESELBE Rechnung. */
+    /* Potenzialkasten: dieselbe Rechnung wie calc, aus der Menge „before". */
     potentialRating: potentialAverage,
     potentialCalc: (() => {
       const rows = criteria
@@ -520,12 +450,10 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
         equalRaw: rows.length ? equalSum / rows.length : null,
         equalResult: rows.length ? potentialAverage : null };
     })(),
-    // Reine Anzeige, seit 0.8.6 in der Verfasserzeile. Ohne dieses Feld
-// zeichnete die Zeile ins Leere und jede Pruefung darauf waere blind.
+    // Fuer die Anzeige in der Verfasserzeile.
     created_at: '2026-07-20 14:30:00'
   };
-  /* Die Antwort des neuen Endpunkts GET /api/items/:id/votes -- wer welchen
-     Wert vergeben hat, je Kriterium. */
+  /* Antwort von GET /api/items/:id/votes: wer welchen Wert vergeben hat, je Kriterium. */
   const matchResponse = [
     { criterion_id: 7, votes: [
       { id: 501, value: 3, mine: true, author: vChefin },
@@ -533,7 +461,6 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       { id: 503, value: 2, mine: false, author: vTomb },
       { id: 504, value: 4, mine: false, author: null },
       { id: 505, value: 4, mine: false, author: { id: 3, name: 'carla', deleted: false } }] },
-    /* DIE ZWEITE ZEILE TRAEGT ABSICHTLICH EINE DREISTELLIGE STIMMENZAHL. */
     { criterion_id: 8, votes: [
       { id: 506, value: 3, mine: true, author: vChefin },
       { id: 507, value: 5, mine: false, author: vBert },
@@ -547,7 +474,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     avgRating: 3, testCount: 2, testAvg: 4, testLast: 4,
     updated_at: '2026-08-01 10:00:00'
   }];
-  /* Der Bestand fuer die Ansicht "Offen". */
+  /* Bestand der Ansicht „Offen". */
   const open = openInventory || [
     { id: 65, kind: 'task', text: 'Eine Aufgabe', created_at: '2026-07-30 09:00:00',
       item: { id: 1, title: 'Beispiel' }, mine: true, author: vChefin },
@@ -563,7 +490,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       item: { id: 2, title: 'Zweites' }, mine: false, author: vTomb }
   ];
   const sent = [];
-  // Zaehler fuer searchThrottles -- welche Suchanfrage gerade hinausgeht.
+  // Index in searchThrottles fuer die naechste Suchanfrage.
   let searchThrottle = 0;
 
   /* jsdom kennt <video> als Element, aber nicht seine Methoden: pause() und
@@ -580,25 +507,21 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     { runScripts: 'dangerously', url: `${BASE}/${hash}`, virtualConsole: silenceConsole });
   const w = dom.window;
   const answer = async (url, opt = {}) => {
-    /* DER KOPF WIRD MITGESCHRIEBEN -- 0.24.5. */
     const askedLanguage = Object.entries((opt && opt.headers) || {})
       .find(([h]) => h.toLowerCase() === 'accept-language');
     sent.push({ method: opt.method || 'GET', url, body: opt.body ? JSON.parse(opt.body) : null,
                 language: askedLanguage ? askedLanguage[1] : null });
     const give = (o, status = 200) => ({ ok: status < 400, status, json: async () => o });
-    /* DIE SPRACHDATEI KOMMT AUS DER ECHTEN DATEI -- 0.24.0, Bauabschnitt 1. */
-    /* DASSELBE MUSTER WIE readLanguages() IM SERVER -- BCP 47 und nicht „zwei
-       Kleinbuchstaben". */
+    /* Muster wie readLanguages() in server.js (BCP 47). */
     const languageFile = /^\/languages\/([a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?)\.json$/
       .exec(String(url));
     if (languageFile) {
-      // `withoutLanguage`: die Lage, in der die Datei fehlt (Entscheidung A1).
+      // withoutLanguage: die Sprachdatei fehlt.
       if (withoutLanguage) return give({}, 404);
       const file = path.join(__dirname, 'public', 'languages', `${languageFile[1]}.json`);
       if (!fs.existsSync(file)) return give({}, 404);
       return give(JSON.parse(fs.readFileSync(file, 'utf8')));
     }
-    /* DIE ZWEI SPRACHFELDER SEIT 0.24.3. */
     if (url === '/api/config') return give({ title: 'Oeffentlich', version: require('./package.json').version,
       setupRequired: setup, minPassword: 10, signup,
       language: 'de',
@@ -606,19 +529,18 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
         .filter(f => f.endsWith('.json')).sort()
         .map(f => ({ code: f.slice(0, -5), name: f.slice(0, -5) })) });
     if (url === '/api/session') return give({ authenticated: loggedIn });
-    /* Der Weg VOR der Anmeldung. */
+    /* Routen vor der Anmeldung. */
     const TOKEN_DENIAL_MOCK = 'Dieser Link gilt nicht mehr. Bitte beim Admin einen neuen anfordern.';
     const tokenState = { ['d'.repeat(64)]: { username: 'carla', withoutPassword: true },
                         ['f'.repeat(64)]: { username: 'dora', withoutPassword: false } };
     if (url === '/api/token/check' && opt.method === 'POST') {
-      /* DIE ANMELDEBREMSE ALS EIGENE LAGE, seit 0.9.0. */
+      /* tokenThrottle: so viele Anfragen bekommen 429. */
       if (tokenThrottle > 0) {
         tokenThrottle--;
         return give({ error: 'Zu viele Fehlversuche. Bitte in 300 Sekunden erneut versuchen.' }, 429);
       }
       const t = tokenState[JSON.parse(opt.body || '{}').token];
-      // minuten: die Frist ab dem ersten Oeffnen, seit 0.9.0. Die Seite liest
-// sie aus der Antwort.
+      // minutes: Frist ab dem ersten Oeffnen; die Seite liest sie aus der Antwort.
       return t ? give({ ...t, minPassword: 10, minutes: 15 }) : give({ error: TOKEN_DENIAL_MOCK }, 400);
     }
     if (url === '/api/token/redeem' && opt.method === 'POST') {
@@ -629,23 +551,18 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
         return give({ error: 'Das Passwort muss mindestens 10 Zeichen lang sein.' }, 400);
       return give({ ok: true, username: t.username });
     }
-    /* Die eigene Adresse steht seit 0.9.0 in dieser Antwort, und der Mock
-       liefert sie mit -- sonst bliebe das Feld in der Karte "Zugang" leer und
-       jede Pruefung darauf blind. */
-    /* DER ZWEITE FAKTOR REIST SEIT 0.10.0 IN DIESER ANTWORT MIT, und der Mock
-       liefert ihn -- sonst bliebe der Block in der Karte "Zugang" leer und
-       jede Pruefung darauf blind. */
+    /* email und twoFactor wie am Server; ohne sie blieben die Felder der
+       Karte „Zugang" leer. */
     if (url === '/api/account' && (opt.method || 'GET') === 'GET')
       return give({ username: 'chefin', minPassword: 10, email: ownAddress,
                    twoFactor: zfStatusMock });
-    /* PUT auf den eigenen Zugang. */
     if (url === '/api/account' && opt.method === 'PUT') {
       const k = JSON.parse(opt.body || '{}');
       if (k.email !== undefined) ownAddress = String(k.email || '');
       return give({ username: k.username || 'chefin',
                    passwordChanged: Boolean(k.newPassword), email: ownAddress });
     }
-    /* DIE ANMELDUNG IN ZWEI SCHRITTEN, 0.10.0. */
+    /* Anmeldung in zwei Schritten, wenn loginFactor gesetzt ist. */
     if (url === '/api/login' && opt.method === 'POST') {
       const k = JSON.parse(opt.body || '{}');
       if (k.password !== 'chefins-wort-100')
@@ -659,17 +576,14 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
         return give({ error: 'Die Anmeldung ist abgelaufen. Bitte noch einmal von vorn.' }, 401);
       const input = String(k.code || '');
       if (input !== ZF_MOCK_CODE && !zfCodesMock.includes(input)) {
-        // DER ALTE AUSWEIS IST VERBRAUCHT, ein frischer liegt der Absage bei --
-// sonst kostete ein Tippfehler das ganze Passwort noch einmal.
+        // Die Absage bringt ein neues Ticket mit; ein Tippfehler kostet nicht das Passwort.
         zfTicketMock = 'ausweis-' + (++zfTicketCounter);
         return give({ error: 'Der Code stimmt nicht.', ticket: zfTicketMock, seconds: 120 }, 401);
       }
       zfTicketMock = 'ausweis-' + (++zfTicketCounter);
       return give({ ok: true });
     }
-    /* ---- Der zweite Faktor, 0.10.0 ---- DER MOCK ZIEHT WIRKLICH MIT
-: einschalten macht "an", ausschalten macht "aus", und
-       die Zahl der Wiederherstellungscodes aendert sich. */
+    /* ---- Zweiter Faktor ---- */
     if (url === '/api/two-factor/start' && opt.method === 'POST') {
       const k = JSON.parse(opt.body || '{}');
       if (k.password !== 'chefins-wort-100') return give({ error: 'Das Passwort stimmt nicht.' }, 403);
@@ -700,15 +614,13 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       zfStatusMock = { an: false, since: null, codesOpen: 0, codesTotal: 0 };
       return give({ ...zfStatusMock });
     }
-    /* ---- Der Mailversand, 0.9.0 ---- DER MOCK ANTWORTET WIE DER ECHTE
-       SERVER, und das heisst hier vor allem: er kann FEHLSCHLAGEN. */
+    /* ---- Mailversand ---- */
     if (url === '/api/mail' && (opt.method || 'GET') === 'GET') {
       if (settings.isOwner === false) return give({ error: MAIL_DENIED }, 403);
       return give(mailCardMock());
     }
-    /* ---- Die Selbstanmeldung, 0.9.1 ---- ER ANTWORTET WIE DER ECHTE SERVER
-, und das heisst hier vor allem: ER ZIEHT MIT. */
-    /* Die beiden Routen VOR der Anmeldung. */
+    /* ---- Selbstanmeldung ---- */
+    /* Diese beiden Routen gelten vor der Anmeldung. */
     if (url === '/api/signup' && opt.method === 'POST') {
       return give({ ok: true, message:
         'Danke. Konnte zu diesen Angaben eine Anfrage entstehen, liegt jetzt eine E-Mail in ' +
@@ -716,8 +628,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
         'ein Admin, ob ein Zugang angelegt wird.' });
     }
     if (url === '/api/signup/confirm' && opt.method === 'POST') {
-      // Ein gueltiger Schluessel und die EINE Absage fuer alles andere --
-// wortgleich wie am echten Server.
+      // Ein gueltiger Schluessel; fuer alles andere dieselbe Absage wie am Server.
       const k = JSON.parse(opt.body || '{}').key;
       if (k === 'd'.repeat(64)) return give({ ok: true });
       return give({ error:
@@ -741,8 +652,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       const row = requestsStatus.requests.find(a => a.id === nr);
       if (!row) return give({ error: 'Diese Anfrage gibt es nicht.' }, 404);
       requestsStatus.requests = requestsStatus.requests.filter(a => a.id !== nr);
-      // Die Rolle steht fest auf 'user' -- wie am echten Server, wo sie im
-// Aufruf verdrahtet ist und aus keiner Anfrage gelesen wird.
+      // role steht fest auf 'user' wie am Server; keine Anfrage setzt sie.
       return give({ id: 90 + nr, username: row.username, email: row.email, role: 'user',
         withoutPassword: true, token: 'e'.repeat(64), purpose: 'invite', days: 7, minutes: 15,
         link: `https://kriterion.beispiel.de/#/invite/${'e'.repeat(64)}`,
@@ -767,9 +677,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       mailStatus.sender = String(k.sender || '');
       if (k.password) mailStatus.passwordSet = true;
       if (!mailStatus.provider) mailStatus.passwordSet = false;
-      /* DIE MARKE FAELLT, WEIL DER ZUGANG SICH GEAENDERT HAT -- so wie beim
-         echten Server, der sie ueber den Hash ueber den Zugang verwirft und
-         nicht ueber ein ausdrueckliches Loeschen. */
+      /* testedAt faellt wie am Server, weil sich der Zugang geaendert hat. */
       mailStatus.testedAt = null;
       return give(mailCardMock());
     }
@@ -786,17 +694,13 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       return give({ ok: true, reason: '', sentTo: ownAddress, ...mailCardMock() });
     }
     if (url === '/api/titles') return give({ publicTitle: 'Oeffentlich', appTitle: 'Intern' });
-    /* ---- DIE NAMEN JE SPRACHE, WIE localeOf(req) SIE ENTSCHEIDET -- 0.24.5
-       ---- DER MOCK ANTWORTET WIE DER ECHTE SERVER, und das heisst hier vor
-       allem: ER HOERT DEN KOPF NICHT. */
+    /* ---- Namen je Sprache ---- */
+    /* Wie localeOf(req) in server.js: Accept-Language zaehlt nicht. */
     const personalLanguage = () => settings.language || 'de';
-    /* WELCHE SPRACHE DIE GRUNDZEILE TRAEGT. */
     const baseLanguageMock = () =>
       ((settings.languages || []).find(a => a.isDefault) || {}).code || 'de';
-    /* DIE KETTE IM MOCK -- 0.25.0, und sie ist Schritt fuer Schritt dieselbe
-       wie `chainFor()` in server.js: die Sprache des
-       Lesers, sonst die Vorgabe, sonst die Erstellungssprache der Zeile,
-       sonst der Originaltext ohne Sprachangabe. */
+    /* Wie `chainFor()` in server.js: Sprache des Lesers, Vorgabe,
+       Erstellungssprache der Zeile, sonst Originaltext ohne Sprache. */
     const chainMock = (row, per, locale) => {
       const std = baseLanguageMock();
       const at = (code) => (code != null && code === row.language)
@@ -809,15 +713,13 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       }
       return { name: row.name, from: null };
     };
-    /* WAS EINE LISTE DES SERVERS TRAEGT -- der Name der Kette UND der
-       Vermerk. */
+    /* Name aus der Kette und Vermerk nameFallback, wie in den Listen des Servers. */
     const withNames = (rows, table) => rows.map(z => {
       const hit = chainMock(z, table, personalLanguage());
       if (hit.from === personalLanguage()) return { ...z, name: hit.name };
       return { ...z, name: hit.name,
                nameFallback: hit.from === null ? true : hit.from };
     });
-    /* SCHREIBEN AUF EINEN NAMEN -- 0.24.5, mit 0.25.0 an die Kette angepasst. */
     const writeNameMock = (rows, table, id, body) => {
       const row = rows.find(z => z.id === id);
       if (!row) return null;
@@ -839,15 +741,8 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     if (url === '/api/criteria') return give(withNames(criteria, criterionNames));
     if (url === '/api/criteria/order') return give(withNames(criteria, criterionNames));
     if (url === '/api/tags') return give(tags);
-    /* NICHT LEER. */
     if (url === '/api/product-categories') return give(withNames(categories, categoryNames));
-    /* Der eigene Name steht seit 0.8.6 in dieser Antwort, und der Mock
-       liefert ihn mit -- sonst bliebe die Kopfzeile leer und jede Pruefung
-       darauf blind. */
-    /* zweifaktor SEIT 0.10.0: daran haengt, ob das Bestaetigungsfenster ein
-       zweites Feld zeigt. */
-    /* DIE NAMENSTAFELN JE SPRACHE -- 0.24.5, mit 0.25.0 umgebaut, und NUR
-       FUER DEN ADMIN, wie am echten Server (`namesAll()` in server.js). */
+    /* Namenstafeln je Sprache, nur fuer Admins wie `namesAll()` in server.js. */
     const namesTableMock = (rows, per) => {
       const codes = fs.readdirSync(path.join(__dirname, 'public', 'languages'))
         .filter(f => f.endsWith('.json')).map(f => f.slice(0, -5));
@@ -867,9 +762,8 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
           categoryNames: namesTableMock(categories, categoryNames),
           criterionNames: namesTableMock(criteria, criterionNames) }),
         ...settings });
-    /* SCHREIBEND, seit 0.19.0 -- und der Mock AENDERT SEINE ANTWORT WIRKLICH
-: sonst waere „der Haken ist gesetzt" von „der Haken
-       springt zurueck" nicht zu unterscheiden. */
+    /* Der Mock uebernimmt den Wert; sonst waere ein gesetzter Haken von einem
+       zurueckspringenden nicht zu unterscheiden. */
     if (url === '/api/settings' && opt.method === 'PUT') {
       const sentBody = opt.body ? JSON.parse(opt.body) : {};
       if (sentBody.convertImages !== undefined) convertImages = !!sentBody.convertImages;
@@ -885,16 +779,12 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
         }
         return give({ uploadLimits: { ...uploadLimitsMock } });
       }
-      /* EIN SPRACHWECHSEL ANTWORTET MIT DEM SATZ DER NEUEN SPRACHE -- 0.24.4,
-         und der echte Server tut genau das (nachgemessen: `localeOf(req)`
-         liest den persoenlichen Schluessel, der in derselben Anfrage
-         geschrieben wurde). */
+      /* Antwort in der neuen Sprache wie am Server: `localeOf(req)` liest den
+         Schluessel aus derselben Anfrage. */
       if (typeof sentBody.language === 'string' && sentBody.language) {
         const file = path.join(__dirname, 'public', 'languages', `${sentBody.language}.json`);
         if (fs.existsSync(file)) {
-          /* DER PERSOENLICHE SCHLUESSEL ZIEHT WIRKLICH MIT -- 0.24.5, und der
-             echte Server tut nichts anderes: `PUT /api/settings` schreibt
-             ihn, und JEDE weitere Anfrage liest ihn in `localeOf(req)`. */
+          /* Folgende Anfragen lesen die Sprache wie `localeOf(req)` am Server. */
           settings.language = sentBody.language;
           const words = Object.fromEntries(
             Object.entries(JSON.parse(fs.readFileSync(file, 'utf8')))
@@ -906,8 +796,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
                         vocabularyDefaults: settings.vocabularyDefaults });
         }
       }
-      /* UND EIN WECHSEL DER VORGABESPRACHE ANTWORTET MIT DEN BEIDEN
-         NAMENSTAFELN -- 0.24.6 (F4). */
+      /* Ein Wechsel der Vorgabesprache antwortet mit beiden Namenstafeln. */
       if (sentBody.languageDefault !== undefined || sentBody.languageOn !== undefined) {
         const std = sentBody.languageDefault !== undefined
           ? String(sentBody.languageDefault) : baseLanguageMock();
@@ -921,28 +810,22 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
             categoryNames: namesTableMock(categories, categoryNames),
             criterionNames: namesTableMock(criteria, criterionNames) }) });
       }
-      /* NUR DER GEAENDERTE WERT ZURUECK, nicht die ganze Antwort: bis 0.18.1
-         fiel dieser Weg auf `give({})` durch, und mehrere Karten lesen aus
-         dem Ergebnis. */
+      /* Nur der geaenderte Wert; mehrere Karten lesen das Ergebnis. */
       return give({ convertImages });
     }
     if (url === '/api/settings') return give({ name: 'chefin', trashDays: 30,
       convertImages, twoFactor: zfStatusMock.an === true,
       uploadLimits: { ...uploadLimitsMock }, uploadLimitRanges: UPLOAD_RANGES_MOCK, ...settings });
-    /* DER PAPIERKORB IM MOCK, und er muss BEIDE Zustaende koennen: gefuellt
-       und leer. */
     if (url === '/api/trash') {
       if (settings.isAdmin === false)
         return give({ error: 'Das verwaltet nur der Admin.' }, 403);
       return give({ days: 30, rows: trash });
     }
-    /* Die Sicherung. Sie steht hinter dem EIGENTUEMER, und der Mock macht das
-       mit -- antwortete er jedem mit 200, waere die Rolle unpruefbar. */
+    /* Nur fuer die Eigentuemerin; sonst liesse sich die Rolle nicht pruefen. */
     if (String(url).split('?')[0] === '/api/backup' && (opt.method || 'GET') === 'GET') {
       if (settings.isOwner === false)
         return give({ error: DE_TEXTS['server.deniedOwner'] }, 403);
-      /* DIE VORSCHAU RECHNET WIRKLICH -- und zwar aus den Werten der ABFRAGE,
-         wie der echte Server. */
+      /* Die Vorschau rechnet wie am Server aus den Werten der Abfrage. */
       const q = String(url).split('?')[1] || '';
       const numberOut = (n) => {
         const m = q.match(new RegExp(`(?:^|&)${n}=([^&]*)`));
@@ -962,8 +845,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       const days = t === null ? backup.cleanup.days : t;
       //          die Mindestzahl                  das Alter
       const matched = cleanupCopies.slice(keep).filter(z => z.daysAgo > days);
-      /* DIE VOLLSTAENDIGE LISTE MIT NUMMER UND MARKEN, wie der echte Server
-         sie liefert -- juengste zuerst. */
+      /* Vollstaendige Liste mit Nummer und Marken, juengste zuerst, wie am Server. */
       const names = new Set(matched.map(z => z.file));
       const oldNames = new Set((backup.cleanup.oldFiles || []).map(z => z.file));
       return give({ ...backup, cleanup: { ...backup.cleanup, keep, days,
@@ -974,7 +856,6 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
           ? `Alle ${cleanupCopies.length} Backups sind unter den jüngsten ${keep}.`
           : `Die älteste ist ${cleanupCopies[cleanupCopies.length - 1].daysAgo} Tage alt.`) } });
     }
-    /* Und der Loeschweg. */
     if (url === '/api/backup/cleanup' && opt.method === 'POST') {
       if (settings.isOwner === false)
         return give({ error: DE_TEXTS['server.deniedOwner'] }, 403);
@@ -1000,10 +881,8 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
                    outdated: backup.outdated ?? 0,
                    cleanup: backup.cleanup });
     }
-    /* Und die beiden Schreibwege, die ihren Stand WIRKLICH aendern
-: ein Mock, der stur denselben Stand zurueckgaebe,
-       machte "die Karte zeichnet sich neu" von "die Karte blieb stehen"
-       ununterscheidbar. */
+    /* Beide Schreibwege aendern den Stand; sonst waere nicht zu erkennen, ob
+       die Karte neu gezeichnet wird. */
     if (url === '/api/backup/dir' && opt.method === 'PUT') {
       const place = String(JSON.parse(opt.body || '{}').place || '');
       if (place.includes('..') || place.startsWith('/'))
@@ -1011,9 +890,8 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       backup.place = place;
       backup.filePath = place ? `/backup/${place}` : '/backup';
       backup.error = null;
-      // gewechseltAm und veraltet gehen MIT -- der echte Server breitet
-      // letzteSicherung() auch hier aus, und ein Mock, der sie weglaesst,
-      // liesse die Karte nach dem Speichern harmloser aussehen als die Lage.
+      // changedAt und outdated wie am Server; ohne sie saehe die Karte nach
+      // dem Speichern harmloser aus als die Lage.
       return give({ ok: true, place, filePath: backup.filePath, reachable: true,
                    number: backup.number, last: backup.last,
                    changedAt: backup.changedAt ?? null,
@@ -1024,16 +902,14 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       backup.number = (backup.number || 0) + 1;
       backup.last = { file, bytes: 52428800, at: '2026-08-23 19:00:00', daysAgo: 0 };
       backup.reachable = true;
-      /* `cleaned` STEHT AUSDRUECKLICH DA UND IST null: der Schalter der
-         Prueflage ist aus, also hat der Anschluss nichts getan. */
+      /* cleaned: null, denn die Aufraeumregel ist in der Prueflage aus. */
       return give({ ok: true, file, filePath: backup.filePath, bytes: 52428800, ms: 512,
                    reachable: true, number: backup.number, last: backup.last,
                    changedAt: backup.changedAt ?? null,
                    outdated: backup.outdated ?? 0, cleaned: null });
     }
-    /* Und die beiden Wege, die den Bestand WIRKLICH aendern: ein Mock, der beim Zurueckholen zwar antwortet, aber dieselbe
-       Liste weiterliefert, macht "die Karte zeichnet sich neu" von "die Karte
-       blieb stehen" ununterscheidbar -- beide Faelle blieben gruen. */
+    /* Beide Wege aendern die Liste; sonst bliebe unbemerkt, wenn die Karte
+       nicht neu gezeichnet wird. */
     if (/^\/api\/trash\/\d+\/restore$/.test(url) && opt.method === 'POST') {
       const nr = Number(url.split('/')[3]);
       const removed = trash.findIndex(z => z.id === nr);
@@ -1049,7 +925,6 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       trash.splice(removed, 1);
       return { ok: true, status: 204, json: async () => ({}) };
     }
-    /* Die eigenen Anmeldungen. */
     if (url === '/api/sessions' && (opt.method || 'GET') === 'GET')
       return give({ sessions: sessions.slice(), days: 30 });
     if (url === '/api/sessions' && opt.method === 'DELETE') {
@@ -1068,12 +943,10 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       const k = JSON.parse(opt.body || '{}');
       const newerUser = { id: 9, username: k.username, role: k.role || 'user',
                             status: 'active', withoutPassword: k.sendInvite === true };
-      // Auch hier zieht der Mock wirklich mit: die Liste danach ist eine andere.
+      // Der Mock nimmt den neuen Zugang in die Liste auf.
       users.users.push({ ...newerUser, last_login: null,
                                created_at: '2026-08-24 09:00:00', entries: 0 });
-      /* DER VERSANDZUSTAND KOMMT VOM SERVER, seit 0.9.0 -- und der Mock
-         rechnet ihn NACH statt ihn zu setzen: mit Mailzugang und Adresse geht
-         etwas hinaus, ohne eines von beiden nicht. */
+      /* delivery wird wie am Server aus Mailzugang und Adresse berechnet. */
       return give(k.sendInvite === true
         ? { ...newerUser, token: 'e'.repeat(64), purpose: 'invite', days: 7, minutes: 15,
             ...deliveryState(k.email) }
@@ -1081,21 +954,17 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     }
     // Die Karte "Zugaenge" holt sich die Liste selbst.
     if (url === '/api/users') return give(users);
-    /* Der Link fuer einen vorhandenen Zugang. */
+    /* Link fuer einen vorhandenen Zugang. */
     if (/^\/api\/users\/\d+\/token$/.test(url) && opt.method === 'POST') {
       const nr = Number(url.split('/')[3]);
       const z = (users.users || []).find(q => q.id === nr) || {};
-      /* WOHER DIE ADRESSE KAM, gehoert in die Antwort -- der echte Server
-         sagt es seit 0.8.90. Die Vorgabe ist der Browserweg; eine Prueflage
-         kann ueber publicAddress den anderen Zustand stellen, und ohne beide
-         liesse sich die Zeile im Linkkasten gar nicht pruefen. */
+      /* linkSource wie am Server: 'browser' ohne publicAddress, sonst 'einstellung'. */
       return give({ id: nr, username: z.username, token: 'd'.repeat(64),
                    purpose: (JSON.parse(opt.body || '{}').purpose) || 'invite',
                    days: 7, minutes: 15, withoutPassword: Boolean(z.withoutPassword),
                    link: publicAddress ? `${publicAddress}/#/invite/${'d'.repeat(64)}` : null,
                    linkSource: publicAddress ? 'einstellung' : 'browser',
-                   // Am BESTEHENDEN Zugang haengt die Adresse an der Zeile und
-// nicht am Formular; userAddresses sagt, welche eine hat.
+                   // Bei einem bestehenden Zugang kommt die Adresse aus userAddresses, nicht aus dem Formular.
                    ...deliveryState(userAddresses[nr]) });
     }
     /* Die zweite Bestaetigung. */
@@ -1106,11 +975,9 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
           json: () => Promise.resolve({ error: 'Das Passwort stimmt nicht.' }) });
       return give({ ok: true, purpose: k.purpose, seconds: 120 });
     }
-    /* SEIT 0.13.0 KENNT DIE ROUTE EINE AUSWAHL. */
     if (String(url).split('?')[0] === '/api/security-log') {
-      /* DERSELBE NAME, DEN DER SERVER LIEST -- 0.35.0. Bis dahin stand hier
-         `gruppe`, und weil der Browser denselben deutschen Namen schickte,
-         sah der Pruefstand einen Filter, den es am echten Server nie gab. */
+      /* Der Server liest `group`; ein anderer Name hier zeigte einen Filter,
+         den es am Server nicht gibt. */
       const group = (String(url).match(/[?&]group=([^&]*)/) || [])[1];
       if (!group) return give(log);
       const kinds = DOM_PROT_GROUPS[decodeURIComponent(group)];
@@ -1123,11 +990,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     if (/^\/api\/users\/\d+\/inventory$/.test(url))
       return give({ username: 'bert', entries: 2, foreignComments: 3, foreignRatings: 1,
                    foreignTestDays: 0, comments: 4, ratings: 2, testDays: 1 });
-    /* GET /api/items?q=... -- der Suchweg, seit 0.11.0. */
-    /* ---- DIE BEIDEN ZAHLEN, DIE MIT DER LISTE MITREISEN -- 0.16.0 ---- WIE
-       DER ECHTE SERVER, und darauf kommt es an:
-       `offeneAufgaben` wird aus DERSELBEN Menge gerechnet, aus der /api/open
-       seine Liste nimmt -- kind = 'task'. */
+    /* openTasks wie am Server aus derselben Menge wie /api/open (kind = 'task'). */
     const includingHeadCounts = (list, wasSearch) => list.map(i => {
       const row = {
         openTasks: open.filter(z => z.kind === 'task' && z.item?.id === i.id).length,
@@ -1135,8 +998,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       };
       if (!settings.bellSeen)
         for (const k of ['newComments', 'newRatings', 'newFrom']) delete row[k];
-      /* DER TREFFERKONTEXT STEHT NUR IN DER ANTWORT AUF EINE SUCHE -- 0.18.0,
-         und der Mock macht das mit. */
+      /* foundAt nur in der Antwort auf eine Suche, wie am Server. */
       if (!wasSearch) delete row.foundAt;
       return row;
     });
@@ -1145,11 +1007,10 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       const qRaw = decodeURIComponent(url.slice('/api/items?q='.length));
       const qMock = qRaw.trim().toLowerCase();
       const source = overviewItems || overview;
-      // DIESELBE FORM WIE OHNE SUCHE: der echte Server geht durch dieselbe
-      // Schleife.
+      // Dieselbe Form wie ohne Suche, wie am Server.
       const response = give(includingHeadCounts(
         qMock ? source.filter(i => String(i.title || '').toLowerCase().includes(qMock)) : source, !!qMock));
-      /* EINE STELLBARE VERZOEGERUNG JE ANFRAGE, seit 0.11.0. */
+      /* searchThrottles: Verzoegerung in ms je Suchanfrage. */
       if (Array.isArray(searchThrottles)) {
         const ms = searchThrottles[searchThrottle++] || 0;
         if (ms > 0) return new Promise(r => setTimeout(() => r(response), ms));
@@ -1157,16 +1018,13 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       return response;
     }
     if (url === '/api/items') return give(includingHeadCounts(overviewItems || overview));
-    /* Ein ZWEITER Eintrag, nur fuer den Vergleich: dort holt die Ansicht
-       mehrere Detailantworten nebeneinander. */
+    /* Zweiter Eintrag fuer den Vergleich, der mehrere Detailantworten holt. */
     if (secondEntry && url === `/api/items/${secondEntry.id}`) return give(secondEntry);
-    /* PUT auf den Eintrag: der echte Server antwortet mit detail() NACH der
-       Aenderung, der Mock muss das nachmachen. */
+    /* Wie am Server: die Antwort ist der Eintrag nach der Aenderung. */
     if (url === '/api/items/1' && opt.method === 'PUT') {
       const core = JSON.parse(opt.body || '{}');
-      /* DIE DREI ANGABEN ZUR ABLEHNUNG SCHREIBT DER SERVER ZUSAMMEN, und der
-         Mock muss das nachmachen: die Oberflaeche schickt `rejectedReason`
-         und bekommt `rejected_reason` samt Datum und Verfasserobjekt zurueck. */
+      /* Wie am Server: der Browser schickt `rejectedReason` und bekommt
+         `rejected_reason` mit Datum und Verfasser zurueck. */
       const togglesIn = core.rejected === true && !example.rejected;
       const reasonRaw = String(core.rejectedReason ?? '').replace(/\s+/g, ' ').trim();
       if (core.rejected !== undefined) example.rejected = !!core.rejected;
@@ -1177,8 +1035,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
         example.rejected_reason = reasonRaw;
       } else if (core.rejectedReason !== undefined) {
         example.rejected_reason = reasonRaw;
-        /* WER ENTFERNT, WIRD NICHT VERFASSER -- wie im echten Server seit
-           0.15.0. */
+        /* Entfernen macht nicht zum Verfasser, wie am Server. */
         if (!example.rejectedAuthor && reasonRaw) {
           example.rejectedAuthor = vChefin;
           example.rejectedMine = vChefin.id === users.ich;
@@ -1188,8 +1045,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       Object.assign(example, core);
       return give(example);
     }
-    /* VOR dem Sammelfall darunter: startsWith('/api/items/1') faenge diesen
-       Pfad sonst ab und lieferte den ganzen Eintrag. */
+    /* Vor `startsWith('/api/items/1')` darunter, sonst liefert jener den ganzen Eintrag. */
     if (url === '/api/items/1/inventory')
       return give({ photos: 1,
                    ownFiles: 5, foreignFiles: 7,
@@ -1197,21 +1053,18 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
                    ownComments: 2, foreignComments: 4,
                    ownRatings: 1, foreignRatings: 3,
                    ownTestDays: 1, foreignTestDays: 2 });
-    /* Wer welchen Wert vergeben hat -- seit 0.8.6 ein eigener Endpunkt hinter
-       nurAdmin, und der Mock macht BEIDES mit. */
+    /* Nur fuer Admins, wie am Server. */
     if (url === '/api/items/1/votes') {
       if (settings.isAdmin === false)
         return give({ error: 'Das verwaltet nur der Admin.' }, 403);
       return give(matchResponse);
     }
-    // Der Weg fuer eine fremde Bewertung. Der echte Server antwortet mit dem
-    // neu gezeichneten Eintrag -- UND die Stimme ist danach wirklich weg.
+    // Der Server antwortet mit dem Eintrag, die Stimme ist danach entfernt.
     if (/^\/api\/ratings\/\d+$/.test(url) && opt.method === 'DELETE') {
       const removed = Number(url.split('/').pop());
       for (const z of matchResponse) z.votes = z.votes.filter(st => st.id !== removed);
       return give(example);
     }
-    /* PUT auf ein Kriterium. */
     if (/^\/api\/criteria\/\d+$/.test(url) && opt.method === 'PUT') {
       const k = criteria.find(c => c.id === Number(url.split('/').pop()));
       const body = JSON.parse(opt.body || '{}');
@@ -1221,11 +1074,8 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
           return give({ error: 'Das Gewicht muss eine Zahl zwischen 0,2 und 2 sein.' }, 400);
         k.weight = Math.round(g * 100) / 100;
       }
-      /* DER NAME GEHT SEIT 0.24.5 DURCH writeNameMock -- bis 0.24.4 stand
-         hier `k.name = body.name`, und damit landete eine UEBERSETZUNG in der
-         Grundzeile: der Mock kannte die Sprachangabe des Rumpfes nicht,
-         obwohl die Karte sie seit 0.24.3 mitschickt. */
-      /* UND DAS ✕ -- 0.25.0 (F5). */
+      /* Ueber writeNameMock, damit eine Uebersetzung nicht in der Grundzeile landet. */
+      /* clearName: das ✕ an einer Uebersetzung. */
       if (body.clearName === true) {
         const cleared = writeNameMock(criteria, criterionNames, k.id, body);
         if (!cleared) return give(
@@ -1235,7 +1085,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       if (body.name) writeNameMock(criteria, criterionNames, k.id, body);
       return give(withNames([{ ...k }], criterionNames)[0]);
     }
-    /* UND DASSELBE AN DER KATEGORIE -- 0.24.5. */
+    /* Dasselbe an der Kategorie. */
     if (/^\/api\/product-categories\/\d+$/.test(url) && opt.method === 'PUT') {
       const body = JSON.parse(opt.body || '{}');
       const row = writeNameMock(categories, categoryNames, Number(url.split('/').pop()), body);
@@ -1244,7 +1094,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
         : { error: 'Diese Kategorie gibt es nicht mehr.' }, body.clearName === true ? 400 : 404);
       return give(withNames([{ ...row }], categoryNames)[0]);
     }
-    /* DER EINE GRIFF FUER DIE UNBEKANNTE ERSTELLUNGSSPRACHE -- 0.25.0 (F2). */
+    /* Setzt die Erstellungssprache aller Zeilen ohne Sprache. */
     if (url === '/api/names/language' && opt.method === 'PUT') {
       const body = JSON.parse(opt.body || '{}');
       if (typeof body.language !== 'string' || !body.language)
@@ -1256,13 +1106,11 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
                     categoryNames: namesTableMock(categories, categoryNames),
                     criterionNames: namesTableMock(criteria, criterionNames) });
     }
-    /* Die Ansicht "Offen". */
     if (url === '/api/open')
       return give(open.filter(z => z.kind === 'task').map(z => ({
         id: z.id, text: z.text, created_at: z.created_at,
         item: z.item, mine: z.mine, author: z.author })));
-    /* PUT auf einen Kommentar: der echte Server schreibt die Art und
-       antwortet mit dem neu gebauten Eintrag. */
+    /* Wie am Server: schreibt die Art und antwortet mit dem Eintrag. */
     if (/^\/api\/comments\/\d+$/.test(url) && opt.method === 'PUT') {
       const nr = Number(url.split('/').pop());
       const body = JSON.parse(opt.body || '{}');
@@ -1274,13 +1122,12 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       }
       return give(example);
     }
-    /* LOESCHEN ZIEHT WIRKLICH MIT. */
     if (/^\/api\/photos\/\d+$/.test(url) && opt.method === 'DELETE') {
       const pathId = Number(url.slice(url.lastIndexOf('/') + 1));
       example.photos = example.photos.filter(p => p.id !== pathId);
       return give({ ok: true });
     }
-    /* DER AUSSCHNITT, seit 0.19.0. */
+    /* Bildausschnitt: x und y in Prozent, zoom 100 bis 400. */
     if (/^\/api\/photos\/\d+\/focus$/.test(url) && opt.method === 'PUT') {
       const nr = Number(url.split('/')[3]);
       const k = (v, min, max) => Math.min(max, Math.max(min, Number(v)));
@@ -1299,19 +1146,12 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       return give(example);
     if (url.startsWith('/api/attachments/41/preview'))
       return give({ kind: 'text', text: 'Erste Zeile\nZweite Zeile', shortened: false });
-    /* Die Kennzahlen stehen seit 0.8.5 hinter nurAdmin, und der Mock macht
-       das mit. */
+    /* Nur fuer Admins, wie am Server. */
     if (url === '/api/stats') {
       if (settings.isAdmin === false)
         return give({ error: 'Das verwaltet nur der Admin.' }, 403);
-      /* Der Fingerprint gehoert seit 0.8.10 dazu. */
-      /* videoCount/videoBytes und papierkorbCount/papierkorbBytes stehen
-         hier, weil die Karten sie LESEN: die Exportkarte rechnet die
-         erwartete Groesse aus videoBytes, die Kennzahlenkarte zeigt den
-         Papierkorb als eigene Zeile. */
-      /* `export` und die Kommentarbilder stehen hier seit 0.12.3, aus
-         demselben Grund wie die beiden Absaetze darueber: die Karten LESEN
-         sie. */
+      /* Die Karten lesen diese Felder: die Exportkarte rechnet mit videoBytes
+         und export, die Kennzahlenkarte zeigt den Papierkorb als eigene Zeile. */
       return give({ dbBytes: 1, photoCount: 0, photoBytes: 0, itemCount: 1,
         videoCount: 0, videoBytes: 0,
         commentCount: 0, linkCount: 0, testDayCount: 0, attachmentCount: 4, attachmentBytes: 6144,
@@ -1321,15 +1161,14 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
           attachments: 8192, commentImages: 2048,
           warnFrom: 300 * 1024 * 1024, limit: 483183799 },
         version: require('./package.json').version, fingerprint: 'a1b2c3d4',
-        /* DIE AUFTEILUNG NACH FORMAT und der Stand eines Laufs. */
+        /* Aufteilung nach Format; conversion und geometry: Stand eines Laufs. */
         imageFormats: statsImageFormats === undefined
           ? { png: { count: 12, bytes: 6291456 }, jpeg: { count: 5, bytes: 524288 },
               webp: { count: 2, bytes: 65536 } }
           : statsImageFormats,
         conversion: statsSwitch,
         geometry: statsGeometry,
-        /* DIE ALGORITHM, seit 0.16.0 -- dieselben Werte, die db.js aus der
-           geoeffneten Datei abliest. */
+        /* Dieselben Werte, die db.js aus der geoeffneten Datei liest. */
         method: statsMethod === undefined
           ? { cipher: 'sqlcipher', keyBits: 256, journal: 'WAL', passwords: 'scrypt' }
           : statsMethod,
@@ -1344,15 +1183,13 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     return answer(url, opt).finally(() =>
       setTimeout(() => PENDING.set(w, openRequests(w) - 1), 0));
   };
-  /* DIE UEBERSETZUNG KOMMT AUS DEM GRUNDDOKUMENT -- 0.30.0, F4. Gelaufen wird
-     sie im Zusammenhang DIESES Fensters; geteilt ist allein die Uebersetzung. */
+  /* BASE_SCRIPT ist einmal uebersetzt und laeuft im Kontext dieses Fensters. */
   try { BASE_SCRIPT.runInContext(dom.getInternalVMContext()); }
   catch (e) { silenceConsole.emit('jsdomError', e instanceof Error ? e : new Error(String(e))); }
   return { w, sent, criteria, example, matchResponse, categoryNames, criterionNames };
 }
-/* ---- WARTEN, BIS ETWAS DASTEHT ----
-   Fragt die Bedingung alle `stepMs` und wirft an der Grenze. Die Bedingung
-   darf ein Promise liefern; zurueck kommt ihr erster wahrer Wert. */
+/* Fragt `condition` alle `stepMs` ms und wirft nach `limitMs`. Gibt den
+   ersten wahren Wert zurueck; `condition` darf ein Promise liefern. */
 const UNTIL_STEP = 5;
 async function until(w, condition, limitMs = 3000, what = 'die Bedingung', stepMs = UNTIL_STEP) {
   const end = Date.now() + limitMs;
@@ -1366,11 +1203,10 @@ async function until(w, condition, limitMs = 3000, what = 'die Bedingung', stepM
   }
 }
 
-// Die Anfragen eines Fensters an den gestellten Server, die noch keine Antwort haben.
+// Offene Anfragen je Fenster an den Mock.
 const PENDING = new WeakMap();
 const openRequests = (w) => PENDING.get(w) || 0;
 
-/* DIE TAGZEILE AUFKLAPPEN -- 0.24.0 (Bauabschnitt 0.2). */
 async function openTagRow(w) {
   const button = w.document.getElementById('f-weitere');
   if (button && button.getAttribute('aria-expanded') === 'false') button.onclick();
@@ -1379,35 +1215,29 @@ async function openTagRow(w) {
 }
 
 
-/* WARTEN, BIS DIE SUCHE DURCH IST: der Debounce ist abgelaufen, und keine
-   Suchanfrage ist mehr unterwegs. */
+/* Wartet, bis der Debounce abgelaufen und keine Suchanfrage mehr unterwegs ist. */
 async function waitSearch(w, limitMs = 3000) {
   await until(w, (x) => x.eval('searchClock') === null && !x.eval('state.searchRunning') &&
     openRequests(x) === 0, limitMs, 'das Ende der Suche');
 }
 
-/* ---- Einen Abschnitt des Systembereichs zeichnen ----
-   Eine Karte steht frueher da als ihr Inhalt: gewartet wird, bis die
-   Anfragen, mit denen die Karten nachladen, beantwortet sind. */
+/* Eine Karte steht vor ihrem Inhalt da; daher wird auf die Anfragen der
+   Karten gewartet. */
 async function sysSection(w, key) {
   w.history.replaceState(null, '', `#/system/${key}`);
   await w.renderSystem();
   await until(w, (x) => openRequests(x) === 0, 3000, `die Karten des Abschnitts ${key}`);
 }
 
-/* ---- DER NAME UND DAS MERKMAL EINER SPRACHPILLE -- 0.25.0 ---------------
-   SEIT DIESER RUNDE TRAEGT EINE SPRACHPILLE ZWEI ANGABEN: den Namen der
-   Sprache und dahinter ein Merkmal -- einen Punkt `●` fuer „fuer jede Zeile
-   ist etwas eingetragen" oder die ZAHL der fehlenden Zellen. */
+/* Eine Sprachpille traegt den Namen und ein Merkmal: `●`, wenn jede Zeile
+   etwas eingetragen hat, sonst die Zahl der fehlenden Zellen. */
 const pillName = (b) => ((b && b.firstChild && b.firstChild.textContent) || '').trim();
 const pillMark = (b) => {
   const mark = b && b.querySelector ? b.querySelector('.n, .dot') : null;
   return mark ? (mark.textContent || '').trim() : '';
 };
 
-/* EIN DURCHGANG DURCH ALLE ABSCHNITTE -- Karten, Reiter und der ganze Text. */
-/* ================= Der Bildschirmtext-Waechter: der Leser =================
-   0.22.0. */
+/* ---- Bildschirmtexte lesen ---- */
 function screenTextsFrom(src) {
   const out = [];
   let i = 0;
@@ -1469,8 +1299,7 @@ function screenTextsFrom(src) {
   code(false);
   return out;
 }
-/* Die Serverdateien: nur die Texte hinter `error:`, samt Fortsetzungszeilen
-   mit `+`. Alles andere in server.js ist keine Bildschirmsprache. */
+/* Aus server.js nur die Texte hinter `error:`, samt Fortsetzungszeilen mit `+`. */
 function serverTextsFrom(src) {
   const out = [];
   const re = /error:\s*/g; let m;
@@ -1491,8 +1320,7 @@ function serverTextsFrom(src) {
   }
   return out;
 }
-/* DIE VERBOTSLISTE DER RUNDE 0.22.0 (Konzept, 4.3) -- Woerter, die den
-   Bildschirm verlassen haben. */
+/* Woerter, die nicht mehr auf dem Bildschirm stehen sollen. */
 const SCREEN_BAN = [
   [/\bträgt\b|\btrifft\b|\btragen\b/, 'trägt/trifft (für gilt)'],
   [/\bfallen\b|\bfällt\b/, 'fallen/fällt (für enden)'],
@@ -1541,12 +1369,10 @@ async function sysPass(d) {
 }
 
 
-/* ================= DREI LESER DES STILBLATTS -- hierher in 0.34.0 =========
-   Sie standen bis 0.33.2 mitten in checkUi() und werden seit dem Umzug von
-   drei Modulen gebraucht: Export, Stilblatt und Sprache. */
+  /* ---- Leser des Stilblatts fuer Export, Stilblatt und Sprache ---- */
   const css123 = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
   const regel123 = (choice) => (css123.match(new RegExp(choice.replace(/\./g, '\\.') + ' \\{[^}]*\\}')) || [''])[0];
-  /* WAS AUSSERHALB JEDER MEDIENABFRAGE STEHT. */
+  /* style.css ohne @media-Bloecke. */
   const withoutMedia = (() => {
     const raw = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
     let outcome = '', i = 0;

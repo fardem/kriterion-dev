@@ -1,5 +1,5 @@
-/* Kriterion — Pruefstand: der Schluesselwechsel Der einzige Vorgang, der bei
-   falscher Handhabung alles verliert. */
+/* Schluesselwechsel mit keytool.js: Rundlauf, Datei- und .env-Fall, Abbruch
+   und zu wenig Platz. */
 const H = require('./frame.js');
 
 async function run() {
@@ -8,14 +8,13 @@ async function run() {
    require, group, check, equal
   } = H;
 
-/* ================= Der Schluesselwechsel ================= GEWECHSELT WIRD
-   BEI ANGEHALTENER INSTANZ, auf dem Wirt, ueber keytool.js. */
+// Gewechselt wird bei angehaltener Instanz ueber keytool.js, ohne Server.
 function checkKeyChange() {
   const SW = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-schluessel-'));
   const hexFresh = () => crypto.randomBytes(32).toString('hex');
 
-  /* Eine Instanz OHNE ENCRYPTION_KEY in der Umgebung: dann erzeugt loadKey()
-     einen und legt ihn als data/encryption.key ab -- das ist der DATEIFALL. */
+  /* Dateifall: ohne ENCRYPTION_KEY erzeugt loadKey() einen Schluessel und legt
+     ihn als encryption.key in DATA_DIR ab. */
   const swEnvironment = (directory, key) => {
     const u = { ...process.env, DATA_DIR: directory };
     delete u.AUTH_RESET;
@@ -37,8 +36,7 @@ function checkKeyChange() {
   // Die beiden Tabellen, in die der Wechsel seine eigene Spur schreibt.
   const SW_OWN = ['settings', 'security_log'];
 
-  /* JEDER ZERBRECHLICHE SCHRITT WIRD ZU EINEM ROTEN PUNKT, NICHT ZU EINEM
-     ABRISS. */
+  // Ein Fehler macht die Pruefung rot und bricht den Lauf nicht ab.
   const swAttempt = (event, replacement = null) => { try { return event(); } catch { return replacement; } };
 
   const swOpen = (directory, hex) => {
@@ -48,9 +46,8 @@ function checkKeyChange() {
     return d;
   };
 
-  /* Der Bestand, Feld fuer Feld und Zeile fuer Zeile ueber ALLE Tabellen. */
-  /* `ohne` nennt die Tabellen, in die der Wechsel SELBST schreibt: die Marke
-     in settings und seine Zeile im Sicherheitsprotokoll. */
+  /* Hash ueber alle Tabellen; `withoutPhotos` nennt die Tabellen, in die der
+     Wechsel selbst schreibt. */
   const swPrint = (d, withoutPhotos = []) => {
     const parts = [];
     const tables = d.prepare(
@@ -63,7 +60,6 @@ function checkKeyChange() {
     return crypto.createHash('sha256').update(parts.join(' ')).digest('hex');
   };
 
-  /* Eine Instanz mit belastbarem Bestand. */
   const swInstance = (name, key) => {
     const dir = path.join(SW, name);
     fs.mkdirSync(dir);
@@ -84,7 +80,6 @@ function checkKeyChange() {
     return { dir, hex, print, journal };
   };
 
-  /* GESCHLOSSEN WIRD IMMER, auch im Fehlerfall. */
   const swOpensNot = (directory, hex) => {
     let d = null;
     try {
@@ -95,7 +90,6 @@ function checkKeyChange() {
     finally { try { if (d) d.close(); } catch {} }
   };
 
-  /* ---- Der Rundlauf ---------------------------------------------------- */
   group('Der Schluesselwechsel: der Rundlauf');
 
   const a1 = swInstance('rundlauf');
@@ -112,8 +106,7 @@ function checkKeyChange() {
     /^[0-9a-f]{64}$/.test(a1neu) && a1neu !== a1.hex,
     `${a1neu.length} Zeichen, gleich wie vorher: ${a1neu === a1.hex}`);
 
-  // Oeffnen kann scheitern -- dann ist der Wechsel nicht durchgelaufen, und
-// die drei Pruefungen darunter sind rot statt abwesend.
+  // Scheitert das Oeffnen, sind die Pruefungen darunter rot statt abwesend.
   const d1 = swAttempt(() => swOpen(a1.dir, a1neu));
   check('Mit dem NEUEN Schluessel oeffnet die Datei',
     swAttempt(() => d1.prepare('SELECT COUNT(*) n FROM items').get().n) === 120,
@@ -127,7 +120,6 @@ function checkKeyChange() {
   check('Mit dem ALTEN Schluessel oeffnet sie nicht mehr',
     swOpensNot(a1.dir, a1.hex), 'der alte Schluessel oeffnet noch');
 
-  /* ---- Die Umschaltung des Journals ------------------------------------ */
   group('Der Schluesselwechsel: die Umschaltung des Journals');
 
   check('Vor dem Wechsel stand das Journal auf WAL', a1.journal === 'wal', a1.journal);
@@ -138,8 +130,7 @@ function checkKeyChange() {
     /journal stand auf wal .* DELETE .* wal/i.test(defaultWord.stdout), defaultWord.stdout.slice(-300));
   swAttempt(() => d1.close());
 
-  /* DIE GEGENLAGE, und sie ist die wichtigste dieser Gruppe: OHNE die
-     Umschaltung laeuft rekey gar nicht. */
+  // Gegenprobe: ohne die Umschaltung des Journals scheitert rekey.
   const a2 = swInstance('journal', hexFresh());
   const d2 = swOpen(a2.dir, a2.hex);
   d2.pragma('journal_mode = WAL');
@@ -153,11 +144,9 @@ function checkKeyChange() {
     d2.prepare('SELECT COUNT(*) n FROM items').get().n === 120);
   d2.close();
 
-  /* ---- Der Dateifall und der .env-Fall, GETRENNT ------------------------ */
   group('Der Schluesselwechsel: der Dateifall und der env-Fall');
 
-  /* Der Dateifall ist oben schon gefahren -- hier steht die Aussage, die ihn
-     vom .env-Fall unterscheidet: er braucht KEINE .env und weist eine zurueck. */
+  // Der Dateifall laeuft schon oben; hier nur der Unterschied: er weist eine .env ab.
   const a3 = swInstance('dateifall');
   const envForeign = path.join(SW, 'fremd.env');
   fs.writeFileSync(envForeign, `ENCRYPTION_KEY=${hexFresh()}\n`);
@@ -167,8 +156,7 @@ function checkKeyChange() {
   check('Und dabei wurde nichts gewechselt: die Schluesseldatei steht unveraendert',
     fs.readFileSync(path.join(a3.dir, 'encryption.key'), 'utf8').trim() === a3.hex);
 
-  /* Der .env-Fall. Die Datei traegt bewusst eine AUSKOMMENTIERTE Zeile mit
-     demselben Namen: sie darf nicht getroffen werden. */
+  // Die auskommentierte Zeile gleichen Namens darf der Wechsel nicht treffen.
   const envOld = hexFresh();
   const a4 = swInstance('envfall', envOld);
   const envFile = path.join(SW, 'instanz.env');
@@ -215,8 +203,7 @@ function checkKeyChange() {
   const envActive = envRows.filter(z => /^ENCRYPTION_KEY=/.test(z));
   check('Die .env traegt danach GENAU EINE aktive Schluesselzeile',
     envActive.length === 1, JSON.stringify(envActive));
-  // Fehlt die Zeile, ist die Pruefung darueber schon rot -- hier darf sie den
-// Lauf trotzdem nicht abreissen.
+  // Fehlt die Zeile, ist die Pruefung darueber rot; hier darf der Lauf nicht abbrechen.
   const envFresh = (envActive[0] || '').split('=')[1] || '';
   check('Und die traegt einen neuen 64-stelligen Wert',
     /^[0-9a-f]{64}$/.test(envFresh) && envFresh !== envOld, envFresh);
@@ -227,8 +214,7 @@ function checkKeyChange() {
   check('Und mit der Notiz, wer gewechselt hat',
     /^# Abgeloest am \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} durch pruefstand \(keytool\.js\)\.$/m
       .test(envAfter), envRows.find(z => z.startsWith('# Abgeloest')));
-  /* JEDE ANDERE ZEILE BLEIBT ZEICHEN FUER ZEICHEN STEHEN -- die
-     auskommentierte Zeile mit demselben Namen eingeschlossen. */
+  // Auch die auskommentierte Zeile gleichen Namens bleibt stehen.
   const envLeft = envRows.filter(z =>
     !/^ENCRYPTION_KEY=/.test(z) && !/^#ENCRYPTION_KEY=/.test(z) &&
     !/^# (Abgeloest am|ER OEFFNET|bevor er im)/.test(z));
@@ -237,7 +223,6 @@ function checkKeyChange() {
     JSON.stringify(envLeft));
   check('Im .env-Fall entsteht KEINE Schluesseldatei neben der Datenbank',
     !fs.existsSync(path.join(a4.dir, 'encryption.key')));
-  /* DIE NOTIZ DARF DIE DATEI NICHT ZERLEGEN. */
   const envRowsIncludingGrade = envRows.filter(z => z.startsWith('# Abgeloest'));
   check('Die Notiz steht in GENAU EINER Zeile',
     envRowsIncludingGrade.length === 1, JSON.stringify(envRowsIncludingGrade));
@@ -246,12 +231,10 @@ function checkKeyChange() {
   check('Und mit dem alten nicht mehr',
     swOpensNot(a4.dir, envOld), 'der alte Wert oeffnet noch');
 
-  /* ---- Die Schluesseldatei wird gelesen UND geprueft -------------------- */
   group('Die Schluesseldatei: was darin steht, wird geprueft');
 
-  /* Der Start ohne ENCRYPTION_KEY in der Umgebung: dann liest loadKey() die
-     Datei neben der Datenbank. `execFileSync` wirft bei einem Abbruch, hier
-     wird der Rueckgabewert gebraucht. */
+  /* Ohne ENCRYPTION_KEY liest loadKey() die Datei neben der Datenbank.
+     spawnSync statt execFileSync, weil der Rueckgabewert gebraucht wird. */
   const keyStart = (directory) => {
     const r = spawnSync(process.execPath, ['-e', "require('./db'); console.log('offen');"],
       { cwd: __dirname, encoding: 'utf8', env: swEnvironment(directory, null) });
@@ -265,9 +248,8 @@ function checkKeyChange() {
   };
   const DB_FILE_NAME = 'katalog.sqlite';
 
-  /* VIER FORMEN VON SCHADEN, und alle vier gingen bis 0.35.1 unbesehen an
-     SQLCipher: 64 Hex-Zeichen nimmt es als Schluessel, alles andere als
-     Passwort -- und rechnet sich daraus einen anderen Schluessel. */
+  /* SQLCipher nimmt 64 Hex-Zeichen als Schluessel und alles andere als
+     Passwort, aus dem es einen anderen Schluessel ableitet. */
   const KEY_DAMAGED = [
     ['ohne ein einziges Zeichen', '', 0],
     ['mit einem Zeichen zu wenig', 'a'.repeat(63), 63],
@@ -281,8 +263,7 @@ function checkKeyChange() {
       r.code !== 0 && /encryption\.key/.test(r.out)
       && new RegExp(`keine 64 Hex-Zeichen, sondern ${length} Zeichen`).test(r.out),
       `Rueckgabe ${r.code}: ${r.out.slice(0, 220)}`);
-    /* DAS IST DER EIGENTLICHE SCHADEN: ohne die Pruefung entstuende hier eine
-       Datenbank unter einem Schluessel, den niemand mehr herstellen kann. */
+    // Sonst entstuende eine Datenbank unter einem Schluessel, den niemand herstellen kann.
     check('Und daneben entsteht keine Datenbank',
       !fs.existsSync(path.join(dir, DB_FILE_NAME)),
       fs.readdirSync(dir).join(' '));
@@ -290,8 +271,7 @@ function checkKeyChange() {
       fs.readFileSync(path.join(dir, 'encryption.key'), 'utf8') === content);
   });
 
-  /* DIE GEGENPROBE: ein richtiger Wert kommt durch, sonst waere die Gruppe
-     auch dann gruen, wenn gar nichts mehr startet. */
+  // Gegenprobe: sonst waere die Gruppe auch gruen, wenn gar nichts mehr startet.
   const keyGood = keyDir('gut', hexFresh() + '\n');
   const keyGoodRun = keyStart(keyGood);
   check('Eine Schluesseldatei mit 64 Hex-Zeichen kommt durch',
@@ -299,10 +279,8 @@ function checkKeyChange() {
   check('Und die Datenbank steht daneben',
     fs.existsSync(path.join(keyGood, DB_FILE_NAME)), fs.readdirSync(keyGood).join(' '));
 
-  /* ---- Was NICHT in einer Ausgabe steht -------------------------------- */
   group('Der Schluesselwechsel: kein Schluessel, wo keiner hingehoert');
 
-  /* DIE PROTOKOLLZEILE NENNT, DASS GEWECHSELT WURDE, NIE WOHIN. */
   const d4 = swAttempt(() => swOpen(a4.dir, envFresh));
   const protoRows = swAttempt(() => d4.prepare('SELECT * FROM security_log').all(), []);
   const allRows = JSON.stringify(protoRows);
@@ -311,14 +289,12 @@ function checkKeyChange() {
   check('Sie traegt keinen Handelnden, kein Ziel und kein Merkmal',
     protoRows.filter(z => z.event === 'key' &&
       z.actor === null && z.target === null && z.detail === null).length === 1, allRows);
-  /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT: eine leere
-     Tabelle belegt nichts darueber, dass in ihr kein Schluessel steht. */
+  // protoRows.length > 0: eine leere Tabelle belegt nicht, dass kein Schluessel darin steht.
   check('Der ALTE Schluessel steht in keiner Spalte keiner Zeile',
     protoRows.length > 0 && !allRows.includes(envOld), allRows);
   check('Der NEUE Schluessel ebenso wenig',
     protoRows.length > 0 && envFresh !== '' && !allRows.includes(envFresh), allRows);
-  /* Und die Gegenlage dazu: die Nachschau faengt ueberhaupt etwas. Ohne sie
-     bliebe sie gruen, wenn die Tabelle leer waere. */
+  // Gegenprobe: die Suche findet einen Wert, wenn er dasteht.
   check('Und die Nachschau faengt einen Wert, wenn einer dastuende',
     JSON.stringify([{ detail: envOld }]).includes(envOld));
 
@@ -326,14 +302,12 @@ function checkKeyChange() {
     d4.prepare("SELECT value FROM settings WHERE key = 'keyChangedAt'").get().value), null);
   check('Die Marke schluesselGewechseltAm steht in settings',
     /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(String(mark)), String(mark));
-  /* SIE IST KEIN SCHEMA. */
   check('Und sie ist eine Zeile in settings, kein Schema',
     swAttempt(() => d4.prepare("SELECT COUNT(*) n FROM pragma_table_info('settings')").get().n) === 2,
     JSON.stringify(swAttempt(() => d4.prepare("SELECT name FROM pragma_table_info('settings')").all())));
   swAttempt(() => d4.close());
 
-  /* IN DER AUSGABE DES WECHSELS steht der ALTE Wert -- absichtlich, denn er
-     oeffnet die Backups von vorher und ist ab jetzt sonst nirgends mehr. */
+  // Der alte Wert oeffnet die Backups von vorher und steht sonst nirgends mehr.
   check('Die Ausgabe des Wechsels nennt den ALTEN Wert zum Aufheben',
     w4.stdout.includes(envOld), w4.stdout.slice(-300));
   check('Den NEUEN nennt sie nicht',
@@ -341,9 +315,8 @@ function checkKeyChange() {
   check('Und im Dateifall ebenso: der alte ja, der neue nein',
     defaultWord.stdout.includes(a1.hex) && !defaultWord.stdout.includes(a1neu), defaultWord.stdout.slice(-300));
 
-  /* WAS DER START INS CONTAINERPROTOKOLL SCHREIBT, wird angesehen. */
-  // Auch der Start kann scheitern -- dann ist die Ausgabe leer, und die beiden
-// Pruefungen darunter sind rot statt abwesend.
+  /* Die Ausgabe des Starts landet im Containerprotokoll. Scheitert der Start,
+     ist sie leer, und die Pruefungen darunter sind rot. */
   const startOut = swAttempt(() => execFileSync(process.execPath,
     ['-e', "require('./db'); console.log('fertig');"],
     { cwd: __dirname, encoding: 'utf8', env: swEnvironment(a4.dir, envFresh) }), '');
@@ -353,32 +326,27 @@ function checkKeyChange() {
     startOut !== '' && !startOut.includes(envOld) &&
     (envFresh === '' || !startOut.includes(envFresh)), startOut);
 
-  /* ---- Der Abbruch mittendrin ------------------------------------------ */
   group('Der Schluesselwechsel: der Abbruch mittendrin');
 
-  /* kill -9 MITTEN HINEIN. Dafuer muss der Wechsel lange genug dauern, um
-     getroffen zu werden -- bei 120 Zeilen sind es Millisekunden. */
+  /* kill -9 waehrend des Wechsels: bei 120 Zeilen dauert er Millisekunden,
+     darum kommen 60 MB dazu. */
   const a5 = swInstance('abbruch');
   {
     const d = swOpen(a5.dir, a5.hex);
-    // Das Fuellen selbst darf nicht abreissen -- die Instanz ist frisch, aber
-// eine Gegenprobe kann jede Annahme darueber umstossen.
     d.exec("INSERT INTO trash (id, title, content) VALUES (1, 'Brocken', '{}')");
     const into = d.prepare('INSERT INTO trash_bytes (trash_id, part, data) VALUES (1, ?, ?)');
-    // ZUFALLSBYTES, nicht Nullen: eine Datenbank voller Nullen komprimiert der
-// Dateicache weg, und der Wechsel waere wieder zu schnell zum Treffen.
+    // Zufallsbytes statt Nullen: Nullen komprimiert der Dateicache weg, und der
+    // Wechsel waere zu schnell.
     const chunk = crypto.randomBytes(1024 * 1024);
     d.transaction(() => { for (let i = 0; i < 60; i++) into.run(i, chunk); })();
     d.pragma('wal_checkpoint(TRUNCATE)');
     d.close();
   }
-  /* HIER OHNE Ausnahmeliste: ein Abbruch darf GAR NICHTS hinterlassen, auch
-     keine Marke und keine Protokollzeile. */
+  // Ohne SW_OWN: ein Abbruch hinterlaesst auch keine Marke und keine Protokollzeile.
   const a5abdruck = (() => { const d = swOpen(a5.dir, a5.hex); const x = swPrint(d); d.close(); return x; })();
   const a5groesse = fs.statSync(path.join(a5.dir, 'katalog.sqlite')).size;
 
-  /* Erst messen, wie lange der Wechsel an dieser Groesse dauert -- an einer
-     KOPIE, damit die Instanz selbst unangetastet in den Abbruch geht. */
+  // Die Dauer an einer Kopie messen, damit die Instanz unangetastet in den Abbruch geht.
   const a5probe = path.join(SW, 'abbruch-probe');
   fs.cpSync(a5.dir, a5probe, { recursive: true });
   const a5dauer = Number(swAttempt(() => swShort(
@@ -390,7 +358,7 @@ function checkKeyChange() {
     `${a5dauer} ms -- zu kurz zum Treffen, oder der Wechsel laeuft gar nicht durch`);
 
   const a5neu = hexFresh();
-  /* Der Schlag faellt nach einem Drittel der GEMESSENEN Dauer. */
+  // Nach einem Drittel der gemessenen Dauer; sleep erwartet Sekunden.
   const a5schlag = (a5dauer >= 150 ? a5dauer / 3000 : 0.05).toFixed(3);
   const a5kind = spawnSync('sh', ['-c',
     `"${process.execPath}" -e "require('./db').changeKey('${a5neu}')" & ` +
@@ -417,12 +385,10 @@ function checkKeyChange() {
     swAttempt(() => d.close());
   }
 
-  /* ---- Zu wenig Platz --------------------------------------------------- */
   group('Der Schluesselwechsel: zu wenig Platz');
 
-  /* DIE ANSAGE STEHT IMMER: was der Wechsel an Platz braucht, rechnet
-     keytool.js aus der Groesse der Datenbank -- das Journal waechst auf ihre
-     Groesse. */
+  /* keytool.js rechnet den Platzbedarf aus der Groesse der Datenbank: das
+     Journal waechst auf ihre Groesse. */
   const show = swCall(['show'], a5.dir, null);
   const zBig = Number((show.stdout.match(/Datenbank\s+([\d.]+) MB/) || [])[1]);
   const zNeeded = Number((show.stdout.match(/Wechsel\s+([\d.]+) MB/) || [])[1]);
@@ -432,8 +398,7 @@ function checkKeyChange() {
   check('Und der Platzbedarf liegt ueber der Groesse der Datenbank',
     zNeeded > zBig && zNeeded < zBig * 1.2, `${zNeeded} MB bei ${zBig} MB Datenbank`);
 
-  /* DIE ABSAGE SELBST braucht ein volles Dateisystem. Eines herzustellen
-     verlangt das Einhaengen eines tmpfs, und das darf nicht jeder. */
+  // Die Absage braucht ein volles Dateisystem, also ein tmpfs; einhaengen darf nicht jeder.
   const eng = path.join(SW, 'eng');
   fs.mkdirSync(eng);
   const mounted = spawnSync('mount', ['-t', 'tmpfs', '-o', 'size=16M', 'tmpfs', eng],
@@ -454,8 +419,8 @@ function checkKeyChange() {
       d.pragma('wal_checkpoint(TRUNCATE)');
       d.close();
     }
-    /* Den Rest des Dateisystems zuschuetten, bis weniger frei ist, als das
-       Journal braucht -- aber genug fuer die WAL beim Oeffnen. */
+    /* Fuellen, bis weniger frei ist, als das Journal braucht, aber genug fuer
+       die WAL beim Oeffnen. */
     const dbBytes = fs.statSync(path.join(engDir, 'katalog.sqlite')).size;
     const s = fs.statfsSync(engDir);
     const fill = Math.max(0, s.bsize * s.bavail - Math.floor(dbBytes * 0.6));
@@ -469,9 +434,8 @@ function checkKeyChange() {
       fs.readFileSync(path.join(engDir, 'encryption.key'), 'utf8') === before);
     check('Und die Datenbank oeffnet weiter mit ihrem bisherigen Schluessel',
       !swOpensNot(engDir, engHex), 'der bisherige Schluessel oeffnet nicht mehr');
-    /* DIE LUECKE AUS GEGENPROBE 11. Der Rueckbau "die Rueckschaltung auf WAL
-       steht nicht mehr im finally" blieb STUMM: ein GELUNGENER Wechsel
-       unterscheidet nicht, ob sie im finally steht oder dahinter. */
+    /* Nur ein gescheiterter Wechsel zeigt, ob die Rueckschaltung auf WAL im
+       finally steht. */
     const engJournal = swAttempt(() => swShort(
       "const { db, changeKey } = require('./db');" +
       "let gescheitert = false;" +
@@ -490,7 +454,6 @@ function checkKeyChange() {
     spawnSync('umount', [eng]);
   }
 
-  /* ---- Was der Wechsel nicht anfasst ------------------------------------ */
   group('Der Schluesselwechsel: was er nicht anfasst');
 
   const d7 = swAttempt(() => swOpen(a4.dir, envFresh));
@@ -502,7 +465,6 @@ function checkKeyChange() {
   check('Der Bestand ist Feld fuer Feld derselbe wie vor dem Wechsel',
     swAttempt(() => swPrint(d7, SW_OWN)) === a4.print,
     'der Bestand hat sich veraendert');
-  /* KEIN SCHEMA: dieselben Tabellen wie vorher, keine dazu, keine weg. */
   const TABLES = "SELECT name FROM sqlite_master WHERE type='table' " +
     "AND name NOT LIKE 'sqlite_%' ORDER BY name";
   const tablesAfter = swAttempt(() => d7.prepare(TABLES).all().map(t => t.name), []);
@@ -510,14 +472,13 @@ function checkKeyChange() {
   const dv = swAttempt(() => swOpen(a4frisch.dir, a4frisch.hex));
   const tablesFresh = swAttempt(() => dv.prepare(TABLES).all().map(t => t.name), []);
   swAttempt(() => dv.close());
-  // ERST DER GEGENSTAND: zwei leere Listen waeren gleich und belegten nichts.
+  // tablesFresh.length > 5: zwei leere Listen waeren gleich.
   check('Und das Schema ist dasselbe wie das einer frischen Instanz',
     tablesFresh.length > 5 && equal(tablesAfter, tablesFresh),
     `nach dem Wechsel ${tablesAfter.length}, frisch ${tablesFresh.length}`);
   swAttempt(() => d7.close());
 
-  /* Der veraltete Umgebungswert ist die Lage, in der jemand den Wechsel ein
-     zweites Mal faehrt, ohne die .env nachgezogen zu haben. */
+  // Zweiter Wechsel mit dem alten Wert in der Umgebung, obwohl die .env schon den neuen traegt.
   const second = swCall(['change', '--env', envFile, '--yes'], a4.dir, envOld);
   check('Ein zweiter Wechsel mit dem VERALTETEN Umgebungswert wird abgewiesen',
     second.code !== 0, `Rueckgabe ${second.code}: ${second.stdout.slice(0, 200)}`);

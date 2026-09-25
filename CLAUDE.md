@@ -169,8 +169,6 @@ Ausnahmen:
 - `1.1.1970` in `twofactor.js`, die SVG-Pfade `-1.8.3l` und `1.8.3H9` in
   `public/app.js`, `keepachangelog.com/de/1.1.0/` und `14.03.2026` in der
   Anleitung (keine Versionsangaben)
-- `0.19.2` in `public/app.js` und `0.12.3` in `public/style.css` (vom
-  Prüfstand verlangt)
 
 Tests in `test/source.js` prüfen beide Regeln.
 
