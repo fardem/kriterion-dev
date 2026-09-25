@@ -1331,10 +1331,6 @@ async function run() {
     check('Die Tafel der alten Abschnittsadressen gibt es nicht mehr',
       !/const SYS_ALTE_ABSCHNITTE/.test(source),
       (source.match(/const SYS_ALTE_ABSCHNITTE[^\n]*/) || ['(keine Tafel — richtig)'])[0]);
-    /* UND DER GRUND STEHT DA. */
-    check('Und der Grund fuer den Abbau steht im Quelltext daneben',
-      /UEBERSETZUNG ALTER ABSCHNITTSADRESSEN IST IN 0\.19\.2 ABGEBAUT WORDEN/.test(source),
-      'die Begruendung fehlt');
     check('Und die Adresse wird ohne Umweg gelesen',
       /const desired = fromAddress;/.test(source),
       (source.match(/const desired = [^\n]*/) || ['(nicht gefunden)'])[0]);

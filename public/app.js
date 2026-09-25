@@ -6401,8 +6401,6 @@ const SYS_SECTIONS = [
 const SYS_PATTERN = /^#\/system(?:\/([a-z]+))?$/;
 const sysUrl = (key) => `#/system/${key}`;
 
-/* DIE UEBERSETZUNG ALTER ABSCHNITTSADRESSEN IST IN 0.19.2 ABGEBAUT WORDEN. */
-
 /* Was eine Karte nicht zeigt, bekommt keinen Handler. */
 const atElement = (id, tu) => { const el = document.getElementById(id); if (el) tu(el); };
 

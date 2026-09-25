@@ -1123,10 +1123,9 @@ async function run() {
     const vnPattern = () => /(?<![\d.])\d+\.\d+\.\d+(?!\.?\d)/g;
     // Grenzwert je Datei, gemessen am 17. September 2026; er darf nur sinken.
     const VN_CEILING = {
-      'public/style.css': 1,
-      /* Zwei der drei in public/app.js sind SVG-Pfaddaten, der dritte ist der
-         Kommentar, den test/ui_style.js im Wortlaut verlangt. */
-      'public/app.js': 3, 'twofactor.js': 1,
+      'public/style.css': 0,
+      // Die beiden in public/app.js sind SVG-Pfaddaten.
+      'public/app.js': 2, 'twofactor.js': 1,
       'server.js': 0, 'db.js': 0, 'auth.js': 0, 'public/index.html': 0,
       'usertool.js': 0,
       '.env.example': 0, 'attachments.js': 0, 'batchrun.js': 0,
@@ -1137,7 +1136,7 @@ async function run() {
       'log.js': 0, 'Dockerfile': 0, 'docker-compose.example.yml': 0,
       'LICENSE': 0
     };
-    const VN_TOTAL = 5;
+    const VN_TOTAL = 3;
     const vnFiles = Object.keys(VN_CEILING);
     check('Der Waechter sieht alle vierundzwanzig Dateien, und jede liegt da',
       vnFiles.length === 24
@@ -1153,8 +1152,8 @@ async function run() {
       vnOver.length === 0,
       vnOver.map(f => `${f}: ${vnCount[f]} statt ${VN_CEILING[f]}`).join(' · ') || 'alle darunter');
     const vnZero = vnFiles.filter(f => VN_CEILING[f] === 0);
-    check('Einundzwanzig Dateien tragen keine einzige Versionsnummer',
-      vnZero.length === 21 && vnZero.every(f => vnCount[f] === 0),
+    check('Zweiundzwanzig Dateien tragen keine einzige Versionsnummer',
+      vnZero.length === 22 && vnZero.every(f => vnCount[f] === 0),
       vnZero.filter(f => vnCount[f] !== 0).map(f => `${f}: ${vnCount[f]}`).join(' · ') || `${vnZero.length} auf null`);
     const vnNow = vnFiles.reduce((n, f) => n + vnCount[f], 0);
     check(`Und zusammen sind es ${VN_TOTAL} -- die Zahl steht hier und nicht in einem Papier`,

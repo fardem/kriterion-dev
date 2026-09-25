@@ -460,12 +460,6 @@ async function run() {
   check('Die linke Kante bleibt ungeruehrt bei der Art',
     /border-left: 3px solid var\(--accent\)/.test(regel123('.cmt.report')),
     regel123('.cmt.report'));
-  /* DIE ZURUECKGENOMMENE ENTSCHEIDUNG STEHT MIT DEM GRUND DANEBEN und wurde
-     nicht geloescht -- sonst baut sie jemand in zwei Jahren wieder ein. */
-  const cssRaw = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
-  check('Die alte Begruendung steht als zurueckgenommen da, nicht verschwunden',
-    /zwei Merkmale, zwei Kanaele/i.test(cssRaw) && /0\.12\.3/.test(cssRaw),
-    'die Begruendung fehlt');
 
   /* --- Der Verweis „mehr" in der Filterzeile --- */
   /* `margin-left: auto` naehme der Wolke den freien Platz; sie rutschte in

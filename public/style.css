@@ -1726,9 +1726,6 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
 /* Ausnahmen von `.mark.on`: der Knopf traegt die Farbe der Kante, die er setzt. */
 .mark.task.on { color: var(--blue); border-color: var(--blue); }
 .mark.task.on.done { color: var(--green); border-color: var(--green); }
-/* FARBE SAGT DIE ART, FORM SAGT DIE ANPINNUNG. Bis 0.12.3 stand hier das
-   Gegenteil -- „zwei Merkmale, zwei Kanaele": ein angepinnter Bericht trug
-   orange und gold nebeneinander. */
 /* `.cmt.pinned` steht nach `.cmt.report` usw. und faerbt bei gleicher Spezifitaet
    auch die linke Kante; jede Art braucht deshalb ihre eigene `.cmt.pinned.<art>`. */
 .cmt.pinned { border-color: var(--gold-line); }
