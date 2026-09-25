@@ -1,7 +1,6 @@
 #!/usr/bin/env node
-/* Der Schluesselwechsel auf dem Wirt, bei ANGEHALTENER Instanz: dort liegt
- * die .env, und ein laufender Server haelt die Datei im WAL-Modus offen.
- * Gewechselt wird der Schluessel, nicht das Verfahren. */
+/* Schluesselwechsel auf dem Wirt bei angehaltener Instanz; `node keytool.js`
+ * ohne Befehl zeigt die Hilfe. */
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
@@ -12,13 +11,10 @@ const auth = require('./auth');
 const RED = (t) => `\x1b[31m${t}\x1b[0m`;
 const BOLD = (t) => `\x1b[1m${t}\x1b[0m`;
 
-// Der Wechsel braucht freien Platz in Hoehe der Datenbank: das
-// Rollback-Journal waechst auf ihre Groesse. Ein Zehntel Zuschlag, weil eine
-// Platte, die auf das letzte Byte genau reicht, keine ist.
+// Das Rollback-Journal waechst beim Wechsel auf die Groesse der Datenbank; 10 % Reserve.
 const SPACE_MARGIN = 1.1;
-// Gemessen an einer verschluesselten Instanz: rund 20 ms je MB (5189 ms fuer
-// 261 MB). Dieselbe Zahl wie BACKUP_MS_PER_MB in server.js; server.js laeuft
-// beim Wechsel nicht.
+// Gemessen an einer verschluesselten Instanz: 261 MB in 5189 ms.
+// Derselbe Wert wie BACKUP_MS_PER_MB in server.js.
 const MS_PER_MB = 20;
 
 function help() {
@@ -48,9 +44,8 @@ ${RED('  VORHER EIN BACKUP ANLEGEN — Datenverzeichnis UND .env.')} Bricht der 
 `);
 }
 
-/* Liest eine Zeile -- dieselben zwei Wege wie in usertool.js, und aus demselben
- * Grund: readline liest bei geroehrter Eingabe VORAUS, und die zweite Frage
- * bekaeme dann nie eine Antwort. */
+/* Ohne Terminal wird stdin auf einmal gelesen: readline liest aus einer Pipe
+ * voraus, und die zweite Frage bekaeme keine Antwort; ebenso in usertool.js. */
 const onTerminal = Boolean(process.stdin.isTTY);
 let pool = null, queue = null;
 
@@ -72,14 +67,9 @@ function ask(text) {
 }
 const closeQueue = () => { if (queue) queue.close(); };
 
-/* ---- Die Lage, an einer Stelle gerechnet ---------------------------------
-   Beide Befehle stellen dieselben Fragen; zwei Rechenwege fuer dieselbe Sache
-   liefen auseinander. */
 function state() {
   let bytes = 0;
-  // MIT wal_checkpoint: ohne ihn steht der frisch geschriebene Bestand noch in
-  // der WAL, die Datei sieht winzig aus, und Platzbedarf wie Dauer waeren zu
-  // niedrig angesetzt.
+  // Ohne Checkpoint steht der Bestand noch in der WAL, und die Datei wirkt zu klein.
   try { db.pragma('wal_checkpoint(TRUNCATE)'); bytes = fs.statSync(DB_FILE).size; } catch {}
   let free = null;
   try { const s = fs.statfsSync(path.dirname(DB_FILE)); free = s.bsize * s.bavail; } catch {}
@@ -91,9 +81,7 @@ function state() {
   } catch {}
   return {
     bytes, free, needed,
-    // Ein unbekannter freier Platz ist KEINE Absage: statfs kann auf einem
-    // ungewoehnlichen Dateisystem scheitern, und eine Absage ohne Grundlage
-    // waere schlimmer als der Versuch. Gesagt wird es trotzdem.
+    // null, wenn statfs auf dem Dateisystem scheitert; das ist keine Absage.
     enough: free === null ? null : free >= needed,
     seconds: Math.max(1, Math.round(bytes / 1048576 * MS_PER_MB / 1000)),
     changed
@@ -120,8 +108,7 @@ function commandShow() {
 async function commandChange(options) {
   const l = state();
 
-  /* ERST DIE ABSAGEN, UND ZWAR ALLE, BEVOR IRGENDETWAS GESCHIEHT. Eine Absage
-     nach dem halben Vorgang waere schlimmer als gar keine Pruefung. */
+  // Alle Pruefungen vor der ersten Aenderung.
   if (keyFromEnv && !options.env) {
     console.error(RED('Der Schlüssel kommt aus der Umgebung (ENCRYPTION_KEY).'));
     console.error('Dann liegt er in der .env auf dem Wirt, und die sieht dieser Vorgang nur,');
@@ -143,9 +130,7 @@ async function commandChange(options) {
     }
     try { fs.accessSync(options.env, fs.constants.R_OK | fs.constants.W_OK); }
     catch { console.error(RED(`${options.env} ist nicht les- und schreibbar.`)); process.exit(1); }
-    /* Die .env wird JETZT geprueft und nicht erst nach dem Wechsel: traegt sie
-       einen anderen Wert, ist es die falsche Datei -- und das soll auffallen,
-       solange die Datenbank noch ihren alten Schluessel hat. */
+    // Die .env vor dem Wechsel pruefen, solange die Datenbank ihren alten Schluessel hat.
     const lines = fs.readFileSync(options.env, 'utf8').split('\n');
     const hit = keys.findEnvLine(lines);
     if (hit.length !== 1) {
@@ -175,7 +160,7 @@ async function commandChange(options) {
     console.error(RED('Der neue Schlüssel ist derselbe wie der alte. Nichts geändert.')); process.exit(1);
   }
 
-  /* ---- Die Ansage, und sie nennt beim Namen, was danach anders ist ---- */
+  /* ---- Die Ansage ---- */
   console.log(`\n${BOLD('Der Schlüssel dieser Datenbank wird gewechselt.')}\n`);
   console.log(`  Datenbank        ${mb(l.bytes)}, erwartete Dauer rund ${l.seconds} Sekunden`);
   console.log(`  Freier Platz     ${mb(l.free)} — gebraucht werden ${mb(l.needed)}`);
@@ -216,11 +201,9 @@ async function commandChange(options) {
     process.exit(1);
   }
 
-  /* ---- Die Ablage, ERST JETZT ---- Vor dem Wechsel geschrieben, stuende in
-     der .env ein Schluessel, der zu nichts passt, sobald der Wechsel
-     scheitert. Scheitert das Schreiben, steht der Wert auf dem Bildschirm. */
-  /* Dieselbe Schreibweise wie jeder Zeitstempel der Instanz ("2026-08-23
-     19:56:01", UTC). */
+  /* ---- Die Ablage ---- */
+  // Erst nach dem Wechsel schreiben: scheitert er, passte die Ablage sonst zu nichts.
+  // UTC, in der Form aller Zeitstempel der Instanz: 2026-08-23 19:56:01.
   const stamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
   let old = null;
   try {
@@ -236,9 +219,8 @@ async function commandChange(options) {
     process.exit(1);
   }
 
-  /* ---- Die Spur ----
-     Beides NACH dem Vorgang, wie ueberall: ein Protokoll, das den Vorgang
-     mitreisst, ueber den es berichten soll, waere schlimmer als keins. */
+  /* ---- Die Spur ---- */
+  // Erst nach dem Wechsel: ein Fehler im Protokoll darf den Wechsel nicht abbrechen.
   db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('keyChangedAt', ?)")
     .run(JSON.stringify(stamp));
   auth.log('key', { actor: auth.FROM_HOST });
@@ -254,15 +236,14 @@ async function commandChange(options) {
   } else {
     console.log(`  ${path.join(DATA_DIR, 'encryption.key')} trägt den neuen Wert.`);
     console.log(RED(`\n  DER ALTE WERT ÖFFNET ALLE BACKUPS VON VOR ${stamp} UTC.`));
-    // Die Kopie des Datenverzeichnisses von keytool.sh traegt die alte Schluesseldatei mit.
+    // keytool.sh kopiert vorher das Datenverzeichnis samt alter Schluesseldatei.
     console.log(RED('  Er steht ab jetzt nur noch im Backup, das vor dem Wechsel'));
     console.log(RED('  entstanden ist. Übernimm ihn in den Passwortspeicher:'));
     console.log(`\n    ${keyHex}\n`);
   }
   console.log('  Jetzt die Instanz starten und im Protokoll nachsehen, dass sie öffnet.');
 
-  /* Sauber schliessen: die WAL wird eingearbeitet, bevor der Prozess endet.
-     Der Abschluss darf nichts werfen -- der Wechsel ist gelungen. */
+  // Fehler hier ignorieren: der Wechsel ist bereits gelungen.
   try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); } catch {}
 }
 

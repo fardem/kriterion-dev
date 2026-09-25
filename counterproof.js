@@ -807,8 +807,8 @@ const REGRESSIONS = [
   {
     nr: '103', name: 'Die alten Codes bleiben beim Erneuern stehen',
     file: 'auth.js',
-    search: "    db.prepare('DELETE FROM two_factor_codes WHERE user_id = ?').run(id);\n    // tokenHash() WIRD WIEDERVERWENDET",
-    replacement: "    // tokenHash() WIRD WIEDERVERWENDET",
+    search: "    db.prepare('DELETE FROM two_factor_codes WHERE user_id = ?').run(id);\n    // tokenHash() wie in checkTwoFactor()",
+    replacement: "    // tokenHash() wie in checkTwoFactor()",
     expected: 'Der zweite Faktor: die Wiederherstellungscodes'
   },
   /* ---- Der zweite Faktor: das Geheimnis ---- */
@@ -4095,8 +4095,8 @@ const REGRESSIONS = [
        Schleife weiter. */
     nr: '515', name: 'Das Nachziehen meldet seinen Stand erst am Ende',
     file: 'batchrun.js',
-    search: "    status.done++;\n    report(status);\n    // Dieselben 30 ms wie in den anderen Schleifen: sie halten die Maschine",
-    replacement: "    stand.done++;\n    // Dieselben 30 ms wie in den anderen Schleifen: sie halten die Maschine",
+    search: "    status.done++;\n    report(status);\n    // 30 ms Pause je Zeile",
+    replacement: "    status.done++;\n    // 30 ms Pause je Zeile",
     expected: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
@@ -9387,8 +9387,8 @@ const REGRESSIONS = [
     /* UND DER ABSCHNITTSNAME STEHT WIEDER IN EINER AUSGELIEFERTEN DATEI. */
     nr: '1192', name: 'Der Abschnitt in db.js heisst wieder Auffangnetz',
     file: 'db.js',
-    search: "// --- Rueckfall: kein Bestand ohne Benutzer ---",
-    replacement: "// --- Auffangnetz: kein Bestand ohne Benutzer ---",
+    search: "/* ---- Rueckfall: Bestand ohne Benutzer ---- */",
+    replacement: "/* ---- Auffangnetz: Bestand ohne Benutzer ---- */",
     expected: 'Der Sprachwaechter'
   },
   /* ---- Das Inhaltsverzeichnis der Anleitung ---- */

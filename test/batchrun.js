@@ -294,6 +294,22 @@ async function checkBatchRun() {
       nStatus.renewed === 0 && nStatus.checked === ROWS + OLD + 2,
       JSON.stringify(nStatus));
 
+    let brokenId = null;
+    {
+      const d = open();
+      const item = d.prepare("INSERT INTO items (title) VALUES ('Kaputtes Bild')").run().lastInsertRowid;
+      brokenId = d.prepare("INSERT INTO photos (item_id, data, mime_type, thumb, medium, kind) " +
+        "VALUES (?,?,?,?,?,?)").run(item, Buffer.from('kein-bild'), 'image/jpeg', oldThumb, oldMedium, 'image').lastInsertRowid;
+      d.close();
+    }
+    const broken = await drive('geometry', [{ id: brokenId }]);
+    const bState = (broken.states[broken.states.length - 1] || {}).status || {};
+    const bRow = (() => { const d = open(); const r = d.prepare('SELECT thumb FROM photos WHERE id = ?').get(brokenId); d.close(); return r; })();
+    check('Eine Zeile ohne neue Kachel wird uebersprungen und behaelt ihre alte',
+      bState.skipped === 1 && bState.renewed === 0 && !!bRow.thumb && Buffer.compare(bRow.thumb, oldThumb) === 0,
+      `${JSON.stringify(bState)} · thumb ${bRow.thumb ? bRow.thumb.length + ' Bytes' : 'leer'}`);
+    { const d = open(); d.prepare('DELETE FROM photos WHERE id = ?').run(brokenId); d.close(); }
+
     /* ---- Die vierte Aufgabe: EINE Zeile, auf ausdruecklichen Knopfdruck
        ---- Sie faehrt denselben Weg wie die Schleife und schreibt dieselbe
        Spalte; was sie unterscheidet, ist der Rufer. */
@@ -433,7 +449,7 @@ async function checkBatchRun() {
     check('db.js legt keine Tabelle ohne IF NOT EXISTS an',
       blWithoutWhen === 0 && !/db\.exec\('VACUUM'\)/.test(blDb), `${blWithoutWhen} Stellen`);
     check('Und der Nachweis der Wiederholbarkeit steht dort geschrieben',
-      /WAS BEIM OEFFNEN LAEUFT, DARF ZWEIMAL LAUFEN/.test(blDb),
+      /muss wiederholbar sein/.test(blDb),
       'die Begruendung fehlt');
     /* 12. DIE ANSAGEN AN DEN BETREIBER BLEIBEN IM HAUPT-THREAD. */
     const blKeys = fs.readFileSync(path.join(__dirname, 'keys.js'), 'utf8');

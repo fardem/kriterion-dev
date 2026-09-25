@@ -1,6 +1,5 @@
-/* Setzt data-theme am <html>, bevor Stilblatt und app.js laden. Eigene Datei
-   und kein Inline-Script, weil script-src auf 'self' steht; synchron, ohne
-   defer. Ohne gespeicherten Wert: dunkel. */
+/* Eigene Datei statt Inline-Script, weil script-src auf 'self' steht.
+   Laedt synchron vor dem Stilblatt, sonst erscheint kurz das falsche Theme. */
 (function () {
   try {
     var t = localStorage.getItem('kriterion.theme') || localStorage.getItem('kriterion.thema');

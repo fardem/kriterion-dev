@@ -1,9 +1,8 @@
-/* Die Bildableitungen. Der Anfrageweg (server.js) und der Bestandslauf
-   (batchrun.js) rufen dieselben Funktionen. */
+// Bildableitungen; server.js und batchrun.js rufen dieselben Funktionen.
 const sharp = require('sharp');
 const { logLine, logWarn, logFail } = require('./log');
 
-/* Die beiden Ableitungen je Foto. */
+// Kanten in Pixeln, q ist die WebP-Guete.
 const VARIANTS = {
   thumb:  { short: 512,  long: 1280, q: 82, crops: true  },
   medium: { short: 1600, long: 1600, q: 78, crops: false }
@@ -12,16 +11,15 @@ const VARIANTS = {
 // Auch encodeCommentImage() in server.js holt die Guete hier ab.
 const variantWebp = (q) => ({ quality: q, effort: 4 });
 
-/* Der Ausschnitt der Kachel aus focus_x, focus_y und zoom -- massstabsfrei
-   und ohne Rundung. */
+// fx, fy und zoom in Prozent. Ungerundet; cropRectOf rundet.
 function cropSpecBox(width, height, fx, fy, zoom) {
-  const side = Math.min(width, height);   // was die Kachel bei zoom 100 zeigt
-  const tight = side * 100 / zoom;          // was sie beim eingestellten Zoom zeigt
+  const side = Math.min(width, height);   // Kante bei zoom 100
+  const tight = side * 100 / zoom;
   return { links: fx / 100 * (width - tight), top: fy / 100 * (height - tight), edge: tight };
 }
 
-/* Die Masse nach dem EXIF-Vermerk. metadata() meldet die gespeicherten,
-   .rotate() dreht danach; die Ausrichtungen 5 bis 8 vertauschen die Kanten. */
+/* metadata() meldet die gespeicherten Masse, .rotate() dreht erst danach;
+   EXIF-Ausrichtung 5 bis 8 vertauscht die Kanten. */
 function rotatedSize(m) {
   const rotated = m && m.orientation >= 5;
   return { width: rotated ? m.height : m.width, height: rotated ? m.width : m.height };
@@ -31,8 +29,7 @@ const isLandscape = (m) => {
   return !(height > width);
 };
 
-/* Die Kiste fuer extract(): gerundet auf ganze Bildpunkte, quadratisch und
-   in die gedrehten Bildkanten geklemmt. Null, wenn die Masse fehlen. */
+// extract() verlangt ganze Pixel innerhalb der gedrehten Bildkanten.
 function cropRectOf(size, cropSpec) {
   if (!size || !cropSpec) return null;
   const { width, height } = rotatedSize(size);
@@ -45,8 +42,6 @@ function cropRectOf(size, cropSpec) {
            width: edge, height: edge };
 }
 
-/* Baut thumb und medium aus einem Bild. Eine Ableitung, die nicht gelingt,
-   wird null; die andere entsteht trotzdem. */
 async function makeVariants(buf, cropSpec) {
   const out = {};
   let size = null;
@@ -55,8 +50,7 @@ async function makeVariants(buf, cropSpec) {
   const cropRect = cropRectOf(size, cropSpec);
   for (const [name, v] of Object.entries(VARIANTS)) {
     try {
-      // Ueber den Zuschnitt entscheidet `crops` und nicht der Name der
-// Ableitung. Geschnitten wird quadratisch, also zweimal die kurze Kante.
+      // Zugeschnitten ist quadratisch, daher zweimal die kurze Kante.
       const raw = sharp(buf, { failOn: 'none' }).rotate();
       const cropped = v.crops && cropRect;
       out[name] = await (cropped ? raw.extract(cropRect) : raw)
@@ -69,8 +63,7 @@ async function makeVariants(buf, cropSpec) {
   return out;
 }
 
-/* Ob ein thumb ohne Zuschnitt entstanden ist. Ein zugeschnittenes ist
-   quadratisch; ohne lesbare Masse gilt es als ungeschnitten. */
+// Ein zugeschnittenes thumb ist quadratisch.
 function hasNoCropSpec(size) {
   if (!size || !size.width || !size.height) return true;
   return size.width !== size.height;
@@ -81,8 +74,7 @@ async function isUncropped(thumb) {
   catch { return true; }
 }
 
-/* Die drei Verfahren, in denen ein ankommendes PNG abgelegt wird. `null`
-   heisst: keine Umkodierung. */
+// Ablage fuer ankommende PNG; null: nicht umkodieren.
 const IMAGE_STORES = {
   'png':           null,
   'webp-lossless': { nearLossless: true, quality: 60, effort: 4 },
@@ -94,25 +86,19 @@ const IMAGE_STORE_DEFAULT = 'webp-lossless';
 const isImageStore = (v) => typeof v === 'string' &&
   Object.prototype.hasOwnProperty.call(IMAGE_STORES, v);
 
-// Die ersten acht Bytes jeder PNG-Datei.
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const isPng = (buf) =>
   Buffer.isBuffer(buf) && buf.length >= 8 && buf.subarray(0, 8).equals(PNG_MAGIC);
 
-/* Legt ein Bild ab. Ein PNG wird nach dem gewaehlten Verfahren umkodiert --
-   aber nur, wenn das Ergebnis kleiner ist. */
 async function storeImage(buf, reportedType, store) {
   const recipe = IMAGE_STORES[isImageStore(store) ? store : IMAGE_STORE_DEFAULT];
-  // Das Verfahren „PNG" hat kein Rezept -- es ist die Abwesenheit einer
-// Umkodierung und nicht eine Umkodierung mit anderen Zahlen.
   if (!recipe || !isPng(buf)) return { data: buf, mime: reportedType, converted: false };
   try {
     const webp = await sharp(buf).webp(recipe).toBuffer();
     if (webp.length < buf.length)
       return { data: webp, mime: 'image/webp', converted: true };
   } catch (e) {
-    // Laut ins Protokoll, still in der Antwort: das Bild ist gespeichert, nur
-// eben als PNG.
+    // Kein Fehler fuer den Aufrufer: das Bild bleibt PNG.
     logFail('PNG blieb PNG:', e.message);
   }
   return { data: buf, mime: reportedType, converted: false };

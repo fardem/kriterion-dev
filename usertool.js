@@ -1,7 +1,6 @@
 #!/usr/bin/env node
-/* Zugangsverwaltung auf dem Wirt. Die Vorgaenge stehen in auth.js, hier steht
- * nur die Bedienung; help() unten nennt die Befehle. ZUGRIFF AUF DEN WIRT IST
- * DIE BERECHTIGUNG -- die vier schreibenden stehen trotzdem im Protokoll. */
+/* Zugangsverwaltung auf dem Wirt, ohne Anmeldung: der Zugriff auf den Wirt ist
+ * die Berechtigung; `node usertool.js` ohne Befehl zeigt die Hilfe. */
 const readline = require('readline');
 const { db } = require('./db');
 const auth = require('./auth');
@@ -44,9 +43,8 @@ ${BOLD('Kriterion — Zugangsverwaltung')}
 `);
 }
 
-/* Liest eine Zeile, am Terminal ohne Anzeige. ZWEI WEGE: readline liest bei
- * geroehrter Eingabe voraus, und die zweite Frage bekaeme dann nie eine
- * Antwort -- ohne Terminal wird deshalb alles auf einmal gelesen. */
+/* Ohne Terminal wird stdin auf einmal gelesen: readline liest aus einer Pipe
+ * voraus, und die zweite Frage bekaeme keine Antwort. */
 const onTerminal = Boolean(process.stdin.isTTY);
 let pool = null, queue = null, masked = false;
 
@@ -92,17 +90,12 @@ function findUser(name) {
 }
 
 const ROLE_KEY = { user: 'Benutzer', admin: 'Admin', owner: 'Eigentümer' };
-/* DIE ZUSTAENDE HEISSEN ENGLISCH, auf dem Bildschirm des Wirts stehen sie
-   deutsch. Dieselbe Tafel wie ROLE_KEY darueber: der gespeicherte Wert ist
-   Code, das Wort daneben ist Text fuer den, der hinsieht. */
 const STATUS_WORD = { active: 'aktiv', locked: 'gesperrt', deleted: 'geloescht' };
 
 function commandList() {
   const lines = auth.listUsers();
   if (!lines.length) { console.log('Es ist noch kein Zugang eingerichtet.'); return; }
   const width = Math.max(4, ...lines.map(z => z.username.length));
-  // Die Spalte "2FA" sagt nur AN oder AUS; die Zahl der Wiederherstellungscodes
-  // nennen die Karte "Zugang" und der Befehl `twofactor`.
   console.log(`\n  ${'Nr'.padStart(3)}  ${'Name'.padEnd(width)}  ${'Rolle'.padEnd(11)}  ` +
               `${'Status'.padEnd(9)}  ${'2FA'.padEnd(4)}  ${'Einträge'.padStart(8)}  Letzte Anmeldung`);
   console.log('  ' + '─'.repeat(width + 58));
@@ -123,15 +116,12 @@ async function commandPassword(name) {
     process.exit(1);
   }
   console.log(`Neues Passwort für "${u.username}" (Nummer ${u.id}, ${ROLE_KEY[u.role] || u.role}).`);
-  // Zweimal, weil es nicht angezeigt wird: ein Tippfehler waere sonst erst beim
-  // naechsten Anmeldeversuch zu bemerken -- und dann waere der Zugang zu.
+  // Zweimal fragen: die Eingabe ist verdeckt, ein Tippfehler fiele erst bei der Anmeldung auf.
   const a = await ask(`Passwort (mindestens ${auth.PASSWORD_MIN} Zeichen): `, true);
   const b = await ask('Zur Bestätigung noch einmal: ', true);
   if (a !== b) { console.error(RED('Die beiden Eingaben stimmen nicht überein. Nichts geändert.')); process.exit(1); }
   try {
-    // VOM_WIRT statt einer Nummer: hier ist niemand angemeldet. Die Zeile im
-    // Sicherheitsprotokoll traegt deshalb keinen Handelnden -- und genau daran
-    // ist der Notweg spaeter zu erkennen.
+    // FROM_HOST statt einer Nummer: niemand ist angemeldet, das Protokoll zeigt den Weg ueber den Wirt.
     await auth.setNewPassword(u.id, a, auth.FROM_HOST);
   } catch (e) { console.error(RED(e.message)); process.exit(1); }
   console.log(`Passwort für "${u.username}" gesetzt. Alle bisherigen Sitzungen dieses Zugangs sind beendet.`);
@@ -166,9 +156,6 @@ async function commandRemove(name, options) {
   console.log(`"${result.name}" ist entfernt. Die Zeile bleibt als ${result.tombstone} stehen.`);
 }
 
-/* DER NOTWEG AM ZWEITEN FAKTOR SCHALTET NUR AUS. Einschalten sperrte den
-   Betroffenen aus; Ausschalten muss gehen, sonst ist "Telefon weg und
-   Codes verbraucht" ohne Ausweg. Das Passwort bleibt unberuehrt. */
 async function commandTwoFactor(name) {
   const u = findUser(name);
   const status = auth.twoFactorState(u.id);
@@ -184,8 +171,6 @@ async function commandTwoFactor(name) {
   console.log('  Einschalten kann ihn nur der Betroffene selbst, in der Karte „Zugang“.');
   const answer = (await ask('\nWirklich ausschalten? [ja/nein] ')).trim().toLowerCase();
   if (answer !== 'ja') { console.log('Abgebrochen, nichts geändert.'); return; }
-  // VOM_WIRT statt einer Nummer: hier ist niemand angemeldet. Das leere `wer`
-  // im Protokoll heisst "ueber den Wirt" -- daran ist der Notweg zu erkennen.
   auth.turnTwoFactorOff(u.id, auth.FROM_HOST);
   console.log(`Der zweite Faktor von "${u.username}" ist ausgeschaltet. ` +
     'Die Wiederherstellungscodes sind mit weggefallen.');

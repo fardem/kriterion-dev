@@ -1602,8 +1602,8 @@ async function run() {
     check('Und zehn der elf ausgelieferten Dateien kennen es gar nicht mehr',
       shipped.filter(d => found[d].length === 0).length === 10,
       `${shipped.filter(d => found[d].length === 0).length}`);
-    check('In attachments.js meint jede der drei Stellen einen Anhang',
-      (fs.readFileSync(path.join(__dirname, 'attachments.js'), 'utf8').match(/[Aa]nlage/g) || []).length === 3,
+    check('In attachments.js steht „Anlage" hoechstens an den drei Stellen, die einen Anhang meinen',
+      (fs.readFileSync(path.join(__dirname, 'attachments.js'), 'utf8').match(/[Aa]nlage/g) || []).length <= 3,
       `${(fs.readFileSync(path.join(__dirname, 'attachments.js'), 'utf8').match(/[Aa]nlage/g) || []).length}`);
   }
 

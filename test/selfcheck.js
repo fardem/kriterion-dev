@@ -421,24 +421,24 @@ async function run() {
       ['test/ui_translator.js', 105],
       ['counterproof.js', 1618],
       ['server.js', 1591],
-      ['auth.js', 290],
-      ['db.js', 136],
-      ['mail.js', 43],
-      ['keys.js', 40],
-      ['attachments.js', 61],
-      ['images.js', 27],
-      ['batchrun.js', 28],
-      ['log.js', 4],
-      ['usertool.js', 21],
-      ['twofactor.js', 34],
-      ['keytool.js', 39],
-      ['public/app.js', 1966],
-      ['public/theme.js', 3],
+      ['auth.js', 149],
+      ['db.js', 55],
+      ['mail.js', 17],
+      ['keys.js', 14],
+      ['attachments.js', 34],
+      ['images.js', 12],
+      ['batchrun.js', 14],
+      ['log.js', 3],
+      ['usertool.js', 6],
+      ['twofactor.js', 14],
+      ['keytool.js', 20],
+      ['public/app.js', 1965],
+      ['public/theme.js', 2],
       ['public/style.css', 1223],
     ];
-    const COMMENT_TOTAL = { comment: 16306, code: 67922 };
+    const COMMENT_TOTAL = { comment: 15919, code: 67951 };
     // Ausgelieferte Dateien: Bloecke ueber drei Zeilen und Bloecke mit Betonung in Grossbuchstaben.
-    const COMMENT_LIMITS = { longBlocks: 26, emphasis: 1526 };
+    const COMMENT_LIMITS = { longBlocks: 19, emphasis: 1447 };
     check('Der Waechter sieht alle siebenunddreissig Dateien',
       crAll.each.length === 37 && COMMENT_ROWS.length === 37,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);

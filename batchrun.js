@@ -1,20 +1,18 @@
-/* Die Bestandslaeufe, in einem eigenen Thread. */
+// Worker-Thread fuer die Bestandslaeufe; eine Aufgabe je Start.
 const os = require('os');
 const { parentPort, workerData } = require('worker_threads');
 const sharp = require('sharp');
-/* Dieselbe Zahl wie in server.js. sharp wird in diesem Thread eigens geladen
-   und traegt dort wieder seine Vorgabe. */
+/* sharp wird im Thread neu geladen und hat wieder seine Vorgabe; derselbe Wert
+   wie sharp.concurrency() in server.js. */
 sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));
 const { db } = require('./db');
 const { logLine, logWarn, logFail } = require('./log');
 const { makeVariants, isPng, storeImage, isUncropped } = require('./images');
 
-/* Eine Meldung je Zeile, und sie traegt den ganzen Stand und keine Zunahme.
-   Der Haupt-Thread ersetzt damit, statt zu addieren. */
+// Meldet den ganzen Stand, keine Differenz: der Haupt-Thread ersetzt ihn.
 const report = (status) => parentPort.postMessage({ kind: 'status', status });
 
-/* Der Bestandslauf: das Original. Eine Frage je Zeile -- liegt das Original
-   als PNG da, und will das gewaehlte Verfahren etwas damit? */
+// `store`: 'png', 'webp-lossless' oder 'webp-lossy'.
 async function convertInventory(rows, store) {
   const status = { running: true, total: rows.length, done: 0,
                   converted: 0, stayed: 0, freed: 0 };
@@ -25,8 +23,7 @@ async function convertInventory(rows, store) {
   for (const { id } of rows) {
     try {
       const z = get.get(id);
-      // Die Zeile kann waehrend des Laufs geloescht oder schon umgestellt
-// worden sein. Beides ist kein Fehler -- nur nichts zu tun.
+      // Die Zeile kann waehrend des Laufs geloescht worden sein.
       if (z) {
         const sizeBefore = z.data ? z.data.length : 0;
         const start = isPng(z.data) ? await storeImage(z.data, 'image/png', store)
@@ -38,13 +35,12 @@ async function convertInventory(rows, store) {
         } else status.stayed++;
       }
     } catch (e) {
-      // Eine Zeile reisst den Lauf nicht ab. Sie bleibt, wie sie ist, wird
-// gezaehlt und genannt.
       status.stayed++;
       logFail(`Photo ${id} not converted:`, e.message);
     }
     status.done++;
     report(status);
+    // 30 ms Pause je Zeile, auch in den anderen Schleifen: die Maschine bleibt fuer anderes frei.
     await new Promise(r => setTimeout(r, 30));
   }
   status.running = false;
@@ -55,18 +51,15 @@ async function convertInventory(rows, store) {
     `to do, ${status.freed} bytes saved.`);
 }
 
-/* Woraus eine Zeile ihre Kachel bekommt. */
+// Bei Videos steht das Standbild in `medium`, in `data` das Video.
 const isVideoRow = (z) => z && z.kind === 'video';
 const sourceFrom = (z) => (isVideoRow(z) ? z.medium : z.data);
 const cropFrom = (z) => ({ fx: Number(z.focus_x), fy: Number(z.focus_y),
                                zoom: Number(z.zoom) });
 
-/* Die fehlenden Vorschaubilder nachruesten. Nur Bilder: in der Videozeile
-   steht in `data` die Videodatei. */
+// `rows` enthaelt nur Bilder; bei Videos stuende in `data` das Video.
 async function backfillThumbnails(rows) {
   logLine(`Creating thumbnails for ${rows.length} photo(s) ...`);
-  // Der Zuschnitt geht mit: die drei Zahlen stehen in eigenen Spalten und
-// sind auch dann da, wenn die Ableitung fehlt.
   const get = db.prepare(
     'SELECT data, kind, medium, focus_x, focus_y, zoom FROM photos WHERE id = ?');
   const upd = db.prepare('UPDATE photos SET thumb = ?, medium = ? WHERE id = ?');
@@ -84,8 +77,7 @@ async function backfillThumbnails(rows) {
   logLine(`${done} thumbnail(s) created.`);
 }
 
-/* Die Kacheln erneuern. Faellig ist eine Zeile, deren `thumb` nicht
-   quadratisch ist -- ein zugeschnittener ist es. */
+// Faellig ist eine Zeile, deren `thumb` nicht quadratisch, also nicht zugeschnitten ist.
 async function refreshTiles(rows) {
   const status = { running: true, total: rows.length, done: 0,
                   checked: 0, renewed: 0, skipped: 0, grown: 0 };
@@ -94,8 +86,7 @@ async function refreshTiles(rows) {
   for (const { id } of rows) {
     try {
       const z = get.get(id);
-      // Ohne `thumb` ist die Zeile Sache des Nachruestens und nicht dieses
-// Laufs.
+      // Zeilen ohne `thumb` erledigt backfillThumbnails().
       if (z && z.thumb) {
         status.checked++;
         if (await isUncropped(z.thumb)) {
@@ -110,8 +101,6 @@ async function refreshTiles(rows) {
     }
     status.done++;
     report(status);
-    // Dieselben 30 ms wie in den anderen Schleifen: sie halten die Maschine
-// frei, auf der noch etwas anderes laufen darf.
     await new Promise(r => setTimeout(r, 30));
   }
   status.running = false;
@@ -122,8 +111,7 @@ async function refreshTiles(rows) {
     `${status.grown} bytes more.`);
 }
 
-/* Eine Zeile erneuern -- die Schleife oben und die Aufgabe `crop` rufen
-   dieselbe Funktion. */
+// Liefert den Zuwachs von `thumb` in Bytes, oder null, wenn nichts geschrieben wurde.
 const writeBoth = db.prepare('UPDATE photos SET thumb = ?, medium = ? WHERE id = ?');
 const writeTile = db.prepare('UPDATE photos SET thumb = ? WHERE id = ?');
 async function refreshRow(id, z) {
@@ -136,8 +124,7 @@ async function refreshRow(id, z) {
   return v.thumb.length - (z.thumb ? z.thumb.length : 0);
 }
 
-/* Die vierte Aufgabe: eine Zeile, auf Knopfdruck beim Speichern eines
-   Ausschnitts. */
+// Aufgabe `crop`: eine Zeile, nach dem Speichern eines Ausschnitts.
 async function refreshOneTile(rows) {
   const id = rows && rows[0] && rows[0].id;
   const z = id ? db.prepare(
@@ -151,12 +138,11 @@ async function refreshOneTile(rows) {
   parentPort.postMessage({ kind: 'refreshed', id, ok });
 }
 
-/* Gibt die freigewordenen Seiten ans Dateisystem zurueck. */
+// Gibt freie Seiten an das Dateisystem zurueck.
 function reclaim() {
   try { db.pragma('incremental_vacuum'); db.pragma('wal_checkpoint(TRUNCATE)'); } catch {}
 }
 
-/* Der Thread faehrt genau eine Aufgabe und endet dann. */
 (async () => {
   if (workerData.task === 'conversion') await convertInventory(workerData.rows, workerData.store);
   else if (workerData.task === 'thumbnails') await backfillThumbnails(workerData.rows);
