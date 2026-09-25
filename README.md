@@ -433,8 +433,8 @@ die Wege vor der Anmeldung brauchen ihn nicht.
 ## Wie dieser Code entstanden ist
 
 Geschrieben mit [Claude Code](https://claude.com/claude-code), August bis
-September 2026. Idee, Konzept und die Entscheidung, was gebaut wird, kommen
-von [Faruk Demirtas](https://github.com/fardem).
+September 2026. Idee, Konzept und Entwurf:
+[Faruk Demirtaş](https://github.com/fardem).
 
 ## Lizenz
 
