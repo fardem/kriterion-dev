@@ -344,8 +344,9 @@ async function run() {
     check('Unter dem Betrachter steht entry.officeHint mit dem Rechnernamen',
       hint?.textContent === deText('entry.officeHint', { host: 'ds.invalid' }), hint?.textContent);
     open(4);
-    await until(w, () => destroyed.length === 1, 2000, 'das Abbauen');
-    check('Beim Neuzeichnen wird destroyEditor() gerufen', destroyed[0] === 'office-45', destroyed.join(' '));
+    await until(w, (x) => !x.document.querySelector('#atts .apreview') && openRequests(x) === 0,
+      2000, 'die geschlossene Vorschau');
+    check('Beim Neuzeichnen wird destroyEditor() gerufen', equal(destroyed, ['office-45']), destroyed.join(' '));
 
     delete w.DocsAPI;
     open(4);
