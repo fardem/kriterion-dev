@@ -2541,29 +2541,28 @@ const qAttachmentCounts = db.prepare('SELECT item_id, COUNT(*) n FROM attachment
 /* Von hier bis markupPlain() Zeichen fuer Zeichen gleich mit public/app.js,
    auch die Kommentare; test/ui_entry.js vergleicht beide. */
 /* ================= Auszeichnung ================= */
-/* Eine Teilmenge von CommonMark. Innerhalb der Teilmenge gilt die
-   Spezifikation; was nicht darin liegt, bleibt gewoehnlicher Text. */
+/* Gleich in public/app.js und server.js halten; test/ui_entry.js prueft das. */
+/* Teilmenge von CommonMark; was nicht darin liegt, bleibt Text. */
 
-// Die Zeichenklassen der Flankenregel. MARKUP_MARK nimmt Satzzeichen und
-// Symbole, wie die Spezifikation es verlangt.
+// CommonMark zaehlt Symbole (\p{S}) zu den Satzzeichen; MARKUP_ASCII_MARK
+// sind die Zeichen, die ein Backslash maskiert.
 const MARKUP_ASCII_MARK = /[!-\/:-@\[-`{-~]/;
 const MARKUP_MARK = /[\p{P}\p{S}]/u;
 const MARKUP_SPACE = /[ \t\n\v\f\r]/;
 
-// Nur diese Ziele werden ein Link -- dieselbe Schranke wie bei der nackten
-// Adresse. Alles andere bleibt der Rohtext, wie er dasteht.
+// Nur http(s) wird ein Link, wie in `buildCommentNodes` (public/app.js);
+// jedes andere Ziel bleibt Rohtext.
 const MARKUP_TARGET = /^https?:\/\//i;
 
-/* ZWEI GRENZEN GEGEN DEN ENDLOSEN TEXT. Die Spezifikation erlaubt die erste
-   ausdruecklich und nennt drei Ebenen als Mindestmass; ohne die zweite
-   traegt der Stapel ein Zitat aus tausend Zeichen `>` nicht. */
+// Klammerebenen im Link-Ziel; CommonMark erlaubt eine Grenze ab drei.
 const MARKUP_NESTING = 32;
+// Hoechste Verschachtelung; tiefer bleibt Text, sonst laeuft bei 1000 `>`
+// der Stapel ueber.
 const MARKUP_DEPTH = 100;
 
-/* ---- Die Inline-Ebene ---- */
+/* ---- Inline-Ebene ---- */
 
-// Was links und rechts eines Zeichenlaufs steht, entscheidet ueber Oeffnen
-// und Schliessen. Zeilenanfang und Zeilenende zaehlen als Leerraum.
+// Flankenregel nach CommonMark; der Rand des Texts zaehlt als Leerraum.
 function markupFlanks(text, from, to) {
   const before = from > 0 ? text[from - 1] : '\n';
   const after = to < text.length ? text[to] : '\n';
@@ -2574,9 +2573,8 @@ function markupFlanks(text, from, to) {
   return { left, right, markBefore, markAfter };
 }
 
-/* Ein Code-Abschnitt traegt sich selbst: zwischen zwei gleich langen Laeufen
-   von Backticks gilt keine weitere Auszeichnung. Er steht in EINER Zeile --
-   ueber den Umbruch hinweg wuerde ein Zaun aus drei Backticks einer. */
+/* Anders als in CommonMark endet ein Code-Abschnitt am Zeilenende; sonst
+   wuerde ein Codeblock mit drei Backticks zu einem Code-Abschnitt. */
 function markupCode(text, at) {
   let run = 0;
   while (text[at + run] === '`') run++;
@@ -2600,8 +2598,7 @@ function markupCode(text, at) {
   }
 }
 
-// Das Ziel eines Links, ab der oeffnenden Klammer. Ein Titel dahinter wird
-// gelesen und verworfen -- die Teilmenge kennt ihn nicht.
+// Liest das Ziel ab der oeffnenden Klammer; ein Titel wird gelesen und verworfen.
 function markupTarget(text, at) {
   let i = at + 1;
   const skip = () => { while (i < text.length && MARKUP_SPACE.test(text[i])) i++; };
@@ -2648,20 +2645,17 @@ function markupTarget(text, at) {
   return { target, end: i + 1 };
 }
 
-// Die Teilmenge traegt zwei Sterne fuer fett und einen Unterstrich fuer
-// kursiv. Jedes andere Paar bleibt stehen, wie es geschrieben wurde.
+// Nur ** (fett) und _ (kursiv) liegen in der Teilmenge; * und __ bleiben Text.
 const markupWrap = (char, used) =>
   (char === '*' && used > 1) ? 'strong' : (char === '_' && used < 2) ? 'em' : '';
 
-/* Die Zeichenlaeufe werden nach der Spezifikation gepaart; erst danach
-   entscheidet sich, ob daraus ein Knoten oder wieder Text wird. */
-/* DIE STUECKE STEHEN IN EINER VERKETTETEN LISTE UND NICHT IN EINEM FELD:
-   `indexOf` und `splice` kosteten dort je Paar die ganze Folge. */
+/* Paart nach "process emphasis" aus CommonMark; die Knoten stehen in einer
+   verketteten Liste, weil `indexOf` und `splice` in einem Feld je Paar die
+   ganze Folge kosten. */
 function markupPairs(marks, bottom) {
   let at = bottom;
-  /* DIE UNTERE SCHRANKE JE ZEICHEN, LAENGE UND ROLLE, wie die Spezifikation
-     sie fuehrt: wo einmal kein Oeffner stand, sucht kein zweiter Schliesser
-     noch einmal danach. */
+  /* openers_bottom aus CommonMark je Zeichen, Laenge mod 3 und Oeffnerrolle:
+     unter der Stelle einer erfolglosen Suche wird nicht erneut gesucht. */
   const floors = new Map();
   while (at < marks.length) {
     const closer = marks[at];
@@ -2673,8 +2667,8 @@ function markupPairs(marks, bottom) {
       const opener = marks[i];
       if (opener.gone || !opener.canOpen || !opener.node.text
           || opener.char !== closer.char) continue;
-      /* DIE DREIERREGEL: kann eines der beiden Zeichen beides, darf die Summe
-         kein Vielfaches von drei sein -- es sei denn, beide sind es. */
+      /* Regel der Drei aus CommonMark: kann einer beides, darf die Summe kein
+         Vielfaches von 3 sein, ausser beide Laengen sind es. */
       const odd = (opener.canClose || closer.canOpen)
         && (opener.original + closer.original) % 3 === 0
         && !(opener.original % 3 === 0 && closer.original % 3 === 0);
@@ -2695,8 +2689,6 @@ function markupPairs(marks, bottom) {
       inner.push(n);
       if (n.deep > deep) deep = n.deep;
     }
-    /* TIEFER ALS HUNDERT EBENEN BLEIBT ALLES TEXT, wie beim Zitat und bei der
-       Aufzaehlung: ein tieferer Baum laesst beim Lesen den Stapel ueberlaufen. */
     if (deep >= MARKUP_DEPTH) { at++; continue; }
     opener.node.text = opener.node.text.slice(used);
     closer.node.text = closer.node.text.slice(used);
@@ -2707,25 +2699,23 @@ function markupPairs(marks, bottom) {
                       : { type: 'text', text: back, raw: back, deep: deep + 1 };
     opener.node.next = made; made.prev = opener.node;
     made.next = closer.node; closer.node.prev = made;
-    // Die Zeichen dazwischen sind verbraucht.
+    // Laeufe zwischen dem Paar scheiden aus, wie in CommonMark.
     for (let i = found + 1; i < at; i++) marks[i].gone = true;
     if (!opener.node.text) opener.gone = true;
-    /* Traegt der Schliesser noch Zeichen, sucht er von derselben Stelle aus
-       weiter -- der naechste Oeffner darunter. */
+    // Ein Schliesser mit Restzeichen sucht ab derselben Stelle weiter.
     if (!closer.node.text) { closer.gone = true; at++; }
   }
   marks.length = bottom;
 }
 
-// Ein Baum, der nicht gezeichnet wird, faellt auf seinen Rohtext zurueck --
-// Zeichen fuer Zeichen, damit kein Teil verschwindet.
+// Der Teilbaum als Rohtext, mit Backslashes und Marken wie eingegeben.
 function markupFlatten(parts) {
   return (parts || []).map(p => p.raw !== undefined ? p.raw
     : p.type === 'text' ? p.text
     : p.mark + markupFlatten(p.children) + p.mark).join('');
 }
 
-// Ob ein Zeichen selbst maskiert ist -- zwei Backslashes heben sich auf.
+// Ob ein Zeichen maskiert ist; zwei Backslashes heben sich auf.
 function markupEscaped(source, at) {
   let n = 0;
   while (at - 1 - n >= 0 && source[at - 1 - n] === '\\') n++;
@@ -2736,8 +2726,6 @@ function markupEscaped(source, at) {
 function markupJoin(parts) {
   const out = [];
   for (const p of parts) {
-    /* Die Buchfuehrung der Kette faellt hier weg: der Baum, der herauskommt,
-       traegt weder Rueckwege noch die gezaehlte Tiefe. */
     delete p.prev; delete p.next; delete p.deep;
     if (p.type !== 'text') { if (p.children) p.children = markupJoin(p.children); out.push(p); continue; }
     if (!p.text) continue;
@@ -2751,16 +2739,12 @@ function markupJoin(parts) {
 
 function markupInline(source) {
   const marks = [], brackets = [];
-  /* Der Kopf traegt nichts; er haelt nur den Anfang der Kette. */
   const head = { type: 'head' };
   let tail = head;
   const add = (node) => { node.prev = tail; tail.next = node; tail = node; return node; };
-  /* Alles hinter einem Stueck abschneiden -- so wird aus einem Paar, das
-     kein Link wird, wieder sein Rohtext. */
   const cutAfter = (node) => { node.next = null; tail = node; };
   let pos = 0, plain = '', plainSource = '';
-  /* DER ROHTEXT LAEUFT MIT: ein Backslash vor einem Satzzeichen faellt beim
-     Zeichnen weg und muss zurueckkommen, wenn ein Paar doch Text bleibt. */
+  // plainSource behaelt die Backslashes fuer den Fall, dass ein Paar Text bleibt.
   const flush = () => {
     if (plain) add({ type: 'text', text: plain, raw: plainSource });
     plain = ''; plainSource = '';
@@ -2772,8 +2756,8 @@ function markupInline(source) {
     }
     if (c === '`') {
       const span = markupCode(source, pos);
-      /* OHNE GEGENSTUECK BLEIBT DER GANZE LAUF TEXT und nicht nur sein erstes
-         Zeichen -- sonst faende der Rest ein falsches Gegenstueck. */
+      // Ohne Gegenstueck bleibt der ganze Lauf Text; sonst faende sein Rest
+      // ein falsches Gegenstueck.
       if (!span) {
         let run = 0;
         while (source[pos + run] === '`') run++;
@@ -2784,7 +2768,7 @@ function markupInline(source) {
       pos = span.end; continue;
     }
     if (c === '[') {
-      // EIN BILD WIRD NIE GEZEICHNET: das `!` davor macht die Klammer stumm.
+      // Bilder liegen nicht in der Teilmenge; `![...](...)` bleibt Text.
       const image = source[pos - 1] === '!' && !markupEscaped(source, pos - 1);
       if (image) { plain = plain.slice(0, -1); plainSource = plainSource.slice(0, -1); }
       flush();
@@ -2797,8 +2781,7 @@ function markupInline(source) {
       if (!open) { plain += c; plainSource += c; pos++; continue; }
       const link = source[pos + 1] === '(' ? markupTarget(source, pos + 1) : null;
       if (!link || !MARKUP_TARGET.test(link.target) || open.image) {
-        /* DER ROHTEXT KOMMT ZURUECK, damit nichts Halbes stehenbleibt: ein
-           Ziel, das kein Link wird, laesst auch den Namen unberuehrt. */
+        // Wird kein Link daraus, bleibt der ganze Ausdruck samt Namen Rohtext.
         flush();
         const end = link ? link.end : pos + 1;
         const back = source.slice(open.from, end);
@@ -2816,7 +2799,7 @@ function markupInline(source) {
       open.node.children = inner;
       open.node.raw = source.slice(open.from, link.end);
       cutAfter(open.node);
-      // EINEN LINK IM LINK GIBT ES NICHT.
+      // Kein Link im Link: jede offene Klammer davor bleibt Text.
       brackets.length = 0;
       pos = link.end; continue;
     }
@@ -2835,19 +2818,18 @@ function markupInline(source) {
   }
   flush();
   markupPairs(marks, 0);
-  // Die Kette wird eingesammelt; markupJoin raeumt die Verweise weg.
   const parts = [];
   for (let n = head.next, next; n; n = next) { next = n.next; parts.push(n); }
   return markupJoin(parts);
 }
 
-/* ---- Die Zeilenebene ---- */
+/* ---- Zeilenebene ---- */
 
 const MARKUP_QUOTE = /^ {0,3}>(?: |\t)?/;
 const MARKUP_BULLET = /^( {0,3})(-)(?:( +)(.*)|()())$/;
 const MARKUP_NUMBER = /^( {0,3})(\d{1,9})\.(?:( +)(.*)|()())$/;
-/* Diese vier liegen nicht in der Teilmenge und bleiben Text -- eine
-   Absatzzeile beenden sie trotzdem, sonst zoege ein Zitat sie zu sich. */
+/* Trennlinie, Ueberschrift und Codeblock bleiben Text, beenden aber wie ein
+   Listenpunkt eine Absatzzeile; sonst wuerden sie Folgezeile eines Zitats. */
 const MARKUP_RULE = /^ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/;
 const MARKUP_HEADING = /^ {0,3}#{1,6}(?:[ \t]|$)/;
 const MARKUP_FENCE = /^ {0,3}(?:`{3,}|~{3,})/;
@@ -2858,8 +2840,8 @@ const markupOpensBlock = (line) =>
   MARKUP_QUOTE.test(line) || MARKUP_RULE.test(line) || MARKUP_HEADING.test(line)
   || MARKUP_FENCE.test(line) || MARKUP_ITEM.test(line);
 
-// Ob eine Zeile innen auf einem Absatz endet -- nur dann laeuft die naechste
-// Zeile ohne eigenes Zeichen mit. Die Zeichen werden dafuer abgetragen.
+// Ob die naechste Zeile ohne `>` weiterlaeuft (lazy continuation): nur,
+// wenn diese Zeile nach Abzug aller Zeichen in einem Absatz endet.
 function markupLazy(line) {
   let rest = String(line);
   for (;;) {
@@ -2871,7 +2853,6 @@ function markupLazy(line) {
     && !MARKUP_HEADING.test(rest) && !MARKUP_FENCE.test(rest);
 }
 
-// Ein Zitat nimmt seine Zeilen und wird selbst wieder zerlegt.
 function markupQuote(lines, at, depth) {
   const inner = [];
   let i = at, running = false;
@@ -2889,8 +2870,6 @@ function markupQuote(lines, at, depth) {
   return { block: { type: 'quote', blocks: markupBlocks(inner, depth + 1) }, end: i };
 }
 
-// Eine Aufzaehlung sammelt ihre Punkte; eine eingerueckte Folgezeile gehoert
-// zum Punkt darueber.
 function markupList(lines, at, ordered, depth) {
   const pattern = ordered ? MARKUP_NUMBER : MARKUP_BULLET;
   const items = [];
@@ -2909,7 +2888,7 @@ function markupList(lines, at, ordered, depth) {
     const spaces = m[3] || '';
     const indent = markerWidth + (spaces.length >= 1 && spaces.length <= 4 ? spaces.length : 1);
     const item = [m[4] ?? ''];
-    // EIN PUNKT, DER MIT EINER LEERZEILE ANFAENGT, BLEIBT LEER.
+    // CommonMark: ein leer begonnener Punkt endet an der naechsten Leerzeile.
     const bare = (m[4] ?? '') === '';
     let itemBlank = false;
     i++;
@@ -2929,7 +2908,6 @@ function markupList(lines, at, ordered, depth) {
 
 function markupBlocks(lines, depth) {
   const blocks = [];
-  // Tiefer als hundert Ebenen bleibt alles Text.
   const deep = depth >= MARKUP_DEPTH;
   let i = 0, text = [];
   const flush = () => {
@@ -2940,10 +2918,10 @@ function markupBlocks(lines, depth) {
   while (i < lines.length) {
     const line = lines[i];
     if (!deep && MARKUP_QUOTE.test(line)) { flush(); const r = markupQuote(lines, i, depth); blocks.push(r.block); i = r.end; continue; }
-    // EINE TRENNLINIE IST KEINE AUFZAEHLUNG, und sie bleibt Text.
+    // `- - -` ist eine Trennlinie, keine Aufzaehlung, und bleibt Text.
     const rule = MARKUP_RULE.test(line);
-    /* MITTEN IN EINEM ABSATZ FAENGT NUR AN, WAS AUCH INHALT HAT -- und eine
-       Nummerierung nur bei der Eins. */
+    // CommonMark: einen Absatz unterbricht nur ein Punkt mit Inhalt, eine
+    // Nummerierung nur ab 1.
     const opens = (m, ordered) => !rule && !deep && m && (!text.length
       || ((m[4] || '') !== '' && (!ordered || Number(m[2]) === 1)));
     if (opens(line.match(MARKUP_BULLET), false)) {
@@ -2959,16 +2937,14 @@ function markupBlocks(lines, depth) {
   return blocks;
 }
 
-// Der Rohtext als Baum. Die Zeilenebene liegt ueber der Inline-Ebene, und
-// beide liegen ueber der Zerlegung, die es schon gibt.
+// Nur die Zeilenebene; Textbloecke behalten ihre Zeilen fuer markupInline.
 function markupParse(raw) {
   return markupBlocks(String(raw ?? '').replace(/\r\n|\r/g, '\n').split('\n'), 0);
 }
 
-/* ---- Die Marken heraus ---- */
+/* ---- Klartext ---- */
 
-/* Fuer die Stellen, die nur Text koennen. Sie bekommen denselben Baum und
-   lesen aus ihm den Text, den der Leser zeichnen wuerde. */
+// Der sichtbare Text ohne Marken, fuer Stellen, die nur Text zeigen koennen.
 function markupPlainInline(parts) {
   return parts.map(p => p.type === 'text' || p.type === 'code' ? p.text
     : markupPlainInline(p.children)).join('');

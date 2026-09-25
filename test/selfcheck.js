@@ -416,11 +416,11 @@ async function run() {
       ['test/ui_inventory.js', 244],
       ['test/ui_language.js', 291],
       ['test/ui_overview.js', 486],
-      ['test/ui_style.js', 600],
+      ['test/ui_style.js', 595],
       ['test/ui_system.js', 684],
       ['test/ui_translator.js', 105],
       ['counterproof.js', 1618],
-      ['server.js', 872],
+      ['server.js', 848],
       ['auth.js', 149],
       ['db.js', 55],
       ['mail.js', 17],
@@ -432,13 +432,13 @@ async function run() {
       ['usertool.js', 6],
       ['twofactor.js', 14],
       ['keytool.js', 20],
-      ['public/app.js', 1965],
+      ['public/app.js', 978],
       ['public/theme.js', 2],
       ['public/style.css', 1223],
     ];
-    const COMMENT_TOTAL = { comment: 15192, code: 67955 };
+    const COMMENT_TOTAL = { comment: 14176, code: 67964 };
     // Ausgelieferte Dateien: Bloecke ueber drei Zeilen und Bloecke mit Betonung in Grossbuchstaben.
-    const COMMENT_LIMITS = { longBlocks: 12, emphasis: 958 };
+    const COMMENT_LIMITS = { longBlocks: 9, emphasis: 260 };
     check('Der Waechter sieht alle siebenunddreissig Dateien',
       crAll.each.length === 37 && COMMENT_ROWS.length === 37,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);

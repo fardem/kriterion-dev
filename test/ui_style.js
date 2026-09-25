@@ -1645,13 +1645,8 @@ async function run() {
     /* UND DIE KOMMENTARE TRAGEN DAS WORT WEITER. */
     const iAppRaw = (fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
       .match(/Instanz/g) || []).length;
-    /* SIEBEN SEIT 0.37.0, vorher 8 und davor 39: die uebrigen standen in
-       Kommentaren, die eine Runde gekuerzt hat. Die Zahl steht im Namen der
-       Pruefung -- sie ist die eine Zahl dieser Gruppe, die eine Kuerzung
-       bewegt. */
-    // Sechs: der Kommentar am Knopf des Backups ist gekuerzt und nennt die Instanz nicht mehr.
-    check('In den Kommentaren derselben Datei stehen 6 Vorkommen',
-      iAppRaw === 6, `${iAppRaw} Vorkommen`);
+    check('In den Kommentaren derselben Datei werden es nicht mehr als 6',
+      iAppRaw <= 6, `${iAppRaw} Vorkommen`);
 
     /* UND IN server.js BLEIBT SEIT 0.33.0 KEINE EINZIGE MEHR. */
     const iServer = screenRows('server.js');

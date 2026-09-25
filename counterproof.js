@@ -2337,8 +2337,8 @@ const REGRESSIONS = [
        Verlassen der Uebersicht, hier beim Oeffnen der Tafel. */
     nr: '291', name: 'Das Oeffnen der Tafel zieht den Bezugspunkt nicht nach',
     file: 'public/app.js',
-    search: "     Tafel gesehen hat, hat sie gesehen. */\n  api('PUT', '/api/settings', { bellSeen: 1 }).catch(() => {});",
-    replacement: "     Tafel gesehen hat, hat sie gesehen. */\n  void 0;",
+    search: "  /* bellSeen beim Oeffnen setzen, nicht beim Schliessen. */\n  api('PUT', '/api/settings', { bellSeen: 1 }).catch(() => {});",
+    replacement: "  /* bellSeen beim Oeffnen setzen, nicht beim Schliessen. */\n  void 0;",
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -3593,8 +3593,8 @@ const REGRESSIONS = [
     /* DER SCHALTER STEHT AUCH DEM ADMIN OHNE EIGENTUEMERROLLE. */
     nr: '457', name: 'Schalter und Knopf stehen jedem Admin',
     file: 'public/app.js',
-    search: "        ${OWNER ? `\n        ${/* ---- DIE WAHL IST EIN KNOPF",
-    replacement: "        ${true ? `\n        ${/* ---- DIE WAHL IST EIN KNOPF",
+    search: "        ${OWNER ? `\n        ${/* Knopf „Standard\" je Zeile",
+    replacement: "        ${true ? `\n        ${/* Knopf „Standard\" je Zeile",
     expected: 'Die Bildablage in der Oberflaeche'
   },
 
@@ -4311,16 +4311,16 @@ const REGRESSIONS = [
     /* DER STREIFEN ZEICHNET WIEDER OHNE ZU FRAGEN. */
     nr: '541', name: 'Der Bilderstreifen fragt nicht, ob seine Ansicht noch steht',
     file: 'public/app.js',
-    search: "    // einem await.\n    if (!box) return;\n",
-    replacement: "    // einem await.\n",
+    search: "    // Nach einem await kann die Ansicht schon gewechselt haben.\n    if (!box) return;\n",
+    replacement: "    // Nach einem await kann die Ansicht schon gewechselt haben.\n",
     expected: 'Die Ansicht kann fort sein — 0.19.6'
   },
   {
     /* DASSELBE AM BETRACHTER. */
     nr: '542', name: 'Der Betrachter fragt nicht, ob seine Ansicht noch steht',
     file: 'public/app.js',
-    search: "    if (!v) return;\n    // Der Betrachter bleibt bei jedem Neuzeichnen",
-    replacement: "    // Der Betrachter bleibt bei jedem Neuzeichnen",
+    search: "    if (!v) return;\n    // #viewer bleibt dasselbe Element; die Handler des Ausschnittmodus loeschen.",
+    replacement: "    // #viewer bleibt dasselbe Element; die Handler des Ausschnittmodus loeschen.",
     expected: 'Die Ansicht kann fort sein — 0.19.6'
   },
   {
@@ -4755,8 +4755,8 @@ const REGRESSIONS = [
     /* DER BLICK GILT UEBER EINTRAEGE HINWEG. */
     nr: '593', name: 'Der Blick ueberlebt den Wechsel des Eintrags',
     file: 'public/app.js',
-    search: '  GLANCE.clear();\n  /* DER BEGRIFF KOMMT AUS DER ADRESSE ODER AUS DEM ZUSTAND',
-    replacement: '  /* DER BEGRIFF KOMMT AUS DER ADRESSE ODER AUS DEM ZUSTAND',
+    search: "  GLANCE.clear();\n  /* Suchbegriff aus der Adresse oder aus state.search; danach sind beide gleich. */",
+    replacement: "  /* Suchbegriff aus der Adresse oder aus state.search; danach sind beide gleich. */",
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
@@ -9210,7 +9210,7 @@ const REGRESSIONS = [
   {
     nr: '1159', name: 'Die Nummer steht wieder vor der Aktionsgruppe',
     file: 'public/app.js',
-    search: "          <span class=\"acts\"><button class=\"mact cite\" title=\"${esc(t('entry.quoteComment'))}\">${ICON_QUOTE}</button>${\n            mine ? `<button class=\"mact ed\" title=\"${esc(t('entry.edit'))}\">${ICON_PEN}</button>` : ''\n            }${manage ? `<button class=\"mact rm\" title=\"${esc(t('dialog.delete'))}\">${ICON_X}</button>` : ''}</span>\n          ${/* DIE NUMMER STEHT GANZ RECHTS UND AUSSERHALB DER AKTIONEN: die\n               Gruppe wird beim Bearbeiten unsichtbar, die Nummer bleibt. */''}\n          <button class=\"link-btn cmt-no\"\n              title=\"${esc(t('entry.copyCommentLink'))}\">#${Number(order.get(c.id))}</button>",
+    search: "          <span class=\"acts\"><button class=\"mact cite\" title=\"${esc(t('entry.quoteComment'))}\">${ICON_QUOTE}</button>${\n            mine ? `<button class=\"mact ed\" title=\"${esc(t('entry.edit'))}\">${ICON_PEN}</button>` : ''\n            }${manage ? `<button class=\"mact rm\" title=\"${esc(t('dialog.delete'))}\">${ICON_X}</button>` : ''}</span>\n          ${/* Ausserhalb von .acts: die Aktionen werden beim Bearbeiten\n               unsichtbar, die Nummer bleibt. */''}\n          <button class=\"link-btn cmt-no\"\n              title=\"${esc(t('entry.copyCommentLink'))}\">#${Number(order.get(c.id))}</button>",
     replacement: "          <button class=\"link-btn cmt-no\"\n              title=\"${esc(t('entry.copyCommentLink'))}\">#${Number(order.get(c.id))}</button>\n          <span class=\"acts\"><button class=\"mact cite\" title=\"${esc(t('entry.quoteComment'))}\">${ICON_QUOTE}</button>${\n            mine ? `<button class=\"mact ed\" title=\"${esc(t('entry.edit'))}\">${ICON_PEN}</button>` : ''\n            }${manage ? `<button class=\"mact rm\" title=\"${esc(t('dialog.delete'))}\">${ICON_X}</button>` : ''}</span>",
     expected: 'Der Stift steht da, und das Loeschen steht abseits'
   },

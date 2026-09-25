@@ -1844,7 +1844,7 @@ async function sendImport(object, mode, withoutShare = false) {
     /class="mast-rest" id="mast-rest"/.test(headCode));
 
   /* ---- Zusage 3: die Suche springt zur Uebersicht ---- */
-  const draht = piece('function wireSubhead(', '\n/* Gesetzt von der Tuer');
+  const draht = piece('function wireSubhead(', '\n}\n');
   check('Die Suche darin springt zur Uebersicht und sucht nicht in der Ansicht',
     /SEARCH_HANDOFF = true; location\.hash = '#\/';/.test(draht)
     && !/api\('GET', '\/api\/items\?/.test(draht));
@@ -1863,7 +1863,7 @@ async function sendImport(object, mode, withoutShare = false) {
     /SEARCH_HANDOFF = false;/.test(appSource));
 
   /* ---- Zusage 4 bis 6: die Reihenfolge ---- */
-  const nachbarn = piece('const entryNeighbours =', '\n/* DIE ZWEI KNOEPFE AM FUSS');
+  const nachbarn = piece('const entryNeighbours =', '\n};\n');
   check('Die Pfeile blaettern in der Reihenfolge der Uebersicht',
     /state\.items \|\| \[\]/.test(nachbarn));
   check('Und nicht im ungefilterten Bestand',
@@ -1874,7 +1874,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und kein Feld daneben, das niemand liest',
     !/ordered/.test(nachbarn));
   /* DER FUSS DES EINTRAGS -- seit 0.28.1 der Ort der beiden Knoepfe. */
-  const foot = piece('function entryNav(id) {', '\n/* Der Aufbau.');
+  const foot = piece('function entryNav(id) {', '\n}\n');
   check('Am Anfang und am Ende sind sie gedaempft und bleiben stehen',
     /at > 0 \? list\[at - 1\]\.id : null/.test(nachbarn)
     && /at < list\.length - 1 \? list\[at \+ 1\]\.id : null/.test(nachbarn)
