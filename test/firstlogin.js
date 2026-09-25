@@ -1,6 +1,5 @@
-/* Kriterion — Pruefstand: die Erstanmeldung Die Wege, die eine Instanz vor
-   ihrem ersten Zugang geht: die frische Einrichtung, das Aendern des Zugangs,
-   die Anmeldesperre, AUTH_RESET und die leere Benutzertabelle. */
+/* Erstanmeldung: Einrichtung, Zugang aendern, Anmeldesperre, AUTH_RESET und
+   leere Benutzertabelle. */
 const H = require('./frame.js');
 
 async function run() {
@@ -8,15 +7,12 @@ async function run() {
    fs, os, path, BRAKE_STEP, group, check, open, startFurtherServer
   } = H;
 
-/* ================= Erstanmeldung ================= */
-// Laeuft gegen eigene Server in eigenen Verzeichnissen, damit die Prueflagen
-// (Abweisungen, AUTH_RESET, leere Benutzertabelle) den Hauptbestand nicht
-// beruehren.
+// Eigene Server und Verzeichnisse: Sperre, AUTH_RESET und leere
+// Benutzertabelle duerfen den Hauptbestand nicht beruehren.
 async function checkFirstLogin() {
   group('Erstanmeldung: frische Installation');
   const freshDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-setup-'));
-  // 5130 und nicht 4000: die Basis 4000 deckt die Nummern 4000 bis 4059, und
-  // 4045 steht auf der Sperrliste von fetch().
+  // 5130 statt 4000: die Basis 4000 belegt 4000 bis 4059, und fetch() sperrt 4045.
   const B = startFurtherServer(freshDir, {}, 5130);
   await B.ready;
 
@@ -51,8 +47,6 @@ async function checkFirstLogin() {
     freshDb.prepare('SELECT COUNT(*) n FROM users').get().n === 1);
   check('Das Passwort steht nirgends im Klartext',
     !freshDb.prepare('SELECT password_hash h FROM users').get().h.includes('zehn-zeichen-und-mehr'));
-  // Der erste Benutzer entsteht ausschliesslich hier -- und wer die Instanz
-// einrichtet, dem gehoert sie.
   const freshU = freshDb.prepare('SELECT id, role, status, last_login FROM users ORDER BY id').get();
   check('Der frisch eingerichtete Zugang ist Eigentuemer', freshU?.role === 'owner',
     JSON.stringify(freshU));
@@ -64,7 +58,6 @@ async function checkFirstLogin() {
     JSON.stringify(freshDb.prepare('SELECT token, user_id FROM sessions').all()));
   freshDb.close();
 
-  /* --- Zugang aendern --- */
   group('Erstanmeldung: Zugang aendern');
   check('Der Name steht im Systembereich', (await B.call('GET', '/api/account')).content.username === 'chef');
   check('Falsches bisheriges Passwort wird abgewiesen',
@@ -89,13 +82,11 @@ async function checkFirstLogin() {
   check('Mit den neuen Daten gelingt die Anmeldung',
     (await B.call('POST', '/api/login', { user: 'chefin', password: 'ganz-neues-passwort' })).status === 200);
 
-  // Etwas anlegen, damit die Rueckstellung gleich zeigen kann, dass der Bestand
-// bleibt.
+  // Ein Eintrag fuer die Pruefung nach AUTH_RESET, dass der Bestand bleibt.
   await B.call('POST', '/api/items', { title: 'Ueberlebt die Ruecksetzung' });
 
-  /* --- Anmeldesperre: unveraendert --- */
-  // Bewusst ganz am Schluss und auf diesem Server: nach zehn Fehlversuchen ist
-// die Adresse fuenf Minuten gesperrt, alles Weitere liefe ins Leere.
+  // Zuletzt auf diesem Server: nach zehn Fehlversuchen ist die Adresse fuenf
+  // Minuten gesperrt.
   group('Erstanmeldung: Anmeldesperre bleibt');
   B.cookieRemove();
   const times = [];
@@ -117,8 +108,6 @@ async function checkFirstLogin() {
     (await B.call('POST', '/api/login', { user: 'chefin', password: 'ganz-neues-passwort' })).status === 429);
   await B.stop();
 
-  /* --- Und sie uebersteht einen Neustart --- Bis zu dieser Fassung lagen die
-     Zaehler in einer Map: ein Neustart setzte jeden auf null. */
   group('Erstanmeldung: die Sperre ueberlebt den Neustart');
   {
     const locked = open(path.join(freshDir, 'katalog.sqlite'));
@@ -126,8 +115,7 @@ async function checkFirstLogin() {
     check('Die Versuche stehen in der Datenbank',
       rows.length >= 2 && rows.some(z => z.who.startsWith('ip:') && z.until) &&
       rows.some(z => z.who === 'name:chefin'), JSON.stringify(rows));
-    /* EINE ALTE ZEILE, DIE DER START WEGRAEUMEN MUSS -- ohne sie belegte die
-       Pruefung darunter nichts. */
+    // Eine abgelaufene Zeile, die der Start wegraeumen muss.
     locked.prepare(`INSERT INTO login_attempts (who, tries, until, seen_at)
       VALUES ('ip:198.51.100.9', 3, NULL, datetime('now', '-2 hours'))`).run();
     locked.close();
@@ -149,10 +137,6 @@ async function checkFirstLogin() {
   }
   await B2.stop();
 
-  /* --- AUTH_RESET bleibt wirkungslos --- Frueher setzte die Umgebungsvariable
-     beim Start ein blankes DELETE FROM users ab. */
-  /* Der Start sagt dazu nichts mehr: eine .env mit dieser Zeile stammt aus
-     einer Fassung, die es nie gegeben hat. */
   group('AUTH_RESET bleibt wirkungslos');
   const C = startFurtherServer(freshDir, { AUTH_RESET: '1' }, 4100);
   await C.ready;
@@ -163,8 +147,6 @@ async function checkFirstLogin() {
   check('Es ist KEINE Einrichtung noetig',
     (await C.call('GET', '/api/config')).content.setupRequired === false);
   const afterReset = open(path.join(freshDir, 'katalog.sqlite'));
-  /* Die drei Zeilen des Gewinns: der Zugang steht noch, der Bestand gehoert
-     weiter ihm, und nichts ist herrenlos geworden. */
   check('Der Zugang steht unveraendert in der Datenbank',
     afterReset.prepare('SELECT COUNT(*) n FROM users').get().n === 1,
     JSON.stringify(afterReset.prepare('SELECT id, username, role, status FROM users').all()));
@@ -179,16 +161,14 @@ async function checkFirstLogin() {
   afterReset.close();
   await C.stop();
 
-  /* --- Die zweite Aufrufstelle des Rueckfalls -----------------------------
-     assignInventory() steht an zwei Stellen; die zweite sitzt in
-     legeErstenBenutzerAn. */
+  // assignInventory() laeuft beim Start (db.js) und in createFirstUser()
+  // (auth.js); hier wird der zweite Aufruf geprueft.
   group('Erstanmeldung: Einrichtung bei leerer Benutzertabelle');
   {
     const d = open(path.join(freshDir, 'katalog.sqlite'));
     d.prepare('DELETE FROM users').run();
     d.prepare('DELETE FROM sessions').run();
-    // ON DELETE SET NULL hat gerade zugeschlagen -- genau die Lage, die die
-// dritte Aufrufstelle aufraeumen muss.
+    // ON DELETE SET NULL hat user_id geleert; das raeumt createFirstUser() auf.
     check('Der Bestand ist jetzt herrenlos',
       d.prepare('SELECT COUNT(*) n FROM items WHERE user_id IS NULL').get().n === 1,
       JSON.stringify(d.prepare('SELECT id, user_id FROM items').all()));
@@ -207,8 +187,6 @@ async function checkFirstLogin() {
   const freshItems = afterFresh.prepare('SELECT id, user_id FROM items').all();
   check('Der herrenlose Bestand faellt an den neu eingerichteten Zugang',
     freshItems.length === 1 && freshItems[0].user_id === freshId, JSON.stringify(freshItems));
-  // Und der Neue ist Eigentuemer -- ohne das griffe assignInventory() ins
-// Leere, weil eigentuemerId() niemanden faende.
   check('Und der neu eingerichtete Zugang ist Eigentuemer',
     afterFresh.prepare('SELECT role FROM users WHERE id = ?').get(freshId)?.role === 'owner',
     JSON.stringify(afterFresh.prepare('SELECT id, username, role FROM users').all()));

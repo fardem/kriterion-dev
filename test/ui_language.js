@@ -1,6 +1,6 @@
-/* Kriterion — Pruefstand: die Oberflaeche: die Sprachdatei und das Schema Die
-   sieben Waechter der Sprachdatei, der Anbietername, die Zeitleiste im hellen
-   Schema, die festen Farben, die Server-Befehle und die Rollenweichen. */
+/* Kriterion — Pruefstand: Sprachdateien, Tastenkombinationen, Anbietername,
+   Farben im Stilblatt, eigene Fenster, Server-Befehle, Sternzeile, Tagzeile und
+   Rollenweichen. */
 const H = require('./frame.js');
 const D = require('./dom.js');
 const {
@@ -13,17 +13,13 @@ async function run() {
    fs, os, path, segment, CODE, TEXT, COMMENT, __dirname, require,
    FILTER, group, check, equal, shortRun, call, names
   } = H;
-  /* DIESES MODUL BAUT FENSTER. Fehlt jsdom, sagt es das und haelt an. */
   let JSDOM;
   try { ({ JSDOM } = require('jsdom')); }
   catch { console.log('  … uebersprungen: jsdom fehlt (npm install)'); return; }
-  // Eine Ansicht ist fertig, wenn ihr Kennzeichen dasteht und keine Anfrage mehr offen ist.
   const listReady = (x) => !!x.document.getElementById('q') && openRequests(x) === 0;
   const entryReady = (x) => !!x.document.getElementById('ratings') && openRequests(x) === 0;
   const sysReady = (x) => !!x.document.querySelector('.sys-grid > .sys-card') && openRequests(x) === 0;
 
-  /* ================= Die sieben Waechter der Sprachdatei — 0.24.0 =========
-     SIEBEN FRAGEN, DIE EINE SPRACHDATEI SICH GEFALLEN LASSEN MUSS. */
   group('Die sieben Waechter der Sprachdatei — 0.24.0');
   {
     const spVerz = path.join(__dirname, 'public', 'languages');
@@ -34,15 +30,12 @@ async function run() {
         fs.readFileSync(path.join(spVerz, name), 'utf8')); }
       catch { spBroken.push(name); }
     }
-    /* ERST DER GEGENSTAND: DREI Dateien seit 0.24.4 -- de.json, en.json,
-       tr.json. */
     check('Drei Sprachdateien: de.json, en.json und tr.json — 0.24.4',
       equal(spNames, ['de.json', 'en.json', 'tr.json']), spNames.join(' · '));
     check('Und jede Sprachdatei ist lesbares JSON',
       spBroken.length === 0, spBroken.join(' · ') || 'alle lesbar');
 
-    /* ---- 1. Deckungsprobe ---------------------------------------------
-       JEDE DATEI TRAEGT DIESELBEN SCHLUESSEL. */
+    /* ---- 1. Deckungsprobe ---- */
     const deKey = Object.keys(spContent.de || {}).filter(k => k !== '_hinweis').sort();
     const coveringError = [];
     for (const [code, texts] of Object.entries(spContent)) {
@@ -55,13 +48,11 @@ async function run() {
     check('Deckungsprobe: jede Datei traegt genau die Schluessel von de.json',
       spBroken.length === 0 && coveringError.length === 0,
       coveringError.join(' · ') || (spBroken.length ? 'unlesbare Datei: ' + spBroken.join(' ') : 'gedeckt'));
-    // Und der Gegenstand dazu: es sind wirklich ueber tausend Schluessel.
     check('Und es sind mehr als tausend Schluessel',
       deKey.length > 1000, `${deKey.length} Schlüssel`);
 
-    /* ---- 2. Verwendungsprobe -------------------------------------------
-       JEDER SCHLUESSEL WIRD GERUFEN, UND JEDER GERUFENE STEHT DA. */
-    /* EIN `/*` MITTEN IN EINEM WORT IST KEIN KOMMENTAR. */
+    /* ---- 2. Verwendungsprobe ---- */
+    /* Ein `/*` hinter einem Wortzeichen oder Anfuehrungszeichen ist kein Kommentar. */
     const withoutComment = (q) => q
       .replace(/(^|[^A-Za-z0-9_"'`])\/\*[\s\S]*?\*\//g, '$1 ')
       .replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
@@ -72,19 +63,15 @@ async function run() {
       // t('…'), tH('…'), t(sprache, '…'), new Message('…'), meldung('…')
       for (const m of q.matchAll(/(?<![A-Za-z0-9_.$])(?:tH?|new Message|meldung|message)\(\s*(?:[A-Za-z][A-Za-z0-9_.]*\s*,\s*)?'([a-zäöü][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+)+)'/g))
         called.add(m[1]);
-      /* UND DIE TABELLEN, DIE EINEN SCHLUESSEL HALTEN statt eines Satzes
-         (VORGANGSWORT, ROLLENWORT, THEMA_NAMEN …): dort steht der Schluessel
-         als blosser Wert. */
+      /* Auch ein Schluessel, der in einer Tabelle als blosser Wert steht, gilt als gerufen. */
       for (const m of q.matchAll(/'([a-zäöü][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+)+)'/g))
         if (spContent.de && spContent.de[m[1]] !== undefined) called.add(m[1]);
     }
-    /* DIE VIER BRIEFE ENTSTEHEN AUS EINEM NAMEN: mail.js baut
-       `mail.${kind}.subject` zur Laufzeit. */
+    /* mail.js baut `mail.${kind}.subject` und `.body` erst zur Laufzeit. */
     const LETTERS = ['confirm', 'invite', 'reset', 'test']
       .flatMap(kind => [`mail.${kind}.subject`, `mail.${kind}.body`]);
     for (const k of LETTERS) called.add(k);
-    /* DIE FUENFZEHN VOKABELVORGABEN WERDEN AUS DEM VORSATZ ABGELEITET und
-       nicht einzeln gerufen -- 0.24.3, Bauabschnitt 6. */
+    /* app.js und server.js leiten die Vokabelschluessel aus `VOCABULARY_PREFIX` ab. */
     const VOCABULARY_DERIVED = deKey.filter(k => k.startsWith('vocabulary.'));
     for (const k of VOCABULARY_DERIVED) called.add(k);
     const derivesBoth = ["public/app.js", "server.js"].every(f =>
@@ -92,11 +79,8 @@ async function run() {
     check('Beide Seiten leiten die Vokabelvorgaben aus dem Vorsatz ab',
       derivesBoth && VOCABULARY_DERIVED.length === 15,
       `${VOCABULARY_DERIVED.length} Schluessel · beide Seiten: ${derivesBoth}`);
-    /* `_locale` UND `_name` SIND KEIN TEXT, SONDERN DER KOPF DER DATEI: sie
-       sagen, welche Locale die Sprache hat und wie sie in ihrer eigenen
-       Sprache heisst. */
-    /* UND SEIT 0.31.4 EINE DRITTE: `_afterNumber` sagt, welche Form hinter
-       einer Zahl steht. */
+    /* Kopf der Datei, kein Text: Locale, eigener Name der Sprache und die Form
+       hinter einer Zahl. */
     const FILE_HEAD = ['_locale', '_name', '_afterNumber'];
     const notCalled = deKey.filter(k => !FILE_HEAD.includes(k) && !called.has(k));
     const withoutSentence = [...called].filter(k => !deKey.includes(k)).sort();
@@ -104,20 +88,17 @@ async function run() {
       notCalled.length === 0, notCalled.slice(0, 12).join(' · '));
     check('Und jeder gerufene Schluessel steht in der Datei',
       withoutSentence.length === 0, withoutSentence.slice(0, 12).join(' · '));
-    // Und der Leser liest wirklich: die vier Briefe stehen da, und er findet
-// ueber tausend Rufe.
     check('Der Leser findet mehr als tausend Rufe',
       called.size > 1000, `${called.size} Rufe`);
     check('Und die acht Briefzeilen stehen namentlich da',
       LETTERS.every(k => spContent.de[k] !== undefined), LETTERS.join(' '));
 
-    /* ---- 3. Platzhalterprobe -------------------------------------------
-       DERSELBE SCHLUESSEL TRAEGT IN JEDER DATEI DIESELBEN PLATZHALTER. */
+    /* ---- 3. Platzhalterprobe ---- */
     const VOCABLES = Object.keys(spContent.de || {})
       .filter(k => k.startsWith('vocabulary.')).map(k => k.slice('vocabulary.'.length));
     const placeholderFrom = (value) => new Set(
       [...JSON.stringify(value).matchAll(/\{([A-Za-z0-9_]+)\}/g)].map(m => m[1]));
-    /* DIE BEIDEN FORMEN EINES VOKABELWORTS SIND DERSELBE PLATZ -- 0.31.4. */
+    /* Beide Formen eines Vokabelworts (`entryOne`, `entryMany`) sind derselbe Platzhalter. */
     const phFamily = (p) => {
       const m = p.match(/^(entry|day|report|task|rating)(One|Many)$/);
       return m ? m[1] : p;
@@ -134,21 +115,17 @@ async function run() {
           phError.push(`${code}/${k}`);
       }
     }
-    /* UND DER FALTER FALTET NUR, WAS ZUSAMMENGEHOERT. Ohne diese Zeile koennte
-       er alles auf denselben Stamm ziehen und die Probe waere blind. */
+    /* Zoege phFamily alles zusammen, fiele kein Unterschied mehr auf. */
     check('Der Platzfalter zieht nur die beiden Formen EINES Vokabelworts zusammen',
       phFamily('entryOne') === phFamily('entryMany') &&
       phFamily('dayOne') !== phFamily('entryOne') &&
       phFamily('n') === 'n' && phFamily('bytes') === 'bytes',
       'der Falter zieht zu viel oder zu wenig zusammen');
-    /* UND JEDER PLATZHALTER WIRD AUCH VERSORGT. Die vierzehn aus `vokabular.`
-       fuellt der Helfer von selbst; jeder andere muss vom Aufrufer kommen. */
+    /* Vokabelwoerter fuellt der Helfer selbst, jeden anderen Platzhalter der Aufrufer. */
     const passedMap = new Map();
     for (const file of spSources) {
       const q = fs.readFileSync(path.join(__dirname, file), 'utf8');
-      /* tMarks() wird mitgelesen. */
-      /* UND refuse() -- die Absage von PUT /api/settings traegt den Schluessel
-         und die Werte in derselben Form wie `new Message`. */
+      /* refuse() in PUT /api/settings traegt Schluessel und Werte wie `new Message`. */
       const call = /(?<![A-Za-z0-9_.$])(?:tMarks?|tH?|new Message|refuse|meldung|message)\(\s*(?:[A-Za-z][A-Za-z0-9_.]*(?:\([^()]*\))?\s*,\s*)?'([a-zäöü][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+)+)'/g;
       for (const m of q.matchAll(call)) {
         let i = m.index + m[0].length, depth = 1;
@@ -167,14 +144,10 @@ async function run() {
         for (const n of (m[2] || '').matchAll(/([A-Za-z_][A-Za-z0-9_]*)\s*:/g)) passedMap.get(m[1]).add(n[1]);
       }
     }
-    /* ZWEI SCHLUESSEL REISEN IN EINER VARIABLEN -- `pruefeRegelwert(wert,
-       spanne, was)` bekommt den Namen gereicht und baut die Werte selbst. */
-    /* `server.uploadCap` KOMMT MIT 0.35.2 DAZU: der Fehler-Handler holt den
-       Schluessel aus `req.caps`, das die Route gesetzt hat -- buchstaeblich
-       steht er dort nicht. */
+    /* Nicht woertlich im Aufruf: ruleKeep und ruleDays reicht checkRuleValue()
+       als Variable weiter, uploadCap holt der Fehler-Handler aus `req.caps`. */
     const OVER_HELPER = ['server.ruleKeep', 'server.ruleDays', 'server.uploadCap'];
-    /* DIE SAETZE MIT AUSZEICHNUNG WERDEN GELESEN UND NICHT AUFGEZAEHLT --
-       0.31.1. */
+    /* Die Saetze mit Auszeichnung werden aus app.js gelesen, nicht aufgezaehlt. */
     const spSource = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
     const MARKED = new Set([...spSource.matchAll(/\btMarks?\(\s*'([^']+)'/g)].map(m => m[1]));
     const unserved = [];
@@ -199,7 +172,7 @@ async function run() {
     check('Und es sind wirklich fuenfzehn Vokabelwoerter',
       VOCABLES.length === 15, `${VOCABLES.length}: ${VOCABLES.join(' ')}`);
 
-    /* ---- 4. */
+    /* ---- 4. Mehrzahlprobe ---- */
     const objects = deKey.filter(k => k !== '_locale' && typeof spContent.de[k] === 'object');
     const formError = objects.filter(k => {
       const fields = Object.keys(spContent.de[k]).sort();
@@ -212,10 +185,7 @@ async function run() {
       formError.join(' · ') || `${objects.length} Mehrzahlformen`);
     check('Und keine waehlt ihre Form ueber `=== 1 ?`',
       forks === 0, `${forks} Gabelungen in app.js`);
-    /* JEDE MEHRZAHLFORM WIRD UEBER `n` GEWAEHLT. */
-    /* `card.sessionsDot` IST MIT 0.31.1 GEFALLEN und sein Nachfolger steht an
-       seiner Stelle: `card.otherSessionsHint` traegt beide Mehrzahlformen des
-       GANZEN Satzes („Ausser dieser gibt es {word} Sitzung." / „... */
+    /* Diese drei waehlen ihre Form ueber `n`, ohne {n} im Satz zu nennen. */
     const WITHOUT_N_IM_SENTENCE = ['server.criteriaConflict', 'card.opensOnlyWith',
                             'card.otherSessionsHint'];
     const withoutN = objects.filter(k => !WITHOUT_N_IM_SENTENCE.includes(k)
@@ -225,8 +195,7 @@ async function run() {
     check('Und die drei benannten sind wirklich Mehrzahlformen',
       WITHOUT_N_IM_SENTENCE.every(k => typeof spContent.de[k] === 'object'), WITHOUT_N_IM_SENTENCE.join(' · '));
 
-    /* ---- 5. Restprobe ---------------------------------------------------
-       WAS IN app.js AN TEXT UEBRIG IST, STEHT NAMENTLICH HIER. */
+    /* ---- 5. Restprobe ---- */
     const visiblePart = (raw) => String(raw)
       .replace(/<[^>]*>/g, ' ').replace(/<[^>]*$/, ' ').replace(/^[^<]*>/, ' ')
       .replace(/\$\{[^}]*\}/g, ' ').replace(/&[a-z]+;|&#\d+;/g, ' ').trim();
@@ -242,10 +211,9 @@ async function run() {
     };
     const restPlaces = screenTextsFrom(appRawM).filter(t => readableText(t.text));
     const rest = [...new Set(restPlaces.map(t => t.text.trim()))].sort();
-    /* DIE LISTE. Sie ist die Abnahme dieser Runde in einer Zeile: alles
-       andere, was ein Mensch am Bildschirm liest, wohnt in der Sprachdatei. */
+    /* Alles andere, was am Bildschirm steht, kommt aus der Sprachdatei. */
     const REST_EXPECTED = [
-      // Die Verben und Koepfe des Netzverkehrs
+      // HTTP-Methoden und Header
       'GET', 'POST', 'PUT', 'DELETE', 'Content-Type', 'application/json',
       // Tasten und Knotennamen
       'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 'INPUT', 'TEXTAREA', 'SELECT',
@@ -265,55 +233,47 @@ async function run() {
       '(max-width: 700px), (max-height: 500px) and (max-width: 960px)',
       // Stuecke einer Adresse
       '?entries=', '&posts=', '?group=', '&days=', '&target=',
-      /* UND NEUN WEITERE SEIT 0.31.0, Bauabschnitt 1. */
       '&files=1', '&videos=1', 'photos=1', '?size=thumb',
       '&from=', '&part=', '&parts=',
       'noopener,noreferrer', 'docker-compose.yml',
-      /* DIE BEIDEN ENDUNGEN DES GESPEICHERTEN SORTIERWERTES -- 0.28.1. */
+      // Endungen des gespeicherten Sortierwerts
       '_asc', '_desc',
-      /* DER NAME EINES HTTP-KOPFES -- 0.24.3, Bauabschnitt 4. */
+      // Name eines HTTP-Headers
       'Accept-Language',
-      /* DER VORSATZ DER VOKABELSCHLUESSEL -- 0.24.3, Bauabschnitt 6. */
+      // Vorsatz der Vokabelschluessel
       'vocabulary.',
-      // Die vier Serverbefehle -- in jeder Sprache dieselben
+      // Serverbefehle, in jeder Sprache gleich
       'docker compose exec kriterion node usertool.js password <name>',
       'docker compose exec kriterion node usertool.js twofactor <name>',
       // Markup um einen technischen Namen herum
       '<code>PUBLIC_ADDRESS</code>', '<code>ENCRYPTION_KEY</code>',
       '<code>data/</code>', '<code>http://</code>', '<code>public/languages/</code>',
       '</p>\n              <code class="keyline" id="keyline">ENCRYPTION_KEY=',
-      /* ZWEI STUECKE SIND MIT 0.31.1 KUERZER GEWORDEN, und beide aus
-         demselben Grund: der Satz drumherum ist EIN Schluessel geworden und
-         klebt nicht mehr am Markup. */
       '<code>https://</code>',
       '<code>https://www.google.com/search?q=site%3Aforum.beispiel.de+%s</code>',
       'https://forum.beispiel.de/suche?q=%s',
-      /* DAS MERKMAL DER ABGELAUFENEN SITZUNG -- 0.31.1, Bauabschnitt 4. */
+      // Merkmal der abgelaufenen Sitzung
       'kriterion:session-gone',
-      /* DER NAME DES COOKIES, DER DEN SCHUTZ GEGEN FREMDE FORMULARE TRAEGT. */
+      // Name des CSRF-Cookies
       '__Host-kriterion_csrf',
-      /* DER NAMENSRAUM DER VEKTORZEICHEN -- createElementNS verlangt ihn,
-         und ohne ihn ginge das Zeichen nur ueber innerHTML hinein. */
+      // SVG-Namensraum fuer createElementNS
       'http://www.w3.org/2000/svg',
       // Der zweite Abfrageparameter an GET /api/comment-refs.
       '&items='
     ].sort();
     const tooMany = rest.filter(t => !REST_EXPECTED.includes(t));
     const missing = REST_EXPECTED.filter(t => !rest.includes(t));
-    /* SIEBZIG SEIT 0.31.0, VORHER SECHZIG -- und der Abstand zur Liste bleibt
-       derselbe. */
     check('Restprobe: weniger als siebzig lesbare Texte in app.js',
       rest.length < 70, `${rest.length} verschiedene, ${restPlaces.length} Stellen`);
     check('Und es sind genau die sechzig benannten',
       tooMany.length === 0 && missing.length === 0,
       `zu viel: ${tooMany.slice(0, 8).map(t => JSON.stringify(t.slice(0, 40))).join(' · ')} · fehlt: ${missing.slice(0, 8).map(t => JSON.stringify(t.slice(0, 40))).join(' · ')}`);
-    // Und der Filter wirft nicht alles weg: ein deutscher Satz geht durch.
     check('Und der Filter laesst einen deutschen Satz stehen',
       readableText('Bitte einen Titel eingeben.') && !readableText('mrow zug')
         && !readableText('list.open') && !readableText('#/system'),
       'der Filter trennt Satz und Bezeichner nicht');
 
-    /* ---- 5a. */
+    /* ---- 5a. Deutsche Woerter im Rest ---- */
     const restWords = (() => {
       const book = JSON.parse(fs.readFileSync(path.join(__dirname, 'tools', 'dictionary.json'), 'utf8'));
       const table = Object.create(null);
@@ -325,12 +285,12 @@ async function run() {
       .split(/[^A-Za-zÄÖÜäöüß]+/).filter(Boolean)
       .filter(w => restWords[w.toLowerCase()]);
     const REST_GERMAN_NAMED = [
-      // Der eine feste Satz: er steht, bevor es eine Sprachdatei gibt.
+      // Steht da, bevor eine Sprachdatei geladen ist.
       'Die Sprachdatei fehlt.',
       // Die beiden Serverbefehle -- Befehle, keine Saetze.
       'docker compose exec kriterion node usertool.js password <name>',
       'docker compose exec kriterion node usertool.js twofactor <name>',
-      /* UND ZWEI ADRESSEN -- `?gruppe=` stand hier bis 0.35.0. */
+      // Zwei Beispieladressen
       '<code>https://www.google.com/search?q=site%3Aforum.beispiel.de+%s</code>',
       'https://forum.beispiel.de/suche?q=%s'
     ];
@@ -340,18 +300,16 @@ async function run() {
     check('Restprobe, verschaerft: kein uebriger Text in app.js traegt ein deutsches Wortstueck',
       restLeft.length === 0,
       restLeft.slice(0, 6).map(([t, w]) => `${JSON.stringify(t.slice(0, 40))} → ${w.join(',')}`).join(' · '));
-    /* UND DER LESER FINDET WIRKLICH ETWAS. Ohne diese Zeile waere die
-       darueber auch dann gruen, wenn die Worttafel leer ankaeme. */
+    /* Gegenprobe: mit leerer Worttafel bliebe die Pruefung darueber immer gruen. */
     check('Und der Leser erkennt genau die beiden Woerter, die 0.24.3 durchgelassen hat',
       restGerman('alle 5 anzeigen').length > 0 && restGerman('3 aktiv').length > 0 &&
       restGerman('show all 5').length === 0 && restGerman('GET').length === 0,
       `${JSON.stringify(restGerman('alle 5 anzeigen'))} · ${JSON.stringify(restGerman('3 aktiv'))}`);
-    /* UND DIE DREI AUSNAHMEN ZEIGEN WIRKLICH AUF ETWAS. */
     check('Und jede der drei Ausnahmen steht wirklich in der Datei',
       REST_GERMAN_NAMED.every(t => rest.includes(t)),
       REST_GERMAN_NAMED.filter(t => !rest.includes(t)).join(' · '));
 
-    /* ---- 5c. */
+    /* ---- 5c. Restprobe server.js ---- */
     const serverCalls = (src, names) => {
       let out = '', i = 0;
       const rx = new RegExp(`\\b(?:${names.join('|')})\\s*\\(`, 'g');
@@ -371,9 +329,7 @@ async function run() {
       }
       return out + src.slice(i);
     };
-    /* SEIT 0.35.2 GEHEN DIE PROTOKOLLZEILEN UEBER log.js -- die drei neuen
-       Namen gehoeren in dieselbe Liste wie console.*, sonst liest die
-       Restprobe das Containerprotokoll fuer Bildschirmtext. */
+    /* Protokollzeilen (console.* und log.js) und SQL sind kein Bildschirmtext. */
     const SERVER_QUIET = ['console\\.log', 'console\\.error', 'console\\.warn',
                           'logLine', 'logWarn', 'logFail',
                           'db\\.prepare', 'd\\.prepare'];
@@ -384,25 +340,21 @@ async function run() {
         if (restGerman(piece.text).length) serverRest.push(piece.text.trim());
     }
     const serverLeft = [...new Set(serverRest)].sort();
-    /* DIE LISTE. */
     const SERVER_REST_NAMED = [
-      /* 1 · PROGRAMMIERFEHLER. */
+      // Programmierfehler
       'detail() ohne Benutzer aufgerufen', 'qComments() ohne Benutzer aufgerufen',
       'qTestDays() ohne Benutzer aufgerufen', 'stimmenJeKriterium() ohne Benutzer aufgerufen',
       'testTageJeEintrag() ohne Benutzer aufgerufen', "') ohne Benutzer aufgerufen",
       "' ist persoenlich und gehoert nicht in die globale Tabelle",
-      /* DIE FUENF GRUENDE VON `languageSkip` STANDEN HIER BIS 0.33.2 --
-         „_locale fehlt im Kopf der Datei" und die vier daneben. */
       'Das Beenden braucht den angemeldeten Benutzer.',
       'Dieser Vorgang braucht den Handelnden — eine Nummer oder VOM_WIRT.',
       'Ein Ausweis braucht einen Zugang.', 'Ein Zugangswechsel braucht den angemeldeten Benutzer.',
       'Eine Freigabe braucht die Sitzung.', 'Eine Sitzung braucht einen Benutzer.',
       'Eine Sitzungsliste braucht den angemeldeten Benutzer.',
       'Unbekannter Vorgang:', 'Unbekanntes Merkmal:',
-      /* 2 · DER BILDSCHIRM DES WIRTS -- UND DIESE SORTE IST MIT 0.33.2 FAST
-         LEER GEWORDEN. */
+      // Bildschirm des Wirts
       'Eigener Server',
-      /* 3 · GESPEICHERTE WERTE UND BEZEICHNER. */
+      // Gespeicherte Werte und Bezeichner
       'Ohne Titel', 'Model Bewertungen', 'standbild',
       'aus', 'eigen', 'unbekannt', 'wieder', 'wirt', 'note',
       'beschreibung', 'bewertung', 'datei', 'dateien', 'einstellung',
@@ -413,11 +365,9 @@ async function run() {
     check('Restprobe server.js: kein fester deutscher Satz erreicht mehr den Bildschirm — 0.32.0',
       serverTooMany.length === 0,
       serverTooMany.slice(0, 6).map(t => JSON.stringify(t.slice(0, 50))).join(' · '));
-    /* UND JEDER BENANNTE STEHT WIRKLICH DA. */
     check('Und jeder der benannten Reste steht wirklich in einer der drei Dateien',
       serverMissing.length === 0,
       serverMissing.slice(0, 6).map(t => JSON.stringify(t.slice(0, 50))).join(' · '));
-    /* UND DER WAECHTER FAENGT DIE ELF WIRKLICH. */
     const SERVER_REST_GONE = [
       'Es ist kein Mailzugang eingerichtet. Das macht der Eigentümer dieser Installation.',
       'Für diesen Zugang ist keine E-Mail-Adresse hinterlegt.',
@@ -427,10 +377,7 @@ async function run() {
       SERVER_REST_GONE.every(t => restGerman(t).length > 0) &&
       SERVER_REST_GONE.every(t => !serverLeft.includes(t)),
       SERVER_REST_GONE.filter(t => serverLeft.includes(t)).join(' · ') || 'keiner mehr da');
-    /* UND DER SCHNITT SCHNEIDET WIRKLICH. */
-    /* GESCHNITTEN WIRD BIS ZUR SCHLIESSENDEN KLAMMER und nicht bis zum
-       Strichpunkt: der bleibt stehen, und das ist richtig so -- er gehoert
-       nicht zum Ruf. */
+    /* serverCalls() schneidet bis zur schliessenden Klammer; der Strichpunkt bleibt stehen. */
     check('Und der Schnitt nimmt Protokollzeilen und SQL heraus, aber nicht den Rest',
       serverCalls("console.log('Ein Satz'); x = 'Zweiter Satz';", SERVER_QUIET)
         === "; x = 'Zweiter Satz';" &&
@@ -439,24 +386,17 @@ async function run() {
       serverCalls("console.log('a', f('b')); z = 1;", SERVER_QUIET) === "; z = 1;",
       JSON.stringify(serverCalls("console.log('Ein Satz'); x = 'Zweiter Satz';", SERVER_QUIET)));
 
-    /* ---- 5d. DIE RESTPROBE FUER DAS CONTAINERPROTOKOLL -- 0.33.0 --------
-       DIE LETZTE DEUTSCHE ECKE DES HAUSES. */
+    /* ---- 5d. Restprobe Containerprotokoll ---- */
     const CONSOLE_FILES = ['server.js', 'db.js', 'auth.js', 'keys.js',
                            'batchrun.js', 'images.js', 'log.js'];
-    /* ZWEI WOERTER FALLEN AUS DER FRAGE, und beide sind BEFEHLE und keine
-       Saetze -- dieselbe Ausnahme, die REST_GERMAN_NAMED weiter oben fuer die
-       zwei Serverbefehle macht: `passwort` steht in `node usertool.js
-       passwort <name>`, dem Weg, den die Zeile ueber AUTH_RESET nennt. */
+    /* Befehlswoerter, keine Saetze; wie die Serverbefehle in REST_GERMAN_NAMED. */
     const CONSOLE_COMMAND_WORDS = ['rand'];
-    /* GELESEN WIRD DER GANZE RUF mit gezaehlten Klammern -- eine Meldung kann
-       ueber drei Zeilen gehen, und ein Schnitt am Zeilenende liesse ihre
-       Fortsetzung stehen. */
+    /* Liest den ganzen Aufruf bis zur passenden Klammer; eine Meldung kann ueber
+       mehrere Zeilen gehen. */
     const consoleCalls = (src) => {
       const out = [];
-      /* SEIT 0.35.2 GEHEN DIE [Kriterion]-ZEILEN UEBER log.js, und der Leser
-         muss beide Formen sehen: `console.log(...)` fuer alles, was ohne
-         Zeitstempel hinausgeht, und `logLine/logWarn/logFail(...)` fuer das
-         Containerprotokoll. Eine Form allein hiesse, die andere zu uebersehen. */
+      /* console.* fuer Ausgaben ohne Zeitstempel, logLine/logWarn/logFail fuer das
+         Containerprotokoll. */
       const rx = /\b(?:console\.(?:log|warn|error)|log(?:Line|Warn|Fail))\s*\(/g;
       let m;
       while ((m = rx.exec(src)) !== null) {
@@ -474,8 +414,7 @@ async function run() {
       }
       return out;
     };
-    /* DIE EINSETZSTELLEN FALLEN WEG, bevor gefragt wird: in `${counts.items}`
-       steht ein BEZEICHNER und kein Satz. */
+    /* In `${…}` steht ein Bezeichner, kein Text. */
     const consoleGerman = (text) =>
       restGerman(String(text).replace(/\$\{[^}]*\}/g, ' '))
         .filter(w => !CONSOLE_COMMAND_WORDS.includes(w.toLowerCase()));
@@ -490,26 +429,22 @@ async function run() {
           consoleLeft.push(`${file}:${call.row} → ${[...new Set(words)].join(',')}`);
       }
     }
-    /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT: ohne
-       Rufe bliebe jede Verneinung darauf wahr und belegte nichts. */
+    /* Ohne gefundene Aufrufe waere die Verneinung darunter immer wahr. */
     check('Der Waechter findet die Konsolenansagen der sechs Dateien ueberhaupt',
       consoleSeen > 50, `${consoleSeen} Rufe`);
     check('Restprobe: keine Konsolenansage der sechs Dateien spricht noch deutsch — 0.33.0',
       consoleLeft.length === 0, consoleLeft.slice(0, 8).join(' · ') || 'keine');
-    /* UND DER WAECHTER FAENGT SIE WIRKLICH. Ohne diese Zeile waere die
-       darueber auch dann gruen, wenn der Leser gar nichts mehr ansaehe. */
+    /* Gegenprobe: sonst bliebe die Pruefung darueber auch ohne Treffer gruen. */
     check('Und der Waechter faengt einen deutschen Ruf — gestellt und nachgemessen',
       consoleGerman("console.log('[Kriterion] Sicherung geschrieben: x');").length > 0 &&
       consoleGerman("console.log('[Kriterion] Laeuft auf Port 3000');").length > 0 &&
       consoleGerman("console.log('[Kriterion] Backup written: x');").length === 0 &&
       consoleGerman("console.log('[Kriterion] Running on port 3000');").length === 0,
       JSON.stringify(consoleGerman("console.log('[Kriterion] Sicherung geschrieben: x');")));
-    /* UND ER FAERBT SICH NICHT AN EINEM BEZEICHNER IN EINER EINSETZSTELLE. */
     check('Und er faerbt sich nicht an einem Bezeichner in einer Einsetzstelle',
       consoleGerman('console.log(`[Kriterion] rows: ${counts.testtage}`);').length === 0,
       'der Waechter liest die Einsetzstelle mit');
-    /* UND DIE BEIDEN BEFEHLSWOERTER ZEIGEN WIRKLICH AUF ETWAS. Eine Ausnahme
-       fuer ein Wort, das nirgends mehr steht, ist eine Karteileiche. */
+    /* Eine Ausnahme fuer ein Wort, das nirgends steht, fiele sonst nicht auf. */
     const consoleRaw = CONSOLE_FILES
       .map(f => consoleCalls(fs.readFileSync(path.join(__dirname, f), 'utf8'))
         .map(c => c.text).join('\n')).join('\n');
@@ -517,35 +452,29 @@ async function run() {
       CONSOLE_COMMAND_WORDS.every(w => new RegExp(`\\b${w}\\b`).test(consoleRaw)),
       CONSOLE_COMMAND_WORDS.filter(w => !new RegExp(`\\b${w}\\b`).test(consoleRaw)).join(' · '));
 
-    /* ---- 5b. Die Zeichenprobe -- 0.24.4 (B6 A) --------------------------
-       KEIN `ICON_` GEHT DURCH t() ODER tH(). */
+    /* ---- 5b. Zeichenprobe ---- */
     const iconCalls = [...appRawM.matchAll(/\bt[H]?\(([^;]{0,400}?)\)\s*\}/g)]
       .map(m => m[1]).filter(a => /\bICON_[A-Z_]+\b/.test(a));
     check('Zeichenprobe: kein ICON_ geht durch t() oder tH()',
       iconCalls.length === 0, iconCalls.slice(0, 3).map(a => a.slice(0, 60)).join(' · '));
-    /* UND DER LESER WUERDE EINEN FINDEN -- sonst bliebe die Zeile darueber
-       auch dann gruen, wenn das Muster gar nichts traefe. */
+    /* Gegenprobe: ein Muster, das nichts trifft, liesse die Pruefung darueber immer gruen. */
     const iconProbe = (text) => [...text.matchAll(/\bt[H]?\(([^;]{0,400}?)\)\s*\}/g)]
       .map(m => m[1]).filter(a => /\bICON_[A-Z_]+\b/.test(a));
     check('Und der Leser wuerde die Zeile aus 0.24.3 finden',
       iconProbe("`${tH('card.restoreIcon', { restoreIcon: ICON_RESTORE })}`").length === 1 &&
       iconProbe("`${ICON_RESTORE} ${tH('card.restore')}`").length === 0,
       'der Leser trennt Zeichen im Satz und Zeichen daneben nicht');
-    /* UND DER SCHLUESSEL SELBST IST WEG. Ein Satz mit einem Zeichen darin,
-       den niemand mehr ruft, waere eine Falle fuer die naechste Runde. */
     check('Und der Schluessel card.restoreIcon steht in keiner Sprachdatei mehr',
       ['de', 'en', 'tr'].every(code => JSON.parse(fs.readFileSync(
         path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'))['card.restoreIcon'] === undefined),
       'der Schluessel liegt noch da');
 
-    /* ---- 5c. */
+    /* ---- 5c. Faltungsprobe ---- */
     {
       const flDb = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
       const flServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
-      /* ALLES AUSSER DEN KOMMENTAREN, und nicht nur CODE: `segment` schneidet
-         auch die Strings heraus, und `db.function('kkl', …)` traegt einen
-         mitten im Ruf -- eine Probe nur auf CODE saehe davon `db.function(`
-         und den Rest getrennt. */
+      /* Alles ausser Kommentaren statt nur CODE: der String in
+         `db.function('kkl', …)` gehoert zum gesuchten Muster. */
       const withoutTalk = (raw, name) => segment(raw, name)
         .filter(t => t.kind !== COMMENT).map(t => t.value).join('');
       const flDbCode = withoutTalk(flDb, 'db.js');
@@ -561,13 +490,11 @@ async function run() {
         /const fulltextTerm = \(raw\) =>[^\n]*searchFold\(raw\.trim\(\)\)/.test(flServerCode) &&
         !/fulltextTerm\s*=\s*\([^)]*locale/.test(flServerCode),
         (flServerCode.match(/const fulltextTerm[^\n]*/) || ['(nicht gefunden)'])[0]);
-      /* UND KEINE HAELFTE DER SUCHE FRAGT MEHR NACH DER SPRACHE DES LESERS. */
       const flLocale = [...flServerCode.matchAll(/[^\n]*toLocaleLowerCase[^\n]*/g)].map(m => m[0].trim());
       check('Und keine Zeile der Suche faltet noch mit einer Locale',
         flLocale.every(z => /compareLocale/.test(z)),
         flLocale.filter(z => !/compareLocale/.test(z)).slice(0, 3).join(' · '));
-      /* UND DIE VIER i FALLEN AUF EINES -- gerechnet, nicht gelesen, und zwar
-         mit der AUSGELIEFERTEN Funktion. */
+      /* Rechnet mit searchFold() aus db.js, nicht mit einer Kopie. */
       const flDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-faltung-'));
       const flOut = JSON.parse(shortRun(
         `const { searchFold } = require('./db');` +
@@ -577,30 +504,23 @@ async function run() {
       fs.rmSync(flDirectory, { recursive: true, force: true });
       check('Und die vier i fallen wirklich auf eines',
         equal(flOut.slice(0, 4), ['i', 'i', 'i', 'i']), JSON.stringify(flOut.slice(0, 4)));
-      /* HIER STAND BIS 0.25.4 „deutscher Bestand aendert sich um kein
-         Zeichen", und die Zusage war richtig: 0.24.4 hat `ß`/`ss`
-         ausdruecklich AUSGENOMMEN. */
       check('Und deutscher Bestand aendert nur sein ß — der Umlaut bleibt',
         flOut[4] === 'übergross' && flOut[5] === 'stichsäge', `${flOut[4]} · ${flOut[5]}`);
-      /* DIE VIER ZEILEN DES BEFUNDS, EINE JE ZEILE SEINER TAFEL. Drei davon
-         gingen vorher ins Leere. */
       check('Und ÜBERGROSS findet übergroß',
         flOut[6] === flOut[4], `${flOut[6]} gegen ${flOut[4]}`);
       check('Und Grüße, GRÜSSE und GRÜßE fallen auf dasselbe',
         flOut[7] === flOut[8] && flOut[8] === flOut[9],
         JSON.stringify(flOut.slice(7, 10)));
-      /* UND DER PREIS IST BEZAHLT, AUSDRUECKLICH GEPRUEFT. */
       check('Und der Preis steht: Masse und Maße sind fuer die Suche dasselbe',
         flOut[10] === flOut[11], `${flOut[10]} gegen ${flOut[11]}`);
-      /* UND DAS GROSSE ẞ FAELLT MIT, weil die Gleichsetzung NACH
-         `toLowerCase()` greift -- dort ist U+1E9E schon ein kleines `ß`. */
+      /* toLowerCase() macht aus U+1E9E ein `ß`; die Gleichsetzung mit `ss` greift danach. */
       check('Und das große ẞ fällt mit',
         flOut[12] === 'strasse', JSON.stringify(flOut[12]));
       check('Und NULL wird zum leeren String, nicht zu NULL',
         flOut[13] === '', JSON.stringify(flOut[13]));
     }
 
-    /* ---- 7. */
+    /* ---- 7. Formatprobe ---- */
     const placeError = Object.entries(spContent).filter(([, texts]) =>
       typeof texts._locale !== 'string'
       || Intl.DateTimeFormat.supportedLocalesOf([texts._locale]).length !== 1);
@@ -627,19 +547,15 @@ async function run() {
       tagProbe('2026-09-05') === 'Samstag' && tagProbe('2026-09-06') === 'Sonntag'
       && tagProbe('2026-09-07') === 'Montag',
       [tagProbe('2026-09-05'), tagProbe('2026-09-06'), tagProbe('2026-09-07')].join(' · '));
-    /* UND DIE ZAHLEN DIESER RUNDE, festgenagelt: eine Sprachdatei, und die
-       drei Zahlen aus dem Bestand, die sich NICHT geaendert haben. */
     const cfgCore = ((fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')
       .match(/app\.get\('\/api\/config'[\s\S]*?res\.json\(\{([\s\S]*?)\}\);/) || ['', ''])[1]);
     const cfgFields = (cfgCore.match(/(?:^|[,{\n])\s*(\w+):/g) || []).length;
-    /* SECHS FELDER SEIT DEM 8. */
     check('Die Zahlen dieser Runde: drei Sprachdateien, sechs Felder in /api/config',
       spNames.length === 3 && cfgFields === 6,
       `${spNames.length} Datei(en) · ${cfgFields} Felder`);
   }
 
-  /* ================= KEIN SATZ VERLANGT EINE TASTENKOMBINATION ===========
-     Am Telefon gibt es keine; der Satz nennt den Weg und nicht die Tasten. */
+  /* Am Telefon gibt es keine Tastenkombination. */
   group('Kein Bildschirmtext verlangt eine Tastenkombination');
   {
     const ksDir = path.join(__dirname, 'public', 'languages');
@@ -653,32 +569,22 @@ async function run() {
     }
     check('Kein Satz der drei Sprachdateien nennt eine Tastenkombination',
       ksHits.length === 0, ksHits.slice(0, 6).join(' · ') || 'keine');
-    /* UND DAS KOMMENTARFELD NAMENTLICH: dort stand sie, und dort faellt ein
-       Rueckfall zuerst auf. */
     const ksField = ['de', 'en', 'tr'].map(code => String(JSON.parse(fs.readFileSync(
       path.join(ksDir, code + '.json'), 'utf8'))['entry.commentPlaceholder'] || ''));
     check('Und das Kommentarfeld nennt in keiner der drei Sprachen mehr Strg+V',
       ksField.length === 3 && ksField.every(s => s && !/Strg|Ctrl/i.test(s)),
       ksField.join(' · '));
-    // Und der Leser faende eine, wenn eine dastuende.
     check('Der Leser faende eine Tastenkombination, wenn eine dastuende',
       KEYSTROKE.test('Bilder mit Strg+V einfügen') && KEYSTROKE.test('paste with Ctrl-V') &&
       !KEYSTROKE.test('Bilder aus der Zwischenablage einfügen'),
       'der Leser trennt Tastenkombination und Satz nicht');
   }
 
-  /* ================= Die Zeitleiste im hellen Schema — 0.24.0
-     ================= DIE LUECKE, DIE DAS FARBKONZEPT GELASSEN HAT. */
-  /* ================= Der Anbietername ohne Marke -- 0.33.1 ===============
-     DIE LAUFZEITPROBE ZU DIESEM BEFUND STEHT WOANDERS: „Nach einem Neustart
-     nennt die Startzeile Anbieter, Server und Absender" liest die Ausgabe
-     eines echten Servers mit eingerichtetem Zugang. */
+  /* Die Ausgabe eines echten Servers prueft test/roundtrip.js. */
   group('Der Anbietername im Containerprotokoll — 0.33.1');
   {
     const mailModule = require('./mail.js');
-    /* GEFRAGT WIRD mail.js SELBST und keine hier abgeschriebene Liste: eine
-       zweite Fassung der Namen koennte anders lauten als die, die der Server
-       ausgibt. */
+    /* Fragt mail.js selbst; eine abgeschriebene Liste der Namen koennte abweichen. */
     const nameOf = (provider) => {
       const z = mailModule.state({ provider, server: 'smtp.beispiel.de', port: 587,
                                    user: 'a@beispiel.de', password: 'x',
@@ -693,7 +599,6 @@ async function run() {
     check('Eine Marke traegt keinen Schluessel und behaelt ihren Namen',
       brand.name === 'Strato' && brand.key === '',
       JSON.stringify(brand));
-    /* UND DER SCHLUESSEL FUEHRT WIRKLICH ZU EINEM ENGLISCHEN WORT. */
     const ownEnglish = JSON.parse(fs.readFileSync(
       path.join(__dirname, 'public/languages/en.json'), 'utf8'))['mail.ownServer'];
     check('Und der Schluessel steht auf Englisch in der Sprachdatei',
@@ -711,20 +616,17 @@ async function run() {
     const zlPairs = (head) => Object.fromEntries(
       [...zlBlock(head).matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)].map(m => [m[1], m[2].trim()]));
     const zlDark = zlPairs(':root {');
-    // Das helle Schema ueberschreibt nur, was es nennt -- der Rest kommt aus
-// :root. Genau so liest es auch der Browser.
+    // Das helle Schema erbt alles, was es nicht selbst setzt, aus :root.
     const zlLight = { ...zlDark, ...zlPairs(':root[data-theme="light"] {') };
-    /* `var(--x)` wird aufgeloest, und zwar IM SELBEN SCHEMA: --timeline-line
-       steht im hellen Block auf var(--line-hover), und --line-hover ist dort
-       ein anderer Wert als im dunklen. */
+    /* var(--x) im selben Schema aufloesen: --line-hover hat im hellen Block einen
+       anderen Wert als im dunklen. */
     const zlResolve = (map, value, depth = 0) => {
       const t = String(value || '').trim();
       const m = /^var\((--[a-z0-9-]+)\)$/.exec(t);
       if (!m) return t;
       return depth > 8 ? '' : zlResolve(map, map[m[1]], depth + 1);
     };
-    // Relative Leuchtdichte nach WCAG 2: erst die Kanaele linearisieren, dann
-// nach der Empfindlichkeit des Auges wichten.
+    // Relative Leuchtdichte nach WCAG 2.
     const zlGlow = (hex) => {
       const n = parseInt(hex.replace('#', ''), 16);
       const k = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => {
@@ -737,14 +639,11 @@ async function run() {
       const [up, deep] = [zlGlow(a), zlGlow(b)].sort((x, y) => y - x);
       return (up + 0.05) / (deep + 0.05);
     };
-    // DIE GEGENLAGE ZUERST: rechnet der Rechenweg
-    // ueberhaupt?
     check('Der Rechenweg rechnet: Weiss auf Schwarz sind 21 : 1',
       Math.round(zlContrast('#ffffff', '#000000') * 100) / 100 === 21,
       String(zlContrast('#ffffff', '#000000')));
     const zlReasonLight = zlResolve(zlLight, zlLight['--bg']);
     check('Der helle Grund ist #eaedf1', zlReasonLight === '#eaedf1', zlReasonLight);
-    /* DIE DREI LATTEN AUS DEM AUFTRAG. */
     for (const [name, required, expected] of [['--timeline-line', 1.5, 1.54],
                                            ['--timeline-mid', 2.0, 2.13],
                                            ['--timeline-year', 4.5, 4.62]]) {
@@ -752,17 +651,14 @@ async function run() {
       const value = zlContrast(color, zlReasonLight);
       check(`${name} traegt im hellen Schema ${required.toFixed(1)} : 1 oder mehr gegen den Grund`,
         value >= required, `${color} misst ${value.toFixed(2)} : 1 (Latte ${required})`);
-      // Und es ist DIE gemessene Zahl -- nicht bloss irgendeine ueber der Latte.
       check(`Und es sind die gemessenen ${expected.toFixed(2)} : 1`,
         Math.round(value * 100) / 100 === expected, `${value.toFixed(2)} statt ${expected}`);
     }
-    /* WAS VORHER DASTAND, UND WARUM ES NICHT TRUG. Die Zeile belegt den
-       Befund: --line-2 gegen den hellen Grund ist 1,02 : 1. */
+    /* --line-2 misst gegen den hellen Grund 1,02 : 1; daher die Schranke 1,1. */
     check('Der alte Wert --line-2 laege im hellen Schema unter jeder Latte',
       zlContrast(zlResolve(zlLight, zlLight['--line-2']), zlReasonLight) < 1.1,
       `${zlResolve(zlLight, zlLight['--line-2'])} misst ` +
       `${zlContrast(zlResolve(zlLight, zlLight['--line-2']), zlReasonLight).toFixed(2)} : 1`);
-    /* DAS DUNKLE SCHEMA AENDERT KEINEN BILDPUNKT. */
     for (const [fresh, old] of [['--timeline-line', '--line-2'], ['--timeline-mid', '--line'],
                               ['--timeline-year', '--faint']]) {
       check(`Im dunklen Schema ist ${fresh} genau ${old}, wie vorher`,
@@ -770,8 +666,7 @@ async function run() {
           && /^#[0-9a-f]{6}$/i.test(zlResolve(zlDark, zlDark[fresh])),
         `${zlResolve(zlDark, zlDark[fresh])} gegen ${zlResolve(zlDark, zlDark[old])}`);
     }
-    /* UND DIE VIER REGELN LESEN WIRKLICH DIE DREI VARIABLEN. Ohne diese Zeile
-       koennten die Werte tadellos dastehen und nichts faerben. */
+    /* Ohne diese Pruefung koennten die Variablen stimmen und keine Regel sie lesen. */
     for (const [choice, property, variable] of [
       ['.timeline-line', 'background', '--timeline-line'],
       ['.timeline-line.center', 'background', '--timeline-mid'],
@@ -780,9 +675,7 @@ async function run() {
       check(`${choice} liest ${variable}`,
         new RegExp(`${property}:[^;}]*var\\(${variable}\\)`).test(regel123(choice)),
         regel123(choice) || '(keine Regel)');
-    // Die Zeitleiste hat wirklich keine Karte unter sich -- das ist die
-    // Voraussetzung dafuer, dass gegen --bg gemessen wird und nicht gegen
-    // --surface.
+    // Voraussetzung dafuer, dass oben gegen --bg und nicht gegen --surface gemessen wird.
     check('Und die Zeitleiste liegt weiter ohne Kasten auf dem Grund',
       !/background|border:/.test(regel123('.timeline')), regel123('.timeline') || '(keine Regel)');
   }
@@ -790,21 +683,19 @@ async function run() {
   group('Keine feste Farbe im Stilblatt — 0.23.0');
   {
     const cssF = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
-    // Kommentare raus, dann die :root-Bloecke raus. In dieser Reihenfolge --
-// ein Kommentar innerhalb von :root duerfte den Block sonst zerschneiden.
+    // Erst die Kommentare entfernen, dann :root; ein Kommentar in :root koennte
+    // das Muster sonst zu frueh beenden.
     const withoutK = cssF.replace(/\/\*[\s\S]*?\*\//g, '');
     const ruleSet = withoutK.replace(/:root[^{]*\{[^}]*\}/g, '');
-    /* GESUCHT WIRD, WAS MALT -- nicht, was benennt. */
+    /* Sucht Eigenschaften mit Farbwert, keine Variablen wie `--accent`. */
     const painting = /(?:^|[;{}\s])([a-z][a-z-]*: *(?:#[0-9a-fA-F]{3,8}\b|rgba?\([0-9]))/g;
-    // Die Positivliste: der Videobalken, und sonst nichts.
+    // Positivliste: der Videobalken.
     const allowed = /^(background: #000)$/;
     const finds = [...ruleSet.matchAll(painting)].map(m => m[1])
       .filter(s => !allowed.test(s.trim()));
     check('Keine malende Regel ausserhalb von :root traegt eine Farbe als Zahl',
       finds.length === 0,
       finds.length ? `${finds.length}: ${[...new Set(finds)].slice(0, 8).join(' · ')}` : 'keine');
-    /* UND DIE GEGENSEITE: Farbdefinitionen ausserhalb von :root stehen nur in
-       den BEKANNTEN Schemabloecken. */
     const foreignBlocks = [...withoutK.matchAll(/(?:^|\})\s*([^{}@]+)\{([^}]*)\}/g)]
       .filter(m => /(^|[;\s])--[a-z0-9-]+: *(#|rgba?\()/.test(m[2]))
       .map(m => m[1].trim().replace(/\s+/g, ' '))
@@ -813,21 +704,17 @@ async function run() {
     check('Und Farbwerte stehen nur in den bekannten Schemabloecken',
       foreignBlocks.length === 0,
       foreignBlocks.length ? foreignBlocks.slice(0, 4).join(' · ') : 'keine fremden');
-    // DIE GEGENLAGE: der Waechter kann ueberhaupt etwas finden.
     check('Und der Waechter findet eine eingebaute Farbe wirklich',
       ((ruleSet + '\n.probe { color: #abcdef; }')
         .match(/[a-z-]+: *#[0-9a-fA-F]{3,8}\b/g) || []).includes('color: #abcdef'),
       'Gegenprobe mit .probe { color: #abcdef }');
-    // Die Positivliste steht wirklich nur an den zwei Videoregeln -- und der
-// Grund steht im Stilblatt daneben, nicht nur hier.
     const videos = (ruleSet.match(/background: #000/g) || []).length;
     check('Die Positivliste hat genau die zwei Videoregeln',
       videos === 2, `${videos} Stellen mit background: #000`);
     check('Und das Stilblatt schreibt daneben, warum sie eine Ausnahme sind',
       /Video[\s\S]{0,200}Positivliste in test\/ui_language\.js/.test(cssF),
       /Positivliste/.test(cssF) ? 'Begruendung gefunden' : '(kein Wort davon)');
-    /* DIE ZWEITE HAELFTE: die Tripel gibt es, und sie tragen die Farben, auf
-       die sich alles Uebrige beruft. */
+    /* Auf diese Tripel beziehen sich die uebrigen Farben im Stilblatt. */
     for (const [name, value] of [['--accent-rgb', '255,\\s*122,\\s*26'], ['--gold-rgb', '255,\\s*197,\\s*49'],
                                 ['--green-rgb', '63,\\s*211,\\s*154'], ['--red-rgb', '240,\\s*85,\\s*92']])
       check(`${name} steht in :root und traegt die richtige Farbe`,
@@ -835,16 +722,13 @@ async function run() {
         (cssF.match(new RegExp(`${name}:[^;]*`)) || ['(nicht gesetzt)'])[0]);
   }
 
-  /* ================= Keine Browserfenster mehr — 0.22.0 =================
-     Acht Stellen benutzten confirm() und prompt(); alle gehen jetzt durch die
-     eigenen Fenster. */
   group('Keine Browserfenster mehr — 0.22.0');
   {
     const appRaw = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
-    // Kommentare weg, Inhalte der Strings weg (die Anfuehrungszeichen bleiben).
+    // `[^:]` schont `://` in Adressen.
     let appCode = appRaw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
-    // Ausgeblendet werden nur Texte, die das gesuchte Wort selbst tragen -- ein
-// Text wie „Fenster" darf nicht aus dem Bezeichner passwortFenster( fallen.
+    // Nur Texte mit confirm( oder prompt( entfernen; ein anderer Text koennte
+    // Teil eines Bezeichners sein.
     for (const t of screenTextsFrom(appRaw)) if (/confirm\(|prompt\(/.test(t.text)) appCode = appCode.split(t.text).join('');
     const rawCalls = appCode.match(/(^|[^A-Za-z0-9_.])(confirm|prompt)\(/g) || [];
     check('public/app.js ruft weder confirm( noch prompt( auf',
@@ -854,7 +738,6 @@ async function run() {
         .every(f => (appCode.split(f).length - 1) >= 2),
       ['confirmBox(', 'nameBox(', 'passwordDialog(', 'newPasswordDialog(', 'userDeleteDialog(']
         .map(f => `${f} ${appCode.split(f).length - 1}x`).join(' · '));
-    /* DAS LOESCHFENSTER FUER EINEN BENUTZER: „Abbrechen" bricht ab. */
     const blDom = buildDom(JSDOM, { settings: { filters: null, userCount: 4, isAdmin: true, isOwner: true } });
     await until(blDom.w, listReady, 2000, 'die Uebersicht');
     const blW = blDom.w;
@@ -880,9 +763,6 @@ async function run() {
     blDialog.querySelector('[data-no]').dispatchEvent(new blW.MouseEvent('click', { bubbles: true }));
     check('„Abbrechen" bricht ab: das Fenster liefert null und ist fort',
       (await blP) === null && !blW.document.getElementById('delete-user'), 'es hat weitergemacht');
-    /* UND DIE HAEKCHEN KOMMEN ALS ANTWORT, wenn jemand loescht: das erste
-       gesetzt, das zweite nicht -- genau so, wie es der Aufrufer an die Route
-       weitergibt. */
     const blP2 = blW.userDeleteDialog('bert', 2, blStatus);
     await until(blW, (x) => x.document.getElementById('delete-user'), 2000, 'das zweite Loeschfenster');
     const blF2 = blW.document.getElementById('delete-user');
@@ -890,8 +770,7 @@ async function run() {
     blF2.querySelector('[data-yes]').dispatchEvent(new blW.MouseEvent('click', { bubbles: true }));
     check('„Benutzer löschen" liefert die Stellung der beiden Haekchen',
       equal(await blP2, { entries: true, posts: false }), JSON.stringify(await blP2));
-    /* DAS FREMDE PASSWORT KOMMT AUS EINEM PASSWORTFELD und nicht aus prompt():
-       dort stand es im Klartext auf dem Bildschirm. */
+    /* Passwortfeld, weil prompt() den Klartext zeigt. */
     const npP = blW.newPasswordDialog('Passwort für „bert" setzen', 'Mindestens 10 Zeichen.');
     await until(blW, (x) => x.document.getElementById('np-pass'), 2000, 'das Passwortfenster');
     const npField = blW.document.getElementById('np-pass');
@@ -903,9 +782,6 @@ async function run() {
     blW.close();
   }
 
-  /* ================= Server-Befehle nur im Kasten — 0.22.0 =================
-     Vier Stellen trugen `docker compose exec …` im Fliesstext, eine davon sah
-     jeder Benutzer (die Wiederherstellungscodes). */
   group('Server-Befehle nur im Kasten — 0.22.0');
   {
     const appRaw = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
@@ -917,7 +793,6 @@ async function run() {
       commands.filter(t => !/serverBox\(/.test(appRows[t.row - 1] || '')).map(t => `Z. ${t.row}: ${t.text.trim()}`).join(' · '));
     check('Und es sind genau vier: Passwort (Mein Konto), zweiter Faktor, Passwort (Benutzer), Neustart',
       commands.length === 4, `${commands.length}: ` + commands.map(t => t.text.trim()).join(' · '));
-    /* UND KEINER IN DER SPRACHDATEI -- 0.24.0. */
     const commandsDe = Object.entries(JSON.parse(fs.readFileSync(
       path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8')))
       .flatMap(([k, v]) => (typeof v === 'string' ? [v] : Object.values(v)).map(w => [k, w]))
@@ -928,9 +803,8 @@ async function run() {
       /function serverBox\(sentence, command\) \{\s*\n\s*if \(!OWNER\) return '';/.test(appRaw),
       (appRaw.match(/function serverBox[\s\S]{0,120}/) || ['(nicht gefunden)'])[0]);
 
-    /* ---- DER AUFKLAPPER „MEHR" WIRD BREITENABHAENGIG -- 0.32.0, BA 10 ----
-       WAS HIER GEPRUEFT WERDEN KANN UND WAS NICHT, und das gehoert gesagt:
-       jsdom RECHNET KEIN LAYOUT. */
+    /* ---- Aufklapper „mehr“ ---- */
+    /* jsdom rechnet kein Layout: geprueft werden der Quelltext und der Fall ohne Hoehe. */
     check('`more()` baut genau eine Gestalt — den Aufklapper',
       /const more = \(html\) =>\s*\n\s*`<details class="more">/.test(appRaw),
       (appRaw.match(/const more = \(html\)[\s\S]{0,80}/) || ['(nicht gefunden)'])[0]);
@@ -938,16 +812,12 @@ async function run() {
       /function trimMore\(root\) \{\s*\n\s*if \(!root \|\| isNarrow\(\)\) return;/.test(appRaw) &&
       /\n  trimMore\(app\);\n\}/.test(appRaw),
       (appRaw.match(/function trimMore[\s\S]{0,120}/) || ['(nicht gefunden)'])[0]);
-    /* UND DIE SCHRANKE IST DIE ZEILENHOEHE DES INHALTS und keine Zahl aus dem
-       Quelltext. */
     check('Und die Schranke ist die Zeilenhoehe des Inhalts, keine Zahl',
       /parseFloat\(getComputedStyle\(text\)\.lineHeight\)/.test(appRaw) &&
       !/MORE_ONE_LINE/.test(appRaw),
       (appRaw.match(/const line = [\s\S]{0,90}/) || ['(nicht gefunden)'])[0]);
-    /* UND OHNE LAYOUT AENDERT SIE NICHTS. */
     {
-      /* DIE KARTEN MIT AUFKLAPPERN STEHEN IM ABSCHNITT „Bestand" -- vier von
-         den acht. */
+      /* Die Karten mit Aufklappern stehen im Abschnitt „Bestand“. */
       const tmDom = buildDom(JSDOM, { settings: { filters: null } });
       await until(tmDom.w, listReady, 2000, 'die Uebersicht');
       await sysSection(tmDom.w, 'inventory');
@@ -958,15 +828,12 @@ async function run() {
         tmOpen > 0 && tmFlat === 0, `${tmOpen} Aufklapper, ${tmFlat} flach`);
       tmDom.w.close();
     }
-    /* UND DAS STILBLATT KENNT DIE ZWEITE GESTALT. */
     const cssMore = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')
       .replace(/\s+/g, ' ');
     check('Und das Stilblatt gibt ihm denselben Abstand wie dem Aufklapper',
       /\.more-plain \{ margin: -6px 0 14px; \}/.test(cssMore) &&
       /\.more \{ margin: -6px 0 14px; \}/.test(cssMore),
       (cssMore.match(/\.more-plain \{[^}]*\}/) || ['(keine Regel)'])[0]);
-    /* UND AM BILDSCHIRM: der Benutzer und der Admin sehen keinen einzigen
-       Kasten, die Eigentuemerin drei -- Mein Konto, Benutzer, Kennzahlen. */
     const skRoles = async (roles) => {
       const d = buildDom(JSDOM, { settings: { filters: null, userCount: 4, ...roles } });
       await until(d.w, listReady, 2000, 'die Uebersicht');
@@ -1003,9 +870,6 @@ async function run() {
       skEig.complete ? 'Stilregel fehlt' : 'ein Kasten ist unvollstaendig');
   }
 
-  /* ================= Die Sternzeile — 0.22.0 ================= Der
-     Ruecksetzknopf wandert aus der Sternreihe ganz nach rechts, hinter die
-     Durchschnittszahl (E15), und die Message traegt „Rückgängig" (E16). */
   group('Die Sternzeile — 0.22.0');
   {
     const stDom = buildDom(JSDOM, { hash: '#/item/1',
@@ -1017,8 +881,6 @@ async function run() {
       settings: { filters: null, userCount: 3, isAdmin: true } });
     await until(stNull.w, entryReady, 2000, 'die Detailansicht');
     const stNullRows = [...stNull.w.document.querySelectorAll('#ratings .rrow')];
-    /* (1) EIGENE RASTERSPALTE: jede Zeile hat vier Zellen, die letzte ist die
-       des Knopfs -- auch in der Zeile OHNE eigenen Stern. */
     check('Jede Sternzeile hat vier Zellen: Name, Sterne, Durchschnitt, Ruecksetzer',
       stRows.length === 3 && stRows.every(z => z.children.length === 4 &&
         z.children[0].classList.contains('rname') && z.children[1].classList.contains('racts') &&
@@ -1031,9 +893,7 @@ async function run() {
       stRows.every(z => !!z.querySelector('.rreset-cell > .rreset') && !z.querySelector('.stars .rreset') &&
         !z.querySelector('.stars .sdel') && z.querySelectorAll('.stars > *').length === 5),
       JSON.stringify(stRows.map(z => z.querySelectorAll('.stars > *').length)));
-    /* DIE STERNE ALLER ZEILEN BEGINNEN AN DERSELBEN STELLE, auch wenn eine
-       Zeile keinen Knopf traegt: die Zelle bleibt, der Knopf wird unsichtbar
-       ueber `visibility`, nicht ueber `display`. */
+    /* `visibility` statt `display`: die Sterne aller Zeilen beginnen an derselben Stelle. */
     check('Ohne eigenen Stern ist der Knopf unsichtbar, seine Zelle bleibt',
       stNullRows[2]?.children.length === 4 &&
       stNullRows[2]?.querySelector('.rreset')?.classList.contains('blank') === true &&
@@ -1043,8 +903,6 @@ async function run() {
     check('Und die Regel nimmt ihm die Sichtbarkeit, nicht seinen Platz',
       /visibility: hidden/.test(regel123('.rreset.blank')) && !/display: none/.test(regel123('.rreset.blank')),
       regel123('.rreset.blank') || '(keine Regel)');
-    /* (3) SICHTBAR ABGESETZT: ein runder Knopf mit Hoverflaeche, das Zeichen ↺,
-       und der Hinweistext behaelt das Wort „Meine". */
     check('Er ist ein runder Knopf mit 26 Bildpunkten und roter Hoverflaeche',
       /\.rreset \{[^}]*width: 26px; height: 26px; border-radius: 50%/.test(css123) &&
       /\.rreset:hover \{ color: var\(--red\); background: var\(--red-dim\); \}/.test(css123),
@@ -1055,9 +913,8 @@ async function run() {
     check('Und sein Hinweistext sagt „Meine Sterne entfernen"',
       stRows.every(z => z.querySelector('.rreset').title === 'Meine Sterne entfernen'),
       JSON.stringify(stRows.map(z => z.querySelector('.rreset').title)));
-    /* (2) BEI EINEM EINZIGEN ZUGANG GIBT ES DIE ZAHLENSPALTE NICHT -- dort
-       steht der Knopf als dritte Zelle hinter den Sternen und braucht seinen
-       Abstand aus dem Raster: mindestens 12 px. */
+    /* Ohne Durchschnittsspalte steht der Knopf direkt hinter den Sternen und
+       braucht eigenen Abstand. */
     const stOne = buildDom(JSDOM, { hash: '#/item/1',
       settings: { filters: null, userCount: 1, isAdmin: true } });
     await until(stOne.w, entryReady, 2000, 'die Detailansicht');
@@ -1075,9 +932,6 @@ async function run() {
     check('Auf Beruehrungsgeraeten ist die Trefflaeche mindestens 32 Bildpunkte',
       /\.rreset \{ width: 32px; height: 32px; \}/.test(css123),
       (css123.match(/\.rreset \{[^}]*\}/g) || []).join(' | '));
-    /* DER KLICK: PUT MIT 0 -- und die Message traegt „Rückgängig", und der
-       Knopf darin schreibt den ALTEN WERT zurueck: derselbe Ruf, derselbe
-       Rumpf, nur mit 3 statt 0. */
     stDom.sent.length = 0;
     stRows[0].querySelector('.rreset').dispatchEvent(new stDom.w.MouseEvent('click', { bubbles: true }));
     await until(stDom.w, (x) => stDom.sent.some(g => /\/ratings/.test(g.url)) && openRequests(x) === 0,
@@ -1103,11 +957,9 @@ async function run() {
       stBack[0].body?.criterionId === 7,
       JSON.stringify(stBack));
     check('Und die Meldung ist danach fort', !stDoc.querySelector('.toast'), '');
-    /* DIE MELDUNG MIT KNOPF STEHT LAENGER: sechs Sekunden statt 2,6. */
     check('Eine Meldung mit Knopf steht sechs Sekunden',
       /const duration = action \? 6000 : 2600;/.test(fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')),
       'die Dauer steht nicht so im Quelltext');
-    /* DIE TESTTAGE UND JEDE LESESTELLE BLEIBEN OHNE KNOPF. */
     const stTest = [...stDoc.querySelectorAll('#tstars .stars, .ttag .stars, .tdrow .stars')];
     check('Eine Sternreihe ohne Ruecksetzer traegt keinen Knopf',
       stTest.length > 0 && stTest.every(t => !t.querySelector('.rreset') && !t.parentElement.querySelector('.rreset')),
@@ -1115,8 +967,6 @@ async function run() {
     stDom.w.close(); stNull.w.close(); stOne.w.close();
   }
 
-  /* ============= DIE TAGZEILE STEHT OFFEN — 0.30.0, Befund 6 =============
-     BIS 0.30.0 STAND HIER EIN UMSCHALTER. */
   group('Die Tagzeile steht offen — 0.30.0');
   {
     const wfTags = [{ id: 41, name: 'Alu', usage_count: 3, test_usage_count: 0 },
@@ -1128,13 +978,10 @@ async function run() {
     const wfWithout = buildDom(JSDOM, { tags: wfTags, settings: { filters: wfFilter([]) } });
     await until(wfWithout.w, listReady, 2000, 'die Uebersicht');
     const wfDoc = wfWithout.w.document;
-    /* DIE ZEILE STEHT BEIM AUFBAU DA, OHNE DASS JEMAND GEKLICKT HAT. Bis
-       0.30.0 stand sie nur dann da, wenn ein Tagfilter griff. */
     check('Ohne Tagfilter steht die Tagzeile beim Aufbau schon da',
       !!wfDoc.getElementById('f-tagrow'), 'die Zeile fehlt');
     check('Und sie steht an ihrem Platz zwischen Kategorie und Sortieren',
       wfRows(wfDoc).join() === 'Status,Kategorie,Tags,Sortieren', wfRows(wfDoc).join(' · '));
-    /* DER UMSCHALTER IST FORT -- in keinem Zustand, unter keiner Kennung. */
     check('Einen Umschalter „Tags" gibt es nicht mehr',
       !wfDoc.getElementById('f-weitere') && !wfDoc.querySelector('.tag-toggle'),
       `${wfDoc.getElementById('f-weitere')?.outerHTML || ''}`);
@@ -1149,20 +996,15 @@ async function run() {
         && wfDoc.querySelectorAll('#f-tagrow .pill-tag').length === 2,
       `${!!wfDoc.querySelector('#f-tagrow .tagmode')} · ` +
       `${wfDoc.querySelectorAll('#f-tagrow .pill-tag').length} Marken`);
-    /* UND SIE SAGT DEM RASTER SELBST, DASS SIE DIE TAGZEILE IST. */
     check('Und sie traegt `frow-tags` — daran haengt das Raster des Telefons',
       wfDoc.getElementById('f-tagrow')?.classList.contains('frow-tags'),
       wfDoc.getElementById('f-tagrow')?.className);
-    /* DIE REIHENFOLGE IM AUFBAU: erst „und/Oder", dann die Wolke, dann die
-       Verweise. */
     const wfOrder = [...(wfDoc.getElementById('f-tagrow')?.children || [])]
       .map(e => e.className.split(' ')[0]);
     check('Und die Reihenfolge stimmt: Beschriftung, und/Oder, Wolke, Verweise',
       wfOrder[0] === 'eyebrow' && wfOrder[1] === 'tagmode' && wfOrder[2] === 'pills',
       wfOrder.join(' · '));
     wfWithout.w.close();
-    /* GREIFT EIN TAGFILTER, STEHT SIE ERST RECHT DA -- und der Rueckweg
-       ebenfalls. */
     const wfIncluding = buildDom(JSDOM, { tags: wfTags, settings: { filters: wfFilter([41]) } });
     await until(wfIncluding.w, listReady, 2000, 'die Uebersicht');
     check('Greift ein Tagfilter, steht die Tagzeile ebenso da',
@@ -1172,15 +1014,13 @@ async function run() {
       wfIncluding.w.document.querySelector('#filter-toggle .fcount')?.textContent === '· 1 aktiv',
       JSON.stringify([wfIncluding.w.document.getElementById('filter-reset')?.textContent,
                       wfIncluding.w.document.querySelector('#filter-toggle .fcount')?.textContent]));
-    /* SEIT 0.30.2 STEHT DAS WORT IM TITEL und nicht mehr im Text -- der
-       Ruecksetzer ist ein Kreispfeil. */
+    /* Der Ruecksetzer ist ein Kreispfeil; das Wort steht im Titel. */
     check('Der Rueckweg in der Tagzeile heisst weiterhin „Tags zurücksetzen"',
       [...wfIncluding.w.document.querySelectorAll('#f-tagrow .link-btn')]
         .some(b => b.getAttribute('title') === 'Tags zurücksetzen'),
       [...wfIncluding.w.document.querySelectorAll('#f-tagrow .link-btn')]
         .map(b => `„${b.textContent}"/„${b.getAttribute('title')}"`).join(' | '));
     wfIncluding.w.close();
-    /* GIBT ES NICHTS ZU FILTERN, IST DIE ZEILE GANZ WEG. Nachgestellt am 5. */
     const wfEmpty = buildDom(JSDOM, { tags: [], settings: { filters: wfFilter([]) } });
     await until(wfEmpty.w, listReady, 2000, 'die Uebersicht');
     check('Haengt kein Tag an einem Eintrag, steht die Zeile gar nicht da',
@@ -1190,8 +1030,7 @@ async function run() {
       wfRows(wfEmpty.w.document).join() === 'Status,Kategorie,Sortieren',
       wfRows(wfEmpty.w.document).join(' · '));
     wfEmpty.w.close();
-    /* UND DER RANDFALL DAZU: ein Filter auf einen Tag, dessen letzter Eintrag
-       gerade weggefallen ist. */
+    /* Randfall: der letzte Eintrag mit diesem Tag ist gerade weggefallen. */
     const wfEmptyIncluding = buildDom(JSDOM, {
       tags: [{ id: 41, name: 'Alu', usage_count: 0, test_usage_count: 2 }],
       settings: { filters: wfFilter([41]) } });
@@ -1202,9 +1041,8 @@ async function run() {
              .some(b => b.getAttribute('title') === 'Tags zurücksetzen'),
       `Zeile: ${!!wfEmptyIncluding.w.document.getElementById('f-tagrow')}`);
     wfEmptyIncluding.w.close();
-    /* ---- WAS MIT DEM UMSCHALTER GEFALLEN IST ---- VIER REGELN IM STILBLATT
-       und ein Satz in drei Sprachdateien. */
-    /* GELESEN WIRD DIE REGEL UND NICHT DER ABSATZ DARUEBER. */
+    /* ---- Reste des Umschalters ---- */
+    /* Ohne Kommentare: ein Kommentar im Stilblatt darf den Namen nennen. */
     const cssBare = css123.replace(/\/\*[\s\S]*?\*\//g, ' ');
     check('Die vier Regeln des Umschalters stehen im Stilblatt nicht mehr',
       !/\.tag-toggle/.test(cssBare), regel123('.tag-toggle') || '(keine Regel)');
@@ -1213,14 +1051,12 @@ async function run() {
         fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
           .replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ')),
       'ein Aufruf steht noch im Code');
-    /* `list.tagsCount` WAR DIE ZAHL AM UMSCHALTER („Tags (2)"). */
     const wfLanguages = ['de', 'en', 'tr'].map(code => JSON.parse(fs.readFileSync(
       path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8')));
     check('`list.tagsCount` steht in keiner der drei Sprachdateien mehr',
       wfLanguages.every(f => f['list.tagsCount'] === undefined),
       wfLanguages.map(f => String(f['list.tagsCount'])).join(' · '));
-    /* GELESEN WIRD DER CODE UND NICHT DER KOMMENTAR: der Absatz an der alten
-       Stelle erklaert, WARUM der Satz gefallen ist, und nennt ihn dabei. */
+    /* Ohne Kommentare: ein Kommentar darf den alten Schluessel nennen. */
     const wfBare = (n) => fs.readFileSync(path.join(__dirname, 'public', n), 'utf8')
       .replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
     check('Und kein Aufruf sucht ihn — in keiner Datei des Auslieferungsverzeichnisses',
@@ -1228,12 +1064,9 @@ async function run() {
         .filter(n => n.endsWith('.js')).some(n => /tagsCount/.test(wfBare(n))) &&
       !/tagsCount/.test(fs.readFileSync(path.join(__dirname, 'tools', 'keys.json'), 'utf8')),
       'tagsCount steht noch irgendwo');
-    /* UND `list.tags` BLEIBT: die Zeile traegt weiter ihre Beschriftung. */
     check('Und `list.tags` steht weiter in allen dreien',
       wfLanguages.every(f => typeof f['list.tags'] === 'string' && f['list.tags'].length > 0),
       wfLanguages.map(f => JSON.stringify(f['list.tags'])).join(' · '));
-    // Und der alte Aufklapper ist wirklich fort -- aus dem Stilblatt wie aus
-// dem Quelltext. Sonst bliebe totes Regelwerk liegen.
     check('Vom alten <details> ist nichts uebrig',
       !/weitere-filter/.test(css123) &&
       !/weitere-filter/.test(fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')),
@@ -1241,10 +1074,7 @@ async function run() {
   }
 
 
-  /* ================= Die Rollenweichen — 0.22.0 ================= Was hinter
-     einer Rolle liegt, wird ihr nicht erklaert (Regel S5) -- je Rolle
-     geprueft, nicht nur als Admin: der Loeschknopf am Eintrag (E10), der
-     Schluesselkasten (E13), die Karten „Kategorien" und „Tags". */
+  /* Was eine Rolle nicht bedienen darf, wird ihr nicht erklaert; geprueft je Rolle. */
   group('Die Rollenweichen — 0.22.0');
   {
     const rwEntry = async (roles, mine) => {
@@ -1263,8 +1093,6 @@ async function run() {
       !rwForeign.da && rwForeign.danger === 0, JSON.stringify(rwForeign));
     check('An seinem eigenen Eintrag steht er da', rwMine.da, JSON.stringify(rwMine));
     check('Und der Admin sieht ihn an jedem Eintrag', rwAdmin.da, JSON.stringify(rwAdmin));
-    /* DER SCHLUESSELKASTEN (E13): der Klartext gehoert dem Eigentuemer; der
-       Admin liest einen Satz. */
     const rwSystem = async (roles, section) => {
       const d = buildDom(JSDOM, { settings: { filters: null, userCount: 4, ...roles } });
       await until(d.w, listReady, 2000, 'die Uebersicht');
@@ -1287,8 +1115,6 @@ async function run() {
       !rwAdmK.w.document.querySelector('.server-box'),
       (rwAdmK.w.document.querySelector('.warn-box')?.textContent || '').slice(0, 160));
     rwEigK.w.close(); rwAdmK.w.close();
-    /* KATEGORIEN UND TAGS: der Benutzer sieht die Liste und einen Satz, der
-       Admin die Werkzeuge und ihre Erklaerung. */
     const rwUserB = await rwSystem({ isAdmin: false, isOwner: false }, 'inventory');
     const rwAdmB = await rwSystem({ isAdmin: true, isOwner: false }, 'inventory');
     const cardText = (d, name) => [...d.w.document.querySelectorAll('.sys-card')]
@@ -1307,13 +1133,9 @@ async function run() {
       /Umbenennen oder löschen/.test(kAdmCategory?.querySelector('.desc')?.textContent || '') && !!kAdmCategory?.querySelector('#cat-free') &&
       /Umbenennen oder löschen/.test(kAdmTag?.querySelector('.desc')?.textContent || '') && !!kAdmTag?.querySelector('#tag-free'),
       JSON.stringify([kAdmCategory?.querySelector('.desc')?.textContent.trim(), !!kAdmCategory?.querySelector('#cat-free')]));
-    /* UND DIE LISTE STEHT BEIM BENUTZER TROTZDEM DA: er sieht, was es gibt. */
     check('Die Liste der Kategorien steht auch beim Benutzer',
       !!kUserCategory?.querySelector('#mcats') && !!kUserTag?.querySelector('#mtags'), '');
-    /* ---- BEFUND 3c DER RUNDE 0.26.0 -- DER GEWICHTSSATZ -------------------
-       Die Karte „Bewertung: Kriterien" schloss ihren Gewichtssatz fuer den
-       Benutzer mit „Eingestellt wird es vom Admin." -- ein Satz ueber einen
-       KNOPF, den er nicht hat, und damit Sprachregel S5. */
+    /* ---- Der Gewichtssatz ---- */
     const kUserWeight = cardText(rwUserB, 'Bewertung: Kriterien');
     const kAdmWeight = cardText(rwAdmB, 'Bewertung: Kriterien');
     const kFlat = (el) => (el?.textContent || '').replace(/\s+/g, ' ');
@@ -1323,19 +1145,14 @@ async function run() {
     check('Und dazu, dass die Gewichte eine Systemvorgabe sind',
       /Die Gewichte sind eine Systemvorgabe\./.test(kFlat(kUserWeight)),
       kFlat(kUserWeight).slice(-200));
-    /* UND DER SATZ UEBER DEN KNOPF STEHT NUR BEIM ADMIN -- das ist die
-       Klemme, um die es geht. */
     check('Der Bereich 0,2 bis 2 steht nur beim Admin',
       /Möglich ist 0,2 bis 2/.test(kFlat(kAdmWeight)) &&
       !/Möglich ist 0,2 bis 2/.test(kFlat(kUserWeight)),
       kFlat(kUserWeight).slice(-200));
-    /* UND DER ALTE SATZ STEHT NIRGENDS MEHR -- `card.setByAdmin` ist
-       namentlich weggefallen, in allen drei Sprachdateien. */
     check('Und „Eingestellt wird es vom Admin" steht bei keiner Rolle mehr',
       !/Eingestellt wird es vom Admin/.test(kFlat(kUserWeight)) &&
       !/Eingestellt wird es vom Admin/.test(kFlat(kAdmWeight)),
       kFlat(kUserWeight).slice(-200));
-    /* DER KOPF DER EINSTELLUNGEN SAGT JE ROLLE, WAS DRIN IST. */
     check('Die Seite heisst „Einstellungen", und ihr Satz nennt die Installation nur dem Admin',
       rwUserB.w.document.querySelector('.page-title')?.textContent === 'Einstellungen' &&
       rwAdmB.w.document.querySelector('.page-title')?.textContent === 'Einstellungen' &&

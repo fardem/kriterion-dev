@@ -1,6 +1,4 @@
-/* Kriterion — Pruefstand: die Oberflaeche: Gewicht, Vergleich und Suche Das
-   Gewicht am Eintrag und im Systembereich, der Vergleich, die Suche, die
-   Hervorhebung und die gespeicherten Ansichten. */
+/* Oberflaeche: Gewicht, Vergleich, Suche, Ansichten, Anlegen, Logo, Export. */
 const H = require('./frame.js');
 const D = require('./dom.js');
 const {
@@ -11,19 +9,16 @@ async function run() {
   const {
    fs, path, attachments, TEXT, COMMENT, __dirname, group, check, equal
   } = H;
-  /* DIESES MODUL BAUT FENSTER. Fehlt jsdom, sagt es das und haelt an. */
   let JSDOM;
   try { ({ JSDOM } = require('jsdom')); }
   catch { console.log('  … uebersprungen: jsdom fehlt (npm install)'); return; }
-  // Eine Ansicht ist fertig, wenn ihr Kennzeichen dasteht und keine Anfrage mehr offen ist.
   const listReady = (x) => !!x.document.getElementById('q') && openRequests(x) === 0;
   const entryReady = (x) => !!x.document.getElementById('ratings') && openRequests(x) === 0;
 
-  /* ================= Vergleich: meine / alle ================= */
-  /* ================= Das Gewicht in der Oberflaeche ================= */
+  /* ---- Gewicht ---- */
   group('Das Gewicht am Eintrag');
 
-  /* Vorgabelage des Mocks: Gewichte 1,5 · 1 · 0,5, eigene Werte 3 · 3 · 3. */
+  /* Mock-Vorgabe: Gewichte 1,5 · 1 · 0,5, eigene Werte 3 · 3 · 3. */
   const gwEntry = buildDom(JSDOM, { hash: '#/item/1',
     settings: { filters: null, userCount: 3, isAdmin: true } });
   await until(gwEntry.w, entryReady, 2000, 'die Detailansicht');
@@ -33,12 +28,10 @@ async function run() {
 
   check('Die Gewichtsmarke steht hinter dem Kriteriennamen',
     equal(gwMarks(), ['×1,5', '', '×0,5']), JSON.stringify(gwMarks()));
-  /* ABLEITUNG, KEIN SCHALTER: bei Gewicht 1 steht dort nichts. */
   check('Und ×1 steht nirgends',
     !gwDoc.getElementById('ratings').textContent.includes('×1 ') &&
     !gwMarks().includes('×1'), JSON.stringify(gwMarks()));
-  /* Der Name selbst bleibt unberuehrt -- die Marke ist ein eigener Knoten und
-     wird nicht in den Namen hineingeschrieben. Ein Kriterienname ist Eingabe. */
+  /* Die Marke ist ein eigener Knoten; firstChild ist der Name. */
   check('Der Kriterienname bleibt davon unberuehrt',
     equal([...gwDoc.querySelectorAll('#ratings .rname')].map(z => z.firstChild.textContent.trim()),
            ['Zuerst', 'Dann', 'Zuletzt']));
@@ -50,7 +43,6 @@ async function run() {
     JSON.stringify(gwDoc.getElementById('rhead')?.textContent));
   gwEntry.w.close();
 
-  /* GEGENLAGE 1: alle Gewichte auf 1. */
   const gwEqual = buildDom(JSDOM, { hash: '#/item/1', criteriaWeights: [1, 1, 1],
     settings: { filters: null, userCount: 3, isAdmin: true } });
   await until(gwEqual.w, entryReady, 2000, 'die Detailansicht');
@@ -62,8 +54,7 @@ async function run() {
     JSON.stringify(gwEqual.w.document.getElementById('rhead')?.textContent));
   gwEqual.w.close();
 
-  /* GEGENLAGE 2 -- die feinere: ein Kriterium mit Gewicht 1,5, das an diesem
-     Eintrag NIEMAND bewertet hat. */
+  /* Kriterium 3 hat Gewicht 1,5 und an diesem Eintrag keine Bewertung. */
   const gwUnrated = buildDom(JSDOM, { hash: '#/item/1',
     criteriaWeights: [1, 1, 1.5], ownValues: [3, 3, 0],
     settings: { filters: null, userCount: 3, isAdmin: true } });
@@ -79,7 +70,6 @@ async function run() {
     JSON.stringify(gwUDoc.getElementById('rhead')?.textContent));
   gwUnrated.w.close();
 
-  /* ---------------------------------------------------------------- */
   group('Das Gewicht im Systembereich');
 
   const gwSys = buildDom(JSDOM, { hash: '',
@@ -94,8 +84,7 @@ async function run() {
 
   check('Jede Kriterienzeile traegt ein Gewichtsfeld', gwFields().length === 3,
     `${gwFields().length} Felder`);
-  /* DIE KARTE ZEICHNET manage(), UND DIESELBE FUNKTION ZEICHNET AUCH
-     KATEGORIEN UND TAGS. */
+  /* manage() zeichnet auch Kategorien und Tags; dort darf kein Gewicht stehen. */
   check('Die Kategorienkarte traegt ueberhaupt Zeilen',
     gwSDoc.querySelectorAll('#mcats .mrow').length >= 2,
     `${gwSDoc.querySelectorAll('#mcats .mrow').length} Zeilen`);
@@ -108,8 +97,7 @@ async function run() {
   check('Und auch dort steht keines',
     gwSDoc.querySelectorAll('#mtags .mweight').length === 0,
     gwSDoc.getElementById('mtags')?.innerHTML.slice(0, 200));
-  /* KEINE ERFUNDENE GENAUIGKEIT: 1 steht als "1", nicht als "1,0" -- das
-     sieht nach einer Einstellung aus, wo in Wahrheit die Vorgabe steht. */
+  /* "1,0" saehe nach einer Einstellung aus, wo die Vorgabe steht. */
   check('Die Felder zeigen den Wert mit Komma und ohne nachlaufende Nullen',
     equal(gwFields().map(f => f.value), ['1,5', '1', '0,5']),
     JSON.stringify(gwFields().map(f => f.value)));
@@ -124,33 +112,25 @@ async function run() {
     .map(o => o.value);
   check('Die Vorschlaege reichen unter und ueber 1',
     equal(gwProposals, ['0,5', '0,8', '1', '1,2', '1,5']), JSON.stringify(gwProposals));
-  /* UMGEDREHT MIT 0.22.0 (Anlage E, Regel S5): die Erklaerung des Gewichts
-     ist aus der Karte heraus -- der Benutzer liest, was er tun kann, und was
-     das Loeschen kostet. */
   check('Die Karte sagt, was das Loeschen bewirkt — 0.22.0',
     /Löschen entfernt auch alle\s+vergebenen Sterne/.test(gwSDoc.getElementById('mcrits')?.parentElement?.textContent || ''));
-  /* Und die Regeln dazu im Stylesheet -- eine Klassenpruefung allein belegt
-     nicht, dass die Klasse etwas bewirkt (Luecke 1 des Pruefstands). */
+  /* Eine Klassenpruefung allein belegt nicht, dass die Klasse etwas bewirkt. */
   {
     const gwCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
     const gwRule = (gwCss.match(/\.mrow \.mweight-field \{[^}]*\}/) || [''])[0];
     check('Das Stylesheet kennt das Gewichtsfeld', gwRule.length > 0);
-    /* Die Breite steht in em, nicht in px: die Schriftgroesse der Oberflaeche
-       ist in fuenf Stufen einstellbar, und ein festes Mass hielte bei 120 %
-       "1,25" nicht mehr. */
+    /* em statt px: die Schriftgroesse ist in fuenf Stufen einstellbar, bei 120 %
+       passte "1,25" sonst nicht. */
     check('Und seine Breite waechst mit der Schriftgroesse mit',
       /width: *[0-9.]+em/.test(gwRule) && !/width: *[0-9.]+px/.test(gwRule), gwRule);
-    // Gesucht wird die EIGENE Regel der Marke: seit 0.22.0 steht derselbe
-// Waehler auch in der Sammelregel fuer tabular-nums (Bauabschnitt 1).
+    // Eigene Regel der Marke; der Waehler steht auch in der Sammelregel fuer tabular-nums.
     const gwMarkRule = (gwCss.match(/\.rrow \.rname \.rweight, \.cmp-crit \.cn \.cweight \{[^}]*\}/) || [''])[0];
     check('Und die Gewichtsmarke ist gedaempft, nicht golden',
       /var\(--faint\)/.test(gwMarkRule) && !/--gold/.test(gwMarkRule), gwMarkRule);
   }
 
-  /* --- Schreiben: ein WIRKLICH ZUGESTELLTES change-Ereignis ---------------
-     .click() oder ein Aufruf von onchange genuegt nicht:
-     ein Fehler in einem Behandler, der nach einem await weiterlaeuft,
-     entsteht erst beim echten Ereignis. */
+  /* Echtes change-Ereignis statt onchange(): ein Fehler im Handler nach einem await
+     tritt nur so auf. */
   const gwPuts = () => gwSent.filter(z => z.method === 'PUT' && /^\/api\/criteria\/\d+$/.test(z.url));
   const gwWrite = async (field, text) => {
     const before = gwPuts().length;
@@ -167,23 +147,20 @@ async function run() {
     `${gwComma.fresh} Aufrufe`);
   check('Deutsches Komma kommt als Zahl 1.2 am Server an',
     gwComma.last?.body?.weight === 1.2, JSON.stringify(gwComma.last?.body));
-  /* Ein eingefuegter Wert aus einer Tabelle kann "1.2" heissen und soll nicht
-     scheitern. Gelesen wird beides, geschrieben wird immer mit Komma. */
+  /* Aus einer Tabelle eingefuegt steht oft "1.2"; gelesen wird beides, geschrieben
+     mit Komma. */
   const gwPoint = await gwWrite(gwFields()[1], '1.8');
   check('Ein Punkt statt des Kommas wird ebenso gelesen',
     gwPoint.last?.body?.weight === 1.8, JSON.stringify(gwPoint.last?.body));
   check('Und das Feld zeigt danach wieder ein Komma',
     gwFields()[1].value === '1,8', JSON.stringify(gwFields()[1].value));
 
-  /* GERUNDET, ABER NICHT STILL: 1,234 und 1,23 sind dieselbe Aussage -- das
-     Feld zeigt danach, was gespeichert wurde. */
   const gwRound = await gwWrite(gwFields()[1], '1,234');
   check('Feiner als ein Hundertstel geht so hinaus, wie es getippt wurde',
     gwRound.last?.body?.weight === 1.234, JSON.stringify(gwRound.last?.body));
   check('Und das Feld zeigt danach den gespeicherten Wert 1,23',
     gwFields()[1].value === '1,23', JSON.stringify(gwFields()[1].value));
 
-  /* EIN LEERES FELD IST KEINE NULL. */
   const gwEmpty = await gwWrite(gwFields()[1], '   ');
   check('Ein leeres Feld schickt gar nichts', gwEmpty.fresh === 0, `${gwEmpty.fresh} Aufrufe`);
   check('Und der alte Wert kehrt ins Feld zurueck',
@@ -192,8 +169,6 @@ async function run() {
   check('Unlesbarer Text ebenso wenig', gwText.fresh === 0 && gwFields()[1].value === '1,23',
     `${gwText.fresh} Aufrufe, Feld ${JSON.stringify(gwFields()[1].value)}`);
 
-  /* Eine Absage vom Server setzt das Feld zurueck: kein Wert im Feld, der
-     nicht gespeichert ist. */
   const gwDenial = await gwWrite(gwFields()[1], '2,5');
   check('Ein Wert ueber der Grenze geht hinaus und wird abgewiesen',
     gwDenial.fresh === 1 && gwDenial.last?.body?.weight === 2.5,
@@ -201,15 +176,12 @@ async function run() {
   check('Und das Feld steht danach wieder auf dem gespeicherten Wert',
     gwFields()[1].value === '1,23', JSON.stringify(gwFields()[1].value));
 
-  /* NACH EINEM GEWICHTSWECHSEL WIRD DIE LISTE NICHT NEU GEZEICHNET. */
   const gwNode = gwFields()[1];
   await gwWrite(gwNode, '1,4');
   check('Die Liste wird nach einem Gewichtswechsel nicht neu gezeichnet',
     gwNode === gwFields()[1] && gwNode.isConnected, 'die Zeile wurde ersetzt');
   check('Die Zeile traegt trotzdem den neuen Wert',
     gwFields()[1].value === '1,4', JSON.stringify(gwFields()[1].value));
-  /* Und das ist der Grund dafuer: ein offenes Umbenennen an derselben Zeile
-     ueberlebt den Gewichtswechsel daneben. Ein refresh() risse es weg. */
   const gwRow = gwSDoc.querySelectorAll('#mcrits .mrow')[1];
   gwRow.querySelector('.ed').dispatchEvent(new gwSys.w.MouseEvent('click', { bubbles: true }));
   await until(gwSys.w, () => gwRow.querySelector('input.medit'), 2000, 'das Umbenennfeld');
@@ -221,9 +193,7 @@ async function run() {
     gwRow.querySelector('input.medit') === gwRenameField &&
     gwRenameField.value === 'Halb getippt' && gwRenameField.isConnected,
     gwRow.innerHTML.slice(0, 160));
-  /* Das Umbenennen schickt kein Gewicht mit -- sonst setzte jedes ✎ die
-     Gewichtung auf den Stand des Feldes zurueck, auch wenn niemand es
-     angefasst hat. */
+  /* Sonst setzte jedes ✎ das Gewicht auf den Stand des Feldes zurueck. */
   const gwVorRename = gwPuts().length;
   gwRenameField.value = 'Neuer Name';
   gwRenameField.dispatchEvent(new gwSys.w.Event('blur', { bubbles: true }));
@@ -234,8 +204,7 @@ async function run() {
     gwPuts().length > gwVorRename && gwRenameCall?.body?.weight === undefined,
     JSON.stringify(gwRenameCall?.body));
 
-  /* Fallstrick 1 aus dem Konzept: die Kriterienzeile ist ziehbar, und die
-     Ausnahmeliste von makeSortable lautet '.mact, input'. */
+  /* Die Zeile ist ziehbar; makeSortable nimmt nur '.mact, input' aus. */
   await sysSection(gwSys.w, 'inventory');
   const gwRows = [...gwSDoc.querySelectorAll('#mcrits .mrow')];
   gwSDoc.elementFromPoint = () => gwRows[2];
@@ -254,8 +223,8 @@ async function run() {
   check('Am Gewichtsfeld beginnt kein Ziehen',
     gwSent.filter(z => z.url === '/api/criteria/order').length === gwVorSort,
     'die Zeile wurde umsortiert');
-  /* Die Gegenprobe daneben, sonst belegte die Zeile darueber auch dann etwas,
-     wenn das Ziehen ueberhaupt nicht mehr ginge. */
+  /* Ohne diese Probe waere die Pruefung darueber auch gruen, wenn gar kein Ziehen
+     ginge. */
   gwRows[0].dispatchEvent(gwCursor('pointerdown', 0));
   gwSDoc.dispatchEvent(gwCursor('pointermove', 120));
   gwSDoc.dispatchEvent(gwCursor('pointerup', 120));
@@ -266,10 +235,8 @@ async function run() {
     'das Ziehen geht gar nicht mehr');
   gwSys.w.close();
 
-  /* Wer nicht verwalten darf, sieht das Gewicht als Text statt als Feld -- es
-     erklaert die Kopfzahl an jedem Eintrag, und die sieht er ja auch. */
-  /* isOwner MUSS hier mit auf false: die Rollen sind eine LEITER, ein
-     Eigentuemer ohne Adminrecht kann es gar nicht geben. */
+  /* isOwner auch auf false: die Rollen sind gestuft, ein Eigentuemer ist immer
+     Admin. */
   const gwOnlyRead = buildDom(JSDOM, { hash: '',
     settings: { filters: null, userCount: 3, isAdmin: false, isOwner: false } });
   await until(gwOnlyRead.w, listReady, 2000, 'die Uebersicht');
@@ -283,11 +250,8 @@ async function run() {
     JSON.stringify([...gwNDoc.querySelectorAll('#mcrits .mweight-fixed')].map(z => z.textContent)));
   gwOnlyRead.w.close();
 
-  /* ---------------------------------------------------------------- */
   group('Der Umschalter der Vergleichsansicht');
 
-  /* Der Vergleich wird ueber den ECHTEN WEG erreicht: zwei Karten auswaehlen,
-     dann die Leiste druecken. */
   const vChefin2 = { id: 1, name: 'chefin', deleted: false };
   const vBert2 = { id: 2, name: 'bert', deleted: false };
   const second = {
@@ -299,9 +263,7 @@ async function run() {
       { id: 12, day: '2026-08-06', rating: 4, mine: false, author: vBert2, tags: [] },
       { id: 13, day: '2026-08-07', rating: 3, mine: false, author: vBert2, tags: [] }
     ],
-    /* Die Gewichte stehen wie im Mock: 1,5 · 1 · 0,5. */
-    /* DIE PHASE STEHT AN JEDER ZEILE, wie beim echten Server -- der Vergleich
-       teilt danach in seine Gruppen. */
+    /* phase wie beim Server: der Vergleich gruppiert danach. */
     ratings: [
       { criterion_id: 7, name: 'Zuerst', value: 5, weight: 1.5, phase: 'after', avg: 2, count: 3 },
       { criterion_id: 8, name: 'Dann', value: 4, weight: 1, phase: 'after', avg: 3, count: 2 },
@@ -343,9 +305,7 @@ async function run() {
   const cmpColumn = (n) => wVgl.document.querySelectorAll('.cmp-col')[n];
   const cmpRows = (n) => [...cmpColumn(n).querySelectorAll('.cmp-crit')]
     .map(z => z.lastElementChild.textContent.trim());
-  /* DIE KOPFZAHL STEHT SEIT 0.21.0 AN DER TRENNZEILE IHRES KASTENS und nicht
-     mehr als einzelne Zeile ueber der Spalte -- mit zwei Kaesten liesse die
-     offen, welchen der beiden sie meint. */
+  /* Die Kopfzahl steht in der Trennzeile des ersten Kastens. */
   const cmpGroups = (n) => [...cmpColumn(n).querySelectorAll('.cmp-group')];
   const cmpHead = (n) => cmpGroups(n)[0].lastElementChild.textContent.trim();
   const cmpBest = (n) => [...cmpColumn(n).querySelectorAll('.cmp-crit')]
@@ -354,8 +314,7 @@ async function run() {
 
   check('Der Umschalter steht da und traegt beide Stellungen',
     !!cmpView('meine') && !!cmpView('alle'), 'ein Knopf fehlt');
-  /* VORGABESTELLUNG "alle" -- der Vergleich fragt, wie die Dinge zueinander
-     stehen, und das beantwortet der Schnitt ueber alle. */
+  /* Vorgabe „alle": der Vergleich fragt, wie die Eintraege zueinander stehen. */
   check('Vorgabestellung ist „alle"',
     cmpView('alle').classList.contains('on') &&
     !cmpView('meine').classList.contains('on'),
@@ -372,51 +331,41 @@ async function run() {
     equal(cmpBest(1), [false, false, false, true]),
     JSON.stringify([cmpBest(0), cmpBest(1)]));
 
-  /* Ein wirklich zugestellter Druck, kein Behandleraufruf. */
   cmpView('meine').dispatchEvent(new wVgl.MouseEvent('click', { bubbles: true }));
   await until(wVgl, () => cmpView('meine').classList.contains('on'), 2000, 'die Stellung „meine"');
   check('Ein Druck schaltet auf „meine" um',
     cmpView('meine').classList.contains('on') &&
     !cmpView('alle').classList.contains('on'),
     `${cmpView('meine').className} | ${cmpView('alle').className}`);
-  /* Das dritte Kriterium ist der schaerfste Beleg: am ersten Eintrag steht
-     dort ein EIGENER Wert von 3, waehrend der Schnitt ueber alle leer ist. */
+  /* Kriterium 3: am ersten Eintrag eigener Wert 3, Schnitt ueber alle leer. */
   check('Jetzt stehen in den Zeilen die eigenen Werte',
     equal(cmpRows(0), ['3 / 5', '3 / 5', '3 / 5', '1']) &&
     equal(cmpRows(1), ['5 / 5', '4 / 5', '–', '–']),
     JSON.stringify([cmpRows(0), cmpRows(1)]));
-  /* DIE KOPFZEILE SCHALTET MIT -- sonst waere es derselbe Widerspruch mit
-     einem Knopf davor: eigene Werte in den Zeilen, der Schnitt darueber. */
-  /* ZWEI Pruefungen, nicht eine: die erste faellt, wenn die Kopfzeile
-     ueberhaupt nicht mitschaltet, die zweite auch dann, wenn sie mitschaltet
-     und dabei falsch rechnet. */
+  /* Zwei Pruefungen: die erste faellt, wenn die Kopfzeile nicht mitschaltet, die
+     zweite, wenn sie falsch rechnet. */
   check('Und die Kopfzeile schaltet mit',
     cmpHead(1) !== '⌀ 2,5', cmpHead(1));
   check('Sie zeigt das Mittel der eigenen Werte, ohne die Nullen',
     equal([cmpHead(0), cmpHead(1)], ['⌀ 3,0', '⌀ 4,6']),
     JSON.stringify([cmpHead(0), cmpHead(1)]));
-  /* DIE ZWEITE RECHENSTELLE IST EBENSO GEWICHTET WIE DIE ERSTE. */
+  /* In der Stellung „meine" rechnet der Browser; auch dort gewichtet. */
   const cmpUnweighted = (5 + 4) / 2;
   const cmpWeighted = Math.round(((5 * 1.5 + 4 * 1) / (1.5 + 1)) * 10) / 10;
   check('Die eigene Zahl ist gewichtet, nicht das flache Mittel',
     cmpHead(1) === `⌀ ${cmpWeighted.toFixed(1).replace('.', ',')}` &&
     cmpWeighted !== cmpUnweighted,
     `${cmpHead(1)} — gewichtet ${cmpWeighted}, ungewichtet ${cmpUnweighted}`);
-  /* Der Nenner zaehlt nur die Kriterien, die ICH bewertet habe. */
+  /* 3,8 ergaebe sich mit Gewicht 0,5 im Nenner: 11,5 / 3. */
   check('Ein Kriterium ohne eigenen Wert bringt sein Gewicht nicht in den Nenner',
     cmpHead(1) !== '⌀ 3,8', cmpHead(1));
-  /* Die Marke am Kriterium: ×1,5 und ×0,5 stehen an ihren Zeilen, an der Zeile
-     mit Gewicht 1 steht nichts. Ableitung, kein Schalter. */
   const cmpMarks = [...cmpColumn(0).querySelectorAll('.cmp-crit .cn')]
     .map(z => z.querySelector('.cweight')?.textContent || '');
   check('Das Gewicht steht an der Zeilenbeschriftung, und nur bei Abweichung',
     equal(cmpMarks, ['×1,5', '', '×0,5', '']), JSON.stringify(cmpMarks));
-  /* Einmal je Zeile, nicht je Spalte: das Gewicht gehoert dem Kriterium, und
-     die Spalten sind die Eintraege. */
   check('Und in der zweiten Spalte steht dieselbe Marke noch einmal',
     equal([...cmpColumn(1).querySelectorAll('.cmp-crit .cn')]
       .map(z => z.querySelector('.cweight')?.textContent || ''), ['×1,5', '', '×0,5', '']));
-  // Die Testtagzeile ebenso, gezaehlt ueber mine.
   check('Die Testtagzeile schaltet mit, gezaehlt ueber mine',
     cmpRows(0)[3] === '1' && cmpRows(1)[3] === '–',
     JSON.stringify([cmpRows(0)[3], cmpRows(1)[3]]));
@@ -428,8 +377,8 @@ async function run() {
     /eigenen Werte/.test(wVgl.document.getElementById('cmp-hint').textContent),
     wVgl.document.getElementById('cmp-hint').textContent);
 
-  /* ---- ZWEI GRUPPEN, WENN ES ZWEI KAESTEN GIBT -- 0.21.0 ---- Die Prueflage
-     darueber traegt nur Nachher-Kriterien, also genau EINE Gruppe. */
+  /* Die Lage darueber hat nur Nachher-Kriterien, also eine Gruppe; hier sind es
+     zwei. */
   const cmpTwo = buildDom(JSDOM, { hash: '', overviewItems: twoCards,
     secondEntry: second, criteriaPhases: ['after', 'after', 'before'],
     settings: { filters: null, userCount: 3 } });
@@ -447,21 +396,15 @@ async function run() {
     .map(g => `${g.firstElementChild.textContent.trim()}|${g.lastElementChild.textContent.trim()}`);
   check('Der Vergleich zeigt zwei Gruppen, vorher vor nachher',
     equal(zGroups(0), ['Potenzial|⌀ 4,2', 'Bewertung|⌀ 3,0']), JSON.stringify(zGroups(0)));
-  /* UND JEDE GRUPPE TRAEGT NUR IHRE ZEILEN. Ohne diese Zeile bliebe die
-     Ueberschrift richtig und der Inhalt darunter falsch. */
   const zNames = [...zColumn(0).querySelectorAll('.cmp-group, .cmp-crit')]
     .map(e => (e.classList.contains('cmp-group') ? '# ' : '') +
               e.firstElementChild.textContent.trim().split(' ')[0]);
   check('Und unter jeder Trennzeile stehen nur ihre Kriterien',
     equal(zNames, ['# Potenzial', 'Zuletzt', '# Bewertung', 'Zuerst', 'Dann', 'Testtage']),
     JSON.stringify(zNames));
-  /* DER ZWEITE EINTRAG HAT KEIN VORHER-KRITERIUM BEWERTET -- seine
-     Potenzialgruppe steht trotzdem da (das Kriterium gibt es), und ihre
-     Kopfzahl ist ein STRICH und keine 0. */
+  /* Der zweite Eintrag hat kein Vorher-Kriterium bewertet. */
   check('Ein Eintrag ohne Sterne in einer Gruppe zeigt dort einen Strich',
     zGroups(1)[0] === 'Potenzial|–', JSON.stringify(zGroups(1)));
-  /* UND eigenerSchnitt() MISCHT DIE KAESTEN NICHT. In der Stellung „meine"
-     rechnet der Browser selbst -- die einzige zweite Rechenstelle. */
   const zView = cmpTwo.w.document.querySelector('#cmp-view [data-view="meine"]');
   zView.dispatchEvent(new cmpTwo.w.MouseEvent('click', { bubbles: true }));
   await until(cmpTwo.w, (x) => x.document.querySelector('#cmp-view [data-view="meine"]')
@@ -470,14 +413,11 @@ async function run() {
     equal(zGroups(1), ['Potenzial|–', 'Bewertung|⌀ 4,6']), JSON.stringify(zGroups(1)));
   cmpTwo.w.close();
 
-  /* ANSICHTSZUSTAND, KEINE EINSTELLUNG: der Umschalter schreibt nichts an den
-     Server. */
   const vglPuts = vglDom.sent.filter(g => g.method === 'PUT' && g.url === '/api/settings');
   check('Der Umschalter schreibt nichts an den Server',
     !vglPuts.some(g => !(g.body && g.body.bellSeen !== undefined)),
     JSON.stringify(vglPuts.map(g => g.body)));
-  /* BEIM ERSTEN VERLASSEN FAEHRT DER BEZUGSPUNKT DER GLOCKE HINAUS -- genau
-     einmal. */
+  /* Beim ersten Verlassen der Uebersicht schreibt die Glocke einmal bellSeen. */
   check('Und was dorthin ging, war ausschliesslich dieser eine Merker',
     vglPuts.length === 1 &&
     equal(Object.keys(vglPuts[0].body || {}), ['bellSeen']),
@@ -490,8 +430,8 @@ async function run() {
     JSON.stringify(cmpRows(1)));
   wVgl.close();
 
-  /* Bei genau einem Zugang erscheint er nicht -- beide Stellungen waeren
-     dieselbe Zahl, und ein Knopf ohne Wirkung sieht aus wie ein Fehler. */
+  /* Bei einem Zugang waeren beide Stellungen gleich; ein Knopf ohne Wirkung saehe
+     aus wie ein Fehler. */
   const { w: wOne } = await openCompare(1);
   check('Bei genau einem Zugang steht der Vergleich trotzdem',
     wOne.document.querySelectorAll('.cmp-col').length === 2,
@@ -504,10 +444,8 @@ async function run() {
     wOne.document.getElementById('cmp-hint').textContent);
   wOne.close();
 
-  /* ---------------------------------------------------------------- */
   group('Die Suche fragt den Server');
 
-  /* SEIT 0.11.0 IST JEDER TASTENDRUCK EINE ANFRAGE. */
   const suInventory = Array.from({ length: 6 }, (_, i) => ({
     id: i + 1, title: i === 0 ? 'Bosch Akkuschrauber' : 'Makita ' + (i + 1),
     rejected: false, tested: true, favorite: false, category: null, tags: [],
@@ -537,13 +475,11 @@ async function run() {
     suSearchQueries()[0].url === '/api/items?q=bosch', suSearchQueries()[0]?.url);
   check('Gezeichnet wird, was zurueckkam',
     equal(suCards(), ['Bosch Akkuschrauber']), JSON.stringify(suCards()));
-  /* DIE ZAEHLZEILE NENNT DEN GANZEN BESTAND und nicht die Trefferzahl:
-     waehrend einer Suche traegt state.items nur die Treffer, und "1 Sache"
-     waere eine falsche Auskunft ueber einen Bestand von sechs. */
+  /* Waehrend einer Suche traegt state.items nur die Treffer; die Zaehlzeile nennt
+     trotzdem den Bestand. */
   check('Die Zaehlzeile nennt weiter den ganzen Bestand',
     /6 /.test(suCount()) && /1 sichtbar/.test(suCount()), suCount());
 
-  /* DER DEBOUNCE. */
   const suBefore = suSearchQueries().length;
   for (const word of ['mak', 'maki', 'makita']) {
     const clock = su.eval('searchClock');
@@ -562,8 +498,7 @@ async function run() {
   check('Gezeichnet werden dessen Treffer',
     suCards().length === 5, JSON.stringify(suCards()));
 
-  /* DAS LEEREN GEHT OHNE ANFRAGE. */
-  /* GEZAEHLT WERDEN ALLE ANFRAGEN AN DIE LISTE, nicht nur die mit `?q=`. */
+  /* Alle Anfragen an /api/items, nicht nur die mit ?q=. */
   const suListQueries = () => suDom.sent.filter(g => String(g.url).startsWith('/api/items'));
   const suVorClear = suListQueries().length;
   const suX = su.document.getElementById('qclr');
@@ -580,8 +515,7 @@ async function run() {
   check('Und das Kreuz ist wieder fort', suX.style.display === 'none', suX.style.display);
   su.close();
 
-  /* ---- Zwei Antworten ueberholen sich ---- DIE ANTWORT AUF "makita" DARF
-     DIE AUF "bosch" NICHT UEBERSCHREIBEN. */
+  /* ---- Zwei Antworten ueberholen sich ---- */
   const uhDom = buildDom(JSDOM, { overviewItems: suInventory, searchThrottles: [400, 0] });
   const uh = uhDom.w;
   await until(uh, listReady, 2000, 'die Uebersicht');
@@ -603,14 +537,12 @@ async function run() {
   await until(uh, (x) => openRequests(x) === 0, 2000, 'die Antwort auf die erste Suchanfrage');
   check('Die spaeter eintreffende AELTERE Antwort ueberschreibt sie NICHT',
     equal(uhCards(), ['Bosch Akkuschrauber']), JSON.stringify(uhCards()));
-  // Und die Zaehlzeile sagt nicht mehr "sucht ..." -- es ist nichts mehr offen.
   check('Und danach steht die Zaehlzeile still',
     !/sucht/.test(uh.document.getElementById('count').textContent),
     uh.document.getElementById('count').textContent);
   uh.close();
 
-  /* ---- Der Rueckfall, wenn die Suche scheitert ---- BIS 0.10.0 KONNTE SIE
-     NICHT SCHEITERN -- sie lief im Arbeitsspeicher. */
+  /* ---- Die Suche scheitert ---- */
   const suBroken = buildDom(JSDOM, { overviewItems: suInventory, searchError: true });
   const sk = suBroken.w;
   await until(sk, listReady, 2000, 'die Uebersicht');
@@ -631,10 +563,8 @@ async function run() {
     sk.document.getElementById('body').textContent.slice(0, 80));
   sk.close();
 
-  /* ---------------------------------------------------------------- */
   group('Die Trefferzeile an der Kachel');
 
-  /* WARUM EIN EINTRAG IN DER TREFFERLISTE STEHT -- 0.18.0. */
   const trInventory = [
     { id: 1, title: 'Bosch Akkuschrauber', rejected: false, tested: true, favorite: false,
       category: { id: 21, name: 'Werkzeug' }, tags: [{ id: 5, name: 'akku' }],
@@ -666,8 +596,6 @@ async function run() {
   check('Mit Suche traegt jede Trefferkachel genau eine',
     trRows().length === 2, `${trRows().length} Zeilen`);
 
-  /* SIE STEHT UNTER DEM TITEL UND UEBER DEN TAGS -- bei dem, was sie
-     erklaert, und nicht am Fuss bei den Zahlen. */
   const trBody = tr.document.querySelector('.card .card-body');
   const trFollow = [...trBody.children].map(k => k.className.split(' ')[0]);
   check('Die Zeile steht unter dem Titel',
@@ -681,13 +609,10 @@ async function run() {
     equal(trRows().map(z => z.querySelector('.find-source')?.textContent),
            ['Kommentar:', 'Link:']),
     JSON.stringify(trRows().map(z => z.querySelector('.find-source')?.textContent)));
-  /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT. */
   check('Und zeigt den Ausschnitt daneben',
     trRows()[0]?.querySelector('.find-text')?.textContent === '…hat mir der Bosch-Händler empfohlen…',
     JSON.stringify(trRows()[0]?.querySelector('.find-text')?.textContent));
 
-  /* DIE ZAHL DER WEITEREN STELLEN steht kurz in der Zeile und ausgeschrieben
-     im Ueberfahrtext. */
   check('Bei weiteren Stellen steht ihre Zahl in der Zeile',
     trRows()[0]?.querySelector('.find-more')?.textContent === '+2',
     JSON.stringify(trRows()[0]?.querySelector('.find-more')?.textContent));
@@ -701,14 +626,11 @@ async function run() {
     trRows()[1]?.getAttribute('title') === 'Gefunden in: Link',
     trRows()[1]?.getAttribute('title'));
 
-  /* DIE ADRESSE DER KACHEL TRAEGT DEN BEGRIFF. Wer einen Treffer oeffnet und
-     neu laedt, behaelt damit die Hervorhebung. */
+  /* Mit dem Begriff in der Adresse bleibt die Hervorhebung nach dem Neuladen. */
   check('Die Kachel fuehrt mit dem Begriff in der Adresse zum Eintrag',
     tr.document.querySelector('.card').getAttribute('href') === '#/item/1?q=bosch',
     tr.document.querySelector('.card').getAttribute('href'));
 
-  /* DAS LEEREN NIMMT ALLES WIEDER WEG -- Zeile, Marken und den Begriff in der
-     Adresse. Die Hervorhebung gehoert der Suche und nicht dem Eintrag. */
   trField.value = '';
   trField.dispatchEvent(new tr.Event('input'));
   await until(tr, (x) => !x.document.querySelector('.card-find') && openRequests(x) === 0, 2000,
@@ -723,9 +645,6 @@ async function run() {
     tr.document.querySelector('.card').getAttribute('href'));
   tr.close();
 
-  /* EINE QUELLE, DIE DIESE OBERFLAECHE NICHT KENNT, faellt nicht aus der
-     Zeile. */
-  /* UND DERSELBE AUSSCHNITT TRAEGT MARKUP. */
   const trUnknown = buildDom(JSDOM, { overviewItems: [{ ...trInventory[1],
     foundAt: { source: 'anhangname',
                   text: 'Bosch <img src=x onerror=alert(1)> Handbuch', others: 0 } }] });
@@ -750,10 +669,8 @@ async function run() {
     tuText?.querySelector('mark')?.textContent);
   tu.close();
 
-  /* ---------------------------------------------------------------- */
   group('Die Hervorhebung in der Uebersicht');
 
-  /* DIE HERVORHEBUNG GEHOERT DER SUCHE UND NICHT DEM EINTRAG. */
   const hvInventory = [{ id: 1, title: 'Bella Bohrmaschine a.b und axb von eurobella',
     rejected: false, tested: false, favorite: false,
     category: { id: 21, name: 'Bellawerkzeug' }, tags: [{ id: 5, name: 'bella-tag' }],
@@ -773,12 +690,9 @@ async function run() {
   hvField.value = 'bella';
   hvField.dispatchEvent(new hv.Event('input'));
   await waitSearch(hv);
-  /* ALLE VORKOMMEN UND NICHT NUR DAS ERSTE -- "Bella ... */
   check('Im Titel werden alle Vorkommen markiert',
     equal(hvMarks('.card-title'), ['Bella', 'bella']), JSON.stringify(hvMarks('.card-title')));
-  /* MARKIERT WIRD DER ORIGINALTEXT, verglichen wird kleingeschrieben: wer
-     "bella" tippt, will "Bella" markiert sehen und nicht "bella"
-     daruntergelegt. */
+  /* Verglichen wird kleingeschrieben, markiert wird der Originaltext. */
   check('Und zwar mit der Schreibung, die dort wirklich steht',
     hvMarks('.card-title')[0] === 'Bella', JSON.stringify(hvMarks('.card-title')));
   check('Der Titel bleibt dabei Zeichen fuer Zeichen derselbe',
@@ -791,8 +705,8 @@ async function run() {
   check('Und in der Trefferzeile', equal(hvMarks('.card-find'), ['bella']),
     JSON.stringify(hvMarks('.card-find')));
 
-  /* DER BEGRIFF IST TEXT UND KEIN MUSTER. */
-  /* DER TITEL TRAEGT BEIDES: "a.b" und "axb". */
+  /* Der Titel traegt "a.b" und "axb": der Begriff ist Text, kein regulaerer
+     Ausdruck. */
   hvField.value = 'a.b';
   hvField.dispatchEvent(new hv.Event('input'));
   await waitSearch(hv);
@@ -804,32 +718,23 @@ async function run() {
     JSON.stringify(hvMarks('.card-title')));
   hv.close();
 
-  /* ---- BEFUND 7a DER RUNDE 0.26.0 -- NICHT LEEREN OHNE NOT -------------
-     `renderList()` setzte `app.innerHTML = "Laedt ..."` OHNE Bedingung und
-     wartete erst danach auf `loadAll()`: der Bildschirm war leer, bevor
-     ueberhaupt jemand gefragt hatte. */
+  /* renderList() darf app nicht leeren, bevor loadAll() geantwortet hat. */
   {
     const naSource = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
     const naPlace = naSource.slice(naSource.indexOf('async function renderList()'));
     const naHead = naPlace.slice(0, naPlace.indexOf('try { await loadAll(); }'));
-    /* DER PLATZHALTER STEHT HINTER EINER BEDINGUNG -- und die fragt, ob ueberhaupt
-       schon etwas dasteht. Ohne sie waere die Zusage wieder die alte. */
     check('Der Platzhalter wird nur gesetzt, wenn nichts dasteht',
       /if \(!app\.firstElementChild\)\s*\n\s*app\.innerHTML =/.test(naHead),
       naHead.split('\n').filter(z => /app\.innerHTML|firstElementChild/.test(z))
         .map(z => z.trim()).join(' | ') || 'keine Zeile gefunden');
-    /* UND ES STEHT KEINE UNBEDINGTE ZUWEISUNG DANEBEN. */
     const naCode = naHead.replace(/\/\*[\s\S]*?\*\//g, '');
     const naZuweisungen = (naCode.match(/app\.innerHTML\s*=/g) || []).length;
     check('Und daneben steht keine zweite, unbedingte Zuweisung',
       naZuweisungen === 1, `${naZuweisungen} Zuweisungen vor dem Fragen`);
   }
 
-  /* ---------------------------------------------------------------- */
   group('Der Suchbegriff in der Adresse');
 
-  /* BIS 0.17.5 LEBTE DER BEGRIFF NUR IN state.search. Wer einen Treffer
-     oeffnete und neu lud, verlor ihn -- und mit ihm die Hervorhebung. */
   const adBuild = async (h) => {
     const d = buildDom(JSDOM, { hash: h });
     await until(d.w, (x) => (adIsEntry(x) || adIsList(x)) && openRequests(x) === 0, 2000,
@@ -852,20 +757,15 @@ async function run() {
   const adIncluding = await adBuild('#/item/1?q=beispiel');
   check('Eine Adresse mit Begriff fuehrt in denselben Eintrag',
     adIsEntry(adIncluding), adIncluding.document.body.textContent.slice(0, 60));
-  /* DIE HERVORHEBUNG UEBERSTEHT DAMIT EIN NEULADEN -- das ist der ganze
-     Zweck. Der Kommentartext traegt "beispiel.de", die Linkliste ebenso. */
+  /* Kommentartext und Linkliste enthalten "beispiel.de". */
   check('Und die Hervorhebung steht nach einem Neuladen wieder da',
     adIncluding.document.querySelectorAll('#cmts .cmt-body mark').length > 0,
     `${adIncluding.document.querySelectorAll('#cmts .cmt-body mark').length} Marken im Kommentar`);
   check('Auch in der Linkliste, und zwar an der Adresse',
     adIncluding.document.querySelectorAll('#links .lrow .dom mark').length > 0,
     `${adIncluding.document.querySelectorAll('#links .lrow .dom mark').length} Marken`);
-  /* DER TITEL UND DIE BESCHREIBUNG TRAGEN KEINE MARKE, und das ist kein
-     Versehen: beide sind Eingabefelder. */
-  /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT. */
-  /* ---- BEFUND 1 DER RUNDE 0.26.0 -- DAS DATEIFELD BLEIBT IM BAUM --------
-     `uploadFiles()` tauschte den Hinweistext ueber `drop.textContent`, und
-     das wirft ALLE Kinder des Labels weg -- den Text UND das Dateifeld darin. */
+  /* drop.textContent entfernte auch das Dateifeld im Label; der Text hat deshalb
+     einen eigenen Knoten. */
   const adDrop = adIncluding.document.getElementById('drop');
   check('Das Ablagefeld traegt sein Dateifeld und einen eigenen Texttraeger',
     !!adDrop && !!adDrop.querySelector('#file') && !!adDrop.querySelector('#drop-text'),
@@ -874,27 +774,21 @@ async function run() {
     adIncluding.document.getElementById('file')?.parentElement === adDrop &&
     adIncluding.document.getElementById('drop-text')?.parentElement === adDrop,
     adIncluding.document.getElementById('file')?.parentElement?.id || '(kein Elternteil)');
-  /* UND DER FORTSCHRITT SCHREIBT IN DEN TRAEGER UND NICHT INS LABEL. */
   const adAppSource = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
   const adAppCode = adAppSource.replace(/\/\*[\s\S]*?\*\//g, '');
   check('Und der Fortschritt schreibt in den Traeger, nicht ins Label',
     /const dropText = document\.getElementById\('drop-text'\);/.test(adAppCode) &&
     !/\bdrop\.textContent\s*=/.test(adAppCode),
     (adAppSource.match(/const dropText[^\n]*/) || ['(keine Zeile)'])[0]);
-  /* ---- DER SATZ AN DER EINFUEGESTELLE -- 0.27.0, F7 ---- DER BILLIGSTE WEG
-     STEHT DORT, WO JEMAND IHN NOCH NEHMEN KANN. */
   {
     const adPaste = (adIncluding.document.querySelector('.drop')?.parentElement
       ?.textContent || '').replace(/\s+/g, ' ');
-    /* EIN SATZ, UND ER NENNT DIE FOLGE UND SONST NICHTS. Vom Betreiber am 10.
-       September 2026 entschieden: *„Welche Folgen ... */
     check('An der Einfuegestelle steht, was das Einfuegen kostet — 0.27.0',
       /Zwischenablage/.test(adPaste) && /größeren Dateien/.test(adPaste),
       adPaste.slice(0, 260) || '(kein Text an der Einfuegestelle)');
     check('Und keine Empfehlung daneben, was der Benutzer statt dessen tun soll',
       !/speichern unter/.test(adPaste) && !/besser/.test(adPaste), adPaste.slice(0, 260));
-    /* UND DER SATZ ZUR REIHENFOLGE STEHT WEITER DANEBEN. Ohne diese Zeile
-       bliebe gruen, wer den neuen an die Stelle des alten setzt. */
+    /* Sonst bliebe gruen, wenn der neue Satz den alten ersetzt. */
     check('Und der Satz zur Reihenfolge steht weiterhin daneben',
       /erste Foto ist das Hauptbild/.test(adPaste), adPaste.slice(0, 260));
   }
@@ -908,7 +802,6 @@ async function run() {
     adIncluding.document.getElementById('desc')?.tagName ?? '(kein Beschreibungsfeld)');
   adIncluding.close();
 
-  /* DER ANZEIGENAME WIRD NICHT HERVORGEHOBEN. */
   const adSearchRow = buildDom(JSDOM, { hash: '#/item/1?q=startpage' });
   adSearchRow.example.links = [{ id: 87, url: 'Startpage Handbuch 3000', sort_order: 0,
     created_at: '2026-08-04 13:00:00', mine: false, author: null }];
@@ -926,8 +819,6 @@ async function run() {
     `${adSz.document.querySelectorAll('#links .snames mark').length} Marken am Namen`);
   adSz.close();
 
-  /* DAS MUSTER IST VERANKERT UND BLEIBT ES. `#/item/1x` ist keine
-     Eintragsadresse -- weder mit noch ohne Begriff. */
   const adCrooked = await adBuild('#/item/1x');
   check('`#/item/1x` fuehrt nicht in einen Eintrag',
     !adIsEntry(adCrooked) && adIsList(adCrooked),
@@ -939,14 +830,11 @@ async function run() {
     adKrumm2.document.body.textContent.slice(0, 60));
   adKrumm2.close();
 
-  /* EIN `?q=` OHNE WERT IST DASSELBE WIE KEINS -- "keine Suche". */
   const adEmpty = await adBuild('#/item/1?q=');
   check('Ein `?q=` ohne Wert heisst „keine Suche"',
     adIsEntry(adEmpty) && adEmpty.document.querySelectorAll('mark').length === 0,
     `${adEmpty.document.querySelectorAll('mark').length} Marken`);
   adEmpty.close();
-  /* UND EIN PARAMETER, DEN DIESE FASSUNG NICHT KENNT, WIRFT DIE ADRESSE NICHT
-     UM. */
   const adForeign = await adBuild('#/item/1?spur=3&q=beispiel');
   check('Ein unbekannter Parameter daneben stoert nicht',
     adIsEntry(adForeign) &&
@@ -954,8 +842,6 @@ async function run() {
     `${adForeign.document.querySelectorAll('#cmts .cmt-body mark').length} Marken`);
   adForeign.close();
 
-  /* DER BEGRIFF WIRD ENTSCHLUESSELT. Ein Leerzeichen steht als %20 in der
-     Adresse; wer es nicht zurueckwandelt, sucht nach dem Prozentzeichen. */
   const adSpace = await adBuild('#/item/1?q=ein%20bericht');
   check('Ein Begriff mit Leerzeichen kommt entschluesselt an',
     [...adSpace.document.querySelectorAll('#cmts .cmt-body mark')]
@@ -964,8 +850,6 @@ async function run() {
       .map(m => m.textContent)));
   adSpace.close();
 
-  /* DIE ADRESSE WIRD NACHGEZOGEN, WENN DER WEG IN DEN EINTRAG SIE NICHT
-     TRAEGT. */
   const adAfterDom = buildDom(JSDOM, { overviewItems: [{ id: 1, title: 'Beispiel',
     rejected: false, tested: false, favorite: false, category: null, tags: [],
     mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 0,
@@ -981,7 +865,7 @@ async function run() {
   check('Der Aufbau steht: die Suche laeuft und die Kachel steht da',
     adN.document.querySelectorAll('.card-find').length === 1,
     `${adN.document.querySelectorAll('.card-find').length}`);
-  // Ein Weg in den Eintrag, der die Adresse OHNE Begriff setzt.
+  // Ein Weg in den Eintrag ohne Begriff in der Adresse.
   adN.location.hash = '#/item/1';
   await until(adN, entryReady, 2000, 'die Detailansicht');
   check('Ein Weg ohne Begriff bekommt ihn nachtraeglich in die Adresse',
@@ -989,13 +873,11 @@ async function run() {
   check('Und die Hervorhebung steht daraufhin im Eintrag',
     adN.document.querySelectorAll('#cmts .cmt-body mark').length > 0,
     `${adN.document.querySelectorAll('#cmts .cmt-body mark').length} Marken`);
-  /* UND DER EINTRAG WIRD DABEI GENAU EINMAL GEHOLT. */
   check('Und der Eintrag wurde dabei genau einmal geholt',
     adAfterDom.sent.filter(g => String(g.url) === '/api/items/1').length === 1,
     `${adAfterDom.sent.filter(g => String(g.url) === '/api/items/1').length} Abrufe`);
   adN.close();
 
-  /* ---------------------------------------------------------------- */
   group('Gespeicherte Ansichten in der Oberflaeche');
 
   const ansInventory = suInventory;
@@ -1005,20 +887,14 @@ async function run() {
   });
   const ansW = ansDom.w;
   await until(ansW, listReady, 2000, 'die Uebersicht');
-  /* SEIT 0.13.0 TEILEN SICH SORTIEREN UND ANSICHTEN EINE ZEILE, und die Zeile
-     traegt deshalb ZWEI Beschriftungen. */
+  /* Sortieren und Ansichten teilen sich eine Zeile mit zwei Beschriftungen. */
   const ansRow = () => [...ansW.document.querySelectorAll('.frow')]
     .find(r => [...r.querySelectorAll('.eyebrow')].some(e => e.textContent === 'Ansichten'));
   const ansPills = () => [...(ansRow()?.querySelectorAll('.pill') || [])]
     .map(b => b.textContent.replace('✕', '').trim());
   const ansSettings = () => ansDom.sent.filter(g => g.url === '/api/settings' && g.method === 'PUT');
 
-  /* SIE STEHEN BEI DEN FILTERN und nicht in einer eigenen Karte: wer eine
-     Ansicht sucht, sucht sie dort, wo die Filter stehen. */
   check('Die Ansichten stehen in der Filterzeile', !!ansRow(), 'keine Zeile „Ansichten"');
-  /* UND DER KNOPF IST SEIT 0.32.0 KEINE PILLE MEHR -- Bauabschnitt 10. Der
-     Betreiber (13.9.2026): „Ansicht speichern wirkt wie ein auswahl eines
-     gespeicherten ansicht. */
   const ansSaveButton = () => ansRow()?.querySelector('#view-save');
   check('Und die Zeile steht auch leer da, mit dem Knopf zum Speichern — als Text, nicht als Pille',
     ansPills().length === 0 && !!ansSaveButton()
@@ -1060,9 +936,7 @@ async function run() {
     ansPills().some(t => t === 'Favoriten, Makita'), JSON.stringify(ansPills()));
   ansW.close();
 
-  /* ---- Eine Ansicht waehlen ---- GEPRUEFT WIRD DIE WIRKUNG UND NICHT DER
-     KLICK: danach stehen Filter UND Suchfeld auf dem Gespeicherten, und die
-     Suche ist gelaufen. */
+  /* ---- Eine Ansicht waehlen ---- */
   const awDom = buildDom(JSDOM, {
     overviewItems: ansInventory,
     settings: { filters: null, viewsCap: 8, views: [
@@ -1085,9 +959,7 @@ async function run() {
   check('Und sucht damit',
     awDom.sent.some(g => g.url === '/api/items?q=bosch'),
     JSON.stringify(awDom.sent.filter(g => String(g.url).startsWith('/api/items?q=')).map(g => g.url)));
-  /* MITGEZOGEN MIT 0.28.1: die gespeicherte Ansicht traegt
-     weiter `title_asc` -- die Schreibweise hat sich NICHT geaendert --, und
-     die Leiste zeigt sie seit jener Runde an zwei Stellen. */
+  /* Gespeichert ist title_asc; die Leiste zeigt es als Feld und Richtung. */
   check('Und die Sortierung steht auf der gespeicherten',
     aw.document.getElementById('f-sort')?.value === 'title'
     && aw.document.getElementById('f-sort-dir')?.textContent === 'A → Z'
@@ -1101,9 +973,8 @@ async function run() {
     aw.document.getElementById('qclr').style.display === 'block',
     aw.document.getElementById('qclr').style.display);
 
-  /* ---- Eine Ansicht loeschen ---- DAS KREUZ LIEGT IM KNOPF und muss den
-     Klick anhalten -- ohne das wuerde die Ansicht im selben Zug angewandt und
-     geloescht. */
+  /* Das Kreuz liegt im Knopf und haelt den Klick an; sonst wuerde die Ansicht
+     zugleich angewandt. */
   const awBefore = awDom.sent.filter(g => g.url === '/api/settings' && g.method === 'PUT').length;
   awPill().querySelector('.view-remove').dispatchEvent(new aw.MouseEvent('click', { bubbles: true }));
   await until(aw, (x) => x.document.querySelector('.backdrop .modal'), 2000,
@@ -1123,8 +994,7 @@ async function run() {
   check('Und der Knopf ist fort', !awPill(), 'er steht noch da');
   aw.close();
 
-  /* ---- Der Deckel ---- ER WIRD GESAGT UND NICHT DURCH EINEN FEHLENDEN KNOPF
-     ANGEDEUTET: ein Knopf, der einfach nicht mehr da ist, sieht aus wie ein
+  /* Bei der Obergrenze steht ein Hinweis; ein fehlender Knopf saehe aus wie ein
      Fehler. */
   const adDom = buildDom(JSDOM, {
     overviewItems: ansInventory,
@@ -1142,15 +1012,12 @@ async function run() {
     adRow()?.textContent || '(keine Zeile)');
   ad.close();
 
-  /* ---- Eine Ansicht mit geloeschter Kategorie ---- JSON KENNT KEINE
-     KASKADE. */
+  /* Ansichten sind JSON; die Nummer einer geloeschten Kategorie bleibt darin
+     stehen. */
   const agDom = buildDom(JSDOM, {
     overviewItems: ansInventory,
     settings: { filters: null, viewsCap: 8, views: [
-      /* IN DER ALTEN FORM MIT ABSICHT (`categoryId` statt `categoryIds`): so
-         steht sie in jedem vorhandenen Bestand, und sie geht damit durch die
-         Uebersetzung in filterNormal -- die Lage prueft seit 0.13.0 beides in
-         einem, die alte Form und die uebergangene Nummer. */
+      /* Mit Absicht die alte Form categoryId: sie laeuft durch filterNormal(). */
       { name: 'Mit Fremdnummern', q: '', filters: { categoryId: 999, tagIds: [998],
         tagMode: 'and', tested: 'all', favorite: false, fresh: false, sort: 'title_asc' } }
     ] }
@@ -1165,7 +1032,6 @@ async function run() {
     'die gewaehlte Ansicht');
   check('Eine Ansicht mit geloeschter Kategorie wirft nichts',
     !!ag.document.getElementById('body'), 'die Ansicht ist zerbrochen');
-  /* UND SIE ZEIGT NICHT NICHTS. */
   check('Und sie zeigt den Bestand statt einer leeren Liste',
     ag.document.querySelectorAll('.card-title').length === 6,
     `${ag.document.querySelectorAll('.card-title').length} Karten`);
@@ -1176,11 +1042,10 @@ async function run() {
     `${ag.document.getElementById('f-sort-dir')?.textContent}`);
   ag.close();
 
-  /* ---------------------------------------------------------------- */
   group('Doppelte Eintraege beim Anlegen');
 
-  /* EINE ZEILE, KEIN DIALOG. Sie blockiert nichts und fragt nichts nach.
-     KEINE ROUTE: die Titel liegen ohnehin im Browser. */
+  /* Nur eine Hinweiszeile, kein Dialog und keine Route: die Titel liegen im
+     Browser. */
   const dpInventory = [
     { id: 1, title: 'Bosch GSR 18V-60', rejected: false, tested: false, favorite: false,
       category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null,
@@ -1201,8 +1066,8 @@ async function run() {
   check('Der Aufbau steht: der Anlegen-Dialog hat eine Zeile dafuer', !!dpRow(), 'keine Zeile');
   check('Und sie ist zunaechst leer', dpRow().innerHTML === '', dpRow().innerHTML);
 
-  /* Die Zeile wird bei jedem Anschlag neu gebildet: gewartet wird, bis ihr
-     alter Inhalt ersetzt ist, oder bei leerer Zeile auf den ersten Treffer. */
+  /* Die Zeile wird je Anschlag neu gebildet: warten, bis der alte Inhalt ersetzt
+     ist oder der erste Treffer steht. */
   const dpType = async (value, hit = true) => {
     const old = dpRow().firstChild;
     dpTitle.value = value;
@@ -1224,8 +1089,7 @@ async function run() {
   check('Und die Schreibung spielt dabei keine Rolle',
     (await dpType('BOSCH')) === undefined && /Bosch GSR 18V-60/.test(dpRow().textContent),
     dpRow().textContent);
-  /* SONDERZEICHEN FALLEN WEG: "gsr18v" trifft "GSR 18V-60" -- Leerzeichen und
-     Strich sind kein Unterschied, den ein Mensch beim Tippen meint. */
+  /* Leerzeichen und Strich meint beim Tippen niemand als Unterschied. */
   await dpType('gsr18v');
   check('Sonderzeichen fallen beim Vergleich weg',
     /Bosch GSR 18V-60/.test(dpRow().textContent), dpRow().textContent);
@@ -1233,13 +1097,10 @@ async function run() {
   check('Ein Titel ohne Aehnlichkeit laesst die Zeile leer',
     dpRow().innerHTML === '', dpRow().textContent);
 
-  // Sie traegt eine Sprungmarke, und die schliesst den Dialog.
   await dpType('bosch gsr');
   const dpMark = dpRow().querySelector('a[href="#/item/1"]');
   check('Die Zeile traegt eine Sprungmarke zum Eintrag', !!dpMark,
     dpRow().innerHTML.slice(0, 120));
-  /* UND SIE BLOCKIERT NICHTS. Das ist die Zeile, auf die es ankommt: kein
-     Knopf ist gesperrt, keine Rueckfrage steht davor. */
   check('Und sie blockiert das Anlegen nicht',
     !dp.document.getElementById('ns').disabled
       && !dp.document.getElementById('ns').hasAttribute('disabled'),
@@ -1253,8 +1114,6 @@ async function run() {
     'der Hinweis hat es verhindert');
   dp.close();
 
-  /* WAEHREND EINER SUCHE WIRD DER GANZE BESTAND VERGLICHEN und nicht die
-     Trefferliste. */
   const dsDom = buildDom(JSDOM, { overviewItems: dpInventory });
   const ds = dsDom.w;
   await until(ds, listReady, 2000, 'die Uebersicht');
@@ -1277,11 +1136,8 @@ async function run() {
     ds.document.getElementById('nt-similar').textContent);
   ds.close();
 
-  /* ---------------------------------------------------------------- */
   group('Die Marke am Bildschirm');
 
-  /* SIE STEHT IN DER KOPFZEILE UND AUF DEN ANMELDESEITEN, und beide zeichnen
-     DASSELBE SVG. */
   const mbDom = buildDom(JSDOM, { overviewItems: suInventory });
   const mb = mbDom.w;
   await until(mb, listReady, 2000, 'die Uebersicht');
@@ -1293,9 +1149,8 @@ async function run() {
       .every(s => /^var\(--brand-(grey|line)\)$/.test(s.getAttribute('stroke') || '')),
     mbMark ? [...mbMark.querySelectorAll('path')].map(s => s.getAttribute('stroke')).join(' ')
             : '(keine Marke)');
-  /* DAS SEITENVERHAELTNIS DER ATTRIBUTE FOLGT DEM GEZEICHNETEN STRICH, 19:23.
-     Ein Quadrat hier liesse die Marke bis zum Greifen des Stylesheets zu
-     breit stehen und danach springen. */
+  /* width und height im Verhaeltnis 19:23 des Strichs; ein Quadrat verschoebe das
+     Layout, sobald das Stylesheet greift. */
   const mbB = Number(mbMark?.getAttribute('width')), mbH = Number(mbMark?.getAttribute('height'));
   check('Und die Attribute tragen das Verhaeltnis 19:23',
     mbB === Math.round(mbH * 19 / 23), `${mbB}x${mbH}`);
@@ -1309,7 +1164,6 @@ async function run() {
   const mlMark = ml.document.querySelector('.login-brand svg.logo');
   check('Die Anmeldeseite traegt sie ebenso', !!mlMark,
     ml.document.querySelector('.login-card')?.innerHTML.slice(0, 120) || '(keine Karte)');
-  /* UND AUS DEMSELBEN HELFER -- vier Striche, nicht drei und nicht fuenf. */
   check('Und aus demselben Helfer, mit allen vier Strichen',
     !!mlMark && mlMark.querySelectorAll('path').length === 4,
     `${mlMark?.querySelectorAll('path').length} Striche`);
@@ -1318,11 +1172,9 @@ async function run() {
     mlB === Math.round(mlH * 19 / 23), `${mlB}x${mlH}`);
   ml.close();
 
-  /* ---------------------------------------------------------------- */
   group('Die Exportgroesse sagt sich an');
 
-  /* WAS HIER NICHT GEPRUEFT WERDEN KANN: dass die Datei am Ende wirklich so
-     gross wird. */
+  /* Ob die Datei wirklich so gross wird, prueft dieser Test nicht. */
   const exBuild = async (statsExport) => {
     const d = buildDom(JSDOM, { statsExport,
       settings: { filters: null, isAdmin: true, isOwner: true } });
@@ -1340,8 +1192,7 @@ async function run() {
   const exW = dEx.w;
   const exText = (id) => exW.document.getElementById(id)?.textContent || '';
 
-  /* Die Rechnung selbst, an der Funktion und nicht ueber fuenf aufgebaute
-     Karten -- dieselbe Bauform wie bei kommentarZahlen(). */
+  /* Die Rechnung direkt an exportSum() statt ueber fuenf aufgebaute Karten. */
   const exS = (switches) => exW.exportSum(exLower, switches);
   check('Der Umschlag faellt auch ohne jeden Schalter an',
     exS({}) === 1 * MB, `${exS({})}`);
@@ -1349,8 +1200,7 @@ async function run() {
     exS({ withPhotos: true }) === 11 * MB, `${exS({ withPhotos: true })}`);
   check('Die Dateien nehmen Anhaenge UND Kommentarbilder mit',
     exS({ withFiles: true }) === 4 * MB, `${exS({ withFiles: true })}`);
-  /* Der Videoschalter haengt am Fotoschalter -- am Server wird die Fotoliste
-     ohne ihn gar nicht erst gebaut. */
+  /* Ohne Fotoschalter baut der Server keine Fotoliste, also auch keine Videos. */
   check('Videos ohne Fotos zaehlen nicht mit — so wie der Server sie nicht schreibt',
     exS({ withVideos: true }) === 1 * MB, `${exS({ withVideos: true })}`);
   check('Mit Fotos zaehlen sie dagegen mit',
@@ -1364,11 +1214,9 @@ async function run() {
     exW.exportSum(undefined, { withPhotos: true }) === 0,
     `${exW.exportSum(null, { withPhotos: true })}`);
 
-  // Die Kennzahlen: die zweite Groessenangabe neben der Datenbankgroesse.
   const exKv = [...exW.document.querySelectorAll('.sys-card .kv')]
     .map(z => [z.querySelector('.k')?.textContent, z.querySelector('.v')?.textContent]);
   const exRow = (name) => (exKv.find(z => z[0] === name) || [])[1];
-  // SEIT 0.22.0 HEISST DIE ZEILE „Exportgröße (alles)" (Anlage F).
   check('Die Kennzahlen nennen die erwartete Exportgroesse',
     /^≈ /.test(exRow('Exportgröße (alles)') || ''), exRow('Exportgröße (alles)'));
   check('Und sie ist die Summe ueber ALLE Teile, nicht die eines Knopfes',
@@ -1379,13 +1227,11 @@ async function run() {
   check('Und die Kommentarbilder haben endlich ihre eigene Zeile',
     /^3 · /.test(exRow('Kommentarbilder') || ''), exRow('Kommentarbilder'));
 
-  // Die Zahlen an den Knoepfen.
   check('Der Knopf „Mit Fotos" nennt seine Groesse',
     exText('ex-gr-yes') === exW.fmtBytes(11 * MB), exText('ex-gr-yes'));
   check('Und „Ohne Fotos" die seine — nicht null, der Umschlag bleibt',
     exText('ex-gr-no') === exW.fmtBytes(1 * MB), exText('ex-gr-no'));
-  /* ---- BEFUND 3b DER RUNDE 0.26.0 -- EIN FLEXKIND JE KNOPF ----------------
-     `.btn` ist `inline-flex` mit `gap: 7px`. */
+  /* .btn ist inline-flex mit gap: 7px; ein zweites Kind bekaeme Abstand. */
   const exBtnYes = exW.document.getElementById('ex-yes');
   const exBtnNo = exW.document.getElementById('ex-no');
   check('Der Knopf „Mit Fotos" traegt genau ein Flexkind',
@@ -1398,8 +1244,6 @@ async function run() {
     exBtnNo?.children.length === 1 &&
     exW.document.getElementById('ex-gr-no')?.parentElement === exBtnNo?.firstElementChild,
     `${exBtnNo?.children.length} Kinder`);
-  /* UND DIE KLAMMER GEHT AUF, BEVOR SIE ZUGEHT -- ein Befund, der beim Bauen
-     von 3b aufgefallen ist. */
   const exLabel = (el) => (el?.textContent || '').replace(/\s+/g, ' ').trim();
   check('Der Knopf „Mit Fotos" macht seine Klammer auf und wieder zu',
     /\(~.+\)$/.test(exLabel(exBtnYes)), JSON.stringify(exLabel(exBtnYes)));
@@ -1412,7 +1256,6 @@ async function run() {
   check('Unter dem Schwellwert steht keine Warnung',
     exText('ex-warn').trim() === '', exText('ex-warn').slice(0, 80));
 
-  /* DIE HAEKCHEN AENDERN DIE DATEI, ALSO MUESSEN SIE DIE ZAHL AENDERN. */
   const exCheck = (id) => {
     const el = exW.document.getElementById(id);
     el.checked = true;
@@ -1428,8 +1271,7 @@ async function run() {
     exText('ex-gr-no') === exW.fmtBytes(4 * MB), exText('ex-gr-no'));
   exW.close();
 
-  /* Die Lage darueber -- und ohne sie belegte die Zeile „keine Warnung"
-     nichts: eine Warnung, die es gar nicht gibt, faellt auch nicht auf. */
+  /* Ohne diese Lage belegte „keine Warnung" nichts. */
   const exBig = { envelope: 20 * MB, photos: 900 * MB, videos: 200 * MB,
                     attachments: 400 * MB, commentImages: 10 * MB,
                     warnFrom: 300 * MB, limit: 483183799, string: 536870888 };
@@ -1439,8 +1281,7 @@ async function run() {
   check('Ueber dem Schwellwert steht die Warnung da', warnText.length > 40, warnText.slice(0, 80));
   check('Sie nennt die erwartete Groesse',
     warnText.includes(exG.fmtBytes(920 * MB)), warnText.slice(0, 160));
-  /* KEINE GRENZE MEHR: der Export schreibt stueckweise, und eine Hoechst-
-     groesse je Datei gibt es nicht. Genannt wird, was wirklich kommt. */
+  /* Der Export schreibt stueckweise; eine Hoechstgroesse je Datei gibt es nicht. */
   check('Sie sagt an, dass es dauert und keinen Fortschritt gibt',
     /dauern/.test(warnText) && /Fortschrittsanzeige/.test(warnText), warnText.slice(0, 220));
   check('Und sie nennt keine Zahl mehr als Grenze',
@@ -1449,23 +1290,17 @@ async function run() {
     !warnText.includes(exG.fmtBytes(exBig.warnFrom)), warnText.slice(0, 220));
   check('Sie verweist auf das Backup als den anderen Weg',
     /Backup/.test(warnText), warnText.slice(0, 200));
-  /* GEWARNT WIRD, VERWEIGERT NICHT. */
   check('Der Knopf bleibt trotzdem da und bleibt bedienbar',
     !!exG.document.getElementById('ex-yes') && !exG.document.getElementById('ex-yes').disabled);
   check('Und die Warnung nennt den Ausweg — 0.22.0',
     /In Teilen exportieren/.test(warnText) && /jeder Teil ist\s+eine vollständige Exportdatei/.test(warnText),
     warnText.slice(0, 260));
-  /* --- 0.12.4: und sie nennt den Weg, der wirklich hilft --- Ein Hinweis,
-     der nur sagt, was NICHT geht, laesst jemanden mit einem kaputten Knopf
-     zurueck. */
-  /* Der Text bricht im Aufbau um; verglichen wird deshalb mit
-     zusammengezogenen Leerzeichen und nicht Zeile fuer Zeile. */
+  /* Der Text bricht um; verglichen wird mit zusammengezogenen Leerzeichen. */
   const warnSmooth = warnText.replace(/\s+/g, ' ');
   check('Und sie nennt den Weg in Teilen als die Antwort',
     /In Teilen exportieren/.test(warnSmooth), warnSmooth.slice(0, 400));
   check('Und das Backup als den kürzeren Weg zum Zurückspielen',
     /Karte Backup/.test(warnSmooth), warnSmooth.slice(0, 400));
-  /* ZWEI FAELLE, UND SIE SAGEN VERSCHIEDENES. */
   check('Bleibt der Weg ohne Fotos unter der Marke, nennt die Warnung ihn',
     /ohne Fotos rund/.test(warnText) && !/auch ohne Fotos/.test(warnText),
     warnText.slice(0, 260));

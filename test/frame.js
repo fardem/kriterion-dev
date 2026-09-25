@@ -1,15 +1,12 @@
-/* Kriterion — der gemeinsame Rahmen des Pruefstands Hier steht, was alle
-   Module in test/ teilen: die Zaehlung, group() und check(), der
-   Schlussblock, die Zeitmessung, die Portbasen, der Start eines Servers, der
-   SMTP-Empfaenger und die Rufer. */
+/* Gemeinsamer Rahmen der Module in test/: Zaehlung, group(), check(), Server,
+   Ports, SMTP-Empfaenger. */
 const nodePath = require('path');
 const { createRequire } = require('module');
 const ROOT = nodePath.join(__dirname, '..');
 
 module.exports = (function (__dirname, require) {
-/* ============ DER PRUEFSCHALTER DIESES LAUFS -- 0.30.0, F1 und F2 =========
-   ER STEHT VOR JEDEM require, und das ist der ganze Grund fuer diese Stelle:
-   auth.js und mail.js lesen ihn beim LADEN. */
+/* Muss vor jedem require stehen: auth.js und mail.js lesen den Pruefschalter beim
+   Laden. */
 process.env.KRITERION_TESTBENCH = 'pruefstand:scrypt=1024:mail=40:brake=10';
 
 const fs = require('fs');
@@ -17,61 +14,45 @@ const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 const { spawn, spawnSync, execFileSync } = require('child_process');
-/* SEIT 0.19.3: der Bestandslauf faehrt in einem eigenen Thread, und die
-   Gruppe „Der Bestandslauf faehrt in einem eigenen Thread" erzeugt ihn von
-   hier aus -- an einer echten, verschluesselten Instanz und ohne Server
-   dazwischen. */
 const { Worker } = require('worker_threads');
 const Database = require('better-sqlite3-multiple-ciphers');
 const attachments = require('./attachments');
-/* SHARP STEHT HIER, SEIT 0.19.0, UND ZWAR AUS EINEM GENAUEN GRUND: die Runde
-   legt jedes ankommende PNG als WebP ab, und die Zusage lautet nicht „eine
-   Funktion wurde gerufen", sondern „das Bild ist unversehrt". */
 const sharp = require('sharp');
-/* DER ZERLEGER DER RUNDE 0.24.1 -- er trennt Code von Text, Vorlage und
-   Kommentar. */
 const { segment, CODE, TEXT, COMMENT, REGEX } = require('./tools/segments.js');
 
-/* DIE FRISTEN, MIT DENEN DIE SERVER DIESES LAUFS WIRKLICH RECHNEN -- 0.30.0. */
+/* Die Fristen, mit denen die Server unter dem Pruefschalter rechnen. */
 const MAIL_TIMES = require('./mail');
 
-/* ============= DAS GRUNDDOKUMENT FUER jsdom -- 0.30.0, BA 5 (F4) ==========
-   174 AUFBAUTEN, UND JEDER HAT DIESELBE DATEI NEU GELESEN UND NEU UEBERSETZT. */
+/* app.js einmal uebersetzt fuer alle jsdom-Aufbauten statt je Aufbau neu. */
 const vm = require('vm');
 const BASE_SOURCE = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
 const BASE_SCRIPT = new vm.Script(BASE_SOURCE, { filename: 'public/app.js' });
-/* UND DIE WARTEZEIT, DIE DIE ROUTEN DIESES LAUFS WIRKLICH EINLEGEN -- 0.30.0,
-   F3. */
+/* Die Wartezeit, die die Routen unter dem Pruefschalter einlegen. */
 const RUN_KEYS = require('./keys');
 const BRAKE_STEP = RUN_KEYS.brakeWait(700);
-/* UND DIE KOSTENSTUFE, MIT DER DIESE INSTANZEN WIRKLICH RECHNEN -- 0.30.0,
-   F1. */
+/* Die scrypt-Kostenstufe unter dem Pruefschalter. */
 const SCRYPT_SHIPPED = Number((fs.readFileSync(path.join(__dirname, 'auth.js'), 'utf8')
   .match(/^const SCRYPT_SHIPPED = (\d+);$/m) || [])[1]);
 const RUN_SCRYPT = RUN_KEYS.scryptCost(SCRYPT_SHIPPED);
 
-/* DIE README ALS EIN LANGER STRING, EINMAL GELESEN. */
 const readmeFlat = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8')
   .replace(/\s+/g, ' ');
-/* UND DAS HANDBUCH DANEBEN -- seit 0.34.2 steht die Bedienung dort. */
 const handbookFlat = fs.readFileSync(path.join(__dirname, 'manual-de.md'), 'utf8')
   .replace(/\s+/g, ' ');
 
-/* ================= Kleiner Pruefrahmen ================= */
-/* EIN NAMENSFILTER AUF DER AUSGABE, NICHT AUF DER ARBEIT. */
+/* ---- Pruefrahmen ---- */
+/* Filtert nur die Ausgabe; gerechnet wird jede Gruppe. */
 const FILTER = (process.argv[2] || '').trim();
 let passedCount = 0, failed = 0, skipped = 0;
 let stillPassed = 0, stillFailed = 0;
 let groupsShown = 0, groupsStill = 0;
 let silent = false;
 
-/* ================= WO DIE ZEIT HINGEHT -- 0.30.0, BA 4 =================
-   OHNE DIESE ZAHL IST JEDE BESCHLEUNIGUNG GERATEN. */
+/* ---- Zeitmessung ---- */
 const TIMES = [];
 const TIME_EACH = process.env.TESTBENCH_TIME === '1';
 const RUN_START = Date.now();
 let timeName = '', timeStart = 0, timeSilent = false;
-/* SCHLIESST DIE LAUFENDE GRUPPE UND MERKT IHRE ZEIT. */
 function closeTime() {
   if (!timeName) return;
   const ms = Date.now() - timeStart;
@@ -79,8 +60,7 @@ function closeTime() {
   if (TIME_EACH && !timeSilent) console.log(`  ⏱ ${(ms / 1000).toFixed(1)} s`);
   timeName = '';
 }
-/* DIE SCHLUSSTAFEL IST EINE REINE FUNKTION, und das ist kein Geschmack: „die
-   ZEHN teuersten" laesst sich an einem Lauf mit zwei Gruppen nicht belegen. */
+/* Reine Funktion, damit ein Test sie mit mehr als zehn Gruppen aufrufen kann. */
 function timeTable(rows, wholeMs, top = 10) {
   const inGroups = rows.reduce((n, z) => n + z.ms, 0);
   const worst = [...rows].sort((a, b) => b.ms - a.ms).slice(0, top);
@@ -89,9 +69,8 @@ function timeTable(rows, wholeMs, top = 10) {
   for (const z of worst)
     out.push(`    ${z.name.padEnd(wide)}  ${(z.ms / 1000).toFixed(1).padStart(6)} s  ` +
              `${(wholeMs ? z.ms * 100 / wholeMs : 0).toFixed(1).padStart(5)} %`);
-  /* BEIDE ZAHLEN, UND SIE SIND VERSCHIEDEN: die Summe der Gruppen laesst
-     alles weg, was zwischen ihnen liegt -- der Aufbau vor der ersten Gruppe,
-     das Aufraeumen hinter der letzten. */
+  /* Beide Zahlen: die Summe der Gruppen laesst Aufbau und Aufraeumen zwischen ihnen
+     weg. */
   out.push(`  ${(inGroups / 1000).toFixed(1)} s in Gruppen, ` +
            `${(wholeMs / 1000).toFixed(1)} s im ganzen Lauf.`);
   return out;
@@ -104,7 +83,6 @@ const group = (name) => {
   timeSilent = silent;
   if (silent) { groupsStill++; return; }
   groupsShown++;
-  /* MINDESTENS ZWEI STRICHE, auch bei einem langen Namen. */
   console.log(`\n── ${name} ${'─'.repeat(Math.max(2, 58 - name.length))}`);
 };
 function check(name, condition, hint = '') {
@@ -114,15 +92,13 @@ function check(name, condition, hint = '') {
   if (condition) { passedCount++; console.log(`  ✓ ${name}`); }
   else { failed++; console.log(`  ✗ ${name}${hint ? `\n      ${hint}` : ''}`); }
 }
-// EINE Stelle fuer den Schlussblock: der gefilterte und der volle Lauf enden
-// gleich, und die Selbstprobe weiter unten pruefT genau diese Stelle.
+// Gefilterter und voller Lauf enden hier gleich.
 function endBlock() {
   // Die letzte Gruppe hat kein nachfolgendes group() mehr.
   closeTime();
   console.log(`\n${'═'.repeat(62)}`);
   const sum = passedCount + failed;
-  // "0 von 0 bestanden -- alles in Ordnung" waere die schlimmste Zeile des
-// ganzen Prueflaufs: sie meldet Erfolg fuer nichts.
+  // "0 von 0 bestanden" meldete Erfolg ohne eine einzige Pruefung.
   if (!sum) console.log('  KEINE PRUEFUNG GEZEIGT — nichts belegt.');
   else console.log(`  ${passedCount} von ${sum} Pruefungen bestanden` +
               (skipped ? `, ${skipped} uebersprungen` : '') +
@@ -134,7 +110,6 @@ function endBlock() {
     else
       console.log(`  ${groupsShown} von ${groupsShown + groupsStill} Gruppen gezeigt, ` +
                   `${groupsStill} uebergangen (${stillPassed + stillFailed} Pruefungen).`);
-    /* UND WIE VIELE MODULE GAR NICHT ERST GESTARTET SIND -- 0.34.0. */
     if (skippedGroupCount)
       console.log(`  ${skippedGroupCount} Module sind gar nicht erst gestartet — ` +
                   `ihre Pruefungen sind in der Zahl oben NICHT enthalten.`);
@@ -142,7 +117,6 @@ function endBlock() {
       console.log(`  DARIN ${stillFailed} GESCHEITERT — hier nicht angezeigt. ` +
                   `Ohne Filter laufen lassen, um sie zu sehen.`);
   }
-  /* DIE TAFEL STEHT IM SCHLUSSBLOCK UND NICHT DANEBEN. */
   if (TIMES.length) {
     console.log('');
     for (const z of timeTable(TIMES, Date.now() - RUN_START)) console.log(z);
@@ -151,33 +125,26 @@ function endBlock() {
 }
 const returnValue = () => (failed || (FILTER && !groupsShown)) ? 1 : 0;
 const equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-/* SETZT EIN FELD UND SAGT, OB ES DA WAR. */
 const setField = (doc, id, value) => {
   const f = doc.getElementById(id);
   if (f) f.value = value;
   return !!f;
 };
-/* ================= Umgebung ================= */
+/* ---- Umgebung ---- */
 const KEY = crypto.randomBytes(32).toString('hex');
 
-/* PORT_OFFSET -- eine Zahl, die auf JEDE Portbasis dieses Laufs addiert wird. */
-/* 3500 SEIT 0.12.4, VORHER 3000. Die Spanne aller Basen ist mit dem Rundlauf
-   des Teilexports auf 3100 gewachsen (zwei Instanzen: die Quelle und das
-   Ziel), und unterhalb der vorhandenen Basen war kein Fenster von 60 Nummern
-   mehr frei -- die Luecken tragen entweder zu wenig Platz oder eine Nummer
-   von der Sperrliste. */
+/* Versatz je Nebenspur, gelesen von offsetLevel() in counterproof.js. Darunter gibt
+   es kein Fenster von 60 Nummern ohne einen von fetch() gesperrten Port. */
 const OFFSET_LEVEL = 3500;
 const OFFSET_TRACES = 4;
 const PORT_WIDTH = 60;
-/* ================= DIE SPANNE ALLER PORTBASEN -- 0.30.0, F7
-   ================= Die Gegenprobe sieht VOR dem ersten Rueckbau nach, ob in
-   diesem Fenster jemand horcht -- der Portblick findet auch das, was kein
-   Muster ueber die Befehlszeile je findet (counterproof.js, foreignPort()). */
+/* Spanne aller Portbasen; foreignPort() in counterproof.js prueft sie vor dem
+   ersten Rueckbau auf fremde Server. */
 const PORT_SPAN_FROM = 3900;
 const PORT_SPAN_TO = 17679;
 const MAIN_WIDTH = 90;
 const MAIN_BASE = 3900;
-/* DER ALTE NAME GILT WEITER (F9). */
+/* Wird auf jede Portbasis addiert; PORT_VERSATZ ist der alte Name. */
 const PORT_OFFSET = Number(process.env.PORT_OFFSET ?? process.env.PORT_VERSATZ ?? 0);
 const PORT = MAIN_BASE + PORT_OFFSET + Math.floor(Math.random() * MAIN_WIDTH);
 const BASE = `http://127.0.0.1:${PORT}`;
@@ -191,7 +158,7 @@ function open(file) {
   return d;
 }
 
-/* ================= Server ================= */
+/* ---- Server ---- */
 let kind, output = '';
 function startServer() {
   return new Promise((done, error) => {
@@ -201,7 +168,6 @@ function startServer() {
     });
     kind.stdout.on('data', d => { output += d; });
     kind.stderr.on('data', d => { output += d; });
-    /* AUCH DER HAUPTSERVER SAGT ES, WENN ER VON SELBST ENDET -- 0.30.0, BA 2. */
     kind.on('exit', (c, signal) => {
       if (c) error(new Error(`Server beendet (Code ${c})\n${output}`));
       if (c === null && signal === 'SIGTERM') return;   // das ist unser eigenes kill()
@@ -215,8 +181,7 @@ function startServer() {
         // /api/config statt /api/health: health liegt hinter der Anmeldung.
         try { if ((await fetch(`${BASE}/api/config`)).ok) return done(); } catch {}
       }
-      // DERSELBE SATZ WIE BEIM ZWEITSERVER -- 0.30.0, BA 2: wer sucht, sucht
-// mit denselben drei Angaben.
+      // Dieselben Angaben wie readyFailure().
       error(new Error(`Hauptserver nicht erreichbar: Portbasis ${MAIN_BASE}, Port ${PORT}, ` +
         `Verzeichnis ${DATA} -- ${READY_TRIES * READY_STEP / 1000} s gewartet\n${output}`));
     })();
@@ -234,7 +199,7 @@ function shortRun(code, dataDirectory) {
   }).trim().split('\n').pop();
 }
 
-/* DERSELBE LAUF, ABER MIT DER GANZEN AUSGABE -- seit 0.24.2. */
+/* Wie shortRun(), liefert aber die ganze Ausgabe. */
 function shortRunAll(code, dataDirectory) {
   const { execFileSync } = require('child_process');
   return execFileSync(process.execPath, ['-e', code], {
@@ -243,7 +208,7 @@ function shortRunAll(code, dataDirectory) {
   }).trim();
 }
 
-/* Setzt einem von Hand angelegten Zugang ein ECHTES Passwort. */
+/* Setzt einem von Hand angelegten Zugang ein echtes Passwort. */
 function setPasswordImInventory(dataDirectory, name, password) {
   return shortRun(
     `const a = require('./auth'); const { db } = require('./db');` +
@@ -253,7 +218,6 @@ function setPasswordImInventory(dataDirectory, name, password) {
     dataDirectory);
 }
 
-/* EIN KIND BEENDEN UND AUF SEIN ENDE WARTEN. */
 function endKind(kind) {
   return new Promise(done => {
     if (kind.exitCode !== null || kind.signalCode !== null) return done();
@@ -262,19 +226,14 @@ function endKind(kind) {
   });
 }
 
-/* JEDE PRUEFLAGE MIT EIGENEM SERVER WIRD HIER VERMERKT -- Portbasis,
-   gewaehlte Nummer und das Kind. */
+/* Jede Prueflage mit eigenem Server: Portbasis, Port und Kindprozess. */
 const CASES = [];
 
-/* ================= Der SMTP-Empfaenger, 0.9.0 ================= ER KOMMT AUS
-   `net` UND NICHT AUS DEM NETZ. */
-/* DIE PORTBASIS IST AUSGERECHNET, NICHT GESCHAETZT, und sie geht ueber DIESELBE Liste wie jede andere -- sonst saehe der
-   Waechter aus 0.8.91 sie gar nicht, und genau daran sind in 0.8.90 zwei
-   Gegenproben haengengeblieben. */
+/* ---- SMTP-Empfaenger ---- */
+/* In SMTP_CASES vermerkt, damit die Pruefung der Portbasen sie sieht. */
 const SMTP_BASE = 6110;
 const SMTP_WIDTH = 20;
-/* DIE LAGE „SERVER OHNE de.json" -- 0.24.0, Bauabschnitt 1. */
-/* DIE BASIS DER FINGERPRINTLAGE -- hierher in 0.34.0. */
+/* Portbasen fuer die Fingerprint-Lage und fuer einen Server ohne de.json. */
 const FINGERPRINT_BASE = 6100;
 const LANGUAGE_BASE = 6140;
 const LANGUAGE_WIDTH = 2;
@@ -284,9 +243,8 @@ function smtpEmpfaenger(kind = 'ok') {
   const net = require('net');
   const port = (smtpPort++) + PORT_OFFSET;
   const post = [];
-  /* JEDE OFFENE VERBINDUNG WIRD VERMERKT, und das ist keine Zierde:
-     server.close() hoert nur auf zu HORCHEN und wartet danach auf das Ende
-     aller offenen Verbindungen. */
+  /* server.close() wartet auf das Ende aller offenen Verbindungen; stop() beendet
+     sie vorher. */
   const wires = new Set();
   const server = net.createServer(sock => {
     wires.add(sock);
@@ -298,7 +256,7 @@ function smtpEmpfaenger(kind = 'ok') {
     sock.write('220 kriterion-probe ESMTP\r\n');
     if (kind === 'schweigt') return;
     if (kind === 'troepfelt') {
-      /* DER TROPFEN FOLGT DER FRIST -- 0.30.0. */
+      /* Der Takt richtet sich nach der Sendefrist des Pruefschalters. */
       const beat = Math.max(20, Math.round(MAIL_TIMES.SEND_MS * 0.15));
       const drop = setInterval(() => { try { sock.write('2'); } catch {} }, beat);
       sock.on('close', () => clearInterval(drop));
@@ -314,8 +272,7 @@ function smtpEmpfaenger(kind = 'ok') {
             inData = false; post.push(mail); mail = '';
             sock.write(kind === 'fehler' ? '550 abgelehnt\r\n' : '250 angenommen\r\n');
           } else {
-            // Die Punktverdopplung des Protokolls wieder zurueck, wie sie
-// jeder Empfaenger macht.
+            // Die Punktverdopplung des Protokolls rueckgaengig machen, wie jeder Empfaenger.
             mail += (row.startsWith('..') ? row.slice(1) : row) + '\n';
           }
           continue;
@@ -332,8 +289,7 @@ function smtpEmpfaenger(kind = 'ok') {
   server.listen(port, '127.0.0.1');
   const state = { base: SMTP_BASE, port, server, kind };
   SMTP_CASES.push(state);
-  // Kopf und Rumpf getrennt, und der Rumpf dekodiert -- so sieht ihn ein
-// Empfaenger, und nur so laesst sich nach dem Link darin suchen.
+  // Rumpf dekodiert wie bei einem Empfaenger; nur so laesst sich nach dem Link suchen.
   state.letters = () => post.map(raw => {
     const split = raw.indexOf('\n\n');
     const head = split < 0 ? raw : raw.slice(0, split);
@@ -344,8 +300,7 @@ function smtpEmpfaenger(kind = 'ok') {
     return { raw, head, core: Buffer.from(clear, 'binary').toString('utf8') };
   });
   state.stop = () => new Promise(r => {
-    // Erst die Verbindungen, dann der Horchposten -- in dieser Reihenfolge,
-// sonst wartet close() auf genau das, was gleich abgeraeumt wird.
+    // Erst die Verbindungen, dann der Server: sonst wartet close() auf sie.
     for (const d of wires) d.destroy();
     wires.clear();
     server.close(() => r());
@@ -353,15 +308,11 @@ function smtpEmpfaenger(kind = 'ok') {
   return state;
 }
 
-// Ein weiterer Server mit eigenem Datenverzeichnis, eigener Umgebung und
-// eigenem Cookie.
-/* ================= DAS WARTEFENSTER -- 0.30.0, BA 2 ================= ZWOELF
-   SEKUNDEN WAREN ZU WENIG. */
+/* Wartefenster fuer den Serverstart: 300 x 100 ms. 12 s reichten nicht. */
 const READY_TRIES = 300;
 const READY_STEP = 100;
-/* DIE MELDUNG ALS EIGENE FUNKTION, und das ist kein Umweg: die Zusage dazu
-   soll sie FAHREN und nicht den Quelltext lesen -- und einen Zweitserver
-   wirklich ins Leere laufen zu lassen kostete dreissig Sekunden. */
+/* Eigene Funktion, damit ein Test die Meldung erzeugen kann, ohne 30 s auf einen
+   Server zu warten. */
 const readyFailure = (portBase, port, dataDirectory, log = '') =>
   `Zweitserver nicht erreichbar: Portbasis ${portBase}, Port ${port}, ` +
   `Verzeichnis ${dataDirectory} -- ${READY_TRIES * READY_STEP / 1000} s gewartet\n${log}`;
@@ -378,7 +329,6 @@ function startFurtherServer(dataDirectory, extraEnv, portBase) {
   CASES.push(state);
   kindB.stdout.on('data', d => { log += d; });
   kindB.stderr.on('data', d => { log += d; });
-  /* EIN SERVER, DER VON SELBST ENDET, IST EIN FUND -- 0.30.0, BA 2. */
   kindB.on('exit', (code, signal) => {
     if (state.stopped) return;
     console.error(`\n  ACHTUNG: der Server der Portbasis ${portBase} (Port ${port}) ist von ` +
@@ -404,14 +354,12 @@ function startFurtherServer(dataDirectory, extraEnv, portBase) {
   })();
   return { ready, call: callB, log: () => log, base, pid: kindB.pid,
            cookieRemove: () => { cookieB = ''; },
-           // Der laufende Sitzungscookie zum Mitgeben.
            cookieValue: () => cookieB,
            stop: () => { state.stopped = true; return endKind(kindB); } };
 }
 
-/* ZWEI COOKIES STATT EINEM, also ein Speicher statt der ersten Zeile: der
-   Token gegen fremde Formulare reist neben der Sitzung, und wer nur die erste
-   Zeile behielte, verloere abwechselnd den einen oder den anderen. */
+/* Zwei Cookies, Sitzung und CSRF-Token; wer nur die erste Zeile behielte, verloere
+   abwechselnd eines. */
 function jar(before, response) {
   const fresh = response.headers.getSetCookie();
   if (!fresh.length) return before;
@@ -427,8 +375,8 @@ function jar(before, response) {
   return [...kept].map(([k, v]) => `${k}=${v}`).join('; ');
 }
 
-/* Der Token gegen fremde Formulare -- abgeleitet wie in auth.js. Ein
-   Pruefstand, der ihn aus der Antwort naehme, belegte nur sich selbst. */
+/* CSRF-Token, abgeleitet wie in auth.js; aus der Antwort genommen belegte er
+   nichts. */
 const csrfFor = (cookieLine) => {
   const found = String(cookieLine || '').split(';').map(z => z.trim())
     .find(z => /^(__Host-)?kriterion_session=/.test(z));
@@ -443,58 +391,38 @@ const withCsrf = (cookieLine, headers = {}) => {
                : { ...headers, cookie: cookieLine };
 };
 
-/* ================= DIE SCHREIBENDEN ROUTEN =================
-   HIER UND NICHT IM WAECHTER DANEBEN: zwei Module lesen sie -- der Waechter
-   ueber den Quelltext und der Waechter ueber die laufende Instanz. */
+/* Schreibende Routen; hier, weil die Pruefung ueber den Quelltext und die ueber die
+   laufende Instanz sie lesen. */
 const F_ROUTES = [
   ['POST',   '/api/setup',                     'offen'],
   ['POST',   '/api/login',                     'offen'],
   ['POST',   '/api/logout',                    'offen'],
-  /* Der Token, 0.8.80 -- die vierte und fuenfte offene schreibende Route. */
   ['POST',   '/api/token/check',             'offen'],
   ['POST',   '/api/token/redeem',           'offen'],
-  /* Die Selbstanmeldung, 0.9.1 -- die sechste und siebte offene schreibende
-     Route. */
   ['POST',   '/api/signup',             'offen'],
   ['POST',   '/api/signup/confirm', 'offen'],
-  /* Der zweite Schritt der Anmeldung, 0.10.0 -- die ACHTE offene
-     schreibende Route. */
   ['POST',   '/api/login/second',                'offen'],
   ['PUT',    '/api/account',                   'selbstbezug'],
-  /* Meine Sitzungen, 0.8.80. 'selbstbezug' wie PUT /api/account, und aus
-     demselben Grund: die Klemme ist nicht eine Rollenfrage im Rumpf,
-     sondern die Bauform -- user_id kommt aus req.user und nie aus der
-     Adresse. */
+  /* selbstbezug: der Benutzer kommt aus req.user, nie aus der Adresse. */
   ['DELETE', '/api/sessions',                  'selbstbezug'],
   ['DELETE', '/api/sessions/:sessionId',      'selbstbezug'],
-  /* Die Freigabe fuer die schweren Wege, 0.8.90. 'selbstbezug' wie PUT
-     /api/account: der Benutzer kommt aus req.user und nie aus der Adresse
-     -- wer bestaetigt, bestaetigt fuer sich. */
   ['POST',   '/api/confirm',              'selbstbezug'],
-  /* Der zweite Faktor, 0.10.0 -- VIER Routen, alle 'selbstbezug'. */
   ['POST',   '/api/two-factor/start',          'selbstbezug'],
   ['POST',   '/api/two-factor/on',             'selbstbezug'],
   ['POST',   '/api/two-factor/codes',          'selbstbezug'],
   ['DELETE', '/api/two-factor',                'selbstbezug'],
-  /* ANLEGEN BRAUCHT KEINE ZWEITE BESTAETIGUNG, und das ist entschieden und
-     nicht vergessen: es erzeugt einen NEUEN Zugang und nimmt niemandem
-     etwas. */
+  /* Anlegen ohne zweite Bestaetigung: es erzeugt einen neuen Zugang und nimmt
+     niemandem etwas. */
   ['POST',   '/api/users',                     'adminOnly, im Rumpf'],
-  /* Der Link fuer einen vorhandenen Zugang. */
   ['POST',   '/api/users/:id/token',           'adminOnly, im Rumpf, zweitbestaetigt'],
-  /* Zwei der drei Rechteklassen dieser Route liegen hinter der zweiten
-     Bestaetigung -- Rolle und fremdes Passwort. */
+  /* Rolle und fremdes Passwort brauchen die zweite Bestaetigung. */
   ['PUT',    '/api/users/:id',                 'adminOnly, im Rumpf, zweitbestaetigt'],
   ['DELETE', '/api/users/:id',                 'adminOnly, im Rumpf, zweitbestaetigt'],
-  /* Der Mailzugang, 0.9.0. */
   ['PUT',    '/api/mail',                      'ownerOnly, zweitbestaetigt'],
-  /* Die Testmail. nurEigentuemer wie das Setzen daneben -- wer den Zugang
-     nicht sehen darf, testet ihn auch nicht. */
+  /* ownerOnly wie PUT /api/mail: den Zugang testet nur, wer ihn sehen darf. */
   ['POST',   '/api/mail/test',                 'ownerOnly'],
-  /* Die Selbstanmeldung hinter der Anmeldung, 0.9.1 -- drei Routen, alle
-     beim ADMIN und nicht beim Eigentuemer: aus einer Anfrage wird nie etwas
-     anderes als ein Zugang mit der Rolle 'user', und den legt der Admin
-     ohnehin an. */
+  /* adminOnly: aus einer Anfrage wird nur ein Zugang mit Rolle 'user', und den legt
+     der Admin ohnehin an. */
   ['PUT',    '/api/signup/toggle',    'adminOnly'],
   ['POST',   '/api/requests/:id/approve',         'adminOnly'],
   ['DELETE', '/api/requests/:id',              'adminOnly'],
@@ -504,14 +432,11 @@ const F_ROUTES = [
   ['PUT',    '/api/criteria/order',            'adminOnly'],
   ['PUT',    '/api/criteria/:id',              'adminOnly'],
   ['DELETE', '/api/criteria/:id',              'adminOnly'],
-  // Zuweisen darf jeder, einen NEUEN Namen anlegen haengt am Schalter --
-// deshalb im Rumpf und hinter dem Nachschlagen, nicht vor der Route.
+  // Einen neuen Namen anlegen haengt am Schalter, deshalb im Rumpf statt vor der Route.
   ['POST',   '/api/product-categories',        'im Rumpf'],
   ['PUT',    '/api/product-categories/:id',    'adminOnly'],
   ['DELETE', '/api/product-categories/:id',    'adminOnly'],
-  /* DER EINE GRIFF FUER DIE UNBEKANNTE ERSTELLUNGSSPRACHE -- 0.25.0 (F2). */
   ['PUT',    '/api/names/language',            'adminOnly'],
-  /* DER WEG, EINEN TAG FUER SICH ANZULEGEN -- 0.24.4 (B7). */
   ['POST',   '/api/tags',                      'im Rumpf'],
   ['PUT',    '/api/tags/:id',                  'adminOnly'],
   ['DELETE', '/api/tags/:id',                  'adminOnly'],
@@ -521,18 +446,15 @@ const F_ROUTES = [
   ['PUT',    '/api/items/:id',                 'im Rumpf'],
   ['DELETE', '/api/items/:id',                 'entryAuthorOnly'],
   ['POST',   '/api/items/:id/photos',          'entryAuthorOnly'],
-  // Eigene Route statt der erweiterten Fotoroute: deren fileFilter auf
-// ^image\/ zu lockern naehme die erste Schranke dem Fotoweg mit ab.
+  // Eigene Route: den fileFilter der Fotoroute auf ^image\/ zu lockern schwaechte den Fotoweg.
   ['POST',   '/api/items/:id/videos',          'entryAuthorOnly'],
   ['PUT',    '/api/photos/:id/focus',          'im Rumpf'],
-  // Hochladen darf jeder -- umgestellt mit 0.8.31, aus demselben Grund wie
-// beim Link: eine Datei erscheint nur dort, wo man sie hinsetzt.
+  // Hochladen darf jeder: eine Datei erscheint nur dort, wo man sie hinsetzt.
   ['POST',   '/api/items/:id/attachments',     'offen'],
   ['DELETE', '/api/attachments/:id',           'im Rumpf'],
   ['PUT',    '/api/items/:id/photo-order',     'entryAuthorOnly'],
   ['DELETE', '/api/photos/:id',                'im Rumpf'],
-  // Eintragen darf jeder -- wie Kommentar, Testtag und Bewertung. Umgestellt
-// mit 0.8.30: ein Link erscheint nur dort, wo man ihn hinsetzt.
+  // Offen wie Kommentar und Testtag: ein Link erscheint nur dort, wo man ihn hinsetzt.
   ['POST',   '/api/items/:id/links',           'offen'],
   ['PUT',    '/api/items/:id/link-order',      'entryAuthorOnly'],
   ['DELETE', '/api/links/:id',                 'im Rumpf'],
@@ -542,9 +464,7 @@ const F_ROUTES = [
   ['POST',   '/api/test-days/:id/tags',        'im Rumpf'],
   ['DELETE', '/api/test-days/:id/tags/:tagId', 'im Rumpf'],
   ['PUT',    '/api/items/:id/ratings',         'offen'],
-  /* DELETE /api/items/:id/ratings STEHT HIER NICHT MEHR -- 0.21.0. */
-  // Die einzige Bewertungsroute MIT Klemme -- hier steht eine fremde Nummer
-// in der Adresse, die eine darueber trifft baulich nur die eigene Zeile.
+  // Einzige Bewertungsroute mit Klemme: nur hier steht eine fremde Nummer in der Adresse.
   ['DELETE', '/api/ratings/:id',               'im Rumpf'],
   ['POST',   '/api/items/:id/comments',        'offen'],
   ['PUT',    '/api/comments/:id',              'im Rumpf'],
@@ -555,21 +475,15 @@ const F_ROUTES = [
   ['DELETE', '/api/comment-videos/:id',        'im Rumpf'],
   ['DELETE', '/api/comments/:id',              'im Rumpf'],
   ['POST',   '/api/import',                    'ownerOnly, zweitbestaetigt'],
-  /* Der Papierkorb, 0.8.70. SEHEN darf ihn der Admin (lesend, deshalb steht
-     GET /api/trash hier nicht) -- HANDELN nur der Eigentuemer:
-     Wiederherstellen legt Zeilen unter FREMDEM Namen an, genau wie der
-     Import, und liegt damit in derselben Rechtezeile. */
+  /* Den Papierkorb sieht der Admin (GET steht deshalb nicht hier); Wiederherstellen
+     legt wie der Import Zeilen unter fremdem Namen an. */
   ['POST',   '/api/trash/:id/restore', 'ownerOnly'],
   ['DELETE', '/api/trash/:id',            'ownerOnly'],
-  /* Die Sicherung, 0.8.70. Beide beim Eigentuemer, dieselbe Zeile wie
-     Export und Import -- alles, was die Instanz als Ganzes betrifft. */
+  /* ownerOnly wie Export und Import: betrifft die Instanz als Ganzes. */
   ['PUT',    '/api/backup/dir',             'ownerOnly'],
   ['POST',   '/api/backup',                 'ownerOnly'],
-  /* Die Bildumstellung, 0.19.0 -- die siebzigste. */
   ['POST',   '/api/images/convert',          'ownerOnly, zweitbestaetigt'],
-  /* Das Aufraeumen alter Sicherungen, 0.20.0 -- die einundsiebzigste. */
   ['POST',   '/api/backup/cleanup',      'ownerOnly, zweitbestaetigt'],
-  /* Die Sicherungsprobe, 0.29.0 -- die DREIUNDSIEBZIGSTE. */
   ['POST',   '/api/backup/check',            'ownerOnly']
 ];
 
@@ -592,14 +506,9 @@ function writingRoutes(text) {
   return outcome;
 }
 
-/* ================= DIE LESENDEN ROUTEN =================
-   DIESELBE BAUFORM WIE F_ROUTES und aus demselben Grund: eine Route, die
-   still dazukommt oder verschwindet, faellt sonst niemandem auf. Je Weg der
-   Pfad, die Klemme und ein Satz, warum sie dort sitzt.
-
-   DIE KLEMMEN: `offen` steht vor der Anmeldung, `angemeldet` verlangt nur
-   sie, `selbstbezug` liest aus req.user statt aus der Adresse, die drei
-   Waechternamen stehen im Kopf der Route. */
+/* Lesende Routen: Pfad, Klemme, Grund. Klemmen: offen (vor der Anmeldung),
+   angemeldet, selbstbezug (req.user statt Adresse), sonst der Waechter im Kopf der
+   Route. */
 const F_READ_ROUTES = [
   ['/api/config',                  'offen',
     'Der Browser fragt sie vor jeder Anmeldung: sie sagt, ob die Einrichtung noch aussteht.'],
@@ -670,8 +579,7 @@ function readingRoutes(text) {
   const outcome = [];
   for (let i = 0; i < rows.length; i++) {
     const z = rows[i];
-    /* AUCH EINE EINGERUECKTE ZEILE ZAEHLT: sonst bliebe eine Route unsichtbar,
-       die in einem Block steht. */
+    /* Auch eingerueckte Zeilen: eine Route kann in einem Block stehen. */
     const found = z.match(/^\s*app\.get\('([^']+)'/);
     if (!found) continue;
     const head = z.slice(z.indexOf(found[1]) + found[1].length + 1);
@@ -683,9 +591,8 @@ function readingRoutes(text) {
   return outcome;
 }
 
-/* ================= DIESER PRUEFLAUF LIEST DEUTSCH -- 0.24.3 ==============
-   Bis 0.24.2 sprach eine frische Installation Deutsch, weil die
-   Vorgabesprache eine Konstante im Quelltext war. */
+/* Ohne eigene Angabe verlangt jede Anfrage Deutsch; die Tests vergleichen deutsche
+   Texte. */
 const RAW_FETCH = globalThis.fetch;
 globalThis.fetch = (url, opt = {}) => {
   const headers = { ...(opt.headers || {}) };
@@ -707,10 +614,7 @@ async function call(method, filePath, body) {
 }
 const names = (list) => list.map(c => c.name);
 
-/* ================= Die zweite Bestaetigung im Prueflauf =================
-   SEIT 0.8.90 VERLANGEN SECHS WEGE UEBER FUENF ROUTEN EINE FREIGABE: Export,
-   Import, Rolle vergeben, fremdes Passwort setzen, Zugang entfernen, Link
-   erzeugen. */
+/* Muss zu den zweitbestaetigten Routen in server.js passen. */
 function confirmNeeded(method, filePath, body) {
   const withoutQuery = String(filePath).split('?')[0];
   if (method === 'GET' && withoutQuery === '/api/export') return [['export', null]];
@@ -728,8 +632,7 @@ function confirmNeeded(method, filePath, body) {
   }
   const link = withoutQuery.match(/^\/api\/users\/(\d+)\/token$/);
   if (link && method === 'POST') return [['link', Number(link[1])]];
-  // Der achte Zweck, seit 0.19.0: die Umstellung der Bildablage. Kein Ziel --
-// sie trifft die Instanz als Ganzes, wie Export und Import.
+  // Die Bildumstellung hat kein Ziel: sie betrifft die Instanz als Ganzes.
   if (method === 'POST' && withoutQuery === '/api/images/convert') return [['images', null]];
   return [];
 }
@@ -744,36 +647,29 @@ function includingShare(raw, password) {
   };
 }
 
-// Der Rufer des Hauptservers mit Freigabe. Der rohe heisst weiterhin call() und
-// wird ueberall dort gebraucht, wo die Schranke selbst der Gegenstand ist.
+// call() bleibt ohne Freigabe fuer Pruefungen, deren Gegenstand die Schranke ist.
 const callF = (...w) => includingShare(call, PASSWORD)(...w);
-// Und dieselbe Freigabe fuer einen rohen fetch daneben: der Export laeuft an
-// zwei Stellen ueber fetch statt ueber call(), weil dort die KOPFZEILEN der
-// Antwort gebraucht werden.
+// Freigabe fuer rohe fetch()-Aufrufe: der Export braucht die Kopfzeilen der Antwort.
 const shareMain = (purpose, target = null) =>
   call('POST', '/api/confirm', { password: PASSWORD, purpose, target });
 
-/* ============ WAS EIN ABGEBROCHENER LAUF STEHENLAESST -- 0.30.0, BA 3 ======
-   AM 8. */
+/* ---- Reste abgebrochener Laeufe ---- */
 const LEFTOVER_ROOT = path.join(os.tmpdir(), 'kriterion-');
 
-/* WELCHER LAUF EINEN PROZESS GESTARTET HAT. Die Nummer wird in die Umgebung
-   gesetzt und reist von dort an jedes Kind und jeden Enkel weiter -- auch an
-   den, dessen Vater stirbt. Vier Nebenspuren teilen sich `/tmp/kriterion-`;
-   ohne diese Nummer nimmt jede die Reste der anderen mit. */
+/* Laufnummer in der Umgebung, sie geht an Kinder und Enkel ueber. Ohne sie raeumt
+   jede der vier Nebenspuren in /tmp/kriterion- die Reste der anderen ab. */
 process.env.KRITERION_RUN = String(process.pid);
 
 function parentOf(pid) {
   let row;
   try { row = fs.readFileSync(`/proc/${pid}/stat`, 'utf8'); } catch { return 0; }
-  /* HINTER DER LETZTEN KLAMMER UND NICHT AM ZWEITEN FELD: der Name des
-     Prozesses steht in Klammern und darf selbst Leerzeichen und Klammern
-     tragen. */
+  /* Hinter der letzten Klammer: der Prozessname steht in Klammern und darf
+     Leerzeichen und Klammern enthalten. */
   const rest = row.slice(row.lastIndexOf(')') + 1).trim().split(/\s+/);
   return Number(rest[1]) || 0;
 }
 
-/* LEBT DIESE NUMMER NOCH? Signal 0 stellt die Frage, ohne etwas zu schicken. */
+/* Signal 0 prueft, ob der Prozess lebt, ohne etwas zu schicken. */
 const alive = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
 
 const ourOwn = (pid) => {
@@ -793,14 +689,12 @@ function leftovers() {
     try { environment = fs.readFileSync(`/proc/${e}/environ`, 'utf8').split('\0'); } catch { continue; }
     const where = (environment.find(z => z.startsWith('DATA_DIR=')) || '').slice(9);
     if (!where || !where.startsWith(LEFTOVER_ROOT)) continue;
-    /* DER VATER MUSS FORT SEIN. `ppid === 1` heisst: er ist gestorben, und
-       der Kern hat den Prozess an die Eins gehaengt. */
+    /* Nur Prozesse ohne lebenden Vater; ppid 1 heisst, der Vater ist gestorben. */
     const father = parentOf(Number(e));
     if (father > 1 && alive(father)) continue;
     if (ourOwn(Number(e))) continue;
-    /* EIN REST IST EIN REST EINES BEENDETEN LAUFS. Laeuft der, der ihn
-       gestartet hat, noch, und ist es nicht dieser hier, gehoert er einer
-       Nebenspur -- sie raeumt ihn selbst weg. */
+    /* Lebt der Lauf aus KRITERION_RUN noch, gehoert der Rest einer anderen
+       Nebenspur. */
     const run = Number((environment.find(z => z.startsWith('KRITERION_RUN=')) || '').slice(14));
     if (run && run !== process.pid && alive(run)) continue;
     outcome.push({ pid: Number(e), where,
@@ -809,13 +703,12 @@ function leftovers() {
   return outcome;
 }
 
-/* RAEUMT AUF UND SIEHT NACH -- dieselbe Bauform wie cleanUp() in der
-   Gegenprobe: ein Aufraeumen, das nie greift, sieht aus wie eines, das
-   greift. */
+/* Wie cleanUp() in counterproof.js: raeumt auf und prueft danach, ob es gewirkt
+   hat. */
 function sweepLeftovers() {
   const found = leftovers();
   for (const z of found) { try { process.kill(z.pid, 'SIGKILL'); } catch {} }
-  /* EIN SIGKILL WIRKT NICHT IN DERSELBEN ZEILE. */
+  /* SIGKILL wirkt nicht sofort; bis zu 5 s auf das Ende warten. */
   const wait = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
   const until = Date.now() + 5000;
   let left = leftovers().filter(z => found.some(f => f.pid === z.pid));
@@ -823,24 +716,19 @@ function sweepLeftovers() {
     wait(100);
     left = leftovers().filter(z => found.some(f => f.pid === z.pid));
   }
-  /* DAS VERZEICHNIS GEHT MIT. Ein Wegwerfverzeichnis ohne seinen Server ist
-     nichts als belegter Platz -- in 0.29.0 lagen davon vierzig herum. */
   for (const z of found) { try { fs.rmSync(z.where, { recursive: true, force: true }); } catch {} }
   return { cleared: found, left: left.length };
 }
 
-/* ================= Ablauf ================= */
+/* ---- Ablauf ---- */
 
-/* ================= DER HAUPTSERVER FUER EIN MODUL -- 0.34.0 ==============
-   BIS 0.33.2 STAND ER EINMAL FUER DEN GANZEN LAUF. */
+/* Jedes Modul startet seinen eigenen Hauptserver. */
 async function mainServerReady() {
   await startServer();
   await call('POST', '/api/setup', { user: USER, password: PASSWORD });
   await call('POST', '/api/login', { user: USER, password: PASSWORD });
 }
 
-/* ================= WORAUS DER PRUEFSTAND BESTEHT -- 0.34.0 =================
-   BIS 0.33.2 WAR DAS EINE DATEI. */
 function benchFiles() {
   const wo = path.join(__dirname, 'test');
   const module = fs.existsSync(wo)
@@ -849,14 +737,13 @@ function benchFiles() {
   return ['testbench.js', ...module];
 }
 
-/* ================= WAS EIN MODUL MELDET ================= Jedes Modul laeuft
-   als eigener Prozess. */
+/* Jedes Modul laeuft als eigener Prozess und schreibt seine Zahlen nach
+   TESTBENCH_REPORT. */
 const REPORT_PATH = process.env.TESTBENCH_REPORT || '';
 
 function counters() {
-  /* DIE PRUEFLAGEN KOMMEN MIT IHREN BASEN ZURUECK und nicht als blosse Zahl:
-     der Waechter „Die Portbasen und der Versatz" rechnet ueber die Basen, die
-     der Lauf WIRKLICH benutzt hat. */
+  /* Mit Basen statt als Zahl: die Pruefung der Portbasen rechnet mit den wirklich
+     benutzten. */
   return {
     passedCount, failed, skipped, stillPassed, stillFailed, groupsShown, groupsStill,
     times: TIMES,
@@ -867,7 +754,6 @@ function counters() {
   };
 }
 
-/* NIMMT DIE ZAHLEN EINES MODULS AUF. */
 function addCounters(z) {
   passedCount += z.passedCount; failed += z.failed; skipped += z.skipped;
   stillPassed += z.stillPassed; stillFailed += z.stillFailed;
@@ -875,23 +761,16 @@ function addCounters(z) {
   for (const r of z.times || []) TIMES.push(r);
 }
 
-/* GRUPPEN, DIE GAR NICHT ERST GESTARTET WURDEN. Ein Teillauf startet nur die
-   Module, die er zeigt; die uebrigen Gruppen hat niemand gefahren. */
+/* Ein Teillauf startet nur die Module, die er zeigt; die Gruppen der uebrigen
+   zaehlen als uebergangen. */
 let skippedGroupCount = 0;
 function addSkippedGroups(count) { groupsStill += count; skippedGroupCount++; }
-/* WIE VIELE MODULE DIESER LAUF AUSGELASSEN HAT. */
 const skippedModules = () => skippedGroupCount;
 
-/* ---- UEBER DIE NAECHSTE SEKUNDENGRENZE -- 0.35.0, BA 7 ----
-   SQLite schreibt `datetime('now')` auf die Sekunde genau. Wo eine Pruefung
-   belegt, dass ein Zeitpunkt MITGEZOGEN ist, muss die Uhr dazwischen eine
-   volle Sekunde weitergegangen sein.
-   Bis 0.34.4 stand dafuer an elf Stellen in test/roundtrip.js eine feste
-   Wartezeit von 1100 ms -- zusammen 12.100 ms, und davon war im Mittel die
-   Haelfte umsonst: wer 50 ms vor der Grenze wartet, braucht 50 ms und keine
-   1100. Hier wird die Grenze abgewartet und nicht eine Dauer.
-   DIE FUENFUNDZWANZIG MILLISEKUNDEN DANACH sind der Abstand zur Grenze: der
-   Server liest seine Uhr erst, wenn die Anfrage bei ihm ist. */
+/* datetime('now') in SQLite ist sekundengenau; ein mitgezogener Zeitpunkt ist nur
+   nach einem Sekundenwechsel belegbar. Gewartet wird bis zur Grenze, nicht eine
+   feste Dauer. */
+/* Die 25 ms danach: der Server liest die Uhr erst, wenn die Anfrage ankommt. */
 const SECOND_MARGIN = 25;
 async function nextSecond(limitMs = 1500) {
   const now = Math.floor(Date.now() / 1000);
@@ -905,7 +784,6 @@ async function nextSecond(limitMs = 1500) {
   await new Promise(r => setTimeout(r, SECOND_MARGIN));
 }
 
-/* DER LAUF EINES EINZELNEN MODULS. */
 async function moduleRun(run, name) {
   let abort = '';
   try {
@@ -923,12 +801,9 @@ async function moduleRun(run, name) {
   report.abort = abort;
   report.moduleName = name;
   if (REPORT_PATH) { try { fs.writeFileSync(REPORT_PATH, JSON.stringify(report)); } catch {} }
-  /* PROBE FUER DEN TREIBER -- 0.34.4. Hier ist die Meldung geschrieben und
-     das Aufraeumen noch nicht gelaufen. Wer in dieser Luecke stirbt,
-     hinterlaesst eine saubere Meldung und einen Rueckgabewert ungleich 0.
-     Bis 0.34.3 hat der Treiber das nicht gemerkt. */
+  /* Fuer testbench.js: stirbt ein Modul nach der Meldung und vor dem Aufraeumen,
+     muss der Rueckgabewert ungleich 0 auffallen. */
   if (process.env.TESTBENCH_DIE_AFTER_REPORT === name) process.exit(9);
-  /* DER HAUPTSERVER GEHOERT DAZU. */
   if (kind) { try { kind.kill(); } catch {} }
   for (const l of CASES) { try { l.kind.kill(); } catch {} }
   for (const l of SMTP_CASES) { try { l.server.close(); } catch {} }
@@ -936,7 +811,8 @@ async function moduleRun(run, name) {
   process.exit(abort ? 1 : (failed ? 1 : 0));
 }
 
-/* EIN MODUL, DAS FUER SICH GEFAHREN WIRD. */
+/* Ohne TESTBENCH_REPORT laeuft das Modul fuer sich und gibt den Schlussblock selbst
+   aus. */
 function standalone(run, moduleFile) {
   const name = nodePath.basename(moduleFile, '.js');
   if (!REPORT_PATH) {

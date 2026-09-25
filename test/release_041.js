@@ -63,7 +63,6 @@ async function run() {
   const deText = (key, values = {}) =>
     String(DE[key]).replace(/\{(\w+)\}/g, (m, k) => (k in values ? String(values[k]) : m));
 
-  /* ================= Die neue Tabelle an einer bestehenden Datenbank ================= */
   group('Kommentarvideos: die Tabelle kommt beim Start dazu');
   {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-kv-'));
@@ -95,7 +94,6 @@ async function run() {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 
-  /* ================= Hochladen und Absagen ================= */
   group('Kommentarvideos: Hochladen und Absagen');
   const cvItem = await newItem('Kommentarvideos');
   const cvVideo = mp4(6000);
@@ -162,7 +160,6 @@ async function run() {
   check('An einen fremden Kommentar haengt niemand ein Video',
     cvStranger.status === 403, `${cvStranger.status}`);
 
-  /* ================= Die Auslieferung ================= */
   group('Kommentarvideos: Auslieferung mit Range');
   {
     const url = `/api/comment-videos/${cvRow?.id}/raw`;
@@ -189,7 +186,6 @@ async function run() {
       whole.headers.get('content-disposition'));
   }
 
-  /* ================= Loeschen ================= */
   group('Kommentarvideos: Loeschen und der Zaehler');
   {
     const anja = await account('anja', 'admin');
@@ -223,7 +219,6 @@ async function run() {
       JSON.stringify(DE['entry.imagesRemovedAdmin']));
   }
 
-  /* ================= Rundlauf ================= */
   group('Kommentarvideos: Rundlauf mit Format 19');
   let rtFile = null;
   {
@@ -286,7 +281,6 @@ async function run() {
       JSON.stringify({ c: rb.content?.commentVideos, u: rb.content?.videosUnreadable }));
   }
 
-  /* ================= Papierkorb ================= */
   group('Kommentarvideos: der Papierkorb');
   {
     const id = await newItem('In den Papierkorb');
@@ -315,7 +309,6 @@ async function run() {
       `${back.status} ${bytes.length}/${tile.length}`);
   }
 
-  /* ================= Am Bildschirm ================= */
   group('Kommentarvideos am Bildschirm');
   if (!JSDOM) check('jsdom steht bereit', false, 'npm install');
   else {
@@ -357,7 +350,6 @@ async function run() {
     w.close();
   }
 
-  /* ================= Der Download ================= */
   group('Download je Foto und Video in der Bildansicht');
   if (JSDOM) {
     const who = { id: 1, name: 'chefin', deleted: false };
@@ -396,7 +388,6 @@ async function run() {
     w.close();
   }
 
-  /* ================= Das Hinweisfeld an der Zeitleiste ================= */
   group('Das Hinweisfeld bleibt in der Zeitleiste');
   {
     const css = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
@@ -448,7 +439,6 @@ async function run() {
     }
   }
 
-  /* ================= Die Formatierleiste ================= */
   group('Die Formatierleiste steht am Feld');
   {
     const css = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
@@ -497,10 +487,10 @@ async function run() {
     }
   }
 
-  /* ================= Das Cookie nach dem Umlegen von BEHIND_PROXY ================= */
   group('Das Cookie unter dem anderen Namen wird geloescht');
   {
-    // Das Cookie des Pruefers ohne Proxy heisst kriterion_csrf; das andere stammt von vorher.
+    // Nach dem Umschalten von BEHIND_PROXY: ohne Proxy heisst das Cookie
+    // kriterion_csrf, das mit __Host- ist das alte.
     const own = String(H.cookie);
     const stale = 'f'.repeat(64);
     const both = `${own}; __Host-kriterion_csrf=${stale}; __Host-kriterion_session=${'e'.repeat(64)}`;
@@ -515,7 +505,6 @@ async function run() {
     check('Ohne das andere Cookie kommt keine Loeschung',
       !(await fetch(BASE + '/api/settings', { headers: { cookie: own } })).headers.getSetCookie()
         .some(z => /Max-Age=0/.test(z)));
-    // Die Seite las bisher den Wert des alten Cookies und wurde abgewiesen.
     const post = (token) => fetch(BASE + '/api/items', { method: 'POST',
       headers: { cookie: own, 'x-csrf-token': token, 'content-type': 'application/json' },
       body: JSON.stringify({ title: 'Nach dem Umlegen' }) });
@@ -538,7 +527,6 @@ async function run() {
       probe);
   }
 
-  /* ================= Was Export, Import und Backup enthalten ================= */
   group('Was Export, Import und Backup enthalten');
   {
     const WANT = {

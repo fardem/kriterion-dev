@@ -1,6 +1,5 @@
-/* Kriterion — Pruefstand: der Treiber node testbench.js alles node
-   testbench.js Rechte nur die Module mit "Rechte" im Gruppennamen DIE
-   PRUEFLAGEN LIEGEN IN test/, ein Modul je Sachgebiet — 0.34.0. */
+/* Treiber des Pruefstands: `node testbench.js` startet alle Module aus test/,
+   `node testbench.js Rechte` nur die mit „Rechte" im Gruppennamen. */
 const H = require('./test/frame.js');
 const {
   fs, os, path, spawn, spawnSync, FILTER, group, check, endBlock, returnValue,
@@ -9,8 +8,6 @@ const {
   OFFSET_LEVEL, OFFSET_TRACES, endKind, sweepLeftovers, benchFiles
 } = H;
 
-/* ================= EIN MODUL FAEHRT ALS EIGENER PROZESS -- 0.34.0 =========
-   DAS IST DER GANZE PUNKT DER RUNDE. */
 const REPORT_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-meldung-'));
 const REPORTS = [];
 
@@ -20,7 +17,7 @@ function runModule(name) {
     [path.join('test', name + '.js'), ...(FILTER ? [FILTER] : [])],
     { cwd: __dirname, stdio: 'inherit',
       env: { ...process.env, TESTBENCH_REPORT: where } });
-  /* KEINE MELDUNG IST EIN FUND UND KEIN LEERER LAUF. */
+  // Eine fehlende Meldung zaehlt als Fehler, nicht als leerer Lauf.
   let report = null;
   try { report = JSON.parse(fs.readFileSync(where, 'utf8')); } catch {}
   if (!report) {
@@ -36,10 +33,8 @@ function runModule(name) {
   REPORTS.push(report);
   if (report.abort)
     console.log(`\n  ✗ Das Modul ${name} ist abgebrochen: ${report.abort}`);
-  /* DIE MELDUNG IST DA -- ABER SIE IST NICHT DER GANZE BEWEIS. test/frame.js
-     schreibt sie, raeumt danach auf und beendet erst dann; stirbt das Modul
-     dazwischen, steht eine saubere Meldung da und der Rueckgabewert ist
-     trotzdem nicht 0. Ohne diese Zeile zaehlt ein solcher Lauf als bestanden. */
+  /* test/frame.js schreibt die Meldung vor dem Aufraeumen; stirbt das Modul
+     danach, zeigt nur der Rueckgabewert den Fehler. */
   if (!report.abort && !report.failed && r.status !== 0) {
     console.log(`\n  ✗ Das Modul ${name} meldet keinen Fehler, endete aber mit` +
       ` Rueckgabewert ${r.status}, Signal ${r.signal}`);
@@ -48,11 +43,6 @@ function runModule(name) {
   }
 }
 
-/* ================= DIE MODULE UND IHRE REIHENFOLGE ================= SIE IST
-   DIE DES EINEN LAUFS VON FRUEHER, soweit sie sich halten laesst: erst der
-   Rundlauf, dann die Waechter ueber den Quelltext, dann die Oberflaeche, dann
-   die Prueflagen mit eigenen Instanzen, zuletzt der Pruefstand ueber sich
-   selbst. */
 const MODULE = [
   'roundtrip',
   'source',
@@ -74,14 +64,13 @@ const MODULE = [
   'selfcheck'
 ];
 
-/* WELCHE GRUPPEN EIN MODUL TRAEGT -- gelesen aus seinem Quelltext und nicht
-   aus einer Liste daneben. */
+// Aus dem Quelltext des Moduls; eine eigene Liste liefe auseinander.
 function groupsOf(name) {
   const text = fs.readFileSync(path.join(__dirname, 'test', name + '.js'), 'utf8');
   return [...text.matchAll(/^\s*group\('(.+)'\);\s*$/gm)].map(m => m[1]);
 }
 
-/* SELBSTPROBE DES RAHMENS. */
+// Gestellter Lauf fuer test/roundtrip.js und test/release_030.js.
 if (process.env.TESTBENCH_PROBE) {
   const state = process.env.TESTBENCH_PROBE;
   group('Rechte am Eintrag');
@@ -95,8 +84,8 @@ if (process.env.TESTBENCH_PROBE) {
 }
 
 (async function treiber() {
-  /* ERST AUFRAEUMEN, DANN STARTEN -- und die Meldung steht VOR der ersten
-     Gruppe, wo sie niemand fuer einen Befund haelt. */
+  /* Vor dem ersten Modul aufraeumen, damit die Meldung vor der ersten Gruppe
+     steht und nicht wie ein Fehler eines Moduls aussieht. */
   {
     const sweep = sweepLeftovers();
     if (sweep.cleared.length) {
@@ -111,7 +100,6 @@ if (process.env.TESTBENCH_PROBE) {
 
   for (const name of MODULE) {
     const groups = groupsOf(name);
-    /* DER TEILLAUF: ein Modul ohne passende Gruppe startet nicht. */
     if (FILTER && !groups.some(g => g.toLowerCase().includes(FILTER.toLowerCase()))) {
       H.addSkippedGroups(groups.length);
       continue;
@@ -119,78 +107,52 @@ if (process.env.TESTBENCH_PROBE) {
     runModule(name);
   }
 
-  /* ================= DIE BEIDEN LETZTEN GRUPPEN ================= SIE
-     RECHNEN UEBER ALLE MODULE: wie viele Portbasen der Lauf wirklich vergeben
-     hat, und ob irgendein Modul einen Server zurueckgelassen hat. */
+  /* ---- Gruppen ueber alle Module ---- */
   const complete = !H.skippedModules();
   const partialHint = '  … uebersprungen: ein Teillauf startet nicht alle Module, ' +
     'und diese Gruppe rechnet ueber alle.';
-  /* DIE BEIDEN LISTEN STEHEN VOR BEIDEN GRUPPEN: die eine rechnet mit den
-     Basen, die andere zaehlt die Server. */
+  // Vor beiden Gruppen: die erste rechnet mit den Basen, die zweite zaehlt die Server.
   const pbCases = [...CASES.map(l => ({ base: l.base, port: l.port })),
                    ...REPORTS.flatMap(m => m.cases || [])];
   const pbSmtp = [...SMTP_CASES.map(l => ({ base: l.base, port: l.port, kind: l.kind })),
                   ...REPORTS.flatMap(m => m.smtp || [])];
 
-  /* ================= Der Pruefstand ueber sich selbst ================= Zwei
-     Waechter, und beide sind aus 0.8.90 heraus entstanden: dort haben
-     verwaiste Server acht Gegenproben abreissen lassen, und eine Portbasis
-     liegt bis heute auf einer Nummer, die fetch() gar nicht anwaehlt. */
-
   group('Die Portbasen und der Versatz');
   if (!complete) console.log(partialHint);
   else {
 
-  /* DIE SPERRLISTE VON fetch(). */
+  // Die Ports ab 1719 aus der Sperrliste von fetch().
   const LOCKPORTS = [1719, 1720, 1723, 2049, 3659, 4045, 4190, 5060, 5061,
                       6000, 6566, 6665, 6666, 6667, 6668, 6669, 6679, 6697, 10080];
-  // Ein Fenster ist gesperrt, sobald EINE seiner Nummern es ist -- gezogen wird
-// zufaellig, und eine Zahl, die nur selten faellt, ist nicht harmlos.
+  // Eine gesperrte Nummer sperrt das ganze Fenster: der Port wird zufaellig gezogen.
   const pbLocked = (from, width) =>
     LOCKPORTS.filter(p => p >= from && p <= from + width - 1);
 
-  /* Die Fingerprintlage zaehlt HOCH statt zu wuerfeln und braucht deshalb nur
-     so viele Nummern, wie sie Server startet. */
-  /* DER SMTP-EMPFAENGER AUS 0.9.0 GEHT UEBER DIESELBE LISTE. */
+  // Die Fingerprintlage zaehlt hoch statt zu wuerfeln und braucht nur 10 Nummern.
   const pbWidth = (base) => base === FINGERPRINT_BASE ? 10
     : base === SMTP_BASE ? SMTP_WIDTH
     : base === LANGUAGE_BASE ? LANGUAGE_WIDTH : PORT_WIDTH;
   const pbBases = [...new Set([...pbCases.map(l => l.base),
                                ...pbSmtp.map(l => l.base)])].sort((a, b) => a - b);
-  /* ERST DER GEGENSTAND: ein Waechter ueber null Basen ist
-     gruen und belegt nichts. */
-  /* EINUNDSECHZIG SEIT 0.21.0: die Gruppe „Zwei Kaesten, zwei Durchschnitte"
-     bringt drei eigene Instanzen mit (die Runde selbst, eine fuer die Datei
-     aus dem vorigen Format samt Konflikt, eine frische fuer den Rundlauf
-     ueber Export und Import). */
-  /* ZWEIUNDSECHZIG SEIT 0.24.0: die Lage „Server ohne de.json" (Bauabschnitt
-     1) bringt ihre eigene Basis mit -- sie startet einen Server, der gerade
-     NICHT hochkommen soll, und braucht dafuer genau eine Nummer. */
-  /* VIERUNDSECHZIG: die Lage des stueckweisen Exports bringt ihre eigene
-     Basis mit -- sie startet denselben Server zweimal, vor und nach dem
-     Leeren des Importordners. */
-  // Fuenfundsechzig: die Grenze je Eintrag braucht eine Instanz mit gesenktem EXCHANGE_MAX.
+  /* Ohne vermerkte Basen waeren die Pruefungen darunter grundlos gruen.
+     Eine neue Portbasis in test/ erhoeht die 65. */
   check('Der Lauf hat seine Portbasen vermerkt',
     pbBases.length === 65 && pbCases.length >= 60,
     `${pbBases.length} Basen aus ${pbCases.length} Prueflagen: ${pbBases.join(' ')}`);
-  // Und der Empfaenger selbst ist wirklich gelaufen: eine Liste ohne
-  // Eintraege machte die Rechnung darueber wahr, ohne etwas zu belegen.
+  // Mindestens sechs Eintraege: ueber einer leeren Liste ist every() immer wahr.
   check('Der SMTP-Empfaenger hat seine Nummern vermerkt',
     pbSmtp.length >= 6 && pbSmtp.every(l => l.base === SMTP_BASE),
     `${pbSmtp.length} Empfaenger, Nummern ${pbSmtp.map(l => l.port).join(' ')}`);
-  // Und er bleibt in seinem Fenster.
   check('Und bleibt dabei in seinem Fenster',
     pbSmtp.every(l => l.port - PORT_OFFSET >= SMTP_BASE &&
                       l.port - PORT_OFFSET < SMTP_BASE + SMTP_WIDTH),
     `hoechste ${Math.max(...pbSmtp.map(l => l.port - PORT_OFFSET))}, Fenster bis ${SMTP_BASE + SMTP_WIDTH - 1}`);
 
-  /* JEDE STELLE, DIE EINEN SERVER STARTET, GEHT UEBER EINE DIESER BASEN. */
-  /* UEBER ALLE DATEIEN DES PRUEFSTANDS SEIT 0.34.0. */
+  // Jeder Serverstart im Pruefstand muss ueber eine dieser Basen laufen.
   const pbStarts = benchFiles().reduce((n, d) =>
     n + (fs.readFileSync(path.join(__dirname, d), 'utf8')
       .match(/spawn\(process\.execPath, \['server\.js'\]/g) || []).length, 0);
-  /* VIER SEIT 0.24.0: dazu die Lage, die einen Server OHNE Sprachdatei
-     startet und festhaelt, dass er trotzdem hochkommt (Bauabschnitt 1). */
+  // Eine neue Startstelle braucht eine Portbasis; dann die 5 anheben.
   check('Es gibt genau fuenf Stellen, die einen Server starten',
     pbStarts === 5, `${pbStarts} Stellen`);
 
@@ -205,7 +167,6 @@ if (process.env.TESTBENCH_PROBE) {
     pbMain.length === 0,
     `${MAIN_BASE}–${MAIN_BASE + MAIN_WIDTH - 1} trifft ${pbMain.join(', ')}`);
 
-  /* DER VERSATZ MUSS GROESSER SEIN ALS DIE SPANNE SAMT BREITE. */
   const pbBottom = Math.min(MAIN_BASE, ...pbBases);
   const pbTop = Math.max(...pbBases.map(b => b + pbWidth(b) - 1),
                           MAIN_BASE + MAIN_WIDTH - 1);
@@ -214,10 +175,8 @@ if (process.env.TESTBENCH_PROBE) {
     OFFSET_LEVEL >= pbSpan,
     `Versatz ${OFFSET_LEVEL}, Spanne ${pbSpan} (${pbBottom}–${pbTop})`);
 
-  /* JEDE SPUR EINZELN NACHGERECHNET, nicht nur die erste: die Sperrliste ist
-     nicht gleichmaessig verteilt -- 6000 trifft Spur 1, 6665 bis 6697 treffen
-     sie ebenfalls, und eine Rechnung, die nur eine Spur ansieht, belegt fuer
-     die anderen drei nichts. */
+  /* Jede Spur einzeln: die Sperrliste ist ungleich verteilt, eine Rechnung
+     ueber eine Spur belegt fuer die anderen nichts. */
   const pbTraceHit = [];
   for (let trace = 1; trace < OFFSET_TRACES; trace++) {
     const v = trace * OFFSET_LEVEL;
@@ -229,15 +188,13 @@ if (process.env.TESTBENCH_PROBE) {
   }
   check(`Alle ${OFFSET_TRACES} Nebenspuren bleiben von der Sperrliste frei`,
     pbTraceHit.length === 0, pbTraceHit.join(' · '));
-  // Und die Gegenlage: der Waechter faengt ueberhaupt etwas. Ohne sie bliebe
-// er gruen, wenn pbLocked() nie etwas faende.
+  // Ohne diese Gegenprobe bliebe die Gruppe gruen, wenn pbLocked() nie etwas faende.
   check('Und der Waechter faengt eine gesperrte Nummer, wenn eine dasteht',
     pbLocked(5990, PORT_WIDTH).join() === '6000' &&
     pbLocked(4000, PORT_WIDTH).join() === '4045',
     `${pbLocked(5990, PORT_WIDTH)} / ${pbLocked(4000, PORT_WIDTH)}`);
-  // Die hoechste entstehende Nummer bleibt unter dem fluechtigen Bereich, den
-  // der Kern selbst vergibt (ab 32768) -- sonst besetzte irgendwann eine
-  // fremde Verbindung genau die Nummer, auf die eine Prueflage wartet.
+  // Ab 32768 vergibt Linux fluechtige Ports; eine fremde Verbindung koennte
+  // dort den Port einer Prueflage belegen.
   check('Die hoechste Nummer aller Spuren bleibt unter 32768',
     pbTop + (OFFSET_TRACES - 1) * OFFSET_LEVEL < 32768,
     `hoechste Nummer ${pbTop + (OFFSET_TRACES - 1) * OFFSET_LEVEL}`);
@@ -247,11 +204,7 @@ if (process.env.TESTBENCH_PROBE) {
   if (!complete) console.log(partialHint);
   else {
 
-  /* IN 0.8.90 HABEN ZWEI LAGEN IHRE SERVER ZURUECKGELASSEN, und aufgefallen
-     ist es erst, als eine Gegenprobe daran abriss: 48 verwaiste Prozesse
-     besetzten Ports, und der Prueflauf redete auf ihnen mit einer FREMDEN
-     Datenbank. */
-  /* DIE LUECKE AUS GEGENPROBE W4. */
+  // endKind() bei einem schon beendeten Kind: on('exit') feuert dann nicht mehr.
   {
     const alreadyPath = spawn(process.execPath, ['-e', 'process.exit(0)']);
     await new Promise(r => alreadyPath.on('exit', r));
@@ -261,13 +214,13 @@ if (process.env.TESTBENCH_PROBE) {
     let came = false;
     await Promise.race([
       endKind(alreadyPath).then(() => { came = true; }),
+      // 3000 ms: kehrt endKind() bis dahin nicht zurueck, gilt es als haengend.
       new Promise(r => setTimeout(r, 3000))
     ]);
     check('beendeKind kehrt auch bei einem SCHON beendeten Kind zurueck',
       came, 'es haengt -- ein on(exit) nach dem Ende feuert nie');
   }
 
-  /* UEBER ALLE MODULE HINWEG -- 0.34.0. */
   const wlAll = pbCases.length;
   const wlOpen = [
     ...CASES.filter(l => l.kind.exitCode === null && l.kind.signalCode === null)
@@ -278,9 +231,8 @@ if (process.env.TESTBENCH_PROBE) {
     wlAll >= 35, `${wlAll} Prueflagen`);
   check('Und jeder einzelne von ihnen ist beendet',
     wlOpen.length === 0, wlOpen.join(' · '));
-  /* DASSELBE FUER DEN SMTP-EMPFAENGER, seit 0.9.0 -- und er braucht seine
-     eigene Zeile, weil er kein KIND ist: er liegt im selben Prozess, und der
-     Waechter darueber sieht nur Kinder. */
+  // Der SMTP-Empfaenger laeuft im selben Prozess und ist kein Kind; die
+  // Pruefung darueber sieht ihn nicht.
   const wlSmtp = [
     ...SMTP_CASES.filter(l => l.server.listening).map(l => `Port ${l.port} (${l.kind})`),
     ...REPORTS.flatMap(m => (m.smtp || []).filter(l => l.open)
@@ -288,13 +240,12 @@ if (process.env.TESTBENCH_PROBE) {
   check('Und kein SMTP-Empfaenger horcht noch',
     wlSmtp.length === 0, wlSmtp.join(' · '));
   }
-  /* ---------------------------------------------------------------- */
   endBlock();
 
   fs.rmSync(REPORT_DIR, { recursive: true, force: true });
   process.exit(returnValue());
 })().catch(e => {
-  /* DIE URSACHE GEHOERT DAZU -- 0.30.0, BA 2. */
+  // Auch die Ursachen aus e.cause ausgeben, hoechstens fuenf.
   const chain = [];
   for (let z = e, step = 0; z && step < 5; z = z.cause, step++)
     chain.push(`${z.code ? `[${z.code}] ` : ''}${z.message || z}`);

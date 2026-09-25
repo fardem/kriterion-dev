@@ -1,7 +1,5 @@
-/* Kriterion — Pruefstand: der Pruefstand ueber sich selbst Die Gegenproben
-   greifen, die Laenge der Funktionen wird gemessen, das Skript auf dem Wirt
-   ist ausfuehrbar, die berichtigten Behauptungen stehen nirgends mehr, und
-   die Compose-Datei wird nicht ueberschrieben. */
+/* Der Pruefstand ueber sich selbst: Gegenproben, Wartezeiten, Kommentarzeilen,
+   Funktionslaengen, Anleitung, Lizenz, Treiber und npm audit. */
 const H = require('./frame.js');
 
 async function run() {
@@ -10,26 +8,18 @@ async function run() {
    readmeFlat, __dirname, require, group, check, equal, PORT, open,
    benchFiles
   } = H;
-  /* Dieses Modul ruft den Hauptserver. Es startet ihn fuer sich --
-     siehe mainServerReady() in test/frame.js. */
   await H.mainServerReady();
 
-  /* ================= Die Gegenproben greifen — 0.13.0 ================== EIN
-     RUECKBAU, DER INS LEERE GREIFT, SIEHT AUS WIE EINER, DER NICHTS BEWIRKT. */
+  // Ein Rueckbau, dessen Suchtext nicht trifft, sieht aus wie einer, der nichts bewirkt.
   group('Die Gegenproben greifen');
 
   const gpList = require('./counterproof').REGRESSIONS;
-  // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
-  // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
-  // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1140 Rueckbauten`, gpList.length === 1140, `${gpList.length}`);
+  // Mit jedem neuen Rueckbau in counterproof.js anheben.
+  check(`Es sind genau 1141 Rueckbauten`, gpList.length === 1141, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
-  /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
-  /* JEDE DATEI EINMAL LESEN -- 0.35.0, BA 7. Die Schleife las fuer jeden der
-     ueber tausend Rueckbauten seine Datei neu ein und legte danach ein
-     split() ueber den ganzen Inhalt; es sind 32 verschiedene Dateien, und
-     counterproof.js allein misst 437 kB. */
+  /* Jede Datei nur einmal lesen: ueber tausend Rueckbauten verteilen sich auf
+     32 Dateien, counterproof.js allein misst 437 kB. */
   const gpFail = [];
   const gpText = new Map();
   const gpFileText = (file) => {
@@ -43,31 +33,25 @@ async function run() {
     const n = gpFileText(file).split(r.search).length - 1;
     if (n !== 1) gpFail.push(`${r.nr} (${r.file}): ${n} Treffer`);
   }
-  /* UND DIE ZAHL DER GELESENEN DATEIEN STEHT DA: sie ist der Beleg, dass die
-     Schleife wirklich nur einmal je Datei liest. */
-  // Fuenfundvierzig: Rueckbauten fassen auch die Compose-Vorlage und ein Pruefmodul an.
+  // Belegt das einmalige Lesen je Datei. Neue Zieldateien in counterproof.js erhoehen die 45.
   check('Der Waechter liest hoechstens fuenfundvierzig Dateien',
     gpText.size <= 45, `${gpText.size} Dateien fuer ${gpList.length} Rueckbauten`);
   check('Jeder Suchtext kommt in seiner Datei genau einmal vor',
     gpFail.length === 0, gpFail.join(' · '));
-  // Ein Ersatz, der dem Suchtext gleicht, baut nichts zurueck -- die Kopie
-// waere wortgleich mit dem Kopf des Zweiges, und alles bliebe gruen.
+  // Ein Ersatz gleich dem Suchtext baut nichts zurueck, und alles bliebe gruen.
   const gpEqual = gpList.filter(r => r.search !== undefined && r.search === r.replacement);
   check('Und kein Ersatz ist mit seinem Suchtext wortgleich',
     gpEqual.length === 0, gpEqual.map(r => r.nr).join(' '));
-  // Jeder Eintrag traegt entweder eine Textersetzung ODER eine Kopie, nie
-// beides und nie keines von beiden.
   const gpForm = gpList.filter(r =>
     (r.copy === undefined) === (r.search === undefined || r.replacement === undefined));
   check('Jeder Rueckbau traegt entweder Suche und Ersatz oder eine Kopie',
     gpForm.length === 0, gpForm.map(r => r.nr).join(' '));
-  // Und er nennt die Gruppe, in der die roten Punkte erwartet werden.
   const gpWithoutExpected = gpList.filter(r => !r.expected || !r.name);
   check('Und jeder nennt Name und erwartete Gruppe',
     gpWithoutExpected.length === 0, gpWithoutExpected.map(r => r.nr).join(' '));
 
-  /* ---- Jeder Rueckbau laesst eine uebersetzbare Datei zurueck; sonst zeigt er nur kaputten Code ----
-     `new vm.Script` uebersetzt ohne Ausfuehren. Die Huelle erlaubt `return` wie ein Node-Modul,
+  /* Ein Rueckbau, der nicht uebersetzt, zeigt nur kaputten Code. `new vm.Script`
+     uebersetzt ohne Ausfuehren; die Huelle erlaubt `return` wie ein Node-Modul,
      `#!` faellt weg, weil vm.Script die Zeile nicht kennt. */
   const vm = require('vm');
   const gpShell = (text) =>
@@ -78,8 +62,7 @@ async function run() {
   for (const r of gpList) {
     if (r.replacement === undefined || !r.file.endsWith('.js')) continue;
     const src = fs.readFileSync(path.join(__dirname, ...r.file.split('/')), 'utf8');
-    /* Ein Suchtext, der nicht trifft, wird weiter oben gemeldet -- hier
-       waere er ein zweites Mal dieselbe Meldung. */
+    // Ein Suchtext, der nicht trifft, ist oben schon gemeldet.
     if (!src.includes(r.search)) continue;
     gpCompiled++;
     try { new vm.Script(gpShell(src.replace(r.search, r.replacement)), { filename: r.file }); }
@@ -89,9 +72,8 @@ async function run() {
     gpCompiled > 700, `${gpCompiled} von ${gpList.length} Rueckbauten`);
   check('Und jeder laesst eine Datei zurueck, die sich uebersetzen laesst',
     gpTorn.length === 0, gpTorn.slice(0, 6).join(' · ') || 'keine abgerissen');
-  /* UND DER WAECHTER FAENGT DEN FALL, DEN ER MEINT: eine Klammer, die stehen
-     bleibt. Gestellt und nachgemessen -- ohne diese Zeile waere die darueber
-     auch dann gruen, wenn gar nichts mehr uebersetzt wuerde. */
+  /* Gegenprobe mit einer offenen Klammer; ohne sie waere die Pruefung darueber
+     auch gruen, wenn nichts mehr uebersetzt wuerde. */
   const gpBroken = 'const a = f(1,\n  2);'.replace('f(1,', 'g(1, { x: 1,');
   let gpCaught = false;
   try { new vm.Script(gpShell(gpBroken), { filename: 'gestellt.js' }); }
@@ -99,7 +81,7 @@ async function run() {
   check('Und er faengt einen Rueckbau, der die Klammer stehen laesst',
     gpCaught, 'der Waechter sieht den gestellten Abriss nicht');
 
-  /* ---- DIE MELDUNG „STUMM" MUSS EINEN STUMMEN RUECKBAU AUCH SEHEN KOENNEN. */
+  /* ---- readRun(): stumme Rueckbauten erkennen ---- */
   const gpRead = require('./counterproof').readRun;
   check('Der Leser der Gegenprobe ist von aussen erreichbar',
     typeof gpRead === 'function', typeof gpRead);
@@ -111,8 +93,7 @@ async function run() {
   check('Ein Lauf, der NUR die Selbstprobe rot macht, gilt als stumm',
     gpOnlySelf.red.length === 1 && gpOnlySelf.byContentRed.length === 0,
     JSON.stringify([gpOnlySelf.red.length, gpOnlySelf.byContentRed.length]));
-  /* DIE GEGENLAGE, sonst belegt die Zeile darueber nichts: dieselbe Selbstprobe
-     mit EINER inhaltlichen Zeile daneben gilt sehr wohl als greifend. */
+  // Gegenprobe: mit einer inhaltlichen roten Zeile daneben greift der Rueckbau.
   const gpIncludingContent = gpRead([
     '── Die Begruendung kommt zur Ruhe — 0.15.0 ─────',
     '  ✗ Escape schliesst das Feld, ohne etwas zu schicken',
@@ -124,8 +105,7 @@ async function run() {
     gpIncludingContent.red.length === 2 && gpIncludingContent.byContentRed.length === 1 &&
     gpIncludingContent.byContentRed[0].group === 'Die Begruendung kommt zur Ruhe — 0.15.0',
     JSON.stringify(gpIncludingContent.byContentRed));
-  /* UND DIE DRITTE LAGE, an der es bis 0.16.0 falsch stand: eine ANDERE rote
-     Zeile IN der Gruppe „Die Gegenproben greifen". */
+  // Eine andere rote Zeile in der Gruppe „Die Gegenproben greifen" zaehlt als inhaltlich.
   const gpOwnGroup = gpRead([
     '── Die Gegenproben greifen ─────',
     '  ✗ Jeder Suchtext kommt in seiner Datei genau einmal vor',
@@ -137,7 +117,7 @@ async function run() {
     gpOwnGroup.byContentRed[0].name === 'Eine Nummer als Argument greift NICHT in die Namen hinein',
     JSON.stringify(gpOwnGroup.byContentRed));
 
-  /* ---- EIN ABGERISSENER LAUF MUSS SAGEN, WARUM -- 0.20.1. */
+  /* ---- Ein abgebrochener Lauf nennt den Grund ---- */
   const gpTeardown = gpRead([
     '── Alte Sicherungen aufraeumen: der echte Ordner ─────',
     '  ✓ Sieben Kopien liegen im Ordner',
@@ -152,8 +132,7 @@ async function run() {
   check('Und er hebt die letzten Zeilen auf, damit der Grund lesbar bleibt',
     gpTeardown.tail?.includes('Error: listen EADDRINUSE: address already in use 127.0.0.1:6110'),
     JSON.stringify(gpTeardown.tail));
-  /* UND DER BERICHT MUSS SIE AUCH DRUCKEN. Ein Schwanz, den nur der Leser
-     kennt, hilft niemandem: gelesen wird die Tabelle. */
+  // writeTable() muss die letzten Zeilen drucken; gelesen wird die Tabelle.
   const gpTable = require('./counterproof').writeTable;
   const printed = [];
   const realLog = console.log;
@@ -167,31 +146,25 @@ async function run() {
     printed.some(z => z.includes('EADDRINUSE')),
     JSON.stringify(printed.filter(z => /ABGERISSEN|│/.test(z))));
 
-  /* ---- WELCHES ARGUMENT WELCHEN RUECKBAU MEINT -- 0.16.0. */
+  /* ---- matchesRegression(): welches Argument welchen Rueckbau meint ---- */
   const gpMatches = require('./counterproof').matchesRegression;
   check('Die Regel, welches Argument welchen Rueckbau meint, ist von aussen erreichbar',
     typeof gpMatches === 'function', typeof gpMatches);
   const gpCase = { nr: '83', name: 'SHA-256 statt SHA-1' };
   check('Eine Nummer als Argument greift NICHT in die Namen hinein',
     gpMatches(gpCase, '256') === false, JSON.stringify(gpMatches(gpCase, '256')));
-  /* DIE GEGENLAGE, sonst belegte die Zeile darueber nichts: dieselbe Nummer
-     an ihrem eigenen Rueckbau greift sehr wohl -- die Regel darf nicht
-     einfach alles abweisen, was aus Ziffern besteht. */
+  // Gegenprobe: die Regel darf nicht alles abweisen, was aus Ziffern besteht.
   check('Und dieselbe Nummer greift an ihrem eigenen Rueckbau',
     gpMatches({ nr: '256', name: 'Ein anderer Rueckbau' }, '256') === true,
     JSON.stringify(gpMatches({ nr: '256', name: 'Ein anderer Rueckbau' }, '256')));
-  // Der Weg ueber den Namen bleibt, solange das Argument kein reiner Zahlwert
-// ist: wer nach Text sucht, schreibt Text.
   check('Ein Text als Argument greift weiterhin in die Namen',
     gpMatches(gpCase, 'sha') === true && gpMatches(gpCase, 'SHA-256') === true,
     JSON.stringify([gpMatches(gpCase, 'sha'), gpMatches(gpCase, 'SHA-256')]));
-  // Die Wortnummern sind keine reinen Ziffernfolgen und gehen deshalb weiter
-// ueber beide Wege -- sonst waeren W2, W5 und W6 unerreichbar geworden.
+  // W2, W5 und W6 sind keine reinen Ziffernfolgen und gehen ueber beide Wege.
   check('Und die Wortnummern bleiben erreichbar',
     gpMatches({ nr: 'W2', name: 'Eine Portbasis' }, 'W2') === true &&
     gpMatches({ nr: 'W2', name: 'Eine Portbasis' }, 'w2') === true,
     'W2 / w2');
-  /* UND DIE PROBE AN DER ECHTEN LISTE. */
   const gp256 = gpList.find(r => r.nr === '256');
   const gp83 = gpList.find(r => r.nr === '83');
   check('Die beiden Rueckbauten des Befundes stehen in der Liste',
@@ -203,65 +176,46 @@ async function run() {
       gpHit.length === 1 && gpHit[0] === '256', gpHit.join(' '));
   }
 
-  /* ---- KEIN FREMDER SERVER, BEVOR DIE GEGENPROBEN LOSFAHREN -- 0.21.0 ----
-     DER BEFUND: sieben Server aus abgebrochenen Laeufen hingen noch an den
-     Ports 6180 bis 6242, mitten im Fenster der Mailgruppe. */
+  /* ---- foreignServer(): kein fremder Server vor den Gegenproben ---- */
   const gpForeign = require('./counterproof').foreignServer;
   check('Die Suche nach fremden Servern ist von aussen erreichbar',
     typeof gpForeign === 'function', typeof gpForeign);
   const gpFound = typeof gpForeign === 'function' ? gpForeign() : [];
-  /* DER GEGENSTAND SIND DIE SERVER DIESES LAUFS. */
   const gpOwn = gpFound.find(f => f.script === 'server.js' && f.wo === __dirname);
   check('Und sie findet die laufenden Server dieses Laufs',
     Boolean(gpOwn), `${gpFound.length} gefunden: ` +
     gpFound.map(f => `${f.pid}:${f.script}`).slice(0, 6).join(' '));
-  /* UND SIE SAGT, WO EINER LIEGT UND AUF WELCHEM PORT. */
   check('Und sie nennt zu jedem Fund Verzeichnis und Port',
     Boolean(gpOwn) && gpOwn.wo === __dirname && /^\d+$/.test(gpOwn.port || ''),
     JSON.stringify(gpOwn));
-  /* SICH SELBST MELDET SIE NICHT. Der Treiber ist kein fremder Server -- ohne
-     diese Zeile braeche er an sich selbst ab und faende nie einen Rueckbau. */
+  // Meldete sie den eigenen Prozess, braeche der Treiber an sich selbst ab.
   check('Und sich selbst meldet sie nicht',
     !gpFound.some(f => f.pid === process.pid),
     `eigene Nummer ${process.pid}, gefunden ${gpFound.map(f => f.pid).join(' ')}`);
-  /* DER TREIBER RUFT SIE AUCH -- und geht, statt zu warnen. */
   const gpSource = fs.readFileSync(path.join(__dirname, 'counterproof.js'), 'utf8');
   const gpOneLine = gpSource.replace(/\s+/g, ' ');
-  /* SEIT 0.30.0 SIND ES ZWEI BLICKE (F7): der ueber die Befehlszeile und der
-     ueber die Ports. */
+  // Zwei Suchen: ueber die Befehlszeile und ueber die Ports.
   check('Der Treiber sieht vor dem ersten Rueckbau nach und bricht ab',
     gpOneLine.includes('const foreign = foreignServer(); const busy = foreignPort(foreign.map(f => f.port)); if (foreign.length || busy.length) {') &&
     /if \(foreign\.length \|\| busy\.length\) \{[\s\S]{0,1400}?process\.exit\(1\);/.test(gpSource) &&
     gpSource.indexOf('const foreign = foreignServer();') <
       gpSource.indexOf('await runAll(list, traces, level)'),
     (gpOneLine.match(/const foreign = foreignServer\(\)[^;]*/) || ['(nicht gefunden)'])[0]);
-  /* UND SIE SUCHT NACH BEIDEN NAMEN. Ein liegengebliebener PRUEFLAUF belegt
-     genauso Ports wie ein liegengebliebener Server -- er startet ja welche. */
+  // Ein liegengebliebener Prueflauf belegt Ports wie ein Server, er startet welche.
   check('Und sie sucht nach beiden Namen -- Server wie Prueflauf',
     gpSource.includes('const script = parts.find(t => /(^|\\/)(server\\.js|testbench\\.js|test\\/[a-z0-9_]+\\.js)$/.test(t));'),
     (gpSource.match(/const script = parts\.find[^\n]*/g) || ['(nicht gefunden)']).pop());
-  /* UND `pruefung.js` STEHT IN KEINER ZEILE CODE MEHR. */
   const gpCode = gpSource.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
   check('Und der Name, den es nie gab, steht in keiner Zeile Code mehr',
     !/pruefung\.js/.test(gpCode), 'pruefung.js steht noch im Code von counterproof.js');
 
-  /* ================= Die Wartezeiten des Pruefstands — 0.35.0 =============
-     BEFUND test/dom.js:1316 DER MESSUNG ZUR 0.35.0: 626 feste Wartezeiten in
-     den Modulen unter test/, zusammen 59.635 ms. Die Module laufen
-     nacheinander, also liegt jede dieser Millisekunden auf der Laufzeit.
-     DIESE RUNDE BAUT DAS WERKZEUG UND NIMMT DIE ELF TEUERSTEN STELLEN: die
-     Wartezeiten von 1100 ms in test/roundtrip.js warteten auf die naechste
-     Sekundengrenze der Uhr und warteten dafuer im Mittel doppelt so lange wie
-     noetig. Die uebrigen 615 Stellen warten auf das Neuzeichnen eines
-     Fensters; jede von ihnen braucht ihre eigene Bedingung, und das ist eine
-     eigene Runde. */
+  // Die Module laufen nacheinander; jede feste Wartezeit geht voll in die Laufzeit ein.
   group('Die Wartezeiten des Pruefstands — 0.35.0');
   {
     const wtRead = (f) => fs.readFileSync(path.join(__dirname, 'test', f), 'utf8');
     const wtDom = wtRead('dom.js');
     const wtFrame = wtRead('frame.js');
     const wtRound = wtRead('roundtrip.js');
-    /* DAS WERKZEUG STEHT DA UND WIRFT AN DER GRENZE. */
     check('Der Helfer steht in test/dom.js',
       /async function until\(w, condition, limitMs = \d+, what = /.test(wtDom),
       (wtDom.match(/.*async function until\(.*/) || ['(nicht gefunden)'])[0].trim());
@@ -271,14 +225,12 @@ async function run() {
     check('Und er fragt in Fuenf-Millisekunden-Schritten',
       /const UNTIL_STEP = 5;/.test(wtDom),
       (wtDom.match(/const UNTIL_STEP = .*/) || ['(keine Schrittweite)'])[0]);
-    /* UND DIE SEKUNDENGRENZE HAT IHREN EIGENEN HELFER. */
     check('Der Helfer fuer die Sekundengrenze steht in test/frame.js',
       /async function nextSecond\(limitMs = \d+\)/.test(wtFrame),
       (wtFrame.match(/.*async function nextSecond\(.*/) || ['(nicht gefunden)'])[0].trim());
     check('Und er wartet auf die Grenze und nicht auf eine Dauer',
       /while \(Math\.floor\(Date\.now\(\) \/ 1000\) === now\)/.test(wtFrame),
       (wtFrame.match(/.*Math\.floor\(Date\.now\(\) \/ 1000\).*/) || ['(keine Grenze)'])[0].trim());
-    /* UND DIE ELF STELLEN SIND WIRKLICH UMGESTELLT. */
     const wtElf = (wtRound.match(/await nextSecond\(\);/g) || []).length;
     check('Die elf Stellen in test/roundtrip.js rufen den Helfer',
       wtElf === 11, `${wtElf} Aufrufe`);
@@ -306,9 +258,7 @@ async function run() {
       wtBare.length === 0, wtBare.join(' · ') || 'alle kommentiert');
   }
 
-  /* ================= Die Ersatztexte der Rueckbauten — 0.34.1 =============
-     Ein Suchtext, der nicht mehr passt, faellt sofort auf: der Rueckbau
-     bricht ab und wird gemeldet. */
+  // Ein veralteter Suchtext faellt oben auf, ein veralteter Name im Ersatztext nicht.
   group('Die Ersatztexte der Rueckbauten — 0.34.1');
 
   const rpWord = /[A-Za-z_$][A-Za-z0-9_$]*/g;
@@ -341,8 +291,7 @@ async function run() {
   check('Kein Ersatztext nennt ein Wort, das es im Projekt nirgends gibt',
     rpUnknown.length === 0, rpUnknown.slice(0, 6).join(' · '));
 
-  /* Die schaerfere Fassung. Gelesen wird nur CODE: ein Name in einem Text ist
-     keine Benennung. */
+  // Strenger fuer Pruefstandsdateien: nur Namen aus Code zaehlen, nicht aus Strings.
   const rpCodeNames = (text, file) => {
     const found = new Set();
     for (const part of segment(text, file))
@@ -370,20 +319,13 @@ async function run() {
         && !rpBuiltIn.has(n) && !(n in globalThis));
     if (miss.length) rpStrange.push(`${r.nr} ${r.file}: ${miss.join(' ')}`);
   }
-  /* 27 WURDEN 29 MIT 0.35.2: der Routenwaechter und die Gestaltprobe
-     bekommen je eine Gegenprobe auf ihren eigenen Leser. */
-  /* UND 29 WURDEN 31 MIT 0.36.0: der Waechter ueber die Einsetzungen und die
-     Gruppe ueber npm audit bekommen je eine. */
-  /* UND 31 WURDEN 32: das Verzeichnis der lesenden Routen bekommt eine
-     Gegenprobe auf eine falsche Klemme. */
-  /* UND 32 WURDEN 33: die Zeitstempel der Sitzungen bekommen eine. */
-  // Und 35: eine feste Wartezeit in test/ui_translator.js.
+  // Mit jedem Rueckbau auf eine Pruefstandsdatei anheben.
   check('Der Waechter sieht die Rueckbauten auf Pruefstandsdateien',
-    rpChecked === 35, `${rpChecked} Rueckbauten`);
+    rpChecked === 36, `${rpChecked} Rueckbauten`);
   check('Und jeder ihrer Namen steht in der Zieldatei, im Rahmen oder im Suchtext',
     rpStrange.length === 0, rpStrange.slice(0, 6).join(' · '));
 
-  /* Und der Waechter wuerde den Fall von W2 wirklich melden. */
+  // Gegenprobe mit einem alten Namen, zerlegt, damit er hier nicht als Wort zaehlt.
   const rpGone = 'const B = ' + 'starte' + 'WeiterenServer(' + 'frisch' + 'Dir, {}, 4000);';
   const rpToday = 'const B = start' + 'FurtherServer(fresh' + 'Dir, {}, 4000);';
   const rpKnown = (line) => [...line.matchAll(rpWord)].map(m => m[0]).every(n => rpAllWords.has(n));
@@ -391,35 +333,34 @@ async function run() {
     !rpKnown(rpGone) && rpKnown(rpToday),
     `alt: ${rpKnown(rpGone)} · heute: ${rpKnown(rpToday)}`);
 
-  /* ---- Kommentare: Obergrenzen, die sinken duerfen und nicht steigen ----
-     `node tools/comments.js --write` senkt sie auf den gemessenen Stand. */
+  // Obergrenzen; `node tools/comments.js --write` senkt sie auf den gemessenen Stand.
   group('Die Kommentare je Datei — 0.34.1');
   {
     const crTool = require('./tools/comments.js');
     const crAll = crTool.measureAll();
     const COMMENT_ROWS = [
-      ['testbench.js', 77],
-      ['test/batchrun.js', 87],
-      ['test/dom.js', 341],
-      ['test/firstlogin.js', 34],
-      ['test/frame.js', 240],
-      ['test/keychange.js', 81],
-      ['test/release_029.js', 60],
-      ['test/release_030.js', 253],
-      ['test/release_031.js', 280],
-      ['test/release_041.js', 37],
-      ['test/roundtrip.js', 3308],
-      ['test/selfcheck.js', 222],
-      ['test/source.js', 649],
-      ['test/ui_entry.js', 637],
-      ['test/ui_export.js', 456],
-      ['test/ui_inventory.js', 244],
-      ['test/ui_language.js', 291],
-      ['test/ui_overview.js', 486],
-      ['test/ui_style.js', 595],
-      ['test/ui_system.js', 684],
-      ['test/ui_translator.js', 105],
-      ['counterproof.js', 1618],
+      ['testbench.js', 29],
+      ['test/batchrun.js', 26],
+      ['test/dom.js', 167],
+      ['test/firstlogin.js', 12],
+      ['test/frame.js', 116],
+      ['test/keychange.js', 42],
+      ['test/release_029.js', 14],
+      ['test/release_030.js', 94],
+      ['test/release_031.js', 88],
+      ['test/release_041.js', 25],
+      ['test/roundtrip.js', 1309],
+      ['test/selfcheck.js', 85],
+      ['test/source.js', 211],
+      ['test/ui_entry.js', 263],
+      ['test/ui_export.js', 187],
+      ['test/ui_inventory.js', 79],
+      ['test/ui_language.js', 108],
+      ['test/ui_overview.js', 171],
+      ['test/ui_style.js', 169],
+      ['test/ui_system.js', 190],
+      ['test/ui_translator.js', 24],
+      ['counterproof.js', 335],
       ['server.js', 848],
       ['auth.js', 149],
       ['db.js', 55],
@@ -436,7 +377,7 @@ async function run() {
       ['public/theme.js', 2],
       ['public/style.css', 508],
     ];
-    const COMMENT_TOTAL = { comment: 13459, code: 67963 };
+    const COMMENT_TOTAL = { comment: 6418, code: 67963 };
     // Ausgelieferte Dateien: Bloecke ueber drei Zeilen und Bloecke mit Betonung in Grossbuchstaben.
     const COMMENT_LIMITS = { longBlocks: 3, emphasis: 8 };
     check('Der Waechter sieht alle siebenunddreissig Dateien',
@@ -486,7 +427,6 @@ async function run() {
     check('Und Bloecke mit Betonung in Grossbuchstaben ebenso',
       crEmphasis <= COMMENT_LIMITS.emphasis,
       `${crEmphasis} (Obergrenze ${COMMENT_LIMITS.emphasis})`);
-    // Der Leser erkennt Betonung und laesst Abkuerzungen und Konstanten stehen.
     const crProbe = path.join(require('os').tmpdir(), `kriterion-kommentar-${process.pid}.js`);
     fs.writeFileSync(crProbe, '// Das gilt NICHT hier.\nconst MAX_ROWS = 1;\n// JSON ueber HTTPS, MAX_ROWS Zeilen.\n');
     const crProbeBlocks = crTool.blocks(path.relative(__dirname, crProbe));
@@ -496,8 +436,7 @@ async function run() {
       JSON.stringify(crProbeBlocks));
   }
 
-  /* ================= Die Groesse der Funktionen — 0.16.0 ================
-     SIE MISST, SIE WEIST NICHT AB. */
+  // Die Gruppe misst und weist nicht ab.
   group('Die Groesse der Funktionen wird gemessen');
 
   function functionLengths(source) {
@@ -520,10 +459,8 @@ async function run() {
     return found.sort((a, b) => b.rows - a.rows || a.name.localeCompare(b.name));
   }
 
-  /* ---- DAS WERKZEUG AN EINER GESTELLTEN VORLAGE ---- Ohne diese vier Zeilen
-     koennte functionLengths() die leere Liste liefern und alles darunter
-     bliebe gruen -- eine Erfolgsmeldung, die ihren eigenen Fund nicht sehen
-     kann, ist schlimmer als keine. */
+  /* Gestellte Vorlage: sonst koennte functionLengths() die leere Liste liefern,
+     und alles darunter bliebe gruen. */
   const flProbe = [
     'function eins() {',                 // 3 Zeilen
     '  return 1;',
@@ -545,13 +482,11 @@ async function run() {
   check('Und es zaehlt ihre Zeilen richtig',
     equal(flMeasured.map(f => f.rows), [5, 3, 2]),
     JSON.stringify(flMeasured.map(f => f.rows)));
-  // Die Gegenlage: eine Datei ohne Funktion liefert die leere Liste und keinen
-// Fehler -- das Stilblatt ist genau so eine.
+  // Eine Datei ohne Funktion wie public/style.css liefert die leere Liste und keinen Fehler.
   check('Und eine Vorlage ohne Funktion liefert die leere Liste',
     functionLengths('.a { color: red; }\n').length === 0);
 
-  /* ---- DIE MESSUNG AN DEN AUSGELIEFERTEN DATEIEN ---- GENANNT, NICHT
-     GEPRUEFT: der Block darunter ist eine Auskunft. */
+  /* ---- Messung an den Dateien: nur Ausgabe, keine Pruefung ---- */
   const flFiles = ['public/app.js', 'server.js', 'auth.js', 'db.js', 'attachments.js',
                      'twofactor.js', 'usertool.js', 'keytool.js', 'mail.js', 'keys.js',
                      ...benchFiles(), 'counterproof.js'];
@@ -571,10 +506,8 @@ async function run() {
   }
   console.log('  ──────────────────────────────────────────────────────────');
 
-  /* ---- UND DIE BEHAUPTUNG, DIE ROT WERDEN DARF ---- ERST DAS VORHANDENSEIN,
-     DANN DIE EIGENSCHAFT: eine Messung, die gar nichts
-     gefunden hat, liefert `undefined` -- und jede Aussage darueber waere
-     entweder wahr oder unfalsifizierbar. */
+  /* Erst pruefen, dass die Messung Funktionen findet: ohne Fund liefert sie
+     `undefined`, und jede Aussage darueber waere wertlos. */
   const flLongest = (file) => (flStatus.get(file)?.list || [])[0];
   check('Die Messung findet in public/app.js ueberhaupt Funktionen',
     (flStatus.get('public/app.js')?.list || []).length > 50,
@@ -582,15 +515,12 @@ async function run() {
   check('Und in server.js ebenso',
     (flStatus.get('server.js')?.list || []).length > 30,
     `${(flStatus.get('server.js')?.list || []).length} gefunden`);
-  /* DIE BEHAUPTUNG DIESER RUNDE. */
   check('Die laengste Funktion in public/app.js heisst renderDetail',
     flLongest('public/app.js')?.name === 'renderDetail',
     `${flLongest('public/app.js')?.name} mit ${flLongest('public/app.js')?.rows} Zeilen`);
   check('Und die laengste in server.js heisst importInto',
     flLongest('server.js')?.name === 'importInto',
     `${flLongest('server.js')?.name} mit ${flLongest('server.js')?.rows} Zeilen`);
-  /* UND DASS renderSystem() WIRKLICH ZERFALLEN IST. Das ist die Zusage dieser
-     Runde, und sie waere ohne diese Zeile nur eine Behauptung im Protokoll. */
   const flSystem = (flStatus.get('public/app.js')?.list || []).find(f => f.name === 'renderSystem');
   check('renderSystem() steht ueberhaupt noch in public/app.js', !!flSystem,
     'die Funktion gibt es nicht mehr');
@@ -599,8 +529,6 @@ async function run() {
 
   group('Das Skript auf dem Wirt ist ausfuehrbar');
 
-  /* ZWEI HAELFTEN, DIE ZUSAMMENGEHOEREN -- dieselbe Bauform wie beim
-     Sicherungsort (Einhaengung und Variable). */
   {
     const hostScripts = ['keytool.sh'];
     check('Der Lauf kennt das Skript auf dem Wirt',
@@ -612,8 +540,7 @@ async function run() {
     });
     check('Es traegt das Ausfuehrungsrecht',
       withoutRight.length === 0, `ohne Recht: ${withoutRight.join(' · ') || '—'}`);
-    /* Und die zweite Haelfte: der Einspielweg in der README zieht es nach.
-       Ohne sie steht das Recht zwar im Repo, kommt auf dem Wirt aber nicht an. */
+    // Ohne chmod im Einspielweg der README kommt das Recht auf dem Host nicht an.
     const readme = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
     check('Der Einspielweg in der README zieht das Recht nach',
       /chmod \+x kriterion\/keytool\.sh/.test(readme),
@@ -625,9 +552,6 @@ async function run() {
 
   group('Die berichtigten Behauptungen stehen nirgends mehr');
 
-  /* DREI BERICHTIGUNGEN AUS 0.19.1, und sie sind der Grund, warum es dieses
-     Projekt gibt: es standen zwei falsche Messungen und ein widerlegter Satz
-     im Quelltext und im Aenderungsprotokoll. */
   {
     const corrected = [
       ['ohne das Blob zu lesen', 'die Behauptung ueber substr()'],
@@ -636,9 +560,7 @@ async function run() {
       ['kommt am echten Bestand vor', 'der widerlegte Satz zu Rueckbau 433'],
       ['kommt am ECHTEN Bestand vor', 'der widerlegte Satz zu Rueckbau 433']
     ];
-    /* DIE SECHSTE DATEI LIEGT UNTER Doku/ UND FEHLT IM OEFFENTLICHEN STAND
-       -- 0.35.0, siehe Doku/Veroeffentlichen.md. Sie wird gelesen, wenn sie
-       dasteht; die fuenf uebrigen sind Pflicht. */
+    // SEARCH_OPTIONAL fehlt im veroeffentlichten Stand und wird nur gelesen, wenn es da ist.
     const SEARCH_OPTIONAL = 'Doku/Aenderungsprotokoll_0.19.0.md';
     const searchAlways = ['server.js', 'public/app.js', 'counterproof.js', 'README.md',
                         'CHANGELOG.md'];
@@ -653,8 +575,7 @@ async function run() {
       for (const [sentence, event] of corrected)
         if (text.includes(sentence)) matched.push(`${file}: ${event} („${sentence}")`);
     }
-    /* ERST DAS VORHANDENSEIN DES GEGENSTANDS: ein Waechter,
-       der auf null Dateien laeuft, ist gruen und belegt nichts. */
+    // Erst das Vorhandensein: ueber null Dateien waere die Verneinung darunter wahr.
     check('Der Waechter sieht die fuenf Pflichtdateien an, und die sechste wenn sie dasteht',
       searchAlways.every(d => fs.existsSync(path.join(__dirname, ...d.split('/'))))
       && searched.length >= 5,
@@ -663,19 +584,15 @@ async function run() {
        || 'alle da'));
     check('Keine der drei berichtigten Behauptungen steht noch irgendwo',
       matched.length === 0, matched.join(' · '));
-    /* UND DIE BERICHTIGUNGEN STEHEN WIRKLICH DA. */
     const serverText = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
     check('Stattdessen steht im Server, dass substr() das Blob sehr wohl liest',
       /substr\(\) auf einem Blob, 205 MB\s+657 ms/.test(serverText),
       'die Berichtigung fehlt');
-    /* UND DIE NACHGEFAHRENE MESSUNG STEHT MIT IHREM GEGENSTAND DANEBEN --
-       Zeilenzahl und Groesse der Datei, an der sie entstanden ist. */
     check('Und die nachgefahrene Messung mit ihrer Datenbankgroesse daneben',
       /400 Zeilen je 512 kB \(312 MB\)/.test(serverText) && /1338,8 ms/.test(serverText),
       'die nachgefahrene Messung fehlt');
     const gpText = fs.readFileSync(path.join(__dirname, 'counterproof.js'), 'utf8');
-    /* RUECKBAU 433 BLEIBT UND BLEIBT ALS STUMM ERWARTET -- er bewacht das
-       Vorhandensein der Regel, auch wo er ihre Wirkung nicht zeigen kann. */
+    // rb433 prueft, dass die Regel da ist, auch wo er ihre Wirkung nicht zeigen kann.
     const rb433 = require('./counterproof').REGRESSIONS.find(r => r.nr === '433');
     check('Rueckbau 433 steht weiter in der Liste und weiter als STUMM erwartet',
       !!rb433 && /STUMM/.test(rb433.expected), JSON.stringify(rb433 && rb433.expected));
@@ -686,15 +603,13 @@ async function run() {
 
   group('Die Compose-Datei wird nicht ueberschrieben');
 
-  /* DER BEFUND AUS DEM BETRIEB: `.env.example` liegt im Repo und `.env` in
-     der .gitignore -- sauber. */
+  // Dasselbe Muster wie `.env.example` und `.env`.
   {
     const ignored = fs.readFileSync(path.join(__dirname, '.gitignore'), 'utf8')
       .split('\n').map(z => z.trim());
     check('Die Vorlage liegt im Repo',
       fs.existsSync(path.join(__dirname, 'docker-compose.example.yml')),
       'docker-compose.example.yml fehlt');
-    /* UND DIE ALTE LIEGT NICHT MEHR DANEBEN. */
     const store = (() => {
       try {
         return String(execFileSync('git', ['ls-files'],
@@ -713,17 +628,10 @@ async function run() {
         'git ls-files ist gescheitert, obwohl ein .git danebensteht');
     check('Die Arbeitsdatei steht in der .gitignore',
       ignored.includes('docker-compose.yml'), ignored.join(' · '));
-    /* DIESELBE ZEILE FUER `.env` STEHT DANEBEN -- ohne sie bliebe die Zusage
-       darueber auch dann gruen, wenn jemand das Muster nur zur Haelfte
-       uebernaehme. */
     check('Und `.env` steht weiterhin daneben',
       ignored.includes('.env'), ignored.join(' · '));
-    /* DER PFLICHTSCHRITT IN DER README, in derselben Form wie bei `.env`:
-       einmal im Schritt und einmal im Pflichtsatz darunter. */
-    /* AUS DREI WURDEN ZWEI: die Erstinstallation steht in nummerierten
-       Schritten, und beide Wege -- ueber git und ueber das ZIP -- laufen
-       durch denselben Schritt. Wer nur einen von beiden liest, findet ihn
-       trotzdem, weil sie sich vorher wieder treffen. */
+    /* Zweimal: im nummerierten Schritt, den der Weg ueber git und der ueber das
+       ZIP gemeinsam durchlaufen, und im Pflichtsatz darunter. */
     const copyRows = (readmeFlat.match(/cp docker-compose\.example\.yml docker-compose\.yml/g) || []);
     check('Die README nennt den Kopierschritt im Schritt und im Pflichtsatz',
       copyRows.length === 2, `${copyRows.length} Nennungen`);
@@ -731,23 +639,19 @@ async function run() {
       /Der Schritt `cp docker-compose\.example\.yml docker-compose\.yml` ist Pflicht/
         .test(readmeFlat),
       'der Pflichtsatz fehlt');
-    /* UND SIE SAGT, WAS OHNE IHN GESCHIEHT. Ein Pflichtschritt ohne Folge
-       liest sich wie eine Empfehlung. */
+    // Ein Pflichtschritt ohne Folge liest sich wie eine Empfehlung.
     check('Und was ohne ihn geschieht',
       /no configuration file provided/.test(readmeFlat),
       'die Absage von docker compose steht nicht daneben');
   }
 
-  /* ================= Die Anleitung liegt in zwei Dateien — 0.34.2 =========
-     Der Betrieb steht in der README, die Bedienung im Handbuch. Der Schnitt
-     traegt nur, solange keine Sache an beiden Stellen steht. */
+  // Betrieb in der README, Bedienung in manual-de.md; keine Sache an beiden Stellen.
   group('Die Anleitung liegt in zwei Dateien — 0.34.2');
   {
     const guideRead = n => fs.readFileSync(path.join(__dirname, n), 'utf8');
     const readme = guideRead('README.md');
     const handbook = guideRead('manual-de.md');
-    /* ERST DAS VORHANDENSEIN: ueber zwei leeren Dateien waere jede Verneinung
-       darunter wahr. */
+    // Erst das Vorhandensein: ueber zwei leeren Dateien waere jede Verneinung darunter wahr.
     check('Beide Dateien tragen wirklich etwas',
       readme.split('\n').length > 300 && handbook.split('\n').length > 300,
       `${readme.split('\n').length} / ${handbook.split('\n').length} Zeilen`);
@@ -758,20 +662,17 @@ async function run() {
     check('Und beide haben mehr als fuenf Abschnitte',
       readmeTops.length > 5 && handbookTops.length > 5,
       `${readmeTops.length} / ${handbookTops.length} Abschnitte`);
-    /* KEINE UEBERSCHRIFT STEHT IN BEIDEN. Eine Sache an zwei Stellen ist der
-       Anfang zweier Fassungen derselben Sache. */
+    // Ein Abschnitt in beiden Dateien fuehrt zu zwei Fassungen derselben Sache.
     const doubled = readmeTops.filter(n => handbookTops.includes(n));
     check('Kein Abschnitt steht in beiden Dateien',
       doubled.length === 0, doubled.join(' · '));
 
-    /* JEDE ZEIGT AUF DIE ANDERE, und zwar mit dem Dateinamen. */
     check('Die README nennt das Handbuch beim Namen',
       /manual-de\.md/.test(readme), 'der Verweis auf manual-de.md fehlt');
     check('Und das Handbuch die README',
       /README\.md/.test(handbook), 'der Verweis auf README.md fehlt');
 
-    /* UND DER SCHNITT LIEGT WIRKLICH DORT, WO ER LIEGEN SOLL -- namentlich,
-       damit ein zurueckgewanderter Abschnitt auffaellt. */
+    // Namentlich, damit ein zurueckgewanderter Abschnitt auffaellt.
     const BENCH_ONLY = ['Anmeldung', 'Benutzer und Rollen', 'Übersicht', 'Eintrag',
       'Kommentare', 'Bewertung', 'Einstellungen', 'Export und Import', 'Vokabular',
       'Sprache', 'Hell oder dunkel', 'Auf dem Handy und auf dem Tablett', 'Schriftgröße'];
@@ -784,18 +685,14 @@ async function run() {
       HOST_ONLY.every(n => readmeTops.includes(n)),
       HOST_ONLY.filter(n => !readmeTops.includes(n)).join(' · '));
 
-    /* ---- DAS INHALTSVERZEICHNIS ---- Es steht als FETTE ZEILE und nicht als
-       Ueberschrift: eine zweite Ebene „Inhalt" stuende in beiden Dateien und
-       fiele der Zusage darueber zum Opfer. */
-    /* DIE SPRUNGMARKE WIRD GEBILDET WIE BEI GitHub: klein schreiben,
-       Satzzeichen und Gedankenstriche weg, Leerzeichen zu Bindestrichen. Der
-       Bindestrich selbst bleibt -- aus zwei Leerzeichen um einen
-       Gedankenstrich werden deshalb zwei. */
+    /* „Inhalt" steht als fette Zeile, nicht als Ueberschrift: ein Abschnitt
+       „Inhalt" stuende in beiden Dateien. */
+    /* Sprungmarke wie bei GitHub: klein, Satzzeichen und Gedankenstriche weg,
+       Leerzeichen zu Bindestrichen; aus „ — " werden so zwei Bindestriche. */
     const anchorOf = (text) => text.toLowerCase().trim()
       .replace(/[\u0000-\u001f!-,./:-@[-^`{-~\u00a0-\u00a9\u00ab-\u00b4\u00b6-\u00b9\u00bb-\u00bf\u00d7\u00f7\u2000-\u206f\u2e00-\u2e7f]/g, '')
       .replace(/ /g, '-');
-    /* GELESEN WIRD OHNE DIE CODEZAEUNE: eine Raute darin ist keine
-       Ueberschrift, und ein Klammerpaar darin keine Sprungmarke. */
+    // Ohne Codebloecke: eine Raute darin ist keine Ueberschrift, ein Klammerpaar keine Sprungmarke.
     const guideParts = (text) => {
       const heads = [], marks = [];
       let fence = false;
@@ -810,12 +707,10 @@ async function run() {
     };
     for (const [name, text] of [['README.md', readme], ['manual-de.md', handbook]]) {
       const { heads, marks } = guideParts(text);
-      /* ERST DAS VORHANDENSEIN: ueber einer Datei ohne Sprungmarken waere
-         jede Verneinung darunter wahr. */
+      // Erst das Vorhandensein: ohne Sprungmarken waere jede Verneinung darunter wahr.
       check(`${name} traegt ein Inhaltsverzeichnis`,
         /^\*\*Inhalt\*\*$/m.test(text) && marks.length >= 7,
         `${marks.length} Sprungmarken`);
-      /* UND „Inhalt" IST KEINE UEBERSCHRIFT DER ZWEITEN EBENE. */
       check(`Und „Inhalt" steht dort nicht als Abschnitt`,
         !heads.some(([k, t]) => k === 'h2' && t === 'Inhalt'),
         heads.filter(([k]) => k === 'h2').map(([, t]) => t).join(' · '));
@@ -831,9 +726,8 @@ async function run() {
   }
 
 
-  /* ==================== Die Lizenz geht mit hinaus ====================
-     Ohne LICENSE ist der Stand rechtlich unklar; ohne den Abschnitt in der
-     README weiss niemand, was die Abhaengigkeiten mitbringen. */
+  /* Ohne LICENSE ist die Weitergabe rechtlich unklar; der Abschnitt in der
+     README nennt, was die Abhaengigkeiten mitbringen. */
   group('Die Lizenz geht mit hinaus');
   {
     const licText = fs.readFileSync(path.join(__dirname, 'LICENSE'), 'utf8');
@@ -841,7 +735,7 @@ async function run() {
     check('Und traegt einen Urheberrechtsvermerk mit Jahr',
       /^Copyright \(c\) 20\d\d .+$/m.test(licText),
       (licText.match(/^Copyright.*$/m) || ['keiner'])[0]);
-    /* DER HAFTUNGSAUSSCHLUSS IST DER TEIL, DEN EIN KUERZEN ZUERST TRIFFT. */
+    // Der Haftungsausschluss faellt beim Kuerzen zuerst weg.
     check('Und den Haftungsausschluss', /WITHOUT WARRANTY OF ANY KIND/.test(licText)
       && /IN NO EVENT SHALL/.test(licText), `${licText.length} Zeichen`);
 
@@ -855,21 +749,18 @@ async function run() {
       'das Abzeichen fehlt');
     check('Und einen eigenen Abschnitt', /^## Lizenz$/m.test(rd),
       'der Abschnitt „Lizenz" fehlt');
-    /* DIE AUSKUNFT UEBER libvips DARF NICHT STILL WEGFALLEN: sie ist der
-       einzige Punkt, an dem MIT nicht die ganze Antwort ist. */
+    // libvips ist die einzige Stelle, an der MIT nicht die ganze Antwort ist.
     check('Und nennt die LGPL der Bildbibliothek',
       /LGPL/.test(rd) && /sharp-libvips/.test(rd),
       'LGPL oder sharp-libvips fehlt im Abschnitt');
 
-    /* DER TRANSPARENZVERMERK DARF NICHT STILL WEGFALLEN. Der Zeitraum steht
-       statt einer Versionsnummer: gefordert ist die Form, nicht der Monat. */
+    // Zeitraum statt Versionsnummer; geprueft wird die Form, nicht der Monat.
     check('Und sagt, wie der Code entstanden ist',
       /^## Wie dieser Code entstanden ist$/m.test(rd) && /Claude Code/.test(rd)
       && /[A-ZÄÖÜ][a-zäöüß]+\s+bis\s+[A-ZÄÖÜ][a-zäöüß]+\s+20\d\d/.test(rd),
       'der Abschnitt, das Werkzeug oder der Zeitraum fehlt');
 
-    /* KEINE ABHAENGIGKEIT DARF DIE WEITERGABE UNTER MIT VERHINDERN. LGPL
-       darf, GPL und AGPL nicht -- sie greifen auf das ganze Werk durch. */
+    // LGPL ist erlaubt; GPL und AGPL erstrecken sich auf das ganze Werk.
     const modRoot = path.join(__dirname, 'node_modules');
     const packs = [];
     for (const e of fs.readdirSync(modRoot, { withFileTypes: true })) {
@@ -892,45 +783,32 @@ async function run() {
       strict.length === 0, strict.join(' · ') || `${packs.length} Pakete gelesen`);
   }
 
-  /* ============ Der Treiber sieht den Rueckgabewert — 0.34.4 ============
-     test/frame.js schreibt die Meldung, raeumt danach auf und beendet erst
-     dann. Stirbt ein Modul in dieser Luecke, liegt eine vollstaendige Meldung
-     vor und der Rueckgabewert ist trotzdem nicht 0. Bis 0.34.3 hat der
-     Treiber nur die Meldung gelesen und einen solchen Lauf fuer bestanden
-     gehalten. */
+  /* test/frame.js schreibt die Meldung vor dem Aufraeumen; stirbt ein Modul
+     dazwischen, zeigt nur der Rueckgabewert den Fehler. */
   group('Der Treiber sieht den Rueckgabewert — 0.34.4');
   {
-    /* Die Probe in test/frame.js liegt hinter dem Schreiben der Meldung und
-       vor dem Aufraeumen. Sie greift nur, wenn die Umgebungsvariable den
-       Modulnamen traegt; ein Lauf ohne sie merkt nichts davon. */
+    // TESTBENCH_DIE_AFTER_REPORT greift nur fuer das Modul, dessen Namen sie traegt.
     const driverFrame = fs.readFileSync(path.join(__dirname, 'test', 'frame.js'), 'utf8');
     const driverAt = t => driverFrame.indexOf(t);
     check('Die Probe liegt zwischen Meldung und Aufraeumen',
       driverAt('TESTBENCH_REPORT') < driverAt('TESTBENCH_DIE_AFTER_REPORT')
-      && driverAt('TESTBENCH_DIE_AFTER_REPORT') < driverAt('DER HAUPTSERVER GEHOERT DAZU'),
+      && driverAt('TESTBENCH_DIE_AFTER_REPORT') < driverAt('for (const l of CASES) { try { l.kind.kill(); } catch {} }'),
       'die Reihenfolge in test/frame.js stimmt nicht');
 
-    /* Ein Teillauf ueber eine Gruppe, die nur test/source.js traegt. Dieses
-       Modul startet keinen Server: der Lauf kostet vier Sekunden und keine
-       Portnummer, und er kann dem laufenden Lauf nichts wegnehmen. */
+    /* Die Gruppe steht nur in test/source.js, das keinen Server startet: rund
+       vier Sekunden, keine Portnummer. */
     const driver = spawnSync(process.execPath,
       ['testbench.js', 'Kein Stolpersteinverweis mehr'],
       { cwd: __dirname, encoding: 'utf8',
         env: { ...process.env, TESTBENCH_DIE_AFTER_REPORT: 'source' } });
     const driverText = (driver.stdout || '') + (driver.stderr || '');
     const driverRed = driverText.split('\n').filter(z => z.includes('✗')).join(' | ');
-    /* ERST DAS VORHANDENSEIN: kaeme aus dem Kindprozess gar nichts, waere
-       jede Verneinung darunter wahr. */
+    // Erst das Vorhandensein: ohne Ausgabe des Kinds waere jede Verneinung darunter wahr.
     check('Der Teillauf laeuft ueberhaupt',
       /Pruefungen bestanden/.test(driverText), JSON.stringify(driverText.slice(0, 160)));
-    /* Das Modul hat seine sieben Zahlen gemeldet -- die achte Pruefung ist
-       die des Treibers. Fuenf und sechs waren es bis 0.35.2; die Gruppe hat
-       zwei Pruefungen dazubekommen, seit sie das Stilblatt und die
-       SQL-Kommentare des Schemas mitliest. Die Meldung nennt die Zahlen und NICHT den Satz, in dem
-       sie stehen: counterproof.js liest `\d+ von \d+ Pruefungen bestanden` als
-       Gesamtzahl des Laufs und nimmt den ersten Treffer. Stuende der Satz hier,
-       traege jeder Gegenprobebericht, in dem diese Pruefung rot wird, die Zahl
-       des Teillaufs statt die des Laufs. */
+    /* 7 von 8: sieben Pruefungen der Gruppe in test/source.js, die achte ist die
+       des Treibers. Die Meldung nennt nur Zahlen, weil counterproof.js den ersten
+       Treffer von `\d+ von \d+ Pruefungen bestanden` als Gesamtzahl liest. */
     const driverScore = driverText.match(/(\d+) von (\d+) Pruefungen bestanden/);
     check('Das Modul meldet seine Zahlen noch',
       driverScore && driverScore[1] === '7' && driverScore[2] === '8',
@@ -943,15 +821,9 @@ async function run() {
     check('Der Lauf endet rot', driver.status === 1, `Code ${driver.status}`);
   }
 
-  /* ============ Die Schalterprobe haengt nicht am Elternlauf — 0.35.0 =====
-     test/release_030.js startet ein Kind, um zu
-     belegen, dass die Zeitzeile OHNE Schalter nicht dasteht -- und hat
-     TESTBENCH_TIME dabei an das Kind vererbt. Die Pruefung war gruen, weil
-     der Elternprozess zufaellig keinen Schalter trug: derselbe Stand meldete
-     mit TESTBENCH_TIME=1 nur 6892 von 6893.
-
-     GEPRUEFT WIRD DER QUELLTEXT und nicht ein zweiter Lauf. Ein Lauf, der die
-     Lage nachstellt, kostet elf Sekunden und belegt am Ende dieselbe Zeile. */
+  /* test/release_030.js muss TESTBENCH_TIME im Kind leeren, sonst haengt das
+     Ergebnis vom Elternlauf ab. Geprueft wird der Quelltext; ein Lauf, der die
+     Lage nachstellt, kostet elf Sekunden. */
   group('Die Schalterprobe haengt nicht am Elternlauf — 0.35.0');
   {
     const switchText = fs.readFileSync(
@@ -961,28 +833,20 @@ async function run() {
     check('Die Probe ohne Schalter steht vor der Behauptung ueber sie',
       probeAt > -1 && claimAt > probeAt,
       `tProbe bei ${probeAt}, Behauptung bei ${claimAt}`);
-    /* Und sie raeumt den Schalter ausdruecklich weg, statt process.env
-       unbesehen zu uebernehmen. Ohne diese Zeile belegt die Pruefung nur,
-       wie der Elternlauf gerade gestartet worden ist. */
     const probeCall = switchText.slice(probeAt, switchText.indexOf('});', probeAt));
     check('Und sie raeumt TESTBENCH_TIME im Kind ausdruecklich weg',
       /TESTBENCH_TIME:\s*''/.test(probeCall), JSON.stringify(probeCall));
   }
 
-  /* ---------------------------------------------------------------- */
   group('Bekannte Luecken in den Abhaengigkeiten');
 
-  /* DER SCHRITT „Bekannte Luecken" LAEUFT AUF DER WERKBANK und bis zu dieser
-     Fassung nirgends sonst: wer oertlich prueft, sah eine neue Meldung erst
-     nach dem Push. */
+  // Lokal, damit eine neue Meldung vor dem Push auffaellt und nicht erst in der CI.
   {
     const naRun = spawnSync('npm', ['audit', '--json'], {
       cwd: __dirname, encoding: 'utf8', timeout: 120000 });
     let naReport = null;
     try { naReport = JSON.parse(naRun.stdout || ''); } catch {}
-    /* OHNE NETZ WIRD UEBERSPRUNGEN, UND DIE GRUPPE SAGT ES. Ein Pruefstand,
-       der ohne Netz rot wird, ist kein Pruefstand -- und einer, der still
-       ausfaellt, belegt nichts. */
+    // Ohne Netz uebersprungen und gemeldet: rot waere falsch, still waere unbemerkt.
     const naOffline = !naReport || Boolean(naReport.error);
     if (naOffline) {
       const naWhy = (naReport && (naReport.message
@@ -996,8 +860,7 @@ async function run() {
       check('npm audit meldet keine einzige Luecke',
         Number(naCounts.total) === 0 && naNames.length === 0,
         `${JSON.stringify(naCounts)} · ${naNames.slice(0, 8).join(' ')}`);
-      /* UND DIE AUSKUNFT IST WIRKLICH EINE: eine leere Tafel machte die Zeile
-         darueber wahr, ohne etwas zu belegen. */
+      // Eine leere Auskunft machte die Pruefung darueber wahr.
       check('Und die Auskunft nennt die gezaehlten Stufen',
         ['info', 'low', 'moderate', 'high', 'critical']
           .every(z => Number.isFinite(Number(naCounts[z]))),
