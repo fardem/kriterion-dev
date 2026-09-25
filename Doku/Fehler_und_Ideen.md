@@ -195,7 +195,7 @@ sagt der Fahrplan.
 | **0.39.0** | Die Fotokachel nach `photo_derivatives`, mit einer Sicherung davor. *Gemessen: der Umweg kostet nur den, der die Kachel wirklich holt — bis 100 kB Original 0,02 ms, ueber 1 MB 14,8 ms* | **ja** |
 | **0.40.0** | Export, Import und Papierkorb ohne den Arbeitsspeicher — erst am Bestand messen | nein |
 | **0.41.0** | Backup, Videos in Kommentaren und der Prüfstand ohne feste Wartezeiten: 618 feste Wartezeiten, die Hinweise zu Export, Import und Backup und sieben Punkte vom 23. September 2026. Auftrag erteilt am 23. September 2026 | **ja** |
-| **0.42.0** | Dokumente über einen Document Server ansehen | nein |
+| **0.42.0** | Dokumente über einen Document Server ansehen. Auftrag erteilt am 25. September 2026 | nein |
 | **0.43.0** | Dokumente über den Document Server bearbeiten | nein |
 | *danach* | Große Dateien bis 2 GB — eigenes Papier, im Fahrplan als „danach" | **ja** |
 
