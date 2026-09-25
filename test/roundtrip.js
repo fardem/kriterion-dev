@@ -3377,6 +3377,17 @@ async function sendImport(object, mode, withoutShare = false) {
     personalDa('views', 1) && !personalDa('views', 2),
     `beim Ersten ${personalDa('views', 1)}, beim Zweiten ${personalDa('views', 2)}`);
   dDb.close();
+  {
+    const dFix = open(path.join(dDir, 'katalog.sqlite'));
+    const dWas = dFix.prepare("SELECT value FROM user_settings WHERE user_id = 2 AND key = 'font'").get();
+    dFix.prepare("INSERT OR REPLACE INTO user_settings (user_id, key, value) VALUES (2, 'font', '999')").run();
+    const dOdd = (await dCall('cookie-d-zwei', 'GET', '/api/settings')).content;
+    if (dWas) dFix.prepare("UPDATE user_settings SET value = ? WHERE user_id = 2 AND key = 'font'").run(dWas.value);
+    else dFix.prepare("DELETE FROM user_settings WHERE user_id = 2 AND key = 'font'").run();
+    dFix.close();
+    check('Ein gespeicherter Wert ausserhalb der Stufen faellt auf die Vorgabe zurueck',
+      dOdd.font === 100, `font ${dOdd.font}`);
+  }
 
   /* Die Kaskade an user_settings.user_id. Die Anwendung entfernt keine
      Benutzerzeile -- geloescht heisst Grabstein. */
