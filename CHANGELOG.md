@@ -30,6 +30,53 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.41.1] - 2026-09-25
+
+*Texte der Oberfläche, README, Handbuch und Kommentare überarbeitet.*
+
+Fingerprint `dcbfdfb6` — davor `d5aaeb21`.
+
+### Hinzugefügt
+
+- Auf der Seite zum Setzen des Passworts der Hinweis, dass ein Admin einen
+  neuen Link erzeugen kann.
+- Die README beschreibt, wie ein Backup zurückgespielt wird.
+
+### Geändert
+
+- **Die Texte der Oberfläche sind in Deutsch, Englisch und Türkisch
+  abgestimmt:** Anweisungen im Infinitiv, ganze Sätze statt zusammengesetzter
+  Stücke, kürzere Hinweise ohne rhetorische Fragen.
+- **Die Rolle mit allen Rechten heißt „Eigentümer-Admin“**, englisch „Owner
+  admin“, türkisch „Sahip yönetici“.
+- **„Account“ statt „Zugang“ und „Konto“.** Update, Backup, Migration, Link,
+  Cookie und Login bleiben englisch.
+- Betonte Wörter stehen fett im Satz statt in Großbuchstaben.
+- Die Hinweise beim Hochladen nennen die eingestellte Grenze statt fest 50 MB
+  und 20 MB.
+- Türkisch: „parola belirle“ statt „parola ayarla“, das Backup heißt
+  „yedekleme“.
+- **README und Handbuch sind nach Leser getrennt:** die README beschreibt
+  Installation und Betrieb (457 statt 1.318 Zeilen), das Handbuch die
+  Bedienung (620 statt 1.622).
+- `.env.example` beschreibt nur die drei Einstellungen der Datei.
+- Die Kommentare im Quelltext sind von 16.850 auf 6.410 Zeilen gekürzt.
+
+### Behoben
+
+- Mehrere Sätze in Englisch und Türkisch waren abgebrochen oder
+  grammatisch falsch, unter anderem der Hinweis zum Mailserver und der zum
+  Schlüssel neben dem Backup.
+- Die README beschrieb den Export als einen String mit einer Grenze von
+  512 MB. Die Grenze gilt je Eintrag und liegt bei rund 345 MB.
+- `.env.example` nannte für den Schlüsselwert die Karte „Verschlüsselung“;
+  er steht in der Karte „Kennzahlen“.
+
+### Entfernt
+
+- 72 Schlüssel je Sprachdatei (1.258 → 1.186). Es waren Bruchstücke von
+  Sätzen, die jetzt in einem Schlüssel stehen.
+
 ## [0.41.0] - 2026-09-23
 
 *Backup, Videos in Kommentaren und der Prüfstand ohne feste Wartezeiten.*
