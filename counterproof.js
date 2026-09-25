@@ -417,8 +417,8 @@ const REGRESSIONS = [
   {
     nr: '54', name: 'Die Zeile bleibt nach der Freischaltung stehen',
     file: 'server.js',
-    search: "  auth.removeRequest(a.id);\n  /* DIE ZEILE NENNT DEN NEUEN ZUGANG",
-    replacement: "  /* DIE ZEILE NENNT DEN NEUEN ZUGANG",
+    search: "  auth.removeRequest(a.id);\n  /* Der Protokolleintrag nennt den neuen Zugang",
+    replacement: "  /* Der Protokolleintrag nennt den neuen Zugang",
     expected: 'Die Selbstanmeldung: die Freischaltung'
   },
   {
@@ -3765,8 +3765,8 @@ const REGRESSIONS = [
     /* DER WAECHTER UEBER DIE BERICHTIGTEN BEHAUPTUNGEN LAEUFT INS LEERE. */
     nr: '479', name: 'Die Berichtigung zu substr() faellt aus dem Quelltext',
     file: 'server.js',
-    search: "   BERICHTIGT: substr() AUF EINEM BLOB LIEST DAS BLOB, gemessen 657 ms bei",
-    replacement: "   BERICHTIGT: substr() liest wenig, gemessen 657 ms bei",
+    search: "     substr() auf einem Blob, 205 MB               657 ms */",
+    replacement: "     substr() liest wenig, 205 MB                  657 ms */",
     expected: 'Die berichtigten Behauptungen stehen nirgends mehr'
   },
 
@@ -6332,8 +6332,8 @@ const REGRESSIONS = [
     /* DER SERVER SAGT DER OBERFLAECHE NICHT MEHR, WIE DER SCHALTER STEHT. */
     nr: '810', name: 'Die Antwort verschweigt, wie der Schalter steht',
     file: 'server.js',
-    search: "  potentialMode: potentialMode(),\n  /* DIE WAHL DER BILDABLAGE",
-    replacement: "  /* DIE WAHL DER BILDABLAGE",
+    search: "  potentialMode: potentialMode(),\n  imageStore: imageStore(),",
+    replacement: "  imageStore: imageStore(),",
     expected: 'Der Potenzialmodus — 0.26.0'
   },
   {
@@ -8985,8 +8985,8 @@ const REGRESSIONS = [
   {
     nr: '1127', name: 'Ein Kommentar nennt wieder ein Papier beim Namen',
     file: 'server.js',
-    search: '// Die Grenzen reisen am Gesuch mit: der Fehler-Handler sieht die Route nicht mehr.',
-    replacement: '// Die Grenzen reisen am Gesuch mit -- Projektstand 5.3. Der Fehler-Handler sieht die Route nicht mehr.',
+    search: "// req.caps: der Fehler-Handler kennt die Route nicht mehr.",
+    replacement: "// req.caps -- Projektstand 5.3. Der Fehler-Handler kennt die Route nicht mehr.",
     expected: 'Kein Papierverweis geht mit hinaus'
   },
   {

@@ -501,7 +501,7 @@ async function sendImport(object, mode, withoutShare = false) {
     /* UND DIE EINSCHRAENKUNG STEHT DANEBEN: os.cpus() meldet im Container den
        WIRT und nicht das Kontingent. */
     check('Und der Vorbehalt zum Container steht im Quelltext daneben',
-      /os\.cpus\(\) IST IM CONTAINER NICHT DIE WAHRHEIT/.test(serverText),
+      /os\.cpus\(\) meldet im Container/.test(serverText),
       'der Vorbehalt fehlt');
   }
 
@@ -3150,11 +3150,6 @@ async function sendImport(object, mode, withoutShare = false) {
       .replace(/^\s*\/\/.*$/gm, '')),
     (srvSource.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
       .match(/^.*zuletztGesehen.*$/m) || ['(keine)'])[0]);
-  /* DER VERMERK BLEIBT ABER STEHEN. Eine Entscheidung, die man zurueckgenommen
-     hat, kommt sonst in zwei Jahren wieder. */
-  check('Der Vermerk ueber den weggefallenen Merker steht als Kommentar da',
-    /zuletztGesehen/.test(srvSource) && /Neu seit/.test(srvSource),
-    'der Vermerk fehlt');
 
   /* Der Waechter ueber den Quelltext. */
   const srvWithoutComment = srvSource

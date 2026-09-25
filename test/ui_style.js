@@ -1579,12 +1579,7 @@ async function run() {
                           'keys.js', 'keytool.js', 'twofactor.js'];
     /* WAS STEHENBLEIBEN DARF, STEHT MIT SEINER ZAHL DA und nicht als blosse
        Erlaubnis: verglichen wird die ganze Liste. */
-    /* SEIT 0.34.1 NUR NOCH EINE: die vier Vorkommen in public/app.js standen
-       in Kommentaren, die diese Runde gekuerzt hat. Uebrig ist die Stelle in
-       server.js, an der das Wort Teil eines Bezeichners ist. */
-    const ALLOWED = {
-      'server.js': ['Anlagenbytes']
-    };
+    const ALLOWED = {};
     const found = {};
     for (const file of shipped)
       found[file] = fs.readFileSync(path.join(__dirname, ...file.split('/')), 'utf8')
@@ -1593,14 +1588,8 @@ async function run() {
     check('Das Wort „Anlage" steht nur noch, wo es ausdruecklich stehenbleibt',
       left.length === 0,
       left.map(d => `${d}: ${found[d].join(', ')}`).join(' · '));
-    /* UND DIE ERLAUBNIS IST KEINE LEERE HUELSE: die Ausnahme steht wirklich
-       noch da, und public/app.js traegt keine mehr. */
-    check('Und die eine Ausnahme zeigt wirklich auf etwas',
-      found['server.js'].length === 1 && found['public/app.js'].length === 0,
-      `${found['server.js'].length} / ${found['public/app.js'].length}`);
-    /* ZEHN VON ELF DATEIEN TRAGEN DAS WORT GAR NICHT MEHR. */
-    check('Und zehn der elf ausgelieferten Dateien kennen es gar nicht mehr',
-      shipped.filter(d => found[d].length === 0).length === 10,
+    check('Keine der ausgelieferten Dateien kennt es noch',
+      shipped.filter(d => found[d].length === 0).length === shipped.length,
       `${shipped.filter(d => found[d].length === 0).length}`);
     check('In attachments.js steht „Anlage" hoechstens an den drei Stellen, die einen Anhang meinen',
       (fs.readFileSync(path.join(__dirname, 'attachments.js'), 'utf8').match(/[Aa]nlage/g) || []).length <= 3,
