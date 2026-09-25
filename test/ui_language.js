@@ -824,7 +824,7 @@ async function run() {
     check('Die Positivliste hat genau die zwei Videoregeln',
       videos === 2, `${videos} Stellen mit background: #000`);
     check('Und das Stilblatt schreibt daneben, warum sie eine Ausnahme sind',
-      /Positivliste[\s\S]{0,400}RAND EINES VIDEOS/.test(cssF),
+      /Video[\s\S]{0,200}Positivliste in test\/ui_language\.js/.test(cssF),
       /Positivliste/.test(cssF) ? 'Begruendung gefunden' : '(kein Wort davon)');
     /* DIE ZWEITE HAELFTE: die Tripel gibt es, und sie tragen die Farben, auf
        die sich alles Uebrige beruft. */

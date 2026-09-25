@@ -3866,7 +3866,7 @@ async function run() {
     /#cleanup-list \{ flex: none; max-height: 13\.98rem; \}/.test(afStyle),
     (afStyle.match(/#cleanup-list[^\n]*/) || ['(keine Regel)'])[0]);
   check('Und die Rechnung dahinter steht im Stilblatt',
-    /5 x 41,92 \/ 15 = 13,973/.test(afStyle), 'die Rechnung fehlt');
+    /5 x 41,92( px)? \/ 15 = 13,973/.test(afStyle), 'die Rechnung fehlt');
 
   /* --- DER SCHALTER UND DIE BEIDEN FELDER, mit den kurzen Texten. --- */
   check('Der Schalter steht auf aus',

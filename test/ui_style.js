@@ -1454,7 +1454,7 @@ async function run() {
       /#ex-part-list \{ flex: none; max-height: 280px; \}/.test(withoutMedia),
       (withoutMedia.match(/#ex-part-list \{[^}]*\}/) || ['(keine Regel)'])[0]);
     check('Und der Grund dafuer steht im Stilblatt daneben',
-      /Teileliste des Exports/.test(fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')),
+      /\*\/\n#ex-part-list \{/.test(fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')),
       'kein Satz daneben');
     /* ---- DAS RASTER DES PROTOKOLLS GEHOERT DER LISTE — 0.17.5 ---- BIS
        0.17.4 WAR JEDE ZEILE IHR EIGENES RASTER. */

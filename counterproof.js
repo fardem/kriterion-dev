@@ -8837,8 +8837,8 @@ const REGRESSIONS = [
        oeffentlichen Stand zeigt er auf nichts. */
     nr: '1110', name: 'Das Stilblatt verweist wieder auf eine Datei unter Doku/',
     file: 'public/style.css',
-    search: "/* ═════════════════ DAS HELLE SCHEMA ═════════════════ Latte: kein Wert",
-    replacement: "/* ═════════════════ DAS HELLE SCHEMA -- Doku/Farbkonzept_0_23_0.md ═══ Latte: kein Wert",
+    search: "/* ---- Helles Schema ---- */",
+    replacement: "/* ---- Helles Schema -- Doku/Farbkonzept_0_23_0.md ---- */",
     expected: 'Kein Verweis auf Doku/ geht mit hinaus — 0.35.2'
   },
   /* ---- Jeder Rueckbau laesst eine ladbare Datei zurueck -- 0.35.2, BA 7 ---- */
@@ -8877,8 +8877,8 @@ const REGRESSIONS = [
        Dateiliste dieses Waechters. */
     nr: '1114', name: 'Das Stilblatt nennt wieder eine solche Nummer',
     file: 'public/style.css',
-    search: "   Dreispaltenraster schoeben alles um eine Spalte weiter. */",
-    replacement: "   Dreispaltenraster schoeben alles um eine Spalte weiter (Stolper" + "stein 47). */",
+    search: "   im Vierspaltenraster verschoeben sich sonst alle Zellen. */",
+    replacement: "   im Vierspaltenraster verschoeben sich sonst alle Zellen (Stolper" + "stein 47). */",
     expected: 'Kein Stolpersteinverweis mehr — 0.34.3'
   },
   {
