@@ -15,7 +15,7 @@ async function run() {
 
   const gpList = require('./counterproof').REGRESSIONS;
   // Mit jedem neuen Rueckbau in counterproof.js anheben.
-  check(`Es sind genau 1141 Rueckbauten`, gpList.length === 1141, `${gpList.length}`);
+  check(`Es sind genau 1148 Rueckbauten`, gpList.length === 1148, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* Jede Datei nur einmal lesen: ueber tausend Rueckbauten verteilen sich auf
@@ -341,7 +341,7 @@ async function run() {
     const COMMENT_ROWS = [
       ['testbench.js', 29],
       ['test/batchrun.js', 26],
-      ['test/dom.js', 167],
+      ['test/dom.js', 169],
       ['test/firstlogin.js', 12],
       ['test/frame.js', 116],
       ['test/keychange.js', 42],
@@ -349,9 +349,10 @@ async function run() {
       ['test/release_030.js', 94],
       ['test/release_031.js', 88],
       ['test/release_041.js', 25],
+      ['test/release_042.js', 7],
       ['test/roundtrip.js', 1309],
       ['test/selfcheck.js', 85],
-      ['test/source.js', 210],
+      ['test/source.js', 211],
       ['test/ui_entry.js', 263],
       ['test/ui_export.js', 185],
       ['test/ui_inventory.js', 79],
@@ -361,7 +362,7 @@ async function run() {
       ['test/ui_system.js', 190],
       ['test/ui_translator.js', 24],
       ['counterproof.js', 335],
-      ['server.js', 848],
+      ['server.js', 853],
       ['auth.js', 149],
       ['db.js', 55],
       ['mail.js', 17],
@@ -373,15 +374,16 @@ async function run() {
       ['usertool.js', 6],
       ['twofactor.js', 14],
       ['keytool.js', 20],
-      ['public/app.js', 977],
+      ['docserver.js', 16],
+      ['public/app.js', 984],
       ['public/theme.js', 2],
-      ['public/style.css', 505],
+      ['public/style.css', 506],
     ];
-    const COMMENT_TOTAL = { comment: 6410, code: 67955 };
+    const COMMENT_TOTAL = { comment: 6449, code: 68786 };
     // Ausgelieferte Dateien: Bloecke ueber drei Zeilen und Bloecke mit Betonung in Grossbuchstaben.
     const COMMENT_LIMITS = { longBlocks: 3, emphasis: 6 };
-    check('Der Waechter sieht alle siebenunddreissig Dateien',
-      crAll.each.length === 37 && COMMENT_ROWS.length === 37,
+    check('Der Waechter sieht alle neununddreissig Dateien',
+      crAll.each.length === 39 && COMMENT_ROWS.length === 39,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
     const crWrong = [];
     for (let i = 0; i < COMMENT_ROWS.length; i++) {
@@ -416,7 +418,7 @@ async function run() {
     const crShippedOver = crShipped.filter(r => r.comment / r.rows > 0.25)
       .map(r => `${r.file} ${(r.comment / r.rows * 100).toFixed(1)}%`);
     check('Und keine ausgelieferte JavaScript-Datei liegt ueber 25 Prozent',
-      crShipped.length === 14 && crShippedOver.length === 0,
+      crShipped.length === 15 && crShippedOver.length === 0,
       crShippedOver.join(' · ') || `${crShipped.length} Dateien`);
     const crBlocks = crTool.SHIPPED.flatMap(f => crTool.blocks(f));
     const crLong = crBlocks.filter(b => b.rows > 3).length;
@@ -489,7 +491,7 @@ async function run() {
   /* ---- Messung an den Dateien: nur Ausgabe, keine Pruefung ---- */
   const flFiles = ['public/app.js', 'server.js', 'auth.js', 'db.js', 'attachments.js',
                      'twofactor.js', 'usertool.js', 'keytool.js', 'mail.js', 'keys.js',
-                     ...benchFiles(), 'counterproof.js'];
+                     'docserver.js', ...benchFiles(), 'counterproof.js'];
   const flStatus = new Map();
   console.log('');
   console.log('  ── Die laengsten Funktionen je Datei ──────────────────────');

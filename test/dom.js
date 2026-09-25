@@ -140,7 +140,11 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
   calculationEqual = undefined,
   /* Schnitt und Stimmenzahl je Kriterienzeile. */
   voteColumns = null,
-  entryMine = false } = {}) {
+  entryMine = false,
+  /* Anhaenge hinter den vier der Vorgabe. */
+  extraAttachments = [],
+  /* Die Karte „Dokumente": Zustand und Ergebnis der Pruefung. */
+  documentServer = null, documentServerCheck = null } = {}) {
   // Kommt aus dem jsdom-Paket des Aufrufers; require liest nur den Modulcache.
   const { VirtualConsole } = require('jsdom');
   settings = { searchProviders: DOM_PROVIDER, searchNames: 3, ...settings };
@@ -395,7 +399,8 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       { id: 43, filename: 'doku.pdf', mime_type: 'application/pdf', size: 900000, sort_order: 2, preview: 'pdf',
         created_at: '2026-08-02 12:00:00', mine: true, author: vChefin },
       { id: 44, filename: 'archiv.zip', mime_type: 'application/zip', size: 5242880, sort_order: 3, preview: 'keine',
-        created_at: '2026-08-03 13:00:00', mine: false, author: null }
+        created_at: '2026-08-03 13:00:00', mine: false, author: null },
+      ...extraAttachments
     ],
     tags: tags.filter(t => t.assigned),
     // mine: ob der Testtag dem Abrufenden gehoert, wie am Server.
@@ -1147,6 +1152,10 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     if (url.startsWith('/api/attachments/41/preview'))
       return give({ kind: 'text', text: 'Erste Zeile\nZweite Zeile', shortened: false });
     /* Nur fuer Admins, wie am Server. */
+    if (url === '/api/document-server') return give(documentServer || {
+      rows: [], secret: false, setup: 'server.docNoAddress', on: false });
+    if (url === '/api/document-server/check')
+      return give(documentServerCheck || { key: 'server.docNoAddress', values: {} });
     if (url === '/api/stats') {
       if (settings.isAdmin === false)
         return give({ error: 'Das verwaltet nur der Admin.' }, 403);

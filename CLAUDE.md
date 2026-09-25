@@ -159,7 +159,7 @@ Datei aus `Doku/`, weder mit Pfad noch mit Namen („Projektstand 5.3",
 „Befund 11"). `Doku/` wird nicht veröffentlicht. Verhalten wird ohne Nummer
 beschrieben: „es wird nicht migriert", nicht „ab 0.33.0 wird nicht migriert".
 
-Ausgeliefert sind: die vierzehn JavaScript-Module, `public/style.css`,
+Ausgeliefert sind: die fünfzehn JavaScript-Module, `public/style.css`,
 `public/index.html`, `public/theme.js`, die drei Sprachdateien, `.env.example`,
 `docker-compose.example.yml`, `Dockerfile`, `README.md`, `manual-de.md`.
 

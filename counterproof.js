@@ -4392,7 +4392,7 @@ const REGRESSIONS = [
   {
     nr: 'W14', name: 'Die Dateiliste des Sprachwaechters verliert die neuen Dateien',
     file: 'test/source.js',
-    search: "                          'images.js', 'batchrun.js', 'mail.js'];",
+    search: "                          'images.js', 'batchrun.js', 'mail.js', 'docserver.js'];",
     replacement: "                          ];",
     expected: 'Der Sprachwaechter'
   },
@@ -7242,8 +7242,8 @@ const REGRESSIONS = [
   {
     nr: '1056', name: 'Der Sprachwaechter verliert mail.js wieder',
     file: 'test/source.js',
-    search: "'images.js', 'batchrun.js', 'mail.js'];",
-    replacement: "'images.js', 'batchrun.js'];",
+    search: "'images.js', 'batchrun.js', 'mail.js', 'docserver.js'];",
+    replacement: "'images.js', 'batchrun.js', 'docserver.js'];",
     expected: 'Der Sprachwaechter'
   },
 
@@ -8461,6 +8461,55 @@ const REGRESSIONS = [
     search: "  if (process.env.TESTBENCH_DIE_AFTER_REPORT === name) process.exit(9);\n  if (kind) { try { kind.kill(); } catch {} }\n  for (const l of CASES) { try { l.kind.kill(); } catch {} }\n",
     replacement: "  if (kind) { try { kind.kill(); } catch {} }\n  for (const l of CASES) { try { l.kind.kill(); } catch {} }\n  if (process.env.TESTBENCH_DIE_AFTER_REPORT === name) process.exit(9);\n",
     expected: 'Der Treiber sieht den Rueckgabewert — 0.34.4'
+  },
+  {
+    nr: '1222', name: 'verify() prueft alg nicht',
+    file: 'docserver.js',
+    search: "  if (head.alg !== 'HS256') return { ok: false, reason: 'alg' };\n",
+    replacement: "",
+    expected: 'Document Server: JWT'
+  },
+  {
+    nr: '1223', name: 'Der Abruf vergleicht die URL im JWT nicht',
+    file: 'docserver.js',
+    search: "  return same ? { ok: true } : { ok: false, reason: 'url' };",
+    replacement: "  return { ok: true };",
+    expected: 'Document Server: Abruf und Konfiguration'
+  },
+  {
+    nr: '1224', name: 'Die Abrufroute liest den Schalter nicht',
+    file: 'server.js',
+    search: "  if (!documentServerOn()) return res.status(404).end();\n",
+    replacement: "",
+    expected: 'Document Server: Abruf und Konfiguration'
+  },
+  {
+    nr: '1225', name: 'Die CSP nimmt den Document Server nicht auf',
+    file: 'server.js',
+    search: "const DOC_ORIGIN = docserver.scriptOrigin();",
+    replacement: "const DOC_ORIGIN = '';",
+    expected: 'Document Server: Abruf und Konfiguration'
+  },
+  {
+    nr: '1226', name: 'detail() liefert office auch fuer PDF, Bild und Text',
+    file: 'server.js',
+    search: "    preview: officeOn && docserver.officeType(a2.filename)\n",
+    replacement: "    preview: officeOn\n",
+    expected: 'Document Server: Abruf und Konfiguration'
+  },
+  {
+    nr: '1227', name: 'Die Pruefung unterscheidet -4 nicht nach der Probe-Route',
+    file: 'docserver.js',
+    search: "  if (j.error === -4 && lastTestFetch && !lastTestFetch.ok)",
+    replacement: "  if (false)",
+    expected: 'Document Server: die Pruefung der Karte'
+  },
+  {
+    nr: '1228', name: 'destroyEditor() wird beim Neuzeichnen nicht gerufen',
+    file: 'public/app.js',
+    search: "    for (const v of officeViewers.values()) { try { v.destroyEditor(); } catch {} }\n",
+    replacement: "",
+    expected: 'Document Server: der Betrachter im Browser'
   },
 ];
 

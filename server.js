@@ -21,6 +21,7 @@ const Database = require('better-sqlite3-multiple-ciphers');
 const auth = require('./auth');
 const keys = require('./keys');
 const mail = require('./mail');
+const docserver = require('./docserver');
 
 /* ---- Sprachdateien ---- */
 const LANGUAGE_DIR = path.join(__dirname, 'public', 'languages');
@@ -308,9 +309,11 @@ async function sendConfirm(name, address, plain, locale) {
 
 const app = express();
 app.use(express.json({ limit: '2mb' }));
+const DOC_ORIGIN = docserver.scriptOrigin();
 const CSP_APP =
   "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; " +
-  "style-src 'self' 'unsafe-inline'; script-src 'self'; frame-src 'self'; " +
+  `style-src 'self' 'unsafe-inline'; script-src 'self'${DOC_ORIGIN ? ' ' + DOC_ORIGIN : ''}; ` +
+  `frame-src 'self'${DOC_ORIGIN ? ' ' + DOC_ORIGIN : ''}; ` +
   "frame-ancestors 'none'; base-uri 'none'; form-action 'none'";
 app.use((req, res, next) => {
   res.set('X-Content-Type-Options', 'nosniff');
@@ -790,6 +793,39 @@ app.post('/api/signup/confirm', async (req, res) => {
   }
   auth.noteSuccess(ip, null);
   res.json({ ok: true });
+});
+
+/* ---- Document Server ---- */
+/* Offen, weil der Document Server ohne Cookie holt; docserver.checkFetch()
+   prueft sein JWT. */
+const documentServerOn = () =>
+  !docserver.setupProblem() && getSetting('documentServer', false) === true;
+
+function refuseFetch(req, res, result) {
+  logWarn(`Document server fetch refused (${result.reason}): ${req.path}`);
+  res.status(403).end();
+}
+
+app.get('/api/document-server/attachments/:id', (req, res) => {
+  const result = docserver.checkFetch(req);
+  if (!result.ok) return result.reason === 'setup' ? res.status(404).end() : refuseFetch(req, res, result);
+  if (!documentServerOn()) return res.status(404).end();
+  const a = db.prepare('SELECT filename, data FROM attachments WHERE id = ?').get(req.params.id);
+  if (!a || !docserver.officeType(a.filename)) return res.status(404).end();
+  attachments.setHeader(res, a.filename);
+  res.set('Cache-Control', 'no-store');
+  res.send(a.data);
+});
+
+// Geht auch bei ausgeschaltetem Schalter: der Admin prueft vor dem Einschalten.
+app.get('/api/document-server/probe', (req, res) => {
+  const result = docserver.checkFetch(req);
+  if (result.reason === 'setup') return res.status(404).end();
+  docserver.recordTestFetch(result);
+  if (!result.ok) return refuseFetch(req, res, result);
+  attachments.setHeader(res, 'probe.txt');
+  res.set('Cache-Control', 'no-store');
+  res.send('Kriterion');
 });
 
 /* ---- Ab hier geschuetzt ---- */
@@ -1769,7 +1805,7 @@ app.put('/api/settings', (req, res) => {
       }
       take('searchNames');
       // Global, also nur fuer Admins; das prueft `foreign` oben.
-      for (const k of ['tagsFreeCreate', 'categoriesFreeCreate'])
+      for (const k of ['tagsFreeCreate', 'categoriesFreeCreate', 'documentServer'])
         if (req.body[k] !== undefined) putSetting.run(k, JSON.stringify(!!req.body[k]));
       if (storeWanted !== null) putSetting.run('imageStore', JSON.stringify(storeWanted));
       /* potentialMode steht in OWNER_KEYS; ein Admin wird oben abgewiesen. */
@@ -2490,11 +2526,13 @@ function detail(id, userId, locale) {
   it.category = it.product_category_id
     ? named([qCat.get(it.product_category_id)], categoryNames(locale))[0] : null;
   it.photos = qPhotos().all(id);
+  const officeOn = documentServerOn();
   /* Ohne Inhalt. Die Art der Vorschau bestimmt der Server aus der Endung. */
   it.attachments = qAttachments().all(id).map(a2 => ({
     id: a2.id, filename: a2.filename, mime_type: a2.mime_type, size: a2.size,
     sort_order: a2.sort_order, created_at: a2.created_at,
-    preview: attachments.previewKind(a2.filename),
+    preview: officeOn && docserver.officeType(a2.filename)
+      ? 'office' : attachments.previewKind(a2.filename),
     mine: a2.user_id === userId, author: authorFrom(card, a2.user_id)
   }));
   /* `mine` steuert das Loeschkreuz; bei einem geloeschten Zugang laesst es
@@ -3534,6 +3572,27 @@ app.get('/api/attachments/:id/preview', (req, res) => {
     return res.json({ kind, ...v });
   }
   res.status(400).json({ error: t(localeOf(req), 'server.noTextPreview')});
+});
+
+app.get('/api/attachments/:id/office', (req, res) => {
+  const a = db.prepare('SELECT id, filename, size, created_at FROM attachments WHERE id = ?')
+    .get(req.params.id);
+  if (!a) return res.status(404).json({ error: t(localeOf(req), 'server.fileGone')});
+  if (!documentServerOn() || !docserver.officeType(a.filename))
+    return res.status(409).json({ error: t(localeOf(req), 'server.docOff')});
+  res.json({
+    script: docserver.apiScript(), host: new URL(docserver.scriptOrigin()).host,
+    config: docserver.viewerConfig(a, { lang: localeOf(req), mobile: req.query.mobile === '1' })
+  });
+});
+
+// Das Secret selbst geht nie hinaus, nur ob es gesetzt ist.
+app.get('/api/document-server', adminOnly, (req, res) => {
+  res.json({ ...docserver.state(), on: getSetting('documentServer', false) === true });
+});
+
+app.post('/api/document-server/check', adminOnly, async (req, res, next) => {
+  try { res.json(await docserver.check()); } catch (e) { next(e); }
 });
 
 app.delete('/api/attachments/:id', (req, res) => {
@@ -5851,5 +5910,6 @@ app.listen(PORT, () => {
         'links are there to copy in the admin area, as before.');
     }
   }
+  docserver.logStart();
   setTimeout(backfillThumbnails, 1500);
 });
