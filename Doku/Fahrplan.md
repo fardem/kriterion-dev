@@ -1,6 +1,6 @@
 # Fahrplan
 
-**Der Plan von 0.41.0 bis 0.43.0 · Stand 25. September 2026, 0.41.1 gebaut**
+**Der Plan von 0.41.0 bis 0.43.0 · Stand 25. September 2026, 0.41.1 gebaut, Auftrag 0.42.0 erteilt**
 
 *Hier stand vorher „von 0.26.0 bis 1.0 · Stand 9. September 2026": beides ist
 überholt — es wird kein 1.0.0 geben, und seither sind dreizehn Runden gebaut.*
@@ -189,7 +189,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.40.0**~~ | ~~**Export, Import und Papierkorb ohne den Arbeitsspeicher**~~ | **GEBAUT am 22. September 2026** auf 0.39.1 — Änderungsprotokoll 0.40.0. **Der Export schreibt stückweise:** *Kopf, Bündel für Bündel, Schluss — und bei Rückstau wartet er auf `drain`.* **Die RSS-Spitze fällt von +1.125,8 MB auf +314,8 MB**, die Laufzeit von 16,02 s auf 3,95 s — gemessen an 40 Einträgen zu je 6,0 MB, Datei 320,0 MB. **Damit fällt die Absage vor dem Gesamtexport**; `EXCHANGE_MAX` bleibt als Latte je Teil im Teilexport. **Der Import liest die Datei eintragsweise von der Platte** — `diskStorage` in `DATA_DIR/import`, ein `finally` um alles, und der Serverstart leert den Ordner. `IMPORT_MAX` steigt von 900 MB auf 4 GB, und vor dem Hochladen wird der freie Platz geprüft. **Der Papierkorb kopiert die Bytes innerhalb von SQLite** — vier `INSERT … SELECT`, und `entryAsBundle` liest die Blobspalten dafür gar nicht erst. **Die Antwort trägt keine `Content-Length` mehr**, und ein Dialog sagt das vor Export und Import an; er stellt zugleich die drei Wege nebeneinander. Das Austauschformat bleibt **18**, der Inhalt der Datei ist Zeichen für Zeichen derselbe. Fingerprint `7681fc64` (davor `9d48cbbc`) | nein | nein |
 | ~~**0.41.0**~~ | ~~**Backup, Videos in Kommentaren und der Prüfstand ohne feste Wartezeiten**~~ | **GEBAUT am 23. September 2026** auf 0.40.0 — Änderungsprotokoll 0.41.0. **Der Prüfstand wartet auf Bedingungen:** *von 619 festen Wartezeiten mit zusammen 47.745 ms am Ausgangsstand bleiben 30 mit 3.045 ms, jede mit einem Kommentar; ein Wächter hält die Zahl genau fest.* **Der volle Lauf fällt von 340,8 auf 288,8 Sekunden** *(Median aus je drei Läufen).* **Videos in Kommentaren** *in der neuen Tabelle `comment_videos`, mit Standbild aus dem Browser und Auslieferung in Ranges;* **ein Download je Foto und Video** *in der Bildansicht.* **Das Wort heißt Backup**, *und neue Installationen bekommen englische Bezeichnungen; eine bestehende behält ihre `docker-compose.yml` und ihren Ordner.* **Die Grenzen beim Hochladen sind einstellbar** *(Foto und Kommentarbild bis 50 MB, Video, Kommentarvideo und Anhang bis 100 MB);* **dazu eine feste Grenze je Eintrag von rund 345 MB.** *Dazu drei Fehler aus dem Betrieb — Hinweisfeld, Formatierleiste, das Cookie nach `BEHIND_PROXY` — und die Hinweise, was Export, Import und Backup enthalten.* **MINOR** *(1.135 → 1.149 Rückbauten, Prüfstand 7.291 → 7.410). Fingerprint `d5aaeb21` (davor `7681fc64`)* | **ja** | 18 → 19 |
 | ~~**0.41.1**~~ | ~~**Texte und Kommentare**~~ | **GEBAUT am 25. September 2026** auf 0.41.0 — Änderungsprotokoll 0.41.1. *Kein Verhalten des Servers geändert.* **Die Texte der Oberfläche sind in drei Sprachen mit dem Betreiber abgestimmt:** *ein Satz steht in einem Schlüssel, betonte Wörter als `**Wort**`; 1.258 → 1.186 Schlüssel je Sprache.* **Die Rolle heißt „Eigentümer-Admin“**, *englische IT-Begriffe bleiben englisch.* **README und Handbuch nach Leser getrennt** *(1.318 → 457 und 1.622 → 620 Zeilen).* **Kommentare nach CLAUDE.md gekürzt:** *16.850 → 6.410 Zeilen in 37 Dateien (19,6 % → 8,6 %).* *Vier stumme Gegenproben haben eine Prüfung bekommen.* **PATCH** *(1.149 → 1.141 Rückbauten, Prüfstand 7.410 → 7.362). Fingerprint `dcbfdfb6` (davor `d5aaeb21`)* | nein | nein |
-| **0.42.0** | **Dokumente über einen Document Server ansehen** | **GEPLANT am 21. September 2026.** *Eine Instanz, die einen OnlyOffice Document Server betreibt, zeigt `.docx`, `.xlsx` und `.pptx` im Betrachter — heute gibt es dafür nackten Text oder gar nichts. Ohne Document Server bleibt alles, wie es ist.* **Adresse und Geheimnis stehen in der `.env` oder der Compose-Datei**, *kein Feld in der Oberfläche: ein Geheimnis in `settings` reiste im Export mit.* Der Admin schaltet an und ab, **je Benutzer gibt es keinen Schalter**. *Die teuerste Zeile ist die Sicherheitsregel (`server.js`:370 — `script-src` und `frame-src` müssen eine fremde Adresse aufnehmen); der Document Server holt die Datei ohne Cookie und braucht dafür ein einmaliges Token in der Adresse.* **Und die README muss in dieser Runde sagen, dass eine angesehene Datei im Zwischenspeicher des Document Servers im Klartext liegt** | nein | — |
+| **0.42.0** | **Dokumente über einen Document Server ansehen** | **GEPLANT am 21. September 2026, Auftrag erteilt am 25. September 2026** (`Doku/Auftrag_0.42.0.md`). Euro-Office oder OnlyOffice zeigt zehn Formate im Eintrag an: `docx`, `doc`, `odt`, `rtf`, `xlsx`, `xls`, `ods`, `pptx`, `ppt`, `odp`. Ohne Document Server bleibt alles, wie es ist. Adressen und Secret stehen in der `.env`, vier Variablen. Der Admin schaltet an und ab, je Benutzer gibt es keinen Schalter. Der Abruf durch den Document Server wird über das JWT im Header geprüft; das Secret ist Pflicht. Die Karte „Dokumente" prüft beide Richtungen der Verbindung. Die README sagt, dass eine angesehene Datei im Zwischenspeicher des Document Servers unverschlüsselt liegt | nein | — |
 | **0.43.0** | **Dokumente über den Document Server bearbeiten** | **GEPLANT am 21. September 2026, setzt 0.42.0 voraus.** *Der Rückweg: der Document Server meldet die geänderte Fassung, Kriterion holt sie und schreibt sie nach `attachments.data`.* **Ohne Geheimnis kein Bearbeiten** — *der Rückweg ist ein Schreibweg ohne Cookie und hängt allein an der Unterschrift.* Ändern darf, wer auch löschen darf: Admin oder wer die Datei hochgeladen hat, `mayChange()` unverändert. **Zwei Fragen sind offen:** *ob der Rückweg dieselbe Zeile ersetzt oder eine zweite anlegt, und was geschieht, wenn die Datei zwischen Öffnen und Rückweg gelöscht wurde* | nein | — |
 | ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. Die zwei offenen Punkte des Eintrags stehen in der Zeile darunter | — | — |
 | ~~*ohne Nummer*~~ | ~~**Vorgabewerte und Tastaturbedienung beim Sortieren**~~ | **VORLÄUFIG GESTRICHEN am 21. September 2026:** der Inhalt ist nirgends beschrieben — weder hier noch im Sammelblatt noch im Projektstand steht, welche Vorgabewerte gemeint sind und was die Tastatur beim Sortieren tun soll. *Die Zeile kommt zurück, sobald der Betreiber sagt, was gemeint war.* | — | — |
@@ -2902,14 +2902,28 @@ Bildansicht), die drei Sprachdateien, `README.md`, `manual-de.md`, `test/`,
 Document Server betreibt, zeigt Bürodateien im Betrachter. **Ohne ihn bleibt
 alles, wie es ist.**
 
+> Auftrag erteilt am 25. September 2026: `Doku/Auftrag_0.42.0.md`. Der
+> Document Server ist Euro-Office, ein Fork von OnlyOffice mit derselben
+> Schnittstelle. Drei Punkte weichen von diesem Abschnitt ab:
+>
+> - Der Abruf wird über das JWT im Header `Authorization` geprüft, das der
+>   Document Server mitschickt. Das einmalige Token in der Adresse entfällt.
+> - Das Secret ist Pflicht, auch zum Ansehen.
+> - Die Karte prüft zusätzlich, ob der Document Server Kriterion erreicht.
+>
+> Dazu kommen zehn Formate statt drei, OpenDocument eingeschlossen. Die
+> Bedingung „nicht aus dem Netz erreichbar" unter Hürde 4 gilt nicht: der
+> Browser lädt den Betrachter vom Document Server, also ist er erreichbar.
+> Die Zeilenangaben unten sind der Stand von 0.41.1.
+
 ### Was heute dasteht
 
-`previewKind()` (`attachments.js`:66) kennt fünf Arten:
+`previewKind()` (`attachments.js`:58) kennt fünf Arten:
 
 | Endung | heute |
 |---|---|
 | Bild, PDF, Text | eine richtige Vorschau |
-| `.docx` | **nackter Text** — `docxPreview()` (`attachments.js`:245) zieht ihn aus `word/document.xml`, ohne Formatierung, ohne Bilder, ohne Tabellen |
+| `.docx` | **nackter Text** — `docxPreview()` (`attachments.js`:220) zieht ihn aus `word/document.xml`, ohne Formatierung, ohne Bilder, ohne Tabellen |
 | `.xlsx`, `.pptx`, `.odt` und alles Übrige | **keine** |
 
 ### Wie die Einbindung läuft
@@ -2919,18 +2933,18 @@ Drei Teile, alle Standard:
 1. Die Seite lädt `api.js` **vom Document Server** und baut den Betrachter.
 2. Die Konfiguration nennt eine Adresse, unter der **der Document Server** die
    Datei holt.
-3. Beim Ansehen bleibt es dabei. Der Rückweg gehört zu 0.41.0.
+3. Beim Ansehen bleibt es dabei. Der Rückweg gehört zu 0.43.0.
 
 ### Was entschieden ist
 
 | | |
 |---|---|
 | **Adresse und Geheimnis** | beide in der `.env` oder der Compose-Datei. **Kein Feld in der Oberfläche** — ein Geheimnis in `settings` reiste im Export mit, und ein Geheimnis, das im Export mitreist, ist verloren |
-| **Der Schalter** | an der Karte im Systembereich, Klemme `adminOnly`. Er ist ein Betriebsschalter für den Fall, dass es mit dem Document Server Ärger gibt — `ownerOnly` trägt im Haus nur das Scharfe |
+| **Der Schalter** | an der Karte in den Einstellungen, Klemme `adminOnly`. Er ist ein Betriebsschalter für den Fall, dass es mit dem Document Server Ärger gibt — `ownerOnly` trägt im Haus nur das Scharfe |
 | **Je Benutzer** | **kein Schalter.** Es ist keine Wahl zwischen zwei gleichwertigen Wegen: ohne Document Server zeigt eine `.xlsx` gar nichts. Und die Frage ist eine des Betriebs, nicht der Bedienung |
 | **Kein Bestätigungsdialog** | wer nicht nein sagen kann, wird nicht gefragt. Stattdessen ein **ruhiger, ständiger Vermerk** am Betrachter: die Datei wird vom Document Server angezeigt |
 | **Der Ausweg** | herunterladen, wie heute. Wer eine Datei nicht durch den Document Server schicken will, öffnet sie bei sich |
-| **Die Rechte** | `mayChange()` (`server.js`:941) unverändert — Admin oder Verfasser der Datei. **Nicht der Eintragsverfasser:** sonst dürfte er eine fremde Datei bearbeiten, aber nicht löschen |
+| **Die Rechte** | `mayChange()` (`server.js`:841) unverändert — Admin oder Verfasser der Datei. **Nicht der Eintragsverfasser:** sonst dürfte er eine fremde Datei bearbeiten, aber nicht löschen |
 | **Die heutige Vorschau** | bleibt **genau wie sie ist**, wenn kein Document Server da ist. Die Mehrheit wird keinen betreiben, und für die darf sich nichts verschlechtern |
 
 ### Die Karte sagt, was los ist
@@ -2947,7 +2961,7 @@ Ordner in der Compose-Datei eingehängt und dort benannt wird. Die Karte
 
 ### Die vier Hürden, nach Kosten geordnet
 
-**1. Die Sicherheitsregel.** `server.js`:370 setzt
+**1. Die Sicherheitsregel.** `server.js`:311 setzt
 `default-src 'self'; script-src 'self'; frame-src 'self'`. Der Document Server
 braucht ein **Skript** und einen **Rahmen** von fremder Adresse; `script-src`
 und `frame-src` müssen sie aufnehmen. **Das ist die teuerste Zeile der Runde** —
@@ -2956,7 +2970,7 @@ bewusst so gebaut. *`frame-ancestors 'none'` bleibt unberührt: es regelt, wer
 Kriterion einrahmen darf, nicht umgekehrt.*
 
 **2. Der Document Server ist nicht angemeldet.** Er holt die Datei mit einem
-eigenen Ruf, ohne Cookie. `/api/attachments/:id/raw` (`server.js`:3873) braucht
+eigenen Ruf, ohne Cookie. `/api/attachments/:id/raw` (`server.js`:3517) braucht
 einen zweiten Weg: ein **kurzlebiges, einmaliges Token in der Adresse**. Die
 Bauform gibt es — die Tabelle `tokens` trägt `purpose`, `expires_at` und
 `used_at`.
@@ -3020,7 +3034,7 @@ es auch ohne, solange der Document Server keines verlangt; hier nicht.*
 die Adresse, die in der Konfiguration steht, muss **der Document Server**
 auflösen können.
 
-**3. Wer darf ändern.** `mayChange()` (`server.js`:941) — Admin oder wer die
+**3. Wer darf ändern.** `mayChange()` (`server.js`:841) — Admin oder wer die
 Datei hochgeladen hat. **Dieselbe Regel wie beim Löschen, und sie bleibt
 unverändert.** Wer nicht ändern darf, bekommt den Betrachter ohne Schreibrecht.
 
