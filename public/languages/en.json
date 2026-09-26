@@ -828,6 +828,7 @@
   "entry.notRatedYet": "Not rated yet",
   "entry.officeFailed": "The document server cannot display the file.",
   "entry.officeHint": "Shown by the document server {host}.",
+  "entry.openFile": "Open",
   "entry.openFullscreen": "Open full screen",
   "entry.openNewTab": "Open in a new tab",
   "entry.orderSaved": "Order saved",

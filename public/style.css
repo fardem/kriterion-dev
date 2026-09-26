@@ -1183,6 +1183,9 @@ mark {
 .kv .k { color: var(--muted); }
 .kv .k .extra { color: var(--faint); }
 .kv .v { font-family: var(--mono); font-size: .83rem; }
+/* Ohne min-width: 0 schrumpft ein Flex-Kind nicht unter sein laengstes Wort. */
+.kv .k, .kv .v { min-width: 0; overflow-wrap: anywhere; }
+.kv .v .extra { display: block; color: var(--faint); }
 /* ---- Faelligkeitsdatum ---- */
 .cmt-due { font-size: .76rem; color: var(--muted); }
 .cmt-due.on { color: var(--text); font-family: var(--mono); }
@@ -1670,13 +1673,13 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
 .arow:hover .ago { color: var(--muted); }
 /* Eigener Download-Knopf: bei Dateien mit Vorschau oeffnet der Klick auf
    die Zeile die Vorschau. */
-.arow .adl {
+.arow .adl, .arow .aopen {
   color: var(--faint); font-size: .87rem; line-height: 1; padding: 2px 6px; border-radius: 4px;
   opacity: 0; flex-shrink: 0; transition: opacity .15s var(--ease), color .15s var(--ease);
 }
-.arow:hover .adl { opacity: 1; }
-.arow .adl:hover { color: var(--accent-text); background: var(--surface); }
-@media (hover: none) { .arow .adl { opacity: 1; } }
+.arow:hover .adl, .arow:hover .aopen { opacity: 1; }
+.arow .adl:hover, .arow .aopen:hover { color: var(--accent-text); background: var(--surface); }
+@media (hover: none) { .arow .adl, .arow .aopen { opacity: 1; } }
 .arow .aicon { color: var(--faint); font-size: .87rem; flex-shrink: 0; }
 .arow .aname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .87rem; }
 .arow .asize { font-family: var(--mono); font-size: .7rem; color: var(--faint); flex-shrink: 0; }
@@ -1699,6 +1702,15 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
 .aoffice { height: 720px; height: min(720px, 75dvh); border-radius: 4px; overflow: hidden; background: var(--preview-bg); }
 .apreview .aoffice iframe { height: 100%; border-radius: 0; }
 .aoffice-hint { margin: 8px 0 0; }
+/* Die Ansicht fuellt das Fenster; der Betrachter bekommt die Resthoehe. */
+.fileview { max-width: none; height: 100vh; height: 100dvh; padding-bottom: 12px; display: flex; flex-direction: column; }
+.fileview .masthead { margin-bottom: 10px; }
+.fileview-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; font-size: .9rem; }
+.fileview-back { max-width: 40%; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fileview-name { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fileview-bar .adl { color: var(--muted); padding: 4px 8px; border-radius: 4px; }
+.fileview-doc { flex: 1; min-height: 0; border-radius: 4px; overflow: hidden; background: var(--preview-bg); }
+.fileview-doc iframe { width: 100%; height: 100%; border: 0; }
 .atext {
   margin: 0; max-height: 420px; overflow: auto;
   font-family: var(--mono); font-size: .77rem; line-height: 1.6; color: var(--text-2);

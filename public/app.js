@@ -2863,15 +2863,18 @@ function route() {
   const h = location.hash || '#/';
   // Die alte Ansicht verschwindet; ihre Tagwolke nicht mehr zeichnen.
   redrawCloud = null;
+  endFileViewer();
   const m = h.match(ENTRY_PATTERN);
+  const f = h.match(FILE_PATTERN);
   /* Einstellungen: `#/system` und `#/system/<abschnitt>`. */
   const view = SYS_PATTERN.test(h) ? 'system' : h === '#/compare' ? 'compare'
-    : h === '#/open' ? 'open' : m ? 'entry' : 'list';
+    : h === '#/open' ? 'open' : f ? 'file' : m ? 'entry' : 'list';
   if (LAST_VIEW === 'list' && view !== 'list') rememberSeen();
   LAST_VIEW = view;
   if (view === 'system') return renderSystem();
   if (view === 'compare') return renderCompare();
   if (view === 'open') return renderOpen();
+  if (f) return renderFileView(+f[1], +f[2]);
   if (m) return renderDetail(+m[1], termOutAddress(m[2]), commentOutAddress(m[2]));
   return renderList();
 }
@@ -5954,6 +5957,7 @@ async function renderDetail(id, termAddress, commentWanted) {
         <span class="asize">${esc(filesize(a.size))}</span>
         ${showFrom ? `<span class="afrom">(${esc(authorName(a.author))})</span>` : ''}
         <span class="ago">${canPreview ? (open ? '▾' : '▸') : '↓'}</span>
+        ${a.preview === 'office' ? `<a class="aopen" href="${esc(fileAddress(id, a.id))}" title="${esc(t('entry.openFile'))}">⤢</a>` : ''}
         <a class="adl" href="/api/attachments/${Number(a.id)}/raw" download title="${esc(t('entry.download'))}">↓</a>
         ${mayPath ? `<button class="xdel" title="${esc(t('entry.deleteFile'))}">${ICON_X}</button>` : ''}`;
 
@@ -5965,8 +5969,10 @@ async function renderDetail(id, termAddress, commentWanted) {
       };
 
       row.onclick = (e) => {
-        if (e.target.closest('.xdel, .adl')) return;
+        if (e.target.closest('.xdel, .adl, .aopen')) return;
         if (!canPreview) return row.querySelector('.adl')?.click();
+        // Auf dem Telefon waere die Vorschau im Eintrag zu klein.
+        if (a.preview === 'office' && isNarrow()) { location.hash = fileAddress(id, a.id); return; }
         if (open) openPreview.delete(a.id); else openPreview.add(a.id);
         drawAtts();
       };
@@ -6032,15 +6038,8 @@ async function renderDetail(id, termAddress, commentWanted) {
         textPreview(a, rest);
       }
     };
-    api('GET', `/api/attachments/${a.id}/office?mobile=${isNarrow() ? 1 : 0}`)
-      .then(async v => {
-        const hint = boxId.querySelector('.aoffice-hint');
-        if (hint) hint.textContent = t('entry.officeHint', { host: v.host });
-        await officeScript(v.script);
-        if (!document.getElementById(holder)) return;
-        officeViewers.set(a.id, new window.DocsAPI.DocEditor(holder,
-          { ...v.config, events: { onError: failed } }));
-      })
+    startOffice(a, holder, boxId.querySelector('.aoffice-hint'), failed)
+      .then(editor => { if (editor) officeViewers.set(a.id, editor); })
       .catch(failed);
   }
 
@@ -6574,6 +6573,60 @@ function officeScript(src) {
     document.head.appendChild(el);
   }).catch(e => { officeLoading = null; throw e; });
   return officeLoading;
+}
+
+// null, wenn `holder` inzwischen nicht mehr im Dokument steht.
+async function startOffice(a, holder, hint, failed) {
+  const v = await api('GET', `/api/attachments/${Number(a.id)}/office?mobile=${isNarrow() ? 1 : 0}`);
+  if (hint) hint.textContent = t('entry.officeHint', { host: v.host });
+  await officeScript(v.script);
+  if (!document.getElementById(holder)) return null;
+  return new window.DocsAPI.DocEditor(holder, { ...v.config, events: { onError: failed } });
+}
+
+/* ---- Eigene Ansicht einer Datei ---- */
+const FILE_PATTERN = /^#\/item\/(\d+)\/file\/(\d+)$/;
+const fileAddress = (itemId, fileId) => `#/item/${Number(itemId)}/file/${Number(fileId)}`;
+let fileViewer = null;
+function endFileViewer() {
+  if (fileViewer) { try { fileViewer.destroyEditor(); } catch {} }
+  fileViewer = null;
+}
+
+async function renderFileView(itemId, fileId) {
+  app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">${tH('list.loading')}</p></div>`;
+  let item;
+  try { item = await api('GET', `/api/items/${itemId}`); }
+  catch (e) {
+    if (e.message !== SESSION_GONE) {
+      app.innerHTML = `<div class="shell">${subhead({ searchBox: false })}<p class="hint">${tH('server.entryUnknown')}</p></div>`;
+      wireSubhead();
+    }
+    return;
+  }
+  const a = (item.attachments || []).find(x => x.id === Number(fileId));
+  const shown = a && a.preview === 'office';
+  app.innerHTML = `<div class="shell fileview">
+    ${subhead({ searchBox: false })}
+    <div class="fileview-bar">
+      <a class="fileview-back" href="${esc(entryAddress(itemId))}" title="${esc(item.title)}">← ${esc(item.title)}</a>
+      <span class="fileview-name">${esc(a ? a.filename : '')}</span>
+      ${a ? `<a class="adl" href="/api/attachments/${Number(a.id)}/raw" download title="${esc(t('entry.download'))}">↓</a>` : ''}
+    </div>
+    <div class="fileview-doc">${shown ? `<div id="office-full-${Number(a.id)}"></div>`
+      : `<p class="hint">${tH(a ? 'entry.officeFailed' : 'server.fileGone')}</p>`}</div>
+    <p class="hint aoffice-hint"></p>
+  </div>`;
+  wireSubhead();
+  if (!shown) return;
+  const failed = () => {
+    endFileViewer();
+    const box = document.querySelector('.fileview-doc');
+    if (box) box.innerHTML = `<p class="hint">${tH('entry.officeFailed')}</p>`;
+  };
+  startOffice(a, `office-full-${Number(a.id)}`, document.querySelector('.fileview .aoffice-hint'), failed)
+    .then(editor => { if (editor) fileViewer = editor; })
+    .catch(failed);
 }
 
 
