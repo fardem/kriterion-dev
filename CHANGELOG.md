@@ -34,7 +34,7 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Vollbild in der eigenen Ansicht.*
 
-Fingerprint `FP_NEU` — davor `59983d51`.
+Fingerprint `90d99a0b` — davor `59983d51`.
 
 ### Hinzugefügt
 

@@ -1,6 +1,6 @@
 # Änderungsprotokoll 0.42.3 — „Vollbild in der eigenen Ansicht"
 
-**Gebaut am 26. September 2026 auf 0.42.2. Fingerprint `FP_NEU`, davor
+**Gebaut am 26. September 2026 auf 0.42.2. Fingerprint `90d99a0b`, davor
 `59983d51`.**
 
 Zwei Wünsche des Betreibers vom selben Tag: auf dem Telefon, quer gehalten,
@@ -42,7 +42,7 @@ Gemessen am fertigen Stand gegen 0.42.2.
 | Regelzeilen des Stilblatts | 1.692 | **1.696** |
 | Kommentarzeilen, 39 Dateien | 6.458 | **6.461** |
 | Rückbauten | 1.158 | **1.161** |
-| Prüfungen im Prüfstand | 7.420 | **PRUEFUNGEN** |
+| Prüfungen im Prüfstand | 7.420 | **7.423** |
 
 ---
 
@@ -69,7 +69,9 @@ Rückbauten:
 | 1240 | Das Zeichen Vollbild steht auch ohne Vollbild im Browser | Kann der Browser kein Vollbild, fehlt das Zeichen |
 | 1241 | Die Karte Dokumente zeigt Name und Wert wieder nebeneinander | Name und Wert stehen untereinander, der Name kleiner |
 
-GEGENPROBE
+**3 rot, 0 stumm.** Jeder ist zusätzlich rot in „Jeder Suchtext kommt in
+seiner Datei genau einmal vor": die Prüfung liest den zurückgebauten Stand,
+in dem der Suchtext fehlt.
 
 ---
 
