@@ -119,18 +119,25 @@ function documentKey(attachment) {
   return mac(SECRET, text).toString('hex').slice(0, 40);
 }
 
-function viewerConfig(attachment, { lang, mobile }) {
+// Mit `user` fragt der Betrachter nicht nach einem Namen.
+function viewerConfig(attachment, { lang, mobile, user }) {
   const config = {
     document: {
       fileType: extension(attachment.filename),
       key: documentKey(attachment),
       title: attachment.filename,
       url: fileUrl(attachment.id),
-      permissions: { edit: false, comment: false, review: false, download: false, print: true }
+      permissions: { edit: false, comment: false, review: false, download: false, print: true,
+                     chat: false }
     },
     documentType: officeType(attachment.filename),
-    editorConfig: { mode: 'view', lang },
-    type: mobile ? 'mobile' : 'desktop',
+    editorConfig: {
+      mode: 'view', lang,
+      user: { id: String(user.id), name: user.name },
+      customization: { comments: false }
+    },
+    // Der mobile Editor bleibt in Euro-Office leer; embedded ist zum Ansehen gebaut.
+    type: mobile ? 'embedded' : 'desktop',
     width: '100%', height: '100%'
   };
   return { ...config, token: sign(config) };

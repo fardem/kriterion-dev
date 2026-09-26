@@ -828,6 +828,7 @@
   "entry.notRatedYet": "Noch nicht bewertet",
   "entry.officeFailed": "Der Document Server kann die Datei nicht anzeigen.",
   "entry.officeHint": "Angezeigt vom Document Server {host}.",
+  "entry.openFile": "Öffnen",
   "entry.openFullscreen": "Vollbild öffnen",
   "entry.openNewTab": "In neuem Tab öffnen",
   "entry.orderSaved": "Reihenfolge gespeichert",

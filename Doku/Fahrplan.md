@@ -1,6 +1,6 @@
 # Fahrplan
 
-**Der Plan von 0.41.0 bis 0.43.0 · Stand 25. September 2026, 0.42.0 gebaut**
+**Der Plan von 0.41.0 bis 0.43.0 · Stand 26. September 2026, 0.42.1 gebaut**
 
 *Hier stand vorher „von 0.26.0 bis 1.0 · Stand 9. September 2026": beides ist
 überholt — es wird kein 1.0.0 geben, und seither sind dreizehn Runden gebaut.*
@@ -190,6 +190,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.41.0**~~ | ~~**Backup, Videos in Kommentaren und der Prüfstand ohne feste Wartezeiten**~~ | **GEBAUT am 23. September 2026** auf 0.40.0 — Änderungsprotokoll 0.41.0. **Der Prüfstand wartet auf Bedingungen:** *von 619 festen Wartezeiten mit zusammen 47.745 ms am Ausgangsstand bleiben 30 mit 3.045 ms, jede mit einem Kommentar; ein Wächter hält die Zahl genau fest.* **Der volle Lauf fällt von 340,8 auf 288,8 Sekunden** *(Median aus je drei Läufen).* **Videos in Kommentaren** *in der neuen Tabelle `comment_videos`, mit Standbild aus dem Browser und Auslieferung in Ranges;* **ein Download je Foto und Video** *in der Bildansicht.* **Das Wort heißt Backup**, *und neue Installationen bekommen englische Bezeichnungen; eine bestehende behält ihre `docker-compose.yml` und ihren Ordner.* **Die Grenzen beim Hochladen sind einstellbar** *(Foto und Kommentarbild bis 50 MB, Video, Kommentarvideo und Anhang bis 100 MB);* **dazu eine feste Grenze je Eintrag von rund 345 MB.** *Dazu drei Fehler aus dem Betrieb — Hinweisfeld, Formatierleiste, das Cookie nach `BEHIND_PROXY` — und die Hinweise, was Export, Import und Backup enthalten.* **MINOR** *(1.135 → 1.149 Rückbauten, Prüfstand 7.291 → 7.410). Fingerprint `d5aaeb21` (davor `7681fc64`)* | **ja** | 18 → 19 |
 | ~~**0.41.1**~~ | ~~**Texte und Kommentare**~~ | **GEBAUT am 25. September 2026** auf 0.41.0 — Änderungsprotokoll 0.41.1. *Kein Verhalten des Servers geändert.* **Die Texte der Oberfläche sind in drei Sprachen mit dem Betreiber abgestimmt:** *ein Satz steht in einem Schlüssel, betonte Wörter als `**Wort**`; 1.258 → 1.186 Schlüssel je Sprache.* **Die Rolle heißt „Eigentümer-Admin“**, *englische IT-Begriffe bleiben englisch.* **README und Handbuch nach Leser getrennt** *(1.318 → 457 und 1.622 → 620 Zeilen).* **Kommentare nach CLAUDE.md gekürzt:** *16.850 → 6.410 Zeilen in 37 Dateien (19,6 % → 8,6 %).* *Vier stumme Gegenproben haben eine Prüfung bekommen.* **PATCH** *(1.149 → 1.141 Rückbauten, Prüfstand 7.410 → 7.362). Fingerprint `dcbfdfb6` (davor `d5aaeb21`)* | nein | nein |
 | ~~**0.42.0**~~ | ~~**Dokumente über einen Document Server ansehen**~~ | **GEBAUT am 25. September 2026** auf 0.41.1 — Änderungsprotokoll 0.42.0, nach `Doku/Auftrag_0.42.0.md`. Euro-Office oder OnlyOffice zeigt `docx`, `doc`, `odt`, `rtf`, `xlsx`, `xls`, `ods`, `pptx`, `ppt` und `odp` im Eintrag an; ohne die vier neuen Variablen in der `.env` bleibt alles wie in 0.41.1. Neues Modul `docserver.js`: JWT HS256 ohne neue Abhängigkeit, der Abruf durch den Document Server wird über sein JWT im Header geprüft. Die Karte „Dokumente" prüft die Verbindung in beide Richtungen. **MINOR** *(1.141 → 1.148 Rückbauten, Prüfstand 7.362 → 7.410). Fingerprint `48829449` (davor `dcbfdfb6`)* | nein | nein |
+| ~~**0.42.1**~~ | ~~**Vorschau, Öffnen und Umlaute**~~ | **GEBAUT am 26. September 2026** auf 0.42.0 — Änderungsprotokoll 0.42.1. *Sechs Befunde des Betreibers aus dem Betrieb mit Euro-Office.* **Eigene Ansicht `#/item/<Eintrag>/file/<Datei>`** über das ganze Fenster, erreichbar über ⤢, auf dem Telefon über den Klick auf die Datei. Der Betrachter bekommt den angemeldeten Account; Chat und Kommentare sind aus; auf dem Telefon `type: 'embedded'`, weil der mobile Editor leer blieb. **Dateinamen kommen beim Hochladen als UTF-8 an** (`defParamCharset`); gespeicherte Namen bleiben. **PATCH** *(1.148 → 1.156 Rückbauten, Prüfstand 7.410 → 7.420). Fingerprint `526a9c34` (davor `48829449`)* | nein | nein |
 | **0.43.0** | **Dokumente über den Document Server bearbeiten** | **GEPLANT am 21. September 2026, setzt 0.42.0 voraus.** *Der Rückweg: der Document Server meldet die geänderte Fassung, Kriterion holt sie und schreibt sie nach `attachments.data`.* **Ohne Geheimnis kein Bearbeiten** — *der Rückweg ist ein Schreibweg ohne Cookie und hängt allein an der Unterschrift.* Ändern darf, wer auch löschen darf: Admin oder wer die Datei hochgeladen hat, `mayChange()` unverändert. **Zwei Fragen sind offen:** *ob der Rückweg dieselbe Zeile ersetzt oder eine zweite anlegt, und was geschieht, wenn die Datei zwischen Öffnen und Rückweg gelöscht wurde* | nein | — |
 | ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. Die zwei offenen Punkte des Eintrags stehen in der Zeile darunter | — | — |
 | ~~*ohne Nummer*~~ | ~~**Vorgabewerte und Tastaturbedienung beim Sortieren**~~ | **VORLÄUFIG GESTRICHEN am 21. September 2026:** der Inhalt ist nirgends beschrieben — weder hier noch im Sammelblatt noch im Projektstand steht, welche Vorgabewerte gemeint sind und was die Tastatur beim Sortieren tun soll. *Die Zeile kommt zurück, sobald der Betreiber sagt, was gemeint war.* | — | — |
@@ -3011,6 +3012,18 @@ bringt den Rückweg samt zwei offenen Fragen mit.
 Sprachdateien · `.env.example` und `docker-compose.example.yml` · `README.md`.
 
 **Schema: nein.** Die Tabelle `tokens` steht schon.
+
+---
+
+## 0.42.1 — „Vorschau, Öffnen und Umlaute"
+
+> **GEBAUT am 26. September 2026** auf 0.42.0. Das Protokoll steht als
+> `Doku/Aenderungsprotokoll_0.42.1.md`. Ohne Auftrag; sechs Befunde des
+> Betreibers aus dem Betrieb mit Euro-Office.
+>
+> **Für 0.43.0 wichtig:** Das Bearbeiten findet in der eigenen Ansicht
+> `#/item/<Eintrag>/file/<Datei>` statt. Auf dem Telefon zeigt der mobile
+> Editor von Euro-Office nichts an; ob er beim Bearbeiten anders tut, ist offen.
 
 ---
 

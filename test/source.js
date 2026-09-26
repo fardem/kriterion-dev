@@ -1835,8 +1835,8 @@ async function run() {
       }
       if (has) ssCode++;
     }
-    check('Und es stehen genau 1683 Regelzeilen da',
-      ssCode === 1683, `${ssCode} Zeilen`);
+    check('Und es stehen genau 1693 Regelzeilen da',
+      ssCode === 1693, `${ssCode} Zeilen`);
     // Laenger als drei Zeilen darf nur eine Tabelle gemessener Werte sein.
     const ssLines = ssBlocks.map(b => b.split('\n').length);
     const ssOver = ssLines.filter(n => n > 3).length;
@@ -2222,7 +2222,7 @@ async function run() {
   const hAll = assignments(hSource);
   // Feste Zahl: ueber null Zuweisungen waere die Pruefung immer gruen.
   check('Der Waechter sieht alle Zuweisungen an innerHTML',
-    hAll.length === 178, `${hAll.length} Zuweisungen`);
+    hAll.length === 182, `${hAll.length} Zuweisungen`);
   const hNaked = [];
   const hUsed = new Set();
   for (const one of hAll)

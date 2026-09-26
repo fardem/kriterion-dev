@@ -369,7 +369,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 /* Grenze je Anfrage, nicht je Eintrag. Auch in public/app.js (PHOTO_COUNT):
    der Browser teilt groessere Auswahlen in Buendel. */
 const PHOTO_COUNT = 40;
-const photoUpload = (bytes) => multer({
+// Browser senden Dateinamen als UTF-8; multer liest sie ohne diese Angabe als Latin-1.
+const upload = (options) => multer({ defParamCharset: 'utf8', ...options });
+const photoUpload = (bytes) => upload({
   storage: multer.memoryStorage(),
   limits: { fileSize: bytes },
   // Grobe Vorpruefung am gemeldeten Typ; den Inhalt prueft gridImage().
@@ -3373,7 +3375,7 @@ function durationValue(raw) {
   const d = Math.round(Number(raw));
   return Number.isFinite(d) && d > 0 && d <= 24 * 3600 ? d : null;
 }
-const videoUpload = (bytes) => multer({
+const videoUpload = (bytes) => upload({
   storage: multer.memoryStorage(),
   limits: { fileSize: bytes },
   // Grobe erste Pruefung am gemeldeten Typ; den Inhalt prueft die Route.
@@ -3520,7 +3522,7 @@ app.put('/api/photos/:id/focus', (req, res) => {
 /* Keine Pruefung beim Hochladen; die Sicherheit liegt bei der Auslieferung
    (attachments.setHeader). */
 const ATTACHMENT_COUNT = 20;
-const attachmentUpload = (bytes) => multer({ storage: multer.memoryStorage(), limits: { fileSize: bytes } });
+const attachmentUpload = (bytes) => upload({ storage: multer.memoryStorage(), limits: { fileSize: bytes } });
 
 /* Hochladen darf jeder, wie bei Links: die Datei erscheint nur an diesem
    Eintrag. */
@@ -3582,7 +3584,8 @@ app.get('/api/attachments/:id/office', (req, res) => {
     return res.status(409).json({ error: t(localeOf(req), 'server.docOff')});
   res.json({
     script: docserver.apiScript(), host: new URL(docserver.scriptOrigin()).host,
-    config: docserver.viewerConfig(a, { lang: localeOf(req), mobile: req.query.mobile === '1' })
+    config: docserver.viewerConfig(a, { lang: localeOf(req), mobile: req.query.mobile === '1',
+      user: { id: req.user.id, name: req.user.username } })
   });
 });
 
@@ -3815,11 +3818,11 @@ const kindValue = (v) => (KIND_VALUES.includes(v) ? v : 'note');
 // Anders als bei Anhaengen nur Bilder: jede Datei geht durch sharp und wird
 // neu kodiert gespeichert.
 const IMAGE_COUNT = 6;
-const commentImageUpload = (bytes) => multer({ storage: multer.memoryStorage(), limits: { fileSize: bytes } });
+const commentImageUpload = (bytes) => upload({ storage: multer.memoryStorage(), limits: { fileSize: bytes } });
 
 /* Videos in Kommentaren: dieselben Formate wie am Eintrag, gespeichert ohne
    Umkodieren. Bilder und Videos zusammen hoechstens IMAGE_COUNT. */
-const commentUpload = (bytes) => multer({ storage: multer.memoryStorage(), limits: { fileSize: bytes } });
+const commentUpload = (bytes) => upload({ storage: multer.memoryStorage(), limits: { fileSize: bytes } });
 const COMMENT_FILES = [{ name: 'images', maxCount: IMAGE_COUNT },
   { name: 'video', maxCount: 1 }, { name: 'stillFrame', maxCount: 1 }];
 // Ein zweites Video oder Standbild bekommt die Absage der Eintragsvideos.
@@ -4660,7 +4663,7 @@ function clearImports() {
   if (left) logLine(`Import: ${left} leftover file(s) removed at startup.`);
 }
 
-const importUpload = multer({
+const importUpload = upload({
   storage: multer.diskStorage({
     destination: (req, file, cb) => cb(null, IMPORT_DIR),
     filename: (req, file, cb) => cb(null, crypto.randomBytes(16).toString('hex') + '.json')

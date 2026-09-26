@@ -170,9 +170,9 @@ async function run() {
   const types = {};
   for (const n of ['text.odt', 'tabelle.ods', 'alt.ppt'])
     types[n] = (await A.B.call('GET', `/api/attachments/${rows[n].id}/office?mobile=1`)).content?.config;
-  check('documentType folgt der Endung, mobile setzt type mobile',
+  check('documentType folgt der Endung, auf dem Telefon ist type embedded',
     types['text.odt']?.documentType === 'word' && types['tabelle.ods']?.documentType === 'cell' &&
-    types['alt.ppt']?.documentType === 'slide' && types['alt.ppt']?.type === 'mobile',
+    types['alt.ppt']?.documentType === 'slide' && types['alt.ppt']?.type === 'embedded',
     Object.values(types).map(c => `${c?.documentType}/${c?.type}`).join(' '));
   const pdfOffice = await A.B.call('GET', `/api/attachments/${rows['doku.pdf'].id}/office`);
   check('Fuer ein PDF gibt es keine Konfiguration',
@@ -216,6 +216,26 @@ async function run() {
   check('CSP: mit Adresse steht der Origin in script-src und frame-src',
     cspA.includes(`script-src 'self' ${DS_BASE};`) && cspA.includes(`frame-src 'self' ${DS_BASE};`) &&
     cspA.includes("frame-ancestors 'none'"), cspA);
+
+  group('Document Server: Account, Chat und Dateinamen');
+  check('Der Betrachter bekommt den angemeldeten Account und fragt nicht nach einem Namen',
+    cfg.editorConfig?.user?.name === 'eigen' && /^\d+$/.test(cfg.editorConfig?.user?.id || ''),
+    JSON.stringify(cfg.editorConfig?.user));
+  check('Chat und Kommentare sind im Betrachter aus',
+    cfg.document?.permissions?.chat === false && cfg.editorConfig?.customization?.comments === false,
+    JSON.stringify([cfg.document?.permissions, cfg.editorConfig?.customization]));
+  const umlaut = await A.send(`/api/items/${aItem}/attachments`,
+    [{ name: 'Ömer Anmeldung.docx', content: Buffer.from('Umlaut') }]);
+  const umlautNames = (umlaut.content?.attachments || []).map(x => x.filename);
+  check('Ein Dateiname mit Umlaut kommt beim Hochladen unveraendert an',
+    umlautNames.includes('Ömer Anmeldung.docx'), umlautNames.filter(n => /mer/.test(n)).join(' '));
+  {
+    const serverCode = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    check('Jedes Hochladen geht ueber upload() mit defParamCharset utf8',
+      (serverCode.match(/multer\(\{/g) || []).length === 1 &&
+      /multer\(\{ defParamCharset: 'utf8', \.\.\.options \}\)/.test(serverCode) &&
+      (serverCode.match(/(?<![A-Za-z])upload\(\{/g) || []).length === 6, 'multer ohne upload()');
+  }
 
   group('Document Server: die Pruefung der Karte');
   const state = await A.B.call('GET', '/api/document-server');
@@ -369,6 +389,51 @@ async function run() {
     check('Eine .xlsx ohne Document Server zeigt nur die Zeile, keine Textvorschau',
       !w.document.querySelector('#atts .apreview .atext'), 'Textvorschau da');
     w.close();
+
+    group('Document Server: die eigene Ansicht');
+    const fm = buildDom(JSDOM, { hash: '#/item/1', extraAttachments: [extra(45, 'bericht.docx')] });
+    const fw = fm.w;
+    const fInner = fw.fetch;
+    fw.fetch = (url, opt) => /^\/api\/attachments\/45\/office\?mobile=[01]$/.test(url)
+      ? reply({ script: 'http://ds.invalid' + API_PATH, host: 'ds.invalid', config }) : fInner(url, opt);
+    const fRows = () => [...fw.document.querySelectorAll('#atts .arow')];
+    await until(fw, (x) => fRows().length === 5 && openRequests(x) === 0, 3000, 'die Dateiliste');
+    const fMade = [], fDestroyed = [];
+    fw.DocsAPI = { DocEditor: function (id) { fMade.push(id); this.destroyEditor = () => fDestroyed.push(id); } };
+    const links = [...fw.document.querySelectorAll('#atts .arow .aopen')];
+    check('Nur die Buerodatei traegt das Symbol Oeffnen, mit der Adresse der Ansicht',
+      links.length === 1 && links[0].getAttribute('href') === '#/item/1/file/45' &&
+      links[0].title === DE['entry.openFile'], links.map(l => l.getAttribute('href')).join(' '));
+    fw.history.replaceState(null, '', '#/item/1/file/45');
+    await fw.eval('route()');
+    await until(fw, () => fMade.length === 1, 2000, 'die eigene Ansicht');
+    const view = fw.document.querySelector('.fileview');
+    check('Die Ansicht: Kopfzeile ohne Suchfeld, Weg zurueck, Dateiname, ein Betrachter',
+      !!view && !fw.document.getElementById('sub-q') &&
+      view.querySelector('.fileview-back')?.getAttribute('href') === '#/item/1' &&
+      view.querySelector('.fileview-name')?.textContent === 'bericht.docx' &&
+      equal(fMade, ['office-full-45']), `${fMade.join(' ')} ${view?.textContent.slice(0, 80)}`);
+    fw.history.replaceState(null, '', '#/item/1');
+    await fw.eval('route()');
+    await until(fw, (x) => fRows().length === 5 && openRequests(x) === 0, 3000, 'den Eintrag');
+    check('Beim Verlassen der Ansicht wird destroyEditor() gerufen',
+      equal(fDestroyed, ['office-full-45']), fDestroyed.join(' '));
+    fw.matchMedia = () => ({ matches: true, addEventListener() {}, removeEventListener() {},
+      addListener() {}, removeListener() {} });
+    fRows()[4].onclick({ target: fRows()[4].querySelector('.aname') });
+    const phoneHash = fw.location.hash;
+    // Ansicht oder Vorschau: danach laeuft nichts mehr, und das Fenster darf zu.
+    await until(fw, (x) => fMade.length === 2 && openRequests(x) === 0, 2000, 'den zweiten Betrachter');
+    check('Auf dem Telefon oeffnet ein Klick auf die Zeile die Ansicht',
+      phoneHash === '#/item/1/file/45', phoneHash);
+    fw.close();
+    const css = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+    check('Lange Werte in einer Zeile .kv brechen um; der Hinweis steht blass darunter',
+      css.includes('.kv .k, .kv .v { min-width: 0; overflow-wrap: anywhere; }') &&
+      css.includes('.kv .v .extra { display: block; color: var(--faint); }'), 'Regel fehlt');
+    check('Die Ansicht fuellt das Fenster, der Betrachter die Resthoehe',
+      /\.fileview \{[^}]*height: 100dvh;[^}]*flex-direction: column;/.test(css) &&
+      css.includes('.fileview-doc { flex: 1; min-height: 0;'), 'Regel fehlt');
 
     const cardOf = (x) => [...x.document.querySelectorAll('.sys-card')]
       .find(c => c.querySelector('h3')?.textContent.trim() === DE['card.documents']);

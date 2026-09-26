@@ -30,6 +30,32 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.42.1] - 2026-09-26
+
+*Vorschau, Öffnen und Umlaute.*
+
+Fingerprint `526a9c34` — davor `48829449`.
+
+### Hinzugefügt
+
+- **Bürodateien öffnen:** das Zeichen ⤢ an der Datei öffnet sie in einer
+  eigenen Ansicht über das ganze Fenster. Auf dem Telefon öffnet schon der
+  Klick auf die Datei diese Ansicht.
+
+### Geändert
+
+- Der Betrachter zeigt den angemeldeten Account und fragt nicht mehr nach
+  einem Namen. Chat und Kommentare sind ausgeblendet.
+- Auf dem Telefon zeigt der Document Server die Datei im eingebetteten
+  Betrachter.
+
+### Behoben
+
+- Umlaute in Dateinamen kamen beim Hochladen falsch an („Ömer" wurde
+  „Ãmer"). Schon gespeicherte Namen bleiben, wie sie sind.
+- Auf dem Telefon blieb der Betrachter leer.
+- Auf der Karte „Dokumente" liefen lange Adressen über den Rand.
+
 ## [0.42.0] - 2026-09-25
 
 *Dokumente über einen Document Server ansehen.*

@@ -8511,6 +8511,62 @@ const REGRESSIONS = [
     replacement: "",
     expected: 'Document Server: der Betrachter im Browser'
   },
+  {
+    nr: '1229', name: 'Dateinamen werden wieder als Latin-1 gelesen',
+    file: 'server.js',
+    search: "const upload = (options) => multer({ defParamCharset: 'utf8', ...options });",
+    replacement: "const upload = (options) => multer({ ...options });",
+    expected: 'Document Server: Account, Chat und Dateinamen'
+  },
+  {
+    nr: '1230', name: 'Der Betrachter bekommt keinen Account',
+    file: 'docserver.js',
+    search: "      user: { id: String(user.id), name: user.name },\n",
+    replacement: "",
+    expected: 'Document Server: Account, Chat und Dateinamen'
+  },
+  {
+    nr: '1231', name: 'Kommentare stehen im Betrachter wieder da',
+    file: 'docserver.js',
+    search: "      customization: { comments: false }\n",
+    replacement: "      customization: {}\n",
+    expected: 'Document Server: Account, Chat und Dateinamen'
+  },
+  {
+    nr: '1232', name: 'Die Dateizeile verliert das Symbol Oeffnen',
+    file: 'public/app.js',
+    search: "        ${a.preview === 'office' ? `<a class=\"aopen\" href=\"${esc(fileAddress(id, a.id))}\" title=\"${esc(t('entry.openFile'))}\">⤢</a>` : ''}\n",
+    replacement: "",
+    expected: 'Document Server: die eigene Ansicht'
+  },
+  {
+    nr: '1233', name: 'route() baut den Betrachter der Ansicht nicht ab',
+    file: 'public/app.js',
+    search: "  redrawCloud = null;\n  endFileViewer();\n",
+    replacement: "  redrawCloud = null;\n",
+    expected: 'Document Server: die eigene Ansicht'
+  },
+  {
+    nr: '1234', name: 'Auf dem Telefon klappt die Vorschau wieder im Eintrag auf',
+    file: 'public/app.js',
+    search: "        if (a.preview === 'office' && isNarrow()) { location.hash = fileAddress(id, a.id); return; }\n",
+    replacement: "",
+    expected: 'Document Server: die eigene Ansicht'
+  },
+  {
+    nr: '1235', name: 'Lange Werte in .kv brechen nicht mehr um',
+    file: 'public/style.css',
+    search: ".kv .k, .kv .v { min-width: 0; overflow-wrap: anywhere; }\n",
+    replacement: "",
+    expected: 'Document Server: die eigene Ansicht'
+  },
+  {
+    nr: '1236', name: 'Auf dem Telefon wieder der mobile Editor',
+    file: 'docserver.js',
+    search: "    type: mobile ? 'embedded' : 'desktop',",
+    replacement: "    type: mobile ? 'mobile' : 'desktop',",
+    expected: 'Document Server: Abruf und Konfiguration'
+  },
 ];
 
 /* ---- Spuren und Versatz ---- */

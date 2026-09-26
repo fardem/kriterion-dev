@@ -828,6 +828,7 @@
   "entry.notRatedYet": "Henüz değerlendirilmedi",
   "entry.officeFailed": "Document Server dosyayı gösteremiyor.",
   "entry.officeHint": "Document Server {host} tarafından gösteriliyor.",
+  "entry.openFile": "Aç",
   "entry.openFullscreen": "Tam ekranı aç",
   "entry.openNewTab": "Yeni sekmede aç",
   "entry.orderSaved": "Sıra kaydedildi",

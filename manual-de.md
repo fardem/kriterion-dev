@@ -344,6 +344,10 @@ unverändert.
   heruntergeladen. Hat der Admin einen Document Server eingeschaltet, zeigt er
   auch Word-, Excel- und PowerPoint-Dateien und ihre OpenDocument-Gegenstücke
   an. Unter dem Betrachter steht, welcher Document Server die Datei anzeigt.
+- **Vorschau und Öffnen:** Ein Klick auf eine solche Datei zeigt die Vorschau
+  im Eintrag. Das Zeichen ⤢ öffnet die Datei in einer eigenen Ansicht über das
+  ganze Fenster; der Pfeil oben links führt zurück zum Eintrag. Auf dem Telefon
+  öffnet schon der Klick auf die Datei diese Ansicht.
 - **Links:** jeder darf eintragen. Umsortieren darf der Verfasser des Eintrags
   oder der Admin. Ein Text ohne Adresse (Wort, Artikelnummer) wird zur Suche
   bei der eingestellten Suchmaschine.
