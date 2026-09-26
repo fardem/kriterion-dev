@@ -209,9 +209,12 @@ async function converter(fields) {
 }
 
 /* ---- Bearbeiten ---- */
-// Eine Adresse des Document Servers, umgeschrieben auf die interne; sonst null.
+/* Eine Adresse des Document Servers, umgeschrieben auf die interne; sonst null.
+   Ueber URL, damit ein ausgeschriebener Standardport wie :443 dieselbe Adresse ist. */
 function internalUrl(url) {
-  const text = String(url || '');
+  let text;
+  try { const u = new URL(String(url)); text = u.origin + u.pathname + u.search; }
+  catch { return null; }
   for (const base of [internalBase(), ADDRESS.address])
     if (base && text.startsWith(base + '/')) return internalBase() + text.slice(base.length);
   return null;

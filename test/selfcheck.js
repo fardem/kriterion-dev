@@ -375,12 +375,12 @@ async function run() {
       ['usertool.js', 6],
       ['twofactor.js', 14],
       ['keytool.js', 20],
-      ['docserver.js', 33],
+      ['docserver.js', 34],
       ['public/app.js', 990],
       ['public/theme.js', 2],
       ['public/style.css', 509],
     ];
-    const COMMENT_TOTAL = { comment: 6505, code: 69869 };
+    const COMMENT_TOTAL = { comment: 6506, code: 69875 };
     // Ausgelieferte Dateien: Bloecke ueber drei Zeilen und Bloecke mit Betonung in Grossbuchstaben.
     const COMMENT_LIMITS = { longBlocks: 3, emphasis: 6 };
     check('Der Waechter sieht alle vierzig Dateien',

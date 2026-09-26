@@ -232,7 +232,11 @@ async function run() {
     viewAfter === keyOf(docx, 'v1') && editAfter === k0, `${viewAfter} ${editAfter}`);
 
   const v2 = edited('v2.docx', 'Fassung 2');
-  await callback(id1, { key: k0, status: 6, url: PUBLIC_DS + '/cache/v2.docx', filetype: 'docx' });
+  const withPort = await callback(id1, { key: k0, status: 6, url: 'http://office.invalid:80/cache/v2.docx',
+    filetype: 'docx' });
+  check('Ein ausgeschriebener Standardport gilt als dieselbe Adresse',
+    equal(withPort.json, { error: 0 }) && Buffer.compare(await uploader.raw(id1), v2) === 0,
+    JSON.stringify(withPort.json));
   const v3 = edited('v3.docx', 'Fassung 3');
   const close = await callback(id1, { key: k0, status: 2, url: DS_BASE + '/cache/v3.docx', filetype: 'docx' },
     { how: 'header' });
