@@ -190,11 +190,11 @@ async function run() {
     'Vokabular', 'Links', 'Suchmaschinen', 'Papierkorb',
     'Benutzer', 'Anfragen', 'Sicherheitsprotokoll', 'Mailversand',
     'Kennzahlen', 'Bildformate', 'Grenzen beim Hochladen', 'Backup', 'Alte Backups', 'Export und Import',
-    'Titel', 'Sprachen'];
-  check('Die Eigentuemerin sieht alle dreiundzwanzig Karten',
+    'Titel', 'Sprachen', 'Dokumente'];
+  check('Die Eigentuemerin sieht alle vierundzwanzig Karten',
     equal(kEig, ALL_CARDS), kEig.join(' · '));
   // Prueft auch ALL_CARDS selbst: eine aus der Liste gestrichene Karte fiele sonst nicht auf.
-  check('Und es sind wirklich dreiundzwanzig', ALL_CARDS.length === 23 && kEig.length === 23,
+  check('Und es sind wirklich vierundzwanzig', ALL_CARDS.length === 24 && kEig.length === 24,
     `${ALL_CARDS.length} erwartet, ${kEig.length} gezeichnet`);
   /* `equal(kEig, ALL_CARDS)` schlaegt auch bei einer Verschiebung an; diese
      Pruefung nennt, welche Nachbarschaft verletzt ist. */
@@ -276,7 +276,7 @@ async function run() {
   const kOut = (await sysPass(rOut)).cards;
   check('Ist die Selbstanmeldung aus und nichts offen, steht die Karte "Anfragen" trotzdem',
     kOut.includes('Anfragen'), kOut.join(' · '));
-  check('Und es sind auch dann dreiundzwanzig', kOut.length === 23 && equal(kOut, ALL_CARDS),
+  check('Und es sind auch dann vierundzwanzig', kOut.length === 24 && equal(kOut, ALL_CARDS),
     `${kOut.length} gezeichnet`);
   await sysSection(rOut.w, 'users');
   check('Und der Schalter steht darin -- sonst kaeme man nie an ihn heran',
@@ -936,8 +936,8 @@ async function run() {
     zkBlock()?.closest('.sys-card')?.querySelector('h3')?.textContent || '(kein Block)');
   /* sysPass zaehlt ueber alle Abschnitte; sichtbar ist immer nur einer. */
   const zkAll = (await sysPass(zkOut)).cards;
-  check('Und die Zahl der Karten bleibt bei dreiundzwanzig',
-    zkAll.length === 23, `${zkAll.length}: ${zkAll.join(' · ')}`);
+  check('Und die Zahl der Karten bleibt bei vierundzwanzig',
+    zkAll.length === 24, `${zkAll.length}: ${zkAll.join(' · ')}`);
   await sysSection(zkOut.w, 'personal');
   check('Der Zustand "aus" steht ohne Klick da',
     /Zweiter Faktor: aus/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 90));

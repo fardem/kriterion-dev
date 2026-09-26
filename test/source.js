@@ -33,8 +33,8 @@ async function run() {
     fUnknown.length === 0 && fGone.length === 0,
     `ohne Entscheidung: ${fUnknown.join(' · ') || '—'} · verschwunden: ${fGone.join(' · ') || '—'}`);
   // Die feste Zahl macht jede neue Route in F_ROUTES sichtbar.
-  check('Und es sind jetzt genau 75 schreibende Routen',
-    F_ROUTES.length === 75 && fFound.length === 75,
+  check('Und es sind jetzt genau 76 schreibende Routen',
+    F_ROUTES.length === 76 && fFound.length === 76,
     `${F_ROUTES.length} erwartet, ${fFound.length} gefunden`);
   /* Gelesen werden die geladenen Listen aus auth.js, nicht ihr Quelltext;
      ein Textvergleich schluege auch bei Kommentaren an. */
@@ -101,9 +101,9 @@ async function run() {
   check('Der Pruefstand kennt jede lesende Route',
     fReadUnknown.length === 0 && fReadGone.length === 0,
     `ohne Eintrag: ${fReadUnknown.join(' · ') || '—'} · verschwunden: ${fReadGone.join(' · ') || '—'}`);
-  // Die 31 ergibt auch ein Zaehlen der GET-Routen am Zeilenanfang von server.js.
-  check('Und es sind genau 31 lesende Routen',
-    F_READ_ROUTES.length === 31 && fRead.length === 31,
+  // Die 35 ergibt auch ein Zaehlen der GET-Routen am Zeilenanfang von server.js.
+  check('Und es sind genau 35 lesende Routen',
+    F_READ_ROUTES.length === 35 && fRead.length === 35,
     `${F_READ_ROUTES.length} erwartet, ${fRead.length} gefunden`);
   check('Und jede Zeile des Verzeichnisses sagt, warum sie dort sitzt',
     F_READ_ROUTES.every(([, , why]) => typeof why === 'string' && why.trim().length > 30),
@@ -127,8 +127,8 @@ async function run() {
   }
   check('Und die Klemme jeder Zeile steht so im Kopf der Route',
     fReadWrong.length === 0, fReadWrong.join(' · ') || 'alle dreissig');
-  check('Genau drei lesende Routen stehen vor der Anmeldung',
-    fReadOpen.length === 3, `${fReadOpen.length}: ${fReadOpen.join(' · ')}`);
+  check('Genau fuenf lesende Routen stehen vor der Anmeldung',
+    fReadOpen.length === 5, `${fReadOpen.length}: ${fReadOpen.join(' · ')}`);
   check('Der Leser sieht auch eine eingerueckte lesende Route und keine schreibende',
     readingRoutes("  app.get('/api/probe', (req, res) => {\n  });\n").length === 1 &&
     readingRoutes("app.post('/api/probe', (req, res) => {});\n").length === 0,
@@ -744,7 +744,7 @@ async function run() {
   const LANGUAGE_SOURCES = ['server.js', 'db.js', 'auth.js', 'attachments.js', 'keys.js',
                           'usertool.js', 'keytool.js', 'twofactor.js', 'testbench.js',
                           'counterproof.js', 'public/app.js',
-                          'images.js', 'batchrun.js', 'mail.js'];
+                          'images.js', 'batchrun.js', 'mail.js', 'docserver.js'];
   const LANGUAGE_MODULES = benchFiles().filter(n => n !== 'testbench.js');
   const languageSource = [...LANGUAGE_SOURCES, ...LANGUAGE_MODULES].flatMap(n => {
     const p = path.join(__dirname, n);
@@ -763,8 +763,8 @@ async function run() {
   });
 
   // Feste Zahl: eine gekuerzte Liste bliebe sonst gruen.
-  check('Der Sprachwaechter sieht alle vierzehn Quelltextdateien an',
-    LANGUAGE_SOURCES.length === 14 &&
+  check('Der Sprachwaechter sieht alle fuenfzehn Quelltextdateien an',
+    LANGUAGE_SOURCES.length === 15 &&
     LANGUAGE_SOURCES.every(n => fs.existsSync(path.join(__dirname, n))),
     `${LANGUAGE_SOURCES.length} Dateien, fehlend: ` +
     JSON.stringify(LANGUAGE_SOURCES.filter(n => !fs.existsSync(path.join(__dirname, n)))));
@@ -870,7 +870,7 @@ async function run() {
     const isGerman = (name) => pieces(name).some(w => GERMAN[w]);
     const SHIPPED = ['server.js', 'auth.js', 'db.js', 'mail.js', 'keys.js', 'attachments.js',
       'images.js', 'batchrun.js', 'log.js', 'usertool.js', 'twofactor.js', 'keytool.js',
-      'public/app.js', 'public/theme.js'];
+      'docserver.js', 'public/app.js', 'public/theme.js'];
     const readShipped = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
 
     // Erst der Leser: findet er nichts, waere jede Probe darunter gruen.
@@ -890,7 +890,7 @@ async function run() {
         if (part.kind === CODE)
           for (const m of part.value.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) identifiers.add(m[0]);
     check('Der Waechter sieht wirklich den ganzen ausgelieferten Code',
-      identifiers.size > 2000 && SHIPPED.length === 14, `${identifiers.size} Bezeichner aus ${SHIPPED.length} Dateien`);
+      identifiers.size > 2000 && SHIPPED.length === 15, `${identifiers.size} Bezeichner aus ${SHIPPED.length} Dateien`);
 
     // Englische Namen, die das Woerterbuch als deutsch kennt.
     const FALSE_FRIENDS = ['MAILTEST_KEY', 'cleanNote', 'liesIn', 'note', 'noteFailure', 'noteSuccess'];
@@ -1035,7 +1035,7 @@ async function run() {
         if (part.kind === CODE)
           for (const m of part.value.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) benchNames.add(m[0]);
     check('Der Waechter sieht wirklich den ganzen Pruefstand',
-      benchNames.size > 2000 && BENCH.length === 22,
+      benchNames.size > 2000 && BENCH.length === 23,
       `${benchNames.size} Bezeichner aus ${BENCH.length} Dateien`);
 
     /* Keine Benennungen, sondern Gegenstaende von Pruefungen: abgelegte
@@ -1067,13 +1067,13 @@ async function run() {
   {
     const SHIPPED = ['server.js', 'auth.js', 'db.js', 'mail.js', 'keys.js', 'attachments.js',
       'images.js', 'batchrun.js', 'log.js', 'usertool.js', 'twofactor.js', 'keytool.js',
-      'public/app.js', 'public/theme.js', 'public/style.css'];
+      'docserver.js', 'public/app.js', 'public/theme.js', 'public/style.css'];
     const BENCH = [...benchFiles(), 'counterproof.js'];
     const readShipped = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
     const stWord = 'Stolper' + 'stein';
     const stAll = [...BENCH, ...SHIPPED];
-    check('Der Waechter sieht alle siebenunddreissig Dateien',
-      stAll.length === 37, `${stAll.length} Dateien`);
+    check('Der Waechter sieht alle neununddreissig Dateien',
+      stAll.length === 39, `${stAll.length} Dateien`);
     /* Die SQL-Kommentare im SCHEMA von db.js stehen in einem Template-String,
        den segment() als Text liefert; hier zaehlen sie als Kommentar. */
     const stSqlRow = /^\s*--/;
@@ -1605,13 +1605,16 @@ async function run() {
         : part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('/'));
     // Auf leeren Mengen waeren die Pruefungen darunter immer gruen.
     check('Der Waechter sieht beide Seiten',
-      rrRoutes.length === 106 && rrBrowser.length > 100000,
+      rrRoutes.length === 111 && rrBrowser.length > 100000,
       `${rrRoutes.length} Routen, ${rrBrowser.length} Zeichen im Browser`);
     /* Die Verwaltungstafel baut diese Adressen aus ihrem Feld `url`; eine
        Suche, die das faende, faende jede Adresse. */
     const RR_OVER_TABLE = ['/api/product-categories/:id', '/api/tags/:id'];
+    // Diese ruft der Document Server, nicht der Browser.
+    const RR_DOCUMENT_SERVER = ['/api/document-server/attachments/:id', '/api/document-server/probe'];
     const rrOrphan = rrRoutes
-      .filter(([, p]) => !RR_OVER_TABLE.includes(p) && !rrPattern(p).test(rrBrowser))
+      .filter(([, p]) => !RR_OVER_TABLE.includes(p) && !RR_DOCUMENT_SERVER.includes(p)
+        && !rrPattern(p).test(rrBrowser))
       .map(([m, p]) => `${m} ${p}`);
     check('Und jede Route, die der Server anbietet, wird im Browser gerufen',
       rrOrphan.length === 0, rrOrphan.join(' · ') || 'alle gerufen');
@@ -1832,8 +1835,8 @@ async function run() {
       }
       if (has) ssCode++;
     }
-    check('Und es stehen genau 1680 Regelzeilen da',
-      ssCode === 1680, `${ssCode} Zeilen`);
+    check('Und es stehen genau 1683 Regelzeilen da',
+      ssCode === 1683, `${ssCode} Zeilen`);
     // Laenger als drei Zeilen darf nur eine Tabelle gemessener Werte sein.
     const ssLines = ssBlocks.map(b => b.split('\n').length);
     const ssOver = ssLines.filter(n => n > 3).length;
@@ -1960,8 +1963,8 @@ async function run() {
     // Feste Zahl: auf einer leeren Menge waere die Pruefung darueber immer gruen.
     const zpCount = zpFiles.reduce((n, f) =>
       n + (zpRead(f).match(/\blog(?:Line|Warn|Fail)\(/g) || []).length, 0);
-    check('Und es sind 53 Protokollzeilen in den sechs Dateien',
-      zpCount === 53, `${zpCount} Zeilen`);
+    check('Und es sind 54 Protokollzeilen in den sechs Dateien',
+      zpCount === 54, `${zpCount} Zeilen`);
     // Ohne TZ laeuft der Container auf UTC, und der Versatz waere immer +00:00.
     const zpCompose = fs.readFileSync(
       path.join(__dirname, 'docker-compose.example.yml'), 'utf8');
@@ -1983,7 +1986,7 @@ async function run() {
     // Dieselbe Liste wie in tools/comments.js, ohne public/theme.js, mit public/index.html.
     const LK_FILES = ['public/app.js', 'public/index.html', 'server.js', 'auth.js',
       'mail.js', 'db.js', 'keys.js', 'attachments.js', 'images.js',
-      'usertool.js', 'keytool.js', 'twofactor.js', 'batchrun.js'];
+      'usertool.js', 'keytool.js', 'twofactor.js', 'batchrun.js', 'docserver.js'];
     const lkText = LK_FILES.map(lkRead).join('\n');
     const lkKeys = Object.keys(JSON.parse(lkRead('public/languages/de.json')))
       .filter(k => k !== '_locale' && k !== '_name');
@@ -2219,7 +2222,7 @@ async function run() {
   const hAll = assignments(hSource);
   // Feste Zahl: ueber null Zuweisungen waere die Pruefung immer gruen.
   check('Der Waechter sieht alle Zuweisungen an innerHTML',
-    hAll.length === 173, `${hAll.length} Zuweisungen`);
+    hAll.length === 178, `${hAll.length} Zuweisungen`);
   const hNaked = [];
   const hUsed = new Set();
   for (const one of hAll)

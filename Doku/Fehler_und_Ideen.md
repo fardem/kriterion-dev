@@ -195,7 +195,7 @@ sagt der Fahrplan.
 | **0.39.0** | Die Fotokachel nach `photo_derivatives`, mit einer Sicherung davor. *Gemessen: der Umweg kostet nur den, der die Kachel wirklich holt — bis 100 kB Original 0,02 ms, ueber 1 MB 14,8 ms* | **ja** |
 | **0.40.0** | Export, Import und Papierkorb ohne den Arbeitsspeicher — erst am Bestand messen | nein |
 | **0.41.0** | Backup, Videos in Kommentaren und der Prüfstand ohne feste Wartezeiten: 618 feste Wartezeiten, die Hinweise zu Export, Import und Backup und sieben Punkte vom 23. September 2026. Auftrag erteilt am 23. September 2026 | **ja** |
-| **0.42.0** | Dokumente über einen Document Server ansehen. Auftrag erteilt am 25. September 2026 | nein |
+| ~~**0.42.0**~~ | ~~Dokumente über einen Document Server ansehen~~ — **GEBAUT am 25. September 2026** | nein |
 | **0.43.0** | Dokumente über den Document Server bearbeiten | nein |
 | *danach* | Große Dateien bis 2 GB — eigenes Papier, im Fahrplan als „danach" | **ja** |
 
@@ -289,7 +289,7 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 | **0.39.0** *MINOR, Schema* — **GEPLANT am 21. September 2026** | **Die Fotokachel in eine Nebentabelle.** *Punkt 39 dieses Blatts, sein letzter von vier Befunden — die drei Indexe sind mit 0.38.4 gebaut.* |
 | **0.40.0** *MINOR, Format* — **GEPLANT am 21. September 2026** | **Export, Import und Papierkorb ohne den Arbeitsspeicher.** *Punkt 40 dieses Blatts, vollständig.* |
 | **0.41.0** *MINOR* — **GEBAUT am 23. September 2026** | **Backup, Videos in Kommentaren und der Prüfstand ohne feste Wartezeiten.** *Punkt 41 dieses Blatts, vollständig, dazu 48 bis 51. Bis zum Auftrag hieß die Runde „Der Prüfstand wartet auf eine Bedingung statt auf die Uhr".* |
-| **0.42.0** und **0.43.0** *MINOR* — **GEPLANT am 21. September 2026** | **Dokumente über einen Document Server ansehen und bearbeiten.** *Aus keinem Punkt dieses Blatts — eine Frage des Betreibers vom selben Tag.* |
+| **0.42.0** und **0.43.0** *MINOR* — **GEPLANT am 21. September 2026, 0.42.0 GEBAUT am 25. September 2026** | **Dokumente über einen Document Server ansehen und bearbeiten.** *Aus keinem Punkt dieses Blatts — eine Frage des Betreibers vom selben Tag.* |
 
 **Was hier bleibt, bleibt aus einem Grund:** die **elf** Punkte unten haben
 **keine Nummer**, weil die meisten von ihnen jetzt nicht gebaut werden sollen —

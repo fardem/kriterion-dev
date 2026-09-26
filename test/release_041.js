@@ -640,7 +640,7 @@ async function run() {
     const unset = sections.filter((b, i) => !names[i] || !new RegExp(`^#? ?${names[i]}=`, 'm').test(b))
       .map(b => b.trim().split('\n')[0]);
     check('Jeder Abschnitt der .env.example gehoert zu einer Einstellung darin',
-      sections.length === 3 && unset.length === 0,
+      sections.length === 7 && unset.length === 0,
       `${sections.length} Abschnitte; ohne Einstellung: ${unset.join(' · ') || 'keiner'}`);
     const longBlocks = sections.map(b => b.split('\n').filter(z => /^#/.test(z) && !/^# ?[A-Z_]+=/.test(z)))
       .filter(b => b.length > 4).map(b => b[0]);
@@ -708,7 +708,7 @@ async function run() {
     check('Die Kartenschluessel im Systembereich sind englisch', equal(keys, ['myaccount', 'sessions',
       'appearance', 'categories', 'tags', 'criteria', 'potentialcriteria', 'vocabulary', 'links',
       'searchengines', 'trash', 'accounts', 'requests', 'log', 'mail', 'stats', 'imagestore', 'limits', 'backup',
-      'cleanup', 'export', 'titles', 'languages']), keys.join(' '));
+      'cleanup', 'export', 'titles', 'languages', 'documents']), keys.join(' '));
     fs.rmSync(toolDir, { recursive: true, force: true });
   }
 

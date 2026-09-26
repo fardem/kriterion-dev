@@ -5908,6 +5908,8 @@ async function renderDetail(id, termAddress, commentWanted) {
   /* ---- Dateien ---- */
   // Die Vorschauart liefert der Server in `preview`; der Dateiname wird nicht ausgewertet.
   const openPreview = new Set();
+  // Offene Betrachter des Document Servers nach Nummer der Datei.
+  const officeViewers = new Map();
 
   function filesize(bytes) {
     if (bytes < 1024) return bytes + ' B';
@@ -5918,6 +5920,9 @@ async function renderDetail(id, termAddress, commentWanted) {
   function drawAtts() {
     const box = document.getElementById('atts');
     const list = item.attachments || [];
+    // drawAtts() zeichnet die ganze Liste neu; ein alter Betrachter bliebe sonst verbunden.
+    for (const v of officeViewers.values()) { try { v.destroyEditor(); } catch {} }
+    officeViewers.clear();
     document.getElementById('acount').textContent = list.length
       ? t('entry.fileCount', { n: list.length,
           filesize: filesize(list.reduce((s2, a) => s2 + a.size, 0)) }) : '';
@@ -5986,24 +5991,57 @@ async function renderDetail(id, termAddress, commentWanted) {
           sandbox="allow-scripts" referrerpolicy="no-referrer" title="${esc(a.filename)}"></iframe>
         <p class="apdf-hint"><span class="hint">${tH('entry.pdfHint')}</span>
           <a class="abtn" href="/api/attachments/${Number(a.id)}/raw?inline=1" target="_blank" rel="noopener noreferrer">${tH('entry.openNewTab')}</a></p>`;
+    } else if (a.preview === 'office') {
+      buildOffice(a, boxId);
     } else {
       boxId.innerHTML = `<p class="hint">${tH('list.loading')}</p>`;
-      api('GET', `/api/attachments/${a.id}/preview`).then(v => {
-        // Nur als textContent: der Browser interpretiert den Inhalt nicht.
-        boxId.innerHTML = '';
-        const pre = document.createElement('pre');
-        pre.className = 'atext';
-        pre.textContent = v.text || t('entry.empty');
-        boxId.appendChild(pre);
-        if (v.shortened) {
-          const h = document.createElement('p');
-          h.className = 'hint';
-          h.textContent = t('entry.previewTruncated');
-          boxId.appendChild(h);
-        }
-      }).catch(e => { boxId.innerHTML = `<p class="hint">${esc(e.message)}</p>`; });
+      textPreview(a, boxId);
     }
     return boxId;
+  }
+
+  function textPreview(a, boxId) {
+    api('GET', `/api/attachments/${a.id}/preview`).then(v => {
+      // Nur als textContent: der Browser interpretiert den Inhalt nicht.
+      boxId.innerHTML = '';
+      const pre = document.createElement('pre');
+      pre.className = 'atext';
+      pre.textContent = v.text || t('entry.empty');
+      boxId.appendChild(pre);
+      if (v.shortened) {
+        const h = document.createElement('p');
+        h.className = 'hint';
+        h.textContent = t('entry.previewTruncated');
+        boxId.appendChild(h);
+      }
+    }).catch(e => { boxId.innerHTML = `<p class="hint">${esc(e.message)}</p>`; });
+  }
+
+  function buildOffice(a, boxId) {
+    const holder = `office-${Number(a.id)}`;
+    boxId.innerHTML = `<div class="aoffice"><div id="office-${Number(a.id)}"></div></div>
+      <p class="hint aoffice-hint"></p>`;
+    const failed = () => {
+      try { officeViewers.get(a.id)?.destroyEditor(); } catch {}
+      officeViewers.delete(a.id);
+      boxId.innerHTML = `<p class="hint">${tH('entry.officeFailed')}</p>`;
+      // Bei .docx bleibt die Textvorschau als Rueckfall.
+      if (/\.docx$/i.test(a.filename)) {
+        const rest = document.createElement('div');
+        boxId.appendChild(rest);
+        textPreview(a, rest);
+      }
+    };
+    api('GET', `/api/attachments/${a.id}/office?mobile=${isNarrow() ? 1 : 0}`)
+      .then(async v => {
+        const hint = boxId.querySelector('.aoffice-hint');
+        if (hint) hint.textContent = t('entry.officeHint', { host: v.host });
+        await officeScript(v.script);
+        if (!document.getElementById(holder)) return;
+        officeViewers.set(a.id, new window.DocsAPI.DocEditor(holder,
+          { ...v.config, events: { onError: failed } }));
+      })
+      .catch(failed);
   }
 
   document.getElementById('aadd').onclick = () => document.getElementById('afile').click();
@@ -6523,6 +6561,22 @@ function saved(el = document.activeElement) {
 }
 
 
+/* ---- Betrachter des Document Servers ---- */
+/* api.js einmal je Seite; nach einem Fehler wird beim naechsten Oeffnen neu geladen. */
+let officeLoading = null;
+function officeScript(src) {
+  if (window.DocsAPI) return Promise.resolve();
+  if (!officeLoading) officeLoading = new Promise((resolve, reject) => {
+    const el = document.createElement('script');
+    el.src = src;
+    el.onload = () => window.DocsAPI ? resolve() : reject(new Error(src));
+    el.onerror = () => { el.remove(); reject(new Error(src)); };
+    document.head.appendChild(el);
+  }).catch(e => { officeLoading = null; throw e; });
+  return officeLoading;
+}
+
+
 /* ---- Karten der Einstellungen ---- */
 /* `visible` entscheidet, ob die Karte erscheint, `markup` zeichnet sie, `wireUp`
    haengt die Handler an. */
@@ -6580,7 +6634,9 @@ const SYS_CARDS = [
   { key: 'titles',       section: 'installation', visible: () => ADMIN,
     markup: cardTitle,        wireUp: setUpTitleOut },
   { key: 'languages',    section: 'installation', visible: () => OWNER,
-    markup: cardLanguages,    wireUp: setUpLanguagesOut }
+    markup: cardLanguages,    wireUp: setUpLanguagesOut },
+  { key: 'documents',    section: 'installation', visible: () => ADMIN,
+    markup: cardDocuments,    wireUp: setUpDocumentsOut }
 ];
 
 /* Abschnitte mit mindestens einer sichtbaren Karte. */
@@ -6600,14 +6656,15 @@ async function renderSystem({ keepScroll = false } = {}) {
     /* Nur holen, was eine sichtbare Karte braucht; Bedingungen wie `visible` in SYS_CARDS. */
     [fetched.stats, fetched.titles, fetched.cats, fetched.tags, fetched.crits, fetched.account,
      fetched.trash, fetched.backup, fetched.sessions, fetched.log,
-     fetched.mailStatus, fetched.requests] = await Promise.all([
+     fetched.mailStatus, fetched.requests, fetched.documents] = await Promise.all([
       ADMIN ? api('GET', '/api/stats') : null, api('GET', '/api/titles'),
       api('GET', '/api/product-categories'), api('GET', '/api/tags'), api('GET', '/api/criteria'),
       api('GET', '/api/account'), ADMIN ? api('GET', '/api/trash') : null,
       OWNER ? api('GET', '/api/backup') : null, api('GET', '/api/sessions'),
       OWNER ? api('GET', '/api/security-log') : null,
       OWNER ? api('GET', '/api/mail') : null,
-      ADMIN ? api('GET', '/api/requests') : null
+      ADMIN ? api('GET', '/api/requests') : null,
+      ADMIN ? api('GET', '/api/document-server') : null
     ]);
   } catch (e) { if (e.message !== SESSION_GONE) toast(e.message, true); return; }
   // Die Frist kommt vom Server; die Karte rechnet sie nicht nach.
@@ -6780,6 +6837,48 @@ function setUpLanguagesOut() {
       note.textContent = languageGapLine(gapCode);
       box.appendChild(note);
     }
+  }
+
+
+/* ---- Karte „Dokumente" — Abschnitt „Installation" ---- */
+function cardDocuments(fetched) {
+  const d = fetched.documents || {};
+  const row = (r) => `<div class="kv"><span class="k"><code>${esc(r.name)}</code></span>
+      <span class="v">${r.value ? esc(r.value) : '—'}${r.fallback
+        ? ` <span class="extra">${tH('card.documentsFallback', { name: r.fallback })}</span>` : ''}</span></div>`;
+  return `<div class="sys-card">
+        <h3>${tH('card.documents')}</h3>
+        <p class="desc">${tH('card.documentsHint')}</p>
+        ${(d.rows || []).map(row).join('')}
+        ${d.setup ? `<div class="warn-box" style="margin-top:14px">${tH(d.setup)}</div>` : `
+        <label class="ex-files"><input type="checkbox" id="doc-on">
+          ${tH('card.documentsOn')}</label>
+        <div id="doc-check" style="margin:14px 0 10px"></div>
+        <button class="btn btn-sm" id="doc-check-b">${tH('card.documentsCheck')}</button>`}
+      </div>`;
+}
+function setUpDocumentsOut(fetched) {
+  const d = fetched.documents || {};
+  if (d.setup) return;
+  let on = d.on === true;
+  createToggle('doc-on', 'documentServer', () => on, v => { on = v; });
+  atElement('doc-check-b', b => b.onclick = checkDocuments);
+  checkDocuments();
+}
+
+  // Die Seite wartet nicht darauf; die Pruefung kann bis zu 25 s brauchen.
+  async function checkDocuments() {
+    const box = document.getElementById('doc-check');
+    const button = document.getElementById('doc-check-b');
+    if (!box) return;
+    box.innerHTML = `<p class="hint">${tH('list.loading')}</p>`;
+    if (button) button.disabled = true;
+    try {
+      const r = await api('POST', '/api/document-server/check');
+      box.innerHTML = `<div class="${r.key === 'server.docReady' ? 'ok-box' : 'warn-box'}">${
+        tH(r.key, r.values || {})}</div>`;
+    } catch (e) { box.innerHTML = `<div class="warn-box">${esc(e.message)}</div>`; }
+    finally { if (button) button.disabled = false; }
   }
 
 

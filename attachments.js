@@ -237,7 +237,7 @@ function docxPreview(buf) {
 }
 
 module.exports = {
-  previewKind, setHeader, securityRule,
+  extension, previewKind, setHeader, securityRule,
   typeFromBytes, setImageHeader, rangeOut,
   textPreview, docxPreview, VIDEO_TYPES
 };

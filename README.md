@@ -13,7 +13,9 @@ vergleichen, filtern und durchsuchen.
 
 Alles bleibt auf dem eigenen Server: kein Konto bei Dritten, keine Telemetrie,
 keine externen Schriftarten, kein CDN. Die Datenbank ist als Ganzes
-verschlüsselt (SQLCipher, AES-256); Fotos und Videos liegen darin.
+verschlüsselt (SQLCipher, AES-256); Fotos und Videos liegen darin. Mit einem
+[Document Server](#document-server) liegt jede dort angesehene Datei zusätzlich
+unverschlüsselt in dessen Zwischenspeicher.
 
 Gebaut mit Node.js, Express, SQLCipher (`better-sqlite3-multiple-ciphers`),
 `sharp` und `nodemailer`. Das Frontend kommt ohne Framework aus.
@@ -33,6 +35,7 @@ Diese Datei beschreibt Installation und Betrieb. Die Bedienung steht im
 - [Backup](#backup)
 - [Update](#update)
 - [Hinter einem Reverse Proxy](#hinter-einem-reverse-proxy)
+- [Document Server](#document-server)
 - [Befehle auf dem Server](#befehle-auf-dem-server)
 - [Fehlerbehebung](#fehlerbehebung)
 - [Eigene Skripte an der Schnittstelle](#eigene-skripte-an-der-schnittstelle)
@@ -135,6 +138,10 @@ weitere Benutzer und Mailversand werden in der Oberfläche eingerichtet; siehe
 | `.env` | `ENCRYPTION_KEY`: Schlüssel der Datenbank | Schlüssel liegt in `data/encryption.key`, siehe [Der Schlüssel](#der-schlüssel) |
 | `.env` | `BEHIND_PROXY=1`: Reverse Proxy mit HTTPS davor | direkter Zugriff, siehe [Hinter einem Reverse Proxy](#hinter-einem-reverse-proxy) |
 | `.env` | `PUBLIC_ADDRESS`: Adresse von außen, etwa `https://kriterion.beispiel.de` | Links baut der Browser aus seiner Adresse; keine Links per E-Mail, keine Registrierung |
+| `.env` | `DOCUMENT_SERVER_ADDRESS`: Euro-Office oder OnlyOffice, wie der Browser es erreicht | keine Anzeige über einen Document Server, siehe [Document Server](#document-server) |
+| `.env` | `DOCUMENT_SERVER_SECRET`: derselbe Wert wie `JWT_SECRET` am Document Server | keine Anzeige über einen Document Server |
+| `.env` | `DOCUMENT_SERVER_INTERNAL_ADDRESS`: der Document Server, wie Kriterion ihn erreicht | `DOCUMENT_SERVER_ADDRESS` |
+| `.env` | `INTERNAL_ADDRESS`: Kriterion, wie der Document Server es erreicht | `PUBLIC_ADDRESS` |
 | `docker-compose.yml` | Port, links in `"3100:3000"` | 3100 |
 | `docker-compose.yml` | Backup-Ordner: Einhängung und `BACKUP_DIR` | `./kriterion-backup`, siehe [Backup](#backup) |
 | `docker-compose.yml` | `TZ`: Zeitzone des Protokolls | `Europe/Berlin` |
@@ -338,8 +345,8 @@ Weicht er ab, findet diese Schleife die Datei, im Projektordner oder im
 Container (`docker compose exec kriterion sh`):
 
 ```bash
-for f in attachments.js auth.js batchrun.js images.js db.js keys.js log.js \
-         mail.js package.json server.js twofactor.js public/*; do
+for f in attachments.js auth.js batchrun.js docserver.js images.js db.js keys.js \
+         log.js mail.js package.json server.js twofactor.js public/*; do
   printf "%-26s %s\n" "$f" "$(sha256sum "$f" | cut -c1-8)"
 done
 ```
@@ -375,6 +382,43 @@ Der Start meldet die Lage im Protokoll: `Behind proxy: on` oder `off`.
 
 Für CrowdSec oder fail2ban antwortet `POST /api/login` unterscheidbar: 401
 (Name oder Passwort falsch), 429 (zu viele Versuche), 403 (Account gesperrt).
+
+## Document Server
+
+Mit Euro-Office oder OnlyOffice zeigt Kriterion diese Dateien im Eintrag an:
+`docx`, `doc`, `odt`, `rtf`, `xlsx`, `xls`, `ods`, `pptx`, `ppt`, `odp`. Bilder,
+PDF und Text zeigt Kriterion weiter selbst an. Einrichten des Document Servers
+selbst: [Dokumentation von Euro-Office](https://github.com/Euro-Office/documentation).
+
+**Am Document Server:**
+
+- `JWT_SECRET` mit mindestens 32 Zeichen. Derselbe Wert steht in der `.env`
+  von Kriterion als `DOCUMENT_SERVER_SECRET`.
+- `JWT_ENABLED` und `JWT_HEADER` bleiben auf ihren Vorgaben `true` und
+  `Authorization`.
+- Im selben Docker-Netz wie Kriterion: `ALLOW_PRIVATE_IP_ADDRESS=true`. Ohne
+  diese Zeile holt der Document Server keine Datei aus dem Docker-Netz.
+
+**In der `.env` von Kriterion**, Beispiel für beide Container im selben
+Docker-Netz:
+
+```sh
+DOCUMENT_SERVER_ADDRESS=https://office.beispiel.de
+DOCUMENT_SERVER_SECRET=<derselbe Wert wie JWT_SECRET>
+DOCUMENT_SERVER_INTERNAL_ADDRESS=http://euro-office:80
+INTERNAL_ADDRESS=http://kriterion:3000
+```
+
+- Stehen beide Container in einer `docker-compose.yml`, teilen sie das Netz.
+  Bei zwei Compose-Dateien brauchen beide ein gemeinsames Netz (`networks:`
+  mit `external: true`).
+- Nach dem Neustart die Karte „Dokumente" unter Einstellungen → Installation
+  öffnen. Sie prüft beide Richtungen und nennt, was fehlt. Dort wird die
+  Anzeige eingeschaltet.
+
+**Jede angesehene Datei liegt unverschlüsselt im Zwischenspeicher des Document
+Servers**, bis er ihn leert. Die Verschlüsselung der Datenbank gilt für diese
+Kopie nicht.
 
 ## Befehle auf dem Server
 

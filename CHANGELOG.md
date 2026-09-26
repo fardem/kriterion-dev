@@ -30,6 +30,36 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.42.0] - 2026-09-25
+
+*Dokumente über einen Document Server ansehen.*
+
+Fingerprint `48829449` — davor `dcbfdfb6`.
+
+> **Ohne die neuen Variablen in der `.env` ändert sich nichts.**
+>
+> **Mit Document Server liegt jede angesehene Datei unverschlüsselt in dessen
+> Zwischenspeicher.**
+>
+> **Im selben Docker-Netz braucht der Document Server
+> `ALLOW_PRIVATE_IP_ADDRESS=true`.** Sonst holt er keine Datei bei Kriterion.
+
+### Hinzugefügt
+
+- **Dateien über einen Document Server ansehen** (Euro-Office, OnlyOffice):
+  `docx`, `doc`, `odt`, `rtf`, `xlsx`, `xls`, `ods`, `pptx`, `ppt`, `odp`.
+- **Die Karte „Dokumente"** unter Installation: Schalter für Admins, Prüfung
+  der Verbindung in beide Richtungen.
+- Vier Einstellungen in der `.env`: `DOCUMENT_SERVER_ADDRESS`,
+  `DOCUMENT_SERVER_SECRET`, `DOCUMENT_SERVER_INTERNAL_ADDRESS`,
+  `INTERNAL_ADDRESS`.
+- README: Abschnitt „Document Server".
+
+### Geändert
+
+- Mit `DOCUMENT_SERVER_ADDRESS` erlaubt die CSP Skript und Rahmen von dieser
+  Adresse.
+
 ## [0.41.1] - 2026-09-25
 
 *Texte der Oberfläche, README, Handbuch und Kommentare überarbeitet.*

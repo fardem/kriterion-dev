@@ -341,7 +341,9 @@ unverändert.
   Tags tragen.
 - **Dateien:** bis 50 MB je Datei, höchstens 20 je Eintrag. Bilder, PDF, Text,
   Markdown, CSV, Log und `.docx` lassen sich ansehen, alles andere wird
-  heruntergeladen.
+  heruntergeladen. Hat der Admin einen Document Server eingeschaltet, zeigt er
+  auch Word-, Excel- und PowerPoint-Dateien und ihre OpenDocument-Gegenstücke
+  an. Unter dem Betrachter steht, welcher Document Server die Datei anzeigt.
 - **Links:** jeder darf eintragen. Umsortieren darf der Verfasser des Eintrags
   oder der Admin. Ein Text ohne Adresse (Wort, Artikelnummer) wird zur Suche
   bei der eingestellten Suchmaschine.
@@ -453,7 +455,7 @@ eigene Adresse. Abschnitte ohne sichtbare Karte erscheinen nicht.
 | Bestand | Kategorien, Tags, Bewertung: Kriterien, Potenzial: Kriterien, Vokabular, Links, Suchmaschinen, Papierkorb |
 | Benutzer | Benutzer, Anfragen, Sicherheitsprotokoll, Mailversand |
 | Datenbank | Kennzahlen, Bildformate, Grenzen beim Hochladen, Backup, Alte Backups, Export und Import |
-| Installation | Titel, Sprachen |
+| Installation | Titel, Sprachen, Dokumente |
 
 Ein Benutzer sieht seine eigenen Karten und die Listen der Kategorien, Tags
 und Kriterien ohne Bearbeitung. Alles Weitere sieht der Admin; Export, Import,
@@ -462,6 +464,7 @@ Backup und Sicherheitsprotokoll nur der Eigentümer-Admin.
 | Karte | Inhalt |
 |---|---|
 | Titel | Titel vor der Anmeldung (für jeden sichtbar, zurückhaltend wählen) und Titel nach der Anmeldung |
+| Dokumente | Anzeige über einen Document Server ein- und ausschalten; die Karte prüft die Verbindung. Adressen und Secret stehen in der `.env`, siehe README |
 | Kennzahlen | Umfang des Bestands, Datenbankgröße, Version, Fingerprint, Verschlüsselungsverfahren; für den Eigentümer-Admin der Schlüsselwert |
 | Kategorien, Tags | anlegen, umbenennen, löschen; ein Häkchen legt fest, ob jeder neue Namen am Eintrag anlegen darf |
 | Bewertung: Kriterien, Potenzial: Kriterien | anlegen, umbenennen, sortieren, gewichten (0,2 bis 2, Vorgabe 1) |

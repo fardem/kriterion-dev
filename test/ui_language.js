@@ -56,7 +56,7 @@ async function run() {
     const withoutComment = (q) => q
       .replace(/(^|[^A-Za-z0-9_"'`])\/\*[\s\S]*?\*\//g, '$1 ')
       .replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
-    const spSources = ['public/app.js', 'server.js', 'auth.js', 'mail.js'];
+    const spSources = ['public/app.js', 'server.js', 'auth.js', 'mail.js', 'docserver.js'];
     const called = new Set();
     for (const file of spSources) {
       const q = withoutComment(fs.readFileSync(path.join(__dirname, file), 'utf8'));
