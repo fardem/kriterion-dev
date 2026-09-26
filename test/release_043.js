@@ -374,8 +374,8 @@ async function run() {
     check('Unter dem Editor steht entry.officeEditHint',
       fw.document.querySelector('.fileview .aoffice-hint')?.textContent === deText('entry.officeEditHint', { host: 'ds.invalid' }),
       fw.document.querySelector('.fileview .aoffice-hint')?.textContent);
-    box.checked = true;
-    await box.onchange();
+    // Fehlt der Haken, bleibt die Pruefung rot, ohne das Modul abzubrechen.
+    if (box) { box.checked = true; await box.onchange(); }
     check('Der Haken schreibt editAll an die Datei',
       asked.some(x => x.method === 'PUT' && x.url === '/api/attachments/45/editing' && x.body?.editAll === true),
       JSON.stringify(asked.slice(-1)));
@@ -422,9 +422,10 @@ async function run() {
     };
     vw.DocsAPI = { DocEditor: function () { this.destroyEditor = () => {}; } };
     const modal = () => vw.document.querySelector('.modal');
-    await until(vw, () => modal()?.querySelector('[data-no]'), 3000, 'die Rueckfrage');
-    const prompt = { title: modal().querySelector('h2')?.textContent, text: modal().querySelector('p')?.textContent };
-    modal().querySelector('[data-no]').onclick();
+    // Rueckfrage oder gleich die Anfrage: ohne Rueckfrage bleibt die Pruefung rot.
+    await until(vw, () => modal()?.querySelector('[data-no]') || vAsked.length, 3000, 'die Rueckfrage');
+    const prompt = { title: modal()?.querySelector('h2')?.textContent, text: modal()?.querySelector('p')?.textContent };
+    modal()?.querySelector('[data-no]')?.onclick();
     await until(vw, () => vAsked.length === 1, 2000, 'den Betrachter');
     check('Vor der Umwandlung fragt die Ansicht; ohne OK kommt der Betrachter',
       prompt.title === DE['entry.convertAsk'] &&
@@ -432,8 +433,8 @@ async function run() {
       vAsked[0] === '/api/attachments/47/office?mobile=0&edit=0', `${prompt.title} ${vAsked.join(' ')}`);
     // Ohne await: route() wartet auf die Rueckfrage.
     vw.eval('route()');
-    await until(vw, () => modal()?.querySelector('[data-yes]'), 3000, 'die zweite Rueckfrage');
-    modal().querySelector('[data-yes]').onclick();
+    await until(vw, () => modal()?.querySelector('[data-yes]') || vAsked.length === 2, 3000, 'die zweite Rueckfrage');
+    modal()?.querySelector('[data-yes]')?.onclick();
     await until(vw, () => vAsked.length === 2 && openRequests(vw) === 0, 2000, 'den Editor');
     check('Mit OK oeffnet der Editor',
       vAsked[1] === '/api/attachments/47/office?mobile=0&edit=1', vAsked.join(' '));
