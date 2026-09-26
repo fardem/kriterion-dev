@@ -356,7 +356,8 @@ unverändert.
   Haken stellt später nur um, wer hochgeladen hat, in der Leiste der Ansicht.
   Gespeichert wird mit Speichern im Editor und etwa 10 Sekunden, nachdem der
   Letzte die Ansicht verlassen hat. `.doc`, `.xls` und `.ppt` werden dabei zu
-  `.docx`, `.xlsx` und `.pptx`. Auf dem Telefon wird nur angesehen.
+  `.docx`, `.xlsx` und `.pptx`; vorher fragt die Ansicht nach, ohne OK wird
+  nur angesehen. Auf dem Telefon wird nur angesehen.
 - **Vorige Fassung:** Kriterion hebt die Fassung vor der letzten Bearbeitung
   auf. Das Zeichen ↶ in der Leiste stellt sie wieder her; die aktuelle wird
   dabei zur vorigen, ein zweites Mal macht es rückgängig. Die vorige Fassung

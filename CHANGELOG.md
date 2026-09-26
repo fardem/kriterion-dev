@@ -51,7 +51,8 @@ Fingerprint `543d6c8a` — davor `90d99a0b`.
 ### Geändert
 
 - `.doc`, `.xls` und `.ppt` werden beim Bearbeiten zu `.docx`, `.xlsx` und
-  `.pptx`.
+  `.pptx`. Vor dem Öffnen fragt Kriterion nach; die alte Datei bleibt als
+  vorige Fassung.
 - Der JSON-Export trägt Format 20 mit dem Haken je Datei. Die vorige Fassung
   steht nur im Backup.
 

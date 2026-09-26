@@ -141,6 +141,9 @@ async function run() {
     asUploader['bericht.docx']?.edit === true && asOwner['bericht.docx']?.edit === false &&
     asOwner['tabelle.xlsx']?.edit === true && asUploader['doku.pdf']?.edit === false,
     `${asUploader['bericht.docx']?.edit} ${asOwner['bericht.docx']?.edit} ${asOwner['tabelle.xlsx']?.edit}`);
+  check('Nur doc, xls und ppt nennen das Format nach dem Speichern',
+    asUploader['alt.doc']?.convertTo === 'docx' && asUploader['bericht.docx']?.convertTo === null &&
+    asUploader['doku.pdf']?.convertTo === null, `${asUploader['alt.doc']?.convertTo} ${asUploader['bericht.docx']?.convertTo}`);
   const presetOff = (await owner.call('GET', `/api/items/${item}`)).content?.editAllPreset;
   await owner.call('PUT', '/api/settings', { documentEditAll: true });
   const presetOn = (await uploader.call('GET', `/api/items/${item}`)).content?.editAllPreset;
@@ -404,6 +407,37 @@ async function run() {
       !ow.document.getElementById('fileview-editall') && !ow.document.getElementById('fileview-previous'),
       oAsked.join(' '));
     ow.close();
+
+    const vm = buildDom(JSDOM, { hash: '#/item/1/file/47',
+      extraAttachments: [extra(47, 'alt.doc', { mine: true, edit: true, convertTo: 'docx' })] });
+    const vw = vm.w;
+    const vAsked = [];
+    const vInner = vw.fetch;
+    vw.fetch = (url, opt) => {
+      if (url.startsWith('/api/attachments/47/office?')) {
+        vAsked.push(url);
+        return reply({ script: 'http://ds.invalid/api.js', host: 'ds.invalid', config: editConfig });
+      }
+      return vInner(url, opt);
+    };
+    vw.DocsAPI = { DocEditor: function () { this.destroyEditor = () => {}; } };
+    const modal = () => vw.document.querySelector('.modal');
+    await until(vw, () => modal()?.querySelector('[data-no]'), 3000, 'die Rueckfrage');
+    const prompt = { title: modal().querySelector('h2')?.textContent, text: modal().querySelector('p')?.textContent };
+    modal().querySelector('[data-no]').onclick();
+    await until(vw, () => vAsked.length === 1, 2000, 'den Betrachter');
+    check('Vor der Umwandlung fragt die Ansicht; ohne OK kommt der Betrachter',
+      prompt.title === DE['entry.convertAsk'] &&
+      prompt.text === deText('entry.convertHint', { filename: 'alt.doc', target: 'alt.docx' }) &&
+      vAsked[0] === '/api/attachments/47/office?mobile=0&edit=0', `${prompt.title} ${vAsked.join(' ')}`);
+    // Ohne await: route() wartet auf die Rueckfrage.
+    vw.eval('route()');
+    await until(vw, () => modal()?.querySelector('[data-yes]'), 3000, 'die zweite Rueckfrage');
+    modal().querySelector('[data-yes]').onclick();
+    await until(vw, () => vAsked.length === 2 && openRequests(vw) === 0, 2000, 'den Editor');
+    check('Mit OK oeffnet der Editor',
+      vAsked[1] === '/api/attachments/47/office?mobile=0&edit=1', vAsked.join(' '));
+    vw.close();
 
     const pm = buildDom(JSDOM, { hash: '#/item/1', editAllPreset: true });
     const pw = pm.w;

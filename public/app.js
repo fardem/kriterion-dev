@@ -6654,8 +6654,14 @@ async function renderFileView(itemId, fileId) {
     const box = document.querySelector('.fileview-doc');
     if (box) box.innerHTML = `<p class="hint">${tH('entry.officeFailed')}</p>`;
   };
+  // Vor einer Umwandlung fragen; ohne Zustimmung bleibt es beim Betrachter.
+  let edit = a.edit === true;
+  if (edit && a.convertTo && !isNarrow())
+    edit = await confirmBox(t('entry.convertAsk'), t('entry.convertHint',
+      { filename: a.filename, target: a.filename.replace(/\.[^.]*$/, '.' + a.convertTo) }),
+      t('entry.convertConfirm'), 'accent');
   startOffice(a, `office-full-${Number(a.id)}`, document.querySelector('.fileview .aoffice-hint'), failed,
-              a.edit === true)
+              edit)
     .then(editor => { if (editor) fileViewer = editor; })
     .catch(failed);
 }

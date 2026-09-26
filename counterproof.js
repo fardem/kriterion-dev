@@ -8689,8 +8689,8 @@ const REGRESSIONS = [
   {
     nr: '1254', name: 'Die Ansicht fragt nie nach dem Editor',
     file: 'public/app.js',
-    search: "              a.edit === true)",
-    replacement: "              false)",
+    search: "  let edit = a.edit === true;",
+    replacement: "  let edit = false;",
     expected: 'Bearbeiten: im Browser'
   },
   {
@@ -8705,6 +8705,20 @@ const REGRESSIONS = [
     file: 'docserver.js',
     search: "      customization: { forcesave: true }",
     replacement: "      customization: {}",
+    expected: 'Bearbeiten: Haken und Rechte'
+  },
+  {
+    nr: '1257', name: 'Die Umwandlung startet ohne Rueckfrage',
+    file: 'public/app.js',
+    search: "  if (edit && a.convertTo && !isNarrow())",
+    replacement: "  if (false)",
+    expected: 'Bearbeiten: im Browser'
+  },
+  {
+    nr: '1258', name: 'detail() nennt kein Format nach dem Speichern',
+    file: 'server.js',
+    search: "      convertTo: docserver.needsConversion(a2.filename) ? docserver.editFormat(a2.filename) : null,",
+    replacement: "      convertTo: null,",
     expected: 'Bearbeiten: Haken und Rechte'
   },
 ];

@@ -16,14 +16,14 @@ Gemessen am fertigen Stand gegen 0.42.3.
 |---|---:|---:|
 | Tabellen der Datenbank | 30 | **32** |
 | Austauschformat | 19 | **20** |
-| Schlüssel je Sprachdatei | 1.204 | **1.214** |
+| Schlüssel je Sprachdatei | 1.204 | **1.217** |
 | Schreibende Routen (`F_ROUTES`) | 76 | **79** |
 | Davon offen vor der Anmeldung | 8 | **9** |
 | Protokollzeilen in den sechs Dateien | 54 | **62** |
 | Regelzeilen des Stilblatts | 1.696 | **1.697** |
-| Kommentarzeilen, alle Dateien | 6.461 in 39 | **6.506 in 40** |
+| Kommentarzeilen, alle Dateien | 6.461 in 39 | **6.509 in 40** |
 | Module im Prüfstand | 23 | **24** |
-| Rückbauten | 1.161 | **1.176** |
+| Rückbauten | 1.161 | **1.178** |
 | Prüfungen im Prüfstand | 7.423 | **7.462** |
 
 ---
@@ -102,6 +102,11 @@ der Document Server versucht es dann erneut.
 
 - Die eigene Ansicht fragt mit `edit=1`. Unter dem Editor steht
   `entry.officeEditHint`.
+- Bei `doc`, `xls` und `ppt` fragt die Ansicht vorher nach
+  (`entry.convertAsk`, mit Namen vorher und nachher). Mit OK kommt der
+  Editor; beim Speichern ersetzt die umgewandelte Fassung die Datei, das
+  Original wird zur vorigen Fassung. Ohne OK kommt der Betrachter. Den neuen
+  Namen bildet der Browser aus `convertTo` in `detail()`.
 - In der Leiste: der Haken „Bearbeiten durch alle" für den, der hochgeladen
   hat, und das Zeichen ↶ für die vorige Fassung, mit Rückfrage.
 - Beim Hochladen steht der Haken neben „Dateien anhängen", vorbelegt nach der
@@ -109,7 +114,7 @@ der Document Server versucht es dann erneut.
 - Die Karte „Dokumente" hat den zweiten Schalter „Beim Hochladen „Bearbeiten
   durch alle" vorab anhaken".
 
-**Texte und Doku.** 10 Schlüssel je Sprache, `card.documentsHint` nennt das
+**Texte und Doku.** 13 Schlüssel je Sprache, `card.documentsHint` nennt das
 Bearbeiten. Handbuch mit „Bearbeiten" und „Vorige Fassung", README mit dem
 Rückweg des Callbacks.
 
@@ -127,6 +132,7 @@ Rückweg des Callbacks.
 | Grenze beim Download | 100 MB, die Obergrenze der Einstellung für Dateien | Die eingestellte Grenze gilt für das Hochladen; eine Bearbeitung soll nicht an ihr scheitern |
 | Schlüssel der Umwandlung | `convert-` vor dem Schlüssel des Editors | Der Document Server hält Umwandlung und Sitzung sonst unter demselben Schlüssel |
 | Admin | bearbeitet ohne Haken nicht, auch der Eigentümer-Admin nicht | Vorgabe des Betreibers |
+| Rückfrage vor der Umwandlung | im Browser, vor dem Start des Editors; Abbrechen zeigt den Betrachter | Nachtrag des Betreibers vom 26. September 2026. Die Datei ändert sich erst beim Speichern; wer nur schaut, soll nichts umwandeln |
 | CSRF | der Callback steht nicht in `CSRF_FREE` | Der Document Server hat keine Sitzung; ohne Sitzung greift die Prüfung nicht. `test/source.js` nennt die Route als vom Document Server gerufen |
 | Feld `editAll` fehlt beim Hochladen | kein Haken | Die Vorgabe der Karte belegt nur den Haken im Browser vor |
 | Rückbau 1230 | Suchtext um die Zeile `mode: 'view', lang,` erweitert | `user: { … }` steht jetzt im Betrachter und im Editor |
@@ -137,7 +143,7 @@ Rückweg des Callbacks.
 
 ## 4. Der Prüfstand
 
-`test/release_043.js`, 39 Prüfungen in vier Gruppen. Ein gestellter Document
+`test/release_043.js`, 42 Prüfungen in vier Gruppen. Ein gestellter Document
 Server im selben Prozess wandelt um, liefert bearbeitete Fassungen aus und
 leitet `/cache/redirect` um. `DOCUMENT_SERVER_ADDRESS` ist
 `http://office.invalid`; Kriterion erreicht den gestellten Server nur über
@@ -146,10 +152,10 @@ der Adresse.
 
 | Gruppe | Prüfungen |
 |---|---:|
-| Bearbeiten: Haken und Rechte | 12 |
+| Bearbeiten: Haken und Rechte | 13 |
 | Bearbeiten: der Rueckweg | 15 |
 | Bearbeiten: Export und Papierkorb | 4 |
-| Bearbeiten: im Browser | 8 |
+| Bearbeiten: im Browser | 10 |
 
 Angepasste feste Zahlen in anderen Modulen: Austauschformat 20 (zehn Stellen
 in `test/roundtrip.js`, `test/source.js`, `test/ui_export.js`,
@@ -158,7 +164,7 @@ CSRF-Schutz, 28 Aufrufe von `detail()`, 114 Routen im Browservergleich, 62
 Protokollzeilen, 1.697 Regelzeilen, 24 Module. In `test/release_042.js` gilt
 der neue Schlüssel und die Adresse `office?mobile=0&edit=0`.
 
-Rückbauten 1242 bis 1256:
+Rückbauten 1242 bis 1258:
 
 | Nr | Rückbau | erwartet in |
 |---|---|---|
@@ -177,6 +183,8 @@ Rückbauten 1242 bis 1256:
 | 1254 | Die Ansicht fragt nie nach dem Editor | im Browser |
 | 1255 | Das Hochladen schickt den Haken nicht | im Browser |
 | 1256 | Der Knopf Speichern schreibt nicht sofort | Haken und Rechte |
+| 1257 | Die Umwandlung startet ohne Rückfrage | im Browser |
+| 1258 | `detail()` nennt kein Format nach dem Speichern | Haken und Rechte |
 
 GEGENPROBE
 

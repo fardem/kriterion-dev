@@ -2623,6 +2623,8 @@ function detail(id, userId, locale) {
       mine: a2.user_id === userId, author: authorFrom(card, a2.user_id),
       editAll: a2.edit_all === 1,
       edit: officeOn && rights && !!docserver.editFormat(a2.filename),
+      // Nur doc, xls, ppt: das Format nach dem Speichern, fuer die Rueckfrage im Browser.
+      convertTo: docserver.needsConversion(a2.filename) ? docserver.editFormat(a2.filename) : null,
       restore: rights && a2.has_previous === 1
     };
   });
