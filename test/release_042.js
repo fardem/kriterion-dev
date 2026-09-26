@@ -421,8 +421,10 @@ async function run() {
     fw.matchMedia = () => ({ matches: true, addEventListener() {}, removeEventListener() {},
       addListener() {}, removeListener() {} });
     fRows()[4].onclick({ target: fRows()[4].querySelector('.aname') });
+    const phoneHash = fw.location.hash;
+    await until(fw, (x) => openRequests(x) === 0, 2000, 'die Anfragen nach dem Klick');
     check('Auf dem Telefon oeffnet ein Klick auf die Zeile die Ansicht',
-      fw.location.hash === '#/item/1/file/45', fw.location.hash);
+      phoneHash === '#/item/1/file/45', phoneHash);
     fw.close();
     const css = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
     check('Lange Werte in einer Zeile .kv brechen um; der Hinweis steht blass darunter',
