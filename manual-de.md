@@ -347,7 +347,9 @@ unverändert.
 - **Vorschau und Öffnen:** Ein Klick auf eine solche Datei zeigt die Vorschau
   im Eintrag. Das Zeichen ⤢ öffnet die Datei in einer eigenen Ansicht über das
   ganze Fenster; der Pfeil oben links führt zurück zum Eintrag. Auf dem Telefon
-  öffnet schon der Klick auf die Datei diese Ansicht.
+  öffnet schon der Klick auf die Datei diese Ansicht. Das Zeichen für Vollbild in
+  der Leiste zeigt nur das Dokument über den ganzen Bildschirm, auch quer;
+  Zurück oder Esc beendet es. Kann der Browser kein Vollbild, fehlt das Zeichen.
 - **Links:** jeder darf eintragen. Umsortieren darf der Verfasser des Eintrags
   oder der Admin. Ein Text ohne Adresse (Wort, Artikelnummer) wird zur Suche
   bei der eingestellten Suchmaschine.

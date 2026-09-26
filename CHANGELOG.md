@@ -30,6 +30,23 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.42.3] - 2026-09-26
+
+*Vollbild in der eigenen Ansicht.*
+
+Fingerprint `90d99a0b` — davor `59983d51`.
+
+### Hinzugefügt
+
+- **Vollbild:** ein Zeichen in der Leiste der eigenen Ansicht zeigt nur das
+  Dokument über den ganzen Bildschirm, auch quer auf dem Telefon. Zurück oder
+  Esc beendet es. Fehlt dem Browser das Vollbild, fehlt das Zeichen.
+
+### Geändert
+
+- Auf der Karte „Dokumente" steht der Name der Variablen klein über ihrem
+  Wert statt daneben.
+
 ## [0.42.2] - 2026-09-26
 
 *Die eigene Ansicht ohne Kopfzeile.*

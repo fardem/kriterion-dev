@@ -8581,6 +8581,27 @@ const REGRESSIONS = [
     replacement: ".fileview { ",
     expected: 'Document Server: die eigene Ansicht'
   },
+  {
+    nr: '1239', name: 'Das Zeichen Vollbild schickt nichts ins Vollbild',
+    file: 'public/app.js',
+    search: "  atElement('fileview-full', b => b.onclick = () =>\n    document.querySelector('.fileview-doc')?.requestFullscreen().catch(() => {}));",
+    replacement: "  atElement('fileview-full', b => b.onclick = () => {});",
+    expected: 'Document Server: die eigene Ansicht'
+  },
+  {
+    nr: '1240', name: 'Das Zeichen Vollbild steht auch ohne Vollbild im Browser',
+    file: 'public/app.js',
+    search: "  const fullOk = shown && !!document.fullscreenEnabled;",
+    replacement: "  const fullOk = shown;",
+    expected: 'Document Server: die eigene Ansicht'
+  },
+  {
+    nr: '1241', name: 'Die Karte Dokumente zeigt Name und Wert wieder nebeneinander',
+    file: 'public/app.js',
+    search: "  const row = (r) => `<div class=\"kv kv-stack\"><span class=\"k\">",
+    replacement: "  const row = (r) => `<div class=\"kv\"><span class=\"k\">",
+    expected: 'Document Server: die eigene Ansicht'
+  },
 ];
 
 /* ---- Spuren und Versatz ---- */
