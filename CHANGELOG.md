@@ -34,7 +34,7 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Dokumente über den Document Server bearbeiten.*
 
-Fingerprint `543d6c8a` — davor `90d99a0b`.
+Fingerprint `c83a6a27` — davor `90d99a0b`.
 
 ### Hinzugefügt
 

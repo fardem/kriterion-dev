@@ -1,6 +1,6 @@
 # Änderungsprotokoll 0.43.0 — „Dokumente über den Document Server bearbeiten"
 
-**Gebaut am 27. September 2026 auf 0.42.3. Fingerprint `543d6c8a`, davor
+**Gebaut am 27. September 2026 auf 0.42.3. Fingerprint `c83a6a27`, davor
 `90d99a0b`.**
 
 Nach dem Abschnitt 0.43.0 im Fahrplan und den Antworten des Betreibers vom
@@ -24,7 +24,7 @@ Gemessen am fertigen Stand gegen 0.42.3.
 | Kommentarzeilen, alle Dateien | 6.461 in 39 | **6.509 in 40** |
 | Module im Prüfstand | 23 | **24** |
 | Rückbauten | 1.161 | **1.178** |
-| Prüfungen im Prüfstand | 7.423 | **7.462** |
+| Prüfungen im Prüfstand | 7.423 | **7.465** |
 
 ---
 
