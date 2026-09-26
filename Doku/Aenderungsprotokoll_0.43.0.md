@@ -21,7 +21,7 @@ Gemessen am fertigen Stand gegen 0.42.3.
 | Davon offen vor der Anmeldung | 8 | **9** |
 | Protokollzeilen in den sechs Dateien | 54 | **62** |
 | Regelzeilen des Stilblatts | 1.696 | **1.697** |
-| Kommentarzeilen, alle Dateien | 6.461 in 39 | **6.509 in 40** |
+| Kommentarzeilen, alle Dateien | 6.461 in 39 | **6.511 in 40** |
 | Module im Prüfstand | 23 | **24** |
 | Rückbauten | 1.161 | **1.178** |
 | Prüfungen im Prüfstand | 7.423 | **7.465** |
@@ -186,7 +186,18 @@ Rückbauten 1242 bis 1258:
 | 1257 | Die Umwandlung startet ohne Rückfrage | im Browser |
 | 1258 | `detail()` nennt kein Format nach dem Speichern | Haken und Rechte |
 
-GEGENPROBE
+**17 rot, 0 stumm.** Jeder ist zusätzlich rot in „Jeder Suchtext kommt in
+seiner Datei genau einmal vor": die Prüfung liest den zurückgebauten Stand.
+
+- 1242 bis 1245 liefen auf `c654fd5`, vor der Rückfrage zur Umwandlung. An
+  ihren Stellen hat sich danach nichts geändert.
+- Der erste Lauf am Abend endete mit einem Neustart des Containers nach vier
+  Rückbauten; alle wurden danach neu gefahren.
+- 1253, 1254 und 1257 brachen im ersten Lauf das Modul ab: der Test setzte
+  einen Haken, den es nicht gab, und wartete auf eine Rückfrage, die nicht
+  kam. Er wartet jetzt auf Rückfrage oder Anfrage und meldet das Fehlen als
+  rote Prüfung. Im zweiten Lauf sind alle drei rot ohne Abbruch, 1257 in „Vor der Umwandlung
+  fragt die Ansicht; ohne OK kommt der Betrachter".
 
 ---
 
