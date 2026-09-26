@@ -1702,9 +1702,8 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
 .aoffice { height: 720px; height: min(720px, 75dvh); border-radius: 4px; overflow: hidden; background: var(--preview-bg); }
 .apreview .aoffice iframe { height: 100%; border-radius: 0; }
 .aoffice-hint { margin: 8px 0 0; }
-/* Die Ansicht fuellt das Fenster; der Betrachter bekommt die Resthoehe. */
-.fileview { max-width: none; height: 100vh; height: 100dvh; padding-bottom: 12px; display: flex; flex-direction: column; }
-.fileview .masthead { margin-bottom: 10px; }
+/* Fest ueber dem Fenster, damit nichts scrollt; der Betrachter bekommt die Resthoehe. */
+.fileview { position: fixed; inset: 0; padding: 10px 16px 6px; display: flex; flex-direction: column; background: var(--bg); }
 .fileview-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; font-size: .9rem; }
 .fileview-back { max-width: 40%; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fileview-name { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

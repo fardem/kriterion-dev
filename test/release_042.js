@@ -408,8 +408,8 @@ async function run() {
     await fw.eval('route()');
     await until(fw, () => fMade.length === 1, 2000, 'die eigene Ansicht');
     const view = fw.document.querySelector('.fileview');
-    check('Die Ansicht: Kopfzeile ohne Suchfeld, Weg zurueck, Dateiname, ein Betrachter',
-      !!view && !fw.document.getElementById('sub-q') &&
+    check('Die Ansicht: ohne Kopfzeile von Kriterion, mit Weg zurueck, Dateiname, einem Betrachter',
+      !!view && !fw.document.querySelector('.masthead') && !fw.document.getElementById('sub-q') &&
       view.querySelector('.fileview-back')?.getAttribute('href') === '#/item/1' &&
       view.querySelector('.fileview-name')?.textContent === 'bericht.docx' &&
       equal(fMade, ['office-full-45']), `${fMade.join(' ')} ${view?.textContent.slice(0, 80)}`);
@@ -431,8 +431,8 @@ async function run() {
     check('Lange Werte in einer Zeile .kv brechen um; der Hinweis steht blass darunter',
       css.includes('.kv .k, .kv .v { min-width: 0; overflow-wrap: anywhere; }') &&
       css.includes('.kv .v .extra { display: block; color: var(--faint); }'), 'Regel fehlt');
-    check('Die Ansicht fuellt das Fenster, der Betrachter die Resthoehe',
-      /\.fileview \{[^}]*height: 100dvh;[^}]*flex-direction: column;/.test(css) &&
+    check('Die Ansicht liegt fest ueber dem ganzen Fenster, der Betrachter bekommt die Resthoehe',
+      /\.fileview \{ position: fixed; inset: 0;[^}]*flex-direction: column;/.test(css) &&
       css.includes('.fileview-doc { flex: 1; min-height: 0;'), 'Regel fehlt');
 
     const cardOf = (x) => [...x.document.querySelectorAll('.sys-card')]

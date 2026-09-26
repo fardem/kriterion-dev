@@ -8567,6 +8567,20 @@ const REGRESSIONS = [
     replacement: "    type: mobile ? 'mobile' : 'desktop',",
     expected: 'Document Server: Abruf und Konfiguration'
   },
+  {
+    nr: '1237', name: 'Die Ansicht traegt wieder die Kopfzeile von Kriterion',
+    file: 'public/app.js',
+    search: "  app.innerHTML = `<div class=\"fileview\">\n    <div class=\"fileview-bar\">",
+    replacement: "  app.innerHTML = `<div class=\"fileview\">\n    ${subhead({ searchBox: false })}\n    <div class=\"fileview-bar\">",
+    expected: 'Document Server: die eigene Ansicht'
+  },
+  {
+    nr: '1238', name: 'Die Ansicht liegt nicht mehr fest ueber dem Fenster',
+    file: 'public/style.css',
+    search: ".fileview { position: fixed; inset: 0; ",
+    replacement: ".fileview { ",
+    expected: 'Document Server: die eigene Ansicht'
+  },
 ];
 
 /* ---- Spuren und Versatz ---- */
