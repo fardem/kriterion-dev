@@ -1,6 +1,6 @@
 # Fahrplan
 
-**Der Plan von 0.41.0 bis 0.44.0 · Stand 26. September 2026, 0.42.2 gebaut**
+**Der Plan von 0.41.0 bis 0.44.0 · Stand 26. September 2026, 0.42.3 gebaut**
 
 *Hier stand vorher „von 0.26.0 bis 1.0 · Stand 9. September 2026": beides ist
 überholt — es wird kein 1.0.0 geben, und seither sind dreizehn Runden gebaut.*
@@ -192,6 +192,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.42.0**~~ | ~~**Dokumente über einen Document Server ansehen**~~ | **GEBAUT am 25. September 2026** auf 0.41.1 — Änderungsprotokoll 0.42.0, nach `Doku/Auftrag_0.42.0.md`. Euro-Office oder OnlyOffice zeigt `docx`, `doc`, `odt`, `rtf`, `xlsx`, `xls`, `ods`, `pptx`, `ppt` und `odp` im Eintrag an; ohne die vier neuen Variablen in der `.env` bleibt alles wie in 0.41.1. Neues Modul `docserver.js`: JWT HS256 ohne neue Abhängigkeit, der Abruf durch den Document Server wird über sein JWT im Header geprüft. Die Karte „Dokumente" prüft die Verbindung in beide Richtungen. **MINOR** *(1.141 → 1.148 Rückbauten, Prüfstand 7.362 → 7.410). Fingerprint `48829449` (davor `dcbfdfb6`)* | nein | nein |
 | ~~**0.42.1**~~ | ~~**Vorschau, Öffnen und Umlaute**~~ | **GEBAUT am 26. September 2026** auf 0.42.0 — Änderungsprotokoll 0.42.1. *Sechs Befunde des Betreibers aus dem Betrieb mit Euro-Office.* **Eigene Ansicht `#/item/<Eintrag>/file/<Datei>`** über das ganze Fenster, erreichbar über ⤢, auf dem Telefon über den Klick auf die Datei. Der Betrachter bekommt den angemeldeten Account; Chat und Kommentare sind aus; auf dem Telefon `type: 'embedded'`, weil der mobile Editor leer blieb. **Dateinamen kommen beim Hochladen als UTF-8 an** (`defParamCharset`); gespeicherte Namen bleiben. **PATCH** *(1.148 → 1.156 Rückbauten, Prüfstand 7.410 → 7.420). Fingerprint `526a9c34` (davor `48829449`)* | nein | nein |
 | ~~**0.42.2**~~ | ~~**Die eigene Ansicht ohne Kopfzeile**~~ | **GEBAUT am 26. September 2026** auf 0.42.1 — Änderungsprotokoll 0.42.2. *Wunsch des Betreibers:* die eigene Ansicht einer Datei trägt keine Kopfzeile von Kriterion mehr; oben steht nur die Leiste mit ←, Dateiname und ↓. Die Ansicht liegt fest über dem ganzen Fenster (`position: fixed`). **PATCH** *(1.156 → 1.158 Rückbauten). Fingerprint `59983d51` (davor `526a9c34`)* | nein | nein |
+| ~~**0.42.3**~~ | ~~**Vollbild in der eigenen Ansicht**~~ | **GEBAUT am 26. September 2026** auf 0.42.2 — Änderungsprotokoll 0.42.3. *Wunsch des Betreibers:* ein Zeichen in der Leiste der eigenen Ansicht schickt nur den Betrachter ins Vollbild des Browsers, gedacht für das quer gehaltene Telefon. Ohne `document.fullscreenEnabled` fehlt das Zeichen. Auf der Karte „Dokumente" steht der Name der Variablen klein über dem Wert. **PATCH** *(1.158 → 1.161 Rückbauten). Fingerprint `90d99a0b` (davor `59983d51`)* | nein | nein |
 | **0.43.0** | **Dokumente über den Document Server bearbeiten** | **GEPLANT am 21. September 2026, ergänzt am 26. September 2026, setzt 0.42.0 voraus.** *Der Rückweg: der Document Server meldet die geänderte Fassung, Kriterion holt sie und schreibt sie nach `attachments.data`.* **Ohne Secret kein Bearbeiten.** **Wer bearbeiten darf, legt der Hochladende je Datei fest:** mit dem Haken „Bearbeiten durch alle" jeder Account, ohne ihn nur er selbst — der Admin dann nicht, er darf nur löschen. Ob der Haken beim Hochladen gesetzt ist, gibt der Admin auf der Karte „Dokumente" vor. Bearbeitet wird in der eigenen Ansicht. **Fünf Fragen sind offen** (Abschnitt unten) | **ja** | — |
 | **0.44.0** | **Verweise auf Dateien und Fotos** | **GEPLANT am 26. September 2026.** *Wie der Verweis auf einen Kommentar:* ein Link auf eine Datei oder ein Foto dieser Instanz wird in Kommentar und Beschreibung zur Marke. Bürodatei: Marke mit Symbol und Dateiname, **ein Klick klappt einen kleinen Betrachter auf** — nicht vorher, sonst lädt jeder Verweis den Document Server. Bilddatei und Foto: ein kleines Vorschaubild. Fotos bekommen dafür die Adresse `#/item/<Eintrag>/photo/<Foto>`. An Dateizeile und Bildansicht ein Knopf „Link kopieren" | nein | nein |
 | ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. Die zwei offenen Punkte des Eintrags stehen in der Zeile darunter | — | — |
@@ -3034,6 +3035,15 @@ Sprachdateien · `.env.example` und `docker-compose.example.yml` · `README.md`.
 > **GEBAUT am 26. September 2026** auf 0.42.1. Das Protokoll steht als
 > `Doku/Aenderungsprotokoll_0.42.2.md`. Ohne Auftrag; Wunsch des Betreibers
 > vom selben Tag: `den header von kriterion brauchen wir doch nicht`.
+
+---
+
+## 0.42.3 — „Vollbild in der eigenen Ansicht"
+
+> **GEBAUT am 26. September 2026** auf 0.42.2. Das Protokoll steht als
+> `Doku/Aenderungsprotokoll_0.42.3.md`. Ohne Auftrag; Wunsch des Betreibers
+> vom selben Tag: `im handy fehlt schon das aufklappen`. Dazu die Karte
+> „Dokumente": `so sieht es komisch aus`.
 
 ---
 

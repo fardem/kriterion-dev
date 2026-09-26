@@ -404,6 +404,10 @@ async function run() {
     check('Nur die Buerodatei traegt das Symbol Oeffnen, mit der Adresse der Ansicht',
       links.length === 1 && links[0].getAttribute('href') === '#/item/1/file/45' &&
       links[0].title === DE['entry.openFile'], links.map(l => l.getAttribute('href')).join(' '));
+    // jsdom kennt kein Vollbild; der Browser haette beides.
+    Object.defineProperty(fw.document, 'fullscreenEnabled', { value: true, configurable: true });
+    const fullAsked = [];
+    fw.HTMLElement.prototype.requestFullscreen = function () { fullAsked.push(this.className); return Promise.resolve(); };
     fw.history.replaceState(null, '', '#/item/1/file/45');
     await fw.eval('route()');
     await until(fw, () => fMade.length === 1, 2000, 'die eigene Ansicht');
@@ -413,6 +417,11 @@ async function run() {
       view.querySelector('.fileview-back')?.getAttribute('href') === '#/item/1' &&
       view.querySelector('.fileview-name')?.textContent === 'bericht.docx' &&
       equal(fMade, ['office-full-45']), `${fMade.join(' ')} ${view?.textContent.slice(0, 80)}`);
+    const fullButton = fw.document.getElementById('fileview-full');
+    fullButton?.onclick();
+    check('Das Zeichen Vollbild schickt nur den Betrachter ins Vollbild des Browsers',
+      fullButton?.title === DE['entry.openFullscreen'] && equal(fullAsked, ['fileview-doc']),
+      fullAsked.join(' ') || (fullButton ? 'kein Aufruf' : 'kein Zeichen'));
     fw.history.replaceState(null, '', '#/item/1');
     await fw.eval('route()');
     await until(fw, (x) => fRows().length === 5 && openRequests(x) === 0, 3000, 'den Eintrag');
@@ -420,12 +429,16 @@ async function run() {
       equal(fDestroyed, ['office-full-45']), fDestroyed.join(' '));
     fw.matchMedia = () => ({ matches: true, addEventListener() {}, removeEventListener() {},
       addListener() {}, removeListener() {} });
+    Object.defineProperty(fw.document, 'fullscreenEnabled', { value: false, configurable: true });
     fRows()[4].onclick({ target: fRows()[4].querySelector('.aname') });
     const phoneHash = fw.location.hash;
     // Ansicht oder Vorschau: danach laeuft nichts mehr, und das Fenster darf zu.
     await until(fw, (x) => fMade.length === 2 && openRequests(x) === 0, 2000, 'den zweiten Betrachter');
     check('Auf dem Telefon oeffnet ein Klick auf die Zeile die Ansicht',
       phoneHash === '#/item/1/file/45', phoneHash);
+    check('Kann der Browser kein Vollbild, fehlt das Zeichen',
+      !!fw.document.querySelector('.fileview') && !fw.document.getElementById('fileview-full'),
+      fw.document.getElementById('fileview-full') ? 'Zeichen da' : 'keine Ansicht');
     fw.close();
     const css = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
     check('Lange Werte in einer Zeile .kv brechen um; der Hinweis steht blass darunter',
@@ -455,6 +468,11 @@ async function run() {
       card?.querySelector('#doc-check .ok-box')?.textContent === deText('server.docReady', { address: 'https://kriterion.invalid' }) &&
       card.textContent.includes(deText('card.documentsFallback', { name: 'PUBLIC_ADDRESS' })),
       card?.textContent);
+    check('Name und Wert stehen untereinander, der Name kleiner',
+      card?.querySelectorAll('.kv.kv-stack').length === 3 &&
+      css.includes('.kv-stack { flex-direction: column; gap: 2px; }') &&
+      css.includes('.kv-stack .k { font-size: .75rem; }'),
+      `${card?.querySelectorAll('.kv.kv-stack').length} Zeilen`);
     const box = cm.w.document.getElementById('doc-on');
     box.checked = true;
     await box.onchange();

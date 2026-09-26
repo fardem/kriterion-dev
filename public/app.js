@@ -6606,16 +6606,21 @@ async function renderFileView(itemId, fileId) {
   }
   const a = (item.attachments || []).find(x => x.id === Number(fileId));
   const shown = a && a.preview === 'office';
+  const fullOk = shown && !!document.fullscreenEnabled;
   app.innerHTML = `<div class="fileview">
     <div class="fileview-bar">
       <a class="fileview-back" href="${esc(entryAddress(itemId))}" title="${esc(item.title)}">← ${esc(item.title)}</a>
       <span class="fileview-name">${esc(a ? a.filename : '')}</span>
+      ${fullOk ? `<button class="fileview-full" id="fileview-full" title="${esc(t('entry.openFullscreen'))}" aria-label="${esc(t('entry.openFullscreen'))}">${ICON_FULLSCREEN}</button>` : ''}
       ${a ? `<a class="adl" href="/api/attachments/${Number(a.id)}/raw" download title="${esc(t('entry.download'))}">↓</a>` : ''}
     </div>
     <div class="fileview-doc">${shown ? `<div id="office-full-${Number(a.id)}"></div>`
       : `<p class="hint">${tH(a ? 'entry.officeFailed' : 'server.fileGone')}</p>`}</div>
     <p class="hint aoffice-hint"></p>
   </div>`;
+  // Nur der Betrachter geht ins Vollbild; Zurueck oder Esc beenden es.
+  atElement('fileview-full', b => b.onclick = () =>
+    document.querySelector('.fileview-doc')?.requestFullscreen().catch(() => {}));
   if (!shown) return;
   const failed = () => {
     endFileViewer();
@@ -6894,7 +6899,7 @@ function setUpLanguagesOut() {
 /* ---- Karte „Dokumente" — Abschnitt „Installation" ---- */
 function cardDocuments(fetched) {
   const d = fetched.documents || {};
-  const row = (r) => `<div class="kv"><span class="k"><code>${esc(r.name)}</code></span>
+  const row = (r) => `<div class="kv kv-stack"><span class="k"><code>${esc(r.name)}</code></span>
       <span class="v">${r.value ? esc(r.value) : '—'}${r.fallback
         ? ` <span class="extra">${tH('card.documentsFallback', { name: r.fallback })}</span>` : ''}</span></div>`;
   return `<div class="sys-card">
