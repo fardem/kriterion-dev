@@ -6606,8 +6606,7 @@ async function renderFileView(itemId, fileId) {
   }
   const a = (item.attachments || []).find(x => x.id === Number(fileId));
   const shown = a && a.preview === 'office';
-  app.innerHTML = `<div class="shell fileview">
-    ${subhead({ searchBox: false })}
+  app.innerHTML = `<div class="fileview">
     <div class="fileview-bar">
       <a class="fileview-back" href="${esc(entryAddress(itemId))}" title="${esc(item.title)}">← ${esc(item.title)}</a>
       <span class="fileview-name">${esc(a ? a.filename : '')}</span>
@@ -6617,7 +6616,6 @@ async function renderFileView(itemId, fileId) {
       : `<p class="hint">${tH(a ? 'entry.officeFailed' : 'server.fileGone')}</p>`}</div>
     <p class="hint aoffice-hint"></p>
   </div>`;
-  wireSubhead();
   if (!shown) return;
   const failed = () => {
     endFileViewer();

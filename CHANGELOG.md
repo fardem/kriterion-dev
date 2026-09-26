@@ -30,6 +30,22 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.42.2] - 2026-09-26
+
+*Die eigene Ansicht ohne Kopfzeile.*
+
+Fingerprint `59983d51` — davor `526a9c34`.
+
+### Geändert
+
+- Die eigene Ansicht einer Datei zeigt keine Kopfzeile von Kriterion mehr;
+  oben stehen nur Weg zurück, Dateiname und Download. Sie füllt das ganze
+  Fenster.
+
+### Behoben
+
+- Der Hinweis unter dem Betrachter wurde in der eigenen Ansicht abgeschnitten.
+
 ## [0.42.1] - 2026-09-26
 
 *Vorschau, Öffnen und Umlaute.*

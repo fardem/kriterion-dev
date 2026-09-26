@@ -1,6 +1,6 @@
 # Fahrplan
 
-**Der Plan von 0.41.0 bis 0.43.0 · Stand 26. September 2026, 0.42.1 gebaut**
+**Der Plan von 0.41.0 bis 0.44.0 · Stand 26. September 2026, 0.42.2 gebaut**
 
 *Hier stand vorher „von 0.26.0 bis 1.0 · Stand 9. September 2026": beides ist
 überholt — es wird kein 1.0.0 geben, und seither sind dreizehn Runden gebaut.*
@@ -191,7 +191,9 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.41.1**~~ | ~~**Texte und Kommentare**~~ | **GEBAUT am 25. September 2026** auf 0.41.0 — Änderungsprotokoll 0.41.1. *Kein Verhalten des Servers geändert.* **Die Texte der Oberfläche sind in drei Sprachen mit dem Betreiber abgestimmt:** *ein Satz steht in einem Schlüssel, betonte Wörter als `**Wort**`; 1.258 → 1.186 Schlüssel je Sprache.* **Die Rolle heißt „Eigentümer-Admin“**, *englische IT-Begriffe bleiben englisch.* **README und Handbuch nach Leser getrennt** *(1.318 → 457 und 1.622 → 620 Zeilen).* **Kommentare nach CLAUDE.md gekürzt:** *16.850 → 6.410 Zeilen in 37 Dateien (19,6 % → 8,6 %).* *Vier stumme Gegenproben haben eine Prüfung bekommen.* **PATCH** *(1.149 → 1.141 Rückbauten, Prüfstand 7.410 → 7.362). Fingerprint `dcbfdfb6` (davor `d5aaeb21`)* | nein | nein |
 | ~~**0.42.0**~~ | ~~**Dokumente über einen Document Server ansehen**~~ | **GEBAUT am 25. September 2026** auf 0.41.1 — Änderungsprotokoll 0.42.0, nach `Doku/Auftrag_0.42.0.md`. Euro-Office oder OnlyOffice zeigt `docx`, `doc`, `odt`, `rtf`, `xlsx`, `xls`, `ods`, `pptx`, `ppt` und `odp` im Eintrag an; ohne die vier neuen Variablen in der `.env` bleibt alles wie in 0.41.1. Neues Modul `docserver.js`: JWT HS256 ohne neue Abhängigkeit, der Abruf durch den Document Server wird über sein JWT im Header geprüft. Die Karte „Dokumente" prüft die Verbindung in beide Richtungen. **MINOR** *(1.141 → 1.148 Rückbauten, Prüfstand 7.362 → 7.410). Fingerprint `48829449` (davor `dcbfdfb6`)* | nein | nein |
 | ~~**0.42.1**~~ | ~~**Vorschau, Öffnen und Umlaute**~~ | **GEBAUT am 26. September 2026** auf 0.42.0 — Änderungsprotokoll 0.42.1. *Sechs Befunde des Betreibers aus dem Betrieb mit Euro-Office.* **Eigene Ansicht `#/item/<Eintrag>/file/<Datei>`** über das ganze Fenster, erreichbar über ⤢, auf dem Telefon über den Klick auf die Datei. Der Betrachter bekommt den angemeldeten Account; Chat und Kommentare sind aus; auf dem Telefon `type: 'embedded'`, weil der mobile Editor leer blieb. **Dateinamen kommen beim Hochladen als UTF-8 an** (`defParamCharset`); gespeicherte Namen bleiben. **PATCH** *(1.148 → 1.156 Rückbauten, Prüfstand 7.410 → 7.420). Fingerprint `526a9c34` (davor `48829449`)* | nein | nein |
-| **0.43.0** | **Dokumente über den Document Server bearbeiten** | **GEPLANT am 21. September 2026, setzt 0.42.0 voraus.** *Der Rückweg: der Document Server meldet die geänderte Fassung, Kriterion holt sie und schreibt sie nach `attachments.data`.* **Ohne Geheimnis kein Bearbeiten** — *der Rückweg ist ein Schreibweg ohne Cookie und hängt allein an der Unterschrift.* Ändern darf, wer auch löschen darf: Admin oder wer die Datei hochgeladen hat, `mayChange()` unverändert. **Zwei Fragen sind offen:** *ob der Rückweg dieselbe Zeile ersetzt oder eine zweite anlegt, und was geschieht, wenn die Datei zwischen Öffnen und Rückweg gelöscht wurde* | nein | — |
+| ~~**0.42.2**~~ | ~~**Die eigene Ansicht ohne Kopfzeile**~~ | **GEBAUT am 26. September 2026** auf 0.42.1 — Änderungsprotokoll 0.42.2. *Wunsch des Betreibers:* die eigene Ansicht einer Datei trägt keine Kopfzeile von Kriterion mehr; oben steht nur die Leiste mit ←, Dateiname und ↓. Die Ansicht liegt fest über dem ganzen Fenster (`position: fixed`). **PATCH** *(1.156 → 1.158 Rückbauten). Fingerprint `59983d51` (davor `526a9c34`)* | nein | nein |
+| **0.43.0** | **Dokumente über den Document Server bearbeiten** | **GEPLANT am 21. September 2026, ergänzt am 26. September 2026, setzt 0.42.0 voraus.** *Der Rückweg: der Document Server meldet die geänderte Fassung, Kriterion holt sie und schreibt sie nach `attachments.data`.* **Ohne Secret kein Bearbeiten.** **Wer bearbeiten darf, legt der Hochladende je Datei fest:** mit dem Haken „Bearbeiten durch alle" jeder Account, ohne ihn nur er selbst — der Admin dann nicht, er darf nur löschen. Ob der Haken beim Hochladen gesetzt ist, gibt der Admin auf der Karte „Dokumente" vor. Bearbeitet wird in der eigenen Ansicht. **Fünf Fragen sind offen** (Abschnitt unten) | **ja** | — |
+| **0.44.0** | **Verweise auf Dateien und Fotos** | **GEPLANT am 26. September 2026.** *Wie der Verweis auf einen Kommentar:* ein Link auf eine Datei oder ein Foto dieser Instanz wird in Kommentar und Beschreibung zur Marke. Bürodatei: Marke mit Symbol und Dateiname, **ein Klick klappt einen kleinen Betrachter auf** — nicht vorher, sonst lädt jeder Verweis den Document Server. Bilddatei und Foto: ein kleines Vorschaubild. Fotos bekommen dafür die Adresse `#/item/<Eintrag>/photo/<Foto>`. An Dateizeile und Bildansicht ein Knopf „Link kopieren" | nein | nein |
 | ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. Die zwei offenen Punkte des Eintrags stehen in der Zeile darunter | — | — |
 | ~~*ohne Nummer*~~ | ~~**Vorgabewerte und Tastaturbedienung beim Sortieren**~~ | **VORLÄUFIG GESTRICHEN am 21. September 2026:** der Inhalt ist nirgends beschrieben — weder hier noch im Sammelblatt noch im Projektstand steht, welche Vorgabewerte gemeint sind und was die Tastatur beim Sortieren tun soll. *Die Zeile kommt zurück, sobald der Betreiber sagt, was gemeint war.* | — | — |
 | ~~*ohne Nummer*~~ | ~~**Die Doppelung in der README auflösen**~~ | **GEBAUT mit 0.38.0 am 19. September 2026.** *Befund aus BA 6 der 0.37.0: zwei Abschnitte der README trugen dieselben drei Sachverhalte — dass eine fehlende Spalte nicht nachgerüstet wird, dass der Kasten jede fehlende Spalte samt altem Namen nennt, und dass die Instanz startet, aber jede Seite scheitert, die eine der Spalten liest.* **Jetzt verweist jeder der beiden auf den anderen:** `README.md`:348 nach unten, `README.md`:464 nach oben. *0.38.5 hat die README danach noch einmal gegliedert.* | nein | — |
@@ -3027,6 +3029,14 @@ Sprachdateien · `.env.example` und `docker-compose.example.yml` · `README.md`.
 
 ---
 
+## 0.42.2 — „Die eigene Ansicht ohne Kopfzeile"
+
+> **GEBAUT am 26. September 2026** auf 0.42.1. Das Protokoll steht als
+> `Doku/Aenderungsprotokoll_0.42.2.md`. Ohne Auftrag; Wunsch des Betreibers
+> vom selben Tag: `den header von kriterion brauchen wir doch nicht`.
+
+---
+
 ## 0.43.0 — „Dokumente über den Document Server bearbeiten"
 
 **Beschlossen am 21. September 2026.** Setzt 0.42.0 voraus: Sicherheitsregel,
@@ -3051,11 +3061,31 @@ es auch ohne, solange der Document Server keines verlangt; hier nicht.*
 die Adresse, die in der Konfiguration steht, muss **der Document Server**
 auflösen können.
 
-**3. Wer darf ändern.** `mayChange()` (`server.js`:841) — Admin oder wer die
-Datei hochgeladen hat. **Dieselbe Regel wie beim Löschen, und sie bleibt
-unverändert.** Wer nicht ändern darf, bekommt den Betrachter ohne Schreibrecht.
+**3. Wer darf ändern.** Ersetzt am 26. September 2026, siehe den nächsten
+Abschnitt. Vorher stand hier `mayChange()`: Admin oder wer die Datei
+hochgeladen hat.
 
-### Die zwei offenen Fragen
+### Wer bearbeiten darf — Vorgabe des Betreibers vom 26. September 2026
+
+| Haken „Bearbeiten durch alle" an der Datei | wer bearbeitet | wer löscht |
+|---|---|---|
+| gesetzt | jeder angemeldete Account | wer hochgeladen hat, Admin |
+| nicht gesetzt | nur, wer hochgeladen hat | wer hochgeladen hat, Admin |
+
+- Der Haken steht beim Hochladen und gilt für alle Dateien dieses Hochladens.
+- Ob er vorab gesetzt ist, gibt der Admin auf der Karte „Dokumente" vor. Der
+  Hochladende ändert ihn nur, wenn er es anders haben will.
+- Ohne Haken bearbeitet der Admin die Datei nicht; er darf sie nur löschen.
+- Bearbeitet wird in der eigenen Ansicht `#/item/<Eintrag>/file/<Datei>`
+  (0.42.1). Wer nicht bearbeiten darf, bekommt dort den Betrachter.
+- **Schema: ja.** Der Haken braucht eine neue Tabelle, etwa
+  `attachment_editing`. Eine neue Spalte in `attachments` erreichte bestehende
+  Installationen nur über einen Migrationsblock, und die werden nicht mehr
+  geschrieben.
+- Auf dem Telefon zeigt der mobile Editor von Euro-Office nichts an (0.42.1).
+  Ob er beim Bearbeiten anders tut, ist vor dem Bauen zu prüfen.
+
+### Die offenen Fragen
 
 1. **Ersetzen oder daneben legen?** Schreibt der Rückweg in dieselbe Zeile oder
    legt er eine zweite an? Ersetzen ist einfach und verliert den Stand davor.
@@ -3064,15 +3094,68 @@ unverändert.** Wer nicht ändern darf, bekommt den Betrachter ohne Schreibrecht
 2. **Was, wenn die Datei inzwischen gelöscht ist?** Zwischen dem Öffnen und dem
    Rückweg liegt die ganze Bearbeitungszeit. Fällt die Zeile in dieser Zeit,
    trägt der Rückweg in eine Zeile ein, die es nicht mehr gibt.
+3. **Bestehende Dateien:** gelten sie als „nur, wer hochgeladen hat" oder nach
+   der Vorgabe des Admins?
+4. **Später ändern:** darf der Hochladende den Haken nachträglich umstellen,
+   an der Dateizeile oder in der Ansicht? Darf der Admin es?
+5. **Der Export:** reist der Haken mit? Dann wird das Austauschformat 20.
 
 ### Was es anfasst
 
 `server.js` *(die Rückwegroute und die Prüfung der Unterschrift)* ·
-`public/app.js` *(Schreibrecht im Betrachter)* · die drei Sprachdateien ·
-`README.md`.
+`db.js` *(die neue Tabelle)* · `public/app.js` *(Haken beim Hochladen,
+Schreibrecht in der Ansicht, Vorgabe auf der Karte)* · die drei Sprachdateien
+· `README.md` · `manual-de.md`.
 
-**Schema: nein**, solange der Rückweg ersetzt. Eine zweite Zeile je Fassung
-bräuchte eine Spalte.
+**Schema: ja**, wegen des Hakens. Eine zweite Zeile je Fassung (Frage 1)
+bräuchte eine weitere Tabelle.
+
+---
+
+## 0.44.0 — „Verweise auf Dateien und Fotos"
+
+**Beschlossen am 26. September 2026.** Wunsch des Betreibers: eine Datei oder
+ein Foto in Kommentar und Beschreibung verlinken, als kleine Vorschau.
+
+### Was heute dasteht
+
+Ein Link auf eine Adresse dieser Instanz wird im Text zur Marke:
+`markupRefOf()` (`public/app.js`:1989) erkennt Einträge und Kommentare,
+`/api/comment-refs` (`server.js`:3211) liefert Titel und Stellung dazu.
+
+### Was dazukommt
+
+| Verweis auf | Adresse | im Text | Klick |
+|---|---|---|---|
+| Bürodatei | `#/item/<Eintrag>/file/<Datei>`, seit 0.42.1 | Marke mit Symbol und Dateiname | klappt darunter einen kleinen Betrachter auf, etwa 360 px hoch, `type: 'embedded'`, mit ⤢ zur Ansicht |
+| Bilddatei am Eintrag | dieselbe | kleines Vorschaubild | öffnet die Ansicht |
+| Foto am Eintrag | neu: `#/item/<Eintrag>/photo/<Foto>` | die Kachel (`?size=thumb`) als Vorschaubild | öffnet die Bildansicht an diesem Foto |
+
+- **Der Betrachter lädt erst auf Klick.** Vorgabe des Betreibers vom
+  26. September 2026. Jeder Betrachter lädt das Programm des Document Servers,
+  und der Document Server holt und wandelt die Datei; fünf Verweise wären
+  sonst fünf solche Vorgänge beim Öffnen eines Eintrags.
+- An der Dateizeile und in der Bildansicht ein Knopf „Link kopieren", wie am
+  Kommentar.
+- `/api/comment-refs` kennt zusätzlich Dateien und Fotos: Dateiname, Art der
+  Vorschau, Eintrag. Eine gelöschte Datei erscheint wie ein gelöschter
+  Kommentar.
+- Rechte: wer angemeldet ist, sieht jeden Eintrag; ein Verweis zeigt nichts,
+  was der Leser nicht ohnehin sehen darf.
+
+### Was ausdrücklich nicht dazugehört
+
+**Die erste Seite einer Bürodatei als Bild in der Marke.** Das Bild müsste
+erzeugt, gespeichert und aufgeräumt werden und nach jeder Bearbeitung
+(0.43.0) neu entstehen. Es bleibt eine spätere Option.
+
+### Was es anfasst
+
+`server.js` *(`/api/comment-refs`)* · `public/app.js` *(Erkennen, Marken,
+Vorschaubild, kleiner Betrachter, Adresse des Fotos, zwei Knöpfe)* ·
+`public/style.css` · die drei Sprachdateien · `manual-de.md`.
+
+**Schema: nein.** Austauschformat: bleibt.
 
 ---
 ## ~~1.0.0 — „Die Zusage"~~ — gestrichen am 15. September 2026
