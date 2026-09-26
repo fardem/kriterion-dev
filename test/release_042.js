@@ -422,7 +422,8 @@ async function run() {
       addListener() {}, removeListener() {} });
     fRows()[4].onclick({ target: fRows()[4].querySelector('.aname') });
     const phoneHash = fw.location.hash;
-    await until(fw, (x) => openRequests(x) === 0, 2000, 'die Anfragen nach dem Klick');
+    // Ansicht oder Vorschau: danach laeuft nichts mehr, und das Fenster darf zu.
+    await until(fw, (x) => fMade.length === 2 && openRequests(x) === 0, 2000, 'den zweiten Betrachter');
     check('Auf dem Telefon oeffnet ein Klick auf die Zeile die Ansicht',
       phoneHash === '#/item/1/file/45', phoneHash);
     fw.close();

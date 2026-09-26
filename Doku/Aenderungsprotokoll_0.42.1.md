@@ -79,7 +79,24 @@ bestehenden:
 
 Rückbauten 1229 bis 1236:
 
-GEGENPROBEN_0421
+| Nr | Rückbau | rot in |
+|---|---|---|
+| 1229 | Dateinamen werden wieder als Latin-1 gelesen | Ein Dateiname mit Umlaut kommt beim Hochladen unveraendert an; Jedes Hochladen geht ueber upload() |
+| 1230 | Der Betrachter bekommt keinen Account | Der Betrachter bekommt den angemeldeten Account |
+| 1231 | Kommentare stehen im Betrachter wieder da | Chat und Kommentare sind im Betrachter aus |
+| 1232 | Die Dateizeile verliert das Symbol Öffnen | vier Prüfungen, darunter das Symbol und der Leser von `entry.openFile` |
+| 1233 | `route()` baut den Betrachter der Ansicht nicht ab | Beim Verlassen der Ansicht wird destroyEditor() gerufen |
+| 1234 | Auf dem Telefon klappt die Vorschau wieder im Eintrag auf | Auf dem Telefon oeffnet ein Klick auf die Zeile die Ansicht |
+| 1235 | Lange Werte in `.kv` brechen nicht mehr um | Lange Werte in einer Zeile .kv brechen um; die Zahl der Regelzeilen |
+| 1236 | Auf dem Telefon wieder der mobile Editor | documentType folgt der Endung, auf dem Telefon ist type embedded |
+
+**8 rot, 0 stumm.** 1234 brach im ersten Lauf das Modul ab: der Test schloss
+das Fenster, bevor der Betrachter der Vorschau fertig war, weil der gestellte
+`fetch` diese Anfrage nicht mitzählt. Der Test wartet jetzt auf den zweiten
+Betrachter; der zweite Lauf von 1234 ist rot in der genannten Prüfung, ohne
+Abbruch. 1233 war im ersten Lauf zusätzlich rot in „Und das Vierfache an Text
+kostet nicht das Sechzehnfache an Zeit", einer Zeitmessung ohne Bezug zum
+Rückbau.
 
 ---
 

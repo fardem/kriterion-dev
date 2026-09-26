@@ -349,7 +349,7 @@ async function run() {
       ['test/release_030.js', 94],
       ['test/release_031.js', 88],
       ['test/release_041.js', 25],
-      ['test/release_042.js', 7],
+      ['test/release_042.js', 8],
       ['test/roundtrip.js', 1309],
       ['test/selfcheck.js', 85],
       ['test/source.js', 211],
@@ -379,7 +379,7 @@ async function run() {
       ['public/theme.js', 2],
       ['public/style.css', 508],
     ];
-    const COMMENT_TOTAL = { comment: 6457, code: 68972 };
+    const COMMENT_TOTAL = { comment: 6458, code: 68974 };
     // Ausgelieferte Dateien: Bloecke ueber drei Zeilen und Bloecke mit Betonung in Grossbuchstaben.
     const COMMENT_LIMITS = { longBlocks: 3, emphasis: 6 };
     check('Der Waechter sieht alle neununddreissig Dateien',
