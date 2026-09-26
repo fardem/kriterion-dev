@@ -11,6 +11,14 @@ const OFFICE_TYPES = {
   xlsx: 'cell', xls: 'cell', ods: 'cell',
   pptx: 'slide', ppt: 'slide', odp: 'slide'
 };
+// Formatliste von OnlyOffice: edit und lossy-edit direkt, auto-convert ueber /converter.
+const EDIT_IN_PLACE = new Set(['docx', 'xlsx', 'pptx', 'odt', 'ods', 'odp', 'rtf']);
+const CONVERT_FOR_EDIT = { doc: 'docx', xls: 'xlsx', ppt: 'pptx' };
+const OOXML_MIME = {
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+};
 
 const readAddress = (name) => auth.checkPublicAddress(auth.fromEnv(name));
 const ADDRESS = readAddress('DOCUMENT_SERVER_ADDRESS');
@@ -35,6 +43,12 @@ function setupProblem() {
 }
 
 const officeType = (filename) => OFFICE_TYPES[extension(filename)] || null;
+// Das Format im Editor; null, wenn die Datei nicht bearbeitet werden kann.
+const editFormat = (filename) => {
+  const e = extension(filename);
+  return EDIT_IN_PLACE.has(e) ? e : CONVERT_FOR_EDIT[e] || null;
+};
+const needsConversion = (filename) => extension(filename) in CONVERT_FOR_EDIT;
 const scriptOrigin = () => ADDRESS.address ? new URL(ADDRESS.address).origin : '';
 const apiScript = () => `${ADDRESS.address}/web-apps/apps/api/documents/api.js`;
 
@@ -112,19 +126,22 @@ function recordTestFetch(result) {
 
 /* ---- Konfiguration des Betrachters ---- */
 const fileUrl = (id) => `${fetchBase()}/api/document-server/attachments/${Number(id)}`;
+const callbackUrl = (id) => `${fetchBase()}/api/document-server/callback/${Number(id)}`;
 
-// Der Document Server haelt seinen Zwischenspeicher nach diesem Schluessel.
-function documentKey(attachment) {
-  const text = `${fileUrl(attachment.id)}|${attachment.created_at}|${attachment.size}`;
+/* Der Document Server haelt Zwischenspeicher und Sitzung nach diesem Schluessel.
+   `stamp` ist v<saves> im Betrachter und e<revision> im Editor. */
+function documentKey(attachment, stamp) {
+  const text = `${fileUrl(attachment.id)}|${attachment.created_at}|${stamp}`;
   return mac(SECRET, text).toString('hex').slice(0, 40);
 }
+const editorKey = (attachment, revision) => documentKey(attachment, `e${revision}`);
 
 // Mit `user` fragt der Betrachter nicht nach einem Namen.
-function viewerConfig(attachment, { lang, mobile, user }) {
+function viewerConfig(attachment, { lang, mobile, user, saves = 0 }) {
   const config = {
     document: {
       fileType: extension(attachment.filename),
-      key: documentKey(attachment),
+      key: documentKey(attachment, `v${saves}`),
       title: attachment.filename,
       url: fileUrl(attachment.id),
       permissions: { edit: false, comment: false, review: false, download: false, print: true,
@@ -138,6 +155,33 @@ function viewerConfig(attachment, { lang, mobile, user }) {
     },
     // Der mobile Editor bleibt in Euro-Office leer; embedded ist zum Ansehen gebaut.
     type: mobile ? 'embedded' : 'desktop',
+    width: '100%', height: '100%'
+  };
+  return { ...config, token: sign(config) };
+}
+
+const renamed = (filename, format) => filename.replace(/\.[^.]*$/, '') + '.' + format;
+
+/* Nur am Rechner. `converted` traegt die Adresse der umgewandelten Datei beim
+   Document Server; mit forcesave schreibt der Knopf Speichern sofort (Status 6). */
+function editorConfig(attachment, { lang, user, revision = 0, converted = null }) {
+  const format = converted ? converted.format : extension(attachment.filename);
+  const config = {
+    document: {
+      fileType: format,
+      key: editorKey(attachment, revision),
+      title: converted ? renamed(attachment.filename, format) : attachment.filename,
+      url: converted ? converted.url : fileUrl(attachment.id),
+      permissions: { edit: true, comment: true, review: true, download: false, print: true,
+                     chat: false }
+    },
+    documentType: officeType(attachment.filename),
+    editorConfig: {
+      mode: 'edit', lang, callbackUrl: callbackUrl(attachment.id),
+      user: { id: String(user.id), name: user.name },
+      customization: { forcesave: true }
+    },
+    type: 'desktop',
     width: '100%', height: '100%'
   };
   return { ...config, token: sign(config) };
@@ -157,6 +201,83 @@ async function convert(base, where, body) {
   return { status: r.status, json };
 }
 
+async function converter(fields) {
+  const body = JSON.stringify({ ...fields, token: sign(fields) });
+  const answer = await convert(internalBase(), '/converter', body);
+  // Aeltere Fassungen kennen nur diesen Pfad.
+  return answer.status === 404 ? convert(internalBase(), '/ConvertService.ashx', body) : answer;
+}
+
+/* ---- Bearbeiten ---- */
+// Eine Adresse des Document Servers, umgeschrieben auf die interne; sonst null.
+function internalUrl(url) {
+  const text = String(url || '');
+  for (const base of [internalBase(), ADDRESS.address])
+    if (base && text.startsWith(base + '/')) return internalBase() + text.slice(base.length);
+  return null;
+}
+
+/* Fuer doc, xls und ppt vor dem Oeffnen. Der eigene Schluessel trennt die
+   Umwandlung von der Sitzung im Editor. */
+async function convertForEdit(attachment, revision) {
+  const format = CONVERT_FOR_EDIT[extension(attachment.filename)];
+  if (!format) return null;
+  let answer;
+  try {
+    answer = await converter({
+      async: false, filetype: extension(attachment.filename), outputtype: format,
+      key: 'convert-' + editorKey(attachment, revision), title: attachment.filename,
+      url: fileUrl(attachment.id)
+    });
+  } catch { return null; }
+  const j = answer.json || {};
+  const url = j.endConvert === true ? internalUrl(j.fileUrl) : null;
+  return url ? { url, format } : null;
+}
+
+/* Das Token steht im Rumpf (`token`) oder im Header. Im Header liegt der Rumpf
+   unter `payload`, wie beim Abruf. */
+function readCallback(req) {
+  if (setupProblem()) return { ok: false, reason: 'setup' };
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const m = /^Bearer\s+(\S+)$/i.exec(String(req.headers.authorization || '').trim());
+  const v = verifyWith(SECRET, body.token || (m ? m[1] : ''));
+  if (!v.ok) return v;
+  const inner = v.payload.payload;
+  return { ok: true, data: inner && typeof inner === 'object' ? inner : v.payload };
+}
+
+// Ein Schluessel, den Kriterion fuer diese Datei im Editor vergeben hat.
+function editorKeyKnown(attachment, revision, key) {
+  for (let r = revision; r >= 0; r--) if (editorKey(attachment, r) === key) return true;
+  return false;
+}
+
+const DOWNLOAD_MS = 60000;
+
+/* Ohne Umleitung: eine Weiterleitung fuehrte an der Pruefung der Adresse vorbei. */
+async function download(url, maxBytes) {
+  const target = internalUrl(url);
+  if (!target) return { ok: false, reason: 'foreign address' };
+  let r;
+  try { r = await fetch(target, { redirect: 'error', signal: AbortSignal.timeout(DOWNLOAD_MS) }); }
+  catch (e) { return { ok: false, reason: e.name === 'TimeoutError' ? 'timeout' : 'unreachable' }; }
+  if (!r.ok) return { ok: false, reason: `HTTP ${r.status}` };
+  if (Number(r.headers.get('content-length') || 0) > maxBytes) return { ok: false, reason: 'too large' };
+  const data = Buffer.from(await r.arrayBuffer());
+  return data.length > maxBytes ? { ok: false, reason: 'too large' } : { ok: true, data };
+}
+
+/* Name und MIME-Typ nach dem Speichern; `filetype` aus dem Callback, sonst die
+   bisherige Endung. null bei einem Format, das Kriterion nicht kennt. */
+function savedAs(attachment, filetype) {
+  const format = String(filetype || extension(attachment.filename)).toLowerCase();
+  if (!OFFICE_TYPES[format]) return null;
+  if (format === extension(attachment.filename))
+    return { filename: attachment.filename, mime: attachment.mime_type };
+  return { filename: renamed(attachment.filename, format), mime: OOXML_MIME[format] || '' };
+}
+
 async function check() {
   const problem = setupProblem();
   if (problem) return problem;
@@ -167,18 +288,14 @@ async function check() {
     if (!r.ok || (await r.text()).trim() !== 'true') return unreachable;
   } catch { return unreachable; }
 
-  const fields = {
-    async: false, filetype: 'txt', outputtype: 'docx',
-    key: 'probe-' + crypto.randomBytes(16).toString('hex'), title: 'probe.txt',
-    url: `${fetchBase()}/api/document-server/probe`
-  };
-  const body = JSON.stringify({ ...fields, token: sign(fields) });
   lastTestFetch = null;
   let answer;
   try {
-    answer = await convert(base, '/converter', body);
-    // Aeltere Fassungen kennen nur diesen Pfad.
-    if (answer.status === 404) answer = await convert(base, '/ConvertService.ashx', body);
+    answer = await converter({
+      async: false, filetype: 'txt', outputtype: 'docx',
+      key: 'probe-' + crypto.randomBytes(16).toString('hex'), title: 'probe.txt',
+      url: `${fetchBase()}/api/document-server/probe`
+    });
   } catch { return unreachable; }
 
   const j = answer.json || {};
@@ -213,7 +330,8 @@ function logStart() {
 }
 
 module.exports = {
-  OFFICE_TYPES, officeType, setupProblem, scriptOrigin, apiScript, state,
-  internalBase, fetchBase, signWith, verifyWith, checkFetch, recordTestFetch,
-  documentKey, viewerConfig, check, logStart, LEEWAY_S
+  OFFICE_TYPES, officeType, editFormat, needsConversion, setupProblem, scriptOrigin,
+  apiScript, state, internalBase, fetchBase, signWith, verifyWith, checkFetch,
+  recordTestFetch, documentKey, editorKey, viewerConfig, editorConfig, check, logStart,
+  convertForEdit, readCallback, editorKeyKnown, internalUrl, download, savedAs, LEEWAY_S
 };

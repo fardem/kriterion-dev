@@ -428,6 +428,8 @@ const F_ROUTES = [
   ['DELETE', '/api/requests/:id',              'adminOnly'],
   ['PUT',    '/api/titles',                    'adminOnly'],
   ['POST',   '/api/document-server/check',     'adminOnly'],
+  // Der Document Server ruft ohne Cookie; docserver.readCallback() prueft sein JWT.
+  ['POST',   '/api/document-server/callback/:id', 'offen'],
   ['PUT',    '/api/settings',                  'im Rumpf'],
   ['POST',   '/api/criteria',                  'adminOnly'],
   ['PUT',    '/api/criteria/order',            'adminOnly'],
@@ -453,6 +455,9 @@ const F_ROUTES = [
   // Hochladen darf jeder: eine Datei erscheint nur dort, wo man sie hinsetzt.
   ['POST',   '/api/items/:id/attachments',     'offen'],
   ['DELETE', '/api/attachments/:id',           'im Rumpf'],
+  // Den Haken stellt nur um, wer hochgeladen hat; die vorige Fassung, wer bearbeiten darf.
+  ['PUT',    '/api/attachments/:id/editing',   'im Rumpf'],
+  ['POST',   '/api/attachments/:id/previous',  'im Rumpf'],
   ['PUT',    '/api/items/:id/photo-order',     'entryAuthorOnly'],
   ['DELETE', '/api/photos/:id',                'im Rumpf'],
   // Offen wie Kommentar und Testtag: ein Link erscheint nur dort, wo man ihn hinsetzt.

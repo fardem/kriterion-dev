@@ -21,7 +21,7 @@ async function run() {
      auffaellt. */
   const fSource = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
   const CORE_WORDS = ['mayChange(', 'selfOnly(', 'entryFree(', 'isAdmin(',
-    'isOwner(', 'targetUserFree(', 'mayCreate('];
+    'isOwner(', 'targetUserFree(', 'mayCreate(', 'mayEditFile('];
   /* F_ROUTES steht in frame.js, weil die Pruefung der laufenden Instanz
      dieselbe Liste liest. */
   const { F_ROUTES, writingRoutes } = H;
@@ -33,8 +33,8 @@ async function run() {
     fUnknown.length === 0 && fGone.length === 0,
     `ohne Entscheidung: ${fUnknown.join(' · ') || '—'} · verschwunden: ${fGone.join(' · ') || '—'}`);
   // Die feste Zahl macht jede neue Route in F_ROUTES sichtbar.
-  check('Und es sind jetzt genau 76 schreibende Routen',
-    F_ROUTES.length === 76 && fFound.length === 76,
+  check('Und es sind jetzt genau 79 schreibende Routen',
+    F_ROUTES.length === 79 && fFound.length === 79,
     `${F_ROUTES.length} erwartet, ${fFound.length} gefunden`);
   /* Gelesen werden die geladenen Listen aus auth.js, nicht ihr Quelltext;
      ein Textvergleich schluege auch bei Kommentaren an. */
@@ -83,11 +83,13 @@ async function run() {
   /* Offen ist, was im Quelltext vor fGuardLine steht; eine zweite Liste gibt
      es dafuer nicht. */
   const fOpenRoutes = writingRoutes(fSource.slice(0, fBoundary)).map(r => r.key);
-  check('Es sind genau acht offene schreibende Routen',
-    fOpenRoutes.length === 8, `${fOpenRoutes.length}: ${fOpenRoutes.join(' · ')}`);
-  check('Jede von ihnen steht in der Ausnahmeliste',
-    fOpenRoutes.every(k => fFree.includes(k)),
-    fOpenRoutes.filter(k => !fFree.includes(k)).join(' · '));
+  // Der Document Server ruft ohne Sitzung; ohne Sitzung greift der CSRF-Schutz nicht.
+  const fServerCalled = ['POST /api/document-server/callback/:id'];
+  check('Es sind genau neun offene schreibende Routen',
+    fOpenRoutes.length === 9, `${fOpenRoutes.length}: ${fOpenRoutes.join(' · ')}`);
+  check('Jede von ihnen steht in der Ausnahmeliste oder wird vom Document Server gerufen',
+    fOpenRoutes.every(k => fFree.includes(k) || fServerCalled.includes(k)),
+    fOpenRoutes.filter(k => !fFree.includes(k) && !fServerCalled.includes(k)).join(' · '));
   check('Und keine Ausnahme nennt eine Route hinter der Anmeldung',
     fFree.every(k => fOpenRoutes.includes(k)),
     fFree.filter(k => !fOpenRoutes.includes(k)).join(' · '));
@@ -1035,7 +1037,7 @@ async function run() {
         if (part.kind === CODE)
           for (const m of part.value.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) benchNames.add(m[0]);
     check('Der Waechter sieht wirklich den ganzen Pruefstand',
-      benchNames.size > 2000 && BENCH.length === 23,
+      benchNames.size > 2000 && BENCH.length === 24,
       `${benchNames.size} Bezeichner aus ${BENCH.length} Dateien`);
 
     /* Keine Benennungen, sondern Gegenstaende von Pruefungen: abgelegte
@@ -1072,8 +1074,8 @@ async function run() {
     const readShipped = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
     const stWord = 'Stolper' + 'stein';
     const stAll = [...BENCH, ...SHIPPED];
-    check('Der Waechter sieht alle neununddreissig Dateien',
-      stAll.length === 39, `${stAll.length} Dateien`);
+    check('Der Waechter sieht alle vierzig Dateien',
+      stAll.length === 40, `${stAll.length} Dateien`);
     /* Die SQL-Kommentare im SCHEMA von db.js stehen in einem Template-String,
        den segment() als Text liefert; hier zaehlen sie als Kommentar. */
     const stSqlRow = /^\s*--/;
@@ -1392,10 +1394,10 @@ async function run() {
     // Beide Schreibstellen und die Abweisung rechnen mit EXCHANGE_FORMAT.
     check('Die Formatnummer steht genau einmal als Zahl im Quelltext',
       (stServer.match(/EXCHANGE_FORMAT = \d+/g) || []).length === 1 &&
-      /const EXCHANGE_FORMAT = 19;/.test(stServer),
+      /const EXCHANGE_FORMAT = 20;/.test(stServer),
       (stServer.match(/EXCHANGE_FORMAT = \d+/g) || []).join(' · '));
     check('Und die aelteste gelesene daneben, unter ihr',
-      /const EXCHANGE_FORMAT_MIN = 14;/.test(stServer) && 14 < 19,
+      /const EXCHANGE_FORMAT_MIN = 14;/.test(stServer) && 14 < 20,
       (stServer.match(/EXCHANGE_FORMAT_MIN = \d+/g) || []).join(' · '));
     // Die Formatnummer steht nur im Server, damit keine zweite Angabe veraltet.
     check('Das Handbuch nennt keine Formatnummer',
@@ -1605,13 +1607,14 @@ async function run() {
         : part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('/'));
     // Auf leeren Mengen waeren die Pruefungen darunter immer gruen.
     check('Der Waechter sieht beide Seiten',
-      rrRoutes.length === 111 && rrBrowser.length > 100000,
+      rrRoutes.length === 114 && rrBrowser.length > 100000,
       `${rrRoutes.length} Routen, ${rrBrowser.length} Zeichen im Browser`);
     /* Die Verwaltungstafel baut diese Adressen aus ihrem Feld `url`; eine
        Suche, die das faende, faende jede Adresse. */
     const RR_OVER_TABLE = ['/api/product-categories/:id', '/api/tags/:id'];
     // Diese ruft der Document Server, nicht der Browser.
-    const RR_DOCUMENT_SERVER = ['/api/document-server/attachments/:id', '/api/document-server/probe'];
+    const RR_DOCUMENT_SERVER = ['/api/document-server/attachments/:id', '/api/document-server/probe',
+      '/api/document-server/callback/:id'];
     const rrOrphan = rrRoutes
       .filter(([, p]) => !RR_OVER_TABLE.includes(p) && !RR_DOCUMENT_SERVER.includes(p)
         && !rrPattern(p).test(rrBrowser))
@@ -1835,8 +1838,8 @@ async function run() {
       }
       if (has) ssCode++;
     }
-    check('Und es stehen genau 1696 Regelzeilen da',
-      ssCode === 1696, `${ssCode} Zeilen`);
+    check('Und es stehen genau 1697 Regelzeilen da',
+      ssCode === 1697, `${ssCode} Zeilen`);
     // Laenger als drei Zeilen darf nur eine Tabelle gemessener Werte sein.
     const ssLines = ssBlocks.map(b => b.split('\n').length);
     const ssOver = ssLines.filter(n => n > 3).length;
@@ -1963,8 +1966,8 @@ async function run() {
     // Feste Zahl: auf einer leeren Menge waere die Pruefung darueber immer gruen.
     const zpCount = zpFiles.reduce((n, f) =>
       n + (zpRead(f).match(/\blog(?:Line|Warn|Fail)\(/g) || []).length, 0);
-    check('Und es sind 54 Protokollzeilen in den sechs Dateien',
-      zpCount === 54, `${zpCount} Zeilen`);
+    check('Und es sind 62 Protokollzeilen in den sechs Dateien',
+      zpCount === 62, `${zpCount} Zeilen`);
     // Ohne TZ laeuft der Container auf UTC, und der Versatz waere immer +00:00.
     const zpCompose = fs.readFileSync(
       path.join(__dirname, 'docker-compose.example.yml'), 'utf8');

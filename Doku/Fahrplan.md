@@ -1,6 +1,6 @@
 # Fahrplan
 
-**Der Plan von 0.41.0 bis 0.44.0 · Stand 26. September 2026, 0.42.3 gebaut**
+**Der Plan von 0.41.0 bis 0.44.0 · Stand 27. September 2026, 0.43.0 gebaut**
 
 *Hier stand vorher „von 0.26.0 bis 1.0 · Stand 9. September 2026": beides ist
 überholt — es wird kein 1.0.0 geben, und seither sind dreizehn Runden gebaut.*
@@ -193,7 +193,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.42.1**~~ | ~~**Vorschau, Öffnen und Umlaute**~~ | **GEBAUT am 26. September 2026** auf 0.42.0 — Änderungsprotokoll 0.42.1. *Sechs Befunde des Betreibers aus dem Betrieb mit Euro-Office.* **Eigene Ansicht `#/item/<Eintrag>/file/<Datei>`** über das ganze Fenster, erreichbar über ⤢, auf dem Telefon über den Klick auf die Datei. Der Betrachter bekommt den angemeldeten Account; Chat und Kommentare sind aus; auf dem Telefon `type: 'embedded'`, weil der mobile Editor leer blieb. **Dateinamen kommen beim Hochladen als UTF-8 an** (`defParamCharset`); gespeicherte Namen bleiben. **PATCH** *(1.148 → 1.156 Rückbauten, Prüfstand 7.410 → 7.420). Fingerprint `526a9c34` (davor `48829449`)* | nein | nein |
 | ~~**0.42.2**~~ | ~~**Die eigene Ansicht ohne Kopfzeile**~~ | **GEBAUT am 26. September 2026** auf 0.42.1 — Änderungsprotokoll 0.42.2. *Wunsch des Betreibers:* die eigene Ansicht einer Datei trägt keine Kopfzeile von Kriterion mehr; oben steht nur die Leiste mit ←, Dateiname und ↓. Die Ansicht liegt fest über dem ganzen Fenster (`position: fixed`). **PATCH** *(1.156 → 1.158 Rückbauten). Fingerprint `59983d51` (davor `526a9c34`)* | nein | nein |
 | ~~**0.42.3**~~ | ~~**Vollbild in der eigenen Ansicht**~~ | **GEBAUT am 26. September 2026** auf 0.42.2 — Änderungsprotokoll 0.42.3. *Wunsch des Betreibers:* ein Zeichen in der Leiste der eigenen Ansicht schickt nur den Betrachter ins Vollbild des Browsers, gedacht für das quer gehaltene Telefon. Ohne `document.fullscreenEnabled` fehlt das Zeichen. Auf der Karte „Dokumente" steht der Name der Variablen klein über dem Wert. **PATCH** *(1.158 → 1.161 Rückbauten). Fingerprint `90d99a0b` (davor `59983d51`)* | nein | nein |
-| **0.43.0** | **Dokumente über den Document Server bearbeiten** | **GEPLANT am 21. September 2026, ergänzt am 26. September 2026, setzt 0.42.0 voraus.** *Der Rückweg: der Document Server meldet die geänderte Fassung, Kriterion holt sie und schreibt sie nach `attachments.data`.* **Ohne Secret kein Bearbeiten.** **Wer bearbeiten darf, legt der Hochladende je Datei fest:** mit dem Haken „Bearbeiten durch alle" jeder Account, ohne ihn nur er selbst — der Admin dann nicht, er darf nur löschen. Ob der Haken beim Hochladen gesetzt ist, gibt der Admin auf der Karte „Dokumente" vor. Bearbeitet wird in der eigenen Ansicht. **Fünf Fragen sind offen** (Abschnitt unten) | **ja** | — |
+| ~~**0.43.0**~~ | ~~**Dokumente über den Document Server bearbeiten**~~ | **GEBAUT am 27. September 2026** auf 0.42.3 — Änderungsprotokoll 0.43.0. *Der Rückweg: der Document Server ruft einen Callback bei Kriterion, Kriterion holt die Fassung und schreibt sie nach `attachments.data`.* Es bearbeitet, wer hochgeladen hat; mit dem Haken „Bearbeiten durch alle" jeder Account, der Admin ohne Haken nicht. Die Fassung vor der letzten Bearbeitung bleibt erhalten und lässt sich zurücktauschen. `.doc`, `.xls`, `.ppt` werden zu `.docx`, `.xlsx`, `.pptx`. Die sieben Fragen beantwortet der Betreiber am 26. September 2026 (Abschnitt unten). **MINOR** *(1.161 → 1.176 Rückbauten). Fingerprint `FP_NEU` (davor `90d99a0b`)* | **ja** | 19 → 20 |
 | **0.44.0** | **Verweise auf Dateien und Fotos** | **GEPLANT am 26. September 2026.** *Wie der Verweis auf einen Kommentar:* ein Link auf eine Datei oder ein Foto dieser Instanz wird in Kommentar und Beschreibung zur Marke. Bürodatei: Marke mit Symbol und Dateiname, **ein Klick klappt einen kleinen Betrachter auf** — nicht vorher, sonst lädt jeder Verweis den Document Server. Bilddatei und Foto: ein kleines Vorschaubild. Fotos bekommen dafür die Adresse `#/item/<Eintrag>/photo/<Foto>`. An Dateizeile und Bildansicht ein Knopf „Link kopieren" | nein | nein |
 | ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. Die zwei offenen Punkte des Eintrags stehen in der Zeile darunter | — | — |
 | ~~*ohne Nummer*~~ | ~~**Vorgabewerte und Tastaturbedienung beim Sortieren**~~ | **VORLÄUFIG GESTRICHEN am 21. September 2026:** der Inhalt ist nirgends beschrieben — weder hier noch im Sammelblatt noch im Projektstand steht, welche Vorgabewerte gemeint sind und was die Tastatur beim Sortieren tun soll. *Die Zeile kommt zurück, sobald der Betreiber sagt, was gemeint war.* | — | — |
@@ -3094,6 +3094,23 @@ hochgeladen hat.
   geschrieben.
 - Auf dem Telefon zeigt der mobile Editor von Euro-Office nichts an (0.42.1).
   Ob er beim Bearbeiten anders tut, ist vor dem Bauen zu prüfen.
+
+> **GEBAUT am 27. September 2026** auf 0.42.3. Das Protokoll steht als
+> `Doku/Aenderungsprotokoll_0.43.0.md`.
+
+### Die Antworten des Betreibers vom 26. September 2026
+
+| Frage | Antwort |
+|---|---|
+| 1. Ersetzen oder daneben legen | die vorige Fassung aufheben, eine je Datei; wiederherstellen darf, wer bearbeiten darf |
+| 2. Datei inzwischen gelöscht | die Änderung verwerfen, Warnung im Protokoll |
+| 3. Bestehende Dateien | nur, wer hochgeladen hat |
+| 4. Später ändern | nur, wer hochgeladen hat, in der Leiste der eigenen Ansicht |
+| 5. Der Export | der Haken reist mit, Format 20; die vorige Fassung nicht |
+| Telefon | nur ansehen |
+| Speichern | auch mit dem Knopf Speichern (`forcesave`), nicht erst beim Schließen |
+| `.doc`, `.xls`, `.ppt` | vor dem Bearbeiten umwandeln; gespeichert wird im neuen Format |
+| Kommentare im Editor | an; der Chat bleibt aus |
 
 ### Die offenen Fragen
 

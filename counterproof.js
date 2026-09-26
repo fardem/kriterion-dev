@@ -1698,7 +1698,7 @@ const REGRESSIONS = [
   {
     nr: '233', name: 'Die Formatnummer bleibt auf 15',
     file: 'server.js',
-    search: "const EXCHANGE_FORMAT = 19;",
+    search: "const EXCHANGE_FORMAT = 20;",
     replacement: "const EXCHANGE_FORMAT = 15;",
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
@@ -3211,7 +3211,7 @@ const REGRESSIONS = [
     /* Derselbe Suchtext wie 233; geprueft wird hier die Exportdatei. */
     nr: '448', name: 'Die Formatnummer bleibt bei 15, obwohl das Faelligkeitsdatum mitgeht',
     file: 'server.js',
-    search: "const EXCHANGE_FORMAT = 19;",
+    search: "const EXCHANGE_FORMAT = 20;",
     replacement: "const EXCHANGE_FORMAT = 15;",
     expected: 'Die Exportdatei'
   },
@@ -8521,8 +8521,8 @@ const REGRESSIONS = [
   {
     nr: '1230', name: 'Der Betrachter bekommt keinen Account',
     file: 'docserver.js',
-    search: "      user: { id: String(user.id), name: user.name },\n",
-    replacement: "",
+    search: "      mode: 'view', lang,\n      user: { id: String(user.id), name: user.name },\n",
+    replacement: "      mode: 'view', lang,\n",
     expected: 'Document Server: Account, Chat und Dateinamen'
   },
   {
@@ -8601,6 +8601,111 @@ const REGRESSIONS = [
     search: "  const row = (r) => `<div class=\"kv kv-stack\"><span class=\"k\">",
     replacement: "  const row = (r) => `<div class=\"kv\"><span class=\"k\">",
     expected: 'Document Server: die eigene Ansicht'
+  },
+  {
+    nr: '1242', name: 'Die Rechte beim Bearbeiten fallen weg',
+    file: 'server.js',
+    search: "const mayEditFile = (userId, a) =>\n  editingOf(a.id).edit_all === 1 || (a.user_id != null && a.user_id === userId);",
+    replacement: "const mayEditFile = (userId, a) => true;",
+    expected: 'Bearbeiten: Haken und Rechte'
+  },
+  {
+    nr: '1243', name: 'detail() meldet edit auch ohne Recht',
+    file: 'server.js',
+    search: "    const rights = a2.edit_all === 1 || (a2.user_id != null && a2.user_id === userId);",
+    replacement: "    const rights = true;",
+    expected: 'Bearbeiten: Haken und Rechte'
+  },
+  {
+    nr: '1244', name: 'Der Callback nimmt jeden Schluessel an',
+    file: 'docserver.js',
+    search: "  for (let r = revision; r >= 0; r--) if (editorKey(attachment, r) === key) return true;\n  return false;",
+    replacement: "  return true;",
+    expected: 'Bearbeiten: der Rueckweg'
+  },
+  {
+    nr: '1245', name: 'Der Download folgt Umleitungen',
+    file: 'docserver.js',
+    search: "  try { r = await fetch(target, { redirect: 'error', signal: AbortSignal.timeout(DOWNLOAD_MS) }); }",
+    replacement: "  try { r = await fetch(target, { signal: AbortSignal.timeout(DOWNLOAD_MS) }); }",
+    expected: 'Bearbeiten: der Rueckweg'
+  },
+  {
+    nr: '1246', name: 'Jede Speicherung legt die vorige Fassung neu ab',
+    file: 'server.js',
+    search: "    if ((qPreviousKey.get(id) || {}).session_key !== key) keepPrevious.run(key, id);",
+    replacement: "    keepPrevious.run(key, id);",
+    expected: 'Bearbeiten: der Rueckweg'
+  },
+  {
+    nr: '1247', name: 'Der Haken reist nicht im Export',
+    file: 'server.js',
+    search: "                    ...(a2.edit_all === 1 ? { edit_all: true } : {}),\n",
+    replacement: "",
+    expected: 'Bearbeiten: Export und Papierkorb'
+  },
+  {
+    nr: '1248', name: 'Der Import liest den Haken nicht',
+    file: 'server.js',
+    search: "        if (a2.editAll) putEditAll.run(added.lastInsertRowid, 1);\n",
+    replacement: "",
+    expected: 'Bearbeiten: Export und Papierkorb'
+  },
+  {
+    nr: '1249', name: 'Der Admin stellt den Haken um',
+    file: 'server.js',
+    search: "  if (!selfOnly(req, a.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});\n  putEditAll.run(",
+    replacement: "  if (!mayChange(req, a.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});\n  putEditAll.run(",
+    expected: 'Bearbeiten: Haken und Rechte'
+  },
+  {
+    nr: '1250', name: 'Auf dem Telefon kommt der Editor',
+    file: 'server.js',
+    search: "    if (req.query.edit === '1' && !mobile && docserver.editFormat(a.filename) &&",
+    replacement: "    if (req.query.edit === '1' && docserver.editFormat(a.filename) &&",
+    expected: 'Bearbeiten: Haken und Rechte'
+  },
+  {
+    nr: '1251', name: 'Status 2 beendet die Sitzung nicht',
+    file: 'server.js',
+    search: "    countSave.run(id, sessionEnds && current ? 1 : 0);",
+    replacement: "    countSave.run(id, 0);",
+    expected: 'Bearbeiten: der Rueckweg'
+  },
+  {
+    nr: '1252', name: 'Eine fremde Adresse wird geholt',
+    file: 'docserver.js',
+    search: "    if (base && text.startsWith(base + '/')) return internalBase() + text.slice(base.length);\n  return null;",
+    replacement: "    if (base && text.startsWith(base + '/')) return internalBase() + text.slice(base.length);\n  return text || null;",
+    expected: 'Bearbeiten: der Rueckweg'
+  },
+  {
+    nr: '1253', name: 'Der Hochladende sieht den Haken in der Ansicht nicht',
+    file: 'public/app.js',
+    search: "      ${shown && a.mine && a.edit ? `<label class=\"fileview-editall\"",
+    replacement: "      ${shown && false ? `<label class=\"fileview-editall\"",
+    expected: 'Bearbeiten: im Browser'
+  },
+  {
+    nr: '1254', name: 'Die Ansicht fragt nie nach dem Editor',
+    file: 'public/app.js',
+    search: "              a.edit === true)",
+    replacement: "              false)",
+    expected: 'Bearbeiten: im Browser'
+  },
+  {
+    nr: '1255', name: 'Das Hochladen schickt den Haken nicht',
+    file: 'public/app.js',
+    search: "    if (editAll) fd.append('editAll', editAll.checked ? '1' : '0');\n",
+    replacement: "",
+    expected: 'Bearbeiten: im Browser'
+  },
+  {
+    nr: '1256', name: 'Der Knopf Speichern schreibt nicht sofort',
+    file: 'docserver.js',
+    search: "      customization: { forcesave: true }",
+    replacement: "      customization: {}",
+    expected: 'Bearbeiten: Haken und Rechte'
   },
 ];
 

@@ -350,6 +350,17 @@ unverändert.
   öffnet schon der Klick auf die Datei diese Ansicht. Das Zeichen für Vollbild in
   der Leiste zeigt nur das Dokument über den ganzen Bildschirm, auch quer;
   Zurück oder Esc beendet es. Kann der Browser kein Vollbild, fehlt das Zeichen.
+- **Bearbeiten:** In der eigenen Ansicht bearbeitet, wer die Datei hochgeladen
+  hat. Mit dem Haken „Bearbeiten durch alle“ beim Hochladen bearbeitet jeder
+  Account; ohne ihn auch der Admin nicht, er darf die Datei nur löschen. Den
+  Haken stellt später nur um, wer hochgeladen hat, in der Leiste der Ansicht.
+  Gespeichert wird mit Speichern im Editor und etwa 10 Sekunden, nachdem der
+  Letzte die Ansicht verlassen hat. `.doc`, `.xls` und `.ppt` werden dabei zu
+  `.docx`, `.xlsx` und `.pptx`. Auf dem Telefon wird nur angesehen.
+- **Vorige Fassung:** Kriterion hebt die Fassung vor der letzten Bearbeitung
+  auf. Das Zeichen ↶ in der Leiste stellt sie wieder her; die aktuelle wird
+  dabei zur vorigen, ein zweites Mal macht es rückgängig. Die vorige Fassung
+  steht nur im Backup, nicht im JSON-Export und nicht im Papierkorb.
 - **Links:** jeder darf eintragen. Umsortieren darf der Verfasser des Eintrags
   oder der Admin. Ein Text ohne Adresse (Wort, Artikelnummer) wird zur Suche
   bei der eingestellten Suchmaschine.
@@ -470,7 +481,7 @@ Backup und Sicherheitsprotokoll nur der Eigentümer-Admin.
 | Karte | Inhalt |
 |---|---|
 | Titel | Titel vor der Anmeldung (für jeden sichtbar, zurückhaltend wählen) und Titel nach der Anmeldung |
-| Dokumente | Anzeige über einen Document Server ein- und ausschalten; die Karte prüft die Verbindung. Adressen und Secret stehen in der `.env`, siehe README |
+| Dokumente | Anzeige und Bearbeiten über einen Document Server ein- und ausschalten; Vorgabe für den Haken „Bearbeiten durch alle“ beim Hochladen; die Karte prüft die Verbindung. Adressen und Secret stehen in der `.env`, siehe README |
 | Kennzahlen | Umfang des Bestands, Datenbankgröße, Version, Fingerprint, Verschlüsselungsverfahren; für den Eigentümer-Admin der Schlüsselwert |
 | Kategorien, Tags | anlegen, umbenennen, löschen; ein Häkchen legt fest, ob jeder neue Namen am Eintrag anlegen darf |
 | Bewertung: Kriterien, Potenzial: Kriterien | anlegen, umbenennen, sortieren, gewichten (0,2 bis 2, Vorgabe 1) |

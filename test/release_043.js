@@ -1,0 +1,442 @@
+/* Kriterion — Pruefstand: Dokumente ueber den Document Server bearbeiten. Ein
+   gestellter Document Server im selben Prozess wandelt um, liefert bearbeitete
+   Fassungen aus und ruft den Callback. */
+const http = require('http');
+const H = require('./frame.js');
+const D = require('./dom.js');
+const { buildDom, until, openRequests, sysSection } = D;
+
+async function run() {
+  const { fs, os, path, crypto, __dirname, group, check, equal, withCsrf } = H;
+  await H.mainServerReady();
+  let JSDOM = null;
+  try { ({ JSDOM } = require('jsdom')); } catch { JSDOM = null; }
+  const DE = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8'));
+  const deText = (key, values = {}) =>
+    String(DE[key]).replace(/\{(\w+)\}/g, (m, k) => (k in values ? String(values[k]) : m));
+
+  /* ---- JWT, unabhaengig von docserver.js gebaut ---- */
+  const SECRET = 'pruefstand-secret-' + crypto.randomBytes(16).toString('hex');
+  const part = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
+  const nowS = () => Math.floor(Date.now() / 1000);
+  const jwt = (secret, payload) => {
+    const head = part({ 'alg': 'HS256', 'typ': 'JWT' }) + '.' + part(payload);
+    return head + '.' + crypto.createHmac('sha256', secret).update(head).digest('base64url');
+  };
+  function jwtPayload(secret, token) {
+    const [h, p, s] = String(token || '').split('.');
+    if (!h || !p || !s) return null;
+    const want = crypto.createHmac('sha256', secret).update(h + '.' + p).digest('base64url');
+    if (want !== s) return null;
+    try { return JSON.parse(Buffer.from(p, 'base64url').toString('utf8')); } catch { return null; }
+  }
+
+  /* ---- Der gestellte Document Server ---- */
+  // Oeffentlich nur ein Name; Kriterion erreicht den Server ueber die interne Adresse.
+  const PUBLIC_DS = 'http://office.invalid';
+  const FETCH_BASE = 'http://kriterion.invalid:3000';
+  const fake = { files: new Map(), converted: [], convertError: null, target: null };
+  const ds = http.createServer(async (req, res) => {
+    const reply = (o) => { res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
+    const where = req.url.split('?')[0];
+    if (req.url === '/healthcheck') { res.writeHead(200); return res.end('true'); }
+    if (req.method === 'POST' && req.url === '/converter') {
+      let body = '';
+      for await (const c of req) body += c;
+      const asked = jwtPayload(SECRET, JSON.parse(body).token);
+      if (!asked) return reply({ error: -8 });
+      fake.converted.push(asked);
+      if (fake.convertError) return reply({ error: fake.convertError });
+      const headers = { authorization: 'Bearer ' + jwt(SECRET, { payload: { url: asked.url }, exp: nowS() + 300 }) };
+      const r = await fetch(fake.target + new URL(asked.url).pathname, { headers });
+      if (!r.ok) return reply({ error: -4 });
+      fake.files.set('/cache/converted.docx', Buffer.from(await r.arrayBuffer()));
+      return reply({ endConvert: true, percent: 100, fileUrl: PUBLIC_DS + '/cache/converted.docx?md5=x' });
+    }
+    if (where === '/cache/redirect') {
+      res.writeHead(302, { location: fake.target + '/api/config' });
+      return res.end();
+    }
+    if (req.method === 'GET' && fake.files.has(where)) {
+      res.writeHead(200);
+      return res.end(fake.files.get(where));
+    }
+    res.writeHead(404);
+    res.end();
+  });
+  await new Promise(r => ds.listen(0, '127.0.0.1', r));
+  const DS_BASE = `http://127.0.0.1:${ds.address().port}`;
+
+  // Die Basis teilt sich das Modul mit release_041 und release_042; die Module laufen nacheinander.
+  const PORT_BASE_043 = 7340;
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-bearbeiten-'));
+  const B = H.startFurtherServer(dir, { DOCUMENT_SERVER_ADDRESS: PUBLIC_DS,
+    DOCUMENT_SERVER_INTERNAL_ADDRESS: DS_BASE, DOCUMENT_SERVER_SECRET: SECRET,
+    INTERNAL_ADDRESS: FETCH_BASE }, PORT_BASE_043);
+  await B.ready;
+  fake.target = B.base;
+  const OWNER_PASSWORD = 'eigen-langes-wort-43';
+  await B.call('POST', '/api/setup', { user: 'eigen', password: OWNER_PASSWORD });
+  await B.call('PUT', '/api/settings', { documentServer: true });
+
+  async function account(username) {
+    const password = username + '-langes-wort-43';
+    await B.call('POST', '/api/users', { username, password, role: 'user' });
+    const login = await fetch(B.base + '/api/login', { method: 'POST',
+      headers: { 'content-type': 'application/json' }, body: JSON.stringify({ user: username, password }) });
+    const cookie = H.jar('', login);
+    const call = async (method, url, body) => {
+      const a = await fetch(B.base + url, { method,
+        headers: withCsrf(cookie, body ? { 'content-type': 'application/json' } : {}),
+        body: body ? JSON.stringify(body) : undefined });
+      let content = null;
+      try { content = await a.json(); } catch {}
+      return { status: a.status, content };
+    };
+    const send = async (url, files, fields = {}) => {
+      const fd = new FormData();
+      for (const [k, v] of Object.entries(fields)) fd.append(k, v);
+      for (const f of files) fd.append('files', new Blob([f.content]), f.name);
+      const a = await fetch(B.base + url, { method: 'POST', body: fd, headers: withCsrf(cookie) });
+      return { status: a.status, content: await a.json().catch(() => null) };
+    };
+    const raw = async (id) =>
+      Buffer.from(await (await fetch(`${B.base}/api/attachments/${id}/raw`, { headers: withCsrf(cookie) })).arrayBuffer());
+    return { call, send, raw };
+  }
+  const owner = {
+    call: B.call,
+    raw: async (id) => Buffer.from(await (await fetch(`${B.base}/api/attachments/${id}/raw`,
+      { headers: withCsrf(B.cookieValue()) })).arrayBuffer())
+  };
+  const uploader = await account('zweit');
+  const other = await account('dritt');
+  const byName = (d) => Object.fromEntries((d?.attachments || []).map(a => [a.filename, a]));
+  const bytes = (text) => Buffer.from(text + ' ' + crypto.randomBytes(8).toString('hex'));
+  const keyOf = (a, stamp) => crypto.createHmac('sha256', SECRET)
+    .update(`${FETCH_BASE}/api/document-server/attachments/${a.id}|${a.created_at}|${stamp}`)
+    .digest('hex').slice(0, 40);
+  const office = (who, id, query = 'edit=1&mobile=0') =>
+    who.call('GET', `/api/attachments/${id}/office?${query}`);
+
+  group('Bearbeiten: Haken und Rechte');
+  const item = (await B.call('POST', '/api/items', { title: 'Bearbeiten' })).content.id;
+  const originals = { 'bericht.docx': bytes('bericht'), 'tabelle.xlsx': bytes('tabelle'),
+    'alt.doc': bytes('alt'), 'doku.pdf': bytes('pdf') };
+  const one = await uploader.send(`/api/items/${item}/attachments`,
+    [{ name: 'bericht.docx', content: originals['bericht.docx'] }]);
+  const many = await uploader.send(`/api/items/${item}/attachments`,
+    ['tabelle.xlsx', 'alt.doc', 'doku.pdf'].map(name => ({ name, content: originals[name] })), { editAll: '1' });
+  check('Der Aufbau steht: vier Dateien von zweit, drei mit Haken hochgeladen',
+    one.status === 201 && many.status === 201 && many.content?.attachments?.length === 4,
+    `${one.status} ${many.status}`);
+  let asUploader = byName((await uploader.call('GET', `/api/items/${item}`)).content);
+  let asOwner = byName((await owner.call('GET', `/api/items/${item}`)).content);
+  const ids = Object.fromEntries(Object.entries(asUploader).map(([n, a]) => [n, a.id]));
+  check('Der Haken gilt fuer die Buerodateien des Hochladens, nicht fuer das PDF',
+    asUploader['tabelle.xlsx']?.editAll === true && asUploader['alt.doc']?.editAll === true &&
+    asUploader['doku.pdf']?.editAll === false && asUploader['bericht.docx']?.editAll === false,
+    Object.entries(asUploader).map(([n, a]) => `${n}:${a.editAll}`).join(' '));
+  check('Wer hochgeladen hat, bearbeitet; ohne Haken der Admin nicht',
+    asUploader['bericht.docx']?.edit === true && asOwner['bericht.docx']?.edit === false &&
+    asOwner['tabelle.xlsx']?.edit === true && asUploader['doku.pdf']?.edit === false,
+    `${asUploader['bericht.docx']?.edit} ${asOwner['bericht.docx']?.edit} ${asOwner['tabelle.xlsx']?.edit}`);
+  const presetOff = (await owner.call('GET', `/api/items/${item}`)).content?.editAllPreset;
+  await owner.call('PUT', '/api/settings', { documentEditAll: true });
+  const presetOn = (await uploader.call('GET', `/api/items/${item}`)).content?.editAllPreset;
+  const cardState = (await owner.call('GET', '/api/document-server')).content;
+  check('Die Vorgabe der Karte steht im Eintrag als editAllPreset',
+    presetOff === false && presetOn === true && cardState?.editAll === true, `${presetOff} ${presetOn}`);
+  await owner.call('PUT', '/api/settings', { documentEditAll: false });
+
+  const denied = await owner.call('PUT', `/api/attachments/${ids['bericht.docx']}/editing`, { editAll: true });
+  const byThird = await other.call('PUT', `/api/attachments/${ids['bericht.docx']}/editing`, { editAll: true });
+  check('Den Haken stellt weder der Admin noch ein anderer Account um',
+    denied.status === 403 && denied.content?.error === DE['server.deniedSelf'] && byThird.status === 403,
+    `${denied.status} ${byThird.status}`);
+
+  const zCfg = (await office(uploader, ids['bericht.docx'])).content?.config || {};
+  const docx = asUploader['bericht.docx'];
+  check('Der Editor: Modus edit mit Callback und forcesave, Kommentare an, Chat und Download aus',
+    zCfg.editorConfig?.mode === 'edit' && zCfg.type === 'desktop' &&
+    zCfg.editorConfig?.callbackUrl === `${FETCH_BASE}/api/document-server/callback/${docx.id}` &&
+    zCfg.editorConfig?.customization?.forcesave === true &&
+    equal(zCfg.document?.permissions, { edit: true, comment: true, review: true, download: false,
+      print: true, chat: false }), JSON.stringify(zCfg.editorConfig));
+  const { token: zToken, ...zUnsigned } = zCfg;
+  check('Das Token traegt alle Felder, der Schluessel haengt an e0',
+    equal(jwtPayload(SECRET, zToken), zUnsigned) && zCfg.document?.key === keyOf(docx, 'e0') &&
+    zCfg.document?.url === `${FETCH_BASE}/api/document-server/attachments/${docx.id}`, zCfg.document?.key);
+  const oCfg = (await office(owner, ids['bericht.docx'])).content?.config || {};
+  const phone = (await office(uploader, ids['bericht.docx'], 'edit=1&mobile=1')).content?.config || {};
+  const plain = (await office(uploader, ids['bericht.docx'], 'mobile=0')).content?.config || {};
+  check('Ohne Recht, auf dem Telefon und ohne edit=1 kommt der Betrachter',
+    oCfg.editorConfig?.mode === 'view' && phone.editorConfig?.mode === 'view' && phone.type === 'embedded' &&
+    plain.editorConfig?.mode === 'view' && plain.document?.key === keyOf(docx, 'v0') && !plain.editorConfig?.callbackUrl,
+    `${oCfg.editorConfig?.mode} ${phone.editorConfig?.mode} ${plain.editorConfig?.mode}`);
+  const freed = await uploader.call('PUT', `/api/attachments/${ids['bericht.docx']}/editing`, { editAll: true });
+  const oAfter = (await office(owner, ids['bericht.docx'])).content?.config || {};
+  check('Setzt der Hochladende den Haken, bearbeitet auch der Admin',
+    freed.status === 200 && byName(freed.content)['bericht.docx']?.editAll === true &&
+    oAfter.editorConfig?.mode === 'edit', `${freed.status} ${oAfter.editorConfig?.mode}`);
+  await uploader.call('PUT', `/api/attachments/${ids['bericht.docx']}/editing`, { editAll: false });
+
+  const conv = await office(uploader, ids['alt.doc']);
+  const cCfg = conv.content?.config || {};
+  const asked = fake.converted[fake.converted.length - 1] || {};
+  check('Eine .doc wird vor dem Bearbeiten in .docx umgewandelt',
+    cCfg.editorConfig?.mode === 'edit' && cCfg.document?.fileType === 'docx' &&
+    cCfg.document?.title === 'alt.docx' && asked.filetype === 'doc' && asked.outputtype === 'docx' &&
+    String(asked.key).startsWith('convert-') && Buffer.compare(fake.files.get('/cache/converted.docx') ||
+      Buffer.alloc(0), originals['alt.doc']) === 0, JSON.stringify({ d: cCfg.document, asked }));
+  check('Die Adresse der Umwandlung zeigt auf die interne Adresse des Document Servers',
+    cCfg.document?.url === DS_BASE + '/cache/converted.docx?md5=x', String(cCfg.document?.url));
+  fake.convertError = -3;
+  const convFailed = (await office(uploader, ids['alt.doc'])).content || {};
+  fake.convertError = null;
+  check('Schlaegt die Umwandlung fehl, kommt der Betrachter mit editFailed',
+    convFailed.editFailed === true && convFailed.config?.editorConfig?.mode === 'view', JSON.stringify(convFailed.editFailed));
+
+  group('Bearbeiten: der Rueckweg');
+  const cbUrl = (id) => `${B.base}/api/document-server/callback/${id}`;
+  async function callback(id, fields, { how = 'body', secret = SECRET, plain = {} } = {}) {
+    const claims = { exp: nowS() + 300 };
+    const headers = { 'content-type': 'application/json' };
+    let body = { ...fields, ...plain };
+    if (how === 'body') body.token = jwt(secret, { ...fields, ...claims });
+    if (how === 'header') headers.authorization = 'Bearer ' + jwt(secret, { payload: fields, ...claims });
+    const r = await fetch(cbUrl(id), { method: 'POST', headers, body: JSON.stringify(body) });
+    return { status: r.status, json: await r.json().catch(() => null) };
+  }
+  const edited = (name, text) => { const b = bytes(text); fake.files.set('/cache/' + name, b); return b; };
+  const id1 = ids['bericht.docx'];
+  const k0 = keyOf(docx, 'e0');
+  const v1 = edited('v1.docx', 'Fassung 1');
+  const status1 = await callback(id1, { key: k0, status: 1, users: ['2'] });
+  const unchanged = await uploader.raw(id1);
+  check('Status 1 wird angenommen und aendert nichts',
+    status1.status === 200 && equal(status1.json, { error: 0 }) &&
+    Buffer.compare(unchanged, originals['bericht.docx']) === 0, JSON.stringify(status1));
+  const save1 = await callback(id1, { key: k0, status: 6, url: PUBLIC_DS + '/cache/v1.docx', filetype: 'docx' },
+    { plain: { url: PUBLIC_DS + '/cache/fremd.docx' } });
+  let now = await uploader.raw(id1);
+  let state = byName((await uploader.call('GET', `/api/items/${item}`)).content)['bericht.docx'];
+  check('Status 6 speichert die Fassung aus dem Token, geholt ueber die interne Adresse',
+    equal(save1.json, { error: 0 }) && Buffer.compare(now, v1) === 0 && state?.size === v1.length,
+    `${JSON.stringify(save1.json)} ${now.length}`);
+  check('Die vorige Fassung ist das Original, und zweit darf sie wiederherstellen',
+    state?.restore === true, JSON.stringify(state));
+  const viewAfter = (await office(uploader, id1, 'mobile=0')).content?.config?.document?.key;
+  const editAfter = (await office(uploader, id1)).content?.config?.document?.key;
+  check('Nach Status 6 hat der Betrachter einen neuen Schluessel, der Editor denselben',
+    viewAfter === keyOf(docx, 'v1') && editAfter === k0, `${viewAfter} ${editAfter}`);
+
+  const v2 = edited('v2.docx', 'Fassung 2');
+  await callback(id1, { key: k0, status: 6, url: PUBLIC_DS + '/cache/v2.docx', filetype: 'docx' });
+  const v3 = edited('v3.docx', 'Fassung 3');
+  const close = await callback(id1, { key: k0, status: 2, url: DS_BASE + '/cache/v3.docx', filetype: 'docx' },
+    { how: 'header' });
+  now = await uploader.raw(id1);
+  const editKeyNext = (await office(uploader, id1)).content?.config?.document?.key;
+  check('Status 2 im Header speichert, danach bekommt der Editor e1',
+    equal(close.json, { error: 0 }) && Buffer.compare(now, v3) === 0 && editKeyNext === keyOf(docx, 'e1'),
+    `${JSON.stringify(close.json)} ${editKeyNext}`);
+  const back = await uploader.call('POST', `/api/attachments/${id1}/previous`);
+  now = await uploader.raw(id1);
+  check('Innerhalb einer Sitzung bleibt die vorige Fassung das Original, nicht Fassung 1 oder 2',
+    back.status === 200 && Buffer.compare(now, originals['bericht.docx']) === 0, String(back.status));
+  const again = await uploader.call('POST', `/api/attachments/${id1}/previous`);
+  now = await uploader.raw(id1);
+  check('Ein zweites Wiederherstellen macht es rueckgaengig',
+    again.status === 200 && Buffer.compare(now, v3) === 0, String(again.status));
+  const k2 = keyOf(docx, 'e3');
+  const v4 = edited('v4.docx', 'Fassung 4');
+  const newSession = await callback(id1, { key: k2, status: 6, url: DS_BASE + '/cache/v4.docx', filetype: 'docx' });
+  await uploader.call('POST', `/api/attachments/${id1}/previous`);
+  now = await uploader.raw(id1);
+  check('Eine neue Sitzung legt die Fassung davor als vorige ab',
+    equal(newSession.json, { error: 0 }) && Buffer.compare(now, v3) === 0, JSON.stringify(newSession.json));
+  await uploader.call('POST', `/api/attachments/${id1}/previous`);
+
+  const byOwner = await owner.call('POST', `/api/attachments/${id1}/previous`);
+  const none = await uploader.call('POST', `/api/attachments/${ids['tabelle.xlsx']}/previous`);
+  check('Ohne Haken stellt der Admin nicht zurueck; ohne vorige Fassung 409',
+    byOwner.status === 403 && byOwner.content?.error === DE['server.editDenied'] &&
+    none.status === 409 && none.content?.error === DE['server.noPrevious'], `${byOwner.status} ${none.status}`);
+
+  const before = await uploader.raw(id1);
+  const refused = [
+    await callback(id1, { key: k2, status: 2, url: DS_BASE + '/cache/v4.docx' }, { how: 'none' }),
+    await callback(id1, { key: k2, status: 2, url: DS_BASE + '/cache/v4.docx' }, { secret: 'anders-' + SECRET }),
+    await callback(id1, { key: 'fremd', status: 2, url: DS_BASE + '/cache/v4.docx' })
+  ].map(r => r.status);
+  // Erreichbar, aber nicht der Document Server.
+  const foreign = await callback(id1, { key: k2, status: 6, url: B.base + '/api/config' });
+  const redirect = await callback(id1, { key: k2, status: 6, url: DS_BASE + '/cache/redirect' });
+  const unknownType = await callback(id1, { key: k2, status: 6, url: DS_BASE + '/cache/v4.docx', filetype: 'docxf' });
+  check('Ohne Token, mit anderem Secret und mit fremdem Schluessel: 403',
+    equal(refused, [403, 403, 403]), refused.join(' '));
+  check('Fremde Adresse, Umleitung und unbekanntes Format: error 1, nichts geschrieben',
+    equal([foreign.json, redirect.json, unknownType.json], [{ error: 1 }, { error: 1 }, { error: 1 }]) &&
+    Buffer.compare(await uploader.raw(id1), before) === 0,
+    JSON.stringify([foreign.json, redirect.json, unknownType.json]));
+
+  const idDoc = ids['alt.doc'];
+  const docKey = keyOf(asUploader['alt.doc'], 'e0');
+  const vDoc = edited('alt-bearbeitet.docx', 'aus doc');
+  await callback(idDoc, { key: docKey, status: 2, url: DS_BASE + '/cache/alt-bearbeitet.docx', filetype: 'docx' });
+  let docRow = byName((await uploader.call('GET', `/api/items/${item}`)).content)['alt.docx'];
+  check('Aus alt.doc wird beim Speichern alt.docx mit dem Typ von Word',
+    !!docRow && docRow.id === idDoc && Buffer.compare(await uploader.raw(idDoc), vDoc) === 0 &&
+    docRow.mime_type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    JSON.stringify(docRow));
+  await uploader.call('POST', `/api/attachments/${idDoc}/previous`);
+  docRow = byName((await uploader.call('GET', `/api/items/${item}`)).content)['alt.doc'];
+  check('Wiederhergestellt heisst sie wieder alt.doc',
+    !!docRow && Buffer.compare(await uploader.raw(idDoc), originals['alt.doc']) === 0, JSON.stringify(docRow));
+
+  const gone = await uploader.send(`/api/items/${item}/attachments`, [{ name: 'weg.docx', content: bytes('weg') }]);
+  const goneRow = byName(gone.content)['weg.docx'];
+  await uploader.call('DELETE', `/api/attachments/${goneRow.id}`);
+  edited('weg.docx', 'zu spaet');
+  const late = await callback(goneRow.id, { key: keyOf(goneRow, 'e0'), status: 2,
+    url: DS_BASE + '/cache/weg.docx', filetype: 'docx' });
+  check('Ist die Datei geloescht, wird die Aenderung verworfen und gemeldet',
+    equal(late.json, { error: 0 }) && B.log().includes(`saved file ${goneRow.id}, which no longer exists`),
+    JSON.stringify(late.json));
+
+  group('Bearbeiten: Export und Papierkorb');
+  await owner.call('POST', '/api/confirm', { password: OWNER_PASSWORD, purpose: 'export', target: null });
+  const exported = await fetch(`${B.base}/api/export?files=1`, { headers: withCsrf(B.cookieValue()) });
+  let file = null;
+  try { file = JSON.parse(await exported.text()); } catch { file = null; }
+  const exportedFiles = file?.items?.find(i => i.title === 'Bearbeiten')?.attachments || [];
+  const flag = Object.fromEntries(exportedFiles.map(a => [a.filename, a.edit_all]));
+  check('Format 20: der Haken reist mit, nur wo er gesetzt ist',
+    file?.version === 20 && flag['tabelle.xlsx'] === true && flag['bericht.docx'] === undefined &&
+    flag['doku.pdf'] === undefined, JSON.stringify({ v: file?.version, flag }));
+  check('Die vorige Fassung reist nicht mit',
+    exportedFiles.length === 4 && !JSON.stringify(exportedFiles.map(Object.keys)).includes('previous'),
+    String(exportedFiles.length));
+  await owner.call('DELETE', `/api/items/${item}`);
+  const trashRow = (await owner.call('GET', '/api/trash')).content?.rows?.find(z => z.title === 'Bearbeiten');
+  const restored = await owner.call('POST', `/api/trash/${trashRow?.id}/restore`);
+  const backRows = byName((await uploader.call('GET', `/api/items/${restored.content?.itemId}`)).content);
+  check('Aus dem Papierkorb zurueck: der Haken bleibt, die vorige Fassung nicht',
+    backRows['tabelle.xlsx']?.editAll === true && backRows['bericht.docx']?.editAll === false &&
+    backRows['bericht.docx']?.restore === false, JSON.stringify(backRows['bericht.docx']));
+
+  const schema = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
+  check('Zwei neue Tabellen, keine neue Spalte in attachments',
+    /CREATE TABLE IF NOT EXISTS attachment_editing \(/.test(schema) &&
+    /CREATE TABLE IF NOT EXISTS attachment_previous \(/.test(schema) &&
+    /REFERENCES attachments\(id\) ON DELETE CASCADE,\n  edit_all/.test(schema), 'Tabelle fehlt');
+  await B.stop();
+  await new Promise(r => ds.close(r));
+  fs.rmSync(dir, { recursive: true, force: true });
+
+  group('Bearbeiten: im Browser');
+  if (!JSDOM) check('jsdom steht bereit', false, 'npm install');
+  else {
+    const extra = (id, filename, more) => ({ id, filename, mime_type: 'application/octet-stream', size: 4096,
+      sort_order: id, preview: 'office', created_at: '2026-08-04 10:00:00', mine: false, author: null,
+      editAll: false, edit: false, restore: false, ...more });
+    const reply = (o, status = 200) => Promise.resolve({ ok: status < 400, status, json: async () => o });
+    const editConfig = { document: { url: 'http://kriterion.invalid/x' }, editorConfig: { mode: 'edit' } };
+
+    const fm = buildDom(JSDOM, { hash: '#/item/1/file/45',
+      extraAttachments: [extra(45, 'bericht.docx', { mine: true, edit: true, restore: true })] });
+    const fw = fm.w;
+    const asked = [];
+    const inner = fw.fetch;
+    fw.fetch = (url, opt) => {
+      if (/^\/api\/attachments\/45\//.test(url)) {
+        asked.push({ url, method: opt?.method || 'GET', body: opt?.body ? JSON.parse(opt.body) : null });
+        if (url.includes('/office?')) return reply({ script: 'http://ds.invalid/api.js', host: 'ds.invalid', config: editConfig });
+        return reply({});
+      }
+      return inner(url, opt);
+    };
+    const made = [], destroyed = [];
+    fw.DocsAPI = { DocEditor: function (id, c) { made.push({ id, c }); this.destroyEditor = () => destroyed.push(id); } };
+    await until(fw, () => made.length === 1, 3000, 'den Editor');
+    const box = fw.document.getElementById('fileview-editall');
+    check('Der Hochladende bekommt den Editor, den Haken und die vorige Fassung',
+      asked[0]?.url === '/api/attachments/45/office?mobile=0&edit=1' && !!box && box.checked === false &&
+      !!fw.document.getElementById('fileview-previous'), asked.map(x => x.url).join(' '));
+    check('Unter dem Editor steht entry.officeEditHint',
+      fw.document.querySelector('.fileview .aoffice-hint')?.textContent === deText('entry.officeEditHint', { host: 'ds.invalid' }),
+      fw.document.querySelector('.fileview .aoffice-hint')?.textContent);
+    box.checked = true;
+    await box.onchange();
+    check('Der Haken schreibt editAll an die Datei',
+      asked.some(x => x.method === 'PUT' && x.url === '/api/attachments/45/editing' && x.body?.editAll === true),
+      JSON.stringify(asked.slice(-1)));
+    fw.document.getElementById('fileview-previous').onclick();
+    await until(fw, (x) => x.document.querySelector('.modal [data-yes]'), 2000, 'die Rueckfrage');
+    fw.document.querySelector('.modal [data-yes]').onclick();
+    await until(fw, () => made.length === 2, 3000, 'den neuen Editor');
+    check('Wiederherstellen fragt nach, ruft previous und baut den Editor neu auf',
+      asked.some(x => x.method === 'POST' && x.url === '/api/attachments/45/previous') &&
+      equal(destroyed, ['office-full-45']), destroyed.join(' '));
+    fw.close();
+
+    const om = buildDom(JSDOM, { hash: '#/item/1/file/46',
+      extraAttachments: [extra(46, 'tabelle.xlsx', { edit: true, editAll: true })] });
+    const ow = om.w;
+    const oAsked = [];
+    const oInner = ow.fetch;
+    ow.fetch = (url, opt) => {
+      if (url.startsWith('/api/attachments/46/office?')) {
+        oAsked.push(url);
+        return reply({ script: 'http://ds.invalid/api.js', host: 'ds.invalid', config: editConfig });
+      }
+      return oInner(url, opt);
+    };
+    ow.DocsAPI = { DocEditor: function () { this.destroyEditor = () => {}; } };
+    await until(ow, () => oAsked.length === 1 && openRequests(ow) === 0, 3000, 'den Editor');
+    check('Mit Haken bearbeitet auch, wer nicht hochgeladen hat; Haken und vorige Fassung fehlen ihm',
+      oAsked[0] === '/api/attachments/46/office?mobile=0&edit=1' &&
+      !ow.document.getElementById('fileview-editall') && !ow.document.getElementById('fileview-previous'),
+      oAsked.join(' '));
+    ow.close();
+
+    const pm = buildDom(JSDOM, { hash: '#/item/1', editAllPreset: true });
+    const pw = pm.w;
+    await until(pw, (x) => x.document.getElementById('afile') && openRequests(x) === 0, 3000, 'den Eintrag');
+    const preset = pw.document.getElementById('aeditall');
+    let form = null;
+    const pInner = pw.fetch;
+    pw.fetch = (url, opt) => {
+      if (url === '/api/items/1/attachments') { form = opt.body; return reply({ id: 1, attachments: [] }, 201); }
+      return pInner(url, opt);
+    };
+    await pw.document.getElementById('afile').onchange({ target: { files: [new pw.File(['x'], 'neu.docx')], value: '' } });
+    check('Beim Hochladen steht der Haken nach der Vorgabe und geht als editAll mit',
+      preset?.checked === true && form?.get('editAll') === '1', `${preset?.checked} ${form?.get?.('editAll')}`);
+    pw.close();
+    const nm = buildDom(JSDOM, { hash: '#/item/1' });
+    await until(nm.w, (x) => x.document.getElementById('afile') && openRequests(x) === 0, 3000, 'den Eintrag');
+    check('Ohne Document Server gibt es keinen Haken beim Hochladen',
+      !nm.w.document.getElementById('aeditall'), 'Haken da');
+    nm.w.close();
+
+    const ready = { rows: [], secret: true, setup: null, on: true, editAll: false };
+    const cm = buildDom(JSDOM, { documentServer: ready,
+      documentServerCheck: { key: 'server.docReady', values: { address: 'https://kriterion.invalid' } } });
+    await until(cm.w, (x) => x.document.getElementById('count') && openRequests(x) === 0, 2000, 'die Uebersicht');
+    await sysSection(cm.w, 'installation');
+    await until(cm.w, (x) => x.document.getElementById('doc-editall') && openRequests(x) === 0, 2000, 'die Karte');
+    const toggle = cm.w.document.getElementById('doc-editall');
+    const wasOff = toggle.checked === false;
+    toggle.checked = true;
+    await toggle.onchange();
+    check('Die Karte schreibt die Vorgabe documentEditAll',
+      wasOff && cm.sent.some(s => s.url === '/api/settings' && s.method === 'PUT' && s.body?.documentEditAll === true),
+      'keine Anfrage');
+    cm.w.close();
+  }
+}
+
+module.exports = run;
+if (require.main === module) H.standalone(run, __filename);
