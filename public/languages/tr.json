@@ -161,7 +161,7 @@
   "card.documentsFallback": "boş, {name} geçerli",
   "card.documentsHint": "Word, Excel ve PowerPoint dosyalarını ve OpenDocument dosyalarını Euro-Office veya OnlyOffice gibi bir Document Server üzerinden göster ve düzenle. Görüntülenen her dosya bundan sonra Document Server'ın önbelleğinde şifresiz durur.",
   "card.documentsOn": "Dosyaları Document Server üzerinden göster",
-  "card.documentsEditAll": "Bir hesap kendi değerini belirleyene kadar “Herkes düzenleyebilir” için başlangıç değeri",
+  "card.documentsEditAll": "Herkes düzenleyebilir: bir hesap kendi değerini belirleyene kadar başlangıç değeri",
   "card.documentsThemeHint": "Document Server belgelerini böyle gösterir.",
   "card.documentsThemeFollow": "Kriterion gibi",
   "card.documentsThemeLight": "Modern açık",
