@@ -180,6 +180,26 @@ Tests in `test/source.js` prüfen beide Regeln.
   einer Leerzeile der Grund, wenn er nicht offensichtlich ist.
 - Pull Request nur, wenn er verlangt wurde.
 
+### Fragen an den Betreiber
+
+- Ein Auftrag (`Doku/Auftrag_x.y.z.md`) beginnt mit Abschnitt 0 „Vor dem Bau:
+  die offenen Fragen". Dort steht jeder Punkt, den der Betreiber entscheidet,
+  mit den möglichen Antworten und einer Empfehlung.
+- Beim Start eines Auftrags werden diese Fragen zuerst gestellt, vor der
+  ersten Zeile Code. Gebaut wird erst mit allen Antworten.
+- Gefragt wird in Fragetafeln (`AskUserQuestion`): höchstens vier Fragen je
+  Tafel, die empfohlene Antwort zuerst und mit „(Empfohlen)", zu jeder
+  Antwort eine Zeile, was sie bewirkt.
+- Wird eine Tafel weggeklickt, wird nicht gebaut. Die Tafel kommt noch einmal,
+  wenn der Betreiber es verlangt.
+- Kommt beim Bauen eine neue Frage auf, wird sie ebenso als Fragetafel
+  gestellt. Antwortet niemand, gilt der einfachere Weg, der kein Verhalten
+  ändert.
+- Die Antworten stehen im Änderungsprotokoll unter „Vorgaben des Betreibers",
+  mit Datum.
+- Auch außerhalb eines Auftrags stehen Rückfragen, bei denen der Betreiber
+  zwischen Wegen wählt, in Fragetafeln.
+
 ## 5. Versionen
 
 - Kriterion ist nicht veröffentlicht. Verträglichkeit mit früheren Fassungen
