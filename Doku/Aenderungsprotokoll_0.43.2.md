@@ -94,7 +94,11 @@ Rückbauten:
 | 1269 | Der Kasten Dokumente fehlt im eigenen Bereich | Bearbeiten: im Browser |
 | 1270 | Die eigene Darstellung geht nicht an den Document Server | Bearbeiten: im Browser |
 
-Die Gegenprobe läuft; das Ergebnis folgt.
+**13 rot, 0 stumm**, ohne Abbruch eines Moduls. Jeder ist zusätzlich rot in
+„Jeder Suchtext kommt in seiner Datei genau einmal vor": die Prüfung liest den
+zurückgebauten Stand. 1262 ist außerdem rot in „Nur die Buerodatei traegt das
+Symbol Oeffnen" (`test/release_042.js`), weil der Stift dieselbe Klasse
+`aopen` trägt.
 
 ---
 
