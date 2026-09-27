@@ -236,8 +236,8 @@ entfernt".
 ### Verfasser
 
 Ab dem zweiten Account nennen Eintrag, Kommentar und Testtag ihren Verfasser.
-Links und Dateien nennen ihn nur, wenn er nicht der Verfasser des Eintrags ist;
-Datum und Name stehen am Mauszeiger. Die Bewertung zeigt nur den eigenen Wert
+Links und Dateien nennen, wer sie eingetragen hat, auch den Verfasser des
+Eintrags; das Datum steht am Mauszeiger. Die Bewertung zeigt nur den eigenen Wert
 und den Schnitt; wer wie bewertet hat, sieht nur der Admin über „Wer hat
 bewertet".
 
@@ -350,10 +350,15 @@ unverändert.
   öffnet schon der Klick auf die Datei diese Ansicht. Das Zeichen für Vollbild in
   der Leiste zeigt nur das Dokument über den ganzen Bildschirm, auch quer;
   Zurück oder Esc beendet es. Kann der Browser kein Vollbild, fehlt das Zeichen.
-- **Bearbeiten:** In der eigenen Ansicht bearbeitet, wer die Datei hochgeladen
-  hat. Mit dem Haken „Bearbeiten durch alle“ beim Hochladen bearbeitet jeder
-  Account; ohne ihn auch der Admin nicht, er darf die Datei nur löschen. Den
-  Haken stellt später nur um, wer hochgeladen hat, in der Leiste der Ansicht.
+- **Bearbeiten:** Der Stift an der Datei öffnet sie in der eigenen Ansicht zum
+  Bearbeiten; er steht nur an Dateien, die man bearbeiten darf. ⤢ öffnet sie
+  zum Ansehen. Bearbeiten darf, wer die Datei hochgeladen hat. Trägt die Datei
+  „Bearbeiten durch alle“, bearbeitet jeder Account; sonst auch der Admin
+  nicht, er darf die Datei nur löschen. Ob neue Dateien es tragen, gibt jeder
+  Account im eigenen Bereich unter „Dokumente“ vor; ohne eigene Vorgabe gilt
+  der Startwert des Admins. Eine einzelne Datei stellt, wer sie hochgeladen
+  hat, mit dem Zeichen der zwei Personen in der Dateizeile um oder mit dem
+  Haken in der Leiste der Ansicht.
   Gespeichert wird mit Speichern im Editor und etwa 10 Sekunden, nachdem der
   Letzte die Ansicht verlassen hat. `.doc`, `.xls` und `.ppt` werden dabei zu
   `.docx`, `.xlsx` und `.pptx`; vorher fragt die Ansicht nach, ohne OK wird
@@ -469,7 +474,7 @@ eigene Adresse. Abschnitte ohne sichtbare Karte erscheinen nicht.
 
 | Abschnitt | Karten |
 |---|---|
-| Persönlich | Mein Account, Meine Sitzungen, Darstellung |
+| Persönlich | Mein Account, Meine Sitzungen, Darstellung, Dokumente |
 | Bestand | Kategorien, Tags, Bewertung: Kriterien, Potenzial: Kriterien, Vokabular, Links, Suchmaschinen, Papierkorb |
 | Benutzer | Benutzer, Anfragen, Sicherheitsprotokoll, Mailversand |
 | Datenbank | Kennzahlen, Bildformate, Grenzen beim Hochladen, Backup, Alte Backups, Export und Import |
@@ -482,13 +487,14 @@ Backup und Sicherheitsprotokoll nur der Eigentümer-Admin.
 | Karte | Inhalt |
 |---|---|
 | Titel | Titel vor der Anmeldung (für jeden sichtbar, zurückhaltend wählen) und Titel nach der Anmeldung |
-| Dokumente | Anzeige und Bearbeiten über einen Document Server ein- und ausschalten; Vorgabe für den Haken „Bearbeiten durch alle“ beim Hochladen; die Karte prüft die Verbindung. Adressen und Secret stehen in der `.env`, siehe README |
+| Dokumente | Anzeige und Bearbeiten über einen Document Server ein- und ausschalten; Startwert für „Bearbeiten durch alle“, solange ein Account keinen eigenen gesetzt hat; die Karte prüft die Verbindung. Adressen und Secret stehen in der `.env`, siehe README |
 | Kennzahlen | Umfang des Bestands, Datenbankgröße, Version, Fingerprint, Verschlüsselungsverfahren; für den Eigentümer-Admin der Schlüsselwert |
 | Kategorien, Tags | anlegen, umbenennen, löschen; ein Häkchen legt fest, ob jeder neue Namen am Eintrag anlegen darf |
 | Bewertung: Kriterien, Potenzial: Kriterien | anlegen, umbenennen, sortieren, gewichten (0,2 bis 2, Vorgabe 1) |
 | Suchmaschinen | sechs eingebaute und bis zu drei eigene (`%s` als Platzhalter); eine ist Standard |
 | Links | Zahl der sichtbaren Linkzeilen, persönlich |
 | Darstellung | Farbschema, Sprache, Schriftgröße, Größe der Vorschaubilder, Zeitleiste, Anordnung der Blöcke; persönlich |
+| Dokumente (persönlich) | Darstellung im Document Server (Wie Kriterion, Modern Hell, Modern Dunkel) und die Vorgabe „Bearbeiten durch alle“ für die eigenen neuen Dateien. Nur mit eingeschaltetem Document Server |
 
 ### Grenzen beim Hochladen
 

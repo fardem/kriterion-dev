@@ -344,9 +344,9 @@ async function run() {
     const inner = w.fetch;
     const reply = (o, status = 200) => Promise.resolve({ ok: status < 400, status, json: async () => o });
     w.fetch = (url, opt) => {
-      if (url === '/api/attachments/45/office?mobile=0&edit=0')
+      if (url === '/api/attachments/45/office?mobile=0&edit=0&theme=dark')
         return reply({ script: 'http://ds.invalid' + API_PATH, host: 'ds.invalid', config });
-      if (url === '/api/attachments/46/office?mobile=0&edit=0') return reply({ error: DE['server.docOff'] }, 409);
+      if (url === '/api/attachments/46/office?mobile=0&edit=0&theme=dark') return reply({ error: DE['server.docOff'] }, 409);
       if (url === '/api/attachments/45/preview') return reply({ text: 'Rohtext', shortened: false });
       return inner(url, opt);
     };
@@ -394,7 +394,7 @@ async function run() {
     const fm = buildDom(JSDOM, { hash: '#/item/1', extraAttachments: [extra(45, 'bericht.docx')] });
     const fw = fm.w;
     const fInner = fw.fetch;
-    fw.fetch = (url, opt) => /^\/api\/attachments\/45\/office\?mobile=[01]&edit=[01]$/.test(url)
+    fw.fetch = (url, opt) => /^\/api\/attachments\/45\/office\?mobile=[01]&edit=[01]&theme=dark$/.test(url)
       ? reply({ script: 'http://ds.invalid' + API_PATH, host: 'ds.invalid', config }) : fInner(url, opt);
     const fRows = () => [...fw.document.querySelectorAll('#atts .arow')];
     await until(fw, (x) => fRows().length === 5 && openRequests(x) === 0, 3000, 'die Dateiliste');

@@ -137,7 +137,7 @@ function documentKey(attachment, stamp) {
 const editorKey = (attachment, revision) => documentKey(attachment, `e${revision}`);
 
 // Mit `user` fragt der Betrachter nicht nach einem Namen.
-function viewerConfig(attachment, { lang, mobile, user, saves = 0 }) {
+function viewerConfig(attachment, { lang, mobile, user, saves = 0, theme = null }) {
   const config = {
     document: {
       fileType: extension(attachment.filename),
@@ -157,6 +157,13 @@ function viewerConfig(attachment, { lang, mobile, user, saves = 0 }) {
     type: mobile ? 'embedded' : 'desktop',
     width: '100%', height: '100%'
   };
+  return themed(config, theme);
+}
+
+// Modern Hell und Modern Dunkel; der Wert geht vor die Wahl, die der Editor gespeichert hat.
+const UI_THEMES = { light: 'theme-white', dark: 'theme-night' };
+function themed(config, theme) {
+  if (UI_THEMES[theme]) config.editorConfig.customization.uiTheme = UI_THEMES[theme];
   return { ...config, token: sign(config) };
 }
 
@@ -164,7 +171,7 @@ const renamed = (filename, format) => filename.replace(/\.[^.]*$/, '') + '.' + f
 
 /* Nur am Rechner. `converted` traegt die Adresse der umgewandelten Datei beim
    Document Server; mit forcesave schreibt der Knopf Speichern sofort (Status 6). */
-function editorConfig(attachment, { lang, user, revision = 0, converted = null }) {
+function editorConfig(attachment, { lang, user, revision = 0, converted = null, theme = null }) {
   const format = converted ? converted.format : extension(attachment.filename);
   const config = {
     document: {
@@ -184,7 +191,7 @@ function editorConfig(attachment, { lang, user, revision = 0, converted = null }
     type: 'desktop',
     width: '100%', height: '100%'
   };
-  return { ...config, token: sign(config) };
+  return themed(config, theme);
 }
 
 /* ---- Pruefung der Verbindung ---- */
