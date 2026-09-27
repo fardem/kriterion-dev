@@ -706,7 +706,7 @@ async function run() {
     const app = readText('public/app.js');
     const keys = [...app.matchAll(/^  \{ key: '([a-z]+)',\s+section: '/gm)].map(m => m[1]);
     check('Die Kartenschluessel im Systembereich sind englisch', equal(keys, ['myaccount', 'sessions',
-      'appearance', 'categories', 'tags', 'criteria', 'potentialcriteria', 'vocabulary', 'links',
+      'appearance', 'mydocuments', 'categories', 'tags', 'criteria', 'potentialcriteria', 'vocabulary', 'links',
       'searchengines', 'trash', 'accounts', 'requests', 'log', 'mail', 'stats', 'imagestore', 'limits', 'backup',
       'cleanup', 'export', 'titles', 'languages', 'documents']), keys.join(' '));
     fs.rmSync(toolDir, { recursive: true, force: true });

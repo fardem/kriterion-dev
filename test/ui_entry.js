@@ -1190,9 +1190,9 @@ async function run() {
   // Aussage ueber sie wahr.
   check('Die Linkliste steht auch bei mehreren Zugaengen vollstaendig da',
     lvM.length === 8, `${lvM.length}`);
-  check('An einer Zeile des Eintragsverfassers steht kein Name',
-    lvM.slice(0, 4).every(z => !z.querySelector('.lfrom')),
-    lvM.slice(0, 4).map(z => lvName(z)).join(' | ') || '(kein Name -- richtig)');
+  check('Auch an einer Zeile des Eintragsverfassers steht der Name',
+    lvM.slice(0, 4).every(z => lvName(z) === '(bert)'),
+    lvM.slice(0, 4).map(z => lvName(z)).join(' | ') || '(kein Name)');
   check('An einer fremden Zeile steht er',
     lvName(lvM[5]) === '(chefin)', lvName(lvM[5]) || '(kein Name)');
   check('Eine herrenlose Zeile nennt ausdruecklich keinen Verfasser',
@@ -1218,8 +1218,8 @@ async function run() {
     /Eingetragen von chefin am \d\d\.\d\d\.\d{4}/.test(lvM[5].title), lvM[5].title);
   check('Und was die Zeile sonst tut, steht weiterhin davor',
     lvM[5].title.startsWith('https://beispiel.de/5'), lvM[5].title);
-  check('An einer eigenen Zeile steht davon nichts',
-    !/Eingetragen von/.test(lvM[0].title), lvM[0].title);
+  check('Auch an ihr nennt der Ueberfahrtext Eintrager und Datum',
+    /Eingetragen von bert am \d\d\.\d\d\.\d{4}/.test(lvM[0].title), lvM[0].title);
 
   check('Aus einem Verfassernamen mit spitzen Klammern wird kein HTML',
     !lvMore.w.document.getElementById('boese-link') &&
@@ -1295,9 +1295,9 @@ async function run() {
   const avM = avRows(avMore.w);
   check('Die Dateiliste steht bei mehreren Zugaengen vollstaendig da',
     avM.length === 4, `${avM.length}`);
-  check('An einer Datei des Eintragsverfassers steht kein Name',
-    avM.slice(0, 2).every(z => !z.querySelector('.afrom')),
-    avM.slice(0, 2).map(z => avName(z)).join(' | ') || '(kein Name -- richtig)');
+  check('Auch an einer Datei des Eintragsverfassers steht der Name',
+    avM.slice(0, 2).every(z => avName(z) === '(bert)'),
+    avM.slice(0, 2).map(z => avName(z)).join(' | ') || '(kein Name)');
   check('An einer fremden Datei steht er, in Klammern',
     avName(avM[2]) === '(chefin)', avName(avM[2]) || '(kein Name)');
   check('Eine herrenlose Datei nennt ausdruecklich keinen Verfasser',
@@ -1309,8 +1309,8 @@ async function run() {
     /Hochgeladen von chefin am \d\d\.\d\d\.\d{4}/.test(avM[2].title), avM[2].title);
   check('Und was ein Klick tut, steht weiterhin davor',
     /^Klicken zum/.test(avM[2].title), avM[2].title);
-  check('An einer eigenen Datei steht davon nichts',
-    !/Hochgeladen von/.test(avM[0].title), avM[0].title);
+  check('Auch an ihr nennt der Ueberfahrtext den Hochladenden und das Datum',
+    /Hochgeladen von bert am \d\d\.\d\d\.\d{4}/.test(avM[0].title), avM[0].title);
   check('Der Admin sieht an jeder Datei ein Loeschkreuz',
     avM.every(z => !!z.querySelector('.xdel')),
     `${avM.filter(z => !!z.querySelector('.xdel')).length} von ${avM.length}`);

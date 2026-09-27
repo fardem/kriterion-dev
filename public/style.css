@@ -1683,6 +1683,10 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
 .arow:hover .adl, .arow:hover .aopen { opacity: 1; }
 .arow .adl:hover, .arow .aopen:hover { color: var(--accent-text); background: var(--surface); }
 @media (hover: none) { .arow .adl, .arow .aopen { opacity: 1; } }
+/* Der Stift steht immer da: er zeigt, welche Datei bearbeitet werden kann. */
+.arow .aedit, .fileview-bar .aedit { opacity: 1; color: var(--accent-text); }
+.arow .arights { display: inline-flex; padding: 4px 8px; border: 0; border-radius: 4px; background: none; color: var(--faint); cursor: pointer; }
+.arow .arights.on { color: var(--accent-text); }
 .arow .aicon { color: var(--faint); font-size: .87rem; flex-shrink: 0; }
 .arow .aname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .87rem; }
 .arow .asize { font-family: var(--mono); font-size: .7rem; color: var(--faint); flex-shrink: 0; }
@@ -1713,7 +1717,7 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
 .fileview-bar .adl { color: var(--muted); padding: 4px 8px; border-radius: 4px; }
 .fileview-full { display: inline-flex; padding: 4px 8px; border: 0; border-radius: 4px; background: none; color: var(--muted); cursor: pointer; }
 .fileview-full:hover { color: var(--text); }
-.fileview-editall, .aedit-all { display: inline-flex; align-items: center; gap: 5px; font-size: .82rem; color: var(--muted); white-space: nowrap; cursor: pointer; }
+.fileview-editall { display: inline-flex; align-items: center; gap: 5px; font-size: .82rem; color: var(--muted); white-space: nowrap; cursor: pointer; }
 .fileview-doc { flex: 1; min-height: 0; border-radius: 4px; overflow: hidden; background: var(--preview-bg); }
 .fileview-doc iframe { width: 100%; height: 100%; border: 0; }
 .atext {

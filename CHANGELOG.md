@@ -30,6 +30,37 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.43.2] - 2026-09-27
+
+*Stift an bearbeitbaren Dateien, eigener Kasten „Dokumente“.*
+
+Fingerprint `0c19372c` — davor `66001468`.
+
+### Hinzugefügt
+
+- **Stift an der Datei:** er steht nur an Dateien, die man bearbeiten darf,
+  und öffnet sie zum Bearbeiten. ⤢ öffnet eine Datei jetzt immer zum Ansehen;
+  in der Leiste der Ansicht steht dann ebenfalls der Stift.
+- **Kasten „Dokumente“ im eigenen Bereich:** Darstellung im Document Server
+  (Wie Kriterion, Modern Hell, Modern Dunkel) und die Vorgabe „Bearbeiten
+  durch alle“ für die eigenen neuen Dateien.
+- **Schreibrechte in der Dateizeile:** wer hochgeladen hat, schaltet
+  „Bearbeiten durch alle“ mit dem Zeichen der zwei Personen um.
+
+### Geändert
+
+- Ab dem zweiten Account steht der Name an jeder Datei und jedem Link, auch
+  beim Verfasser des Eintrags.
+- Der Document Server zeigt „Modern Hell“ oder „Modern Dunkel“, passend zur
+  Darstellung von Kriterion oder zur eigenen Wahl.
+- Beim Hochladen steht kein Haken mehr. Der Schalter auf der Karte „Dokumente“
+  unter Installation ist jetzt der Startwert für Accounts ohne eigene Vorgabe.
+
+### Behoben
+
+- Zurück aus der Ansicht einer Datei landete man oben im Eintrag. Jetzt steht
+  die Zeile der Datei im Bild.
+
 ## [0.43.1] - 2026-09-27
 
 *Updates kommen sofort im Browser an.*

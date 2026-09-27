@@ -8689,16 +8689,16 @@ const REGRESSIONS = [
   {
     nr: '1254', name: 'Die Ansicht fragt nie nach dem Editor',
     file: 'public/app.js',
-    search: "  let edit = a.edit === true;",
+    search: "  let edit = editWanted && a.edit === true;",
     replacement: "  let edit = false;",
     expected: 'Bearbeiten: im Browser'
   },
   {
-    nr: '1255', name: 'Das Hochladen schickt den Haken nicht',
-    file: 'public/app.js',
-    search: "    if (editAll) fd.append('editAll', editAll.checked ? '1' : '0');\n",
-    replacement: "",
-    expected: 'Bearbeiten: im Browser'
+    nr: '1255', name: 'Das Hochladen uebergeht die eigene Vorgabe',
+    file: 'server.js',
+    search: "    const editAll = asked === undefined ? filesEditAllOf(req.user.id) : asked === '1';",
+    replacement: "    const editAll = asked === '1';",
+    expected: 'Bearbeiten: Haken und Rechte'
   },
   {
     nr: '1256', name: 'Der Knopf Speichern schreibt nicht sofort',
@@ -8727,6 +8727,83 @@ const REGRESSIONS = [
     search: "  // Wie express.static; ohne den Kopf nimmt der Browser nach einem Update eine Weile die alte Datei.\n  res.set('Cache-Control', 'public, max-age=0');\n",
     replacement: "",
     expected: 'Die Auslieferung geht gezippt hinaus — 0.35.0'
+  },
+  {
+    nr: '1260', name: 'Der Name fehlt wieder an Dateien des Verfassers',
+    file: 'public/app.js',
+    search: "      // Dieselbe Regel fuer den Namen wie in drawLinks().\n      const showFrom = multipleUsers();",
+    replacement: "      // Dieselbe Regel fuer den Namen wie in drawLinks().\n      const showFrom = multipleUsers() && (a.author?.id ?? null) !== (item.author?.id ?? null);",
+    expected: 'Der Name an der Dateizeile'
+  },
+  {
+    nr: '1261', name: 'Der Name fehlt wieder an Links des Verfassers',
+    file: 'public/app.js',
+    search: "      // Ab dem zweiten Account steht der Name an jedem Link, auch am eigenen.\n      const showFrom = multipleUsers();",
+    replacement: "      // Ab dem zweiten Account steht der Name an jedem Link, auch am eigenen.\n      const showFrom = multipleUsers() && (l.author?.id ?? null) !== (item.author?.id ?? null);",
+    expected: 'Der Name an der Linkzeile'
+  },
+  {
+    nr: '1262', name: 'Der Stift steht an jeder Buerodatei',
+    file: 'public/app.js',
+    search: "        ${a.preview === 'office' && a.edit && !isNarrow() ? `<a class=\"aopen aedit\"",
+    replacement: "        ${a.preview === 'office' ? `<a class=\"aopen aedit\"",
+    expected: 'Bearbeiten: im Browser'
+  },
+  {
+    nr: '1263', name: 'Das Zeichen Oeffnen oeffnet wieder den Editor',
+    file: 'public/app.js',
+    search: "  if (f) return renderFileView(+f[1], +f[2], !!f[3]);",
+    replacement: "  if (f) return renderFileView(+f[1], +f[2], true);",
+    expected: 'Bearbeiten: im Browser'
+  },
+  {
+    nr: '1264', name: 'Zurueck landet wieder oben im Eintrag',
+    file: 'public/app.js',
+    search: "  if (back && back.itemId === Number(id) && !LIT_COMMENT) {",
+    replacement: "  if (false) {",
+    expected: 'Bearbeiten: im Browser'
+  },
+  {
+    nr: '1265', name: 'Das Thema geht nicht an den Document Server',
+    file: 'docserver.js',
+    search: "  if (UI_THEMES[theme]) config.editorConfig.customization.uiTheme = UI_THEMES[theme];\n",
+    replacement: "",
+    expected: 'Bearbeiten: Haken und Rechte'
+  },
+  {
+    nr: '1266', name: 'Der Browser meldet immer das dunkle Thema',
+    file: 'public/app.js',
+    search: "      : document.documentElement.dataset.theme === 'light' ? 'light' : 'dark' });",
+    replacement: "      : 'dark' });",
+    expected: 'Bearbeiten: im Browser'
+  },
+  {
+    nr: '1267', name: 'Die eigene Vorgabe fehlt, es gilt nur die Karte',
+    file: 'server.js',
+    search: "  getUserSetting(userId, 'filesEditAll', getSetting('documentEditAll', false)) === true;",
+    replacement: "  getSetting('documentEditAll', false) === true;",
+    expected: 'Bearbeiten: Haken und Rechte'
+  },
+  {
+    nr: '1268', name: 'Das Zeichen fuer die Schreibrechte steht an jeder Datei',
+    file: 'public/app.js',
+    search: "        ${a.mine && a.edit ? `<button class=\"arights",
+    replacement: "        ${a.edit ? `<button class=\"arights",
+    expected: 'Bearbeiten: im Browser'
+  },
+  {
+    nr: '1269', name: 'Der Kasten Dokumente fehlt im eigenen Bereich',
+    file: 'public/app.js',
+    search: "  { key: 'mydocuments',  section: 'personal', visible: () => !!DOC_SETTINGS,",
+    replacement: "  { key: 'mydocuments',  section: 'personal', visible: () => false,",
+    expected: 'Bearbeiten: im Browser'
+  },
+  {
+    nr: '1270', name: 'Die eigene Darstellung geht nicht an den Document Server',
+    file: 'public/app.js',
+    search: "    theme: ['light', 'dark'].includes(DOC_SETTINGS?.theme) ? DOC_SETTINGS.theme\n      : document",
+    replacement: "    theme: false ? DOC_SETTINGS.theme\n      : document",
+    expected: 'Bearbeiten: im Browser'
   },
 ];
 

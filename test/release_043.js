@@ -144,13 +144,25 @@ async function run() {
   check('Nur doc, xls und ppt nennen das Format nach dem Speichern',
     asUploader['alt.doc']?.convertTo === 'docx' && asUploader['bericht.docx']?.convertTo === null &&
     asUploader['doku.pdf']?.convertTo === null, `${asUploader['alt.doc']?.convertTo} ${asUploader['bericht.docx']?.convertTo}`);
-  const presetOff = (await owner.call('GET', `/api/items/${item}`)).content?.editAllPreset;
+  const mine = async () => (await uploader.call('GET', '/api/settings')).content?.documents;
+  const startOff = await mine();
   await owner.call('PUT', '/api/settings', { documentEditAll: true });
-  const presetOn = (await uploader.call('GET', `/api/items/${item}`)).content?.editAllPreset;
+  const startOn = await mine();
   const cardState = (await owner.call('GET', '/api/document-server')).content;
-  check('Die Vorgabe der Karte steht im Eintrag als editAllPreset',
-    presetOff === false && presetOn === true && cardState?.editAll === true, `${presetOff} ${presetOn}`);
+  const byStart = byName((await uploader.send(`/api/items/${item}/attachments`,
+    [{ name: 'start.docx', content: bytes('start') }])).content)['start.docx'];
+  check('Ohne eigene Vorgabe gilt der Startwert der Karte, auch beim Hochladen ohne Feld',
+    equal(startOff, { theme: 'kriterion', editAll: false }) && startOn?.editAll === true &&
+    cardState?.editAll === true && byStart?.editAll === true, JSON.stringify({ startOff, startOn, e: byStart?.editAll }));
+  const ownOff = await uploader.call('PUT', '/api/settings', { filesEditAll: false, documentTheme: 'dark' });
+  const byOwn = byName((await uploader.send(`/api/items/${item}/attachments`,
+    [{ name: 'eigen.docx', content: bytes('eigen') }])).content)['eigen.docx'];
+  const badTheme = await uploader.call('PUT', '/api/settings', { documentTheme: 'grau' });
+  check('Die eigene Vorgabe geht vor den Startwert; das Thema kennt nur drei Werte',
+    ownOff.status === 200 && byOwn?.editAll === false && equal(await mine(), { theme: 'dark', editAll: false }) &&
+    badTheme.status === 400, `${ownOff.status} ${byOwn?.editAll} ${badTheme.status}`);
   await owner.call('PUT', '/api/settings', { documentEditAll: false });
+  for (const a of [byStart, byOwn]) await uploader.call('DELETE', `/api/attachments/${a.id}`);
 
   const denied = await owner.call('PUT', `/api/attachments/${ids['bericht.docx']}/editing`, { editAll: true });
   const byThird = await other.call('PUT', `/api/attachments/${ids['bericht.docx']}/editing`, { editAll: true });
@@ -177,6 +189,13 @@ async function run() {
     oCfg.editorConfig?.mode === 'view' && phone.editorConfig?.mode === 'view' && phone.type === 'embedded' &&
     plain.editorConfig?.mode === 'view' && plain.document?.key === keyOf(docx, 'v0') && !plain.editorConfig?.callbackUrl,
     `${oCfg.editorConfig?.mode} ${phone.editorConfig?.mode} ${plain.editorConfig?.mode}`);
+  const dark = (await office(uploader, ids['bericht.docx'], 'edit=1&mobile=0&theme=dark')).content?.config || {};
+  const light = (await office(uploader, ids['bericht.docx'], 'mobile=0&theme=light')).content?.config || {};
+  const { token: dToken, ...dUnsigned } = dark;
+  check('Das Thema folgt Kriterion: dunkel Modern Dunkel, hell Modern Hell, ohne Angabe keines',
+    dark.editorConfig?.customization?.uiTheme === 'theme-night' && equal(jwtPayload(SECRET, dToken), dUnsigned) &&
+    light.editorConfig?.customization?.uiTheme === 'theme-white' && !('uiTheme' in (plain.editorConfig?.customization || {})),
+    `${dark.editorConfig?.customization?.uiTheme} ${light.editorConfig?.customization?.uiTheme}`);
   const freed = await uploader.call('PUT', `/api/attachments/${ids['bericht.docx']}/editing`, { editAll: true });
   const oAfter = (await office(owner, ids['bericht.docx'])).content?.config || {};
   check('Setzt der Hochladende den Haken, bearbeitet auch der Admin',
@@ -351,7 +370,7 @@ async function run() {
     const reply = (o, status = 200) => Promise.resolve({ ok: status < 400, status, json: async () => o });
     const editConfig = { document: { url: 'http://kriterion.invalid/x' }, editorConfig: { mode: 'edit' } };
 
-    const fm = buildDom(JSDOM, { hash: '#/item/1/file/45',
+    const fm = buildDom(JSDOM, { hash: '#/item/1/file/45/edit',
       extraAttachments: [extra(45, 'bericht.docx', { mine: true, edit: true, restore: true })] });
     const fw = fm.w;
     const asked = [];
@@ -369,7 +388,7 @@ async function run() {
     await until(fw, () => made.length === 1, 3000, 'den Editor');
     const box = fw.document.getElementById('fileview-editall');
     check('Der Hochladende bekommt den Editor, den Haken und die vorige Fassung',
-      asked[0]?.url === '/api/attachments/45/office?mobile=0&edit=1' && !!box && box.checked === false &&
+      asked[0]?.url === '/api/attachments/45/office?mobile=0&edit=1&theme=dark' && !!box && box.checked === false &&
       !!fw.document.getElementById('fileview-previous'), asked.map(x => x.url).join(' '));
     check('Unter dem Editor steht entry.officeEditHint',
       fw.document.querySelector('.fileview .aoffice-hint')?.textContent === deText('entry.officeEditHint', { host: 'ds.invalid' }),
@@ -388,7 +407,7 @@ async function run() {
       equal(destroyed, ['office-full-45']), destroyed.join(' '));
     fw.close();
 
-    const om = buildDom(JSDOM, { hash: '#/item/1/file/46',
+    const om = buildDom(JSDOM, { hash: '#/item/1/file/46/edit',
       extraAttachments: [extra(46, 'tabelle.xlsx', { edit: true, editAll: true })] });
     const ow = om.w;
     const oAsked = [];
@@ -403,12 +422,12 @@ async function run() {
     ow.DocsAPI = { DocEditor: function () { this.destroyEditor = () => {}; } };
     await until(ow, () => oAsked.length === 1 && openRequests(ow) === 0, 3000, 'den Editor');
     check('Mit Haken bearbeitet auch, wer nicht hochgeladen hat; Haken und vorige Fassung fehlen ihm',
-      oAsked[0] === '/api/attachments/46/office?mobile=0&edit=1' &&
+      oAsked[0] === '/api/attachments/46/office?mobile=0&edit=1&theme=dark' &&
       !ow.document.getElementById('fileview-editall') && !ow.document.getElementById('fileview-previous'),
       oAsked.join(' '));
     ow.close();
 
-    const vm = buildDom(JSDOM, { hash: '#/item/1/file/47',
+    const vm = buildDom(JSDOM, { hash: '#/item/1/file/47/edit',
       extraAttachments: [extra(47, 'alt.doc', { mine: true, edit: true, convertTo: 'docx' })] });
     const vw = vm.w;
     const vAsked = [];
@@ -430,34 +449,115 @@ async function run() {
     check('Vor der Umwandlung fragt die Ansicht; ohne OK kommt der Betrachter',
       prompt.title === DE['entry.convertAsk'] &&
       prompt.text === deText('entry.convertHint', { filename: 'alt.doc', target: 'alt.docx' }) &&
-      vAsked[0] === '/api/attachments/47/office?mobile=0&edit=0', `${prompt.title} ${vAsked.join(' ')}`);
+      vAsked[0] === '/api/attachments/47/office?mobile=0&edit=0&theme=dark', `${prompt.title} ${vAsked.join(' ')}`);
     // Ohne await: route() wartet auf die Rueckfrage.
     vw.eval('route()');
     await until(vw, () => modal()?.querySelector('[data-yes]') || vAsked.length === 2, 3000, 'die zweite Rueckfrage');
     modal()?.querySelector('[data-yes]')?.onclick();
     await until(vw, () => vAsked.length === 2 && openRequests(vw) === 0, 2000, 'den Editor');
     check('Mit OK oeffnet der Editor',
-      vAsked[1] === '/api/attachments/47/office?mobile=0&edit=1', vAsked.join(' '));
+      vAsked[1] === '/api/attachments/47/office?mobile=0&edit=1&theme=dark', vAsked.join(' '));
     vw.close();
 
-    const pm = buildDom(JSDOM, { hash: '#/item/1', editAllPreset: true });
+    const sm = buildDom(JSDOM, { hash: '#/item/1',
+      extraAttachments: [extra(45, 'bericht.docx', { edit: true }), extra(46, 'tabelle.xlsx')] });
+    const sw = sm.w;
+    const sAsked = [], scrolled = [];
+    const sInner = sw.fetch;
+    sw.fetch = (url, opt) => {
+      if (url.startsWith('/api/attachments/45/office?')) {
+        sAsked.push(url);
+        return reply({ script: 'http://ds.invalid/api.js', host: 'ds.invalid', config: {} });
+      }
+      return sInner(url, opt);
+    };
+    sw.DocsAPI = { DocEditor: function () { this.destroyEditor = () => {}; } };
+    sw.HTMLElement.prototype.scrollIntoView = function () { scrolled.push(this.dataset.file || this.className); };
+    await until(sw, (x) => x.document.querySelectorAll('#atts .arow').length === 6 && openRequests(x) === 0, 3000, 'die Dateiliste');
+    const pens = [...sw.document.querySelectorAll('#atts .arow .aedit')];
+    check('Der Stift steht nur an der Datei, die bearbeitet werden darf, und fuehrt zum Editor',
+      pens.length === 1 && pens[0].getAttribute('href') === '#/item/1/file/45/edit' &&
+      pens[0].closest('.arow')?.dataset.file === '45' && pens[0].title === DE['entry.edit'],
+      pens.map(p => p.getAttribute('href')).join(' '));
+    sw.document.documentElement.dataset.theme = 'light';
+    sw.history.replaceState(null, '', '#/item/1/file/45');
+    await sw.eval('route()');
+    await until(sw, () => sAsked.length === 1 && openRequests(sw) === 0, 2000, 'den Betrachter');
+    check('Das Zeichen Oeffnen zeigt die Datei zum Ansehen, mit dem Stift in der Leiste und dem Thema von Kriterion',
+      sAsked[0] === '/api/attachments/45/office?mobile=0&edit=0&theme=light' &&
+      sw.document.getElementById('fileview-edit')?.getAttribute('href') === '#/item/1/file/45/edit',
+      `${sAsked.join(' ')} ${sw.document.getElementById('fileview-edit')?.getAttribute('href')}`);
+    scrolled.length = 0;
+    sw.history.replaceState(null, '', '#/item/1');
+    await sw.eval('route()');
+    await until(sw, (x) => x.document.querySelectorAll('#atts .arow').length === 6 && openRequests(x) === 0, 3000, 'den Eintrag');
+    check('Zurueck im Eintrag steht die Zeile der Datei im Bild',
+      scrolled.includes('45'), scrolled.join(' ') || 'nicht gescrollt');
+    sw.close();
+
+    const documents = { theme: 'dark', editAll: true };
+    const pm = buildDom(JSDOM, { hash: '#/item/1', settings: { filters: null, documents },
+      extraAttachments: [extra(45, 'bericht.docx', { mine: true, edit: true }), extra(46, 'fremd.docx', { edit: true })] });
     const pw = pm.w;
     await until(pw, (x) => x.document.getElementById('afile') && openRequests(x) === 0, 3000, 'den Eintrag');
-    const preset = pw.document.getElementById('aeditall');
     let form = null;
+    const toggled = [], pAsked = [];
     const pInner = pw.fetch;
     pw.fetch = (url, opt) => {
       if (url === '/api/items/1/attachments') { form = opt.body; return reply({ id: 1, attachments: [] }, 201); }
+      if (url === '/api/attachments/45/editing') {
+        toggled.push(JSON.parse(opt.body));
+        return pInner('/api/items/1', {});
+      }
+      if (url.startsWith('/api/attachments/45/office?')) {
+        pAsked.push(url);
+        return reply({ script: 'http://ds.invalid/api.js', host: 'ds.invalid', config: {} });
+      }
       return pInner(url, opt);
     };
+    const rightsButtons = [...pw.document.querySelectorAll('#atts .arow .arights')];
+    check('Das Zeichen fuer die Schreibrechte steht nur an der eigenen Datei',
+      rightsButtons.length === 1 && rightsButtons[0].closest('.arow')?.dataset.file === '45' &&
+      rightsButtons[0].title === DE['entry.editAllOff'], rightsButtons.map(b => b.closest('.arow')?.dataset.file).join(' '));
+    await rightsButtons[0]?.onclick({ stopPropagation() {} });
+    check('Ein Klick schaltet Bearbeiten durch alle fuer diese Datei um',
+      equal(toggled, [{ editAll: true }]), JSON.stringify(toggled));
+    const uploadRow = pw.document.getElementById('aadd')?.parentElement;
     await pw.document.getElementById('afile').onchange({ target: { files: [new pw.File(['x'], 'neu.docx')], value: '' } });
-    check('Beim Hochladen steht der Haken nach der Vorgabe und geht als editAll mit',
-      preset?.checked === true && form?.get('editAll') === '1', `${preset?.checked} ${form?.get?.('editAll')}`);
+    check('Beim Hochladen steht kein Haken mehr, und es geht kein editAll mit',
+      !uploadRow?.querySelector('input[type=checkbox]') && !!form && form.get('editAll') === null,
+      `${uploadRow?.querySelector('input[type=checkbox]') ? 'Haken da' : ''} ${form?.get?.('editAll')}`);
+    pw.DocsAPI = { DocEditor: function () { this.destroyEditor = () => {}; } };
+    pw.document.documentElement.dataset.theme = 'light';
+    pw.history.replaceState(null, '', '#/item/1/file/45');
+    await pw.eval('route()');
+    await until(pw, () => pAsked.length === 1 && openRequests(pw) === 0, 2000, 'den Betrachter');
+    check('Eine eigene Darstellung geht vor hell und dunkel von Kriterion',
+      pAsked[0] === '/api/attachments/45/office?mobile=0&edit=0&theme=dark', pAsked.join(' '));
     pw.close();
-    const nm = buildDom(JSDOM, { hash: '#/item/1' });
-    await until(nm.w, (x) => x.document.getElementById('afile') && openRequests(x) === 0, 3000, 'den Eintrag');
-    check('Ohne Document Server gibt es keinen Haken beim Hochladen',
-      !nm.w.document.getElementById('aeditall'), 'Haken da');
+
+    const km = buildDom(JSDOM, { settings: { filters: null, documents: { theme: 'kriterion', editAll: false } } });
+    await until(km.w, (x) => x.document.getElementById('count') && openRequests(x) === 0, 2000, 'die Uebersicht');
+    await sysSection(km.w, 'personal');
+    // Ohne Kasten bleibt die Pruefung rot, ohne das Modul abzubrechen.
+    await until(km.w, (x) => x.document.querySelector('.sys-card') && openRequests(x) === 0, 2000, 'den Bereich');
+    const pills = [...km.w.document.querySelectorAll('#doctheme .pill')];
+    check('Im eigenen Bereich: der Kasten Dokumente mit drei Darstellungen, Wie Kriterion gewaehlt',
+      equal(pills.map(p => p.textContent), [DE['card.documentsThemeFollow'], DE['card.documentsThemeLight'],
+        DE['card.documentsThemeDark']]) && pills[0].classList.contains('on'), pills.map(p => p.textContent).join(' '));
+    await pills[2]?.onclick();
+    const myBox = km.w.document.getElementById('my-editall');
+    if (myBox) { myBox.checked = true; await myBox.onchange(); }
+    check('Er schreibt documentTheme und filesEditAll',
+      km.sent.some(s => s.url === '/api/settings' && s.method === 'PUT' && s.body?.documentTheme === 'dark') &&
+      km.sent.some(s => s.url === '/api/settings' && s.method === 'PUT' && s.body?.filesEditAll === true),
+      JSON.stringify(km.sent.filter(s => s.method === 'PUT').map(s => s.body)));
+    km.w.close();
+    const nm = buildDom(JSDOM, {});
+    await until(nm.w, (x) => x.document.getElementById('count') && openRequests(x) === 0, 2000, 'die Uebersicht');
+    await sysSection(nm.w, 'personal');
+    check('Ohne Document Server fehlt der Kasten im eigenen Bereich',
+      !nm.w.document.getElementById('doctheme'), 'Kasten da');
     nm.w.close();
 
     const ready = { rows: [], secret: true, setup: null, on: true, editAll: false };

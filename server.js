@@ -446,7 +446,8 @@ const putSetting = { run: (k, v) => {
 } };
 
 /* ---- Persoenliche Einstellungen ---- */
-const PERSONAL_KEYS = ['filters', 'font', 'blocks', 'linkRows', 'timeline', 'searchNames',
+const PERSONAL_KEYS = ['documentTheme', 'filesEditAll',
+                                'filters', 'font', 'blocks', 'linkRows', 'timeline', 'searchNames',
                                 'bellSeen', 'views', 'strip', 'theme', 'language'];
 
 /* Schluessel, die nur der Eigentuemer schreibt. */
@@ -1633,8 +1634,16 @@ const PICK_SETTINGS = {
   theme:       { list: THEME_LEVELS,       cast: String, fallback: THEME_DEFAULT,
                  wrong: 'server.themeUnknown' },
   strip:       { list: STRIP_LEVELS,       cast: Number, fallback: 80,
-                 wrong: 'server.stripUnknown' }
+                 wrong: 'server.stripUnknown' },
+  // Darstellung im Document Server; kriterion folgt hell und dunkel von Kriterion.
+  documentTheme: { list: ['kriterion', 'light', 'dark'], cast: String, fallback: 'kriterion',
+                   wrong: 'server.themeUnknown' }
 };
+// Vorgabe fuer die eigenen neuen Dateien; ohne eigene gilt die der Karte „Dokumente".
+const filesEditAllOf = (userId) =>
+  getUserSetting(userId, 'filesEditAll', getSetting('documentEditAll', false)) === true;
+const documentSettings = (userId) => documentServerOn()
+  ? { theme: pick(userId, 'documentTheme'), editAll: filesEditAllOf(userId) } : null;
 /* Was nicht in der Liste steht, faellt auf die Vorgabe zurueck. */
 const pick = (userId, key) => {
   const a = PICK_SETTINGS[key];
@@ -1690,6 +1699,8 @@ app.get('/api/settings', (req, res) => res.json({
   blocks: blocks(req.user.id),
   linkRows: pick(req.user.id, 'linkRows'),
   timeline: timelineOn(req.user.id),
+  // null ohne Document Server; dann fehlt der Kasten „Dokumente" im eigenen Bereich.
+  documents: documentSettings(req.user.id),
   bellSeen: bellSeen(req.user.id),
   search: searchTemplate(),
   searchProviders: searchProviders(),
@@ -1833,6 +1844,9 @@ app.put('/api/settings', (req, res) => {
       take('strip');
       /* Die Stufen prueft der Server, nicht nur die Oberflaeche. */
       take('theme');
+      take('documentTheme');
+      if (req.body.filesEditAll !== undefined)
+        putUserSetting(req.user.id, 'filesEditAll', JSON.stringify(!!req.body.filesEditAll));
       if (req.body.blocks !== undefined) {
         const input = req.body.blocks || {};
         putUserSetting(req.user.id, 'blocks', JSON.stringify({
@@ -2630,8 +2644,6 @@ function detail(id, userId, locale) {
       restore: rights && a2.has_previous === 1
     };
   });
-  // null: kein Haken beim Hochladen, weil nichts bearbeitet werden kann.
-  it.editAllPreset = officeOn ? getSetting('documentEditAll', false) === true : null;
   /* `mine` steuert das Loeschkreuz; bei einem geloeschten Zugang laesst es
      sich aus `author` nicht ableiten. */
   it.links = qLinks().all(id).map(l => ({
@@ -3637,7 +3649,8 @@ app.post('/api/items/:id/attachments',
       .get(req.params.id).m + 1;
     const into = db.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
                             VALUES (?, ?, ?, ?, ?, ?, ?)`);
-    const editAll = (req.body || {}).editAll === '1';
+    const asked = (req.body || {}).editAll;
+    const editAll = asked === undefined ? filesEditAllOf(req.user.id) : asked === '1';
     for (const f of req.files || []) {
       // Nur der Name, nie ein Pfad: "../../etwas" bleibt ein Dateiname.
       const name = path.basename(String(f.originalname || 'datei')).slice(0, 200) || 'datei';
@@ -3685,6 +3698,7 @@ app.get('/api/attachments/:id/office', async (req, res, next) => {
     const mobile = req.query.mobile === '1';
     const lang = localeOf(req);
     const user = { id: req.user.id, name: req.user.username };
+    const theme = String(req.query.theme || '');
     const state = editingOf(a.id);
     let config = null, editFailed = false;
     if (req.query.edit === '1' && !mobile && docserver.editFormat(a.filename) &&
@@ -3692,7 +3706,7 @@ app.get('/api/attachments/:id/office', async (req, res, next) => {
       const converted = docserver.needsConversion(a.filename)
         ? await docserver.convertForEdit(a, state.revision) : null;
       if (converted || !docserver.needsConversion(a.filename))
-        config = docserver.editorConfig(a, { lang, user, revision: state.revision, converted });
+        config = docserver.editorConfig(a, { lang, user, revision: state.revision, converted, theme });
       else {
         editFailed = true;
         logWarn(`Document server: file ${a.id} could not be converted for editing.`);
@@ -3700,7 +3714,7 @@ app.get('/api/attachments/:id/office', async (req, res, next) => {
     }
     res.json({
       script: docserver.apiScript(), host: new URL(docserver.scriptOrigin()).host, editFailed,
-      config: config || docserver.viewerConfig(a, { lang, mobile, user, saves: state.saves })
+      config: config || docserver.viewerConfig(a, { lang, mobile, user, saves: state.saves, theme })
     });
   } catch (e) { next(e); }
 });

@@ -226,6 +226,7 @@ const ICON_SYS = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" st
 const char = (paths, strokeWidth = 1.8) =>
   `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
 const ICON_X = char('<path d="M6 6l12 12"/><path d="M18 6L6 18"/>');
+const ICON_PEOPLE = char('<circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2A4.5 4.5 0 0 1 21 18.5"/>');
 const ICON_PEN = char('<path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M13.5 6.5l3 3"/>');
 const ICON_QUOTE = char('<path d="M9 7v5a5 5 0 0 1-4 5"/><path d="M19 7v5a5 5 0 0 1-4 5"/>');
 const ICON_CHECK = char('<path d="M5 12.5l4.5 4.5L19 7"/>', 2.1);
@@ -1243,6 +1244,8 @@ function authorName(v) {
 
 let LINK_ROWS = 5;          // sichtbare Zeilen, bevor aufgeklappt wird
 let TIMELINE_ON = true;
+// { theme, editAll } aus GET /api/settings; null ohne Document Server.
+let DOC_SETTINGS = null;
 const LINK_ROW_LEVELS = [3, 5, 8, 12];
 
 // Suchanbieter fuer Linkzeilen, die keine Adresse sind. %s ist der
@@ -2459,6 +2462,8 @@ function applyTiles() {
 const THEME_LEVELS = ['light', 'dark', 'device'];
 // Schluessel statt Text: auf Modulebene ist die Sprache noch nicht geladen.
 const THEME_NAMES = { light: 'card.light', dark: 'card.dark', device: 'card.likeDevice' };
+const DOC_THEME_NAMES = { kriterion: 'card.documentsThemeFollow', light: 'card.documentsThemeLight',
+  dark: 'card.documentsThemeDark' };
 const DEVICE_LIGHT = '(prefers-color-scheme: light)';
 /* localStorage merkt nur die letzte Wahl fuer den Start, massgeblich ist
    SETTINGS.theme; beide Schluessel stehen auch in public/theme.js. */
@@ -2566,6 +2571,7 @@ async function loadSettings() {
   takeBlocks(SETTINGS.blocks);
   if (SETTINGS.linkRows) LINK_ROWS = SETTINGS.linkRows;
   if (SETTINGS.timeline !== undefined) TIMELINE_ON = SETTINGS.timeline !== false;
+  if (SETTINGS.documents !== undefined) DOC_SETTINGS = SETTINGS.documents;
   if (Array.isArray(SETTINGS.views)) VIEWS = SETTINGS.views;
   if (SETTINGS.viewsCap) VIEWS_CAP = SETTINGS.viewsCap;
   // Nur uebernehmen, nie zuruecksetzen.
@@ -2874,7 +2880,7 @@ function route() {
   if (view === 'system') return renderSystem();
   if (view === 'compare') return renderCompare();
   if (view === 'open') return renderOpen();
-  if (f) return renderFileView(+f[1], +f[2]);
+  if (f) return renderFileView(+f[1], +f[2], !!f[3]);
   if (m) return renderDetail(+m[1], termOutAddress(m[2]), commentOutAddress(m[2]));
   return renderList();
 }
@@ -4596,8 +4602,6 @@ async function renderDetail(id, termAddress, commentWanted) {
       <div class="row-in">
         <input type="file" id="afile" multiple hidden>
         <button class="btn btn-sm" id="aadd">${tH('entry.attachFiles')}</button>
-        ${item.editAllPreset === true || item.editAllPreset === false
-          ? `<label class="aedit-all" title="${esc(t('entry.editAllHint'))}"><input type="checkbox" id="aeditall"${item.editAllPreset ? ' checked' : ''}> ${tH('entry.editAll')}</label>` : ''}
         <span class="hint">${tH('entry.fileLimitHint', { mb: UPLOAD_LIMITS.attachment })}</span>
       </div>
     </div>
@@ -5792,8 +5796,8 @@ async function renderDetail(id, termAddress, commentWanted) {
       const isDefault = provider[0] || null;
       const top = search ? l.url : dom;
 
-      const foreignRow = (l.author?.id ?? null) !== (item.author?.id ?? null);
-      const showFrom = multipleUsers() && foreignRow;
+      // Ab dem zweiten Account steht der Name an jedem Link, auch am eigenen.
+      const showFrom = multipleUsers();
       // Datum nur im Tooltip: auf dem Telefon ist die Zeile schon voll.
       const entered = showFrom
         ? t('entry.enteredByOn', { author: authorName(l.author), created_at: fmtDate(l.created_at) }) : '';
@@ -5939,15 +5943,15 @@ async function renderDetail(id, termAddress, commentWanted) {
     list.forEach(a => {
       const row = document.createElement('div');
       row.className = 'arow';
+      row.dataset.file = a.id;
       const canPreview = a.preview !== 'keine';
       const open = openPreview.has(a.id);
       row.classList.toggle('open', open);
       row.title = canPreview
         ? (open ? t('entry.clickToCollapse') : t('entry.clickToView'))
         : t('entry.clickToDownload');
-      /* Dieselbe Regel fuer den Namen wie in drawLinks(). */
-      const foreignFile = (a.author?.id ?? null) !== (item.author?.id ?? null);
-      const showFrom = multipleUsers() && foreignFile;
+      // Dieselbe Regel fuer den Namen wie in drawLinks().
+      const showFrom = multipleUsers();
       const uploaded = showFrom
         ? t('entry.uploadedByOn', { author: authorName(a.author), created_at: fmtDate(a.created_at) }) : '';
       if (uploaded) row.title = `${row.title} · ${uploaded}`;
@@ -5959,10 +5963,19 @@ async function renderDetail(id, termAddress, commentWanted) {
         <span class="asize">${esc(filesize(a.size))}</span>
         ${showFrom ? `<span class="afrom">(${esc(authorName(a.author))})</span>` : ''}
         <span class="ago">${canPreview ? (open ? '▾' : '▸') : '↓'}</span>
+        ${a.mine && a.edit ? `<button class="arights${a.editAll ? ' on' : ''}" title="${esc(t(a.editAll ? 'entry.editAllOn' : 'entry.editAllOff'))}">${ICON_PEOPLE}</button>` : ''}
+        ${a.preview === 'office' && a.edit && !isNarrow() ? `<a class="aopen aedit" href="${esc(fileAddress(id, a.id, true))}" title="${esc(t('entry.edit'))}">${ICON_PEN}</a>` : ''}
         ${a.preview === 'office' ? `<a class="aopen" href="${esc(fileAddress(id, a.id))}" title="${esc(t('entry.openFile'))}">⤢</a>` : ''}
         <a class="adl" href="/api/attachments/${Number(a.id)}/raw" download title="${esc(t('entry.download'))}">↓</a>
         ${mayPath ? `<button class="xdel" title="${esc(t('entry.deleteFile'))}">${ICON_X}</button>` : ''}`;
 
+      // Nur wer hochgeladen hat; der Server prueft das ebenso.
+      const rights = row.querySelector('.arights');
+      if (rights) rights.onclick = async (e) => {
+        e.stopPropagation();
+        try { item = await api('PUT', `/api/attachments/${a.id}/editing`, { editAll: !a.editAll }); drawAtts(); }
+        catch (e2) { toast(e2.message, true); }
+      };
       if (mayPath) row.querySelector('.xdel').onclick = async (e) => {
         e.stopPropagation();
         if (!await confirmBox(t('entry.deleteFileAsk'), t('entry.fileDeleteHint', { filename: a.filename }))) return;
@@ -5971,7 +5984,7 @@ async function renderDetail(id, termAddress, commentWanted) {
       };
 
       row.onclick = (e) => {
-        if (e.target.closest('.xdel, .adl, .aopen')) return;
+        if (e.target.closest('.xdel, .adl, .aopen, .arights')) return;
         if (!canPreview) return row.querySelector('.adl')?.click();
         // Auf dem Telefon waere die Vorschau im Eintrag zu klein.
         if (a.preview === 'office' && isNarrow()) { location.hash = fileAddress(id, a.id); return; }
@@ -6054,8 +6067,6 @@ async function renderDetail(id, termAddress, commentWanted) {
     if (tooBig) return toast(tooBigText(tooBig, 'attachment'), true);
     const fd = new FormData();
     files.forEach(f => fd.append('files', f));
-    const editAll = document.getElementById('aeditall');
-    if (editAll) fd.append('editAll', editAll.checked ? '1' : '0');
     try {
       toast(t('entry.uploadingTitle'));
       item = await sendForm(`/api/items/${id}/attachments`, fd);
@@ -6423,6 +6434,12 @@ async function renderDetail(id, termAddress, commentWanted) {
   drawViewer(); drawThumbs(); drawSwitches(); drawAuthor(); drawCat(); drawTags();
   drawRatings(); drawTestDays(); drawLinks(); drawAtts(); drawComments();
   if (LIT_COMMENT) commentJump(LIT_COMMENT);
+  const back = fileReturn;
+  fileReturn = null;
+  if (back && back.itemId === Number(id) && !LIT_COMMENT) {
+    openBlock('dateien');
+    document.querySelector(`#atts .arow[data-file="${back.fileId}"]`)?.scrollIntoView?.({ block: 'center' });
+  }
 }
 
 /* ================= Einstellungen ================= */
@@ -6582,7 +6599,9 @@ function officeScript(src) {
 // null, wenn `holder` inzwischen nicht mehr im Dokument steht.
 // Mit `edit` entscheidet der Server, ob der Editor kommt; sonst der Betrachter.
 async function startOffice(a, holder, hint, failed, edit = false) {
-  const query = new URLSearchParams({ mobile: isNarrow() ? 1 : 0, edit: edit ? 1 : 0 });
+  const query = new URLSearchParams({ mobile: isNarrow() ? 1 : 0, edit: edit ? 1 : 0,
+    theme: ['light', 'dark'].includes(DOC_SETTINGS?.theme) ? DOC_SETTINGS.theme
+      : document.documentElement.dataset.theme === 'light' ? 'light' : 'dark' });
   const v = await api('GET', `/api/attachments/${Number(a.id)}/office?${query}`);
   const editing = v.config?.editorConfig?.mode === 'edit';
   if (hint) hint.textContent = v.editFailed ? t('entry.editUnavailable')
@@ -6593,15 +6612,19 @@ async function startOffice(a, holder, hint, failed, edit = false) {
 }
 
 /* ---- Eigene Ansicht einer Datei ---- */
-const FILE_PATTERN = /^#\/item\/(\d+)\/file\/(\d+)$/;
-const fileAddress = (itemId, fileId) => `#/item/${Number(itemId)}/file/${Number(fileId)}`;
+const FILE_PATTERN = /^#\/item\/(\d+)\/file\/(\d+)(\/edit)?$/;
+const fileAddress = (itemId, fileId, edit = false) =>
+  `#/item/${Number(itemId)}/file/${Number(fileId)}${edit ? '/edit' : ''}`;
 let fileViewer = null;
+// Die zuletzt geoeffnete Datei; renderDetail() scrollt beim Zurueck zu ihrer Zeile.
+let fileReturn = null;
 function endFileViewer() {
   if (fileViewer) { try { fileViewer.destroyEditor(); } catch {} }
   fileViewer = null;
 }
 
-async function renderFileView(itemId, fileId) {
+async function renderFileView(itemId, fileId, editWanted = false) {
+  fileReturn = { itemId: Number(itemId), fileId: Number(fileId) };
   app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">${tH('list.loading')}</p></div>`;
   let item;
   try { item = await api('GET', `/api/items/${itemId}`); }
@@ -6621,6 +6644,7 @@ async function renderFileView(itemId, fileId) {
       <span class="fileview-name">${esc(a ? a.filename : '')}</span>
       ${shown && a.mine && a.edit ? `<label class="fileview-editall" title="${esc(t('entry.editAllHint'))}">
         <input type="checkbox" id="fileview-editall"${a.editAll ? ' checked' : ''}> ${tH('entry.editAll')}</label>` : ''}
+      ${shown && a.edit && !editWanted && !isNarrow() ? `<a class="fileview-full aedit" id="fileview-edit" href="${esc(fileAddress(itemId, a.id, true))}" title="${esc(t('entry.edit'))}" aria-label="${esc(t('entry.edit'))}">${ICON_PEN}</a>` : ''}
       ${shown && a.restore ? `<button class="fileview-full" id="fileview-previous" title="${esc(t('entry.restorePrevious'))}" aria-label="${esc(t('entry.restorePrevious'))}">↶</button>` : ''}
       ${fullOk ? `<button class="fileview-full" id="fileview-full" title="${esc(t('entry.openFullscreen'))}" aria-label="${esc(t('entry.openFullscreen'))}">${ICON_FULLSCREEN}</button>` : ''}
       ${a ? `<a class="adl" href="/api/attachments/${Number(a.id)}/raw" download title="${esc(t('entry.download'))}">↓</a>` : ''}
@@ -6645,7 +6669,7 @@ async function renderFileView(itemId, fileId) {
       await api('POST', `/api/attachments/${Number(a.id)}/previous`);
       endFileViewer();
       toast(t('entry.restored'));
-      await renderFileView(itemId, fileId);
+      await renderFileView(itemId, fileId, editWanted);
     } catch (e) { toast(e.message, true); }
   });
   if (!shown) return;
@@ -6655,7 +6679,7 @@ async function renderFileView(itemId, fileId) {
     if (box) box.innerHTML = `<p class="hint">${tH('entry.officeFailed')}</p>`;
   };
   // Vor einer Umwandlung fragen; ohne Zustimmung bleibt es beim Betrachter.
-  let edit = a.edit === true;
+  let edit = editWanted && a.edit === true;
   if (edit && a.convertTo && !isNarrow())
     edit = await confirmBox(t('entry.convertAsk'), t('entry.convertHint',
       { filename: a.filename, target: a.filename.replace(/\.[^.]*$/, '.' + a.convertTo) }),
@@ -6677,6 +6701,8 @@ const SYS_CARDS = [
     markup: cardSessions,    wireUp: setUpSessionsOut },
   { key: 'appearance',   section: 'personal', visible: () => true,
     markup: cardAppearance,  wireUp: setUpAppearanceOut },
+  { key: 'mydocuments',  section: 'personal', visible: () => !!DOC_SETTINGS,
+    markup: cardMyDocuments, wireUp: setUpMyDocumentsOut },
 
   { key: 'categories',   section: 'inventory', visible: () => true,
     markup: cardCategories,   wireUp: setUpCategoriesOut },
@@ -7247,6 +7273,26 @@ function cardAppearance() {
         <p class="desc" style="margin:16px 0 8px">${tH('card.blocksHint')}</p>
         <button class="btn btn-ghost btn-sm" id="breset">${tH('card.restoreLayout')}</button>
       </div>`;
+}
+function cardMyDocuments() {
+  return `<div class="sys-card">
+        <h3>${tH('card.documents')}</h3>
+        <p class="desc">${tH('card.documentsThemeHint')}</p>
+        <div class="pills" id="doctheme"></div>
+        <p class="desc" style="margin:16px 0 8px">${tH('card.editDefaultHint')}</p>
+        <label class="ex-files"><input type="checkbox" id="my-editall"> ${tH('entry.editAll')}</label>
+      </div>`;
+}
+function setUpMyDocumentsOut() {
+  pillRow({ boxId: 'doctheme', levels: Object.keys(DOC_THEME_NAMES), get: () => DOC_SETTINGS.theme,
+    set: v => { DOC_SETTINGS.theme = v; }, label: v => t(DOC_THEME_NAMES[v]), key: 'documentTheme', mark: true });
+  atElement('my-editall', box => {
+    box.checked = DOC_SETTINGS.editAll === true;
+    box.onchange = async () => {
+      try { await api('PUT', '/api/settings', { filesEditAll: box.checked }); DOC_SETTINGS.editAll = box.checked; saved(); }
+      catch (e) { box.checked = !box.checked; toast(e.message, true); }
+    };
+  });
 }
 function setUpAppearanceOut() {
   drawLanguagePills();
