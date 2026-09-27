@@ -62,6 +62,7 @@ const MODULE = [
   'release_031',
   'release_041',
   'release_042',
+  'release_043',
   'selfcheck'
 ];
 

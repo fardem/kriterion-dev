@@ -30,6 +30,32 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.43.0] - 2026-09-27
+
+*Dokumente über den Document Server bearbeiten.*
+
+Fingerprint `c83a6a27` — davor `90d99a0b`.
+
+### Hinzugefügt
+
+- **Bearbeiten:** Bürodateien lassen sich in der eigenen Ansicht über den
+  Document Server bearbeiten. Es bearbeitet, wer die Datei hochgeladen hat.
+- **Bearbeiten durch alle:** ein Haken beim Hochladen gibt die Datei für jeden
+  Account frei. Ohne ihn bearbeitet auch der Admin nicht, er darf nur löschen.
+  Den Haken stellt später nur um, wer hochgeladen hat.
+- **Vorgabe auf der Karte „Dokumente“:** ob der Haken beim Hochladen schon
+  gesetzt ist.
+- **Vorige Fassung:** die Fassung vor der letzten Bearbeitung bleibt erhalten
+  und lässt sich wiederherstellen.
+
+### Geändert
+
+- `.doc`, `.xls` und `.ppt` werden beim Bearbeiten zu `.docx`, `.xlsx` und
+  `.pptx`. Vor dem Öffnen fragt Kriterion nach; die alte Datei bleibt als
+  vorige Fassung.
+- Der JSON-Export trägt Format 20 mit dem Haken je Datei. Die vorige Fassung
+  steht nur im Backup.
+
 ## [0.42.3] - 2026-09-26
 
 *Vollbild in der eigenen Ansicht.*

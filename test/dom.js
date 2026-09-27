@@ -144,7 +144,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
   /* Anhaenge hinter den vier der Vorgabe. */
   extraAttachments = [],
   /* Die Karte „Dokumente": Zustand und Ergebnis der Pruefung. */
-  documentServer = null, documentServerCheck = null } = {}) {
+  documentServer = null, documentServerCheck = null, editAllPreset = null } = {}) {
   // Kommt aus dem jsdom-Paket des Aufrufers; require liest nur den Modulcache.
   const { VirtualConsole } = require('jsdom');
   settings = { searchProviders: DOM_PROVIDER, searchNames: 3, ...settings };
@@ -402,6 +402,8 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
         created_at: '2026-08-03 13:00:00', mine: false, author: null },
       ...extraAttachments
     ],
+    // Wie detail(): null ohne Document Server, sonst die Vorgabe der Karte.
+    editAllPreset,
     tags: tags.filter(t => t.assigned),
     // mine: ob der Testtag dem Abrufenden gehoert, wie am Server.
     testDays: dayInventory || [{ id: 3, day: '2026-08-01', rating: 4, mine: true, author: vChefin,

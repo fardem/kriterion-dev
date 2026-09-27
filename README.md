@@ -385,9 +385,10 @@ Für CrowdSec oder fail2ban antwortet `POST /api/login` unterscheidbar: 401
 
 ## Document Server
 
-Mit Euro-Office oder OnlyOffice zeigt Kriterion diese Dateien im Eintrag an:
+Mit Euro-Office oder OnlyOffice zeigt und bearbeitet Kriterion diese Dateien:
 `docx`, `doc`, `odt`, `rtf`, `xlsx`, `xls`, `ods`, `pptx`, `ppt`, `odp`. Bilder,
-PDF und Text zeigt Kriterion weiter selbst an. Einrichten des Document Servers
+PDF und Text zeigt Kriterion weiter selbst an. Wer bearbeiten darf, steht im
+Handbuch unter „Tags, Dateien, Links“. Einrichten des Document Servers
 selbst: [Dokumentation von Euro-Office](https://github.com/Euro-Office/documentation).
 
 **Am Document Server:**
@@ -415,6 +416,9 @@ INTERNAL_ADDRESS=http://kriterion:3000
 - Nach dem Neustart die Karte „Dokumente" unter Einstellungen → Installation
   öffnen. Sie prüft beide Richtungen und nennt, was fehlt. Dort wird die
   Anzeige eingeschaltet.
+- Beim Bearbeiten ruft der Document Server Kriterion über `INTERNAL_ADDRESS`
+  und nennt die gespeicherte Fassung; Kriterion holt sie über
+  `DOCUMENT_SERVER_INTERNAL_ADDRESS`. Weitere Einstellungen braucht es nicht.
 
 **Jede angesehene Datei liegt unverschlüsselt im Zwischenspeicher des Document
 Servers**, bis er ihn leert. Die Verschlüsselung der Datenbank gilt für diese

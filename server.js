@@ -830,6 +830,83 @@ app.get('/api/document-server/probe', (req, res) => {
   res.send('Kriterion');
 });
 
+/* ---- Bearbeiten ueber den Document Server ---- */
+const qEditing = db.prepare('SELECT edit_all, revision, saves FROM attachment_editing WHERE attachment_id = ?');
+const editingOf = (id) => qEditing.get(id) || { edit_all: 0, revision: 0, saves: 0 };
+const putEditAll = db.prepare(`INSERT INTO attachment_editing (attachment_id, edit_all) VALUES (?, ?)
+  ON CONFLICT(attachment_id) DO UPDATE SET edit_all = excluded.edit_all`);
+// Zweiter Wert 1: die Sitzung ist zu Ende, der Editor bekommt einen neuen Schluessel.
+const countSave = db.prepare(`INSERT INTO attachment_editing (attachment_id, revision, saves) VALUES (?, ?, 1)
+  ON CONFLICT(attachment_id) DO UPDATE SET revision = revision + excluded.revision, saves = saves + 1`);
+const keepPrevious = db.prepare(`INSERT OR REPLACE INTO attachment_previous
+  (attachment_id, session_key, filename, mime_type, size, data)
+  SELECT id, ?, filename, mime_type, size, data FROM attachments WHERE id = ?`);
+const qPreviousKey = db.prepare('SELECT session_key FROM attachment_previous WHERE attachment_id = ?');
+const replaceFile = db.prepare(
+  'UPDATE attachments SET filename = ?, mime_type = ?, size = ?, data = ? WHERE id = ?');
+
+// Mit Haken jeder Account, sonst nur wer hochgeladen hat; auch kein Admin.
+const mayEditFile = (userId, a) =>
+  editingOf(a.id).edit_all === 1 || (a.user_id != null && a.user_id === userId);
+
+/* Die erste Speicherung einer Sitzung legt die bisherige Fassung ab; weitere
+   Speicherungen derselben Sitzung ersetzen nur die aktuelle. */
+function saveEdited(id, key, data, filetype, sessionEnds) {
+  return db.transaction(() => {
+    const a = db.prepare('SELECT id, item_id, filename, mime_type, created_at FROM attachments WHERE id = ?')
+      .get(id);
+    if (!a) return { ok: false, reason: 'gone' };
+    const as = docserver.savedAs(a, filetype);
+    if (!as) return { ok: false, reason: 'format' };
+    if ((qPreviousKey.get(id) || {}).session_key !== key) keepPrevious.run(key, id);
+    replaceFile.run(as.filename, as.mime, data.length, data, id);
+    const current = docserver.editorKey(a, editingOf(id).revision) === key;
+    countSave.run(id, sessionEnds && current ? 1 : 0);
+    touch.run(a.item_id);
+    return { ok: true };
+  })();
+}
+
+const editedGone = (id) =>
+  logWarn(`Document server saved file ${id}, which no longer exists; the change is discarded.`);
+
+/* Offen wie der Abruf; docserver.readCallback() prueft das JWT. Mit einer
+   anderen Antwort als {error: 0} versucht der Document Server es erneut. */
+app.post('/api/document-server/callback/:id', async (req, res, next) => {
+  try {
+    const cb = docserver.readCallback(req);
+    if (!cb.ok) {
+      if (cb.reason !== 'setup') logWarn(`Document server callback refused (${cb.reason}): ${req.path}`);
+      return res.status(cb.reason === 'setup' ? 404 : 403).json({ error: 1 });
+    }
+    const status = Number(cb.data.status);
+    const id = Number(req.params.id);
+    if (status === 3 || status === 7) logWarn(`Document server could not save file ${id} (status ${status}).`);
+    // 2: alle haben geschlossen, 6: Knopf Speichern.
+    if ((status !== 2 && status !== 6) || !cb.data.url) return res.json({ error: 0 });
+    const a = db.prepare('SELECT id, created_at FROM attachments WHERE id = ?').get(id);
+    if (!a) { editedGone(id); return res.json({ error: 0 }); }
+    const key = String(cb.data.key || '');
+    if (!docserver.editorKeyKnown(a, editingOf(id).revision, key)) {
+      logWarn(`Document server callback for file ${id} with an unknown key.`);
+      return res.status(403).json({ error: 1 });
+    }
+    const got = await docserver.download(cb.data.url, UPLOAD_LIMITS.attachment.max * MB);
+    if (!got.ok) {
+      logWarn(`Document server: edited file ${id} not fetched (${got.reason}).`);
+      return res.json({ error: 1 });
+    }
+    const saved = saveEdited(id, key, got.data, cb.data.filetype, status === 2);
+    if (saved.reason === 'gone') { editedGone(id); return res.json({ error: 0 }); }
+    if (!saved.ok) {
+      logWarn(`Document server: file ${id} came back as "${cb.data.filetype}"; not saved.`);
+      return res.json({ error: 1 });
+    }
+    logLine(`Document server: file ${id} saved (status ${status}).`);
+    res.json({ error: 0 });
+  } catch (e) { next(e); }
+});
+
 /* ---- Ab hier geschuetzt ---- */
 app.use('/api', auth.requireAuth);
 
@@ -1807,7 +1884,7 @@ app.put('/api/settings', (req, res) => {
       }
       take('searchNames');
       // Global, also nur fuer Admins; das prueft `foreign` oben.
-      for (const k of ['tagsFreeCreate', 'categoriesFreeCreate', 'documentServer'])
+      for (const k of ['tagsFreeCreate', 'categoriesFreeCreate', 'documentServer', 'documentEditAll'])
         if (req.body[k] !== undefined) putSetting.run(k, JSON.stringify(!!req.body[k]));
       if (storeWanted !== null) putSetting.run('imageStore', JSON.stringify(storeWanted));
       /* potentialMode steht in OWNER_KEYS; ein Admin wird oben abgewiesen. */
@@ -2223,8 +2300,13 @@ app.delete('/api/items/:id/tags/:tagId', entryAuthorOnly, (req, res) => {
 });
 
 /* ================= Eintraege ================= */
-const qAttachments = lateStatement(`SELECT id, filename, mime_type, size, sort_order, created_at, user_id
-  FROM attachments WHERE item_id = ? ORDER BY sort_order, id`);
+const qAttachments = lateStatement(`SELECT a.id, a.filename, a.mime_type, a.size, a.sort_order,
+    a.created_at, a.user_id, COALESCE(e.edit_all, 0) AS edit_all,
+    (p.attachment_id IS NOT NULL) AS has_previous
+  FROM attachments a
+  LEFT JOIN attachment_editing e ON e.attachment_id = a.id
+  LEFT JOIN attachment_previous p ON p.attachment_id = a.id
+  WHERE a.item_id = ? ORDER BY a.sort_order, a.id`);
 // Chronologisch in Gruppen: Angepinntes zuerst (vor der Art), dann Aufgaben,
 // Berichte, Notizen.
 const qCommentsRaw = db.prepare(`
@@ -2530,13 +2612,24 @@ function detail(id, userId, locale) {
   it.photos = qPhotos().all(id);
   const officeOn = documentServerOn();
   /* Ohne Inhalt. Die Art der Vorschau bestimmt der Server aus der Endung. */
-  it.attachments = qAttachments().all(id).map(a2 => ({
-    id: a2.id, filename: a2.filename, mime_type: a2.mime_type, size: a2.size,
-    sort_order: a2.sort_order, created_at: a2.created_at,
-    preview: officeOn && docserver.officeType(a2.filename)
-      ? 'office' : attachments.previewKind(a2.filename),
-    mine: a2.user_id === userId, author: authorFrom(card, a2.user_id)
-  }));
+  it.attachments = qAttachments().all(id).map(a2 => {
+    // Wie mayEditFile(), ohne weitere Abfrage je Datei.
+    const rights = a2.edit_all === 1 || (a2.user_id != null && a2.user_id === userId);
+    return {
+      id: a2.id, filename: a2.filename, mime_type: a2.mime_type, size: a2.size,
+      sort_order: a2.sort_order, created_at: a2.created_at,
+      preview: officeOn && docserver.officeType(a2.filename)
+        ? 'office' : attachments.previewKind(a2.filename),
+      mine: a2.user_id === userId, author: authorFrom(card, a2.user_id),
+      editAll: a2.edit_all === 1,
+      edit: officeOn && rights && !!docserver.editFormat(a2.filename),
+      // Nur doc, xls, ppt: das Format nach dem Speichern, fuer die Rueckfrage im Browser.
+      convertTo: docserver.needsConversion(a2.filename) ? docserver.editFormat(a2.filename) : null,
+      restore: rights && a2.has_previous === 1
+    };
+  });
+  // null: kein Haken beim Hochladen, weil nichts bearbeitet werden kann.
+  it.editAllPreset = officeOn ? getSetting('documentEditAll', false) === true : null;
   /* `mine` steuert das Loeschkreuz; bei einem geloeschten Zugang laesst es
      sich aus `author` nicht ableiten. */
   it.links = qLinks().all(id).map(l => ({
@@ -3542,11 +3635,13 @@ app.post('/api/items/:id/attachments',
       .get(req.params.id).m + 1;
     const into = db.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
                             VALUES (?, ?, ?, ?, ?, ?, ?)`);
+    const editAll = (req.body || {}).editAll === '1';
     for (const f of req.files || []) {
       // Nur der Name, nie ein Pfad: "../../etwas" bleibt ein Dateiname.
       const name = path.basename(String(f.originalname || 'datei')).slice(0, 200) || 'datei';
-      into.run(req.params.id, name, String(f.mimetype || '').slice(0, 120), f.buffer.length, f.buffer,
-              pos++, req.user.id);
+      const added = into.run(req.params.id, name, String(f.mimetype || '').slice(0, 120), f.buffer.length,
+                             f.buffer, pos++, req.user.id);
+      if (editAll && docserver.editFormat(name)) putEditAll.run(added.lastInsertRowid, 1);
     }
     touch.run(req.params.id);
     res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
@@ -3576,22 +3671,73 @@ app.get('/api/attachments/:id/preview', (req, res) => {
   res.status(400).json({ error: t(localeOf(req), 'server.noTextPreview')});
 });
 
-app.get('/api/attachments/:id/office', (req, res) => {
-  const a = db.prepare('SELECT id, filename, size, created_at FROM attachments WHERE id = ?')
-    .get(req.params.id);
+/* edit=1 nur aus der eigenen Ansicht. Auf dem Telefon bleibt es beim Betrachter;
+   schlaegt die Umwandlung fehl, auch, mit `editFailed`. */
+app.get('/api/attachments/:id/office', async (req, res, next) => {
+  try {
+    const a = db.prepare('SELECT id, filename, size, created_at, user_id FROM attachments WHERE id = ?')
+      .get(req.params.id);
+    if (!a) return res.status(404).json({ error: t(localeOf(req), 'server.fileGone')});
+    if (!documentServerOn() || !docserver.officeType(a.filename))
+      return res.status(409).json({ error: t(localeOf(req), 'server.docOff')});
+    const mobile = req.query.mobile === '1';
+    const lang = localeOf(req);
+    const user = { id: req.user.id, name: req.user.username };
+    const state = editingOf(a.id);
+    let config = null, editFailed = false;
+    if (req.query.edit === '1' && !mobile && docserver.editFormat(a.filename) &&
+        mayEditFile(req.user.id, a)) {
+      const converted = docserver.needsConversion(a.filename)
+        ? await docserver.convertForEdit(a, state.revision) : null;
+      if (converted || !docserver.needsConversion(a.filename))
+        config = docserver.editorConfig(a, { lang, user, revision: state.revision, converted });
+      else {
+        editFailed = true;
+        logWarn(`Document server: file ${a.id} could not be converted for editing.`);
+      }
+    }
+    res.json({
+      script: docserver.apiScript(), host: new URL(docserver.scriptOrigin()).host, editFailed,
+      config: config || docserver.viewerConfig(a, { lang, mobile, user, saves: state.saves })
+    });
+  } catch (e) { next(e); }
+});
+
+// Nur wer hochgeladen hat; ein Admin koennte sich sonst selbst freigeben.
+app.put('/api/attachments/:id/editing', (req, res) => {
+  const a = db.prepare('SELECT item_id, user_id FROM attachments WHERE id = ?').get(req.params.id);
   if (!a) return res.status(404).json({ error: t(localeOf(req), 'server.fileGone')});
-  if (!documentServerOn() || !docserver.officeType(a.filename))
-    return res.status(409).json({ error: t(localeOf(req), 'server.docOff')});
-  res.json({
-    script: docserver.apiScript(), host: new URL(docserver.scriptOrigin()).host,
-    config: docserver.viewerConfig(a, { lang: localeOf(req), mobile: req.query.mobile === '1',
-      user: { id: req.user.id, name: req.user.username } })
-  });
+  if (!selfOnly(req, a.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
+  putEditAll.run(req.params.id, req.body && req.body.editAll === true ? 1 : 0);
+  res.json(detail(a.item_id, req.user.id, localeOf(req)));
+});
+
+// Tauscht aktuelle und vorige Fassung; ein zweiter Aufruf macht es rueckgaengig.
+app.post('/api/attachments/:id/previous', (req, res) => {
+  const a = db.prepare('SELECT id, item_id, user_id FROM attachments WHERE id = ?').get(req.params.id);
+  if (!a) return res.status(404).json({ error: t(localeOf(req), 'server.fileGone')});
+  if (!mayEditFile(req.user.id, a)) return res.status(403).json({ error: t(localeOf(req), 'server.editDenied')});
+  const swapped = db.transaction(() => {
+    const now = db.prepare('SELECT filename, mime_type, data FROM attachments WHERE id = ?').get(a.id);
+    const before = db.prepare('SELECT filename, mime_type, data FROM attachment_previous WHERE attachment_id = ?')
+      .get(a.id);
+    if (!before) return false;
+    replaceFile.run(before.filename, before.mime_type, before.data.length, before.data, a.id);
+    db.prepare(`UPDATE attachment_previous SET session_key = '', filename = ?, mime_type = ?, size = ?,
+      data = ?, saved_at = datetime('now') WHERE attachment_id = ?`)
+      .run(now.filename, now.mime_type, now.data.length, now.data, a.id);
+    countSave.run(a.id, 1);
+    touch.run(a.item_id);
+    return true;
+  })();
+  if (!swapped) return res.status(409).json({ error: t(localeOf(req), 'server.noPrevious')});
+  res.json(detail(a.item_id, req.user.id, localeOf(req)));
 });
 
 // Das Secret selbst geht nie hinaus, nur ob es gesetzt ist.
 app.get('/api/document-server', adminOnly, (req, res) => {
-  res.json({ ...docserver.state(), on: getSetting('documentServer', false) === true });
+  res.json({ ...docserver.state(), on: getSetting('documentServer', false) === true,
+             editAll: getSetting('documentEditAll', false) === true });
 });
 
 app.post('/api/document-server/check', adminOnly, async (req, res, next) => {
@@ -4206,7 +4352,7 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, 
 /* ---- Austauschformat ---- */
 
 // Der Import prueft nur EXCHANGE_FORMAT_MIN; eine hoehere Nummer als die eigene nimmt er an.
-const EXCHANGE_FORMAT = 19;
+const EXCHANGE_FORMAT = 20;
 
 const EXCHANGE_FORMAT_MIN = 14;
 
@@ -4294,8 +4440,10 @@ const qBundleCommentVideos = db.prepare(
   'SELECT id, filename, duration, thumb, data FROM comment_videos WHERE comment_id = ? ORDER BY sort_order, id');
 const qBundlePhotos = lateStatement(
   'SELECT mime_type, data, thumb, medium, focus_x, focus_y, zoom, kind, duration FROM photos WHERE item_id = ? ORDER BY sort_order, id');
+const EDIT_ALL_OF = `COALESCE((SELECT e.edit_all FROM attachment_editing e
+  WHERE e.attachment_id = attachments.id), 0) AS edit_all`;
 const qBundleAttachments = lateStatement(
-  'SELECT filename, mime_type, data, user_id FROM attachments WHERE item_id = ? ORDER BY sort_order, id');
+  `SELECT filename, mime_type, data, user_id, ${EDIT_ALL_OF} FROM attachments WHERE item_id = ? ORDER BY sort_order, id`);
 
 /* Ohne Blobspalten fuer funnelStore(); `thumb` und `still` sagen nur, ob es ein
    Standbild gibt. */
@@ -4309,7 +4457,7 @@ const qRefPhotos = lateStatement(
      (medium IS NOT NULL OR thumb IS NOT NULL) AS still
      FROM photos WHERE item_id = ? ORDER BY sort_order, id`);
 const qRefAttachments = lateStatement(
-  'SELECT id, filename, mime_type, user_id FROM attachments WHERE item_id = ? ORDER BY sort_order, id');
+  `SELECT id, filename, mime_type, user_id, ${EDIT_ALL_OF} FROM attachments WHERE item_id = ? ORDER BY sort_order, id`);
 
 function entryAsBundle(it, situation) {
   const { authorName, pins, funnel, withPhotos, withFiles, withVideos } = situation;
@@ -4376,6 +4524,8 @@ function entryAsBundle(it, situation) {
     o.attachments = (funnel.blobs ? qBundleAttachments() : qRefAttachments()).all(it.id)
       .map(a2 => ({ filename: a2.filename, mime_type: a2.mime_type,
                     author: authorName(a2.user_id),
+                    // Die vorige Fassung reist nicht mit, nur der Haken.
+                    ...(a2.edit_all === 1 ? { edit_all: true } : {}),
                     ['data' + extension]: funnel.take(a2.data, ['file', a2.id]) }));
   }
   return o;
@@ -4905,7 +5055,7 @@ async function importPrepare(payload, bytesSource) {
         name: path.basename(String(a2.filename || 'datei')).slice(0, 200) || 'datei',
         mime: String(a2.mime_type || '').slice(0, 120), buf,
         // Erst in der Transaktion aufgeloest: authorId() zaehlt dort mit.
-        hasAuthor: 'author' in a2, author: a2.author
+        hasAuthor: 'author' in a2, author: a2.author, editAll: a2.edit_all === true
       });
     }
     for (const c of it.comments || []) {
@@ -5136,7 +5286,8 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
 
       attachments.forEach((a2, i) => {
         const whose = a2.hasAuthor ? authorId(a2.author) : itemAuthor;
-        iAttachmentAdd().run(id, a2.name, a2.mime, a2.buf.length, a2.buf, i, whose);
+        const added = iAttachmentAdd().run(id, a2.name, a2.mime, a2.buf.length, a2.buf, i, whose);
+        if (a2.editAll) putEditAll.run(added.lastInsertRowid, 1);
         stats.attachments++;
       });
     }

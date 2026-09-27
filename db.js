@@ -308,6 +308,28 @@ CREATE TABLE IF NOT EXISTS attachments (
 );
 CREATE INDEX IF NOT EXISTS idx_attachments_item ON attachments(item_id);
 
+-- Bearbeiten ueber den Document Server. Ohne Zeile: kein Haken, nichts gespeichert.
+CREATE TABLE IF NOT EXISTS attachment_editing (
+  attachment_id INTEGER PRIMARY KEY REFERENCES attachments(id) ON DELETE CASCADE,
+  edit_all INTEGER NOT NULL DEFAULT 0,
+  -- Teil des Schluessels im Editor; steigt, wenn eine Sitzung endet.
+  revision INTEGER NOT NULL DEFAULT 0,
+  -- Teil des Schluessels im Betrachter; steigt mit jeder gespeicherten Fassung.
+  saves INTEGER NOT NULL DEFAULT 0
+);
+
+-- Die Fassung vor der letzten Bearbeitung, eine je Datei.
+CREATE TABLE IF NOT EXISTS attachment_previous (
+  attachment_id INTEGER PRIMARY KEY REFERENCES attachments(id) ON DELETE CASCADE,
+  -- Die Sitzung, deren erste Speicherung diese Fassung abgelegt hat.
+  session_key TEXT NOT NULL DEFAULT '',
+  filename TEXT NOT NULL,
+  mime_type TEXT NOT NULL DEFAULT '',
+  size INTEGER NOT NULL DEFAULT 0,
+  saved_at TEXT NOT NULL DEFAULT (datetime('now')),
+  data BLOB NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL

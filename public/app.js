@@ -4596,6 +4596,8 @@ async function renderDetail(id, termAddress, commentWanted) {
       <div class="row-in">
         <input type="file" id="afile" multiple hidden>
         <button class="btn btn-sm" id="aadd">${tH('entry.attachFiles')}</button>
+        ${item.editAllPreset === true || item.editAllPreset === false
+          ? `<label class="aedit-all" title="${esc(t('entry.editAllHint'))}"><input type="checkbox" id="aeditall"${item.editAllPreset ? ' checked' : ''}> ${tH('entry.editAll')}</label>` : ''}
         <span class="hint">${tH('entry.fileLimitHint', { mb: UPLOAD_LIMITS.attachment })}</span>
       </div>
     </div>
@@ -6052,6 +6054,8 @@ async function renderDetail(id, termAddress, commentWanted) {
     if (tooBig) return toast(tooBigText(tooBig, 'attachment'), true);
     const fd = new FormData();
     files.forEach(f => fd.append('files', f));
+    const editAll = document.getElementById('aeditall');
+    if (editAll) fd.append('editAll', editAll.checked ? '1' : '0');
     try {
       toast(t('entry.uploadingTitle'));
       item = await sendForm(`/api/items/${id}/attachments`, fd);
@@ -6576,9 +6580,13 @@ function officeScript(src) {
 }
 
 // null, wenn `holder` inzwischen nicht mehr im Dokument steht.
-async function startOffice(a, holder, hint, failed) {
-  const v = await api('GET', `/api/attachments/${Number(a.id)}/office?mobile=${isNarrow() ? 1 : 0}`);
-  if (hint) hint.textContent = t('entry.officeHint', { host: v.host });
+// Mit `edit` entscheidet der Server, ob der Editor kommt; sonst der Betrachter.
+async function startOffice(a, holder, hint, failed, edit = false) {
+  const query = new URLSearchParams({ mobile: isNarrow() ? 1 : 0, edit: edit ? 1 : 0 });
+  const v = await api('GET', `/api/attachments/${Number(a.id)}/office?${query}`);
+  const editing = v.config?.editorConfig?.mode === 'edit';
+  if (hint) hint.textContent = v.editFailed ? t('entry.editUnavailable')
+    : editing ? t('entry.officeEditHint', { host: v.host }) : t('entry.officeHint', { host: v.host });
   await officeScript(v.script);
   if (!document.getElementById(holder)) return null;
   return new window.DocsAPI.DocEditor(holder, { ...v.config, events: { onError: failed } });
@@ -6611,6 +6619,9 @@ async function renderFileView(itemId, fileId) {
     <div class="fileview-bar">
       <a class="fileview-back" href="${esc(entryAddress(itemId))}" title="${esc(item.title)}">← ${esc(item.title)}</a>
       <span class="fileview-name">${esc(a ? a.filename : '')}</span>
+      ${shown && a.mine && a.edit ? `<label class="fileview-editall" title="${esc(t('entry.editAllHint'))}">
+        <input type="checkbox" id="fileview-editall"${a.editAll ? ' checked' : ''}> ${tH('entry.editAll')}</label>` : ''}
+      ${shown && a.restore ? `<button class="fileview-full" id="fileview-previous" title="${esc(t('entry.restorePrevious'))}" aria-label="${esc(t('entry.restorePrevious'))}">↶</button>` : ''}
       ${fullOk ? `<button class="fileview-full" id="fileview-full" title="${esc(t('entry.openFullscreen'))}" aria-label="${esc(t('entry.openFullscreen'))}">${ICON_FULLSCREEN}</button>` : ''}
       ${a ? `<a class="adl" href="/api/attachments/${Number(a.id)}/raw" download title="${esc(t('entry.download'))}">↓</a>` : ''}
     </div>
@@ -6621,13 +6632,36 @@ async function renderFileView(itemId, fileId) {
   // Nur der Betrachter geht ins Vollbild; Zurueck oder Esc beenden es.
   atElement('fileview-full', b => b.onclick = () =>
     document.querySelector('.fileview-doc')?.requestFullscreen().catch(() => {}));
+  atElement('fileview-editall', box => box.onchange = async () => {
+    try {
+      await api('PUT', `/api/attachments/${Number(a.id)}/editing`, { editAll: box.checked });
+      toast(t('list.saved'));
+    } catch (e) { box.checked = !box.checked; toast(e.message, true); }
+  });
+  // Der Editor zeigt die alte Fassung weiter; die Ansicht wird neu aufgebaut.
+  atElement('fileview-previous', b => b.onclick = async () => {
+    if (!await confirmBox(t('entry.restorePrevious'), t('entry.restoreHint'), t('card.restore'), 'accent')) return;
+    try {
+      await api('POST', `/api/attachments/${Number(a.id)}/previous`);
+      endFileViewer();
+      toast(t('entry.restored'));
+      await renderFileView(itemId, fileId);
+    } catch (e) { toast(e.message, true); }
+  });
   if (!shown) return;
   const failed = () => {
     endFileViewer();
     const box = document.querySelector('.fileview-doc');
     if (box) box.innerHTML = `<p class="hint">${tH('entry.officeFailed')}</p>`;
   };
-  startOffice(a, `office-full-${Number(a.id)}`, document.querySelector('.fileview .aoffice-hint'), failed)
+  // Vor einer Umwandlung fragen; ohne Zustimmung bleibt es beim Betrachter.
+  let edit = a.edit === true;
+  if (edit && a.convertTo && !isNarrow())
+    edit = await confirmBox(t('entry.convertAsk'), t('entry.convertHint',
+      { filename: a.filename, target: a.filename.replace(/\.[^.]*$/, '.' + a.convertTo) }),
+      t('entry.convertConfirm'), 'accent');
+  startOffice(a, `office-full-${Number(a.id)}`, document.querySelector('.fileview .aoffice-hint'), failed,
+              edit)
     .then(editor => { if (editor) fileViewer = editor; })
     .catch(failed);
 }
@@ -6909,6 +6943,8 @@ function cardDocuments(fetched) {
         ${d.setup ? `<div class="warn-box" style="margin-top:14px">${tH(d.setup)}</div>` : `
         <label class="ex-files"><input type="checkbox" id="doc-on">
           ${tH('card.documentsOn')}</label>
+        <label class="ex-files"><input type="checkbox" id="doc-editall">
+          ${tH('card.documentsEditAll')}</label>
         <div id="doc-check" style="margin:14px 0 10px"></div>
         <button class="btn btn-sm" id="doc-check-b">${tH('card.documentsCheck')}</button>`}
       </div>`;
@@ -6917,7 +6953,9 @@ function setUpDocumentsOut(fetched) {
   const d = fetched.documents || {};
   if (d.setup) return;
   let on = d.on === true;
+  let editAll = d.editAll === true;
   createToggle('doc-on', 'documentServer', () => on, v => { on = v; });
+  createToggle('doc-editall', 'documentEditAll', () => editAll, v => { editAll = v; });
   atElement('doc-check-b', b => b.onclick = checkDocuments);
   checkDocuments();
 }
