@@ -1635,14 +1635,14 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
 /* Im Ausschnittmodus sichtbar ohne Hover, sonst verschwaende der Weg hinaus. */
 .vtools.open { opacity: 1; }
 
-.vfocus, .vfull, .vremove {
+.vfocus, .vlink, .vfull, .vremove {
   display: flex; align-items: center; justify-content: center;
   width: 30px; height: 30px; border-radius: 999px;
   background: rgba(var(--photo-rgb), .78); border: 1px solid var(--line); color: var(--on-photo);
   transition: color .15s var(--ease), border-color .15s var(--ease),
               background .15s var(--ease);
 }
-.vfocus:hover, .vfull:hover, .vremove:hover { color: var(--text); border-color: var(--line-hover-2); }
+.vfocus:hover, .vlink:hover, .vfull:hover, .vremove:hover { color: var(--text); border-color: var(--line-hover-2); }
 .vfocus.on { color: var(--accent-text); border-color: var(--accent); }
 /* Papierkorb abgesetzt, erst beim Hover rot; die beiden davor stellen nur etwas ein. */
 .vremove { margin-left: 14px; }
@@ -1707,6 +1707,27 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
 .arow .asize { font-family: var(--mono); font-size: .7rem; color: var(--faint); flex-shrink: 0; }
 /* Nicht abschneiden; schrumpfen darf nur `.aname`. */
 .arow .afrom { font-size: .7rem; color: var(--muted); flex-shrink: 0; }
+/* Alle Zeilen in denselben Spalten, so breit wie der breiteste Eintrag der
+   Liste. Fehlt ein Knopf, bleibt seine Spalte leer; Abstand ueber margin, damit
+   eine leere Spalte keinen Abstand traegt. */
+@supports (grid-template-columns: subgrid) {
+  #atts { display: grid; grid-template-columns: [icon] auto [name] minmax(0, 1fr) [size] auto [from] auto [go] auto [rights] auto [edit] auto [open] auto [link] auto [dl] auto [del] auto; }
+  #atts > * { grid-column: 1 / -1; }
+  .arow { display: grid; grid-template-columns: subgrid; gap: 0; }
+  .arow > * + * { margin-left: 10px; }
+  .arow .aicon { grid-column: icon; }
+  .arow .aname { grid-column: name; }
+  .arow .asize { grid-column: size; justify-self: end; }
+  .arow .afrom { grid-column: from; }
+  .arow .ago { grid-column: go; }
+  .arow .arights { grid-column: rights; }
+  .arow .aopen { grid-column: open; }
+  /* Nach `.aopen`: der Stift traegt beide Klassen. */
+  .arow .aedit { grid-column: edit; }
+  .arow .alink { grid-column: link; }
+  .arow .adl { grid-column: dl; }
+  .arow .xdel { grid-column: del; }
+}
 /* Nur der Ausweichknopf der PDF-Vorschau. */
 .abtn {
   font-size: .73rem; color: var(--muted); padding: 3px 8px; border-radius: 5px;
@@ -2024,7 +2045,7 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
   .lb-nav { width: 54px; height: 54px; }
   .lb-thumb { width: 62px; height: 62px; }
   .vnav { width: 44px; height: 44px; }
-  .vfocus, .vfull, .vremove { width: 44px; height: 44px; }
+  .vfocus, .vlink, .vfull, .vremove { width: 44px; height: 44px; }
 
   /* Kein Markieren beim langen Druck: makeSortable() greift nach `HOLD_MS`, und in
      dieser Zeit bietet das Telefon die Textmarkierung an. */
@@ -2033,7 +2054,7 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
   /* Ohne `manipulation` wartet der Browser rund 300 ms auf einen Doppeltipp.
      Nicht am Vollbild: dort hat der Doppeltipp eine Bedeutung. */
   .btn, .icon-btn, .pill, .mark, .switch, .chip, .pick-box, .star,
-  .abtn, .link-btn, .xdel, .open-check, .pin-btn, .vnav, .vfocus, .vfull,
+  .abtn, .link-btn, .xdel, .open-check, .pin-btn, .vnav, .vfocus, .vlink, .vfull,
   .cmt-head button, .mrow .mact, .arow .adl, .arow .alink,
   .rej-note .mact { touch-action: manipulation; }
 
@@ -2312,7 +2333,9 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
   .rlist:not(.no-average) .rrow .rreset-cell { padding-bottom: 5px; }
 
   /* Datei- und Testtagzeile brechen um, sonst wird die Dateiendung abgeschnitten. */
-  .arow { flex-wrap: wrap; row-gap: 2px; }
+  #atts { display: block; }
+  .arow { display: flex; flex-wrap: wrap; gap: 10px; row-gap: 2px; }
+  .arow > * + * { margin-left: 0; }
   .arow .aname { flex: 1 1 auto; }
   .arow .asize, .arow .afrom { order: 2; }
   .arow .asize { margin-left: auto; }

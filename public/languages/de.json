@@ -161,7 +161,7 @@
   "card.documentsFallback": "leer, es gilt {name}",
   "card.documentsHint": "Word-, Excel- und PowerPoint-Dateien und OpenDocument-Dateien über einen Document Server anzeigen und bearbeiten, etwa Euro-Office oder OnlyOffice. Jede angesehene Datei liegt danach unverschlüsselt im Zwischenspeicher des Document Servers.",
   "card.documentsOn": "Dateien über den Document Server anzeigen",
-  "card.documentsEditAll": "Startwert für „Bearbeiten durch alle“, solange ein Account keinen eigenen gesetzt hat",
+  "card.documentsEditAll": "Bearbeiten durch alle: Startwert, solange ein Account keinen eigenen gesetzt hat",
   "card.documentsThemeHint": "So zeigt der Document Server deine Dokumente.",
   "card.documentsThemeFollow": "Wie Kriterion",
   "card.documentsThemeLight": "Modern Hell",

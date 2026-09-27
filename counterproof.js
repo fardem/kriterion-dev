@@ -8980,6 +8980,55 @@ const REGRESSIONS = [
     replacement: "",
     expected: 'Verweise auf Dateien: Adresse des Fotos und Link kopieren'
   },
+  {
+    nr: '1296', name: 'Der Text der Karte beginnt wieder mit dem Startwert',
+    file: 'public/languages/de.json',
+    search: "\"card.documentsEditAll\": \"Bearbeiten durch alle: Startwert, solange ein Account keinen eigenen gesetzt hat\",",
+    replacement: "\"card.documentsEditAll\": \"Startwert für „Bearbeiten durch alle“, solange ein Account keinen eigenen gesetzt hat\",",
+    expected: 'Link am Bild und Dateizeilen in Spalten'
+  },
+  {
+    nr: '1297', name: 'Das grosse Bild hat keinen Knopf Link kopieren',
+    file: 'public/app.js',
+    search: "        ${cropMode ? '' : `<button class=\"vlink\"",
+    replacement: "        ${true ? '' : `<button class=\"vlink\"",
+    expected: 'Link am Bild und Dateizeilen in Spalten'
+  },
+  {
+    nr: '1298', name: 'Im Ausschnittmodus steht der Knopf Link kopieren',
+    file: 'public/app.js',
+    search: "        ${cropMode ? '' : `<button class=\"vlink\"",
+    replacement: "        ${false ? '' : `<button class=\"vlink\"",
+    expected: 'Link am Bild und Dateizeilen in Spalten'
+  },
+  {
+    nr: '1299', name: 'Der Knopf am Bild kopiert den Eintrag',
+    file: 'public/app.js',
+    search: "      () => copyText(photoLink(ps[idx]), t('card.linkCopied')));",
+    replacement: "      () => copyText(fullAddress(entryAddress(id)), t('card.linkCopied')));",
+    expected: 'Link am Bild und Dateizeilen in Spalten'
+  },
+  {
+    nr: '1300', name: 'Die Dateizeile uebernimmt die Spalten der Liste nicht',
+    file: 'public/style.css',
+    search: "  .arow { display: grid; grid-template-columns: subgrid; gap: 0; }\n",
+    replacement: "",
+    expected: 'Link am Bild und Dateizeilen in Spalten'
+  },
+  {
+    nr: '1301', name: 'Der Stift hat keine eigene Spalte',
+    file: 'public/style.css',
+    search: "  .arow .aedit { grid-column: edit; }\n",
+    replacement: "",
+    expected: 'Link am Bild und Dateizeilen in Spalten'
+  },
+  {
+    nr: '1302', name: 'Auf dem Telefon bleibt die Liste ein Raster',
+    file: 'public/style.css',
+    search: "  #atts { display: block; }\n",
+    replacement: "",
+    expected: 'Link am Bild und Dateizeilen in Spalten'
+  },
 ];
 
 /* ---- Spuren und Versatz ---- */

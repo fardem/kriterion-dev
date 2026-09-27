@@ -30,6 +30,28 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.44.1] - 2026-09-27
+
+*Dateizeilen in Spalten, Link am Bild.*
+
+Fingerprint `8237adde` — davor `37520fc0`.
+
+### Hinzugefügt
+
+- **Link kopieren am großen Bild** im Eintrag, rechts von „Ausschnitt“. Im
+  Ausschnittmodus fehlt der Knopf.
+
+### Geändert
+
+- Die Karte „Dokumente“ nennt zuerst „Bearbeiten durch alle“, dann den
+  Startwert.
+
+### Behoben
+
+- Die rechte Seite der Dateizeilen stand nicht untereinander. Jetzt stehen
+  Größe, Account, ▸ und die Knöpfe am Rechner in festen Spalten; auf dem
+  Telefon bricht die Zeile um wie bisher.
+
 ## [0.44.0] - 2026-09-27
 
 *Verweise auf Dateien und Fotos.*

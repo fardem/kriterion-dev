@@ -4821,6 +4821,8 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0) {
       <div class="vtools${cropMode ? ' open' : ''}">
         <button class="vfocus${cropMode ? ' on' : ''}" title="${esc(t('entry.setCrop'))}"
           aria-label="${esc(t('entry.setCrop'))}">${ICON_CROP}</button>
+        ${/* Im Ausschnittmodus beginnt jeder Druck auf das Bild eine Geste. */''}
+        ${cropMode ? '' : `<button class="vlink" title="${esc(t('entry.copyLink'))}" aria-label="${esc(t('entry.copyLink'))}">${ICON_LINK}</button>`}
         ${showsVideo ? `<button class="vfull" title="${esc(t('entry.openFullscreen'))}" aria-label="${esc(t('entry.openFullscreen'))}">${ICON_FULLSCREEN}</button>` : ''}
         <button class="vremove" title="${esc(isVideo(ps[idx]) ? t('list.video') : t('list.photo'))} ${esc(t('entry.delete'))}"
           aria-label="${esc(isVideo(ps[idx]) ? t('list.video') : t('list.photo'))} ${esc(t('entry.delete'))}">${ICON_TRASH}</button>
@@ -4848,6 +4850,8 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0) {
       if (cropMode) toast(t('entry.cropHint'));
     };
     v.querySelector('.vremove').onclick = () => deletePhoto(ps[idx]);
+    v.querySelector('.vlink')?.addEventListener('click',
+      () => copyText(photoLink(ps[idx]), t('card.linkCopied')));
     if (cropMode && image) setUpCropOut(v, image, ps[idx]);
     if (ps.length > 1) {
       v.querySelector('.prev').onclick = () => { idx--; drawViewer(); markThumb(); };

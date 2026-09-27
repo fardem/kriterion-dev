@@ -161,7 +161,7 @@
   "card.documentsFallback": "empty, {name} applies",
   "card.documentsHint": "Show and edit Word, Excel and PowerPoint files and OpenDocument files through a document server such as Euro-Office or OnlyOffice. Every file viewed this way then lies unencrypted in the cache of the document server.",
   "card.documentsOn": "Show files through the document server",
-  "card.documentsEditAll": "Start value for “Editable by all” until an account sets its own",
+  "card.documentsEditAll": "Editable by all: start value until an account sets its own",
   "card.documentsThemeHint": "How the document server shows your documents.",
   "card.documentsThemeFollow": "Like Kriterion",
   "card.documentsThemeLight": "Modern light",
