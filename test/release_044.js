@@ -454,7 +454,7 @@ async function run() {
       w.document.querySelector('#viewer .vfocus')?.classList.contains('on'), tools().join(' '));
 
     const css = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
-    const grid = (css.match(/@supports \(grid-template-columns: subgrid\) \{([\s\S]*?)\n\}/) || [])[1] || '';
+    const grid = (css.match(/@supports \(grid-template-columns: subgrid\) \{(\n  #atts [\s\S]*?)\n\}/) || [])[1] || '';
     const lines = [...((grid.match(/#atts \{ display: grid; grid-template-columns: ([^;]+);/) || [])[1] || '')
       .matchAll(/\[(\w+)\]/g)].map(x => x[1]);
     const columnOf = {};

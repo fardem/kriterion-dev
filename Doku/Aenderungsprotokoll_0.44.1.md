@@ -102,6 +102,13 @@ Rückbauten:
 
 Alle erwartet in „Link am Bild und Dateizeilen in Spalten“.
 
+**7 rot, 0 stumm**, ohne Abbruch eines Moduls, gefahren auf `32768a0`. Jeder
+ist in seiner erwarteten Gruppe rot und zusätzlich in „Jeder Suchtext kommt in
+seiner Datei genau einmal vor“: die Prüfung liest den zurückgebauten Stand.
+1300 bis 1302 sind außerdem rot in „Das Stilblatt traegt weniger Kommentar als
+vorher — 0.35.0“: sie entfernen je eine Zeile aus `public/style.css`, und
+diese Gruppe hält die Zahl der Regelzeilen fest.
+
 ---
 
 ## 5. Nicht geprüft

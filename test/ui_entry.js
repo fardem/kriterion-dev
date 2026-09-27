@@ -1207,12 +1207,15 @@ async function run() {
   check('Ohne Trennzeichen davor',
     lvM.every(z => !/^[·—-]/.test(lvName(z))),
     lvM.map(z => lvName(z)).filter(Boolean).join(' | '));
-  check('Name und Pfad stehen in derselben zweiten Zeile',
-    !!lvM[5].querySelector('.lbottom > .path') && !!lvM[5].querySelector('.lbottom > .lfrom'),
-    lvM[5].querySelector('.lurl')?.innerHTML);
-  check('Und bei der Suchzeile Anbieternamen und Name ebenso',
-    !!lvM[7].querySelector('.lbottom > .snames') && !!lvM[7].querySelector('.lbottom > .lfrom'),
-    lvM[7].querySelector('.lurl')?.innerHTML);
+  // Eigene Spalte vor ↗, wie `.afrom` an der Dateizeile.
+  const lvOwn = (z) => [...z.children].find(el => el.classList.contains('lfrom'));
+  check('Der Name steht in eigener Spalte vor ↗, nicht hinter dem Pfad',
+    !!lvOwn(lvM[5]) && lvOwn(lvM[5]).nextElementSibling?.classList.contains('go') &&
+    !!lvM[5].querySelector('.lbottom > .path') && !lvM[5].querySelector('.lbottom .lfrom'),
+    lvM[5].innerHTML.replace(/\s+/g, ' ').slice(0, 300));
+  check('Und bei der Suchzeile ebenso, die Anbieternamen bleiben unter der Suche',
+    !!lvOwn(lvM[7]) && !!lvM[7].querySelector('.lbottom > .snames') && !lvM[7].querySelector('.lbottom .lfrom'),
+    lvM[7].innerHTML.replace(/\s+/g, ' ').slice(0, 300));
 
   check('Der Ueberfahrtext nennt Eintrager und Datum',
     /Eingetragen von chefin am \d\d\.\d\d\.\d{4}/.test(lvM[5].title), lvM[5].title);
@@ -1267,20 +1270,29 @@ async function run() {
     `${lvU.length}`);
   lvUser.w.close();
 
-  /* Ohne die Aufteilung der zweiten Zeile im Stylesheet verdraengt ein langer
-     Pfad den Namen. */
+  /* Ohne eigene Spalte verdraengt eine lange Adresse den Namen. */
   const cssL = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
   const ruleL = (choice) => (cssL.match(new RegExp(choice.replace(/[.>]/g, m => '\\' + m) + ' \\{[^}]*\\}')) || [''])[0];
   check('Die zweite Zeile der Linkzeile ist im Stylesheet ueberhaupt geregelt',
     ruleL('.lbottom').length > 0, '(keine Regel .lbottom)');
-  check('Sie stellt Pfad und Namen nebeneinander',
+  check('Sie bleibt eine Flex-Zeile',
     /display: flex/.test(ruleL('.lbottom')), ruleL('.lbottom') || '(keine Regel)');
   check('Der Pfad nimmt sich nur, was er braucht, und darf schrumpfen',
     /flex: 0 1 auto/.test(ruleL('.lbottom .path, .lbottom .snames')),
     ruleL('.lbottom .path, .lbottom .snames') || '(keine Regel)');
   check('Der Name nicht',
-    /flex: 0 0 auto/.test(ruleL('.lbottom .lfrom')),
-    ruleL('.lbottom .lfrom') || '(keine Regel)');
+    /flex-shrink: 0/.test(ruleL('.lrow .lfrom')),
+    ruleL('.lrow .lfrom') || '(keine Regel)');
+  const lvGrid = (cssL.match(/@supports \(grid-template-columns: subgrid\) \{ #links (.*?) \} \}/) || [])[1] || '';
+  const lvLines = [...((lvGrid.match(/^\{ display: grid; grid-template-columns: ([^;]+);/) || [])[1] || '')
+    .matchAll(/\[(\w+)\]/g)].map(x => x[1]);
+  const lvColumnOf = {};
+  for (const x of lvGrid.matchAll(/\.lrow \.(\w+) \{ grid-column: (\w+);/g)) lvColumnOf[x[1]] = x[2];
+  const lvOrders = lvM.map(z => [...z.children].map(el => lvLines.indexOf(lvColumnOf[el.classList[0]])));
+  check('Alle Linkzeilen stehen in denselben Spalten, in der Reihenfolge der Zeile',
+    /\.lrow \{ display: grid; grid-template-columns: subgrid; gap: 0; \}/.test(lvGrid) &&
+    lvLines.length === 6 && lvOrders.every(o => o.every((n, i) => n >= 0 && (i === 0 || n > o[i - 1]))),
+    `${lvLines.join(' ')} · ${lvOrders.map(o => o.join(',')).join(' | ')}`);
 
   /* ---- Der Name an der Dateizeile ---- */
   group('Der Name an der Dateizeile');
