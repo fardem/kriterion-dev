@@ -953,10 +953,23 @@ mark {
 .lrow.search:hover .dom { color: var(--accent-text-hi); }
 /* Anbieternamen ohne Monoschrift: Woerter, keine Adressteile. */
 .snames { font-size: .7rem; color: var(--faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* Gekuerzt wird der Pfad, nicht der Name dahinter (`.lfrom`). */
 .lbottom { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
 .lbottom .path, .lbottom .snames { flex: 0 1 auto; min-width: 0; }
-.lbottom .lfrom { flex: 0 0 auto; font-size: .7rem; color: var(--muted); }
+/* Nicht abschneiden; gekuerzt wird die Adresse. */
+.lrow .lfrom { flex-shrink: 0; font-size: .7rem; color: var(--muted); }
+/* Wie `#atts`: alle Zeilen in denselben Spalten, auch auf dem Telefon. */
+@supports (grid-template-columns: subgrid) {
+  #links { display: grid; grid-template-columns: [grip] auto [num] auto [url] minmax(0, 1fr) [from] auto [go] auto [del] auto; }
+  #links > * { grid-column: 1 / -1; }
+  .lrow { display: grid; grid-template-columns: subgrid; gap: 0; }
+  .lrow > * + * { margin-left: 10px; }
+  .lrow .grip { grid-column: grip; }
+  .lrow .lnum { grid-column: num; }
+  .lrow .lurl { grid-column: url; }
+  .lrow .lfrom { grid-column: from; }
+  .lrow .go { grid-column: go; }
+  .lrow .xdel { grid-column: del; }
+}
 .snames .sname { cursor: pointer; transition: color .15s var(--ease); }
 .snames .sname:hover { color: var(--accent-text-hi); text-decoration: underline; }
 

@@ -9029,6 +9029,34 @@ const REGRESSIONS = [
     replacement: "",
     expected: 'Link am Bild und Dateizeilen in Spalten'
   },
+  {
+    nr: '1303', name: 'Der Name steht wieder hinter dem Pfad',
+    file: 'public/app.js',
+    search: "      const bottom = search ? '<span class=\"snames\"></span>'\n                          : (path ? `<span class=\"path\">${esc(path)}</span>` : '');\n      row.innerHTML = `<span class=\"grip\" title=\"${esc(t('entry.dragToSort'))}\">⣿</span>\n        <span class=\"lnum\">${Number(n + 1)}</span>\n        <span class=\"lurl\"><span class=\"dom\">${esc(top)}</span>${\n          bottom ? `<span class=\"lbottom\">${bottom}</span>` : ''\n        }</span>\n        ${showFrom ? `<span class=\"lfrom\">(${esc(authorName(l.author))})</span>` : ''}\n",
+    replacement: "      const bottom = (search ? '<span class=\"snames\"></span>'\n                          : (path ? `<span class=\"path\">${esc(path)}</span>` : '')) + (showFrom\n        ? `<span class=\"lfrom\">(${esc(authorName(l.author))})</span>` : '');\n      row.innerHTML = `<span class=\"grip\" title=\"${esc(t('entry.dragToSort'))}\">⣿</span>\n        <span class=\"lnum\">${Number(n + 1)}</span>\n        <span class=\"lurl\"><span class=\"dom\">${esc(top)}</span>${\n          bottom ? `<span class=\"lbottom\">${bottom}</span>` : ''\n        }</span>\n",
+    expected: 'Der Name an der Linkzeile'
+  },
+  {
+    nr: '1304', name: 'Die Linkzeile uebernimmt die Spalten der Liste nicht',
+    file: 'public/style.css',
+    search: "  .lrow { display: grid; grid-template-columns: subgrid; gap: 0; }\n",
+    replacement: "",
+    expected: 'Der Name an der Linkzeile'
+  },
+  {
+    nr: '1305', name: 'Das Kreuz der Linkzeile hat keine eigene Spalte',
+    file: 'public/style.css',
+    search: "  .lrow .xdel { grid-column: del; }\n",
+    replacement: "",
+    expected: 'Der Name an der Linkzeile'
+  },
+  {
+    nr: '1306', name: 'Der Name an der Linkzeile darf wieder schrumpfen',
+    file: 'public/style.css',
+    search: ".lrow .lfrom { flex-shrink: 0; font-size: .7rem; color: var(--muted); }",
+    replacement: ".lrow .lfrom { font-size: .7rem; color: var(--muted); }",
+    expected: 'Der Name an der Linkzeile'
+  },
 ];
 
 /* ---- Spuren und Versatz ---- */

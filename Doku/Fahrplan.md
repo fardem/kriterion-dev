@@ -1,6 +1,6 @@
 # Fahrplan
 
-**Der Plan von 0.41.0 bis 0.44.1 · Stand 27. September 2026, 0.44.1 gebaut**
+**Der Plan von 0.41.0 bis 0.44.2 · Stand 27. September 2026, 0.44.2 gebaut**
 
 *Hier stand vorher „von 0.26.0 bis 1.0 · Stand 9. September 2026": beides ist
 überholt — es wird kein 1.0.0 geben, und seither sind dreizehn Runden gebaut.*
@@ -198,6 +198,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.43.2**~~ | ~~**Stift an bearbeitbaren Dateien**~~ | **GEBAUT am 27. September 2026** auf 0.43.1 — Änderungsprotokoll 0.43.2. *Wünsche des Betreibers nach dem Einspielen von 0.43.0:* Stift an Dateien mit Schreibrecht, ⤢ nur zum Ansehen; Name an jeder Datei und jedem Link; zurück zur Zeile der Datei; Thema Modern Hell/Dunkel; eigener Kasten „Dokumente“ mit Darstellung und Vorgabe „Bearbeiten durch alle“; kein Haken mehr beim Hochladen, dafür ein Zeichen in der Dateizeile. **PATCH** *(1.179 → 1.190 Rückbauten). Fingerprint `0c19372c` (davor `66001468`)* | nein | nein |
 | ~~**0.44.0**~~ | ~~**Verweise auf Dateien und Fotos**~~ | **GEBAUT am 27. September 2026** auf 0.43.2 — Änderungsprotokoll 0.44.0. Ein Link auf eine Datei oder ein Foto dieser Instanz wird in Kommentar und Beschreibung zur Marke. Bürodatei: Marke mit Zeichen und Dateiname, ein Klick klappt einen Betrachter von 360 px auf (`type: 'embedded'`), erst dann lädt der Document Server. Bilddatei und Foto: ein Vorschaubild; Bilddateien bekommen dafür eine gespeicherte Kachel in der neuen Tabelle `attachment_thumbs`, auch in der Dateizeile. Fotos haben die Adresse `#/item/<Eintrag>/photo/<Foto>`. „Link kopieren“ in jeder Dateizeile und im Vollbild. Die eigene Ansicht zeigt jetzt jede Datei. Die Fragetafel ist am 27. September 2026 nach dem Bauen beantwortet worden, nicht davor (Abschnitt unten). **MINOR** *(1.190 → 1.215 Rückbauten, Prüfstand 7.476 → 7.526). Fingerprint `37520fc0` (davor `0c19372c`)* | **ja** | nein |
 | ~~**0.44.1**~~ | ~~**Dateizeilen in Spalten, Link am Bild**~~ | **GEBAUT am 27. September 2026** auf 0.44.0 — Änderungsprotokoll 0.44.1. Drei Befunde des Betreibers nach dem Einspielen von 0.44.0: der Text zur Vorgabe auf der Karte „Dokumente“ beginnt mit „Bearbeiten durch alle“; „Link kopieren“ auch am großen Bild, rechts von „Ausschnitt“; die Dateizeilen stehen am Rechner in Spalten (CSS-Grid mit `subgrid`), auf dem Telefon wie bisher. Die Fragetafel ist vor dem Bau beantwortet worden. **PATCH** *(1.215 → 1.222 Rückbauten, Prüfstand 7.526 → 7.533). Fingerprint `8237adde` (davor `37520fc0`)* | nein | nein |
+| ~~**0.44.2**~~ | ~~**Der Name an der Linkzeile rechts**~~ | **GEBAUT am 27. September 2026** auf 0.44.1 — Änderungsprotokoll 0.44.2. Befund des Betreibers: in der Linkliste stand der Name des Accounts direkt hinter dem Pfad. Er steht jetzt in einer eigenen Spalte vor ↗, auch auf dem Telefon; ↗ und ✕ stehen ebenfalls in festen Spalten (`subgrid`). Die Fragetafel ist vor dem Bau beantwortet worden. **PATCH** *(1.222 → 1.226 Rückbauten, Prüfstand 7.533 → 7.534). Fingerprint `46ae4e39` (davor `8237adde`)* | nein | nein |
 | ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. Die zwei offenen Punkte des Eintrags stehen in der Zeile darunter | — | — |
 | ~~*ohne Nummer*~~ | ~~**Vorgabewerte und Tastaturbedienung beim Sortieren**~~ | **VORLÄUFIG GESTRICHEN am 21. September 2026:** der Inhalt ist nirgends beschrieben — weder hier noch im Sammelblatt noch im Projektstand steht, welche Vorgabewerte gemeint sind und was die Tastatur beim Sortieren tun soll. *Die Zeile kommt zurück, sobald der Betreiber sagt, was gemeint war.* | — | — |
 | ~~*ohne Nummer*~~ | ~~**Die Doppelung in der README auflösen**~~ | **GEBAUT mit 0.38.0 am 19. September 2026.** *Befund aus BA 6 der 0.37.0: zwei Abschnitte der README trugen dieselben drei Sachverhalte — dass eine fehlende Spalte nicht nachgerüstet wird, dass der Kasten jede fehlende Spalte samt altem Namen nennt, und dass die Instanz startet, aber jede Seite scheitert, die eine der Spalten liest.* **Jetzt verweist jeder der beiden auf den anderen:** `README.md`:348 nach unten, `README.md`:464 nach oben. *0.38.5 hat die README danach noch einmal gegliedert.* | nein | — |
@@ -3259,6 +3260,31 @@ einer anderen Stelle.
 
 **Was es anfasst:** `public/app.js` · `public/style.css` · die drei
 Sprachdateien · `manual-de.md`.
+
+**Schema: nein.** Austauschformat: bleibt.
+
+---
+
+## 0.44.2 — „Der Name an der Linkzeile rechts"
+
+> **GEBAUT am 27. September 2026** auf 0.44.1. Das Protokoll steht als
+> `Doku/Aenderungsprotokoll_0.44.2.md`.
+
+**Geplant am 27. September 2026.** Befund des Betreibers nach 0.44.1: in der
+Linkliste steht der Name des Accounts direkt hinter dem Pfad, in der zweiten
+Zeile unter der Adresse (`.lbottom > .lfrom`). Bei den Dateizeilen steht er
+rechts in einer eigenen Spalte.
+
+### Die Antworten des Betreibers vom 27. September 2026
+
+| Frage | Antwort |
+|---|---|
+| F1. Wo steht der Name? | eigene Spalte vor ↗, wie bei den Dateien; ↗ und ✕ ebenfalls in festen Spalten |
+| F2. Und auf dem Telefon? | auch dort rechts, in derselben Spalte |
+| F3. Welche Version? | eigene Version 0.44.2, nach dem Merge von 0.44.1 |
+
+**Was es anfasst:** `drawLinks()` in `public/app.js` · `.lrow` in
+`public/style.css` · `test/ui_entry.js` (Gruppe „Der Name an der Linkzeile“).
 
 **Schema: nein.** Austauschformat: bleibt.
 

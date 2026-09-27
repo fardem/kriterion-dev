@@ -5967,15 +5967,14 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0) {
         ? (isDefault ? t('entry.searchForAt', { url: l.url, name: isDefault.name }) : t('entry.searchFor', { url: l.url }))
         : l.url;
       row.title = entered ? `${reasonText} · ${entered}` : reasonText;
-      const bottomLinks = search ? '<span class="snames"></span>'
-                               : (path ? `<span class="path">${esc(path)}</span>` : '');
-      const bottom = bottomLinks + (showFrom
-        ? `<span class="lfrom">(${esc(authorName(l.author))})</span>` : '');
+      const bottom = search ? '<span class="snames"></span>'
+                          : (path ? `<span class="path">${esc(path)}</span>` : '');
       row.innerHTML = `<span class="grip" title="${esc(t('entry.dragToSort'))}">⣿</span>
         <span class="lnum">${Number(n + 1)}</span>
         <span class="lurl"><span class="dom">${esc(top)}</span>${
           bottom ? `<span class="lbottom">${bottom}</span>` : ''
         }</span>
+        ${showFrom ? `<span class="lfrom">(${esc(authorName(l.author))})</span>` : ''}
         <span class="go">${search ? ICON_SEARCH : '↗'}</span>
         ${mayPath ? `<button class="xdel" title="${esc(search ? t('entry.removeSearch') : t('entry.removeLink'))}">${ICON_X}</button>` : ''}`;
       highlightInNode(row.querySelector('.dom'), top, term);

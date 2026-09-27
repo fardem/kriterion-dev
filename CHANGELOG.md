@@ -30,6 +30,18 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.44.2] - 2026-09-27
+
+*Der Name an der Linkzeile rechts.*
+
+Fingerprint `46ae4e39` — davor `8237adde`.
+
+### Geändert
+
+- In der Linkliste steht der Name des Accounts rechts in einer eigenen Spalte
+  vor ↗, wie bei den Dateien, auch auf dem Telefon. Vorher stand er direkt
+  hinter dem Pfad.
+
 ## [0.44.1] - 2026-09-27
 
 *Dateizeilen in Spalten, Link am Bild.*
