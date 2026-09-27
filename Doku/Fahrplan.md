@@ -1,6 +1,6 @@
 # Fahrplan
 
-**Der Plan von 0.41.0 bis 0.44.0 · Stand 27. September 2026, 0.43.0 gebaut**
+**Der Plan von 0.41.0 bis 0.44.0 · Stand 27. September 2026, 0.43.1 gebaut**
 
 *Hier stand vorher „von 0.26.0 bis 1.0 · Stand 9. September 2026": beides ist
 überholt — es wird kein 1.0.0 geben, und seither sind dreizehn Runden gebaut.*
@@ -194,6 +194,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.42.2**~~ | ~~**Die eigene Ansicht ohne Kopfzeile**~~ | **GEBAUT am 26. September 2026** auf 0.42.1 — Änderungsprotokoll 0.42.2. *Wunsch des Betreibers:* die eigene Ansicht einer Datei trägt keine Kopfzeile von Kriterion mehr; oben steht nur die Leiste mit ←, Dateiname und ↓. Die Ansicht liegt fest über dem ganzen Fenster (`position: fixed`). **PATCH** *(1.156 → 1.158 Rückbauten). Fingerprint `59983d51` (davor `526a9c34`)* | nein | nein |
 | ~~**0.42.3**~~ | ~~**Vollbild in der eigenen Ansicht**~~ | **GEBAUT am 26. September 2026** auf 0.42.2 — Änderungsprotokoll 0.42.3. *Wunsch des Betreibers:* ein Zeichen in der Leiste der eigenen Ansicht schickt nur den Betrachter ins Vollbild des Browsers, gedacht für das quer gehaltene Telefon. Ohne `document.fullscreenEnabled` fehlt das Zeichen. Auf der Karte „Dokumente" steht der Name der Variablen klein über dem Wert. **PATCH** *(1.158 → 1.161 Rückbauten). Fingerprint `90d99a0b` (davor `59983d51`)* | nein | nein |
 | ~~**0.43.0**~~ | ~~**Dokumente über den Document Server bearbeiten**~~ | **GEBAUT am 27. September 2026** auf 0.42.3 — Änderungsprotokoll 0.43.0. *Der Rückweg: der Document Server ruft einen Callback bei Kriterion, Kriterion holt die Fassung und schreibt sie nach `attachments.data`.* Es bearbeitet, wer hochgeladen hat; mit dem Haken „Bearbeiten durch alle" jeder Account, der Admin ohne Haken nicht. Die Fassung vor der letzten Bearbeitung bleibt erhalten und lässt sich zurücktauschen. `.doc`, `.xls`, `.ppt` werden nach Rückfrage zu `.docx`, `.xlsx`, `.pptx`. Die sieben Fragen beantwortet der Betreiber am 26. September 2026 (Abschnitt unten). **MINOR** *(1.161 → 1.178 Rückbauten). Fingerprint `c83a6a27` (davor `90d99a0b`)* | **ja** | 19 → 20 |
+| ~~**0.43.1**~~ | ~~**Updates kommen sofort im Browser an**~~ | **GEBAUT am 27. September 2026** auf 0.43.0 — Änderungsprotokoll 0.43.1. *Befund des Betreibers nach dem Einspielen von 0.43.0:* die Karte „Dokumente" zeigte den alten Stand. Die gezippte Auslieferung setzt jetzt `Cache-Control: public, max-age=0` wie `express.static`. **PATCH** *(1.178 → 1.179 Rückbauten). Fingerprint `66001468` (davor `c83a6a27`)* | nein | nein |
 | **0.44.0** | **Verweise auf Dateien und Fotos** | **GEPLANT am 26. September 2026.** *Wie der Verweis auf einen Kommentar:* ein Link auf eine Datei oder ein Foto dieser Instanz wird in Kommentar und Beschreibung zur Marke. Bürodatei: Marke mit Symbol und Dateiname, **ein Klick klappt einen kleinen Betrachter auf** — nicht vorher, sonst lädt jeder Verweis den Document Server. Bilddatei und Foto: ein kleines Vorschaubild. Fotos bekommen dafür die Adresse `#/item/<Eintrag>/photo/<Foto>`. An Dateizeile und Bildansicht ein Knopf „Link kopieren" | nein | nein |
 | ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. Die zwei offenen Punkte des Eintrags stehen in der Zeile darunter | — | — |
 | ~~*ohne Nummer*~~ | ~~**Vorgabewerte und Tastaturbedienung beim Sortieren**~~ | **VORLÄUFIG GESTRICHEN am 21. September 2026:** der Inhalt ist nirgends beschrieben — weder hier noch im Sammelblatt noch im Projektstand steht, welche Vorgabewerte gemeint sind und was die Tastatur beim Sortieren tun soll. *Die Zeile kommt zurück, sobald der Betreiber sagt, was gemeint war.* | — | — |
@@ -3136,6 +3137,14 @@ Schreibrecht in der Ansicht, Vorgabe auf der Karte)* · die drei Sprachdateien
 
 **Schema: ja**, wegen des Hakens. Eine zweite Zeile je Fassung (Frage 1)
 bräuchte eine weitere Tabelle.
+
+---
+
+## 0.43.1 — „Updates kommen sofort im Browser an"
+
+> **GEBAUT am 27. September 2026** auf 0.43.0. Das Protokoll steht als
+> `Doku/Aenderungsprotokoll_0.43.1.md`. Ohne Auftrag; Befund des Betreibers
+> vom selben Tag: `ich sehe nicht wo ich was einstellen kann`.
 
 ---
 
