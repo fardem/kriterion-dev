@@ -34,7 +34,10 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Verweise auf Dateien und Fotos.*
 
-Fingerprint `4dfafc61` — davor `0c19372c`.
+Fingerprint `37520fc0` — davor `0c19372c`.
+
+> **Die Datenbank bekommt beim ersten Start die Tabelle `attachment_thumbs`.**
+> Zu tun ist nichts.
 
 ### Hinzugefügt
 
@@ -45,6 +48,10 @@ Fingerprint `4dfafc61` — davor `0c19372c`.
 - **Link kopieren** in jeder Dateizeile und im Vollbild eines Fotos.
 - **Adresse eines Fotos:** `#/item/<Eintrag>/photo/<Foto>` öffnet den Eintrag
   und das Vollbild an diesem Foto.
+- **Kachel für Bilddateien:** eine Bilddatei am Eintrag bekommt beim Hochladen
+  eine Kachel wie ein Foto. Sie steht in der Dateizeile und in der Marke.
+  Bilddateien aus dem Bestand bekommen sie beim ersten Anzeigen. Export,
+  Import und Papierkorb tragen sie nicht.
 
 ### Geändert
 

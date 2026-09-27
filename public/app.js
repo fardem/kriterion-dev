@@ -2194,6 +2194,7 @@ function markupRefNode(row, term, name) {
 const plainClick = (e) => !(e.ctrlKey || e.metaKey || e.shiftKey || e.button);
 const fileSign = (preview) =>
   preview === 'image' ? '▣' : preview === 'pdf' ? '▤' : preview === 'keine' ? '▪' : '▥';
+const fileTileSource = (fileId) => `/api/attachments/${Number(fileId)}/raw?size=thumb`;
 
 function markupThumb(a, src, video) {
   const img = document.createElement('img');
@@ -2210,21 +2211,26 @@ function markupThumb(a, src, video) {
   a.appendChild(badge);
 }
 
-/* Eine Bilddatei hat keine Kachel; das Vorschaubild laedt die ganze Datei. */
+function markupFileSign(a, row, term, name) {
+  const sign = document.createElement('span');
+  sign.className = 'markup-ref-sign';
+  sign.textContent = fileSign(row.preview);
+  a.replaceChildren(sign, raiseHighlight(name || row.filename, term));
+}
+
 function markupFileRef(a, row, term, name) {
   a.href = fileAddress(row.itemId, row.id);
   a.title = `${t(row.preview === 'office' ? 'entry.refOfficeHint' : 'entry.refFileHint')} · ${row.itemTitle}`;
   if (row.preview === 'image') {
-    markupThumb(a, `/api/attachments/${Number(row.id)}/raw?inline=1`, false);
-    a.querySelector('img').setAttribute('alt', row.filename);
+    markupThumb(a, fileTileSource(row.id), false);
+    const img = a.querySelector('img');
+    img.setAttribute('alt', row.filename);
+    // Ohne Kachel, etwa bei BMP, wie jede andere Datei.
+    img.onerror = () => { a.classList.remove('markup-pic'); markupFileSign(a, row, term, name); };
     if (name) a.appendChild(raiseHighlight(name, term));
     return a;
   }
-  const sign = document.createElement('span');
-  sign.className = 'markup-ref-sign';
-  sign.textContent = fileSign(row.preview);
-  a.appendChild(sign);
-  a.appendChild(raiseHighlight(name || row.filename, term));
+  markupFileSign(a, row, term, name);
   if (row.preview !== 'office') return a;
   // Auf dem Telefon waere der Betrachter zu klein; dort oeffnet die Ansicht.
   a.onclick = (e) => {
@@ -6103,7 +6109,8 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0) {
       // Wie am Link: loeschen duerfen der Verfasser und Admins.
       const mayPath = a.mine === true || ADMIN;
 
-      row.innerHTML = `<span class="aicon">${esc(fileSign(a.preview))}</span>
+      row.innerHTML = `<span class="aicon">${a.preview === 'image'
+          ? `<img class="athumb" src="${esc(fileTileSource(a.id))}" alt="" loading="lazy">` : esc(fileSign(a.preview))}</span>
         <span class="aname">${esc(a.filename)}</span>
         <span class="asize">${esc(filesize(a.size))}</span>
         ${showFrom ? `<span class="afrom">(${esc(authorName(a.author))})</span>` : ''}
@@ -6115,6 +6122,8 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0) {
         <a class="adl" href="/api/attachments/${Number(a.id)}/raw" download title="${esc(t('entry.download'))}">↓</a>
         ${mayPath ? `<button class="xdel" title="${esc(t('entry.deleteFile'))}">${ICON_X}</button>` : ''}`;
 
+      const tile = row.querySelector('.athumb');
+      if (tile) tile.onerror = () => { tile.parentElement.textContent = fileSign(a.preview); };
       row.querySelector('.alink').onclick = (e) => {
         e.stopPropagation();
         copyText(fullAddress(fileAddress(id, a.id)), t('card.linkCopied'));

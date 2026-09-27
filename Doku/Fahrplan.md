@@ -196,7 +196,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.43.0**~~ | ~~**Dokumente über den Document Server bearbeiten**~~ | **GEBAUT am 27. September 2026** auf 0.42.3 — Änderungsprotokoll 0.43.0. *Der Rückweg: der Document Server ruft einen Callback bei Kriterion, Kriterion holt die Fassung und schreibt sie nach `attachments.data`.* Es bearbeitet, wer hochgeladen hat; mit dem Haken „Bearbeiten durch alle" jeder Account, der Admin ohne Haken nicht. Die Fassung vor der letzten Bearbeitung bleibt erhalten und lässt sich zurücktauschen. `.doc`, `.xls`, `.ppt` werden nach Rückfrage zu `.docx`, `.xlsx`, `.pptx`. Die sieben Fragen beantwortet der Betreiber am 26. September 2026 (Abschnitt unten). **MINOR** *(1.161 → 1.178 Rückbauten). Fingerprint `c83a6a27` (davor `90d99a0b`)* | **ja** | 19 → 20 |
 | ~~**0.43.1**~~ | ~~**Updates kommen sofort im Browser an**~~ | **GEBAUT am 27. September 2026** auf 0.43.0 — Änderungsprotokoll 0.43.1. *Befund des Betreibers nach dem Einspielen von 0.43.0:* die Karte „Dokumente" zeigte den alten Stand. Die gezippte Auslieferung setzt jetzt `Cache-Control: public, max-age=0` wie `express.static`. **PATCH** *(1.178 → 1.179 Rückbauten). Fingerprint `66001468` (davor `c83a6a27`)* | nein | nein |
 | ~~**0.43.2**~~ | ~~**Stift an bearbeitbaren Dateien**~~ | **GEBAUT am 27. September 2026** auf 0.43.1 — Änderungsprotokoll 0.43.2. *Wünsche des Betreibers nach dem Einspielen von 0.43.0:* Stift an Dateien mit Schreibrecht, ⤢ nur zum Ansehen; Name an jeder Datei und jedem Link; zurück zur Zeile der Datei; Thema Modern Hell/Dunkel; eigener Kasten „Dokumente“ mit Darstellung und Vorgabe „Bearbeiten durch alle“; kein Haken mehr beim Hochladen, dafür ein Zeichen in der Dateizeile. **PATCH** *(1.179 → 1.190 Rückbauten). Fingerprint `0c19372c` (davor `66001468`)* | nein | nein |
-| ~~**0.44.0**~~ | ~~**Verweise auf Dateien und Fotos**~~ | **GEBAUT am 27. September 2026** auf 0.43.2 — Änderungsprotokoll 0.44.0. Ein Link auf eine Datei oder ein Foto dieser Instanz wird in Kommentar und Beschreibung zur Marke. Bürodatei: Marke mit Zeichen und Dateiname, ein Klick klappt einen Betrachter von 360 px auf (`type: 'embedded'`), erst dann lädt der Document Server. Bilddatei und Foto: ein Vorschaubild. Fotos haben die Adresse `#/item/<Eintrag>/photo/<Foto>`. „Link kopieren“ in jeder Dateizeile und im Vollbild. Die eigene Ansicht zeigt jetzt jede Datei. **MINOR** *(1.190 → 1.207 Rückbauten, Prüfstand 7.476 → 7.515). Fingerprint `4dfafc61` (davor `0c19372c`)* | nein | nein |
+| ~~**0.44.0**~~ | ~~**Verweise auf Dateien und Fotos**~~ | **GEBAUT am 27. September 2026** auf 0.43.2 — Änderungsprotokoll 0.44.0. Ein Link auf eine Datei oder ein Foto dieser Instanz wird in Kommentar und Beschreibung zur Marke. Bürodatei: Marke mit Zeichen und Dateiname, ein Klick klappt einen Betrachter von 360 px auf (`type: 'embedded'`), erst dann lädt der Document Server. Bilddatei und Foto: ein Vorschaubild; Bilddateien bekommen dafür eine gespeicherte Kachel in der neuen Tabelle `attachment_thumbs`, auch in der Dateizeile. Fotos haben die Adresse `#/item/<Eintrag>/photo/<Foto>`. „Link kopieren“ in jeder Dateizeile und im Vollbild. Die eigene Ansicht zeigt jetzt jede Datei. Die Fragetafel ist am 27. September 2026 nach dem Bauen beantwortet worden, nicht davor (Abschnitt unten). **MINOR** *(1.190 → 1.215 Rückbauten, Prüfstand 7.476 → 7.526). Fingerprint `37520fc0` (davor `0c19372c`)* | **ja** | nein |
 | ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. Die zwei offenen Punkte des Eintrags stehen in der Zeile darunter | — | — |
 | ~~*ohne Nummer*~~ | ~~**Vorgabewerte und Tastaturbedienung beim Sortieren**~~ | **VORLÄUFIG GESTRICHEN am 21. September 2026:** der Inhalt ist nirgends beschrieben — weder hier noch im Sammelblatt noch im Projektstand steht, welche Vorgabewerte gemeint sind und was die Tastatur beim Sortieren tun soll. *Die Zeile kommt zurück, sobald der Betreiber sagt, was gemeint war.* | — | — |
 | ~~*ohne Nummer*~~ | ~~**Die Doppelung in der README auflösen**~~ | **GEBAUT mit 0.38.0 am 19. September 2026.** *Befund aus BA 6 der 0.37.0: zwei Abschnitte der README trugen dieselben drei Sachverhalte — dass eine fehlende Spalte nicht nachgerüstet wird, dass der Kasten jede fehlende Spalte samt altem Namen nennt, und dass die Instanz startet, aber jede Seite scheitert, die eine der Spalten liest.* **Jetzt verweist jeder der beiden auf den anderen:** `README.md`:348 nach unten, `README.md`:464 nach oben. *0.38.5 hat die README danach noch einmal gegliedert.* | nein | — |
@@ -3162,6 +3162,25 @@ bräuchte eine weitere Tabelle.
 > **GEBAUT am 27. September 2026** auf 0.43.2. Das Protokoll steht als
 > `Doku/Aenderungsprotokoll_0.44.0.md`.
 
+### Die Antworten des Betreibers vom 27. September 2026
+
+Die Fragetafel ist erst nach dem Bauen vorgelegt worden. F1 und F8 bis F11 haben
+den Bau danach geändert.
+
+| Frage | Antwort |
+|---|---|
+| F1. Vorschaubild einer Bilddatei | eine gespeicherte Kachel, Schema: ja |
+| F2. „Link kopieren“ an welchen Dateien | an jeder; die eigene Ansicht zeigt dafür jede Art |
+| F3. Klick auf die Marke einer Bilddatei | eigene Ansicht der Datei |
+| F4. Adresse nach dem Öffnen eines Fotos | `#/item/<Eintrag>` |
+| F5. Offener kleiner Betrachter beim Neuzeichnen | schließt sich |
+| F6. Die fünf neuen Texte | bleiben |
+| F7. Mehr als 200 Verweise auf Kommentare | in 0.44.0 behoben |
+| F8. Kachel für Bilddateien im Bestand | beim ersten Abruf |
+| F9. Kachel in Export, Import und Papierkorb | nein, Austauschformat bleibt 20 |
+| F10. Größe der Kachel | wie die Fotokachel, 512 × 512 aus der Mitte |
+| F11. Kachel in der Dateizeile | ja |
+
 **Beschlossen am 26. September 2026.** Wunsch des Betreibers: eine Datei oder
 ein Foto in Kommentar und Beschreibung verlinken, als kleine Vorschau.
 
@@ -3203,7 +3222,8 @@ erzeugt, gespeichert und aufgeräumt werden und nach jeder Bearbeitung
 Vorschaubild, kleiner Betrachter, Adresse des Fotos, zwei Knöpfe)* ·
 `public/style.css` · die drei Sprachdateien · `manual-de.md`.
 
-**Schema: nein.** Austauschformat: bleibt.
+**Schema: nein.** Austauschformat: bleibt. *Nach F1 der Fragetafel: Schema
+ja, die Tabelle `attachment_thumbs`. Das Austauschformat bleibt (F9).*
 
 ---
 ## ~~1.0.0 — „Die Zusage"~~ — gestrichen am 15. September 2026

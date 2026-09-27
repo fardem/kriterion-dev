@@ -31,12 +31,17 @@ async function run() {
   const item = (await B.call('POST', '/api/items', { title: 'Mit Verweisen' })).content.id;
   const picture = await sharp({ create: { width: 64, height: 48, channels: 3,
     background: { r: 40, g: 140, b: 90 } } }).png().toBuffer();
+  // Groesser als die Kachel, damit Zuschnitt und Kante messbar sind.
+  const bigPicture = await sharp({ create: { width: 800, height: 600, channels: 3,
+    background: { r: 200, g: 90, b: 40 } } }).png().toBuffer();
   const mp4 = crypto.randomBytes(4096);
   Buffer.from([0, 0, 0, 0x20]).copy(mp4, 0);
   Buffer.from('ftypisom', 'latin1').copy(mp4, 4);
+  // kaputt.png traegt die Endung eines Bildes, aber keine Bilddaten.
   const upFiles = await send(`/api/items/${item}/attachments`,
-    ['bericht.docx', 'bild.png', 'doku.pdf', 'archiv.zip'].map(name =>
-      ({ field: 'files', name, content: Buffer.from(name + crypto.randomBytes(8).toString('hex')) })));
+    ['bericht.docx', 'bild.png', 'doku.pdf', 'archiv.zip', 'kaputt.png'].map(name =>
+      ({ field: 'files', name, content: name === 'bild.png' ? bigPicture
+        : Buffer.from(name + crypto.randomBytes(8).toString('hex')) })));
   const upPhoto = await send(`/api/items/${item}/photos`,
     [{ field: 'photos', name: 'foto.png', type: 'image/png', content: picture }]);
   const upVideo = await send(`/api/items/${item}/videos`,
@@ -46,9 +51,9 @@ async function run() {
   const fileId = Object.fromEntries((detailed?.attachments || []).map(a => [a.filename, a.id]));
   const photo = (detailed?.photos || []).find(p => p.kind === 'image');
   const video = (detailed?.photos || []).find(p => p.kind === 'video');
-  check('Der Aufbau steht: vier Dateien, ein Foto, ein Video',
+  check('Der Aufbau steht: fuenf Dateien, ein Foto, ein Video',
     upFiles.status === 201 && upPhoto.status === 201 && upVideo.status === 201 &&
-    Object.keys(fileId).length === 4 && !!photo && !!video,
+    Object.keys(fileId).length === 5 && !!photo && !!video,
     `${upFiles.status} ${upPhoto.status} ${upVideo.status} ${Object.keys(fileId).join(' ')}`);
 
   const allFiles = Object.values(fileId).join(',');
@@ -56,7 +61,8 @@ async function run() {
   let got = byKey(await refs(`files=${allFiles},999999&photos=${photo?.id},${video?.id},999999`));
   const kinds = Object.fromEntries(Object.entries(fileId).map(([n, id]) => [n, got['f' + id]?.preview]));
   check('Je Datei: Dateiname, Eintrag, Titel und die Art der Vorschau wie am Eintrag',
-    equal(kinds, { 'bericht.docx': 'docx', 'bild.png': 'image', 'doku.pdf': 'pdf', 'archiv.zip': 'keine' }) &&
+    equal(kinds, { 'bericht.docx': 'docx', 'bild.png': 'image', 'doku.pdf': 'pdf', 'archiv.zip': 'keine',
+      'kaputt.png': 'image' }) &&
     got['f' + fileId['bild.png']]?.filename === 'bild.png' && got['f' + fileId['bild.png']]?.itemId === item &&
     got['f' + fileId['bild.png']]?.itemTitle === 'Mit Verweisen' && got['f' + fileId['bild.png']]?.id === fileId['bild.png'],
     JSON.stringify(got['f' + fileId['bild.png']]) + ' ' + JSON.stringify(kinds));
@@ -66,7 +72,7 @@ async function run() {
     got['p' + photo?.id]?.thumbLength === photo?.thumbLength && photo?.thumbLength > 0,
     `${JSON.stringify(got['p' + photo?.id])} gegen ${photo?.thumbLength}`);
   check('Was es nicht gibt, fehlt in der Antwort',
-    !got.f999999 && !got.p999999 && Object.keys(got).length === 6, Object.keys(got).join(' '));
+    !got.f999999 && !got.p999999 && Object.keys(got).length === 7, Object.keys(got).join(' '));
 
   await B.call('PUT', '/api/settings', { documentServer: true });
   got = byKey(await refs(`files=${fileId['bericht.docx']}`));
@@ -102,6 +108,61 @@ async function run() {
     check('Die Frage nach dem Foto liest den deckenden Index, nicht die Zeile mit den Blobs',
       plan.includes('COVERING INDEX idx_photos_tile'), plan || '(keine Abfrage gefunden)');
   }
+
+  group('Verweise auf Dateien: die Kachel einer Bilddatei');
+  const inDb = (work) => {
+    const d = H.open(path.join(dir, 'katalog.sqlite'));
+    d.pragma('busy_timeout = 4000');
+    try { return work(d); } finally { d.close(); }
+  };
+  // null: keine Zeile; { thumb: null }: sharp konnte die Datei nicht lesen.
+  const tileRow = (id) => inDb(d => d.prepare('SELECT thumb FROM attachment_thumbs WHERE attachment_id = ?').get(id) || null);
+  const tileOf = async (id, signedIn = true) => {
+    const a = await fetch(`${B.base}/api/attachments/${id}/raw?size=thumb`,
+      { headers: signedIn ? withCsrf(B.cookieValue()) : {} });
+    return { status: a.status, headers: a.headers, bytes: Buffer.from(await a.arrayBuffer()) };
+  };
+  const stored = tileRow(fileId['bild.png']), broken = tileRow(fileId['kaputt.png']);
+  check('Beim Hochladen entsteht die Kachel, bei einer unlesbaren Bilddatei eine leere Zeile',
+    stored?.thumb?.length > 0 && broken !== null && broken.thumb === null && tileRow(fileId['doku.pdf']) === null,
+    `${stored?.thumb?.length} ${JSON.stringify(broken)} ${JSON.stringify(tileRow(fileId['doku.pdf']))}`);
+  const tile = await tileOf(fileId['bild.png']);
+  let tileMeta = null;
+  try { tileMeta = await sharp(tile.bytes).metadata(); } catch { tileMeta = null; }
+  check('Sie ist wie die Fotokachel: WebP, 512 × 512 aus der Mitte',
+    tile.status === 200 && tile.headers.get('content-type') === 'image/webp' && tileMeta?.format === 'webp' &&
+    tileMeta.width === 512 && tileMeta.height === 512 && !!stored?.thumb && tile.bytes.equals(stored.thumb),
+    `${tile.status} ${tile.headers.get('content-type')} ${tileMeta?.width}x${tileMeta?.height}`);
+  check('Sie geht mit nosniff und Sandbox hinaus und bleibt eine Woche im Cache',
+    tile.headers.get('x-content-type-options') === 'nosniff' &&
+    /sandbox/.test(tile.headers.get('content-security-policy') || '') &&
+    tile.headers.get('cache-control') === 'private, max-age=604800',
+    `${tile.headers.get('content-security-policy')} · ${tile.headers.get('cache-control')}`);
+  const brokenTile = await tileOf(fileId['kaputt.png']);
+  const pdfTile = await tileOf(fileId['doku.pdf']);
+  check('Ohne Kachel und bei einer Datei, die kein Bild ist: 404, und es entsteht keine Zeile',
+    brokenTile.status === 404 && pdfTile.status === 404 && tileRow(fileId['doku.pdf']) === null,
+    `${brokenTile.status} ${pdfTile.status} ${JSON.stringify(tileRow(fileId['doku.pdf']))}`);
+  inDb(d => d.prepare('DELETE FROM attachment_thumbs WHERE attachment_id = ?').run(fileId['bild.png']));
+  const firstCall = await tileOf(fileId['bild.png']);
+  check('Eine Bilddatei ohne Kachel bekommt sie beim ersten Abruf, danach liegt sie in der Datenbank',
+    firstCall.status === 200 && !!tileRow(fileId['bild.png'])?.thumb?.equals(firstCall.bytes),
+    `${firstCall.status} ${tileRow(fileId['bild.png'])?.thumb?.length}`);
+  const strangerTile = await tileOf(fileId['bild.png'], false);
+  check('Ohne Anmeldung keine Kachel', strangerTile.status === 401, String(strangerTile.status));
+  await B.call('DELETE', `/api/items/${item}`);
+  check('Mit der Datei faellt ihre Kachel',
+    inDb(d => d.prepare('SELECT COUNT(*) n FROM attachment_thumbs').get().n) === 0,
+    String(inDb(d => d.prepare('SELECT COUNT(*) n FROM attachment_thumbs').get().n)));
+  const trashRow = (await B.call('GET', '/api/trash')).content?.rows?.find(z => z.title === 'Mit Verweisen');
+  const restored = await B.call('POST', `/api/trash/${trashRow?.id}/restore`);
+  const back = (await B.call('GET', `/api/items/${restored.content?.itemId}`)).content;
+  const backId = (back?.attachments || []).find(a => a.filename === 'bild.png')?.id;
+  const noRowYet = backId ? tileRow(backId) === null : false;
+  const backTile = backId ? await tileOf(backId) : { status: 0 };
+  check('Aus dem Papierkorb: die Kachel reist nicht mit und entsteht beim ersten Abruf',
+    noRowYet && backTile.status === 200 && !!tileRow(backId)?.thumb,
+    `${restored.status} ${backId} ${noRowYet} ${backTile.status}`);
   await B.stop();
   fs.rmSync(dir, { recursive: true, force: true });
 
@@ -177,8 +238,8 @@ async function run() {
       officeRef?.textContent === '▥bericht.docx' &&
       officeRef?.title === `${DE['entry.refOfficeHint']} · Beispiel`, officeRef?.outerHTML);
     const imageRef = ref('#/item/1/file/42');
-    check('Bilddatei: ein Vorschaubild aus der Datei, der Klick oeffnet die Ansicht',
-      imageRef?.querySelector('img.markup-thumb')?.getAttribute('src') === '/api/attachments/42/raw?inline=1' &&
+    check('Bilddatei: ihre Kachel als Vorschaubild, der Klick oeffnet die Ansicht',
+      imageRef?.querySelector('img.markup-thumb')?.getAttribute('src') === '/api/attachments/42/raw?size=thumb' &&
       imageRef?.querySelector('img')?.getAttribute('alt') === 'foto.png' && imageRef?.onclick === null &&
       imageRef?.title === `${DE['entry.refFileHint']} · Beispiel`, imageRef?.outerHTML);
     const pdfRef = ref('#/item/1/file/43');
@@ -190,6 +251,10 @@ async function run() {
       photoRef?.querySelector('img')?.getAttribute('src') === '/api/photos/5/raw?size=thumb&v=1234' &&
       !photoRef?.querySelector('.play-badge') && videoRef?.querySelector('.play-badge')?.textContent === '▶' &&
       photoRef?.title === `${DE['entry.clickFullscreen']} · Beispiel`, `${photoRef?.outerHTML} ${videoRef?.outerHTML}`);
+    imageRef?.querySelector('img')?.dispatchEvent(new w.Event('error'));
+    check('Laedt die Kachel nicht, zeigt die Marke Zeichen und Dateiname',
+      imageRef?.textContent === '▣foto.png' && !imageRef?.querySelector('img') &&
+      !imageRef?.classList.contains('markup-pic'), imageRef?.outerHTML);
     const gone = desc.querySelector('.markup-ref.gone');
     check('Eine geloeschte Datei steht wie ein geloeschter Kommentar da',
       gone?.textContent === DE['entry.refGone'] && !gone?.hasAttribute('href'), gone?.outerHTML);
@@ -282,6 +347,15 @@ async function run() {
       w.document.querySelector('.lightbox .lb-tools')?.innerHTML?.slice(0, 120));
     w.document.querySelector('.lightbox .close')?.click();
 
+    const rowTile = w.document.querySelector('#atts .arow[data-file="42"] .aicon img.athumb');
+    const pdfSign = w.document.querySelector('#atts .arow[data-file="43"] .aicon')?.textContent;
+    check('In der Dateizeile steht die Kachel statt des Zeichens, nur bei der Bilddatei',
+      rowTile?.getAttribute('src') === '/api/attachments/42/raw?size=thumb' && pdfSign === '▤' &&
+      w.document.querySelectorAll('#atts .athumb').length === 1, `${rowTile?.outerHTML} ${pdfSign}`);
+    rowTile?.dispatchEvent(new w.Event('error'));
+    check('Laedt sie nicht, steht dort wieder das Zeichen',
+      w.document.querySelector('#atts .arow[data-file="42"] .aicon')?.textContent === '▣' &&
+      !w.document.querySelector('#atts .athumb'), w.document.querySelector('#atts .arow[data-file="42"] .aicon')?.innerHTML);
     const links = [...w.document.querySelectorAll('#atts .arow .alink')];
     const pngRow = w.document.querySelector('#atts .arow[data-file="42"]');
     const copiedBefore = seen.copied.length;

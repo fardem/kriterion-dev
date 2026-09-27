@@ -8924,6 +8924,62 @@ const REGRESSIONS = [
     replacement: "    if (e.target.closest('a')) return;",
     expected: 'Verweise auf Dateien: Marken im Browser'
   },
+  {
+    nr: '1288', name: 'Das Hochladen legt keine Kachel an',
+    file: 'server.js',
+    search: "      if (tile !== undefined) putFileTile.run(added.lastInsertRowid, tile);\n",
+    replacement: "",
+    expected: 'Verweise auf Dateien: die Kachel einer Bilddatei'
+  },
+  {
+    nr: '1289', name: 'Der erste Abruf legt die Kachel nicht ab',
+    file: 'server.js',
+    search: "    if (db.prepare('SELECT 1 FROM attachments WHERE id = ?').get(id)) putFileTile.run(id, row.thumb);\n",
+    replacement: "",
+    expected: 'Verweise auf Dateien: die Kachel einer Bilddatei'
+  },
+  {
+    nr: '1290', name: 'Die Kachel ist nicht aus der Mitte beschnitten',
+    file: 'server.js',
+    search: "const fileTile = async (bytes) => (await makeVariants(bytes, DEFAULT_CROP, ['thumb'])).thumb;",
+    replacement: "const fileTile = async (bytes) => (await makeVariants(bytes, null, ['thumb'])).thumb;",
+    expected: 'Verweise auf Dateien: die Kachel einer Bilddatei'
+  },
+  {
+    nr: '1291', name: 'Jede Datei bekommt beim Abruf eine Kachel',
+    file: 'server.js',
+    search: "  if (!a || attachments.previewKind(a.filename) !== 'image') return res.status(404).end();",
+    replacement: "  if (!a) return res.status(404).end();",
+    expected: 'Verweise auf Dateien: die Kachel einer Bilddatei'
+  },
+  {
+    nr: '1292', name: 'Marke und Dateizeile laden wieder die ganze Datei',
+    file: 'public/app.js',
+    search: "const fileTileSource = (fileId) => `/api/attachments/${Number(fileId)}/raw?size=thumb`;",
+    replacement: "const fileTileSource = (fileId) => `/api/attachments/${Number(fileId)}/raw?inline=1`;",
+    expected: 'Verweise auf Dateien: Marken im Browser'
+  },
+  {
+    nr: '1293', name: 'Ohne Kachel bleibt die Marke leer',
+    file: 'public/app.js',
+    search: "    img.onerror = () => { a.classList.remove('markup-pic'); markupFileSign(a, row, term, name); };\n",
+    replacement: "",
+    expected: 'Verweise auf Dateien: Marken im Browser'
+  },
+  {
+    nr: '1294', name: 'Die Dateizeile zeigt wieder nur das Zeichen',
+    file: 'public/app.js',
+    search: "      row.innerHTML = `<span class=\"aicon\">${a.preview === 'image'",
+    replacement: "      row.innerHTML = `<span class=\"aicon\">${false",
+    expected: 'Verweise auf Dateien: Adresse des Fotos und Link kopieren'
+  },
+  {
+    nr: '1295', name: 'Ohne Kachel bleibt das Feld in der Dateizeile leer',
+    file: 'public/app.js',
+    search: "      if (tile) tile.onerror = () => { tile.parentElement.textContent = fileSign(a.preview); };\n",
+    replacement: "",
+    expected: 'Verweise auf Dateien: Adresse des Fotos und Link kopieren'
+  },
 ];
 
 /* ---- Spuren und Versatz ---- */

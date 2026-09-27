@@ -1,33 +1,84 @@
 # Änderungsprotokoll 0.44.0 — „Verweise auf Dateien und Fotos"
 
-**Gebaut am 27. September 2026 auf 0.43.2. Fingerprint `4dfafc61`, davor
+**Gebaut am 27. September 2026 auf 0.43.2. Fingerprint `37520fc0`, davor
 `0c19372c`.**
 
 Nach dem Abschnitt 0.44.0 im Fahrplan, beschlossen am 26. September 2026.
-Schema: nein. Austauschformat: 20, unverändert.
+Schema: ja, eine neue Tabelle. Austauschformat: 20, unverändert.
 
 ---
 
-## 1. Die Bilanz
+## 1. Die Fragetafel, nach dem ersten Bau
+
+Die Fragetafel ist nicht vor der ersten Zeile vorgelegt worden, sondern nach
+dem ersten Bau (Commit `14a9b02`). Der Abschnitt im Fahrplan hatte keine Liste
+offener Fragen; der erste Bau hat die offenen Punkte selbst entschieden. Der
+Betreiber hat danach am 27. September 2026 geantwortet. F1 und F8 bis F11
+haben den Bau geändert, F2 bis F7 bestätigen ihn.
+
+| Frage | Antwort | Folge |
+|---|---|---|
+| F1. Vorschaubild einer Bilddatei | eine gespeicherte Kachel | neue Tabelle `attachment_thumbs`; vorher lud die Marke die ganze Datei |
+| F2. „Link kopieren“ an welchen Dateien | an jeder | die eigene Ansicht zeigt jede Art |
+| F3. Klick auf die Marke einer Bilddatei | eigene Ansicht der Datei | wie gebaut |
+| F4. Adresse nach dem Öffnen eines Fotos | `#/item/<Eintrag>` | wie gebaut |
+| F5. Offener kleiner Betrachter beim Neuzeichnen | schließt sich | wie gebaut |
+| F6. Die fünf neuen Texte | bleiben | wie gebaut |
+| F7. Mehr als 200 Verweise auf Kommentare | in 0.44.0 behoben | wie gebaut |
+| F8. Kachel für Bilddateien im Bestand | beim ersten Abruf | neue beim Hochladen |
+| F9. Kachel in Export, Import und Papierkorb | nein | Austauschformat bleibt 20 |
+| F10. Größe der Kachel | wie die Fotokachel | 512 × 512 aus der Mitte, WebP 82 |
+| F11. Kachel in der Dateizeile | ja | statt des Zeichens ▣ |
+
+---
+
+## 2. Die Bilanz
 
 Gemessen am fertigen Stand gegen 0.43.2.
 
 | | 0.43.2 | 0.44.0 |
 |---|---:|---:|
+| Tabellen der Datenbank | 32 | **33** |
 | Schlüssel je Sprachdatei | 1.224 | **1.229** |
-| Regelzeilen des Stilblatts | 1.700 | **1.718** |
+| Regelzeilen des Stilblatts | 1.700 | **1.719** |
 | Zuweisungen an `innerHTML` in `public/app.js` | 182 | **184** |
-| Kommentarzeilen | 6.521 in 40 Dateien | **6.551 in 41** |
+| Kommentarzeilen | 6.521 in 40 Dateien | **6.561 in 41** |
 | Dateien des Prüfstands samt `counterproof.js` | 24 | **25** |
-| Rückbauten | 1.190 | **1.207** |
-| Prüfungen im Prüfstand | 7.476 | **7.515** |
+| Rückbauten | 1.190 | **1.215** |
+| Prüfungen im Prüfstand | 7.476 | **7.526** |
 
 ---
 
-## 2. Was gebaut ist
+## 3. Was gebaut ist
 
-**`server.js`, `GET /api/comment-refs`.** Zwei neue Abfrageparameter, je
-höchstens 200 Nummern wie `ids` und `items`:
+**Schema, `db.js`.** Eine Tabelle, keine neue Spalte. `CREATE TABLE IF NOT
+EXISTS` legt sie auch in bestehenden Datenbanken an.
+
+| Tabelle | Spalten | Zweck |
+|---|---|---|
+| `attachment_thumbs` | `attachment_id`, `thumb` | Kachel einer Bilddatei; `thumb` ist `NULL`, wenn `sharp` die Datei nicht lesen kann |
+
+Sie hängt mit `ON DELETE CASCADE` an `attachments`.
+
+**`images.js`.** `makeVariants()` nimmt als dritten Wert die Namen der
+Varianten; ohne ihn entstehen beide wie bisher. Die Kachel einer Bilddatei
+entsteht mit `makeVariants(bytes, DEFAULT_CROP, ['thumb'])`, also wie die
+Fotokachel: 512 × 512 aus der Mitte, WebP 82.
+
+**`server.js`.**
+
+- `POST /api/items/:id/attachments` rechnet die Kachel jeder Bilddatei
+  (`previewKind()` ist `image`), bevor es prüft und schreibt. Zwischen der
+  Prüfung der Dateizahl und dem Schreiben liegt so kein `await`.
+- `GET /api/attachments/:id/raw?size=thumb` liefert die Kachel. Fehlt die
+  Zeile, entsteht sie beim ersten Abruf und wird gespeichert. Keine Bilddatei,
+  keine Kachel oder keine Datei: 404. Ausgeliefert über `setImageHeader()` mit
+  `nosniff`, Sandbox und `Cache-Control: private, max-age=604800`; der Inhalt
+  einer Bilddatei ändert sich nicht.
+- Export, Import und Papierkorb lesen und schreiben die Tabelle nicht. Nach
+  Import oder Zurückholen entsteht die Kachel beim ersten Abruf.
+- `GET /api/comment-refs` hat zwei neue Abfrageparameter, je höchstens 200
+  Nummern wie `ids` und `items`:
 
 | Parameter | Schlüssel | Felder |
 |---|---|---|
@@ -59,12 +110,14 @@ Die Frage nach dem Foto liest `kind` und `length(thumb)` aus dem Index
 | Verweis auf | Marke | Klick |
 |---|---|---|
 | Datei für den Document Server | Zeichen ▥ und Dateiname | klappt darunter einen Betrachter von 360 px auf, ein zweiter Klick schließt ihn; ⤢ im Kasten führt zur eigenen Ansicht. Auf dem Telefon: eigene Ansicht |
-| Bilddatei | Vorschaubild aus `/api/attachments/<Datei>/raw?inline=1`, `loading="lazy"` | eigene Ansicht |
+| Bilddatei | Kachel aus `?size=thumb`; ohne Kachel ▣ und Dateiname | eigene Ansicht |
 | andere Datei | Zeichen wie in der Dateizeile und Dateiname | eigene Ansicht |
-| Foto oder Video | Kachel `?size=thumb&v=<thumbLength>`, beim Video ▶ | Vollbild an diesem Foto; im selben Eintrag ohne neue Adresse |
+| Foto oder Video | Fotokachel `?size=thumb&v=<thumbLength>`, beim Video ▶ | Vollbild an diesem Foto; im selben Eintrag ohne neue Adresse |
 
   Der Titel der Marke nennt den Eintrag. Ein eigener Name aus `[Name](Adresse)`
-  steht statt des Dateinamens, beim Bild neben dem Vorschaubild.
+  steht statt des Dateinamens, beim Bild neben der Kachel.
+- Die Dateizeile zeigt bei einer Bilddatei die Kachel (`.athumb`, 28 px)
+  statt ▣. Lädt sie nicht, steht wieder ▣ da.
 - Der kleine Betrachter fragt `/api/attachments/<Datei>/office?mobile=1&edit=0`.
   `viewerConfig()` in `docserver.js` setzt für `mobile=1` schon
   `type: 'embedded'` und signiert es; der Server bleibt dafür unverändert.
@@ -88,46 +141,48 @@ Die Frage nach dem Foto liest `kind` und `length(thumb)` aus dem Index
 **Texte.** Fünf Schlüssel je Sprache: `entry.copyLink`,
 `entry.copyFileLink`, `entry.noPreview`, `entry.refFileHint`,
 `entry.refOfficeHint`. Das Handbuch nennt „Link kopieren“ bei Fotos und
-Dateien und den Verweis auf eine Datei oder ein Foto bei den Kommentaren.
+Dateien, die Kachel in der Dateizeile und den Verweis auf eine Datei oder ein
+Foto bei den Kommentaren.
 
 ---
 
-## 3. Entscheidungen beim Bauen
+## 4. Entscheidungen beim Bauen
+
+Was die Fragetafel nicht abdeckt:
 
 | Frage | Entscheidung | Grund |
 |---|---|---|
-| Vorschaubild einer Bilddatei | die Datei selbst, `loading="lazy"` | Anhänge haben keine Kachel. Eine Kachel müsste erzeugt, gespeichert und aufgeräumt werden, wie es der Fahrplan für Bürodateien ausschließt |
-| Wohin führt der Klick auf eine Bilddatei | in die eigene Ansicht der Datei | Der Fahrplan nennt für Bilddatei und Bürodatei dieselbe Adresse. Das Vollbild gehört zu Fotos |
-| „Link kopieren“ an welchen Dateien | an jeder | Deshalb zeigt die eigene Ansicht jetzt jede Art; sonst führte der Link bei einem PDF auf `entry.officeFailed` |
+| Bilddatei, die `sharp` nicht lesen kann | Zeile mit `thumb` `NULL`; Marke und Dateizeile zeigen ▣ | Ohne Zeile rechnete jeder Abruf erneut. BMP steht in der Liste der Bilder, `sharp` liest es nicht |
+| Wann die Kachel beim Hochladen entsteht | vor allen Prüfungen | Sonst läge ein `await` zwischen der Prüfung der Dateizahl und dem Schreiben; zwei gleichzeitige Uploads kämen über 20 Dateien |
 | `embedded` für den kleinen Betrachter | über `mobile=1` | Der Server setzt `type` im signierten Teil der Konfiguration. Ein eigener Parameter hätte dasselbe getan |
 | Adresse mit `/edit` | wird zur Marke wie die Ansicht | Wer die Adresse aus der Leiste des Editors kopiert, bekommt dieselbe Marke; sie führt zur Ansicht, nicht in den Editor |
-| Adresse nach dem Öffnen eines Fotos | `#/item/<Eintrag>` | Wie bei jedem Eintrag ersetzt `renderDetail()` die Adresse. Ein Neuladen öffnet dann nicht erneut das Vollbild |
 | Foto im selben Eintrag | Vollbild ohne Hash-Wechsel | Wie beim Verweis auf einen Kommentar; ein Hash-Wechsel baute den ganzen Eintrag neu auf |
-| Betrachter beim Neuzeichnen | schließt | Die Kommentare und die Beschreibung werden ganz neu gezeichnet. Der Stand je Marke ließe sich nur über eine eigene Kennung je Stelle halten |
 | Titel der Marke | Hinweis und Titel des Eintrags | Die Datei kann zu einem anderen Eintrag gehören |
-| Obergrenze im Browser | 200 je Art statt 400 zusammen | Die Obergrenze des Servers gilt je Art; ein Schlüssel über ihr galt sonst als gelöscht |
-| Kommentargrenzen | mit `node tools/comments.js --write` angehoben: `public/app.js` 995 → 1.014, `server.js` 873 → 876, `public/style.css` 510 → 513 | Laden erst auf Klick, `pre-wrap` um den Kasten, der Index für die Frage nach dem Foto mit gemessenen Werten |
+| Kommentargrenzen | mit `node tools/comments.js --write` angehoben: `public/app.js` 995 → 1.014, `server.js` 873 → 882, `public/style.css` 510 → 513, `images.js` 12 → 13 | Laden erst auf Klick, `pre-wrap` um den Kasten, der Index für die Frage nach dem Foto mit gemessenen Werten, die Kachel beim ersten Abruf und vor den Prüfungen |
 
 ---
 
-## 4. Der Prüfstand
+## 5. Der Prüfstand
 
-`test/release_044.js`, 39 Prüfungen in vier Gruppen. Die erste startet eine
-eigene Instanz auf der Portbasis 7340, wie `release_041` bis `release_043`,
-und lädt vier Dateien, ein Foto und ein Video hoch.
+`test/release_044.js`, 50 Prüfungen in fünf Gruppen. Die ersten beiden starten
+eine eigene Instanz auf der Portbasis 7340, wie `release_041` bis
+`release_043`, und laden fünf Dateien, ein Foto und ein Video hoch.
+`kaputt.png` trägt die Endung eines Bildes, aber keine Bilddaten.
 
 | Gruppe | Prüfungen |
 |---|---:|
 | Verweise auf Dateien: die Auskunft des Servers | 9 |
-| Verweise auf Dateien: Marken im Browser | 16 |
-| Verweise auf Dateien: Adresse des Fotos und Link kopieren | 7 |
+| Verweise auf Dateien: die Kachel einer Bilddatei | 8 |
+| Verweise auf Dateien: Marken im Browser | 17 |
+| Verweise auf Dateien: Adresse des Fotos und Link kopieren | 9 |
 | Verweise auf Dateien: die eigene Ansicht jeder Datei | 7 |
 
 Angepasst:
 
-- `test/source.js`: 1.718 Regelzeilen, 184 Zuweisungen an `innerHTML`, 25
+- `test/roundtrip.js`: 33 Tabellen.
+- `test/source.js`: 1.719 Regelzeilen, 184 Zuweisungen an `innerHTML`, 25
   Dateien des Prüfstands, 41 Dateien in der Kommentarzählung.
-- `test/selfcheck.js`: 1.207 Rückbauten, die Kommentargrenzen, 41 Dateien.
+- `test/selfcheck.js`: 1.215 Rückbauten, die Kommentargrenzen, 41 Dateien.
 - `test/ui_style.js`: im Vollbild steht `copy` vor `download`.
 - `test/ui_language.js`: `'&items='` entfällt aus der Restprobe; die Abfrage
   entsteht über `URLSearchParams`.
@@ -157,6 +212,14 @@ Rückbauten:
 | 1285 | Link kopieren in der Dateizeile kopiert den Eintrag | Adresse des Fotos und Link kopieren |
 | 1286 | Die eigene Ansicht zeigt nur Dateien für den Document Server | die eigene Ansicht jeder Datei |
 | 1287 | Ein Klick in den Betrachter öffnet das Feld der Beschreibung | Marken im Browser |
+| 1288 | Das Hochladen legt keine Kachel an | die Kachel einer Bilddatei |
+| 1289 | Der erste Abruf legt die Kachel nicht ab | die Kachel einer Bilddatei |
+| 1290 | Die Kachel ist nicht aus der Mitte beschnitten | die Kachel einer Bilddatei |
+| 1291 | Jede Datei bekommt beim Abruf eine Kachel | die Kachel einer Bilddatei |
+| 1292 | Marke und Dateizeile laden wieder die ganze Datei | Marken im Browser |
+| 1293 | Ohne Kachel bleibt die Marke leer | Marken im Browser |
+| 1294 | Die Dateizeile zeigt wieder nur das Zeichen | Adresse des Fotos und Link kopieren |
+| 1295 | Ohne Kachel bleibt das Feld in der Dateizeile leer | Adresse des Fotos und Link kopieren |
 
 Nicht gebaut: ein Rückbau für `e.stopPropagation()` am Knopf in der
 Dateizeile. `row.onclick` übergeht `.alink` zusätzlich; jeder der beiden Wege
@@ -165,7 +228,7 @@ Schreibrechte (`.arights`) ist es dasselbe.
 
 ---
 
-## 5. Nicht geprüft und offen
+## 6. Nicht geprüft und offen
 
 Die Bauumgebung erreicht `office.dmrts.de` nicht. Offen für die Abnahme mit
 Euro-Office:
@@ -178,4 +241,6 @@ Offen im Browser:
 - Die Auskunft zu einem Verweis bleibt bis zum Neuladen der Seite gespeichert,
   wie beim Verweis auf einen Kommentar. Eine inzwischen gelöschte Datei
   erscheint so lange mit Namen, die Ansicht meldet dann `server.fileGone`.
-- Eine große Bilddatei wird als Vorschaubild ganz geladen.
+
+Nicht gebaut: Die Karte „Kennzahlen“ nennt die Kacheln der Bilddateien nicht
+eigens. Ihre Größe steckt nur in der Größe der Datenbank.

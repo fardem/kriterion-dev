@@ -347,6 +347,8 @@ unverändert.
   heruntergeladen. Hat der Admin einen Document Server eingeschaltet, zeigt er
   auch Word-, Excel- und PowerPoint-Dateien und ihre OpenDocument-Gegenstücke
   an. Unter dem Betrachter steht, welcher Document Server die Datei anzeigt.
+- **Kachel:** eine Bilddatei zeigt in der Dateizeile eine Kachel, wie ein
+  Foto. Kann Kriterion die Datei nicht als Bild lesen, steht dort ▣.
 - **Link kopieren:** das Zeichen der Kette in der Dateizeile kopiert die
   Adresse der Datei. Die Adresse öffnet die Datei in der eigenen Ansicht; eine
   Datei ohne Vorschau lädt man dort mit ↓ herunter.
@@ -445,7 +447,7 @@ Angepinnte Kommentare tragen einen goldenen Rahmen.
   Dateinamen; ein Klick klappt darunter einen kleinen Betrachter auf, ein
   zweiter schließt ihn, ⤢ öffnet die eigene Ansicht. Erst der Klick lädt den
   Betrachter; auf dem Telefon öffnet er die eigene Ansicht. Eine Bilddatei
-  zeigt ein Vorschaubild, andere Dateien Zeichen und Dateinamen; beide öffnen
+  zeigt ihre Kachel, andere Dateien Zeichen und Dateinamen; beide öffnen
   die eigene Ansicht. Ein Foto zeigt seine Kachel und öffnet das Vollbild.
   Eine gelöschte Datei steht als „gelöscht“ da.
 - **Zitieren:** das Anführungszeichen in der Kopfzeile übernimmt den

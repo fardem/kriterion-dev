@@ -1702,6 +1702,7 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
 .arow .arights { display: inline-flex; padding: 4px 8px; border: 0; border-radius: 4px; background: none; color: var(--faint); cursor: pointer; }
 .arow .arights.on { color: var(--accent-text); }
 .arow .aicon { color: var(--faint); font-size: .87rem; flex-shrink: 0; }
+.arow .athumb { display: block; width: 28px; height: 28px; object-fit: cover; border-radius: 3px; }
 .arow .aname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .87rem; }
 .arow .asize { font-family: var(--mono); font-size: .7rem; color: var(--faint); flex-shrink: 0; }
 /* Nicht abschneiden; schrumpfen darf nur `.aname`. */

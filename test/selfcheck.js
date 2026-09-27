@@ -15,7 +15,7 @@ async function run() {
 
   const gpList = require('./counterproof').REGRESSIONS;
   // Mit jedem neuen Rueckbau in counterproof.js anheben.
-  check(`Es sind genau 1207 Rueckbauten`, gpList.length === 1207, `${gpList.length}`);
+  check(`Es sind genau 1215 Rueckbauten`, gpList.length === 1215, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* Jede Datei nur einmal lesen: ueber tausend Rueckbauten verteilen sich auf
@@ -351,7 +351,7 @@ async function run() {
       ['test/release_041.js', 25],
       ['test/release_042.js', 9],
       ['test/release_043.js', 12],
-      ['test/release_044.js', 6],
+      ['test/release_044.js', 9],
       ['test/roundtrip.js', 1310],
       ['test/selfcheck.js', 85],
       ['test/source.js', 212],
@@ -364,13 +364,13 @@ async function run() {
       ['test/ui_system.js', 190],
       ['test/ui_translator.js', 24],
       ['counterproof.js', 335],
-      ['server.js', 876],
+      ['server.js', 882],
       ['auth.js', 149],
       ['db.js', 55],
       ['mail.js', 17],
       ['keys.js', 14],
       ['attachments.js', 34],
-      ['images.js', 12],
+      ['images.js', 13],
       ['batchrun.js', 14],
       ['log.js', 3],
       ['usertool.js', 6],
@@ -381,7 +381,7 @@ async function run() {
       ['public/theme.js', 2],
       ['public/style.css', 513],
     ];
-    const COMMENT_TOTAL = { comment: 6551, code: 70828 };
+    const COMMENT_TOTAL = { comment: 6561, code: 70997 };
     // Ausgelieferte Dateien: Bloecke ueber drei Zeilen und Bloecke mit Betonung in Grossbuchstaben.
     const COMMENT_LIMITS = { longBlocks: 3, emphasis: 6 };
     check('Der Waechter sieht alle einundvierzig Dateien',
