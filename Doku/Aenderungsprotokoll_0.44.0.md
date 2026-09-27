@@ -221,6 +221,22 @@ Rückbauten:
 | 1294 | Die Dateizeile zeigt wieder nur das Zeichen | Adresse des Fotos und Link kopieren |
 | 1295 | Ohne Kachel bleibt das Feld in der Dateizeile leer | Adresse des Fotos und Link kopieren |
 
+**28 rot, 0 stumm**, ohne Abbruch eines Moduls, gefahren auf `8c8b7f5`
+zusammen mit 1137, 1166 und 1179 (neuer Suchtext). Jeder ist in seiner
+erwarteten Gruppe rot und zusätzlich in „Jeder Suchtext kommt in seiner Datei
+genau einmal vor“: die Prüfung liest den zurückgebauten Stand. Rot auch in
+einer weiteren Gruppe:
+
+- 1137 in „Marken im Browser“: die Prüfung auf fremde Adressen nennt auch
+  Datei und Foto.
+- 1284 in „Der Papierkorb im Vollbild“ (`test/ui_style.js`): dort steht die
+  Reihenfolge der Knöpfe im Vollbild.
+- 1292 in „Adresse des Fotos und Link kopieren“: die Dateizeile holt die
+  Kachel über dieselbe Adresse.
+
+Ein erster Lauf auf `14a9b02`, vor der Kachel, ergab für 1137, 1166, 1179 und
+1271 bis 1287 20 rot, 0 stumm.
+
 Nicht gebaut: ein Rückbau für `e.stopPropagation()` am Knopf in der
 Dateizeile. `row.onclick` übergeht `.alink` zusätzlich; jeder der beiden Wege
 allein hält die Zeile zu, der Rückbau bliebe stumm. Beim Zeichen der
