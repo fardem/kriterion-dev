@@ -34,7 +34,7 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Updates kommen sofort im Browser an.*
 
-Fingerprint `FP_NEU` — davor `c83a6a27`.
+Fingerprint `66001468` — davor `c83a6a27`.
 
 > **Wer nach dem Einspielen noch die alte Oberfläche sieht, lädt die Seite
 > einmal ohne Cache neu** (Strg+Umschalt+R). Danach kommt jedes Update beim

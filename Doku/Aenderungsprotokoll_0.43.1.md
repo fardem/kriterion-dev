@@ -1,6 +1,6 @@
 # Änderungsprotokoll 0.43.1 — „Updates kommen sofort im Browser an"
 
-**Gebaut am 27. September 2026 auf 0.43.0. Fingerprint `FP_NEU`, davor
+**Gebaut am 27. September 2026 auf 0.43.0. Fingerprint `66001468`, davor
 `c83a6a27`.**
 
 Befund des Betreibers nach dem Einspielen von 0.43.0. Ohne Auftrag. Schema:
@@ -38,7 +38,7 @@ max-age=0`, wie `express.static`. Der Browser fragt bei jedem Laden mit
 |---|---:|---:|
 | Kommentarzeilen, 40 Dateien | 6.511 | **6.512** |
 | Rückbauten | 1.178 | **1.179** |
-| Prüfungen im Prüfstand | 7.465 | **PRUEFUNGEN** |
+| Prüfungen im Prüfstand | 7.465 | **7.466** |
 
 ---
 
@@ -52,7 +52,8 @@ und ungezippt `Cache-Control: public, max-age=0`.
 |---|---|---|
 | 1259 | Die gezippte Auslieferung verliert Cache-Control | Und denselben Cache-Control wie ungezippt, damit ein Update sofort ankommt |
 
-GEGENPROBE
+**1 rot, 0 stumm.** Zusätzlich rot in „Jeder Suchtext kommt in seiner Datei
+genau einmal vor": die Prüfung liest den zurückgebauten Stand.
 
 ---
 
