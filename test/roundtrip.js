@@ -2725,9 +2725,9 @@ async function sendImport(object, mode, withoutShare = false) {
       .map(s => s.trim().replace(/^'|'$/g, '')).filter(Boolean).sort();
   };
   const dListSrv = listOut(srvSource, 'PERSONAL_KEYS');
-  const dExpected = ['bellSeen', 'blocks', 'filters', 'font', 'language', 'linkRows',
-                 'searchNames', 'strip', 'theme', 'timeline', 'views'];
-  check('server.js kennt genau die elf persoenlichen Schluessel — 0.24.3',
+  const dExpected = ['bellSeen', 'blocks', 'documentTheme', 'filesEditAll', 'filters', 'font', 'language',
+                 'linkRows', 'searchNames', 'strip', 'theme', 'timeline', 'views'];
+  check('server.js kennt genau die dreizehn persoenlichen Schluessel — 0.24.3',
     equal(dListSrv, dExpected), JSON.stringify(dListSrv));
   check('Und `zuletztGesehen` steht in keiner Zeile Code mehr',
     !/zuletztGesehen/.test(srvSource.replace(/\/\*[\s\S]*?\*\//g, '')
