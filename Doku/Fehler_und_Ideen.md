@@ -197,7 +197,7 @@ sagt der Fahrplan.
 | **0.41.0** | Backup, Videos in Kommentaren und der Prüfstand ohne feste Wartezeiten: 618 feste Wartezeiten, die Hinweise zu Export, Import und Backup und sieben Punkte vom 23. September 2026. Auftrag erteilt am 23. September 2026 | **ja** |
 | ~~**0.42.0**~~ | ~~Dokumente über einen Document Server ansehen~~ — **GEBAUT am 25. September 2026** | nein |
 | ~~**0.43.0**~~ | ~~Dokumente über den Document Server bearbeiten; wer bearbeitet, legt der Hochladende je Datei fest~~ — **GEBAUT am 27. September 2026** | **ja** |
-| **0.44.0** | Verweise auf Dateien und Fotos in Kommentar und Beschreibung | nein |
+| ~~**0.44.0**~~ | ~~Verweise auf Dateien und Fotos in Kommentar und Beschreibung~~ — **GEBAUT am 27. September 2026** | nein |
 | *danach* | Große Dateien bis 2 GB — eigenes Papier, im Fahrplan als „danach" | **ja** |
 
 ### Sprache

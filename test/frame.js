@@ -555,7 +555,7 @@ const F_READ_ROUTES = [
   ['/api/items/:id',               'angemeldet',
     'Der einzelne Eintrag, dieselbe Schranke wie die Uebersicht.'],
   ['/api/comment-refs',            'angemeldet',
-    'Titel und Stellung fuer die Marke am Verweis; dieselbe Schranke wie am Eintrag.'],
+    'Titel, Stellung und Dateiname fuer die Marke am Verweis; dieselbe Schranke wie am Eintrag.'],
   ['/api/items/:id/inventory',     'entryAuthorOnly',
     'Was an einem Eintrag haengt -- die Frage steht vor dem Loeschen.'],
   ['/api/photos/:id/raw',          'angemeldet',

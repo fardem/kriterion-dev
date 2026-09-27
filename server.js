@@ -3314,9 +3314,21 @@ const qCommentRef = db.prepare(`
 
 const qItemRef = db.prepare('SELECT id AS itemId, title AS itemTitle FROM items WHERE id = ?');
 
+const qFileRef = db.prepare(`
+  SELECT a.id, a.item_id AS itemId, i.title AS itemTitle, a.filename
+    FROM attachments a JOIN items i ON i.id = a.item_id
+   WHERE a.id = ?`);
+
+/* kind steht hinter zwei Blobs; `+p.id` lenkt auf idx_photos_tile.
+   336 MB, 400 Fotos, 200 Verweise: ueber die Zeile 17,1 ms, ueber den Index 1,5 ms. */
+const qPhotoRef = lateStatement(`
+  SELECT p.id, p.item_id AS itemId, i.title AS itemTitle, p.kind, ${PHOTO_VERSION}
+    FROM photos p JOIN items i ON i.id = p.item_id
+   WHERE p.item_id = (SELECT item_id FROM photos WHERE id = ?) AND +p.id = ?`);
+
 /* Anmeldung genuegt, wie bei GET /api/items/:id. */
 app.get('/api/comment-refs', (req, res) => {
-  /* 200 je Art, damit Kommentare die Eintraege nicht verdraengen; den Rest
+  /* 200 je Art, damit eine Art die anderen nicht verdraengt; den Rest
      holt der Browser beim naechsten Zeichnen. */
   const numbers = (raw) => [...new Set(String(raw || '').split(',')
     .map(x => Number(x)).filter(Number.isInteger))].slice(0, 200);
@@ -3330,6 +3342,18 @@ app.get('/api/comment-refs', (req, res) => {
     const row = qItemRef.get(x);
     if (row) out.push({ key: 'i' + row.itemId, id: row.itemId,
       itemId: row.itemId, itemTitle: row.itemTitle, number: null });
+  }
+  // `preview` wie in detail().
+  const officeOn = documentServerOn();
+  for (const x of numbers(req.query.files)) {
+    const row = qFileRef.get(x);
+    if (row) out.push({ key: 'f' + row.id, ...row,
+      preview: officeOn && docserver.officeType(row.filename)
+        ? 'office' : attachments.previewKind(row.filename) });
+  }
+  for (const x of numbers(req.query.photos)) {
+    const row = qPhotoRef().get(x, x);
+    if (row) out.push({ key: 'p' + row.id, ...row });
   }
   res.json(out);
 });

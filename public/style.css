@@ -717,7 +717,7 @@ mark {
 .thumb .del { position: absolute; top: 0; right: 0; width: 19px; height: 19px; background: rgba(var(--photo-rgb), .82); color: var(--on-photo); font-size: .73rem; display: flex; align-items: center; justify-content: center; border-radius: 0 0 0 6px; opacity: 0; transition: opacity .15s var(--ease); }
 /* `pointer-events: none`, sonst faengt die Marke das Ziehen zum
    Umsortieren ab. */
-.thumb .play-badge, .lb-thumb .play-badge, .cmt-img .play-badge {
+.thumb .play-badge, .lb-thumb .play-badge, .cmt-img .play-badge, .markup-pic .play-badge {
   position: absolute; top: 3px; left: 3px; pointer-events: none;
   font-size: .58rem; line-height: 1; color: var(--text-2);
   width: 16px; height: 16px; display: flex; align-items: center; justify-content: center;
@@ -1040,6 +1040,19 @@ mark {
 /* Verweis auf einen geloeschten Kommentar: kein Klickziel, daher keine
    Linkfarbe. */
 .markup-ref.gone { border-color: var(--line); background: var(--surface-2); color: var(--muted); font-style: italic; }
+.markup-ref-sign { color: var(--muted); }
+.markup-ref.open { border-color: var(--accent); }
+.markup-pic { position: relative; align-items: center; padding: 2px; vertical-align: middle; }
+/* 64 px: zwei Zeilen Text, die Zeile reisst nicht weiter auf. */
+.markup-thumb { display: block; height: 64px; max-width: 160px; object-fit: cover; border-radius: 3px; }
+/* Steht im Text unter `pre-wrap`. */
+.markup-viewer { margin: 6px 0; border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; background: var(--preview-bg); white-space: normal; }
+.markup-viewer-bar { display: flex; justify-content: flex-end; padding: 2px 4px; background: var(--surface-2); }
+.markup-viewer a.markup-viewer-open { padding: 2px 8px; border-radius: 4px; color: var(--muted); text-decoration: none; }
+.markup-viewer a.markup-viewer-open:hover { color: var(--accent-text); background: var(--surface); }
+.markup-viewer-doc { height: 360px; }
+.markup-viewer-doc iframe { width: 100%; height: 100%; border: 0; }
+.markup-viewer-doc .hint { margin: 12px; }
 
 /* ---------- Die Beschreibung, gelesen ---------- */
 /* Schrift und Innenabstand wie `.ta` und `.ta-desc`, sonst springt der
@@ -1676,13 +1689,14 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
 .arow:hover .ago { color: var(--muted); }
 /* Eigener Download-Knopf: bei Dateien mit Vorschau oeffnet der Klick auf
    die Zeile die Vorschau. */
-.arow .adl, .arow .aopen {
+.arow .adl, .arow .aopen, .arow .alink {
   color: var(--faint); font-size: .87rem; line-height: 1; padding: 2px 6px; border-radius: 4px;
   opacity: 0; flex-shrink: 0; transition: opacity .15s var(--ease), color .15s var(--ease);
 }
-.arow:hover .adl, .arow:hover .aopen { opacity: 1; }
-.arow .adl:hover, .arow .aopen:hover { color: var(--accent-text); background: var(--surface); }
-@media (hover: none) { .arow .adl, .arow .aopen { opacity: 1; } }
+.arow:hover .adl, .arow:hover .aopen, .arow:hover .alink { opacity: 1; }
+.arow .adl:hover, .arow .aopen:hover, .arow .alink:hover { color: var(--accent-text); background: var(--surface); }
+@media (hover: none) { .arow .adl, .arow .aopen, .arow .alink { opacity: 1; } }
+.arow .alink { display: inline-flex; }
 /* Der Stift steht immer da: er zeigt, welche Datei bearbeitet werden kann. */
 .arow .aedit, .fileview-bar .aedit { opacity: 1; color: var(--accent-text); }
 .arow .arights { display: inline-flex; padding: 4px 8px; border: 0; border-radius: 4px; background: none; color: var(--faint); cursor: pointer; }
@@ -1720,6 +1734,13 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
 .fileview-editall { display: inline-flex; align-items: center; gap: 5px; font-size: .82rem; color: var(--muted); white-space: nowrap; cursor: pointer; }
 .fileview-doc { flex: 1; min-height: 0; border-radius: 4px; overflow: hidden; background: var(--preview-bg); }
 .fileview-doc iframe { width: 100%; height: 100%; border: 0; }
+/* Bild, PDF und Text in der eigenen Ansicht. */
+.fileview-plain { display: flex; flex-direction: column; overflow: auto; background: var(--image-bg); }
+.fileview-plain img { max-width: 100%; max-height: 100%; margin: auto; object-fit: contain; }
+.fileview-plain iframe { flex: 1; min-height: 0; }
+.fileview-plain .apdf-hint { margin: 8px 12px; }
+.fileview-plain .atext { max-height: none; padding: 12px 14px; }
+.fileview-plain > .hint { margin: 16px; }
 .atext {
   margin: 0; max-height: 420px; overflow: auto;
   font-family: var(--mono); font-size: .77rem; line-height: 1.6; color: var(--text-2);
@@ -1979,7 +2000,7 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
   /* 32 px, sonst trifft man oft den fuenften Stern daneben. */
   .rreset { width: 32px; height: 32px; }
   .mrow .mact { padding: 9px 11px; }
-  .arow .adl { padding: 9px 11px; }
+  .arow .adl, .arow .alink { padding: 9px 11px; }
   .cmt-head button { padding: 8px 10px; }
   .cmt-head .acts, .cmt-head .marks { gap: 2px; }
   /* 2 px `gap` plus 11 px: 13 px Abstand vor dem Loeschknopf. */
@@ -2012,7 +2033,7 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      Nicht am Vollbild: dort hat der Doppeltipp eine Bedeutung. */
   .btn, .icon-btn, .pill, .mark, .switch, .chip, .pick-box, .star,
   .abtn, .link-btn, .xdel, .open-check, .pin-btn, .vnav, .vfocus, .vfull,
-  .cmt-head button, .mrow .mact, .arow .adl,
+  .cmt-head button, .mrow .mact, .arow .adl, .arow .alink,
   .rej-note .mact { touch-action: manipulation; }
 
   /* Bei kleinerer Schrift zoomt Safari auf iOS beim Tippen die Seite heran. `max()`,

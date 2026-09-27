@@ -1987,13 +1987,18 @@ function markupNodes(raw, term, marks) {
    sehen darf, ist `null`. */
 const COMMENT_REFS = new Map();
 
-/* Schluessel fuer COMMENT_REFS: `c` fuer einen Kommentar, `i` fuer einen
-   Eintrag, leer fuer eine fremde Adresse. */
+/* Schluessel fuer COMMENT_REFS: `c` Kommentar, `i` Eintrag, `f` Datei, `p` Foto,
+   leer fuer eine fremde Adresse. */
 function markupRefOf(target) {
   const here = location.origin + location.pathname;
   const text = String(target ?? '');
   if (!text.startsWith(here + '#/')) return '';
-  const found = text.slice(here.length).match(ENTRY_PATTERN);
+  const hash = text.slice(here.length);
+  const file = hash.match(FILE_PATTERN);
+  if (file) return `f${Number(file[2])}`;
+  const photo = hash.match(PHOTO_PATTERN);
+  if (photo) return `p${Number(photo[2])}`;
+  const found = hash.match(ENTRY_PATTERN);
   if (!found) return '';
   const comment = commentOutAddress(found[2]);
   return comment ? `c${comment}` : `i${Number(found[1])}`;
@@ -2027,14 +2032,16 @@ function markupRefMissing(texts) {
 // Laufende Anfragen je Schluessel; ein zweiter Aufruf wartet auf dieselbe.
 const COMMENT_REFS_ASK = new Map();
 
+const REF_KINDS = { c: 'ids', i: 'items', f: 'files', p: 'photos' };
+
 const markupRefCut = (ask, sign) =>
   ask.filter(k => k[0] === sign).map(k => k.slice(1)).join(',');
 
 async function markupRefAsk(ask) {
   let came = false;
   try {
-    const rows = await api('GET',
-      `/api/comment-refs?ids=${markupRefCut(ask, 'c')}&items=${markupRefCut(ask, 'i')}`);
+    const rows = await api('GET', '/api/comment-refs?' + new URLSearchParams(
+      Object.entries(REF_KINDS).map(([sign, name]) => [name, markupRefCut(ask, sign)])));
     for (const row of rows) COMMENT_REFS.set(row.key, row);
     /* Ohne Antwort gilt der Verweis als geloescht; der Platzhalter verhindert
        eine neue Anfrage. */
@@ -2055,9 +2062,10 @@ async function markupRefAsk(ask) {
    Liefert true, wenn neu gezeichnet werden muss. */
 async function markupRefLoad(keys) {
   const running = [...new Set(keys.map(k => COMMENT_REFS_ASK.get(k)).filter(Boolean))];
-  /* 400: je Art 200, die Obergrenze von /api/comment-refs; der Rest folgt
-     beim naechsten Zeichnen. */
-  const ask = keys.filter(k => !COMMENT_REFS_ASK.has(k)).slice(0, 400);
+  const fresh = keys.filter(k => !COMMENT_REFS_ASK.has(k));
+  /* Je Art 200, die Obergrenze von /api/comment-refs; der Rest folgt beim
+     naechsten Zeichnen. Ein Schluessel darueber gaelte sonst als geloescht. */
+  const ask = Object.keys(REF_KINDS).flatMap(sign => fresh.filter(k => k[0] === sign).slice(0, 200));
   if (ask.length) {
     const call = markupRefAsk(ask);
     for (const k of ask) COMMENT_REFS_ASK.set(k, call);
@@ -2146,6 +2154,8 @@ function markupRefNode(row, term, name) {
     a.appendChild(raiseHighlight(t('entry.refGone'), term));
     return a;
   }
+  if (row.key[0] === 'f') return markupFileRef(a, row, term, name);
+  if (row.key[0] === 'p') return markupPhotoRef(a, row, term, name);
   a.href = entryAddress(row.itemId, '', row.number ? row.id : 0);
   a.title = t('entry.refHint');
   a.appendChild(raiseHighlight(name || row.itemTitle, term));
@@ -2177,6 +2187,118 @@ function markupRefNode(row, term, name) {
       SOFT_OK() ? { behavior: 'smooth', block: 'start' } : { block: 'start' });
   };
   return a;
+}
+
+/* ---- Der Verweis auf eine Datei oder ein Foto ---- */
+// Strg-, Umschalt- und Mittelklick bleiben dem Browser.
+const plainClick = (e) => !(e.ctrlKey || e.metaKey || e.shiftKey || e.button);
+const fileSign = (preview) =>
+  preview === 'image' ? '▣' : preview === 'pdf' ? '▤' : preview === 'keine' ? '▪' : '▥';
+
+function markupThumb(a, src, video) {
+  const img = document.createElement('img');
+  img.className = 'markup-thumb';
+  img.src = src;
+  img.setAttribute('alt', '');
+  img.loading = 'lazy';
+  a.classList.add('markup-pic');
+  a.appendChild(img);
+  if (!video) return;
+  const badge = document.createElement('span');
+  badge.className = 'play-badge';
+  badge.textContent = '▶';
+  a.appendChild(badge);
+}
+
+/* Eine Bilddatei hat keine Kachel; das Vorschaubild laedt die ganze Datei. */
+function markupFileRef(a, row, term, name) {
+  a.href = fileAddress(row.itemId, row.id);
+  a.title = `${t(row.preview === 'office' ? 'entry.refOfficeHint' : 'entry.refFileHint')} · ${row.itemTitle}`;
+  if (row.preview === 'image') {
+    markupThumb(a, `/api/attachments/${Number(row.id)}/raw?inline=1`, false);
+    a.querySelector('img').setAttribute('alt', row.filename);
+    if (name) a.appendChild(raiseHighlight(name, term));
+    return a;
+  }
+  const sign = document.createElement('span');
+  sign.className = 'markup-ref-sign';
+  sign.textContent = fileSign(row.preview);
+  a.appendChild(sign);
+  a.appendChild(raiseHighlight(name || row.filename, term));
+  if (row.preview !== 'office') return a;
+  // Auf dem Telefon waere der Betrachter zu klein; dort oeffnet die Ansicht.
+  a.onclick = (e) => {
+    if (!plainClick(e) || isNarrow()) return;
+    e.preventDefault();
+    refViewerToggle(a, row);
+  };
+  return a;
+}
+
+function markupPhotoRef(a, row, term, name) {
+  a.href = photoAddress(row.itemId, row.id);
+  a.title = `${t('entry.clickFullscreen')} · ${row.itemTitle}`;
+  markupThumb(a, imageSource({ id: row.id, thumbLength: row.thumbLength }, 'thumb'), isVideo(row));
+  if (name) a.appendChild(raiseHighlight(name, term));
+  /* Im geoeffneten Eintrag ohne Hash-Wechsel; der baute die ganze Ansicht neu auf. */
+  a.onclick = (e) => {
+    if (!plainClick(e)) return;
+    const open = Number((ENTRY_PATTERN.exec(location.hash || '') || [])[1]);
+    if (open !== Number(row.itemId) || PHOTO_SHOW?.itemId !== open) return;
+    if (PHOTO_SHOW.show(row.id)) e.preventDefault();
+  };
+  return a;
+}
+
+/* ---- Kleiner Betrachter am Verweis ---- */
+/* Laedt erst auf Klick: jeder Betrachter laedt das Programm des Document
+   Servers, und der holt und wandelt die Datei. */
+// Betrachter nach ihrem Kasten; `null`, solange er laedt oder gescheitert ist.
+const REF_VIEWERS = new Map();
+let REF_VIEWER_NO = 0;
+// Vom geoeffneten Eintrag gesetzt: oeffnet dort das Vollbild an einem Foto.
+let PHOTO_SHOW = null;
+
+/* Ohne `onlyGone` alle; sonst nur die, deren Kasten eine Zeichnung entfernt hat. */
+function endRefViewers(onlyGone = false) {
+  for (const [box, editor] of REF_VIEWERS) {
+    if (onlyGone && box.isConnected) continue;
+    try { editor?.destroyEditor(); } catch {}
+    REF_VIEWERS.delete(box);
+  }
+}
+
+function refViewerToggle(a, row) {
+  const shown = a.nextElementSibling;
+  if (shown && REF_VIEWERS.has(shown)) {
+    try { REF_VIEWERS.get(shown)?.destroyEditor(); } catch {}
+    REF_VIEWERS.delete(shown);
+    shown.remove();
+    a.classList.remove('open');
+    return;
+  }
+  endRefViewers(true);
+  const holder = `office-ref-${++REF_VIEWER_NO}`;
+  const box = document.createElement('div');
+  box.className = 'markup-viewer';
+  // Eine Zeile: der Kasten steht in `pre-wrap`, Leerraum im Markup wuerde sichtbar.
+  box.innerHTML = `<div class="markup-viewer-bar"><a class="markup-viewer-open" href="${esc(fileAddress(row.itemId, row.id))}" title="${esc(t('entry.openFile'))}">⤢</a></div><div class="markup-viewer-doc"><div id="${esc(holder)}"></div></div>`;
+  a.after(box);
+  a.classList.add('open');
+  REF_VIEWERS.set(box, null);
+  const failed = () => {
+    try { REF_VIEWERS.get(box)?.destroyEditor(); } catch {}
+    if (REF_VIEWERS.has(box)) REF_VIEWERS.set(box, null);
+    const doc = box.querySelector('.markup-viewer-doc');
+    if (doc) doc.innerHTML = `<p class="hint">${tH('entry.officeFailed')}</p>`;
+  };
+  startOffice({ id: row.id }, holder, null, failed, false, true)
+    .then(editor => {
+      if (!editor) return;
+      if (REF_VIEWERS.has(box)) REF_VIEWERS.set(box, editor);
+      else { try { editor.destroyEditor(); } catch {} }
+    })
+    .catch(failed);
 }
 
 /* ---- Menue der Auszeichnung ---- */
@@ -2848,8 +2970,11 @@ const commentOutAddress = (askKey) => {
   catch { return 0; }
 };
 /* Vollstaendig, damit der Verweis auch in einer Mail funktioniert. */
-const commentAddress = (id, comment) =>
-  location.origin + location.pathname + entryAddress(id, '', comment);
+const fullAddress = (hash) => location.origin + location.pathname + hash;
+const commentAddress = (id, comment) => fullAddress(entryAddress(id, '', comment));
+/* Oeffnet den Eintrag und darin das Vollbild an diesem Foto oder Video. */
+const PHOTO_PATTERN = /^#\/item\/(\d+)\/photo\/(\d+)$/;
+const photoAddress = (itemId, photoId) => `#/item/${Number(itemId)}/photo/${Number(photoId)}`;
 
 /* Alte Adressen umschreiben, damit gespeicherte Links weiter funktionieren. */
 const OLD_ADDRESSES = { '#/offen': '#/open' };
@@ -2870,17 +2995,21 @@ function route() {
   // Die alte Ansicht verschwindet; ihre Tagwolke nicht mehr zeichnen.
   redrawCloud = null;
   endFileViewer();
+  endRefViewers();
+  PHOTO_SHOW = null;
   const m = h.match(ENTRY_PATTERN);
   const f = h.match(FILE_PATTERN);
+  const p = h.match(PHOTO_PATTERN);
   /* Einstellungen: `#/system` und `#/system/<abschnitt>`. */
   const view = SYS_PATTERN.test(h) ? 'system' : h === '#/compare' ? 'compare'
-    : h === '#/open' ? 'open' : f ? 'file' : m ? 'entry' : 'list';
+    : h === '#/open' ? 'open' : f ? 'file' : m || p ? 'entry' : 'list';
   if (LAST_VIEW === 'list' && view !== 'list') rememberSeen();
   LAST_VIEW = view;
   if (view === 'system') return renderSystem();
   if (view === 'compare') return renderCompare();
   if (view === 'open') return renderOpen();
   if (f) return renderFileView(+f[1], +f[2], !!f[3]);
+  if (p) return renderDetail(+p[1], '', 0, +p[2]);
   if (m) return renderDetail(+m[1], termOutAddress(m[2]), commentOutAddress(m[2]));
   return renderList();
 }
@@ -4179,9 +4308,9 @@ function centerStage(stage) {
   stage.scrollTop = Math.max(0, (stage.scrollHeight - stage.clientHeight) / 2);
 }
 
-/* Ohne `remove` kein Papierkorb; `inside` liefert den Abspieler der Seite fuer
-   die Uebergabe eines laufenden Videos. */
-function openLightbox(photos, startIdx, title, remove, inside) {
+/* Ohne `remove` kein Papierkorb, ohne `linkOf` kein Link kopieren; `inside`
+   liefert den Abspieler der Seite fuer die Uebergabe eines laufenden Videos. */
+function openLightbox(photos, startIdx, title, remove, inside, linkOf) {
   if (!photos.length) return;
   lightboxOpen = true;
   let i = startIdx, zoomed = false;
@@ -4193,6 +4322,7 @@ function openLightbox(photos, startIdx, title, remove, inside) {
       <span class="lb-title">${esc(title || '')}</span>
       <div class="lb-tools">
         <span class="lb-count"></span>
+        ${linkOf ? `<button class="lb-btn copy" title="${esc(t('entry.copyLink'))}">${ICON_LINK}</button>` : ''}
         <a class="lb-btn download" download title="${esc(t('entry.download'))}">↓</a>
         <button class="lb-btn zoom" title="${esc(t('list.zoomFull'))}">⊕</button>
         ${remove ? `<button class="lb-btn remove" title="${esc(t('dialog.delete'))}">${ICON_TRASH}</button>` : ''}
@@ -4327,6 +4457,8 @@ function openLightbox(photos, startIdx, title, remove, inside) {
 
   lb.querySelector('.close').onclick = close;
   lb.querySelector('.zoom').onclick = () => setZoom(!zoomed);
+  lb.querySelector('.copy')?.addEventListener('click',
+    () => copyText(linkOf(photos[i]), t('card.linkCopied')));
   /* Geloescht wird das gerade gezeigte Bild. */
   lb.querySelector('.remove')?.addEventListener('click', async () => {
     const removed = photos[i];
@@ -4464,7 +4596,7 @@ function sparkline(days) {
 }
 
 /* ---- Detailansicht ---- */
-async function renderDetail(id, termAddress, commentWanted) {
+async function renderDetail(id, termAddress, commentWanted, photoWanted = 0) {
   /* Von Hand geoeffnete oder geschlossene Bloecke gelten nur fuer einen Eintrag. */
   GLANCE.clear();
   /* Suchbegriff aus der Adresse oder aus state.search; danach sind beide gleich. */
@@ -4644,6 +4776,7 @@ async function renderDetail(id, termAddress, commentWanted) {
   });
 
   /* ---- Fotos ---- */
+  const photoLink = (p) => fullAddress(photoAddress(id, p.id));
   async function deletePhoto(photo) {
     if (!photo) return false;
     const word = isVideo(photo) ? t('list.video') : t('list.photo');
@@ -4699,10 +4832,10 @@ async function renderDetail(id, termAddress, commentWanted) {
     const innerPlayer = () => v.querySelector('video');
     if (image) image.onclick = () => {
       if (!cropMode)
-        openLightbox([...item.photos], idx, item.title, deletePhoto, innerPlayer);
+        openLightbox([...item.photos], idx, item.title, deletePhoto, innerPlayer, photoLink);
     };
     v.querySelector('.vfull')?.addEventListener('click',
-      () => openLightbox([...item.photos], idx, item.title, deletePhoto, innerPlayer));
+      () => openLightbox([...item.photos], idx, item.title, deletePhoto, innerPlayer, photoLink));
     v.querySelector('.vfocus').onclick = () => {
       cropMode = !cropMode;
       drawViewer();
@@ -4923,6 +5056,18 @@ async function renderDetail(id, termAddress, commentWanted) {
   }
   const markThumb = () =>
     document.querySelectorAll('#thumbs .thumb').forEach((k, i) => k.classList.toggle('current', i === idx));
+
+  /* Aus der Adresse und aus einem Verweis im selben Eintrag; false, wenn das Foto fehlt. */
+  function showPhoto(photoId) {
+    const at = item.photos.findIndex(p => p.id === Number(photoId));
+    if (at < 0) return false;
+    idx = at;
+    drawViewer(); markThumb();
+    openLightbox([...item.photos], idx, item.title, deletePhoto,
+                 () => document.querySelector('#viewer video'), photoLink);
+    return true;
+  }
+  PHOTO_SHOW = { itemId: Number(id), show: showPhoto };
 
   function drawThumbs() {
     const box = document.getElementById('thumbs');
@@ -5273,7 +5418,7 @@ async function renderDetail(id, termAddress, commentWanted) {
   }
   document.getElementById('descedit').onclick = () => { openBlock('beschreibung'); descWrite(true); };
   descView.onclick = (e) => {
-    if (e.target.closest('a')) return;
+    if (e.target.closest('.markup-viewer, a')) return;
     /* Bei markiertem Text nicht umschalten: das naehme die Auswahl und damit
        das Menue im Lesemodus. */
     const picked = document.getSelection();
@@ -5958,7 +6103,7 @@ async function renderDetail(id, termAddress, commentWanted) {
       // Wie am Link: loeschen duerfen der Verfasser und Admins.
       const mayPath = a.mine === true || ADMIN;
 
-      row.innerHTML = `<span class="aicon">${a.preview === 'image' ? '▣' : a.preview === 'pdf' ? '▤' : a.preview === 'keine' ? '▪' : '▥'}</span>
+      row.innerHTML = `<span class="aicon">${esc(fileSign(a.preview))}</span>
         <span class="aname">${esc(a.filename)}</span>
         <span class="asize">${esc(filesize(a.size))}</span>
         ${showFrom ? `<span class="afrom">(${esc(authorName(a.author))})</span>` : ''}
@@ -5966,9 +6111,14 @@ async function renderDetail(id, termAddress, commentWanted) {
         ${a.mine && a.edit ? `<button class="arights${a.editAll ? ' on' : ''}" title="${esc(t(a.editAll ? 'entry.editAllOn' : 'entry.editAllOff'))}">${ICON_PEOPLE}</button>` : ''}
         ${a.preview === 'office' && a.edit && !isNarrow() ? `<a class="aopen aedit" href="${esc(fileAddress(id, a.id, true))}" title="${esc(t('entry.edit'))}">${ICON_PEN}</a>` : ''}
         ${a.preview === 'office' ? `<a class="aopen" href="${esc(fileAddress(id, a.id))}" title="${esc(t('entry.openFile'))}">⤢</a>` : ''}
+        <button class="alink" title="${esc(t('entry.copyFileLink'))}">${ICON_LINK}</button>
         <a class="adl" href="/api/attachments/${Number(a.id)}/raw" download title="${esc(t('entry.download'))}">↓</a>
         ${mayPath ? `<button class="xdel" title="${esc(t('entry.deleteFile'))}">${ICON_X}</button>` : ''}`;
 
+      row.querySelector('.alink').onclick = (e) => {
+        e.stopPropagation();
+        copyText(fullAddress(fileAddress(id, a.id)), t('card.linkCopied'));
+      };
       // Nur wer hochgeladen hat; der Server prueft das ebenso.
       const rights = row.querySelector('.arights');
       if (rights) rights.onclick = async (e) => {
@@ -5984,7 +6134,7 @@ async function renderDetail(id, termAddress, commentWanted) {
       };
 
       row.onclick = (e) => {
-        if (e.target.closest('.xdel, .adl, .aopen, .arights')) return;
+        if (e.target.closest('.xdel, .adl, .aopen, .arights, .alink')) return;
         if (!canPreview) return row.querySelector('.adl')?.click();
         // Auf dem Telefon waere die Vorschau im Eintrag zu klein.
         if (a.preview === 'office' && isNarrow()) { location.hash = fileAddress(id, a.id); return; }
@@ -6001,41 +6151,9 @@ async function renderDetail(id, termAddress, commentWanted) {
   function buildPreview(a) {
     const boxId = document.createElement('div');
     boxId.className = 'apreview';
-    if (a.preview === 'image') {
-      // Im img-Element wird nichts ausgefuehrt; der Server sendet dazu nosniff
-      // und eine enge CSP.
-      boxId.innerHTML = `<img src="/api/attachments/${Number(a.id)}/raw?inline=1" alt="${esc(a.filename)}">`;
-    } else if (a.preview === 'pdf') {
-      // allow-scripts ohne allow-same-origin: die PDF-Betrachter von Chrome und
-      // Edge bestehen aus HTML und JavaScript und bleiben ohne allow-scripts leer.
-      boxId.innerHTML = `<iframe src="/api/attachments/${Number(a.id)}/raw?inline=1"
-          sandbox="allow-scripts" referrerpolicy="no-referrer" title="${esc(a.filename)}"></iframe>
-        <p class="apdf-hint"><span class="hint">${tH('entry.pdfHint')}</span>
-          <a class="abtn" href="/api/attachments/${Number(a.id)}/raw?inline=1" target="_blank" rel="noopener noreferrer">${tH('entry.openNewTab')}</a></p>`;
-    } else if (a.preview === 'office') {
-      buildOffice(a, boxId);
-    } else {
-      boxId.innerHTML = `<p class="hint">${tH('list.loading')}</p>`;
-      textPreview(a, boxId);
-    }
+    if (a.preview === 'office') buildOffice(a, boxId);
+    else filePreview(a, boxId);
     return boxId;
-  }
-
-  function textPreview(a, boxId) {
-    api('GET', `/api/attachments/${a.id}/preview`).then(v => {
-      // Nur als textContent: der Browser interpretiert den Inhalt nicht.
-      boxId.innerHTML = '';
-      const pre = document.createElement('pre');
-      pre.className = 'atext';
-      pre.textContent = v.text || t('entry.empty');
-      boxId.appendChild(pre);
-      if (v.shortened) {
-        const h = document.createElement('p');
-        h.className = 'hint';
-        h.textContent = t('entry.previewTruncated');
-        boxId.appendChild(h);
-      }
-    }).catch(e => { boxId.innerHTML = `<p class="hint">${esc(e.message)}</p>`; });
   }
 
   function buildOffice(a, boxId) {
@@ -6434,6 +6552,7 @@ async function renderDetail(id, termAddress, commentWanted) {
   drawViewer(); drawThumbs(); drawSwitches(); drawAuthor(); drawCat(); drawTags();
   drawRatings(); drawTestDays(); drawLinks(); drawAtts(); drawComments();
   if (LIT_COMMENT) commentJump(LIT_COMMENT);
+  if (photoWanted) showPhoto(photoWanted);
   const back = fileReturn;
   fileReturn = null;
   if (back && back.itemId === Number(id) && !LIT_COMMENT) {
@@ -6598,8 +6717,9 @@ function officeScript(src) {
 
 // null, wenn `holder` inzwischen nicht mehr im Dokument steht.
 // Mit `edit` entscheidet der Server, ob der Editor kommt; sonst der Betrachter.
-async function startOffice(a, holder, hint, failed, edit = false) {
-  const query = new URLSearchParams({ mobile: isNarrow() ? 1 : 0, edit: edit ? 1 : 0,
+// `mobile=1` liefert `type: 'embedded'` (viewerConfig() in docserver.js).
+async function startOffice(a, holder, hint, failed, edit = false, embedded = false) {
+  const query = new URLSearchParams({ mobile: embedded || isNarrow() ? 1 : 0, edit: edit ? 1 : 0,
     theme: ['light', 'dark'].includes(DOC_SETTINGS?.theme) ? DOC_SETTINGS.theme
       : document.documentElement.dataset.theme === 'light' ? 'light' : 'dark' });
   const v = await api('GET', `/api/attachments/${Number(a.id)}/office?${query}`);
@@ -6609,6 +6729,44 @@ async function startOffice(a, holder, hint, failed, edit = false) {
   await officeScript(v.script);
   if (!document.getElementById(holder)) return null;
   return new window.DocsAPI.DocEditor(holder, { ...v.config, events: { onError: failed } });
+}
+
+/* ---- Vorschau einer Datei ---- */
+/* Bild, PDF und Text, im Eintrag und in der eigenen Ansicht; Buerodateien
+   laufen ueber startOffice(). */
+function filePreview(a, boxId) {
+  if (a.preview === 'image') {
+    // Im img-Element wird nichts ausgefuehrt; der Server sendet dazu nosniff
+    // und eine enge CSP.
+    boxId.innerHTML = `<img src="/api/attachments/${Number(a.id)}/raw?inline=1" alt="${esc(a.filename)}">`;
+  } else if (a.preview === 'pdf') {
+    // allow-scripts ohne allow-same-origin: die PDF-Betrachter von Chrome und
+    // Edge bestehen aus HTML und JavaScript und bleiben ohne allow-scripts leer.
+    boxId.innerHTML = `<iframe src="/api/attachments/${Number(a.id)}/raw?inline=1"
+        sandbox="allow-scripts" referrerpolicy="no-referrer" title="${esc(a.filename)}"></iframe>
+      <p class="apdf-hint"><span class="hint">${tH('entry.pdfHint')}</span>
+        <a class="abtn" href="/api/attachments/${Number(a.id)}/raw?inline=1" target="_blank" rel="noopener noreferrer">${tH('entry.openNewTab')}</a></p>`;
+  } else {
+    boxId.innerHTML = `<p class="hint">${tH('list.loading')}</p>`;
+    textPreview(a, boxId);
+  }
+}
+
+function textPreview(a, boxId) {
+  api('GET', `/api/attachments/${a.id}/preview`).then(v => {
+    // Nur als textContent: der Browser interpretiert den Inhalt nicht.
+    boxId.innerHTML = '';
+    const pre = document.createElement('pre');
+    pre.className = 'atext';
+    pre.textContent = v.text || t('entry.empty');
+    boxId.appendChild(pre);
+    if (v.shortened) {
+      const h = document.createElement('p');
+      h.className = 'hint';
+      h.textContent = t('entry.previewTruncated');
+      boxId.appendChild(h);
+    }
+  }).catch(e => { boxId.innerHTML = `<p class="hint">${esc(e.message)}</p>`; });
 }
 
 /* ---- Eigene Ansicht einer Datei ---- */
@@ -6637,6 +6795,8 @@ async function renderFileView(itemId, fileId, editWanted = false) {
   }
   const a = (item.attachments || []).find(x => x.id === Number(fileId));
   const shown = a && a.preview === 'office';
+  // Jede andere Datei, auch ohne Vorschau: der Link auf sie laesst sich kopieren.
+  const plain = a && !shown;
   const fullOk = shown && !!document.fullscreenEnabled;
   app.innerHTML = `<div class="fileview">
     <div class="fileview-bar">
@@ -6649,8 +6809,8 @@ async function renderFileView(itemId, fileId, editWanted = false) {
       ${fullOk ? `<button class="fileview-full" id="fileview-full" title="${esc(t('entry.openFullscreen'))}" aria-label="${esc(t('entry.openFullscreen'))}">${ICON_FULLSCREEN}</button>` : ''}
       ${a ? `<a class="adl" href="/api/attachments/${Number(a.id)}/raw" download title="${esc(t('entry.download'))}">↓</a>` : ''}
     </div>
-    <div class="fileview-doc">${shown ? `<div id="office-full-${Number(a.id)}"></div>`
-      : `<p class="hint">${tH(a ? 'entry.officeFailed' : 'server.fileGone')}</p>`}</div>
+    <div class="fileview-doc${plain ? ' fileview-plain' : ''}">${shown ? `<div id="office-full-${Number(a.id)}"></div>`
+      : `<p class="hint">${tH(a ? 'entry.noPreview' : 'server.fileGone')}</p>`}</div>
     <p class="hint aoffice-hint"></p>
   </div>`;
   // Nur der Betrachter geht ins Vollbild; Zurueck oder Esc beenden es.
@@ -6672,6 +6832,7 @@ async function renderFileView(itemId, fileId, editWanted = false) {
       await renderFileView(itemId, fileId, editWanted);
     } catch (e) { toast(e.message, true); }
   });
+  if (plain && a.preview !== 'keine') filePreview(a, document.querySelector('.fileview-doc'));
   if (!shown) return;
   const failed = () => {
     endFileViewer();
