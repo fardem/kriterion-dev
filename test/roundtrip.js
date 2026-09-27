@@ -2875,6 +2875,8 @@ async function sendImport(object, mode, withoutShare = false) {
     { blocks: { side: ['bewertung', 'tags', 'kategorie', 'potenzial'], bottom: [], closed: ['links'] } });
   await dCall('cookie-d-eins', 'PUT', '/api/settings', { theme: 'light' });
   await dCall('cookie-d-zwei', 'PUT', '/api/settings', { theme: 'device' });
+  // Beide gelten auch ohne Document Server; die Zaehlung weiter unten erwartet sie.
+  await dCall('cookie-d-eins', 'PUT', '/api/settings', { documentTheme: 'dark', filesEditAll: true });
   check('Das Farbschema gehoert dem Benutzer',
     (await dCall('cookie-d-eins', 'GET', '/api/settings')).content.theme === 'light' &&
     (await dCall('cookie-d-zwei', 'GET', '/api/settings')).content.theme === 'device',
@@ -2918,7 +2920,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const dMissing = dExpected.filter(k => !personalDa(k, 1));
   check('Kein persoenlicher Schluessel landet in der globalen Tabelle',
     dWrongGlobal.length === 0, `global gefunden: ${JSON.stringify(dWrongGlobal)}`);
-  check('Alle elf stehen beim Benutzer, der sie gesetzt hat — 0.24.3',
+  check('Alle dreizehn stehen beim Benutzer, der sie gesetzt hat — 0.24.3',
     dMissing.length === 0, `fehlt bei Benutzer 1: ${JSON.stringify(dMissing)}`);
   check('Der Suchvorrat bleibt in der globalen Tabelle',
     globalDa('searchOn') && !personalDa('searchOn', 1),

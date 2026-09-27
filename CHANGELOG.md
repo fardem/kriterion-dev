@@ -34,7 +34,7 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Stift an bearbeitbaren Dateien, eigener Kasten „Dokumente“.*
 
-Fingerprint `FP_NEU` — davor `66001468`.
+Fingerprint `0c19372c` — davor `66001468`.
 
 ### Hinzugefügt
 
