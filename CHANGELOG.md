@@ -30,11 +30,33 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.43.1] - 2026-09-27
+
+*Updates kommen sofort im Browser an.*
+
+Fingerprint `FP_NEU` — davor `c83a6a27`.
+
+> **Wer nach dem Einspielen noch die alte Oberfläche sieht, lädt die Seite
+> einmal ohne Cache neu** (Strg+Umschalt+R). Danach kommt jedes Update beim
+> nächsten Laden an.
+
+### Behoben
+
+- Nach einem Update zeigte der Browser eine Weile die alte Oberfläche, bis zu
+  einer Stunde und länger. Die gezippt ausgelieferten Dateien trugen keinen
+  `Cache-Control`; jetzt fragt der Browser bei jedem Laden nach.
+
 ## [0.43.0] - 2026-09-27
 
 *Dokumente über den Document Server bearbeiten.*
 
 Fingerprint `c83a6a27` — davor `90d99a0b`.
+
+> **Die Datenbank bekommt beim ersten Start die Tabellen `attachment_editing`
+> und `attachment_previous`.** Zu tun ist nichts.
+>
+> **Das Austauschformat ist 20.** Eine ältere Fassung übergeht den Haken
+> „Bearbeiten durch alle“; eine Datei mit Format 19 kommt weiter herein.
 
 ### Hinzugefügt
 

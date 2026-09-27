@@ -8721,6 +8721,13 @@ const REGRESSIONS = [
     replacement: "      convertTo: null,",
     expected: 'Bearbeiten: Haken und Rechte'
   },
+  {
+    nr: '1259', name: 'Die gezippte Auslieferung verliert Cache-Control',
+    file: 'server.js',
+    search: "  // Wie express.static; ohne den Kopf nimmt der Browser nach einem Update eine Weile die alte Datei.\n  res.set('Cache-Control', 'public, max-age=0');\n",
+    replacement: "",
+    expected: 'Die Auslieferung geht gezippt hinaus — 0.35.0'
+  },
 ];
 
 /* ---- Spuren und Versatz ---- */

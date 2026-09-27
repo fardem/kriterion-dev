@@ -17200,18 +17200,22 @@ async function sendImport(object, mode, withoutShare = false) {
       gzCss.head('content-type') === gzPlain.head('content-type')
       && /^text\/css/.test(gzCss.head('content-type') || ''),
       `${gzCss.head('content-type')} gegen ${gzPlain.head('content-type')}`);
-    const gzMore = [], gzWrongType = [];
+    const gzMore = [], gzWrongType = [], gzWrongCache = [];
     for (const file of ['app.js', 'index.html', 'languages/de.json', 'favicon.svg']) {
       const one = await gzBytes(file, 'gzip');
       const plain = await gzBytes(file, 'identity');
       if (one.head('content-encoding') !== 'gzip') gzMore.push(file);
       if (one.head('content-type') !== plain.head('content-type'))
         gzWrongType.push(`${file}: ${one.head('content-type')} gegen ${plain.head('content-type')}`);
+      if (one.head('cache-control') !== 'public, max-age=0' || plain.head('cache-control') !== 'public, max-age=0')
+        gzWrongCache.push(`${file}: ${one.head('cache-control') || 'keiner'} gegen ${plain.head('cache-control')}`);
     }
     check('Auch app.js, die Seite, die Sprachdatei und das Zeichen gehen gezippt hinaus',
       gzMore.length === 0, gzMore.join(' · '));
     check('Und jede von ihnen traegt denselben Typ wie ungezippt',
       gzWrongType.length === 0, gzWrongType.join(' · '));
+    check('Und denselben Cache-Control wie ungezippt, damit ein Update sofort ankommt',
+      gzWrongCache.length === 0, gzWrongCache.join(' · '));
   }
 }
 

@@ -359,6 +359,8 @@ app.use((req, res, next) => {
   res.set('Content-Type', PACK_TYPES.get(path.extname(name)));
   res.set('Content-Encoding', 'gzip');
   res.set('Vary', 'Accept-Encoding');
+  // Wie express.static; ohne den Kopf nimmt der Browser nach einem Update eine Weile die alte Datei.
+  res.set('Cache-Control', 'public, max-age=0');
   res.set('ETag', one.tag);
   res.set('Last-Modified', one.at.toUTCString());
   if (req.headers['if-none-match'] === one.tag) return res.status(304).end();
