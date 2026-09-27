@@ -330,6 +330,12 @@ CREATE TABLE IF NOT EXISTS attachment_previous (
   data BLOB NOT NULL
 );
 
+-- Kachel einer Bilddatei; thumb NULL: sharp konnte die Datei nicht lesen.
+CREATE TABLE IF NOT EXISTS attachment_thumbs (
+  attachment_id INTEGER PRIMARY KEY REFERENCES attachments(id) ON DELETE CASCADE,
+  thumb BLOB
+);
+
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL

@@ -30,6 +30,39 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.44.0] - 2026-09-27
+
+*Verweise auf Dateien und Fotos.*
+
+Fingerprint `37520fc0` — davor `0c19372c`.
+
+> **Die Datenbank bekommt beim ersten Start die Tabelle `attachment_thumbs`.**
+> Zu tun ist nichts.
+
+### Hinzugefügt
+
+- **Verweise auf Dateien und Fotos:** die Adresse einer Datei oder eines Fotos
+  wird in Kommentar und Beschreibung zur Marke. Eine Datei für den Document
+  Server zeigt Zeichen und Namen; ein Klick klappt darunter einen kleinen
+  Betrachter auf. Bilddatei und Foto zeigen ein Vorschaubild.
+- **Link kopieren** in jeder Dateizeile und im Vollbild eines Fotos.
+- **Adresse eines Fotos:** `#/item/<Eintrag>/photo/<Foto>` öffnet den Eintrag
+  und das Vollbild an diesem Foto.
+- **Kachel für Bilddateien:** eine Bilddatei am Eintrag bekommt beim Hochladen
+  eine Kachel wie ein Foto. Sie steht in der Dateizeile und in der Marke.
+  Bilddateien aus dem Bestand bekommen sie beim ersten Anzeigen. Export,
+  Import und Papierkorb tragen sie nicht.
+
+### Geändert
+
+- Die eigene Ansicht einer Datei zeigt auch Bilder, PDF und Text. Eine Datei
+  ohne Vorschau lädt man dort mit ↓ herunter.
+
+### Behoben
+
+- Mehr als 200 Verweise auf Kommentare in einem Eintrag: die übrigen standen
+  als „gelöscht“ da.
+
 ## [0.43.2] - 2026-09-27
 
 *Stift an bearbeitbaren Dateien, eigener Kasten „Dokumente“.*

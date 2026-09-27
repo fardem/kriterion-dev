@@ -257,9 +257,7 @@ async function run() {
       // Name des CSRF-Cookies
       '__Host-kriterion_csrf',
       // SVG-Namensraum fuer createElementNS
-      'http://www.w3.org/2000/svg',
-      // Der zweite Abfrageparameter an GET /api/comment-refs.
-      '&items='
+      'http://www.w3.org/2000/svg'
     ].sort();
     const tooMany = rest.filter(t => !REST_EXPECTED.includes(t));
     const missing = REST_EXPECTED.filter(t => !rest.includes(t));

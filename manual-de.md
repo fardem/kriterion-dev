@@ -323,6 +323,9 @@ geht direkt dort.
 - Blättern mit ← → oder den Pfeilen. Ein Klick öffnet das Vollbild, ein
   weiterer zoomt auf Originalgröße, Esc schließt. ↓ im Vollbild lädt die Datei
   herunter.
+- **Link kopieren:** das Zeichen der Kette im Vollbild kopiert die Adresse des
+  gezeigten Fotos oder Videos. Die Adresse öffnet den Eintrag und das Vollbild
+  an dieser Stelle.
 - Videos spielen nicht von selbst und halten beim Blättern an.
 - Ein Bild aus der Zwischenablage wird deutlich größer als die Originaldatei.
   Besser die Datei hochladen.
@@ -344,6 +347,11 @@ unverändert.
   heruntergeladen. Hat der Admin einen Document Server eingeschaltet, zeigt er
   auch Word-, Excel- und PowerPoint-Dateien und ihre OpenDocument-Gegenstücke
   an. Unter dem Betrachter steht, welcher Document Server die Datei anzeigt.
+- **Kachel:** eine Bilddatei zeigt in der Dateizeile eine Kachel, wie ein
+  Foto. Kann Kriterion die Datei nicht als Bild lesen, steht dort ▣.
+- **Link kopieren:** das Zeichen der Kette in der Dateizeile kopiert die
+  Adresse der Datei. Die Adresse öffnet die Datei in der eigenen Ansicht; eine
+  Datei ohne Vorschau lädt man dort mit ↓ herunter.
 - **Vorschau und Öffnen:** Ein Klick auf eine solche Datei zeigt die Vorschau
   im Eintrag. Das Zeichen ⤢ öffnet die Datei in einer eigenen Ansicht über das
   ganze Fenster; der Pfeil oben links führt zurück zum Eintrag. Auf dem Telefon
@@ -433,6 +441,15 @@ Angepinnte Kommentare tragen einen goldenen Rahmen.
 - **Nummer:** jeder Kommentar trägt eine Nummer (`#3`). Ein Klick darauf
   kopiert seine Adresse; eingefügt in ein Feld wird daraus ein Verweis mit
   Eintragstitel.
+- **Verweis auf eine Datei oder ein Foto:** eine Adresse aus „Link kopieren“
+  wird im Text zur Marke, auch in der Beschreibung. Eine Datei für den
+  Document Server (Word, Excel, PowerPoint, OpenDocument) zeigt Zeichen und
+  Dateinamen; ein Klick klappt darunter einen kleinen Betrachter auf, ein
+  zweiter schließt ihn, ⤢ öffnet die eigene Ansicht. Erst der Klick lädt den
+  Betrachter; auf dem Telefon öffnet er die eigene Ansicht. Eine Bilddatei
+  zeigt ihre Kachel, andere Dateien Zeichen und Dateinamen; beide öffnen
+  die eigene Ansicht. Ein Foto zeigt seine Kachel und öffnet das Vollbild.
+  Eine gelöschte Datei steht als „gelöscht“ da.
 - **Zitieren:** das Anführungszeichen in der Kopfzeile übernimmt den
   Kommentar ins Schreibfeld. Markierter Text lässt sich über das Menü
   „Zitieren" übernehmen.

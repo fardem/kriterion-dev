@@ -3314,9 +3314,21 @@ const qCommentRef = db.prepare(`
 
 const qItemRef = db.prepare('SELECT id AS itemId, title AS itemTitle FROM items WHERE id = ?');
 
+const qFileRef = db.prepare(`
+  SELECT a.id, a.item_id AS itemId, i.title AS itemTitle, a.filename
+    FROM attachments a JOIN items i ON i.id = a.item_id
+   WHERE a.id = ?`);
+
+/* kind steht hinter zwei Blobs; `+p.id` lenkt auf idx_photos_tile.
+   336 MB, 400 Fotos, 200 Verweise: ueber die Zeile 17,1 ms, ueber den Index 1,5 ms. */
+const qPhotoRef = lateStatement(`
+  SELECT p.id, p.item_id AS itemId, i.title AS itemTitle, p.kind, ${PHOTO_VERSION}
+    FROM photos p JOIN items i ON i.id = p.item_id
+   WHERE p.item_id = (SELECT item_id FROM photos WHERE id = ?) AND +p.id = ?`);
+
 /* Anmeldung genuegt, wie bei GET /api/items/:id. */
 app.get('/api/comment-refs', (req, res) => {
-  /* 200 je Art, damit Kommentare die Eintraege nicht verdraengen; den Rest
+  /* 200 je Art, damit eine Art die anderen nicht verdraengt; den Rest
      holt der Browser beim naechsten Zeichnen. */
   const numbers = (raw) => [...new Set(String(raw || '').split(',')
     .map(x => Number(x)).filter(Number.isInteger))].slice(0, 200);
@@ -3330,6 +3342,18 @@ app.get('/api/comment-refs', (req, res) => {
     const row = qItemRef.get(x);
     if (row) out.push({ key: 'i' + row.itemId, id: row.itemId,
       itemId: row.itemId, itemTitle: row.itemTitle, number: null });
+  }
+  // `preview` wie in detail().
+  const officeOn = documentServerOn();
+  for (const x of numbers(req.query.files)) {
+    const row = qFileRef.get(x);
+    if (row) out.push({ key: 'f' + row.id, ...row,
+      preview: officeOn && docserver.officeType(row.filename)
+        ? 'office' : attachments.previewKind(row.filename) });
+  }
+  for (const x of numbers(req.query.photos)) {
+    const row = qPhotoRef().get(x, x);
+    if (row) out.push({ key: 'p' + row.id, ...row });
   }
   res.json(out);
 });
@@ -3633,11 +3657,23 @@ const attachmentUpload = (bytes) => upload({ storage: multer.memoryStorage(), li
 
 /* Hochladen darf jeder, wie bei Links: die Datei erscheint nur an diesem
    Eintrag. */
+/* ---- Kachel einer Bilddatei ---- */
+const qFileTile = db.prepare('SELECT thumb FROM attachment_thumbs WHERE attachment_id = ?');
+const putFileTile = db.prepare('INSERT OR REPLACE INTO attachment_thumbs (attachment_id, thumb) VALUES (?, ?)');
+// null, wenn sharp die Datei nicht lesen kann; die Zeile haelt auch das fest.
+const fileTile = async (bytes) => (await makeVariants(bytes, DEFAULT_CROP, ['thumb'])).thumb;
+
 app.post('/api/items/:id/attachments',
          cappedLive(bytes => attachmentUpload(bytes).array('files', ATTACHMENT_COUNT),
                     () => ({ count: ATTACHMENT_COUNT, bytes: limitBytes('attachment'), key: 'server.uploadCap' })),
-         (req, res, next) => {
+         async (req, res, next) => {
   try {
+    // Nur der Name, nie ein Pfad: "../../etwas" bleibt ein Dateiname.
+    const files = (req.files || []).map(f =>
+      ({ f, name: path.basename(String(f.originalname || 'datei')).slice(0, 200) || 'datei' }));
+    // Vor den Pruefungen rechnen: zwischen Pruefung und Schreiben liegt so kein await.
+    for (const x of files)
+      if (attachments.previewKind(x.name) === 'image') x.tile = await fileTile(x.f.buffer);
     if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
       return res.status(404).json({ error: t(localeOf(req), 'server.entryUnknown')});
     if (entryTooLarge(req.params.id, req.files)) return refuseEntryFull(req, res);
@@ -3651,12 +3687,11 @@ app.post('/api/items/:id/attachments',
                             VALUES (?, ?, ?, ?, ?, ?, ?)`);
     const asked = (req.body || {}).editAll;
     const editAll = asked === undefined ? filesEditAllOf(req.user.id) : asked === '1';
-    for (const f of req.files || []) {
-      // Nur der Name, nie ein Pfad: "../../etwas" bleibt ein Dateiname.
-      const name = path.basename(String(f.originalname || 'datei')).slice(0, 200) || 'datei';
+    for (const { f, name, tile } of files) {
       const added = into.run(req.params.id, name, String(f.mimetype || '').slice(0, 120), f.buffer.length,
                              f.buffer, pos++, req.user.id);
       if (editAll && docserver.editFormat(name)) putEditAll.run(added.lastInsertRowid, 1);
+      if (tile !== undefined) putFileTile.run(added.lastInsertRowid, tile);
     }
     touch.run(req.params.id);
     res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
@@ -3664,12 +3699,33 @@ app.post('/api/items/:id/attachments',
 });
 
 // Einzige Stelle, die den Inhalt eines Anhangs ausliefert.
-app.get('/api/attachments/:id/raw', (req, res) => {
-  const a = db.prepare('SELECT * FROM attachments WHERE id = ?').get(req.params.id);
-  if (!a) return res.status(404).end();
-  attachments.setHeader(res, a.filename, { inline: req.query.inline === '1' });
-  res.send(a.data);
+app.get('/api/attachments/:id/raw', async (req, res, next) => {
+  try {
+    if (req.query.size === 'thumb') return await sendFileTile(req.params.id, res);
+    const a = db.prepare('SELECT * FROM attachments WHERE id = ?').get(req.params.id);
+    if (!a) return res.status(404).end();
+    attachments.setHeader(res, a.filename, { inline: req.query.inline === '1' });
+    res.send(a.data);
+  } catch (e) { next(e); }
 });
+
+/* Bestand und Import haben keine Kachel; sie entsteht beim ersten Abruf. Der
+   Inhalt einer Bilddatei aendert sich nicht, daher eine Woche im Cache. */
+async function sendFileTile(id, res) {
+  const a = db.prepare('SELECT filename FROM attachments WHERE id = ?').get(id);
+  if (!a || attachments.previewKind(a.filename) !== 'image') return res.status(404).end();
+  let row = qFileTile.get(id);
+  if (!row) {
+    const bytes = db.prepare('SELECT data FROM attachments WHERE id = ?').get(id)?.data;
+    if (!bytes) return res.status(404).end();
+    row = { thumb: await fileTile(bytes) };
+    // Die Datei kann waehrend des Rechnens geloescht worden sein.
+    if (db.prepare('SELECT 1 FROM attachments WHERE id = ?').get(id)) putFileTile.run(id, row.thumb);
+  }
+  if (!row.thumb) return res.status(404).end();
+  attachments.setImageHeader(res, row.thumb, { name: `file-${Number(id)}`, maxAge: 604800 });
+  res.send(row.thumb);
+}
 
 // Vorschau von Text und .docx: der Inhalt wird gelesen und als JSON
 // geschickt, nie als Datei ausgeliefert.

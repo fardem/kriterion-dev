@@ -7842,8 +7842,8 @@ const REGRESSIONS = [
   {
     nr: '1137', name: 'Die Herkunft eines Verweises wird nicht mehr geprueft',
     file: 'public/app.js',
-    search: "  if (!text.startsWith(here + '#/')) return '';\n  const found = text.slice(here.length).match(ENTRY_PATTERN);",
-    replacement: "  const found = text.replace(/^[^#]*/, '').match(ENTRY_PATTERN);",
+    search: "  if (!text.startsWith(here + '#/')) return '';\n  const hash = text.slice(here.length);",
+    replacement: "  const hash = text.replace(/^[^#]*/, '');",
     expected: 'Was nicht in der Teilmenge liegt, bleibt Text'
   },
   {
@@ -8045,8 +8045,8 @@ const REGRESSIONS = [
   {
     nr: '1166', name: 'Ein laufender Ruf gilt wieder als Auskunft',
     file: 'public/app.js',
-    search: "  const ask = keys.filter(k => !COMMENT_REFS_ASK.has(k)).slice(0, 400);",
-    replacement: "  const ask = keys.slice(0, 400);",
+    search: "  const fresh = keys.filter(k => !COMMENT_REFS_ASK.has(k));",
+    replacement: "  const fresh = keys;",
     expected: 'Der Sprung zum Kommentar trifft und haelt'
   },
   {
@@ -8142,7 +8142,7 @@ const REGRESSIONS = [
   {
     nr: '1179', name: 'Das Verzeichnis der lesenden Routen verliert eine Zeile',
     file: 'test/frame.js',
-    search: "  ['/api/comment-refs',            'angemeldet',\n    'Titel und Stellung fuer die Marke am Verweis; dieselbe Schranke wie am Eintrag.'],",
+    search: "  ['/api/comment-refs',            'angemeldet',\n    'Titel, Stellung und Dateiname fuer die Marke am Verweis; dieselbe Schranke wie am Eintrag.'],",
     replacement: "",
     expected: 'Der Waechter ueber den Quelltext'
   },
@@ -8804,6 +8804,181 @@ const REGRESSIONS = [
     search: "    theme: ['light', 'dark'].includes(DOC_SETTINGS?.theme) ? DOC_SETTINGS.theme\n      : document",
     replacement: "    theme: false ? DOC_SETTINGS.theme\n      : document",
     expected: 'Bearbeiten: im Browser'
+  },
+  {
+    nr: '1271', name: 'Der Server kennt am Verweis keine Dateien',
+    file: 'server.js',
+    search: "  for (const x of numbers(req.query.files)) {",
+    replacement: "  for (const x of numbers(req.query.nothing)) {",
+    expected: 'Verweise auf Dateien: die Auskunft des Servers'
+  },
+  {
+    nr: '1272', name: 'Die Frage nach dem Foto liest wieder die ganze Zeile',
+    file: 'server.js',
+    search: "   WHERE p.item_id = (SELECT item_id FROM photos WHERE id = ?) AND +p.id = ?`);",
+    replacement: "   WHERE p.id = ? AND p.id = ?`);",
+    expected: 'Verweise auf Dateien: die Auskunft des Servers'
+  },
+  {
+    nr: '1273', name: 'Die Buerodatei heisst am Verweis nie office',
+    file: 'server.js',
+    search: "      preview: officeOn && docserver.officeType(row.filename)\n        ? 'office' : attachments.previewKind(row.filename) });",
+    replacement: "      preview: attachments.previewKind(row.filename) });",
+    expected: 'Verweise auf Dateien: die Auskunft des Servers'
+  },
+  {
+    nr: '1274', name: 'Eine Art verdraengt wieder die andere',
+    file: 'public/app.js',
+    search: "  const ask = Object.keys(REF_KINDS).flatMap(sign => fresh.filter(k => k[0] === sign).slice(0, 200));",
+    replacement: "  const ask = fresh.slice(0, 400);",
+    expected: 'Verweise auf Dateien: Marken im Browser'
+  },
+  {
+    nr: '1275', name: 'Die Adresse einer Datei wird wieder keine Marke',
+    file: 'public/app.js',
+    search: "  const file = hash.match(FILE_PATTERN);\n  if (file) return `f${Number(file[2])}`;\n",
+    replacement: "",
+    expected: 'Verweise auf Dateien: Marken im Browser'
+  },
+  {
+    nr: '1276', name: 'Der Betrachter laedt schon beim Zeichnen',
+    file: 'public/app.js',
+    search: "  if (row.preview !== 'office') return a;\n",
+    replacement: "  if (row.preview !== 'office') return a;\n  setTimeout(() => refViewerToggle(a, row), 0);\n",
+    expected: 'Verweise auf Dateien: Marken im Browser'
+  },
+  {
+    nr: '1277', name: 'Der kleine Betrachter kommt als Desktop',
+    file: 'public/app.js',
+    search: "  const query = new URLSearchParams({ mobile: embedded || isNarrow() ? 1 : 0, edit: edit ? 1 : 0,",
+    replacement: "  const query = new URLSearchParams({ mobile: isNarrow() ? 1 : 0, edit: edit ? 1 : 0,",
+    expected: 'Verweise auf Dateien: Marken im Browser'
+  },
+  {
+    nr: '1278', name: 'Ein zweiter Klick oeffnet einen zweiten Betrachter',
+    file: 'public/app.js',
+    search: "  if (shown && REF_VIEWERS.has(shown)) {",
+    replacement: "  if (false) {",
+    expected: 'Verweise auf Dateien: Marken im Browser'
+  },
+  {
+    nr: '1279', name: 'Das Verlassen des Eintrags laesst den Betrachter stehen',
+    file: 'public/app.js',
+    search: "  endFileViewer();\n  endRefViewers();\n",
+    replacement: "  endFileViewer();\n",
+    expected: 'Verweise auf Dateien: Marken im Browser'
+  },
+  {
+    nr: '1280', name: 'Die Bilddatei im Verweis bekommt kein Vorschaubild',
+    file: 'public/app.js',
+    search: "  if (row.preview === 'image') {\n    markupThumb(",
+    replacement: "  if (false) {\n    markupThumb(",
+    expected: 'Verweise auf Dateien: Marken im Browser'
+  },
+  {
+    nr: '1281', name: 'Das Video im Verweis traegt kein Zeichen',
+    file: 'public/app.js',
+    search: "thumbLength: row.thumbLength }, 'thumb'), isVideo(row));",
+    replacement: "thumbLength: row.thumbLength }, 'thumb'), false);",
+    expected: 'Verweise auf Dateien: Marken im Browser'
+  },
+  {
+    nr: '1282', name: 'Die Adresse des Fotos oeffnet kein Vollbild',
+    file: 'public/app.js',
+    search: "  if (photoWanted) showPhoto(photoWanted);\n",
+    replacement: "",
+    expected: 'Verweise auf Dateien: Adresse des Fotos und Link kopieren'
+  },
+  {
+    nr: '1283', name: 'Der Klick auf das Foto baut den Eintrag wieder neu auf',
+    file: 'public/app.js',
+    search: "    if (PHOTO_SHOW.show(row.id)) e.preventDefault();",
+    replacement: "    if (false) e.preventDefault();",
+    expected: 'Verweise auf Dateien: Adresse des Fotos und Link kopieren'
+  },
+  {
+    nr: '1284', name: 'Das Vollbild hat keinen Knopf Link kopieren',
+    file: 'public/app.js',
+    search: "  const photoLink = (p) => fullAddress(photoAddress(id, p.id));",
+    replacement: "  const photoLink = null;",
+    expected: 'Verweise auf Dateien: Adresse des Fotos und Link kopieren'
+  },
+  {
+    nr: '1285', name: 'Link kopieren in der Dateizeile kopiert den Eintrag',
+    file: 'public/app.js',
+    search: "        copyText(fullAddress(fileAddress(id, a.id)), t('card.linkCopied'));",
+    replacement: "        copyText(fullAddress(entryAddress(id)), t('card.linkCopied'));",
+    expected: 'Verweise auf Dateien: Adresse des Fotos und Link kopieren'
+  },
+  {
+    nr: '1286', name: 'Die eigene Ansicht zeigt nur Dateien fuer den Document Server',
+    file: 'public/app.js',
+    search: "  if (plain && a.preview !== 'keine') filePreview(a, document.querySelector('.fileview-doc'));\n",
+    replacement: "",
+    expected: 'Verweise auf Dateien: die eigene Ansicht jeder Datei'
+  },
+  {
+    nr: '1287', name: 'Ein Klick in den Betrachter oeffnet das Feld der Beschreibung',
+    file: 'public/app.js',
+    search: "    if (e.target.closest('.markup-viewer, a')) return;",
+    replacement: "    if (e.target.closest('a')) return;",
+    expected: 'Verweise auf Dateien: Marken im Browser'
+  },
+  {
+    nr: '1288', name: 'Das Hochladen legt keine Kachel an',
+    file: 'server.js',
+    search: "      if (tile !== undefined) putFileTile.run(added.lastInsertRowid, tile);\n",
+    replacement: "",
+    expected: 'Verweise auf Dateien: die Kachel einer Bilddatei'
+  },
+  {
+    nr: '1289', name: 'Der erste Abruf legt die Kachel nicht ab',
+    file: 'server.js',
+    search: "    if (db.prepare('SELECT 1 FROM attachments WHERE id = ?').get(id)) putFileTile.run(id, row.thumb);\n",
+    replacement: "",
+    expected: 'Verweise auf Dateien: die Kachel einer Bilddatei'
+  },
+  {
+    nr: '1290', name: 'Die Kachel ist nicht aus der Mitte beschnitten',
+    file: 'server.js',
+    search: "const fileTile = async (bytes) => (await makeVariants(bytes, DEFAULT_CROP, ['thumb'])).thumb;",
+    replacement: "const fileTile = async (bytes) => (await makeVariants(bytes, null, ['thumb'])).thumb;",
+    expected: 'Verweise auf Dateien: die Kachel einer Bilddatei'
+  },
+  {
+    nr: '1291', name: 'Jede Datei bekommt beim Abruf eine Kachel',
+    file: 'server.js',
+    search: "  if (!a || attachments.previewKind(a.filename) !== 'image') return res.status(404).end();",
+    replacement: "  if (!a) return res.status(404).end();",
+    expected: 'Verweise auf Dateien: die Kachel einer Bilddatei'
+  },
+  {
+    nr: '1292', name: 'Marke und Dateizeile laden wieder die ganze Datei',
+    file: 'public/app.js',
+    search: "const fileTileSource = (fileId) => `/api/attachments/${Number(fileId)}/raw?size=thumb`;",
+    replacement: "const fileTileSource = (fileId) => `/api/attachments/${Number(fileId)}/raw?inline=1`;",
+    expected: 'Verweise auf Dateien: Marken im Browser'
+  },
+  {
+    nr: '1293', name: 'Ohne Kachel bleibt die Marke leer',
+    file: 'public/app.js',
+    search: "    img.onerror = () => { a.classList.remove('markup-pic'); markupFileSign(a, row, term, name); };\n",
+    replacement: "",
+    expected: 'Verweise auf Dateien: Marken im Browser'
+  },
+  {
+    nr: '1294', name: 'Die Dateizeile zeigt wieder nur das Zeichen',
+    file: 'public/app.js',
+    search: "      row.innerHTML = `<span class=\"aicon\">${a.preview === 'image'",
+    replacement: "      row.innerHTML = `<span class=\"aicon\">${false",
+    expected: 'Verweise auf Dateien: Adresse des Fotos und Link kopieren'
+  },
+  {
+    nr: '1295', name: 'Ohne Kachel bleibt das Feld in der Dateizeile leer',
+    file: 'public/app.js',
+    search: "      if (tile) tile.onerror = () => { tile.parentElement.textContent = fileSign(a.preview); };\n",
+    replacement: "",
+    expected: 'Verweise auf Dateien: Adresse des Fotos und Link kopieren'
   },
 ];
 

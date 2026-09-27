@@ -4052,8 +4052,8 @@ async function sendImport(object, mode, withoutShare = false) {
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
       .all().map(z => z.name).sort();
     tzDb.close();
-    check('Die Datenbank traegt genau zweiunddreissig Tabellen',
-      tzTables.length === 32 && tzTables.includes('comment_videos'), `${tzTables.length}: ${tzTables.join(' ')}`);
+    check('Die Datenbank traegt genau dreiunddreissig Tabellen',
+      tzTables.length === 33 && tzTables.includes('comment_videos'), `${tzTables.length}: ${tzTables.join(' ')}`);
     /* login_attempts: in einer Map setzte jeder Neustart die Zaehler auf null. */
     check('Und die neue heisst login_attempts',
       tzTables.includes('login_attempts'), tzTables.join(' '));
