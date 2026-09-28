@@ -53,9 +53,13 @@ annehmen.
 - `comment_images`, `comment_videos`: Bilder und Videos in Kommentaren, Videos
   mit Standbild und Dauer.
 - `attachments`: angehängte Dateien mit Bytes und Verfasser.
-- `attachment_thumbs`: Kachel einer Bilddatei, 512 × 512 WebP wie bei Fotos.
-  Entsteht beim Hochladen oder beim ersten Abruf von `?size=thumb`; `thumb`
-  ist `NULL`, wenn `sharp` die Datei nicht lesen kann. Nicht im Export.
+- `attachment_thumbs`: Kachel einer Bild- oder Videodatei, 512 × 512 WebP wie
+  bei Fotos. Entsteht beim Hochladen einer Bilddatei oder beim ersten Abruf
+  von `?size=thumb`, bei einem Video aus dem Standbild; `thumb` ist `NULL`,
+  wenn `sharp` die Datei nicht lesen kann. Nicht im Export.
+- `attachment_stills`: Standbild und Dauer eines Videos unter „Dateien“, im
+  Browser erzeugt, 1600 px WebP. Setzen darf nur, wer die Datei hochgeladen
+  hat (`PUT /api/attachments/:id/still`). Im Papierkorb, nicht im Export.
 - `settings`: globale Einstellungen, darunter Titel, Vokabular, Suchmaschinen
   und das Verfahren der Bildablage (`imageStore`).
 - `user_settings`: zehn persönliche Schlüssel je Benutzer, darunter Filter,

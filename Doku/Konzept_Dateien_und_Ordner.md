@@ -225,7 +225,7 @@ dabei neu lädt.
 **Vollbild:** Fotos, Kurzvideos und Dateien teilen es (`openLightbox`, `app.js:4319`).
 Die Regeln für Videos gelten für jedes Video darin, auch für die Kurzvideos der
 Bildleiste. Ein Video lädt mit `preload="metadata"` und `playsinline`. Hat es den Fokus,
-spulen ← und →, sonst blättern sie. Spielt der Browser es nicht (`error`, oder
+springen ← und → darin 5 s (beim Bau von 0.46.0 entschieden), sonst blättern sie. Spielt der Browser es nicht (`error`, oder
 `videoWidth` 0 bei HEVC in Chrome), steht dort „Dieses Video kann der Browser nicht
 abspielen."; bei einer Datei dazu „Herunterladen". Bei einer Datei ist das Poster das
 Standbild. Ihre Leiste: „Link kopieren", „Herunterladen", mit Recht „Dieses Bild als

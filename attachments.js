@@ -10,7 +10,7 @@ const IMAGE_TYPES = {
   webp: 'image/webp', avif: 'image/avif', bmp: 'image/bmp'
 };
 
-// Videos am Platz des Fotos; .avi, .mkv, .wmv und .flv bleiben Anhang.
+// Videos der Bildleiste und unter „Dateien"; .avi, .mkv, .wmv und .flv bleiben ohne Vorschau.
 const VIDEO_TYPES = {
   mp4: 'video/mp4', m4v: 'video/mp4', webm: 'video/webm', mov: 'video/quicktime'
 };
@@ -58,6 +58,7 @@ function outType(filename) {
 function previewKind(filename) {
   const e = extension(filename);
   if (IMAGE_TYPES[e]) return 'image';
+  if (VIDEO_TYPES[e]) return 'video';
   if (e === 'pdf') return 'pdf';
   if (TEXT_EXTENSIONS.includes(e)) return 'text';
   if (e === 'docx') return 'docx';

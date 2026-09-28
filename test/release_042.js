@@ -234,7 +234,7 @@ async function run() {
     check('Jedes Hochladen geht ueber upload() mit defParamCharset utf8',
       (serverCode.match(/multer\(\{/g) || []).length === 1 &&
       /multer\(\{ defParamCharset: 'utf8', \.\.\.options \}\)/.test(serverCode) &&
-      (serverCode.match(/(?<![A-Za-z])upload\(\{/g) || []).length === 6, 'multer ohne upload()');
+      (serverCode.match(/(?<![A-Za-z])upload\(\{/g) || []).length === 7, 'multer ohne upload()');
   }
 
   group('Document Server: die Pruefung der Karte');

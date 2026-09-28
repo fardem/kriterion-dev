@@ -289,7 +289,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .brand .count, .card-test, .rating-inline, .link-count, .rrow .ravg, .rrow .rname .rweight,
 .mrow .mcount, .mrow .mweight, .kv .v, .log-time, .session-time, .trash-meta, .cmt-head,
 .lb-count, .vcount, .bsum, .calc-row > span, .open-when, .card-find .find-more,
-.thumb .num, .thumb .duration, .cmt-img .duration, .lrow .lnum, .cmp-crit, .cmp-group, .pill .n, .photo-count,
+.thumb .num, .thumb .duration, .cmt-img .duration, .apic .duration, .lrow .lnum, .cmp-crit, .cmp-group, .pill .n, .photo-count,
 .two-factor-codes span, .user-status, .filter-toggle .fcount, .open-count {
   font-variant-numeric: tabular-nums;
 }
@@ -724,7 +724,7 @@ mark {
   width: 16px; height: 16px; display: flex; align-items: center; justify-content: center;
   background: rgba(var(--photo-rgb), .82); border-radius: 999px; padding-left: 1px;
 }
-.thumb .duration, .cmt-img .duration {
+.thumb .duration, .cmt-img .duration, .apic .duration {
   position: absolute; bottom: 0; right: 0; pointer-events: none;
   background: rgba(var(--photo-rgb), .82); color: var(--on-photo);
   font-family: var(--mono); font-size: .58rem; padding: 1px 4px; border-radius: 5px 0 0 0;
@@ -1495,6 +1495,10 @@ mark {
 .lb-stage.zoomed img { max-width: none; max-height: none; margin: auto; cursor: zoom-out; }
 /* Kein Zoomzeiger am Video: der Klick gehoert der eigenen Steuerung. */
 .lb-stage video { max-width: 100%; max-height: 100%; object-fit: contain; background: #000; }
+.lb-unplayable { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 0 24px; text-align: center; color: var(--text-2); }
+.lb-unplayable p { margin: 0; font-size: .93rem; }
+.lb-unplayable a { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--text); text-decoration: none; font-size: .85rem; }
+.lb-unplayable a:hover { border-color: var(--accent); color: var(--accent-text); }
 /* `safe-area-inset`, sonst liegt der Schliessknopf unter der Uhr des Telefons. */
 .lb-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; padding-top: calc(14px + env(safe-area-inset-top)); padding-left: max(18px, env(safe-area-inset-left)); padding-right: max(18px, env(safe-area-inset-right)); flex-shrink: 0; }
 .lb-title { font-size: .93rem; color: var(--text-2); font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1516,6 +1520,9 @@ mark {
 .lb-strip { display: flex; gap: 7px; padding: 12px 18px 18px; padding-bottom: calc(18px + env(safe-area-inset-bottom)); overflow-x: auto; overscroll-behavior-x: contain; justify-content: center; justify-content: safe center; flex-shrink: 0; }
 .lb-thumb { width: 56px; height: 56px; border-radius: 6px; overflow: hidden; flex-shrink: 0; border: 2px solid transparent; opacity: .5; transition: all .15s var(--ease); }
 .lb-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* Ein Video ohne Standbild zeigt die Endung. */
+.lb-thumb:has(.lb-ext) { display: flex; align-items: center; justify-content: center; background: var(--surface-2); }
+.lb-ext { font-family: var(--mono); font-size: .62rem; font-weight: 700; letter-spacing: .05em; color: var(--muted); }
 .lb-thumb.on { opacity: 1; border-color: var(--accent); }
 .lb-thumb:hover { opacity: 1; }
 body.lb-open { overflow: hidden; }

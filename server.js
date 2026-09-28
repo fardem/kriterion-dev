@@ -2318,10 +2318,11 @@ app.delete('/api/items/:id/tags/:tagId', entryAuthorOnly, (req, res) => {
 /* ================= Eintraege ================= */
 const qAttachments = lateStatement(`SELECT a.id, a.filename, a.mime_type, a.size, a.sort_order,
     a.created_at, a.user_id, COALESCE(e.edit_all, 0) AS edit_all,
-    (p.attachment_id IS NOT NULL) AS has_previous
+    (p.attachment_id IS NOT NULL) AS has_previous, s.duration, length(s.still) AS still
   FROM attachments a
   LEFT JOIN attachment_editing e ON e.attachment_id = a.id
   LEFT JOIN attachment_previous p ON p.attachment_id = a.id
+  LEFT JOIN attachment_stills s ON s.attachment_id = a.id
   WHERE a.item_id = ? ORDER BY a.sort_order, a.id`);
 // Chronologisch in Gruppen: Angepinntes zuerst (vor der Art), dann Aufgaben,
 // Berichte, Notizen.
@@ -2641,7 +2642,9 @@ function detail(id, userId, locale) {
       edit: officeOn && rights && !!docserver.editFormat(a2.filename),
       // Nur doc, xls, ppt: das Format nach dem Speichern, fuer die Rueckfrage im Browser.
       convertTo: docserver.needsConversion(a2.filename) ? docserver.editFormat(a2.filename) : null,
-      restore: rights && a2.has_previous === 1
+      restore: rights && a2.has_previous === 1,
+      // `still` ist die Laenge des Standbilds; der Browser haengt sie als `v=` an.
+      duration: a2.duration, still: a2.still
     };
   });
   /* `mine` steuert das Loeschkreuz; bei einem geloeschten Zugang laesst es
@@ -3315,8 +3318,9 @@ const qCommentRef = db.prepare(`
 const qItemRef = db.prepare('SELECT id AS itemId, title AS itemTitle FROM items WHERE id = ?');
 
 const qFileRef = db.prepare(`
-  SELECT a.id, a.item_id AS itemId, i.title AS itemTitle, a.filename
+  SELECT a.id, a.item_id AS itemId, i.title AS itemTitle, a.filename, length(s.still) AS still
     FROM attachments a JOIN items i ON i.id = a.item_id
+    LEFT JOIN attachment_stills s ON s.attachment_id = a.id
    WHERE a.id = ?`);
 
 /* kind steht hinter zwei Blobs; `+p.id` lenkt auf idx_photos_tile.
@@ -3700,34 +3704,90 @@ app.post('/api/items/:id/attachments',
   } catch (e) { next(e); }
 });
 
-// Einzige Stelle, die den Inhalt eines Anhangs ausliefert.
+/* Einzige Stelle, die den Inhalt eines Anhangs ausliefert. Range fuer jede
+   Datei: iOS Safari spielt ein Video nur mit 206. */
 app.get('/api/attachments/:id/raw', async (req, res, next) => {
   try {
     if (req.query.size === 'thumb') return await sendFileTile(req.params.id, res);
+    if (req.query.size === 'still') return sendStill(req.params.id, res);
     const a = db.prepare('SELECT * FROM attachments WHERE id = ?').get(req.params.id);
     if (!a) return res.status(404).end();
     attachments.setHeader(res, a.filename, { inline: req.query.inline === '1' });
-    res.send(a.data);
+    sendRanged(req, res, a.data);
   } catch (e) { next(e); }
 });
 
-/* Bestand und Import haben keine Kachel; sie entsteht beim ersten Abruf. Der
-   Inhalt einer Bilddatei aendert sich nicht, daher eine Woche im Cache. */
+const qStill = db.prepare('SELECT still FROM attachment_stills WHERE attachment_id = ?');
+const qStillSize = db.prepare('SELECT length(still) AS n FROM attachment_stills WHERE attachment_id = ?');
+
+/* Bestand und Import haben keine Kachel; sie entsteht beim ersten Abruf, bei
+   einem Video aus dem Standbild. Eine Woche im Cache: die Adresse eines Videos
+   traegt `v=`, eine Bilddatei aendert sich nicht. */
 async function sendFileTile(id, res) {
   const a = db.prepare('SELECT filename FROM attachments WHERE id = ?').get(id);
-  if (!a || attachments.previewKind(a.filename) !== 'image') return res.status(404).end();
+  const kind = a ? attachments.previewKind(a.filename) : '';
+  if (kind !== 'image' && kind !== 'video') return res.status(404).end();
   let row = qFileTile.get(id);
   if (!row) {
-    const bytes = db.prepare('SELECT data FROM attachments WHERE id = ?').get(id)?.data;
+    const bytes = kind === 'video' ? qStill.get(id)?.still
+      : db.prepare('SELECT data FROM attachments WHERE id = ?').get(id)?.data;
     if (!bytes) return res.status(404).end();
     row = { thumb: await fileTile(bytes) };
-    // Die Datei kann waehrend des Rechnens geloescht worden sein.
-    if (db.prepare('SELECT 1 FROM attachments WHERE id = ?').get(id)) putFileTile.run(id, row.thumb);
+    // Waehrend des Rechnens kann die Datei geloescht oder das Standbild ersetzt worden sein.
+    const current = kind === 'video' ? qStillSize.get(id)?.n === bytes.length
+      : !!db.prepare('SELECT 1 FROM attachments WHERE id = ?').get(id);
+    if (current) putFileTile.run(id, row.thumb);
   }
   if (!row.thumb) return res.status(404).end();
   attachments.setImageHeader(res, row.thumb, { name: `file-${Number(id)}`, maxAge: 604800 });
   res.send(row.thumb);
 }
+
+// Poster im Vollbild; die Adresse traegt `v=`.
+function sendStill(id, res) {
+  const row = qStill.get(id);
+  if (!row) return res.status(404).end();
+  attachments.setImageHeader(res, row.still, { name: `still-${Number(id)}`, maxAge: 604800 });
+  res.send(row.still);
+}
+
+/* ---- Standbild eines Videos ---- */
+const isVideoFile = (filename) => attachments.previewKind(filename) === 'video';
+const qStillFile = lateStatement('SELECT item_id, user_id, filename FROM attachments WHERE id = ?');
+// Ohne Dauer in der Anfrage bleibt die bekannte.
+const putStill = db.prepare(`INSERT INTO attachment_stills (attachment_id, duration, still) VALUES (?, ?, ?)
+  ON CONFLICT(attachment_id) DO UPDATE SET still = excluded.still,
+    duration = COALESCE(excluded.duration, attachment_stills.duration)`);
+const dropFileTile = db.prepare('DELETE FROM attachment_thumbs WHERE attachment_id = ?');
+const stillUpload = (bytes) => upload({ storage: multer.memoryStorage(), limits: { fileSize: bytes } });
+
+// Nur wer hochgeladen hat, auch kein Admin; vor multer, damit ein fremdes Bild nicht erst eingelesen wird.
+app.put('/api/attachments/:id/still', (req, res, next) => {
+  const a = qStillFile().get(req.params.id);
+  if (!a) return res.status(404).json({ error: t(localeOf(req), 'server.fileGone')});
+  if (!selfOnly(req, a.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
+  if (!isVideoFile(a.filename)) return res.status(400).json({ error: t(localeOf(req), 'server.videosOnly')});
+  next();
+}, cappedLive(bytes => stillUpload(bytes).single('still'),
+              () => ({ count: 1, bytes: limitBytes('photo'), key: 'server.importOne' })),
+async (req, res, next) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: t(localeOf(req), 'server.noFile')});
+    if (!await gridImage(req.file.buffer))
+      return res.status(400).json({ error: t(localeOf(req), 'server.stillNotImage')});
+    // 1600 px an der langen Seite, WebP.
+    const still = (await makeVariants(req.file.buffer, DEFAULT_CROP, ['medium'])).medium;
+    if (!still) return res.status(400).json({ error: t(localeOf(req), 'server.stillNoPreview')});
+    const a = qStillFile().get(req.params.id);
+    if (!a) return res.status(404).json({ error: t(localeOf(req), 'server.fileGone')});
+    // Ohne touch: das Nachholen beim Ansehen soll die Liste nicht umsortieren.
+    db.transaction(() => {
+      putStill.run(req.params.id, durationValue(req.body.duration), still);
+      dropFileTile.run(req.params.id);
+    })();
+    res.json(detail(a.item_id, req.user.id, localeOf(req)));
+  } catch (e) { next(e); }
+});
 
 // Vorschau von Text und .docx: der Inhalt wird gelesen und als JSON
 // geschickt, nie als Datei ausgeliefert.
@@ -4531,7 +4591,9 @@ const qRefPhotos = lateStatement(
      (medium IS NOT NULL OR thumb IS NOT NULL) AS still
      FROM photos WHERE item_id = ? ORDER BY sort_order, id`);
 const qRefAttachments = lateStatement(
-  `SELECT id, filename, mime_type, user_id, ${EDIT_ALL_OF} FROM attachments WHERE item_id = ? ORDER BY sort_order, id`);
+  `SELECT id, filename, mime_type, user_id, ${EDIT_ALL_OF}, s.duration, (s.attachment_id IS NOT NULL) AS still
+     FROM attachments LEFT JOIN attachment_stills s ON s.attachment_id = attachments.id
+    WHERE item_id = ? ORDER BY sort_order, id`);
 
 function entryAsBundle(it, situation) {
   const { authorName, pins, funnel, withPhotos, withFiles, withVideos } = situation;
@@ -4600,7 +4662,10 @@ function entryAsBundle(it, situation) {
                     author: authorName(a2.user_id),
                     // Die vorige Fassung reist nicht mit, nur der Haken.
                     ...(a2.edit_all === 1 ? { edit_all: true } : {}),
-                    ['data' + extension]: funnel.take(a2.data, ['file', a2.id]) }));
+                    ['data' + extension]: funnel.take(a2.data, ['file', a2.id]),
+                    // `still` liest nur qRefAttachments: der Export traegt kein Standbild.
+                    ...(a2.still ? { duration: a2.duration,
+                                     ['still' + extension]: funnel.take(null, ['fileStill', a2.id]) } : {}) }));
   }
   return o;
 }
@@ -5125,11 +5190,15 @@ async function importPrepare(payload, bytesSource) {
     for (const a2 of it.attachments || []) {
       const buf = bytesOf(a2, 'data', bytesSource);
       if (!buf) continue;
+      const name = path.basename(String(a2.filename || 'datei')).slice(0, 200) || 'datei';
+      // Ein unlesbares Standbild faellt weg, die Datei bleibt; der Browser holt es nach.
+      let still = isVideoFile(name) ? bytesOf(a2, 'still', bytesSource) : null;
+      if (still && !await gridImage(still)) still = null;
       attachments.push({
-        name: path.basename(String(a2.filename || 'datei')).slice(0, 200) || 'datei',
-        mime: String(a2.mime_type || '').slice(0, 120), buf,
+        name, mime: String(a2.mime_type || '').slice(0, 120), buf,
         // Erst in der Transaktion aufgeloest: authorId() zaehlt dort mit.
-        hasAuthor: 'author' in a2, author: a2.author, editAll: a2.edit_all === true
+        hasAuthor: 'author' in a2, author: a2.author, editAll: a2.edit_all === true,
+        still, duration: durationValue(a2.duration)
       });
     }
     for (const c of it.comments || []) {
@@ -5362,6 +5431,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
         const whose = a2.hasAuthor ? authorId(a2.author) : itemAuthor;
         const added = iAttachmentAdd().run(id, a2.name, a2.mime, a2.buf.length, a2.buf, i, whose);
         if (a2.editAll) putEditAll.run(added.lastInsertRowid, 1);
+        if (a2.still) putStill.run(added.lastInsertRowid, a2.duration, a2.still);
         stats.attachments++;
       });
     }
@@ -5457,7 +5527,9 @@ const insertTrashBytes = {
   still: db.prepare(
     'INSERT INTO trash_bytes (trash_id, part, data) SELECT ?, ?, COALESCE(medium, thumb) FROM photos WHERE id = ?'),
   file: db.prepare(
-    'INSERT INTO trash_bytes (trash_id, part, data) SELECT ?, ?, data FROM attachments WHERE id = ?')
+    'INSERT INTO trash_bytes (trash_id, part, data) SELECT ?, ?, data FROM attachments WHERE id = ?'),
+  fileStill: db.prepare(
+    'INSERT INTO trash_bytes (trash_id, part, data) SELECT ?, ?, still FROM attachment_stills WHERE attachment_id = ?')
 };
 const qTrashBytes = db.prepare(
   'SELECT data FROM trash_bytes WHERE trash_id = ? AND part = ?');

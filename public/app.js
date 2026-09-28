@@ -241,6 +241,7 @@ const ICON_LOCK = char('<circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/>'
 const ICON_PIN = char('<path d="M9 4h6l-1 6 2.5 2v2h-9v-2l2.5-2z"/><path d="M12 14v6.5"/>');
 const ICON_REPORT = char('<path d="M5 21V4.5"/><path d="M5 5.5h10.5l-1.6 3.2 1.6 3.3H5"/>');
 const ICON_ERASE = char('<path d="M8.5 20H20"/><path d="M14.5 5.5l4 4-8 8H6.5l-2-2z"/>');
+const ICON_STILL = char('<rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M20.5 15.5l-4.5-4.5L7 19"/>');
 const ICON_MORE_DOWN = char('<path d="M6 9.5L12 15.5l6-6"/>', 1.7);
 const ICON_MORE_UP   = char('<path d="M6 14.5L12 8.5l6 6"/>', 1.7);
 /* Pfeil mit Schaft, damit er sich vom Winkel „ein Eintrag zurueck" in
@@ -1067,11 +1068,13 @@ async function sendForm(path, form) {
   return data;
 }
 
-/* Standbild im Browser, damit der Server das Video nicht oeffnen muss. */
-async function stillFrame(file, second = 1) {
+/* Standbild im Browser, damit der Server das Video nicht oeffnen muss. `from` ist
+   ein File oder eine Adresse; ohne `share` Sekunde 1, sonst dieser Anteil der Laenge. */
+async function stillFrame(from, share = null) {
+  const file = typeof from === 'string' ? null : from;
   const v = document.createElement('video');
   v.preload = 'metadata'; v.muted = true; v.playsInline = true;
-  v.src = URL.createObjectURL(file);
+  v.src = file ? URL.createObjectURL(file) : from;
   try {
     await new Promise((ok, fail) => {
       v.onloadedmetadata = ok;
@@ -1081,18 +1084,44 @@ async function stillFrame(file, second = 1) {
     // Zeichenflaeche der Groesse null und damit gar kein Standbild.
     if (!v.videoWidth || !v.videoHeight)
       throw new Error(t('entry.videoNoImage'));
-    v.currentTime = Math.min(second, (v.duration || 2) / 2);
+    // Unbekannte Laenge (NaN, Infinity) wie 2 s; currentTime nimmt nur endliche Werte.
+    const length = Number.isFinite(v.duration) && v.duration > 0 ? v.duration : 2;
+    v.currentTime = share === null ? Math.min(1, length / 2) : length * share;
     await new Promise((ok, fail) => {
       v.onseeked = ok;
       v.onerror = () => fail(new Error(t('entry.videoUnplayable')));
     });
-    const c = document.createElement('canvas');
-    c.width = v.videoWidth; c.height = v.videoHeight;
-    c.getContext('2d').drawImage(v, 0, 0);
-    const image = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
-    if (!image) throw new Error(t('entry.videoNoThumb'));
-    return { image, duration: Math.round(v.duration) || null };
-  } finally { URL.revokeObjectURL(v.src); }
+    return { image: await frameImage(v), duration: Math.round(v.duration) || null };
+  } finally {
+    if (file) URL.revokeObjectURL(v.src);
+    // Sonst laedt der Browser eine Adresse weiter.
+    else { v.removeAttribute('src'); v.load(); }
+  }
+}
+
+/* Das gezeigte Bild eines Videos als JPEG. Vor dem ersten Abspielen ist nur das
+   Poster geladen; der Sprung an dieselbe Stelle laedt das Bild. */
+async function frameImage(v) {
+  if (!v.videoWidth || !v.videoHeight) throw new Error(t('entry.videoNoImage'));
+  if (v.readyState < 2) await new Promise((ok, fail) => {
+    v.addEventListener('seeked', ok, { once: true });
+    v.addEventListener('error', () => fail(new Error(t('entry.videoUnplayable'))), { once: true });
+    v.currentTime = v.currentTime;
+  });
+  const c = document.createElement('canvas');
+  c.width = v.videoWidth; c.height = v.videoHeight;
+  c.getContext('2d').drawImage(v, 0, 0);
+  const image = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
+  if (!image) throw new Error(t('entry.videoNoThumb'));
+  return image;
+}
+
+// Fuer PUT /api/attachments/:id/still; eine unbekannte Dauer laesst die gespeicherte stehen.
+function stillForm(image, duration) {
+  const fd = new FormData();
+  fd.append('still', image, 'still.jpg');
+  if (Number.isFinite(duration) && duration > 0) fd.append('duration', String(duration));
+  return fd;
 }
 
 // Video, Standbild und Dauer als ein Formular.
@@ -2192,9 +2221,10 @@ function markupRefNode(row, term, name) {
 /* ---- Der Verweis auf eine Datei oder ein Foto ---- */
 // Strg-, Umschalt- und Mittelklick bleiben dem Browser.
 const plainClick = (e) => !(e.ctrlKey || e.metaKey || e.shiftKey || e.button);
-const fileSign = (preview) =>
-  preview === 'image' ? '▣' : preview === 'pdf' ? '▤' : preview === 'keine' ? '▪' : '▥';
-const fileTileSource = (fileId) => `/api/attachments/${Number(fileId)}/raw?size=thumb`;
+const fileSign = (preview) => preview === 'image' ? '▣' : preview === 'video' ? '▶'
+  : preview === 'pdf' ? '▤' : preview === 'keine' ? '▪' : '▥';
+// `v=` beim Video: sein Standbild kann wechseln, die Kachel liegt eine Woche im Cache.
+const fileTileSource = (a) => `/api/attachments/${Number(a.id)}/raw?size=thumb${a.still ? `&v=${Number(a.still)}` : ''}`;
 
 function markupThumb(a, src, video) {
   const img = document.createElement('img');
@@ -2220,16 +2250,19 @@ function markupFileSign(a, row, term, name) {
 
 function markupFileRef(a, row, term, name) {
   a.href = fileAddress(row.itemId, row.id);
-  const hint = row.preview === 'image' ? 'entry.clickFullscreen'
+  const pictured = row.preview === 'image' || row.preview === 'video';
+  const hint = pictured ? 'entry.clickFullscreen'
     : row.preview === 'office' ? 'entry.refOfficeHint' : 'entry.refFileHint';
   a.title = `${t(hint)} · ${row.itemTitle}`;
-  if (row.preview === 'image') {
-    markupThumb(a, fileTileSource(row.id), false);
+  if (row.preview === 'image' || (row.preview === 'video' && row.still)) {
+    markupThumb(a, fileTileSource(row), row.preview === 'video');
     const img = a.querySelector('img');
     img.setAttribute('alt', row.filename);
     // Ohne Kachel, etwa bei BMP, wie jede andere Datei.
     img.onerror = () => { a.classList.remove('markup-pic'); markupFileSign(a, row, term, name); };
     if (name) a.appendChild(raiseHighlight(name, term));
+  } else markupFileSign(a, row, term, name);
+  if (pictured) {
     // Wie beim Foto: im geoeffneten Eintrag das Vollbild ohne Hash-Wechsel.
     a.onclick = (e) => {
       if (!plainClick(e)) return;
@@ -2239,7 +2272,6 @@ function markupFileRef(a, row, term, name) {
     };
     return a;
   }
-  markupFileSign(a, row, term, name);
   if (row.preview !== 'office') return a;
   // Auf dem Telefon waere der Betrachter zu klein; dort oeffnet die Ansicht.
   a.onclick = (e) => {
@@ -4302,9 +4334,14 @@ function imageSource(p, filesize) {
   // Ein Kommentarvideo hat nur die Kachel; sie ist auch das Poster.
   if (p.source === 'commentVideo')
     return `/api/comment-videos/${p.id}/raw${filesize ? '?size=thumb' : ''}`;
-  // Eine Bilddatei hat Kachel und Original; `inline=1` zeigt, ohne Angabe laedt es herunter.
-  if (p.source === 'file') return filesize === 'thumb' ? fileTileSource(p.id)
-    : filesize ? `/api/attachments/${p.id}/raw?inline=1` : `/api/attachments/${p.id}/raw`;
+  /* Eine Datei hat Kachel und Original; `inline=1` zeigt, ohne Angabe laedt es herunter.
+     Bei einem Video steht das Standbild fuer 'medium'; ohne Standbild gibt es kein Bild. */
+  if (p.source === 'file') {
+    if (isVideo(p) && filesize && !p.still) return '';
+    if (filesize === 'thumb') return fileTileSource(p);
+    if (isVideo(p) && filesize) return `/api/attachments/${p.id}/raw?size=still&v=${Number(p.still)}`;
+    return filesize ? `/api/attachments/${p.id}/raw?inline=1` : `/api/attachments/${p.id}/raw`;
+  }
   if (!filesize) return `/api/photos/${p.id}/raw`;
   const f = Number(p.thumbLength);
   const version = filesize === 'thumb' && Number.isFinite(f) ? `&v=${f}` : '';
@@ -4312,6 +4349,19 @@ function imageSource(p, filesize) {
 }
 // Nur `kind` aus der Antwort zaehlt, nicht der Dateityp.
 const isVideo = (p) => p?.kind === 'video';
+// Sekunden je Pfeiltaste; Chromium selbst springt nur 1 % der Laenge.
+const SEEK_STEP = 5;
+// Spult ein Video mit Fokus; true, wenn die Taste ihm gehoerte.
+function seekVideo(e) {
+  const v = document.activeElement;
+  if (!(v instanceof HTMLVideoElement) || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return false;
+  e.preventDefault();
+  const end = Number.isFinite(v.duration) ? v.duration : Infinity;
+  v.currentTime = Math.min(end, Math.max(0, v.currentTime + (e.key === 'ArrowLeft' ? -SEEK_STEP : SEEK_STEP)));
+  return true;
+}
+// Eine Datei mit `inline=1`; ohne die Angabe liefert der Server sie als Download aus.
+const playSource = (p) => p.source === 'file' ? `/api/attachments/${Number(p.id)}/raw?inline=1` : imageSource(p, '');
 // Kommentarbilder haben kein Original; beim Video gehoert der Klick der Abspielsteuerung.
 const hasOriginal = (p) => p.source !== 'comment' && !isVideo(p);
 // 42 -> "0:42", 130 -> "2:10". Ohne bekannte Dauer steht nichts da.
@@ -4328,10 +4378,10 @@ function centerStage(stage) {
   stage.scrollTop = Math.max(0, (stage.scrollHeight - stage.clientHeight) / 2);
 }
 
-/* Ohne `remove` kein Papierkorb, ohne `linkOf` kein Link kopieren; `inside`
-   liefert den Abspieler der Seite fuer die Uebergabe eines laufenden Videos.
-   `removable(p)` blendet den Papierkorb je Bild aus, `shown(p)` meldet das Bild, beim Schliessen null. */
-function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removable, shown } = {}) {
+/* Ohne `remove` kein Papierkorb, ohne `linkOf` kein Link kopieren; `inside` liefert den Abspieler
+   der Seite fuer die Uebergabe eines laufenden Videos. `removable(p)` und `still.may(p)` blenden
+   Papierkorb und Standbildknopf je Bild aus; `shown(p)` meldet das Bild, beim Schliessen null. */
+function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removable, shown, still } = {}) {
   if (!photos.length) return;
   lightboxOpen = true;
   let i = startIdx, zoomed = false;
@@ -4346,12 +4396,15 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
         ${linkOf ? `<button class="lb-btn copy" title="${esc(t('entry.copyLink'))}">${ICON_LINK}</button>` : ''}
         <a class="lb-btn download" download title="${esc(t('entry.download'))}">↓</a>
         <button class="lb-btn zoom" title="${esc(t('list.zoomFull'))}">⊕</button>
+        ${still ? `<button class="lb-btn still" title="${esc(t('entry.setStill'))}" aria-label="${esc(t('entry.setStill'))}">${ICON_STILL}</button>` : ''}
         ${remove ? `<button class="lb-btn remove" title="${esc(t('dialog.delete'))}">${ICON_TRASH}</button>` : ''}
         <button class="lb-btn close" title="${esc(t('list.closeEsc'))}">${ICON_X}</button>
       </div>
     </div>
     <div class="lb-stage"><img alt="" title="${esc(t('list.clickZoomHint'))}">
-      <video class="lb-video" controls playsinline hidden></video></div>
+      <video class="lb-video" controls playsinline preload="metadata" tabindex="0" hidden></video>
+      <div class="lb-unplayable" hidden><p>${tH('entry.videoUnplayable')}</p>
+        <a class="lb-unplayable-dl" download>${tH('entry.download')}</a></div></div>
     ${photos.length > 1 ? `<button class="lb-nav prev" title="${esc(t('list.previous'))}">‹</button>
                            <button class="lb-nav next" title="${esc(t('list.next'))}">›</button>` : ''}
     ${photos.length > 1 ? `<div class="lb-strip"></div>` : ''}`;
@@ -4361,6 +4414,7 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
   const stage = lb.querySelector('.lb-stage');
   const img = lb.querySelector('.lb-stage img');
   const player = lb.querySelector('.lb-video');
+  const note = lb.querySelector('.lb-unplayable');
   const strip = lb.querySelector('.lb-strip');
 
   /* Ein laufendes Video der Seite spielt im Vollbild an derselben Stelle weiter. */
@@ -4420,9 +4474,11 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
     // Ohne Uebergabe kein automatisches Abspielen.
     img.hidden = video;
     player.hidden = !video;
+    note.hidden = true;
     if (video) {
-      player.poster = imageSource(photos[i], 'medium');
-      player.src = imageSource(photos[i], '');
+      const poster = imageSource(photos[i], 'medium');
+      if (poster) player.poster = poster; else player.removeAttribute('poster');
+      player.src = playSource(photos[i]);
       /* Die uebernommene Stelle gilt nur beim Oeffnen. */
       if (handover && handover.open && player.getAttribute('src') === handover.source) {
         handover.open = false;
@@ -4440,14 +4496,18 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
     lb.querySelector('.lb-count').textContent = `${i + 1} / ${photos.length}`;
     const bin = lb.querySelector('.remove');
     if (bin && removable) bin.hidden = !removable(photos[i]);
+    const keep = lb.querySelector('.still');
+    if (keep) keep.hidden = !still.may(photos[i]);
     shown?.(photos[i]);
     /* Nach dem Loeschen bis auf eines verschwinden Pfeile und Streifen. */
     lb.querySelectorAll('.lb-nav').forEach(k => { k.hidden = photos.length < 2; });
-    if (strip) {
-      strip.hidden = photos.length < 2;
-      [...strip.children].forEach((tile, n) => tile.classList.toggle('on', n === i));
-      strip.children[i]?.scrollIntoView?.({ block: 'nearest', inline: 'center' });
-    }
+    markStrip();
+  }
+  function markStrip() {
+    if (!strip) return;
+    strip.hidden = photos.length < 2;
+    [...strip.children].forEach((tile, n) => tile.classList.toggle('on', n === i));
+    strip.children[i]?.scrollIntoView?.({ block: 'nearest', inline: 'center' });
   }
   /* Eigene Funktion, weil der Streifen nach dem Loeschen neu gebaut wird. */
   function buildStrip() {
@@ -4456,13 +4516,26 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
     photos.forEach((p, n) => {
       const tile = document.createElement('button');
       tile.className = 'lb-thumb' + (isVideo(p) ? ' is-video' : '');
-      tile.innerHTML = `<img src="${esc(imageSource(p, 'thumb'))}" alt="">` +
+      const src = imageSource(p, 'thumb');
+      tile.innerHTML = (src ? `<img src="${esc(src)}" alt="">` : `<span class="lb-ext">${esc(fileKind(p.filename))}</span>`) +
         (isVideo(p) ? `<span class="play-badge">▶</span>` : '');
       tile.onclick = () => { i = n; show(); };
       strip.appendChild(tile);
     });
   }
   buildStrip();
+
+  function unplayable() {
+    if (player.hidden || !player.getAttribute('src')) return;
+    player.hidden = true;
+    note.hidden = false;
+    const link = note.querySelector('a');
+    link.hidden = photos[i].source !== 'file';
+    link.href = imageSource(photos[i], '');
+  }
+  player.addEventListener('error', unplayable);
+  // HEVC in Chrome: Ton ohne Bild, videoWidth bleibt 0.
+  player.addEventListener('loadedmetadata', () => { if (!player.videoWidth) unplayable(); });
 
   const close = () => {
     hold();
@@ -4475,6 +4548,8 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
   };
   function onKey(e) {
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); }
+    // Hat das Video den Fokus, spult es, statt zu blaettern.
+    else if (document.activeElement === player) { if (seekVideo(e)) e.stopPropagation(); }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); e.stopPropagation(); i--; show(); }
     else if (e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); i++; show(); }
   }
@@ -4482,6 +4557,19 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
 
   lb.querySelector('.close').onclick = close;
   lb.querySelector('.zoom').onclick = () => setZoom(!zoomed);
+  // Ohne show(): das laufende Video bliebe sonst nicht an seiner Stelle.
+  lb.querySelector('.still')?.addEventListener('click', async () => {
+    const p = photos[i];
+    try {
+      const fresh = await still.save(p, await frameImage(player), player.duration);
+      const at = photos.indexOf(p);
+      if (!fresh || at < 0) return;
+      photos[at] = { ...p, still: fresh.still, duration: fresh.duration };
+      if (at === i) player.poster = imageSource(photos[at], 'medium');
+      buildStrip();
+      markStrip();
+    } catch (e) { toast(e.message, true); }
+  });
   lb.querySelector('.copy')?.addEventListener('click',
     () => copyText(linkOf(photos[i]), t('card.linkCopied')));
   /* Geloescht wird das gerade gezeigte Bild. */
@@ -4771,6 +4859,7 @@ function uploadNext() {
 function uploadSend(u) {
   u.state = 'running';
   u.sent = 0;
+  if (u.still === undefined) u.still = /^video\//.test(u.file.type || '') ? uploadStill(u) : null;
   const xhr = new XMLHttpRequest();
   u.xhr = xhr;
   xhr.open('POST', `/api/items/${u.itemId}/attachments`);
@@ -4800,6 +4889,7 @@ function uploadAnswer(u, xhr) {
   if (xhr.status >= 200 && xhr.status < 300 && data) {
     UPLOADS.splice(UPLOADS.indexOf(u), 1);
     UPLOADS_DONE++;
+    stillAfterUpload(u, data);
     if (UPLOAD_VIEW?.itemId === u.itemId) UPLOAD_VIEW.took(data);
   } else {
     uploadFail(u, data?.error || (xhr.status === 413 ? t('error.proxyTooLarge')
@@ -4834,6 +4924,8 @@ function uploadCancel(u) {
   u.xhr = null;
   xhr?.abort();
   clearTimeout(u.clock);
+  u.gone = true;
+  dropStill(u);
   const at = UPLOADS.indexOf(u);
   if (at >= 0) UPLOADS.splice(at, 1);
   uploadChanged(u);
@@ -4846,6 +4938,73 @@ function uploadRetry(u) {
   u.tries = 0;
   uploadChanged(u);
   uploadNext();
+}
+
+/* ---- Standbild eines Videos unter „Dateien" ---- */
+// Anteil der Laenge beim Hochladen und Nachholen.
+const STILL_SHARE = 0.1;
+// Nummer der Datei -> Upload, solange dessen Standbild zum Server unterwegs ist.
+const STILLS_ON_WAY = new Map();
+// Nachgeholt wird je Datei einmal in dieser Sitzung, eine Datei nach der anderen.
+const STILLS_TRIED = new Set();
+const STILLS_QUEUE = [];
+let STILL_RUNNING = false;
+
+function uploadStill(u) {
+  return stillFrame(u.file, STILL_SHARE).then(made => {
+    if (u.gone) return null;
+    u.stillUrl = URL.createObjectURL(made.image);
+    uploadChanged(u);
+    return made;
+  }).catch(() => null);
+}
+
+function dropStill(u) {
+  if (u.stillUrl) URL.revokeObjectURL(u.stillUrl);
+  u.stillUrl = '';
+}
+
+// Die neue Datei ist die juengste eigene mit Name und Groesse des Uploads.
+function stillAfterUpload(u, data) {
+  if (!u.still) return;
+  const fresh = (data.attachments || []).filter(a => a.mine === true && a.filename === u.name && a.size === u.size)
+    .sort((a, b) => b.id - a.id)[0];
+  if (fresh?.preview !== 'video') { u.still.then(() => dropStill(u)); return; }
+  STILLS_ON_WAY.set(fresh.id, u);
+  u.still.then(async (made) => {
+    // Ohne Standbild aus der Datei gelingt es auch aus /raw nicht.
+    if (!made) STILLS_TRIED.add(fresh.id);
+    else {
+      try {
+        const answer = await api('PUT', `/api/attachments/${fresh.id}/still`, stillForm(made.image, made.duration), true);
+        STILLS_ON_WAY.delete(fresh.id);
+        if (UPLOAD_VIEW?.itemId === u.itemId) UPLOAD_VIEW.took(answer);
+      } catch { /* bleibt ohne Standbild; catchUpStill() versucht es aus /raw */ }
+    }
+    STILLS_ON_WAY.delete(fresh.id);
+    dropStill(u);
+    uploadChanged(u);
+  });
+}
+
+function catchUpStill(itemId, a) {
+  if (STILLS_TRIED.has(a.id) || STILLS_ON_WAY.has(a.id)) return;
+  STILLS_TRIED.add(a.id);
+  STILLS_QUEUE.push({ itemId: Number(itemId), fileId: a.id });
+  catchUpNext();
+}
+
+async function catchUpNext() {
+  if (STILL_RUNNING || !STILLS_QUEUE.length) return;
+  STILL_RUNNING = true;
+  const { itemId, fileId } = STILLS_QUEUE.shift();
+  try {
+    const made = await stillFrame(`/api/attachments/${fileId}/raw?inline=1`, STILL_SHARE);
+    const answer = await api('PUT', `/api/attachments/${fileId}/still`, stillForm(made.image, made.duration), true);
+    if (UPLOAD_VIEW?.itemId === itemId) UPLOAD_VIEW.took(answer);
+  } catch { /* bleibt ohne Standbild bis zur naechsten Sitzung */ }
+  STILL_RUNNING = false;
+  catchUpNext();
 }
 
 window.addEventListener('beforeunload', (e) => {
@@ -5070,7 +5229,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     const showsVideo = isVideo(ps[idx]) && !cropMode;
     const zoomPercent = Math.round(Number(ps[idx].zoom) || 100);
     v.innerHTML = (showsVideo
-        ? `<video controls playsinline preload="metadata"
+        ? `<video controls playsinline preload="metadata" tabindex="0"
              poster="/api/photos/${Number(ps[idx].id)}/raw?size=medium"
              src="/api/photos/${Number(ps[idx].id)}/raw"></video>`
         : `<img src="/api/photos/${Number(ps[idx].id)}/raw?size=medium" alt="" title="${esc(t('entry.clickFullscreen'))}">`) + `
@@ -5392,7 +5551,9 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     try {
       const bigPhoto = overLimit(images, 'photo'), bigVideo = overLimit(videos, 'video');
       if (bigPhoto) throw new Error(tooBigText(bigPhoto, 'photo'));
-      if (bigVideo) throw new Error(tooBigText(bigVideo, 'video'));
+      // Den Weg unter „Dateien" nennt der Satz nur, wenn das Video dort unter die Grenze passt.
+      if (bigVideo) throw new Error(tooBigText(bigVideo, 'video')
+        + (overLimit([bigVideo], 'attachment') ? '' : ' ' + t('entry.videoToFiles')));
       if (images.length) {
         /* In Buendeln von PHOTO_COUNT: darueber bricht multer die ganze Anfrage ab.
            Keine Obergrenze je Eintrag. */
@@ -5451,6 +5612,8 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     const mark = document.activeElement?.tagName;
     if (mark === 'INPUT' || mark === 'TEXTAREA' || mark === 'SELECT') return;
     if (document.querySelector('.backdrop') || lightboxOpen) return;
+    // Ein Video mit Fokus spult, statt zu blaettern.
+    if (seekVideo(e)) return;
     if (!item.photos.length) return;
     if (e.key === 'ArrowLeft') { e.preventDefault(); idx--; drawViewer(); markThumb(); }
     if (e.key === 'ArrowRight') { e.preventDefault(); idx++; drawViewer(); markThumb(); }
@@ -6377,20 +6540,24 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   }
 
   // Die Bildflaeche nur neu, wenn sich ihre Art aendert; ein neues img laedt die Kachel neu.
-  function fillTile(li, { name, size, kind, picture, video, meta, label, corner, open }) {
+  function fillTile(li, { name, size, kind, picture, video, duration, meta, label, corner, open }) {
     const face = li.querySelector('.aface');
     face.setAttribute('aria-label', label);
     li.classList.toggle('open', !!open);
     const pic = li.querySelector('.apic');
     // Ohne Kachel, etwa bei BMP, die Endung wie bei jeder anderen Datei; geladen wird sie nur einmal.
     const src = picture && pic.dataset.broken !== picture ? picture : '';
-    const want = `${src}|${kind}|${video ? 1 : 0}`;
+    // Die Zustandsecke eines Uploads steht an der Stelle der Dauer.
+    const shown = corner ? '' : duration;
+    const want = `${src}|${kind}|${video ? 1 : 0}|${shown}`;
     if (pic.dataset.shows !== want) {
       pic.dataset.shows = want;
-      pic.innerHTML = src ? `<img class="athumb" src="${esc(src)}" alt="" loading="lazy">`
-        : `<span class="aext">${esc(kind)}</span>${video ? '<span class="play-badge">▶</span>' : ''}`;
+      pic.innerHTML = (src ? `<img class="athumb" src="${esc(src)}" alt="" loading="lazy">` : `<span class="aext">${esc(kind)}</span>`)
+        + `${video ? '<span class="play-badge">▶</span>' : ''}${shown ? `<span class="duration">${esc(shown)}</span>` : ''}`;
       const img = pic.querySelector('img');
-      if (img) img.onerror = () => { pic.dataset.broken = src; pic.dataset.shows = `|${kind}|0`; pic.innerHTML = `<span class="aext">${esc(kind)}</span>`; };
+      if (img) img.onerror = () => { pic.dataset.broken = src; pic.dataset.shows = `|${kind}|${video ? 1 : 0}|${shown}`;
+        pic.innerHTML = `<span class="aext">${esc(kind)}</span>${video ? '<span class="play-badge">▶</span>' : ''}`
+          + `${shown ? `<span class="duration">${esc(shown)}</span>` : ''}`; };
     }
     let state = pic.querySelector('.astate');
     if (!corner) state?.remove();
@@ -6412,18 +6579,23 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     li.dataset.file = a.id;
     const kind = fileKind(a.filename);
     const readable = FILE_READABLE.includes(a.preview);
+    const video = a.preview === 'video';
     const face = li.querySelector('.aface');
     const from = multipleUsers() ? authorName(a.author) : '';
-    fillTile(li, { name: a.filename, size: filesize(a.size), kind, meta: from,
-      picture: a.preview === 'image' ? fileTileSource(a.id) : '',
-      video: /^video\//.test(a.mime_type || ''),
-      label: [a.filename, kind, filesize(a.size), from].filter(Boolean).join(', '),
+    const length = video ? durationText(a.duration) : '';
+    // Bis PUT .../still antwortet, zeigt die Kachel das Standbild aus dem Browser.
+    const coming = STILLS_ON_WAY.get(a.id)?.stillUrl || '';
+    fillTile(li, { name: a.filename, size: filesize(a.size), kind, meta: from, duration: length,
+      picture: a.preview === 'image' || (video && a.still) ? fileTileSource(a) : coming,
+      video: video || /^video\//.test(a.mime_type || ''),
+      label: [a.filename, kind, length, filesize(a.size), from].filter(Boolean).join(', '),
       open: openPreview === a.id || lightboxFile === a.id });
+    if (video && !a.still && a.mine === true) catchUpStill(id, a);
     if (readable && !isNarrow()) {
       face.setAttribute('aria-expanded', String(openPreview === a.id));
       face.setAttribute('aria-controls', previewBox.id);
     } else { face.removeAttribute('aria-expanded'); face.removeAttribute('aria-controls'); }
-    if (a.preview === 'image' || readable) face.removeAttribute('aria-haspopup');
+    if (a.preview === 'image' || video || readable) face.removeAttribute('aria-haspopup');
     else face.setAttribute('aria-haspopup', 'menu');
     const more = li.querySelector('.amore');
     more.setAttribute('aria-label', t('entry.fileMenu', { name: a.filename }));
@@ -6440,6 +6612,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     const state = failed ? `${t('entry.fileFailed')}: ${u.error}` : corner.text;
     // Nach einem Fehler steht der Grund an der Stelle der Groesse.
     fillTile(li, { name: u.name, size: failed ? '' : filesize(u.size), kind, meta: u.error,
+      picture: u.stillUrl, video: !!u.stillUrl,
       label: [u.name, kind, filesize(u.size), state].filter(Boolean).join(', '), corner });
     li.classList.toggle('busy', !failed);
     li.classList.toggle('failed', failed);
@@ -6494,7 +6667,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     if (key === 'add') return pickFiles();
     const a = fileOf(key);
     if (!a) return tileMenu(li);
-    if (a.preview === 'image') return showFile(a.id);
+    if (a.preview === 'image' || a.preview === 'video') return showFile(a.id);
     if (!FILE_READABLE.includes(a.preview)) return tileMenu(li);
     // Auf dem Telefon waere die Vorschau im Eintrag zu klein.
     if (isNarrow()) { location.hash = fileAddress(id, a.id); return; }
@@ -6519,6 +6692,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       items.push({ label: t('entry.edit'), run: () => { location.hash = fileAddress(id, a.id, true); } });
     if (FILE_READABLE.includes(a.preview))
       items.push({ label: t('entry.openFile'), run: () => { location.hash = fileAddress(id, a.id); } });
+    if (a.mine && a.preview === 'video') items.push({ label: t('entry.setStill'), run: () => showFile(a.id) });
     items.push({ label: t('entry.copyFileLink'), run: () => copyText(fileLink(a), t('card.linkCopied')) });
     items.push({ label: t('entry.download'), href: `/api/attachments/${Number(a.id)}/raw` });
     if (a.restore) items.push({ label: t('entry.restorePrevious'), run: () => restorePrevious(a) });
@@ -6560,17 +6734,26 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     } catch (e) { toast(e.message, true); }
   }
 
-  /* ---- Vollbild einer Bilddatei ---- */
+  /* ---- Vollbild einer Bild- oder Videodatei ---- */
   function showFile(fileId) {
-    const pictures = (item.attachments || []).filter(a => a.preview === 'image')
-      .map(a => ({ ...a, source: 'file' }));
+    const pictures = (item.attachments || []).filter(a => a.preview === 'image' || a.preview === 'video')
+      .map(a => ({ ...a, source: 'file', kind: a.preview === 'video' ? 'video' : 'image' }));
     const at = pictures.findIndex(a => a.id === Number(fileId));
     if (at < 0) return false;
     openLightbox(pictures, at, item.title, deleteFile, null, fileLink, {
       removable: mayDeleteFile,
-      shown: (a) => { lightboxFile = a ? a.id : 0; drawAtts(); }
+      shown: (a) => { lightboxFile = a ? a.id : 0; drawAtts(); },
+      // Wie PUT .../still: nur wer die Datei hochgeladen hat.
+      still: { may: (a) => a.mine === true && isVideo(a), save: saveStill }
     });
     return true;
+  }
+
+  async function saveStill(a, image, duration) {
+    item = await api('PUT', `/api/attachments/${Number(a.id)}/still`, stillForm(image, duration), true);
+    toast(t('entry.stillSet'));
+    drawAtts();
+    return fileOf('f' + a.id);
   }
 
   /* ---- Vorschau unter der Gruppe ---- */
@@ -7299,8 +7482,8 @@ async function renderFileView(itemId, fileId, editWanted = false) {
     return;
   }
   const a = (item.attachments || []).find(x => x.id === Number(fileId));
-  // Eine Bilddatei oeffnet das Vollbild im Eintrag, wie die Adresse eines Fotos.
-  if (a && a.preview === 'image' && !editWanted) {
+  // Bild und Video oeffnen das Vollbild im Eintrag, wie die Adresse eines Fotos.
+  if (a && (a.preview === 'video' || (a.preview === 'image' && !editWanted))) {
     fileReturn = null;
     return renderDetail(itemId, '', 0, 0, a.id);
   }

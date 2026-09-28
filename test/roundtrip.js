@@ -331,8 +331,8 @@ async function sendImport(object, mode, withoutShare = false) {
   /* Parameter wie :id durch eine Zahl ersetzen, sonst passt der Pfad auf keine Route. */
   const csAddress = (filePath) => filePath.replace(/:[A-Za-z]+/g, '7');
   const csGuarded = H.F_ROUTES.filter(([m, p]) => !csFree.has(`${m} ${p}`));
-  check('Einundsiebzig der neunundsiebzig Routen stehen hinter dem Schutz',
-    csGuarded.length === 71 && H.F_ROUTES.length === 79,
+  check('Zweiundsiebzig der achtzig Routen stehen hinter dem Schutz',
+    csGuarded.length === 72 && H.F_ROUTES.length === 80,
     `${csGuarded.length} von ${H.F_ROUTES.length}`);
   const csThrough = [];
   for (const [method, filePath] of csGuarded) {
@@ -2688,7 +2688,7 @@ async function sendImport(object, mode, withoutShare = false) {
     .map(m => m[1]).filter(a => a !== 'id, userId, locale');
   const withoutUser = calls.filter(a => !/,\s*req\.user\.id\s*,\s*localeOf\(req\s*$/.test(a));
   check('Keine Aufrufstelle von detail() ohne Benutzer und ohne Sprache',
-    calls.length === 28 && withoutUser.length === 0,
+    calls.length === 29 && withoutUser.length === 0,
     `${calls.length} Aufrufe, unvollstaendig: ${JSON.stringify(withoutUser)}`);
   check('detail() klemmt einen fehlenden Benutzer ab, statt still false zu liefern',
     /function detail\(id, userId, locale\) \{\s*\n\s*if \(userId == null\) throw/.test(source),
@@ -4052,8 +4052,9 @@ async function sendImport(object, mode, withoutShare = false) {
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
       .all().map(z => z.name).sort();
     tzDb.close();
-    check('Die Datenbank traegt genau dreiunddreissig Tabellen',
-      tzTables.length === 33 && tzTables.includes('comment_videos'), `${tzTables.length}: ${tzTables.join(' ')}`);
+    check('Die Datenbank traegt genau vierunddreissig Tabellen',
+      tzTables.length === 34 && tzTables.includes('comment_videos') && tzTables.includes('attachment_stills'),
+      `${tzTables.length}: ${tzTables.join(' ')}`);
     /* login_attempts: in einer Map setzte jeder Neustart die Zaehler auf null. */
     check('Und die neue heisst login_attempts',
       tzTables.includes('login_attempts'), tzTables.join(' '));

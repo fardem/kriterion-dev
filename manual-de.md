@@ -317,12 +317,15 @@ geht direkt dort.
 
 - Hinzufügen per Dateiauswahl, Strg+V oder Ablegen auf dem Feld.
 - Fotos bis 30 MB, Videos (MP4, WebM, MOV) bis 20 MB. Die Grenzen stellt der
-  Eigentümer-Admin ein. Die Zahl der Fotos ist nicht begrenzt.
+  Eigentümer-Admin ein. Die Zahl der Fotos ist nicht begrenzt. Ist ein Video
+  zu groß, passt aber unter die Grenze „Anhang“, nennt die Meldung den Block
+  „Dateien“: dort lässt es sich hochladen.
 - Das erste Element ist das Hauptbild. Reihenfolge durch Ziehen der
   Vorschaubilder.
 - Blättern mit ← → oder den Pfeilen. Ein Klick öffnet das Vollbild, ein
   weiterer zoomt auf Originalgröße, Esc schließt. ↓ im Vollbild lädt die Datei
-  herunter.
+  herunter. Hat ein Video den Fokus, etwa nach einem Klick darauf, springen ←
+  und → darin 5 Sekunden zurück oder vor, im Eintrag wie im Vollbild.
 - **Link kopieren:** das Zeichen der Kette im Vollbild kopiert die Adresse des
   gezeigten Fotos oder Videos. Die Adresse öffnet den Eintrag und das Vollbild
   an dieser Stelle.
@@ -351,28 +354,37 @@ unverändert.
   man einen anderen Eintrag öffnet; beim Schließen des Tabs fragt der Browser
   nach. Fehlt die Verbindung, versucht Kriterion es nach 2, 5 und 15 Sekunden
   erneut.
-- **Klick auf eine Datei:** Ein Bild öffnet das Vollbild; ← und → blättern
-  durch die Bilder unter „Dateien“. PDF, Text, Markdown, CSV, Log und `.docx`
-  zeigen die Vorschau unter den Kacheln, auf dem Telefon die eigene Ansicht.
-  Hat der Admin einen Document Server eingeschaltet, gilt das auch für Word-,
-  Excel- und PowerPoint-Dateien und ihre OpenDocument-Gegenstücke; unter dem
-  Betrachter steht, welcher Document Server die Datei anzeigt. Jede andere
-  Datei öffnet ihr Menü. Ein Klick lädt nie herunter.
+- **Klick auf eine Datei:** Ein Bild oder Video öffnet das Vollbild; ← und →
+  blättern durch Bilder und Videos unter „Dateien“. PDF, Text, Markdown, CSV,
+  Log und `.docx` zeigen die Vorschau unter den Kacheln, auf dem Telefon die
+  eigene Ansicht. Hat der Admin einen Document Server eingeschaltet, gilt das
+  auch für Word-, Excel- und PowerPoint-Dateien und ihre
+  OpenDocument-Gegenstücke; unter dem Betrachter steht, welcher Document
+  Server die Datei anzeigt. Jede andere Datei öffnet ihr Menü. Ein Klick lädt
+  nie herunter.
+- **Videos:** MP4, M4V, WebM und MOV spielen im Vollbild, auch auf dem
+  iPhone. Die Kachel zeigt ein Vorschaubild, ▶ und die Dauer. Das
+  Vorschaubild entsteht beim Hochladen im Browser, bei 10 % der Länge. Fehlt
+  es, etwa nach einem Import, erzeugt es der Browser dessen, der das Video
+  hochgeladen hat, beim Öffnen des Eintrags. „Dieses Bild als Vorschaubild“
+  im Menü ⋯ oder im Vollbild nimmt das gezeigte Bild; das darf nur, wer das
+  Video hochgeladen hat. Kann der Browser ein Video nicht abspielen, etwa
+  HEVC in Firefox, stehen dort ein Satz und „Herunterladen“.
 - **Vorschau:** höchstens eine im Block; ein Klick auf eine andere Kachel
   wechselt sie, ein Klick auf dieselbe schließt sie. Im Kopf öffnet ⤢ die
   eigene Ansicht, ↓ lädt herunter, × oder Esc schließt. Kann Kriterion eine
   Bilddatei nicht als Bild lesen, steht auf der Kachel die Endung.
 - **Menü ⋯:** steht an jeder Kachel und bietet nur an, was man darf:
-  „Bearbeiten durch alle“, „Bearbeiten“, „Öffnen“, „Link auf diese Datei
-  kopieren“, „Herunterladen“, „Vorige Fassung wiederherstellen“ und „Datei
-  löschen“. Oben steht der Name, bei mehreren Accounts auch, wer die Datei
-  wann hochgeladen hat. Auf dem Telefon öffnet das Menü am unteren Rand. An
+  „Bearbeiten durch alle“, „Bearbeiten“, „Öffnen“, „Dieses Bild als
+  Vorschaubild“, „Link auf diese Datei kopieren“, „Herunterladen“, „Vorige
+  Fassung wiederherstellen“ und „Datei löschen“. Oben steht der Name, bei
+  mehreren Accounts auch, wer die Datei wann hochgeladen hat. Auf dem Telefon öffnet das Menü am unteren Rand. An
   einer Kachel, die noch hochgeht, steht „Abbrechen“, nach einem Fehler
   „Erneut versuchen“ und „Entfernen“.
 - **Tastatur:** Tab erreicht jede Kachel und ihr ⋯. Umschalt+F10 öffnet das
   Menü, ↑ und ↓ wählen, Enter führt aus, Esc schließt.
-- **Link kopieren:** kopiert die Adresse der Datei. Die Adresse einer
-  Bilddatei öffnet den Eintrag und darin das Vollbild. Jede andere öffnet die
+- **Link kopieren:** kopiert die Adresse der Datei. Die Adresse eines Bildes
+  oder Videos öffnet den Eintrag und darin das Vollbild. Jede andere öffnet die
   Datei in der eigenen Ansicht; eine Datei ohne Vorschau lädt man dort mit ↓
   herunter.
 - **Eigene Ansicht:** zeigt die Datei über das ganze Fenster. Der Pfeil oben
@@ -433,7 +445,8 @@ Kopfzeile einklappen. Die Anordnung gilt für alle Einträge und wird in
 
 Jedes Löschen fragt nach. Beim Eintrag nennt die Rückfrage, was daran hängt.
 Gelöschte Einträge liegen 30 Tage im Papierkorb; zurückholen kann sie der
-Eigentümer-Admin (Einstellungen › Bestand, Karte „Papierkorb").
+Eigentümer-Admin (Einstellungen › Bestand, Karte „Papierkorb"). Vorschaubild
+und Dauer eines Videos kommen mit zurück.
 
 ### Eintrag exportieren
 
