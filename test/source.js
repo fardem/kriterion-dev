@@ -33,8 +33,8 @@ async function run() {
     fUnknown.length === 0 && fGone.length === 0,
     `ohne Entscheidung: ${fUnknown.join(' · ') || '—'} · verschwunden: ${fGone.join(' · ') || '—'}`);
   // Die feste Zahl macht jede neue Route in F_ROUTES sichtbar.
-  check('Und es sind jetzt genau 80 schreibende Routen',
-    F_ROUTES.length === 80 && fFound.length === 80,
+  check('Und es sind jetzt genau 84 schreibende Routen',
+    F_ROUTES.length === 84 && fFound.length === 84,
     `${F_ROUTES.length} erwartet, ${fFound.length} gefunden`);
   /* Gelesen werden die geladenen Listen aus auth.js, nicht ihr Quelltext;
      ein Textvergleich schluege auch bei Kommentaren an. */
@@ -484,8 +484,8 @@ async function run() {
     return e < 0 ? '' : fDbSource.slice(a, e);
   })();
   check('Den Rueckfall gibt es ueberhaupt', fNetCore.length > 0, 'assignInventory fehlt');
-  check('Es kennt weiterhin genau die sechs Traeger mit user_id',
-    /\['items', 'comments', 'test_days', 'ratings', 'links', 'attachments'\]/.test(fNetCore),
+  check('Es kennt genau die sieben Traeger mit user_id',
+    /\['items', 'comments', 'test_days', 'ratings', 'links', 'attachments', 'folders'\]/.test(fNetCore),
     (fNetCore.match(/for \(const tabelle of .*/) || [''])[0]);
   check('Und den Papierkorb ausdruecklich nicht',
     !fNetCore.includes('trash'), 'papierkorb steht im Rueckfall');
@@ -1040,7 +1040,7 @@ async function run() {
         if (part.kind === CODE)
           for (const m of part.value.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) benchNames.add(m[0]);
     check('Der Waechter sieht wirklich den ganzen Pruefstand',
-      benchNames.size > 2000 && BENCH.length === 27,
+      benchNames.size > 2000 && BENCH.length === 28,
       `${benchNames.size} Bezeichner aus ${BENCH.length} Dateien`);
 
     /* Keine Benennungen, sondern Gegenstaende von Pruefungen: abgelegte
@@ -1077,8 +1077,8 @@ async function run() {
     const readShipped = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
     const stWord = 'Stolper' + 'stein';
     const stAll = [...BENCH, ...SHIPPED];
-    check('Der Waechter sieht alle dreiundvierzig Dateien',
-      stAll.length === 43, `${stAll.length} Dateien`);
+    check('Der Waechter sieht alle vierundvierzig Dateien',
+      stAll.length === 44, `${stAll.length} Dateien`);
     /* Die SQL-Kommentare im SCHEMA von db.js stehen in einem Template-String,
        den segment() als Text liefert; hier zaehlen sie als Kommentar. */
     const stSqlRow = /^\s*--/;
@@ -1397,10 +1397,10 @@ async function run() {
     // Beide Schreibstellen und die Abweisung rechnen mit EXCHANGE_FORMAT.
     check('Die Formatnummer steht genau einmal als Zahl im Quelltext',
       (stServer.match(/EXCHANGE_FORMAT = \d+/g) || []).length === 1 &&
-      /const EXCHANGE_FORMAT = 20;/.test(stServer),
+      /const EXCHANGE_FORMAT = 21;/.test(stServer),
       (stServer.match(/EXCHANGE_FORMAT = \d+/g) || []).join(' · '));
     check('Und die aelteste gelesene daneben, unter ihr',
-      /const EXCHANGE_FORMAT_MIN = 14;/.test(stServer) && 14 < 20,
+      /const EXCHANGE_FORMAT_MIN = 14;/.test(stServer) && 14 < 21,
       (stServer.match(/EXCHANGE_FORMAT_MIN = \d+/g) || []).join(' · '));
     // Die Formatnummer steht nur im Server, damit keine zweite Angabe veraltet.
     check('Das Handbuch nennt keine Formatnummer',
@@ -1610,7 +1610,7 @@ async function run() {
         : part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('/'));
     // Auf leeren Mengen waeren die Pruefungen darunter immer gruen.
     check('Der Waechter sieht beide Seiten',
-      rrRoutes.length === 115 && rrBrowser.length > 100000,
+      rrRoutes.length === 119 && rrBrowser.length > 100000,
       `${rrRoutes.length} Routen, ${rrBrowser.length} Zeichen im Browser`);
     /* Die Verwaltungstafel baut diese Adressen aus ihrem Feld `url`; eine
        Suche, die das faende, faende jede Adresse. */
@@ -1841,8 +1841,8 @@ async function run() {
       }
       if (has) ssCode++;
     }
-    check('Und es stehen genau 1795 Regelzeilen da',
-      ssCode === 1795, `${ssCode} Zeilen`);
+    check('Und es stehen genau 1818 Regelzeilen da',
+      ssCode === 1818, `${ssCode} Zeilen`);
     // Laenger als drei Zeilen darf nur eine Tabelle gemessener Werte sein.
     const ssLines = ssBlocks.map(b => b.split('\n').length);
     const ssOver = ssLines.filter(n => n > 3).length;
@@ -2228,7 +2228,7 @@ async function run() {
   const hAll = assignments(hSource);
   // Feste Zahl: ueber null Zuweisungen waere die Pruefung immer gruen.
   check('Der Waechter sieht alle Zuweisungen an innerHTML',
-    hAll.length === 187, `${hAll.length} Zuweisungen`);
+    hAll.length === 188, `${hAll.length} Zuweisungen`);
   const hNaked = [];
   const hUsed = new Set();
   for (const one of hAll)

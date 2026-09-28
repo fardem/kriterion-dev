@@ -319,12 +319,14 @@ function countInventory(userId) {
     foreignTestDays: one(`SELECT COUNT(*) n FROM test_days WHERE user_id IS NOT ? AND item_id IN (${ownItems})`, id, id),
     foreignLinks: one(`SELECT COUNT(*) n FROM links WHERE user_id IS NOT ? AND item_id IN (${ownItems})`, id, id),
     foreignFiles: one(`SELECT COUNT(*) n FROM attachments WHERE user_id IS NOT ? AND item_id IN (${ownItems})`, id, id),
+    foreignFolders: one(`SELECT COUNT(*) n FROM folders WHERE user_id IS NOT ? AND item_id IN (${ownItems})`, id, id),
     // Seine Beitraege an fremden Eintraegen, geloescht mit options.posts.
     comments: one(`SELECT COUNT(*) n FROM comments WHERE user_id = ? AND item_id NOT IN (${ownItems})`, id, id),
     ratings: one(`SELECT COUNT(*) n FROM ratings WHERE user_id = ? AND item_id NOT IN (${ownItems})`, id, id),
     testDays: one(`SELECT COUNT(*) n FROM test_days WHERE user_id = ? AND item_id NOT IN (${ownItems})`, id, id),
     links: one(`SELECT COUNT(*) n FROM links WHERE user_id = ? AND item_id NOT IN (${ownItems})`, id, id),
-    files: one(`SELECT COUNT(*) n FROM attachments WHERE user_id = ? AND item_id NOT IN (${ownItems})`, id, id)
+    files: one(`SELECT COUNT(*) n FROM attachments WHERE user_id = ? AND item_id NOT IN (${ownItems})`, id, id),
+    folders: one(`SELECT COUNT(*) n FROM folders WHERE user_id = ? AND item_id NOT IN (${ownItems})`, id, id)
   };
 }
 
@@ -345,9 +347,10 @@ function removeUser(userId, options = {}, actor) {
       db.prepare('DELETE FROM comments WHERE user_id = ?').run(u.id);
       db.prepare('DELETE FROM ratings WHERE user_id = ?').run(u.id);
       db.prepare('DELETE FROM test_days WHERE user_id = ?').run(u.id);
-      // Muss zu links und files in countInventory() passen.
+      // Muss zu links, files und folders in countInventory() passen.
       db.prepare('DELETE FROM links WHERE user_id = ?').run(u.id);
       db.prepare('DELETE FROM attachments WHERE user_id = ?').run(u.id);
+      db.prepare('DELETE FROM folders WHERE user_id = ?').run(u.id);
     }
     // Von Hand: die Zeile in users bleibt, also greift keine Kaskade.
     db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);

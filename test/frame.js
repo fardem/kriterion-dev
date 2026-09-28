@@ -452,13 +452,18 @@ const F_ROUTES = [
   // Eigene Route: den fileFilter der Fotoroute auf ^image\/ zu lockern schwaechte den Fotoweg.
   ['POST',   '/api/items/:id/videos',          'entryAuthorOnly'],
   ['PUT',    '/api/photos/:id/focus',          'im Rumpf'],
-  // Hochladen darf jeder: eine Datei erscheint nur dort, wo man sie hinsetzt.
-  ['POST',   '/api/items/:id/attachments',     'offen'],
+  // Hochladen darf jeder; in einen Ordner nur, wer ihn angelegt hat.
+  ['POST',   '/api/items/:id/attachments',     'im Rumpf'],
   ['DELETE', '/api/attachments/:id',           'im Rumpf'],
   // Haken und Standbild setzt nur, wer hochgeladen hat; die vorige Fassung, wer bearbeiten darf.
   ['PUT',    '/api/attachments/:id/editing',   'im Rumpf'],
   ['PUT',    '/api/attachments/:id/still',     'im Rumpf'],
   ['POST',   '/api/attachments/:id/previous',  'im Rumpf'],
+  // Anlegen darf jeder, wie Dateien ohne Ordner; umbenennen, loeschen und hineinlegen im Rumpf.
+  ['POST',   '/api/items/:id/folders',         'offen'],
+  ['PUT',    '/api/folders/:id',               'im Rumpf'],
+  ['DELETE', '/api/folders/:id',               'im Rumpf'],
+  ['PUT',    '/api/attachments/:id/folder',    'im Rumpf'],
   ['PUT',    '/api/items/:id/photo-order',     'entryAuthorOnly'],
   ['DELETE', '/api/photos/:id',                'im Rumpf'],
   // Offen wie Kommentar und Testtag: ein Link erscheint nur dort, wo man ihn hinsetzt.

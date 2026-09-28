@@ -379,6 +379,10 @@ Der Start meldet die Lage im Protokoll: `Behind proxy: on` oder `off`.
 - Der Proxy muss Anfragen in der Größe der höchsten Upload-Grenze durchlassen
   (bis 100 MB). nginx: `client_max_body_size 100m;` (Vorgabe 1 MB). Cloudflare
   lässt in Free und Pro 100 MB durch.
+- Die WAF von CrowdSec (AppSec) liest nach Vorgabe höchstens 10 MB einer
+  Anfrage und weist größere mit 403 ab. In NPMplus eine eigene Location für
+  `~ ^/api/(import|(items|comments)/[0-9]+/(photos|videos|attachments|comments|images))$`
+  anlegen, mit `set $crowdsec_disable_appsec 1;` im Zahnrad.
 
 Für CrowdSec oder fail2ban antwortet `POST /api/login` unterscheidbar: 401
 (Name oder Passwort falsch), 429 (zu viele Versuche), 403 (Account gesperrt).
@@ -454,6 +458,7 @@ Benutzer und Passwörter lassen sich nicht über Umgebungsvariablen setzen.
 | Der Start nennt eine fehlende Spalte | die Anwendung startet, Seiten mit dieser Spalte scheitern; Backup zurückspielen oder die passende Version einspielen |
 | Fingerprint weicht ab | Dateien vollständig neu einspielen, siehe [Update](#update) |
 | Upload scheitert mit „größer, als der Reverse Proxy davor durchlässt" | Grenze im Proxy erhöhen |
+| Upload scheitert mit „Der Reverse Proxy davor hat die Anfrage abgewiesen (403)" | im Protokoll des Proxys nachsehen, welches Modul abweist; bei CrowdSec siehe [Hinter einem Reverse Proxy](#hinter-einem-reverse-proxy) |
 | Im Protokoll steht `TEST SWITCH ACTIVE` | `KRITERION_TESTBENCH` aus der `.env` entfernen |
 | Der Browser zeigt nach einem Update noch das alte Symbol | Strg+Umschalt+R |
 

@@ -167,6 +167,11 @@ function csrfHeader() {
   return {};
 }
 
+/* Eine 413 oder 403 ohne JSON kommt vom Reverse Proxy davor: jede Absage von
+   Kriterion traegt einen Text. */
+const proxyAnswer = (status) => (status === 413 ? t('error.proxyTooLarge')
+  : status === 403 ? t('error.proxyDenied') : '');
+
 async function api(method, url, body, isForm = false) {
   /* Nach diesem Header waehlt der Server die Sprache, wenn der Benutzer keine gewaehlt hat. */
   const opts = { method, credentials: 'same-origin',
@@ -182,8 +187,7 @@ async function api(method, url, body, isForm = false) {
     let j = null;
     try { j = await res.json(); } catch {}
     if (j && j.error) m = j.error;
-    // Eine 413 ohne JSON kommt vom Reverse Proxy davor, nicht von Kriterion.
-    else if (res.status === 413) m = t('error.proxyTooLarge');
+    else m = proxyAnswer(res.status) || m;
     throw new Error(m);
   }
   return res.status === 204 ? null : res.json();
@@ -361,11 +365,12 @@ function confirmBox(title, text, confirmLabel = t('dialog.delete'), kind = 'dang
 }
 
 /* Statt prompt(): das laesst sich weder gestalten noch beschriften. */
-function nameBox(title, text, fallback = '', okLabel = t('dialog.save'), maxLength = 40) {
+function nameBox(title, text, fallback = '', okLabel = t('dialog.save'), maxLength = 40,
+                 placeholder = t('dialog.viewName')) {
   return new Promise(resolve => {
-    const { bd, done } = openModal(`<div class="modal"><h2>${esc(title)}</h2><p class="hint">${esc(text)}</p>
-      <div class="field"><input class="input" id="nb-name" maxlength="${maxLength}"
-        value="${esc(fallback)}" placeholder="${esc(t('dialog.viewName'))}"></div>
+    const { bd, done } = openModal(`<div class="modal"><h2>${esc(title)}</h2>${text ? `<p class="hint">${esc(text)}</p>` : ''}
+      <div class="field"><input class="input" id="nb-name" maxlength="${Number(maxLength)}"
+        value="${esc(fallback)}" placeholder="${esc(placeholder)}"></div>
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.cancel')}</button>
       <button class="btn btn-accent" data-yes>${esc(okLabel)}</button></div></div>`,
       resolve, null,
@@ -459,13 +464,14 @@ function userDeleteDialog(name, number, b) {
   return new Promise(resolve => {
     const countWord = (n, singular, more) => (n ? [`${n} ${counted(n, singular, more)}`] : []);
     const foreignCount = (b.foreignComments || 0) + (b.foreignRatings || 0) + (b.foreignTestDays || 0)
-      + (b.foreignLinks || 0) + (b.foreignFiles || 0);
+      + (b.foreignLinks || 0) + (b.foreignFiles || 0) + (b.foreignFolders || 0);
     const posts = [
       ...countWord(b.comments, t('dialog.comment'), t('dialog.comments')),
       ...countWord(b.ratings, V.ratingOne, V.ratingMany),
       ...(b.testDays ? [`${b.testDays} ${vTime(b.testDays)}`] : []),
       ...countWord(b.links, t('dialog.link'), t('dialog.links')),
-      ...countWord(b.files, t('dialog.file'), t('dialog.files'))
+      ...countWord(b.files, t('dialog.file'), t('dialog.files')),
+      ...countWord(b.folders, t('dialog.folder'), t('dialog.folders'))
     ];
     const bd = document.createElement('div');
     bd.className = 'backdrop';
@@ -1063,8 +1069,7 @@ async function sendForm(path, form) {
     credentials: 'same-origin', headers: csrfHeader() });
   const data = await a.json().catch(() => ({}));
   if (a.status === 401) { showLogin(); throw new Error(SESSION_GONE); }
-  if (!a.ok) throw new Error(data.error ||
-    (a.status === 413 ? t('error.proxyTooLarge') : t('entry.uploadFailed')));
+  if (!a.ok) throw new Error(data.error || proxyAnswer(a.status) || t('entry.uploadFailed'));
   return data;
 }
 
@@ -4818,6 +4823,8 @@ function closeFileMenu(focusAnchor = false) {
    server.js. Der Server prueft selbst. */
 const FILES_PER_REQUEST = 20;
 const FILES_PER_ENTRY = 100;
+// Zeichen im Namen eines Ordners, gleich FOLDER_NAME_MAX in server.js.
+const FOLDER_NAME_MAX = 80;
 // Wartezeit in ms vor dem zweiten, dritten und vierten Versuch, wenn die Verbindung fehlt.
 const UPLOAD_RETRIES = [2000, 5000, 15000];
 // Auf Modulebene: ein Wechsel des Eintrags haelt keinen Upload an.
@@ -4838,10 +4845,11 @@ function uploadRefusal(itemId, files, present) {
   return tooBig ? tooBigText(tooBig, 'attachment') : '';
 }
 
-// Die kleinste zuerst; in dieser Reihenfolge stehen auch die Kacheln.
-function queueUploads(itemId, files) {
+// Die kleinste zuerst; in dieser Reihenfolge stehen auch die Kacheln. `folderId` 0: ohne Ordner.
+function queueUploads(itemId, files, folderId = 0) {
   for (const file of [...files].sort((a, b) => a.size - b.size))
-    UPLOADS.push({ no: ++UPLOAD_NO, itemId: Number(itemId), file, name: file.name, size: file.size,
+    UPLOADS.push({ no: ++UPLOAD_NO, itemId: Number(itemId), folderId: Number(folderId) || 0,
+                   file, name: file.name, size: file.size,
                    state: 'waiting', sent: 0, error: '', xhr: null, tries: 0, clock: 0 });
   if (UPLOAD_VIEW?.itemId === Number(itemId)) UPLOAD_VIEW.redraw();
   uploadNext();
@@ -4872,6 +4880,7 @@ function uploadSend(u) {
   xhr.onload = () => { if (u.xhr === xhr) uploadAnswer(u, xhr); };
   xhr.onerror = () => { if (u.xhr === xhr) uploadLost(u); };
   const form = new FormData();
+  if (u.folderId) form.append('folderId', String(u.folderId));
   form.append('files', u.file, u.name);
   xhr.send(form);
   uploadChanged(u);
@@ -4892,8 +4901,9 @@ function uploadAnswer(u, xhr) {
     stillAfterUpload(u, data);
     if (UPLOAD_VIEW?.itemId === u.itemId) UPLOAD_VIEW.took(data);
   } else {
-    uploadFail(u, data?.error || (xhr.status === 413 ? t('error.proxyTooLarge')
-      : t('error.serverStatus', { status: xhr.status })));
+    // 404: Eintrag oder Ordner gibt es nicht mehr; ein neuer Versuch aendert daran nichts.
+    u.final = xhr.status === 404;
+    uploadFail(u, data?.error || proxyAnswer(xhr.status) || t('error.serverStatus', { status: xhr.status }));
     toast(`${u.name}: ${u.error}`, true);
   }
   uploadNext();
@@ -5038,6 +5048,10 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     return;
   }
   let idx = 0;
+  const returning = fileReturn && fileReturn.itemId === Number(id);
+  if (!returning || FOLDERS_OPEN.itemId !== Number(id)) FOLDERS_OPEN = { itemId: Number(id), open: new Set() };
+  const cameFrom = returning && (item.attachments || []).find(a => a.id === fileReturn.fileId);
+  if (cameFrom && cameFrom.folder != null) FOLDERS_OPEN.open.add(cameFrom.folder);
   /* Hervorgehobener Kommentar, bleibt ueber Neuzeichnungen erhalten. */
   LIT_COMMENT = Number(commentWanted) || 0;
   let cropMode = false;   // Klick setzt dann den Fokuspunkt statt Vollbild zu oeffnen
@@ -5147,8 +5161,9 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     </div>
 
     <div class="block block-wide" data-block="dateien">
-      <div class="block-head"><span class="label">${tH('dialog.files')}</span><span class="hint" id="acount"></span></div>
-      ${/* Die Vorschau wird nie verschoben: ein iframe laedt dabei neu. */''}
+      <div class="block-head"><span class="label">${tH('dialog.files')}</span><span class="hint" id="acount"></span>
+        <button class="link-btn" id="afolder-new">${tH('entry.folderAdd')}</button></div>
+      ${/* Die Vorschau wird nie verschoben: ein iframe laedt dabei neu. Jede Gruppe hat ihre eigene. */''}
       <div id="atts">
         <div class="agroup">
           <p class="aempty" hidden><span class="hint">${tH('entry.noFilesYet')}</span>
@@ -5156,6 +5171,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
           <ul class="agrid" aria-label="${esc(t('dialog.files'))}"></ul>
           <div class="apreview" id="apreview" role="region" hidden></div>
         </div>
+        <div class="afolders"></div>
       </div>
       <input type="file" id="afile" multiple hidden>
     </div>
@@ -6491,13 +6507,14 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   /* ---- Dateien ---- */
   // Die Vorschauart liefert der Server in `preview`; der Dateiname wird nicht ausgewertet.
   const attsBox = document.getElementById('atts');
-  const fileGroup = attsBox.querySelector('.agroup');
-  const fileGrid = fileGroup.querySelector('.agrid');
-  const previewBox = fileGroup.querySelector('.apreview');
+  const looseGroup = attsBox.querySelector('.agroup');
+  const folderBox = attsBox.querySelector('.afolders');
   // Nummer der Datei in der Vorschau, 0 ohne; hoechstens eine im Block.
   let openPreview = 0;
   let previewRun = 0;
   let officeViewer = null;
+  // Die Vorschau haengt unter dem Raster der Gruppe ihrer Datei.
+  let previewBox = null;
   // Die Bilddatei im Vollbild, fuer den Rahmen ihrer Kachel.
   let lightboxFile = 0;
 
@@ -6513,24 +6530,32 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   const mayDeleteFile = (a) => a.mine === true || ADMIN;
   const uploadedLine = (a) => multipleUsers()
     ? t('entry.uploadedByOn', { author: authorName(a.author), created_at: fmtDate(a.created_at) }) : '';
+  const folderOf = (key) => (item.folders || []).find(f => f.id === Number(key)) || null;
+  // Ohne bekannten Ordner steht eine Datei in Gruppe 0.
+  const groupOf = (a) => (a.folder != null && folderOf(a.folder) ? a.folder : 0);
+  const jobGroup = (u) => (u.folderId && folderOf(u.folderId) ? u.folderId : 0);
+  const groupBox = (key) => (key ? folderBox.querySelector(`.afolder[data-folder="${Number(key)}"]`) : looseGroup);
+  const previewIdOf = (key) => (key ? `apreview-${Number(key)}` : 'apreview');
 
+  const addTarget = (key) => (key === 'add' ? 0 : Number(key.slice('add-f'.length)));
   function newTile(key) {
+    const adds = key.startsWith('add');
     const li = document.createElement('li');
-    li.className = 'atile' + (key === 'add' ? ' aadd' : '');
+    li.className = 'atile' + (adds ? ' aadd' : '');
     li.dataset.key = key;
     li.innerHTML = `<button type="button" class="aface"><span class="apic"></span>`
       + `<span class="aname"></span><span class="ameta"></span></button>`
-      + (key === 'add' ? '' : `<button type="button" class="amore" aria-haspopup="menu" aria-expanded="false">⋯</button>`);
+      + (adds ? '' : `<button type="button" class="amore" aria-haspopup="menu" aria-expanded="false">⋯</button>`);
     const face = li.querySelector('.aface');
     face.onclick = () => tileAction(li);
     // Umschalt+F10; die Menuetaste und die rechte Maustaste kommen als `contextmenu`.
     face.addEventListener('keydown', (e) => {
-      if (key === 'add' || !e.shiftKey || e.key !== 'F10') return;
+      if (adds || !e.shiftKey || e.key !== 'F10') return;
       e.preventDefault();
       tileMenu(li);
     });
     face.addEventListener('contextmenu', (e) => {
-      if (key === 'add') return;
+      if (adds) return;
       e.preventDefault();
       tileMenu(li);
     });
@@ -6575,7 +6600,8 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     li.querySelector('.ameta').textContent = [size, meta].filter(Boolean).join(' · ');
   }
 
-  function fillFileTile(li, a) {
+  // `shown`: der Ordner ist offen; nachgeholt wird nur fuer eine sichtbare Kachel.
+  function fillFileTile(li, a, key, shown) {
     li.dataset.file = a.id;
     const kind = fileKind(a.filename);
     const readable = FILE_READABLE.includes(a.preview);
@@ -6590,10 +6616,10 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       video: video || /^video\//.test(a.mime_type || ''),
       label: [a.filename, kind, length, filesize(a.size), from].filter(Boolean).join(', '),
       open: openPreview === a.id || lightboxFile === a.id });
-    if (video && !a.still && a.mine === true) catchUpStill(id, a);
+    if (video && !a.still && a.mine === true && shown) catchUpStill(id, a);
     if (readable && !isNarrow()) {
       face.setAttribute('aria-expanded', String(openPreview === a.id));
-      face.setAttribute('aria-controls', previewBox.id);
+      face.setAttribute('aria-controls', previewIdOf(key));
     } else { face.removeAttribute('aria-expanded'); face.removeAttribute('aria-controls'); }
     if (a.preview === 'image' || video || readable) face.removeAttribute('aria-haspopup');
     else face.setAttribute('aria-haspopup', 'menu');
@@ -6637,34 +6663,119 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     li.querySelector('.ameta').textContent = full ? count : t('entry.fileAddLimit', { mb: UPLOAD_LIMITS.attachment });
   }
 
-  /* Aktualisiert die Kacheln nach Nummer; die Vorschau darunter bleibt stehen. */
+  function newFolderGroup(folderId) {
+    const el = document.createElement('section');
+    el.className = 'agroup afolder';
+    el.dataset.folder = folderId;
+    el.innerHTML = `<div class="afolder-head"><button type="button" class="afolder-face" aria-controls="afolder-${Number(folderId)}">`
+      + `<span class="afolder-caret" aria-hidden="true"></span><span class="afolder-icon" aria-hidden="true">📁</span>`
+      + `<span class="afolder-name"></span><span class="afolder-meta"></span></button>`
+      + `<button type="button" class="afolder-more" aria-haspopup="menu" aria-expanded="false">⋯</button></div>`
+      + `<div class="afolder-body" id="afolder-${Number(folderId)}"><ul class="agrid"></ul>`
+      + `<div class="apreview" id="${esc(previewIdOf(folderId))}" role="region" hidden></div></div>`;
+    const face = el.querySelector('.afolder-face');
+    face.onclick = () => toggleFolder(folderId);
+    face.addEventListener('keydown', (e) => {
+      if (!e.shiftKey || e.key !== 'F10') return;
+      e.preventDefault();
+      folderMenu(folderId, el);
+    });
+    face.addEventListener('contextmenu', (e) => { e.preventDefault(); folderMenu(folderId, el); });
+    const more = el.querySelector('.afolder-more');
+    more.onclick = () => { if (FILE_MENU?.tile === el) closeFileMenu(true); else folderMenu(folderId, el); };
+    return el;
+  }
+
+  function jobsCorner(jobs) {
+    if (jobs.some(u => u.state === 'failed')) return { kind: 'fail', text: '⚠', say: t('entry.fileFailed') };
+    const running = jobs.find(u => u.state === 'running');
+    if (running) {
+      const percent = Math.round(running.sent * 100);
+      return { kind: 'run', text: `${percent} %`, done: percent, say: `${percent} %` };
+    }
+    return jobs.length ? { kind: 'wait', text: t('entry.fileWaiting'), say: t('entry.fileWaiting') } : null;
+  }
+
+  function fillFolderHead(el, f, files, jobs, open) {
+    el.classList.toggle('open', open);
+    const face = el.querySelector('.afolder-face');
+    face.setAttribute('aria-expanded', String(open));
+    el.querySelector('.afolder-caret').textContent = open ? '▾' : '▸';
+    el.querySelector('.afolder-name').textContent = f.name;
+    const meta = [files.length
+      ? t('entry.fileCount', { n: files.length, filesize: filesize(files.reduce((s2, a) => s2 + a.size, 0)) })
+      : t('entry.folderEmpty'), multipleUsers() ? authorName(f.author) : ''].filter(Boolean).join(' · ');
+    el.querySelector('.afolder-meta').textContent = meta;
+    const corner = open ? null : jobsCorner(jobs);
+    let state = face.querySelector('.astate');
+    if (!corner) state?.remove();
+    else {
+      if (!state) { state = document.createElement('span'); face.appendChild(state); }
+      state.className = 'astate ' + corner.kind;
+      state.textContent = corner.text;
+      state.style.setProperty('--done', String(corner.done || 0));
+    }
+    face.setAttribute('aria-label', [f.name, meta, corner?.say].filter(Boolean).join(', '));
+    el.querySelector('.afolder-body').hidden = !open;
+    const more = el.querySelector('.afolder-more');
+    more.hidden = !folderMenuItems(f).length;
+    more.setAttribute('aria-label', t('entry.fileMenu', { name: f.name }));
+    more.title = t('entry.fileMenu', { name: f.name });
+    el.querySelector('.agrid').setAttribute('aria-label', f.name);
+  }
+
+  /* Aktualisiert die Kacheln nach Nummer, auch ueber Gruppen hinweg; die Vorschau bleibt stehen. */
   function drawAtts() {
     // Nach einem await kann die Ansicht schon gewechselt haben.
     if (!attsBox.isConnected) return;
     const list = item.attachments || [];
+    const folders = item.folders || [];
     const jobs = uploadsOf(id);
-    if (openPreview && !list.some(a => a.id === openPreview)) dropPreview();
+    // Wartet ein Upload auf einen geloeschten Ordner, geht er nicht mehr hoch.
+    for (const u of jobs) {
+      if (!u.folderId || folderOf(u.folderId) || u.state !== 'waiting') continue;
+      u.state = 'failed';
+      u.error = t('server.folderGone');
+      u.final = true;
+    }
+    const shownFile = openPreview ? list.find(a => a.id === openPreview) : null;
+    if (openPreview && (!shownFile || groupBox(groupOf(shownFile))?.querySelector('.apreview') !== previewBox
+        || (groupOf(shownFile) && !FOLDERS_OPEN.open.has(groupOf(shownFile))))) dropPreview();
     document.getElementById('acount').textContent = list.length
       ? t('entry.fileCount', { n: list.length,
           filesize: filesize(list.reduce((s2, a) => s2 + a.size, 0)) }) : '';
-    fileGroup.querySelector('.aempty').hidden = list.length + jobs.length > 0;
-    const old = new Map([...fileGrid.children].map(li => [li.dataset.key, li]));
-    const want = [...list.map(a => ['f' + a.id, li => fillFileTile(li, a)]),
-                  ...jobs.map(u => ['u' + u.no, li => fillUploadTile(li, u)]),
-                  ['add', li => fillAddTile(li, list.length + jobs.length)]];
-    want.forEach(([key, fill], at) => {
+    looseGroup.querySelector('.aempty').hidden = list.length + jobs.length > 0;
+    const old = new Map([...attsBox.querySelectorAll('.atile')].map(li => [li.dataset.key, li]));
+    const taken = list.length + jobs.length;
+    const tilesOf = (key, shown, adds) => [
+      ...list.filter(a => groupOf(a) === key).map(a => ['f' + a.id, li => fillFileTile(li, a, key, shown)]),
+      ...jobs.filter(u => jobGroup(u) === key).map(u => ['u' + u.no, li => fillUploadTile(li, u)]),
+      ...(adds ? [[key ? `add-f${key}` : 'add', li => fillAddTile(li, taken)]] : [])];
+    const place = (grid, want) => want.forEach(([key, fill], at) => {
       const li = old.get(key) || newTile(key);
       old.delete(key);
       fill(li);
-      if (fileGrid.children[at] !== li) fileGrid.insertBefore(li, fileGrid.children[at] || null);
+      if (grid.children[at] !== li) grid.insertBefore(li, grid.children[at] || null);
+    });
+    place(looseGroup.querySelector('.agrid'), tilesOf(0, true, true));
+    const oldGroups = new Map([...folderBox.children].map(el => [Number(el.dataset.folder), el]));
+    folders.forEach((f, at) => {
+      const el = oldGroups.get(f.id) || newFolderGroup(f.id);
+      oldGroups.delete(f.id);
+      const open = FOLDERS_OPEN.open.has(f.id);
+      fillFolderHead(el, f, list.filter(a => groupOf(a) === f.id), jobs.filter(u => jobGroup(u) === f.id), open);
+      if (folderBox.children[at] !== el) folderBox.insertBefore(el, folderBox.children[at] || null);
+      const mayUpload = f.mine === true;
+      place(el.querySelector('.agrid'), tilesOf(f.id, open, mayUpload));
     });
     for (const li of old.values()) li.remove();
+    for (const el of oldGroups.values()) el.remove();
     setUpBlocksOut(item);
   }
 
   function tileAction(li) {
     const key = li.dataset.key;
-    if (key === 'add') return pickFiles();
+    if (key.startsWith('add')) return pickFiles(addTarget(key));
     const a = fileOf(key);
     if (!a) return tileMenu(li);
     if (a.preview === 'image' || a.preview === 'video') return showFile(a.id);
@@ -6696,14 +6807,106 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     items.push({ label: t('entry.copyFileLink'), run: () => copyText(fileLink(a), t('card.linkCopied')) });
     items.push({ label: t('entry.download'), href: `/api/attachments/${Number(a.id)}/raw` });
     if (a.restore) items.push({ label: t('entry.restorePrevious'), run: () => restorePrevious(a) });
+    const targets = moveTargets(a);
+    if (a.mine === true && targets.length)
+      items.push({ label: t('entry.moveTo'), own: true, run: () => moveMenu(a, li, targets) });
     if (mayDeleteFile(a)) items.push({ label: t('entry.deleteFile'), danger: true, own: true,
       run: () => deleteFromMenu(a, li) });
     openFileMenu(li.querySelector('.amore'), li, a.filename, uploadedLine(a), items);
   }
 
+  /* ---- Verschieben ---- */
+  // Wie PUT .../folder: nur in eigene Ordner, und nicht in den, in dem sie steht.
+  function moveTargets(a) {
+    const here = groupOf(a);
+    return [...(here ? [{ folderId: null, label: t('entry.noFolder') }] : []),
+            ...(item.folders || []).filter(f => f.mine === true && f.id !== here)
+              .map(f => ({ folderId: f.id, label: f.name }))];
+  }
+
+  function moveMenu(a, li, targets) {
+    openFileMenu(li.querySelector('.amore'), li, a.filename, uploadedLine(a),
+      [...targets.map(to => ({ label: to.label, own: true, run: () => moveFile(a, to) })),
+       { label: t('entry.menuBack'), own: true, run: () => fileMenu(a, li) }]);
+  }
+
+  async function moveFile(a, to) {
+    try {
+      item = await api('PUT', `/api/attachments/${Number(a.id)}/folder`, { folderId: to.folderId });
+    } catch (e) {
+      toast(e.message, true);
+      attsBox.querySelector(`[data-key="f${Number(a.id)}"] .amore`)?.focus();
+      return;
+    }
+    if (openPreview === a.id) dropPreview();
+    if (to.folderId) FOLDERS_OPEN.open.add(to.folderId);
+    drawAtts();
+    toast(to.folderId ? t('entry.movedTo', { name: to.label }) : t('entry.movedLoose'));
+    attsBox.querySelector(`[data-key="f${Number(a.id)}"] .aface`)?.focus();
+  }
+
+  /* ---- Ordner ---- */
+  function toggleFolder(folderId) {
+    if (FOLDERS_OPEN.open.has(folderId)) FOLDERS_OPEN.open.delete(folderId);
+    else FOLDERS_OPEN.open.add(folderId);
+    drawAtts();
+  }
+
+  // Wie die Routen: umbenennen nur der Verfasser, loeschen er und der Admin.
+  function folderMenuItems(f) {
+    const items = [];
+    if (f.mine === true) items.push({ label: t('entry.folderEdit'), run: () => renameFolder(f) });
+    if (f.mine === true || ADMIN)
+      items.push({ label: t('entry.folderDelete'), danger: true, own: true, run: () => deleteFolder(f) });
+    return items;
+  }
+
+  function folderMenu(folderId, el) {
+    const f = folderOf(folderId);
+    const items = f ? folderMenuItems(f) : [];
+    if (items.length) openFileMenu(el.querySelector('.afolder-more'), el, f.name, '', items);
+  }
+
+  async function newFolder() {
+    const name = await nameBox(t('entry.folderAdd'), '', '', t('dialog.save'), FOLDER_NAME_MAX,
+                               t('entry.folderNameHint'));
+    if (!name) return;
+    const before = new Set((item.folders || []).map(f => f.id));
+    try { item = await api('POST', `/api/items/${id}/folders`, { name }); }
+    catch (e) { toast(e.message, true); return; }
+    const fresh = (item.folders || []).find(f => !before.has(f.id) && f.mine === true);
+    if (fresh) FOLDERS_OPEN.open.add(fresh.id);
+    openBlock('dateien');
+    drawAtts();
+    if (fresh) groupBox(fresh.id)?.querySelector('.afolder-face')?.focus();
+  }
+
+  async function renameFolder(f) {
+    const name = await nameBox(t('entry.folderEdit'), '', f.name, t('dialog.save'), FOLDER_NAME_MAX,
+                               t('entry.folderNameHint'));
+    if (!name || name === f.name) return;
+    try { item = await api('PUT', `/api/folders/${Number(f.id)}`, { name }); drawAtts(); }
+    catch (e) { toast(e.message, true); }
+  }
+
+  async function deleteFolder(f) {
+    const n = (item.attachments || []).filter(a => a.folder === f.id).length;
+    if (n && !await confirmBox(t('entry.folderDeleteAsk', { name: f.name }), t('entry.folderDeleteHint', { n }))) {
+      groupBox(f.id)?.querySelector('.afolder-more')?.focus();
+      return;
+    }
+    const after = groupBox(f.id)?.nextElementSibling;
+    try { item = await api('DELETE', `/api/folders/${Number(f.id)}`); }
+    catch (e) { toast(e.message, true); return; }
+    FOLDERS_OPEN.open.delete(f.id);
+    drawAtts();
+    (after?.querySelector('.afolder-face') || document.getElementById('afolder-new'))?.focus();
+  }
+
+  // `final`: das Ziel gibt es nicht mehr, ein neuer Versuch scheiterte ebenso.
   function uploadMenu(u, li) {
     const items = u.state === 'failed'
-      ? [{ label: t('entry.uploadRetry'), run: () => uploadRetry(u) },
+      ? [...(u.final ? [] : [{ label: t('entry.uploadRetry'), run: () => uploadRetry(u) }]),
          { label: t('entry.remove'), run: () => uploadCancel(u) }]
       : [{ label: t('dialog.cancel'), run: () => uploadCancel(u) }];
     openFileMenu(li.querySelector('.amore'), li, u.name, u.error, items);
@@ -6717,9 +6920,10 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
 
   // Der Fokus geht zur naechsten Kachel, nach der letzten Datei zu „+".
   async function deleteFromMenu(a, li) {
-    const at = [...fileGrid.children].indexOf(li);
+    const grid = li.parentElement;
+    const at = [...grid.children].indexOf(li);
     if (!await deleteFile(a)) { li.querySelector('.amore')?.focus(); return; }
-    fileGrid.children[Math.min(at, fileGrid.children.length - 1)]?.querySelector('.aface')?.focus();
+    grid.children[Math.min(at, grid.children.length - 1)]?.querySelector('.aface')?.focus();
   }
 
   async function restorePrevious(a) {
@@ -6736,10 +6940,15 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
 
   /* ---- Vollbild einer Bild- oder Videodatei ---- */
   function showFile(fileId) {
-    const pictures = (item.attachments || []).filter(a => a.preview === 'image' || a.preview === 'video')
+    const target = (item.attachments || []).find(a => a.id === Number(fileId));
+    if (!target) return false;
+    const key = groupOf(target);
+    const pictures = (item.attachments || [])
+      .filter(a => (a.preview === 'image' || a.preview === 'video') && groupOf(a) === key)
       .map(a => ({ ...a, source: 'file', kind: a.preview === 'video' ? 'video' : 'image' }));
     const at = pictures.findIndex(a => a.id === Number(fileId));
     if (at < 0) return false;
+    if (key) FOLDERS_OPEN.open.add(key);
     openLightbox(pictures, at, item.title, deleteFile, null, fileLink, {
       removable: mayDeleteFile,
       shown: (a) => { lightboxFile = a ? a.id : 0; drawAtts(); },
@@ -6766,21 +6975,25 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     endOfficeViewer();
     openPreview = 0;
     previewRun++;
-    previewBox.hidden = true;
-    previewBox.replaceChildren();
+    if (previewBox) {
+      previewBox.hidden = true;
+      previewBox.replaceChildren();
+    }
+    previewBox = null;
   }
 
   function closePreview(focusTile) {
     const was = openPreview;
     dropPreview();
     drawAtts();
-    if (focusTile) fileGrid.querySelector(`[data-key="f${was}"] .aface`)?.focus();
+    if (focusTile) attsBox.querySelector(`[data-key="f${was}"] .aface`)?.focus();
   }
 
   function showPreview(a) {
     dropPreview();
     openPreview = a.id;
     const run = previewRun;
+    previewBox = groupBox(groupOf(a)).querySelector('.apreview');
     previewBox.hidden = false;
     previewBox.setAttribute('aria-label', a.filename);
     previewBox.innerHTML = `<div class="apreview-head">
@@ -6822,7 +7035,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       .catch(failed);
   }
 
-  fileGroup.addEventListener('keydown', (e) => {
+  attsBox.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape' || !openPreview || e.defaultPrevented) return;
     e.preventDefault();
     closePreview(true);
@@ -6830,26 +7043,33 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
 
   /* ---- Hochladen ---- */
   const fileInput = document.getElementById('afile');
-  function pickFiles() {
+  let pickTarget = 0;
+  function pickFiles(folderId) {
     const taken = (item.attachments || []).length + uploadsOf(id).length;
     if (taken >= FILES_PER_ENTRY) return toast(t('server.fileCap', { cap: FILES_PER_ENTRY }), true);
+    pickTarget = folderId;
     fileInput.click();
   }
-  function addFiles(files) {
+  function addFiles(files, folderId) {
     if (!files.length) return;
+    if (folderId && folderOf(folderId)?.mine !== true) return toast(t('entry.folderDropForeign'), true);
     const refusal = uploadRefusal(id, files, (item.attachments || []).length);
     if (refusal) return toast(refusal, true);
-    queueUploads(id, files);
+    if (folderId) FOLDERS_OPEN.open.add(folderId);
+    queueUploads(id, files, folderId);
   }
   fileInput.onchange = (e) => {
     const files = [...e.target.files];
     e.target.value = '';
-    addFiles(files);
+    addFiles(files, pickTarget);
   };
 
   // Nur Dateien; ohne preventDefault oeffnete der Browser eine abgelegte Datei im Tab.
   const fileBlock = attsBox.closest('.block');
   const carriesFiles = (e) => [...(e.dataTransfer?.types || [])].includes('Files');
+  const dropFolder = (e) => e.target.closest?.('.afolder') || null;
+  const markDrop = (target) => fileBlock.querySelectorAll('.afolder').forEach(el =>
+    el.classList.toggle('over', el === target));
   let dragDepth = 0;
   fileBlock.addEventListener('dragenter', (e) => {
     if (!carriesFiles(e)) return;
@@ -6861,19 +7081,23 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     if (!carriesFiles(e)) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
+    markDrop(dropFolder(e));
   });
   fileBlock.addEventListener('dragleave', (e) => {
     if (!carriesFiles(e) || --dragDepth > 0) return;
     dragDepth = 0;
     fileBlock.classList.remove('over');
+    markDrop(null);
   });
   fileBlock.addEventListener('drop', (e) => {
     if (!carriesFiles(e)) return;
     e.preventDefault();
     dragDepth = 0;
     fileBlock.classList.remove('over');
-    addFiles([...(e.dataTransfer.files || [])]);
+    markDrop(null);
+    addFiles([...(e.dataTransfer.files || [])], Number(dropFolder(e)?.dataset.folder) || 0);
   });
+  document.getElementById('afolder-new').onclick = newFolder;
 
   UPLOAD_VIEW = { itemId: Number(id), redraw: drawAtts, took: (fresh) => { item = fresh; drawAtts(); } };
 
@@ -7205,6 +7429,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     const own = [
       ...countWord(b.ownLinks, t('dialog.link'), t('dialog.links')),
       ...countWord(b.ownFiles, t('dialog.file'), t('dialog.files')),
+      ...countWord(b.ownFolders, t('dialog.folder'), t('dialog.folders')),
       ...countWord(b.ownComments, t('dialog.comment'), t('dialog.comments')),
       ...countWord(b.ownRatings, V.ratingOne, V.ratingMany),
       ...(b.ownTestDays ? [`${b.ownTestDays} ${vTime(b.ownTestDays)}`] : [])
@@ -7212,6 +7437,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     const foreign = [
       ...countWord(b.foreignLinks, t('dialog.link'), t('dialog.links')),
       ...countWord(b.foreignFiles, t('dialog.file'), t('dialog.files')),
+      ...countWord(b.foreignFolders, t('dialog.folder'), t('dialog.folders')),
       ...countWord(b.foreignComments, t('dialog.comment'), t('dialog.comments')),
       ...countWord(b.foreignRatings, V.ratingOne, V.ratingMany),
       ...(b.foreignTestDays ? [`${b.foreignTestDays} ${vTime(b.foreignTestDays)}`] : [])
@@ -7243,7 +7469,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   // Der Block steht nur fuer diese Ansicht offen, wie nach einem Sprung.
   if (back && back.itemId === Number(id) && !LIT_COMMENT) {
     openBlock('dateien');
-    const tile = fileGrid.querySelector(`[data-file="${Number(back.fileId)}"]`);
+    const tile = attsBox.querySelector(`[data-file="${Number(back.fileId)}"]`);
     tile?.scrollIntoView?.({ block: 'center' });
     tile?.querySelector('.aface')?.focus({ preventScroll: true });
   }
@@ -7464,6 +7690,9 @@ const fileAddress = (itemId, fileId, edit = false) =>
 let fileViewer = null;
 // Die zuletzt geoeffnete Datei; renderDetail() scrollt beim Zurueck zu ihrer Zeile.
 let fileReturn = null;
+/* Offene Ordner unter „Dateien"; beim Oeffnen eines Eintrags alle zu, die Rueckkehr
+   aus der eigenen Ansicht behaelt sie. BLOCKS speichert sie nicht. */
+let FOLDERS_OPEN = { itemId: 0, open: new Set() };
 function endFileViewer() {
   if (fileViewer) { try { fileViewer.destroyEditor(); } catch {} }
   fileViewer = null;
@@ -7501,6 +7730,7 @@ async function renderFileView(itemId, fileId, editWanted = false) {
       ${shown && a.restore ? `<button class="fileview-full" id="fileview-previous" title="${esc(t('entry.restorePrevious'))}" aria-label="${esc(t('entry.restorePrevious'))}">↶</button>` : ''}
       ${fullOk ? `<button class="fileview-full" id="fileview-full" title="${esc(t('entry.openFullscreen'))}" aria-label="${esc(t('entry.openFullscreen'))}">${ICON_FULLSCREEN}</button>` : ''}
       ${a ? `<a class="adl" href="/api/attachments/${Number(a.id)}/raw" download title="${esc(t('entry.download'))}">↓</a>` : ''}
+      <a class="fileview-full fileview-close" href="${esc(entryAddress(itemId))}" title="${esc(t('list.close'))}" aria-label="${esc(t('list.close'))}">${ICON_X}</a>
     </div>
     <div class="fileview-doc${plain ? ' fileview-plain' : ''}">${shown ? `<div id="office-full-${Number(a.id)}"></div>`
       : `<p class="hint">${tH(a ? 'entry.noPreview' : 'server.fileGone')}</p>`}</div>

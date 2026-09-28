@@ -343,6 +343,26 @@ CREATE TABLE IF NOT EXISTS attachment_stills (
   still BLOB NOT NULL
 );
 
+-- Ordner unter „Dateien“. AUTOINCREMENT: ein Upload, der auf einen geloeschten
+-- Ordner wartet, landet nie in einem neuen mit derselben Nummer.
+CREATE TABLE IF NOT EXISTS folders (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  -- Noch von keiner Route gesetzt; steht hier, weil Kriterion keine Spalte nachruestet.
+  test_day_id INTEGER UNIQUE REFERENCES test_days(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_folders_item ON folders(item_id);
+
+-- Ohne Zeile steht eine Datei ohne Ordner.
+CREATE TABLE IF NOT EXISTS attachment_folders (
+  attachment_id INTEGER PRIMARY KEY REFERENCES attachments(id) ON DELETE CASCADE,
+  folder_id INTEGER NOT NULL REFERENCES folders(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_attachment_folders_folder ON attachment_folders(folder_id);
+
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
@@ -704,9 +724,9 @@ function assignInventory() {
   let sum = 0;
   const owner = ownerId();
   if (owner == null) {
-    return { items: 0, comments: 0, test_days: 0, ratings: 0, links: 0, attachments: 0 };
+    return { items: 0, comments: 0, test_days: 0, ratings: 0, links: 0, attachments: 0, folders: 0 };
   }
-  for (const table of ['items', 'comments', 'test_days', 'ratings', 'links', 'attachments']) {
+  for (const table of ['items', 'comments', 'test_days', 'ratings', 'links', 'attachments', 'folders']) {
     // Bei fehlender Spalte wuerfe db.prepare, und der Start scheiterte.
     if (!db.prepare(`PRAGMA table_info(${table})`).all().some(c => c.name === 'user_id')) {
       counts[table] = 0;
@@ -721,7 +741,8 @@ function assignInventory() {
   if (sum) {
     logLine('Inventory without an account assigned to the owner: ' +
       `${counts.items} entries, ${counts.comments} comments, ${counts.test_days} test days, ` +
-      `${counts.ratings} ratings, ${counts.links} links, ${counts.attachments} files.`);
+      `${counts.ratings} ratings, ${counts.links} links, ${counts.attachments} files, ` +
+      `${counts.folders} folders.`);
   }
   return counts;
 }

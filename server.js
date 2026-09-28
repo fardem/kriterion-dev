@@ -2318,12 +2318,16 @@ app.delete('/api/items/:id/tags/:tagId', entryAuthorOnly, (req, res) => {
 /* ================= Eintraege ================= */
 const qAttachments = lateStatement(`SELECT a.id, a.filename, a.mime_type, a.size, a.sort_order,
     a.created_at, a.user_id, COALESCE(e.edit_all, 0) AS edit_all,
-    (p.attachment_id IS NOT NULL) AS has_previous, s.duration, length(s.still) AS still
+    (p.attachment_id IS NOT NULL) AS has_previous, s.duration, length(s.still) AS still,
+    f.folder_id AS folder
   FROM attachments a
   LEFT JOIN attachment_editing e ON e.attachment_id = a.id
   LEFT JOIN attachment_previous p ON p.attachment_id = a.id
   LEFT JOIN attachment_stills s ON s.attachment_id = a.id
+  LEFT JOIN attachment_folders f ON f.attachment_id = a.id
   WHERE a.item_id = ? ORDER BY a.sort_order, a.id`);
+const qFolders = lateStatement(
+  'SELECT id, name, created_at, user_id FROM folders WHERE item_id = ? ORDER BY created_at DESC, id DESC');
 // Chronologisch in Gruppen: Angepinntes zuerst (vor der Art), dann Aufgaben,
 // Berichte, Notizen.
 const qCommentsRaw = db.prepare(`
@@ -2644,9 +2648,13 @@ function detail(id, userId, locale) {
       convertTo: docserver.needsConversion(a2.filename) ? docserver.editFormat(a2.filename) : null,
       restore: rights && a2.has_previous === 1,
       // `still` ist die Laenge des Standbilds; der Browser haengt sie als `v=` an.
-      duration: a2.duration, still: a2.still
+      duration: a2.duration, still: a2.still, folder: a2.folder
     };
   });
+  it.folders = qFolders().all(id).map(f => ({
+    id: f.id, name: f.name, created_at: f.created_at,
+    mine: f.user_id === userId, author: authorFrom(card, f.user_id)
+  }));
   /* `mine` steuert das Loeschkreuz; bei einem geloeschten Zugang laesst es
      sich aus `author` nicht ableiten. */
   it.links = qLinks().all(id).map(l => ({
@@ -3448,6 +3456,8 @@ app.get('/api/items/:id/inventory', entryAuthorOnly, (req, res) => {
     videos: one("SELECT COUNT(*) n FROM photos WHERE item_id = ? AND kind = 'video'", id),
     ownFiles: one('SELECT COUNT(*) n FROM attachments WHERE item_id = ? AND user_id = ?', id, ich),
     foreignFiles: one('SELECT COUNT(*) n FROM attachments WHERE item_id = ? AND user_id IS NOT ?', id, ich),
+    ownFolders: one('SELECT COUNT(*) n FROM folders WHERE item_id = ? AND user_id = ?', id, ich),
+    foreignFolders: one('SELECT COUNT(*) n FROM folders WHERE item_id = ? AND user_id IS NOT ?', id, ich),
     ownLinks: one('SELECT COUNT(*) n FROM links WHERE item_id = ? AND user_id = ?', id, ich),
     foreignLinks: one('SELECT COUNT(*) n FROM links WHERE item_id = ? AND user_id IS NOT ?', id, ich),
     ownComments: one('SELECT COUNT(*) n FROM comments WHERE item_id = ? AND user_id = ?', id, ich),
@@ -3661,8 +3671,30 @@ const FILES_PER_REQUEST = 20;
 const FILES_PER_ENTRY = 100;
 const attachmentUpload = (bytes) => upload({ storage: multer.memoryStorage(), limits: { fileSize: bytes } });
 
+/* ---- Ordner ---- */
+const FOLDER_NAME_MAX = 80;
+const qFolderRow = lateStatement('SELECT id, item_id, user_id FROM folders WHERE id = ?');
+const folderRow = (raw) => {
+  const n = Number(raw);
+  return raw !== null && raw !== '' && Number.isSafeInteger(n) ? qFolderRow().get(n) || null : null;
+};
+// Zeichen nach trim(), nicht UTF-16-Einheiten.
+const folderName = (raw) => {
+  const name = String(raw == null ? '' : raw).trim();
+  const length = [...name].length;
+  return length >= 1 && length <= FOLDER_NAME_MAX ? name : null;
+};
+const refuseFolderName = (req, res) =>
+  res.status(400).json({ error: t(localeOf(req), 'server.folderName', { max: FOLDER_NAME_MAX }) });
+const addFolder = db.prepare('INSERT INTO folders (item_id, name, user_id) VALUES (?, ?, ?)');
+const renameFolder = db.prepare('UPDATE folders SET name = ? WHERE id = ?');
+const dropFolder = db.prepare('DELETE FROM folders WHERE id = ?');
+const putFileFolder = db.prepare(
+  'INSERT OR REPLACE INTO attachment_folders (attachment_id, folder_id) VALUES (?, ?)');
+const dropFileFolder = db.prepare('DELETE FROM attachment_folders WHERE attachment_id = ?');
+
 /* Hochladen darf jeder, wie bei Links: die Datei erscheint nur an diesem
-   Eintrag. */
+   Eintrag. In einen Ordner nur, wer ihn angelegt hat. */
 /* ---- Kachel einer Bilddatei ---- */
 const qFileTile = db.prepare('SELECT thumb FROM attachment_thumbs WHERE attachment_id = ?');
 const putFileTile = db.prepare('INSERT OR REPLACE INTO attachment_thumbs (attachment_id, thumb) VALUES (?, ?)');
@@ -3682,6 +3714,13 @@ app.post('/api/items/:id/attachments',
       if (attachments.previewKind(x.name) === 'image') x.tile = await fileTile(x.f.buffer);
     if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
       return res.status(404).json({ error: t(localeOf(req), 'server.entryUnknown')});
+    // Im Formular, also erst nach multer lesbar.
+    const wanted = (req.body || {}).folderId;
+    const target = wanted === undefined || wanted === '' ? null : folderRow(wanted);
+    if (wanted !== undefined && wanted !== '' && !target)
+      return res.status(404).json({ error: t(localeOf(req), 'server.folderGone')});
+    if (target && (target.item_id !== Number(req.params.id) || !selfOnly(req, target.user_id)))
+      return res.status(403).json({ error: t(localeOf(req), 'server.folderForeign')});
     if (entryTooLarge(req.params.id, req.files)) return refuseEntryFull(req, res);
     const da = db.prepare('SELECT COUNT(*) n FROM attachments WHERE item_id = ?').get(req.params.id).n;
     const fresh = (req.files || []).length;
@@ -3698,6 +3737,7 @@ app.post('/api/items/:id/attachments',
                              f.buffer, pos++, req.user.id);
       if (editAll && docserver.editFormat(name)) putEditAll.run(added.lastInsertRowid, 1);
       if (tile !== undefined) putFileTile.run(added.lastInsertRowid, tile);
+      if (target) putFileFolder.run(added.lastInsertRowid, target.id);
     }
     touch.run(req.params.id);
     res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
@@ -3889,6 +3929,60 @@ app.delete('/api/attachments/:id', (req, res) => {
   rest.forEach((r, i) => s2.run(i, r.id));
   touch.run(a.item_id);
   reclaim();
+  res.json(detail(a.item_id, req.user.id, localeOf(req)));
+});
+
+// Anlegen darf jeder, wie Dateien ohne Ordner hochladen.
+app.post('/api/items/:id/folders', (req, res) => {
+  const name = folderName((req.body || {}).name);
+  if (name === null) return refuseFolderName(req, res);
+  if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
+    return res.status(404).json({ error: t(localeOf(req), 'server.entryUnknown')});
+  addFolder.run(req.params.id, name, req.user.id);
+  touch.run(req.params.id);
+  res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
+});
+
+// Nur wer ihn angelegt hat, auch kein Admin. `testDay` nimmt noch keine Route an.
+app.put('/api/folders/:id', (req, res) => {
+  const f = folderRow(req.params.id);
+  if (!f) return res.status(404).json({ error: t(localeOf(req), 'server.folderGone')});
+  if (!selfOnly(req, f.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
+  if ((req.body || {}).testDay !== undefined)
+    return res.status(400).json({ error: t(localeOf(req), 'server.folderTestDay')});
+  const name = folderName((req.body || {}).name);
+  if (name === null) return refuseFolderName(req, res);
+  renameFolder.run(name, f.id);
+  touch.run(f.item_id);
+  res.json(detail(f.item_id, req.user.id, localeOf(req)));
+});
+
+// Die Dateien darin bleiben und stehen danach ohne Ordner.
+app.delete('/api/folders/:id', (req, res) => {
+  const f = folderRow(req.params.id);
+  if (!f) return res.status(404).json({ error: t(localeOf(req), 'server.folderGone')});
+  if (!mayChange(req, f.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
+  dropFolder.run(f.id);
+  touch.run(f.item_id);
+  res.json(detail(f.item_id, req.user.id, localeOf(req)));
+});
+
+/* Datei und Ziel gehoeren dem, der verschiebt, und haengen am selben Eintrag.
+   sort_order bleibt: die Datei steht im Ziel nach der Zeit ihres Uploads. */
+app.put('/api/attachments/:id/folder', (req, res) => {
+  const a = db.prepare('SELECT item_id, user_id FROM attachments WHERE id = ?').get(req.params.id);
+  if (!a) return res.status(404).json({ error: t(localeOf(req), 'server.fileGone')});
+  if (!selfOnly(req, a.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
+  const wanted = (req.body || {}).folderId;
+  if (wanted === null) dropFileFolder.run(req.params.id);
+  else {
+    const f = folderRow(wanted);
+    if (!f) return res.status(404).json({ error: t(localeOf(req), 'server.folderGone')});
+    if (f.item_id !== a.item_id || !selfOnly(req, f.user_id))
+      return res.status(403).json({ error: t(localeOf(req), 'server.folderForeign')});
+    putFileFolder.run(req.params.id, f.id);
+  }
+  touch.run(a.item_id);
   res.json(detail(a.item_id, req.user.id, localeOf(req)));
 });
 
@@ -4486,7 +4580,7 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, 
 /* ---- Austauschformat ---- */
 
 // Der Import prueft nur EXCHANGE_FORMAT_MIN; eine hoehere Nummer als die eigene nimmt er an.
-const EXCHANGE_FORMAT = 20;
+const EXCHANGE_FORMAT = 21;
 
 const EXCHANGE_FORMAT_MIN = 14;
 
@@ -4577,7 +4671,13 @@ const qBundlePhotos = lateStatement(
 const EDIT_ALL_OF = `COALESCE((SELECT e.edit_all FROM attachment_editing e
   WHERE e.attachment_id = attachments.id), 0) AS edit_all`;
 const qBundleAttachments = lateStatement(
-  `SELECT filename, mime_type, data, user_id, ${EDIT_ALL_OF} FROM attachments WHERE item_id = ? ORDER BY sort_order, id`);
+  `SELECT id, filename, mime_type, data, user_id, ${EDIT_ALL_OF}, s.duration, s.still, f.folder_id AS folder
+     FROM attachments LEFT JOIN attachment_stills s ON s.attachment_id = attachments.id
+     LEFT JOIN attachment_folders f ON f.attachment_id = attachments.id
+    WHERE item_id = ? ORDER BY sort_order, id`);
+// Aelteste zuerst: die Stelle im Feld `folders` ist die Zuordnung der Dateien.
+const qBundleFolders = db.prepare(
+  'SELECT id, name, user_id, created_at FROM folders WHERE item_id = ? ORDER BY created_at, id');
 
 /* Ohne Blobspalten fuer funnelStore(); `thumb` und `still` sagen nur, ob es ein
    Standbild gibt. */
@@ -4591,8 +4691,10 @@ const qRefPhotos = lateStatement(
      (medium IS NOT NULL OR thumb IS NOT NULL) AS still
      FROM photos WHERE item_id = ? ORDER BY sort_order, id`);
 const qRefAttachments = lateStatement(
-  `SELECT id, filename, mime_type, user_id, ${EDIT_ALL_OF}, s.duration, (s.attachment_id IS NOT NULL) AS still
+  `SELECT id, filename, mime_type, user_id, ${EDIT_ALL_OF}, s.duration, (s.attachment_id IS NOT NULL) AS still,
+          f.folder_id AS folder
      FROM attachments LEFT JOIN attachment_stills s ON s.attachment_id = attachments.id
+     LEFT JOIN attachment_folders f ON f.attachment_id = attachments.id
     WHERE item_id = ? ORDER BY sort_order, id`);
 
 function entryAsBundle(it, situation) {
@@ -4635,7 +4737,7 @@ function entryAsBundle(it, situation) {
               ...(v.thumb ? { ['still' + extension]: funnel.take(v.thumb, ['commentVideoStill', v.id]) } : {}) }))
           : []
       })),
-    photos: [], attachments: []
+    photos: [], attachments: [], folders: []
   };
   if (withPhotos) {
     o.photos = (funnel.blobs ? qBundlePhotos() : qRefPhotos()).all(it.id).map(p => {
@@ -4656,16 +4758,21 @@ function entryAsBundle(it, situation) {
       });
   }
   if (withFiles) {
+    const folders = qBundleFolders.all(it.id);
+    const place = new Map(folders.map((f, i) => [f.id, i]));
+    o.folders = folders.map(f => ({ name: f.name, author: authorName(f.user_id), created_at: f.created_at }));
     // Ohne author gehoerten eingespielte Dateien niemandem.
     o.attachments = (funnel.blobs ? qBundleAttachments() : qRefAttachments()).all(it.id)
       .map(a2 => ({ filename: a2.filename, mime_type: a2.mime_type,
                     author: authorName(a2.user_id),
                     // Die vorige Fassung reist nicht mit, nur der Haken.
                     ...(a2.edit_all === 1 ? { edit_all: true } : {}),
+                    ...(place.has(a2.folder) ? { folder: place.get(a2.folder) } : {}),
                     ['data' + extension]: funnel.take(a2.data, ['file', a2.id]),
-                    // `still` liest nur qRefAttachments: der Export traegt kein Standbild.
+                    // `still` ist im Export das Bild, im Papierkorb nur ein Merker.
                     ...(a2.still ? { duration: a2.duration,
-                                     ['still' + extension]: funnel.take(null, ['fileStill', a2.id]) } : {}) }));
+                                     ['still' + extension]: funnel.take(funnel.blobs ? a2.still : null,
+                                                                        ['fileStill', a2.id]) } : {}) }));
   }
   return o;
 }
@@ -4741,7 +4848,8 @@ function exchangeParts(switches) {
          FROM photos WHERE kind = 'video'`));
   if (switches.withFiles) {
     parts.attachments = base64(one(
-      `SELECT COALESCE(SUM(length(data)),0) n FROM attachments`));
+      `SELECT COALESCE(SUM(length(data)),0) n FROM attachments`) + one(
+      `SELECT COALESCE(SUM(length(still)),0) n FROM attachment_stills`));
     // Wie in entryAsBundle: Kommentarbilder und -videos haengen an withFiles.
     parts.commentImages = base64(one(
       `SELECT COALESCE(SUM(length(ci.data)),0) n FROM comment_images ci
@@ -4784,7 +4892,9 @@ const PART_SIZES = `
                WHERE p.item_id = i.id AND p.kind != 'video'), 0) AS photo,
     COALESCE((SELECT SUM(length(p.data) + COALESCE(length(p.medium), length(p.thumb), 0))
                 FROM photos p WHERE p.item_id = i.id AND p.kind = 'video'), 0) AS video,
-    COALESCE((SELECT SUM(length(a.data)) FROM attachments a WHERE a.item_id = i.id), 0) AS attachment,
+    COALESCE((SELECT SUM(length(a.data)) FROM attachments a WHERE a.item_id = i.id), 0)
+      + COALESCE((SELECT SUM(length(s.still)) FROM attachment_stills s
+                    JOIN attachments a ON a.id = s.attachment_id WHERE a.item_id = i.id), 0) AS attachment,
     COALESCE((SELECT SUM(length(ci.data)) FROM comment_images ci
                 JOIN comments c ON c.id = ci.comment_id WHERE c.item_id = i.id), 0) AS commentImage,
     COALESCE((SELECT SUM(length(cv.data) + COALESCE(length(cv.thumb), 0)) FROM comment_videos cv
@@ -5141,6 +5251,8 @@ const iPhotoAdd = lateStatement(`INSERT INTO photos (item_id, mime_type, data, t
                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
 const iAttachmentAdd = lateStatement(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
                       VALUES (?, ?, ?, ?, ?, ?, ?)`);
+const iFolderAdd = db.prepare(`INSERT INTO folders (item_id, name, user_id, created_at)
+                      VALUES (?, ?, ?, COALESCE(?, datetime('now')))`);
 const iUserByName = db.prepare('SELECT id FROM users WHERE username = ?');
 const iCritNameAdd = db.prepare(
   'INSERT OR REPLACE INTO criterion_names (criterion_id, language, name) VALUES (?, ?, ?)');
@@ -5198,7 +5310,8 @@ async function importPrepare(payload, bytesSource) {
         name, mime: String(a2.mime_type || '').slice(0, 120), buf,
         // Erst in der Transaktion aufgeloest: authorId() zaehlt dort mit.
         hasAuthor: 'author' in a2, author: a2.author, editAll: a2.edit_all === true,
-        still, duration: durationValue(a2.duration)
+        still, duration: durationValue(a2.duration),
+        folder: Number.isSafeInteger(a2.folder) ? a2.folder : null
       });
     }
     for (const c of it.comments || []) {
@@ -5427,11 +5540,22 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
         if (p.kind === 'video') stats.videos++; else stats.photos++;
       });
 
+      // Ein Ordner ohne gueltigen Namen faellt weg; seine Dateien stehen ohne Ordner.
+      const folderIds = (Array.isArray(it.folders) ? it.folders : []).map(f => {
+        const name = f && typeof f === 'object' ? folderName(f.name) : null;
+        if (name === null) return null;
+        return iFolderAdd.run(id, name, 'author' in f ? authorId(f.author) : itemAuthor,
+                              typeof f.created_at === 'string' && f.created_at ? f.created_at : null)
+          .lastInsertRowid;
+      });
+
       attachments.forEach((a2, i) => {
         const whose = a2.hasAuthor ? authorId(a2.author) : itemAuthor;
         const added = iAttachmentAdd().run(id, a2.name, a2.mime, a2.buf.length, a2.buf, i, whose);
         if (a2.editAll) putEditAll.run(added.lastInsertRowid, 1);
         if (a2.still) putStill.run(added.lastInsertRowid, a2.duration, a2.still);
+        if (a2.folder !== null && folderIds[a2.folder] != null)
+          putFileFolder.run(added.lastInsertRowid, folderIds[a2.folder]);
         stats.attachments++;
       });
     }

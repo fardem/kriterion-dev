@@ -30,6 +30,44 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.47.0] - 2026-09-29
+
+*Ordner unter „Dateien“.*
+
+Fingerprint `636c7c11` — davor `643e8f9e`.
+
+> **Die Datenbank bekommt beim ersten Start die Tabellen `folders` und
+> `attachment_folders`.** Zu tun ist nichts.
+>
+> **Eine Exportdatei aus 0.47.0 trägt Format 21.** Eine ältere Version liest
+> sie ohne die Ordner.
+
+### Hinzugefügt
+
+- **Ordner unter „Dateien“:** „Ordner hinzufügen“ im Kopf des Blocks. Oben
+  stehen die Dateien ohne Ordner, darunter die Ordner, der neueste oben; beim
+  Öffnen eines Eintrags sind alle zu.
+- **Hochladen in einen Ordner** über sein „+“ oder durch Ablegen auf ihm; in
+  einen fremden Ordner lädt niemand hoch.
+- **„Verschieben nach …“** im Menü einer eigenen Datei; Adresse, Vorschaubild
+  und „Bearbeiten durch alle“ bleiben.
+- **Menü am Ordner:** „Bearbeiten …“ und „Ordner löschen“; die Dateien stehen
+  danach ohne Ordner.
+- **✕ in der eigenen Ansicht einer Datei**, beim Ansehen wie beim Bearbeiten;
+  es führt zurück zum Eintrag.
+
+### Geändert
+
+- Der Export trägt die Ordner und je Video unter „Dateien“ Vorschaubild und
+  Dauer; Import und Papierkorb stellen beides wieder her.
+- ← und → im Vollbild blättern nur in der Gruppe der Datei.
+- Eine 403 ohne Text von Kriterion meldet „Der Reverse Proxy davor hat die
+  Anfrage abgewiesen (403).“
+- Die Löschdialoge von Eintrag und Account nennen die Ordner; „Beiträge“
+  löscht auch die Ordner an fremden Einträgen.
+- README: die Grenze von 10 MB der WAF von CrowdSec und die Ausnahme in
+  NPMplus.
+
 ## [0.46.0] - 2026-09-28
 
 *Videos unter „Dateien“.*
