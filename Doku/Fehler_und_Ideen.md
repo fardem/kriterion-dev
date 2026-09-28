@@ -57,7 +57,7 @@ nie zurück.*
 | Projektstand, sonst | **der Stand**: was gebaut ist und was bindet |
 | `Doku/Aenderungsprotokoll_<Version>.md` | je Runde, **was wirklich gebaut wurde** — und nur dort |
 | `CHANGELOG.md` | je Version, was ein Betreiber wissen muss |
-| `Doku/Konzept_Video_und_grosse_Dateien.md` | **Teil II, große Dateien bis 2 GB** — ein beschlossenes Vorhaben mit eigenem Papier, im Fahrplan als „danach". *Steht deshalb nicht hier.* |
+| `Doku/Konzept_Dateien_und_Ordner.md` | **Dateien, Ordner und Testtage** — beschlossen am 28. September 2026, im Fahrplan als 0.45.0 bis 0.48.0. Löst Teil II von `Doku/Konzept_Video_und_grosse_Dateien.md` ab. *Steht deshalb nicht hier.* |
 
 ## Drei Angaben am Kopf jedes Punktes
 
@@ -198,7 +198,7 @@ sagt der Fahrplan.
 | ~~**0.42.0**~~ | ~~Dokumente über einen Document Server ansehen~~ — **GEBAUT am 25. September 2026** | nein |
 | ~~**0.43.0**~~ | ~~Dokumente über den Document Server bearbeiten; wer bearbeitet, legt der Hochladende je Datei fest~~ — **GEBAUT am 27. September 2026** | **ja** |
 | ~~**0.44.0**~~ | ~~Verweise auf Dateien und Fotos in Kommentar und Beschreibung~~ — **GEBAUT am 27. September 2026** | **ja** |
-| *danach* | Große Dateien bis 2 GB — eigenes Papier, im Fahrplan als „danach" | **ja** |
+| **0.45.0 bis 0.48.0** | Dateien, Ordner und Testtage: Kacheln, Videos unter „Dateien", Ordner, Dateien der Testtage verschlüsselt auf der Platte. Beschlossen am 28. September 2026, `Doku/Konzept_Dateien_und_Ordner.md` | **ja** |
 
 ### Sprache
 

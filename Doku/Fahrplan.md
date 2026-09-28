@@ -1,6 +1,6 @@
 # Fahrplan
 
-**Der Plan von 0.41.0 bis 0.44.2 · Stand 27. September 2026, 0.44.2 gebaut**
+**Der Plan von 0.41.0 bis 0.48.0 · Stand 28. September 2026, 0.44.2 gebaut**
 
 *Hier stand vorher „von 0.26.0 bis 1.0 · Stand 9. September 2026": beides ist
 überholt — es wird kein 1.0.0 geben, und seither sind dreizehn Runden gebaut.*
@@ -199,13 +199,16 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.44.0**~~ | ~~**Verweise auf Dateien und Fotos**~~ | **GEBAUT am 27. September 2026** auf 0.43.2 — Änderungsprotokoll 0.44.0. Ein Link auf eine Datei oder ein Foto dieser Instanz wird in Kommentar und Beschreibung zur Marke. Bürodatei: Marke mit Zeichen und Dateiname, ein Klick klappt einen Betrachter von 360 px auf (`type: 'embedded'`), erst dann lädt der Document Server. Bilddatei und Foto: ein Vorschaubild; Bilddateien bekommen dafür eine gespeicherte Kachel in der neuen Tabelle `attachment_thumbs`, auch in der Dateizeile. Fotos haben die Adresse `#/item/<Eintrag>/photo/<Foto>`. „Link kopieren“ in jeder Dateizeile und im Vollbild. Die eigene Ansicht zeigt jetzt jede Datei. Die Fragetafel ist am 27. September 2026 nach dem Bauen beantwortet worden, nicht davor (Abschnitt unten). **MINOR** *(1.190 → 1.215 Rückbauten, Prüfstand 7.476 → 7.526). Fingerprint `37520fc0` (davor `0c19372c`)* | **ja** | nein |
 | ~~**0.44.1**~~ | ~~**Dateizeilen in Spalten, Link am Bild**~~ | **GEBAUT am 27. September 2026** auf 0.44.0 — Änderungsprotokoll 0.44.1. Drei Befunde des Betreibers nach dem Einspielen von 0.44.0: der Text zur Vorgabe auf der Karte „Dokumente“ beginnt mit „Bearbeiten durch alle“; „Link kopieren“ auch am großen Bild, rechts von „Ausschnitt“; die Dateizeilen stehen am Rechner in Spalten (CSS-Grid mit `subgrid`), auf dem Telefon wie bisher. Die Fragetafel ist vor dem Bau beantwortet worden. **PATCH** *(1.215 → 1.222 Rückbauten, Prüfstand 7.526 → 7.533). Fingerprint `8237adde` (davor `37520fc0`)* | nein | nein |
 | ~~**0.44.2**~~ | ~~**Der Name an der Linkzeile rechts**~~ | **GEBAUT am 27. September 2026** auf 0.44.1 — Änderungsprotokoll 0.44.2. Befund des Betreibers: in der Linkliste stand der Name des Accounts direkt hinter dem Pfad. Er steht jetzt in einer eigenen Spalte vor ↗, auch auf dem Telefon; ↗ und ✕ stehen ebenfalls in festen Spalten (`subgrid`). Die Fragetafel ist vor dem Bau beantwortet worden. **PATCH** *(1.222 → 1.226 Rückbauten, Prüfstand 7.533 → 7.534). Fingerprint `46ae4e39` (davor `8237adde`)* | nein | nein |
+| **0.45.0** | **Der Block „Dateien" in Kacheln** | **Beschlossen am 28. September 2026.** Kacheln statt Zeilen, Menü ⋯, Vorschau unter der Gruppe, ein Klick lädt nie herunter, Tastatur, Ablegen, Warteschlange mit Fortschritt, 100 Dateien je Eintrag. Auftrag: `Doku/Auftrag_0.45.0.md` | nein | — |
+| **0.46.0** | **Videos unter „Dateien"** | Videos bis zur Grenze „Anhang" spielen im Vollbild, auch auf dem iPhone; Vorschaubild aus dem Browser; die Tasten im Vollbild gelten für alle Videos | **ja** | — |
+| **0.47.0** | **Ordner** | Ordner zum Gruppieren, „Verschieben nach …"; ein gelöschter Ordner lässt seine Dateien lose stehen | **ja** | 20 → 21 |
+| **0.48.0** | **Testtage und Dateien auf der Platte** | Ordner einem Testtag zuweisen, Sprung von der Testtagzeile; was zu einem Testtag gehört, liegt verschlüsselt auf der Platte; Upload in Stücken, große Videos bis 2 GB, Backup mit Dateien | **ja** | 21 → 22 |
 | ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. Die zwei offenen Punkte des Eintrags stehen in der Zeile darunter | — | — |
 | ~~*ohne Nummer*~~ | ~~**Vorgabewerte und Tastaturbedienung beim Sortieren**~~ | **VORLÄUFIG GESTRICHEN am 21. September 2026:** der Inhalt ist nirgends beschrieben — weder hier noch im Sammelblatt noch im Projektstand steht, welche Vorgabewerte gemeint sind und was die Tastatur beim Sortieren tun soll. *Die Zeile kommt zurück, sobald der Betreiber sagt, was gemeint war.* | — | — |
 | ~~*ohne Nummer*~~ | ~~**Die Doppelung in der README auflösen**~~ | **GEBAUT mit 0.38.0 am 19. September 2026.** *Befund aus BA 6 der 0.37.0: zwei Abschnitte der README trugen dieselben drei Sachverhalte — dass eine fehlende Spalte nicht nachgerüstet wird, dass der Kasten jede fehlende Spalte samt altem Namen nennt, und dass die Instanz startet, aber jede Seite scheitert, die eine der Spalten liest.* **Jetzt verweist jeder der beiden auf den anderen:** `README.md`:348 nach unten, `README.md`:464 nach oben. *0.38.5 hat die README danach noch einmal gegliedert.* | nein | — |
 | *ohne Nummer* | **`public/style.css` noch einmal ansehen** | Vorgabe des Betreibers vom 17. September 2026 zu **Punkt 42** des Sammelblatts. **Der Kommentaranteil liegt bei 40 Prozent — 1.215 Zeilen von 3.029**, gemessen am gebauten Stand 0.38.3. *Hier stand vorher 54,5 %; das war ein Byteanteil am Stand nach 0.35.0, und 0.37.0 hat die Datei danach noch einmal gekürzt.* Die Datei gehört zu den achtzehn des Fingerprints, eine Runde daran ändert ihn | nein | — |
 | ~~*ohne Nummer*~~ | ~~**Drei kleine Punkte, die 0.35.2 ausdrücklich nicht mitnimmt**~~ | **ALLE DREI SIND ZU, die letzten beiden am 21. September 2026.** *Sie standen in `Doku/Auftrag_0.35.2.md` als V3 bis V5.* **Punkt 33** — *am 19. September 2026 geschlossen: schon gebaut.* **Punkt 38** — *GEBAUT mit 0.38.5: die Zählzeile der Meldungstafel steht in Kurzform, deutsch 227,6 → 158,1 px bei 360 CSS-Pixeln.* **Punkt 27** — *GEBAUT mit 0.38.5: `leftovers()` fragt nach `KRITERION_RUN`, neun von zwölf roten Spuren vorher, null von zwanzig nachher.* | nein | — |
 | ~~*ohne Nummer*~~ | ~~**`Auffangnetz` und `Grundausstattung` umbenennen**~~ | **Befund aus dem Bau der 0.37.0.** *`CLAUDE.md` führt beide Wörter unter „nicht verwenden".* **Sie stehen als Abschnittsüberschrift in `db.js` und in sieben Namen des Prüfstands.** *Sie in einer Runde zu ersetzen, die etwas anderes tut, hieße den Prüfstand umzubenennen — deshalb eine eigene Runde.* **0.38.0 fasst sie ausdrücklich nicht an** *(Entscheidung des Betreibers vom 19. September 2026)* — **GEBAUT mit 0.38.5.** *Hier stand „Dutzende"; gezählt sind es* **74 Stellen**: *fünf in ausgelieferten Dateien, sieben Namen (ein Gruppenname, vier Prüfungsnamen, ein Rückbauname, ein `expected`), 23 Kommentare im Quelltext und 51 in der Prosa der Papiere — der Wortfilter liest auch `Doku/*.md` und `CHANGELOG.md`.* | **gebaut** | — |
-| *danach* | *Große Dateien bis 2 GB* | **ausdrücklich draußen** — siehe unten | ja | — |
 
 ---
 
@@ -3289,6 +3292,79 @@ rechts in einer eigenen Spalte.
 **Schema: nein.** Austauschformat: bleibt.
 
 ---
+## 0.45.0 bis 0.48.0 — „Dateien, Ordner und Testtage"
+
+**Beschlossen am 28. September 2026.** Wunsch des Betreibers: Videos von
+Testtagen, 0,5 bis 2 GB je Testtag, heute 3 Testtage, absehbar 3 je Jahr,
+sollen am Eintrag liegen und abspielbar sein. Der Block „Dateien" wird dafür
+neu aufgebaut. Das Konzept steht in `Doku/Konzept_Dateien_und_Ordner.md`; es
+löst Teil II von `Doku/Konzept_Video_und_grosse_Dateien.md` ab. Die Vorgaben
+aus dem Gespräch stehen dort in Anhang B.
+
+### Die Regeln
+
+- Jede Datei ist eine Zeile in `attachments`, gleich wo ihre Bytes liegen.
+  Adresse, Verweise in Kommentaren, Rechte und Ordner gelten für jede Datei
+  gleich.
+- Was zu einem Testtag gehört, also jede Datei in einem Ordner mit Testtag,
+  liegt verschlüsselt unter `data/files/`, mit einem Schlüssel je Datei in der
+  Datenbank. Alles andere liegt in der Datenbank.
+- Große Videos, über der Grenze „Anhang" bis „Video am Testtag", gibt es nur im
+  Ordner eines Testtags.
+- Ein Klick zeigt eine Datei und lädt nie herunter. Alles andere steht im
+  Menü ⋯.
+
+### Die vier Versionen
+
+| Version | Inhalt | Schema | Format |
+|---|---|---|---|
+| 0.45.0 Der Block „Dateien" in Kacheln | Kacheln, Menü, Vorschau unter der Gruppe, Tastatur, Ablegen, Warteschlange mit Fortschritt, 100 Dateien je Eintrag | nein | bleibt |
+| 0.46.0 Videos unter „Dateien" | Videos bis zur Grenze „Anhang" spielen im Vollbild, auch auf dem iPhone; Vorschaubild aus dem Browser und „Dieses Bild als Vorschaubild"; Tasten im Vollbild für alle Videos | `attachment_stills` | bleibt |
+| 0.47.0 Ordner | Ordner zum Gruppieren, „Ordner hinzufügen", „Verschieben nach …", Ordner löschen | `folders`, `attachment_folders` | 20 → 21 |
+| 0.48.0 Testtage und Dateien auf der Platte | Zuweisung Ordner–Testtag, Symbol und Sprung in der Testtagzeile, Speicher auf der Platte, Upload in Stücken, Umlagerung, große Videos, Backup mit Dateien, „Kennzahlen" | `uploads`, `disk_files`, `disk_files_gone`, Trigger | 21 → 22 |
+
+Die Zuweisung zum Testtag kommt mit 0.48.0 und nicht mit 0.47.0: Sonst müsste
+0.48.0 die Dateien vorhandener Testtag-Ordner beim Start auf die Platte
+umlagern, und Datenmigrationen werden nicht mehr geschrieben. Die Spalte
+`folders.test_day_id` entsteht schon mit 0.47.0 und bleibt bis 0.48.0 leer,
+weil eine vorhandene Tabelle später nicht geändert wird.
+
+### Die Antworten des Betreibers vom 28. September 2026
+
+| Frage | Antwort |
+|---|---|
+| F1. Was darf größer sein als die Grenze „Anhang"? | nur Videos, mit Prüfung der ersten Bytes |
+| F2. Eine Grenze oder zwei? | zwei: „Anhang" und „Video am Testtag" |
+| F3. Dateien je Eintrag | 100 je Eintrag, 20 je Anfrage |
+| F4. Wer lädt in einen Ordner hoch? | wer ihn angelegt hat; verbunden nur mit einem eigenen Testtag |
+| F5. Wo öffnet die Vorschau? | unter allen Kacheln der Gruppe, höchstens eine im Block; am Telefon die eigene Ansicht |
+| F6. Tasten im Vollbild | gelten für alle Videos, auch in der Bildleiste |
+| F7. Adresse einer Bild- oder Videodatei | öffnet das Vollbild im Eintrag |
+| F8. Unbekannte Dateien unter `data/files/` | melden; „Löschen" für den Eigentümer-Admin nur, wenn eine Kopie gleicher Länge im Backup-Ordner liegt |
+| F9. Vorschaubild und Dauer eines Videos | in Papierkorb, Export und Import |
+| F10, F13. Name der zweiten Grenze | „Video am Testtag" |
+| F11. Videos in einem Ordner mit Testtag | immer auf der Platte; Verschieben hinein und Zuweisen eines Testtags lagern um; zurück wird nie umgelagert |
+| F12. Große Videos | nur im Ordner eines Testtags |
+| F14. Andere Dateien eines Testtag-Ordners | ebenfalls auf der Platte |
+| F15. Ein Verzeichnis je Ordner | nein; zusammen gehören die Dateien über den Ordner in der Datenbank |
+| F16. Was trägt der Export? | jede Datei bis zur Grenze „Anhang", gleich wo sie liegt; große Videos nur mit Namen |
+
+### Was ausdrücklich nicht dazugehört
+
+Umkodieren auf dem Server (kein `ffmpeg`), Dateien umbenennen, Suche nach
+Datei- und Ordnernamen, Reihenfolge von Hand, ZIP mehrerer Dateien, ein
+Verzeichnis je Ordner, Entschlüsseln im Browser.
+
+### Was es anfasst
+
+`server.js`, `db.js`, `attachments.js`, `docserver.js`, `auth.js`,
+`public/app.js`, `public/style.css`, die drei Sprachdateien, `manual-de.md`,
+`README.md` und `keytool.sh` (0.48.0), die Module des Prüfstands und
+`counterproof.js`. Je Version stehen die Stellen im Konzept, Abschnitt 10 und
+Anhang A.
+
+---
+
 ## ~~1.0.0 — „Die Zusage"~~ — gestrichen am 15. September 2026
 
 **Es wird kein 1.0.0 geben.** Vorgabe des Betreibers vom 15. September 2026:
@@ -3315,19 +3391,12 @@ zuerst mit „vor 1.0.0" begründet und ist am selben Tag berichtigt worden.
 
 ## Was ausdrücklich draußen bleibt
 
-### Große Dateien bis 2 GB — *weiter draußen, und der Grund ist genannt*
+### ~~Große Dateien bis 2 GB~~ — seit 28. September 2026 im Plan
 
-**Der Betreiber am 8. September 2026:** *„Große Dateien lasse ich immer noch
-außen vor, weil ich da noch nicht voll überzeugt bin, dass es gut gelingen
-wird."*
-
-**Das Papier bleibt** (`Doku/Konzept_Video_und_grosse_Dateien.md`, Teil II) und
-**bekommt keine Nummer.** *Es ist kein Teil dieser Strecke.*
-
-> **BERICHTIGT AM 15. SEPTEMBER 2026.** *Hier stand „Es steht nach 1.0.0".
-> Diese Einordnung fällt mit dem gestrichenen 1.0.0-Eintrag weg.* **Der
-> Grund, warum Teil II draußen bleibt, ist der Satz des Betreibers darüber und
-> nicht eine Versionsnummer.**
+Am 8. September 2026 blieben große Dateien draußen, weil der Betreiber nicht
+überzeugt war, dass es gut gelingt. Am 28. September 2026 hat er die Videos
+der Testtage beschlossen: 0.45.0 bis 0.48.0, Konzept in
+`Doku/Konzept_Dateien_und_Ordner.md`.
 
 ### Abgelehnt — geprüft, entschieden, und hier steht warum
 
