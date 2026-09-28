@@ -238,10 +238,10 @@ async function run() {
       officeRef?.textContent === '▥bericht.docx' &&
       officeRef?.title === `${DE['entry.refOfficeHint']} · Beispiel`, officeRef?.outerHTML);
     const imageRef = ref('#/item/1/file/42');
-    check('Bilddatei: ihre Kachel als Vorschaubild, der Klick oeffnet die Ansicht',
+    check('Bilddatei: ihre Kachel als Vorschaubild, der Klick oeffnet das Vollbild',
       imageRef?.querySelector('img.markup-thumb')?.getAttribute('src') === '/api/attachments/42/raw?size=thumb' &&
-      imageRef?.querySelector('img')?.getAttribute('alt') === 'foto.png' && imageRef?.onclick === null &&
-      imageRef?.title === `${DE['entry.refFileHint']} · Beispiel`, imageRef?.outerHTML);
+      imageRef?.querySelector('img')?.getAttribute('alt') === 'foto.png' && typeof imageRef?.onclick === 'function' &&
+      imageRef?.title === `${DE['entry.clickFullscreen']} · Beispiel`, imageRef?.outerHTML);
     const pdfRef = ref('#/item/1/file/43');
     check('Ein eigener Name geht vor den Dateinamen',
       pdfRef?.textContent === '▤Handbuch', pdfRef?.outerHTML);
@@ -323,7 +323,7 @@ async function run() {
     const here = w.location.origin + w.location.pathname;
     m.example.description = `Video ${here}#/item/1/photo/6 anderswo ${here}#/item/2/photo/9`;
     await until(w, (x) => x.document.querySelectorAll('#descview .markup-ref').length === 2 &&
-      x.document.querySelectorAll('#atts .arow').length === 4 && openRequests(x) === 0, 3000, 'den Eintrag')
+      x.document.querySelectorAll('#atts .atile[data-file]').length === 4 && openRequests(x) === 0, 3000, 'den Eintrag')
       .catch(() => {});
     const videoRef = w.document.querySelector('#descview .markup-ref[href="#/item/1/photo/6"]');
     const click = fake();
@@ -347,24 +347,29 @@ async function run() {
       w.document.querySelector('.lightbox .lb-tools')?.innerHTML?.slice(0, 120));
     w.document.querySelector('.lightbox .close')?.click();
 
-    const rowTile = w.document.querySelector('#atts .arow[data-file="42"] .aicon img.athumb');
-    const pdfSign = w.document.querySelector('#atts .arow[data-file="43"] .aicon')?.textContent;
-    check('In der Dateizeile steht die Kachel statt des Zeichens, nur bei der Bilddatei',
-      rowTile?.getAttribute('src') === '/api/attachments/42/raw?size=thumb' && pdfSign === '▤' &&
+    const rowTile = w.document.querySelector('#atts .atile[data-file="42"] .apic img.athumb');
+    const pdfSign = w.document.querySelector('#atts .atile[data-file="43"] .apic')?.textContent;
+    check('Auf der Kachel steht das Vorschaubild, nur bei der Bilddatei',
+      rowTile?.getAttribute('src') === '/api/attachments/42/raw?size=thumb' && pdfSign === 'PDF' &&
       w.document.querySelectorAll('#atts .athumb').length === 1, `${rowTile?.outerHTML} ${pdfSign}`);
     rowTile?.dispatchEvent(new w.Event('error'));
-    check('Laedt sie nicht, steht dort wieder das Zeichen',
-      w.document.querySelector('#atts .arow[data-file="42"] .aicon')?.textContent === '▣' &&
-      !w.document.querySelector('#atts .athumb'), w.document.querySelector('#atts .arow[data-file="42"] .aicon')?.innerHTML);
-    const links = [...w.document.querySelectorAll('#atts .arow .alink')];
-    const pngRow = w.document.querySelector('#atts .arow[data-file="42"]');
+    check('Laedt es nicht, steht dort die Endung',
+      w.document.querySelector('#atts .atile[data-file="42"] .apic')?.textContent === 'PNG' &&
+      !w.document.querySelector('#atts .athumb'), w.document.querySelector('#atts .atile[data-file="42"] .apic')?.innerHTML);
+    const copyItems = [...w.document.querySelectorAll('#atts .atile[data-file]')].map(tile => {
+      tile.querySelector('.amore')?.click();
+      const item = [...w.document.querySelectorAll('.fmenu .fmenu-item')].find(e => e.textContent === DE['entry.copyFileLink']);
+      w.document.activeElement?.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      return item;
+    });
     const copiedBefore = seen.copied.length;
-    pngRow?.querySelector('.alink')?.click();
+    w.document.querySelector('#atts .atile[data-file="42"] .amore')?.click();
+    [...w.document.querySelectorAll('.fmenu .fmenu-item')].find(e => e.textContent === DE['entry.copyFileLink'])?.click();
     await until(w, () => seen.copied.length > copiedBefore, 1000, 'das Kopieren').catch(() => {});
-    check('Jede Dateizeile hat Link kopieren; er kopiert die Adresse der Datei und klappt nichts auf',
-      links.length === 4 && links[0].title === DE['entry.copyFileLink'] &&
-      seen.copied[copiedBefore] === `${here}#/item/1/file/42` && !w.document.querySelector('#atts .apreview'),
-      `${links.length} ${seen.copied.join(' ')}`);
+    check('Jedes Menue hat Link kopieren; er kopiert die Adresse der Datei und klappt nichts auf',
+      copyItems.length === 4 && copyItems.every(Boolean) &&
+      seen.copied[copiedBefore] === `${here}#/item/1/file/42` && !w.document.querySelector('#atts .apreview:not([hidden])'),
+      `${copyItems.filter(Boolean).length} ${seen.copied.join(' ')}`);
     w.close();
 
     const pm = buildDom(JSDOM, { hash: '#/item/1/photo/6' });
@@ -399,9 +404,12 @@ async function run() {
       m.w.close();
       return out;
     };
-    const image = await view(42);
-    check('Eine Bilddatei zeigt das Bild', image.plain && image.img === '/api/attachments/42/raw?inline=1',
-      image.html.slice(0, 160));
+    const im = buildDom(JSDOM, { hash: '#/item/1/file/42' });
+    await until(im.w, (x) => x.document.querySelector('.lightbox') && openRequests(x) === 0, 3000, 'das Vollbild')
+      .catch(() => {});
+    check('Eine Bilddatei hat keine eigene Ansicht; ihre Adresse oeffnet das Vollbild im Eintrag',
+      !im.w.document.querySelector('.fileview') && !!im.w.document.querySelector('.lightbox'), im.w.location.hash);
+    im.w.close();
     const pdf = await view(43);
     check('Ein PDF laeuft im Rahmen mit allow-scripts ohne allow-same-origin',
       pdf.plain && pdf.frame?.getAttribute('sandbox') === 'allow-scripts', pdf.html.slice(0, 160));
@@ -423,7 +431,7 @@ async function run() {
       manual.includes('Link kopieren') && /Verweis auf eine Datei/.test(manual), 'Abschnitt fehlt');
   }
 
-  group('Link am Bild und Dateizeilen in Spalten');
+  group('Link am Bild');
   {
     const m = buildDom(JSDOM, { hash: '#/item/1',
       extraAttachments: [{ ...office, mine: true, edit: true }] });
@@ -431,7 +439,7 @@ async function run() {
     const seen = wire(w);
     const here = w.location.origin + w.location.pathname;
     await until(w, (x) => x.document.querySelector('#viewer .vtools') &&
-      x.document.querySelectorAll('#atts .arow').length === 5 && openRequests(x) === 0, 3000, 'den Eintrag')
+      x.document.querySelectorAll('#atts .atile[data-file]').length === 5 && openRequests(x) === 0, 3000, 'den Eintrag')
       .catch(() => {});
     const tools = () => [...w.document.querySelectorAll('#viewer .vtools > button')].map(b => b.className.split(' ')[0]);
     const photoTools = tools();
@@ -452,29 +460,6 @@ async function run() {
     w.document.querySelector('#viewer .vfocus')?.onclick();
     check('Im Ausschnittmodus fehlt er', !w.document.querySelector('#viewer .vlink') &&
       w.document.querySelector('#viewer .vfocus')?.classList.contains('on'), tools().join(' '));
-
-    const css = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
-    const grid = (css.match(/@supports \(grid-template-columns: subgrid\) \{(\n  #atts [\s\S]*?)\n\}/) || [])[1] || '';
-    const lines = [...((grid.match(/#atts \{ display: grid; grid-template-columns: ([^;]+);/) || [])[1] || '')
-      .matchAll(/\[(\w+)\]/g)].map(x => x[1]);
-    const columnOf = {};
-    for (const x of grid.matchAll(/\.arow \.(\w+) \{ grid-column: (\w+);/g)) columnOf[x[1]] = x[2];
-    // Der Stift traegt aopen und aedit; es gilt die Spalte von aedit.
-    const cellOf = (el) => el.classList.contains('aedit') ? 'aedit' : el.classList[0];
-    const rows = [...w.document.querySelectorAll('#atts .arow')];
-    const orders = rows.map(r => [...r.children].map(el => lines.indexOf(columnOf[cellOf(el)])));
-    check('Jedes Element der Dateizeile hat seine Spalte, in der Reihenfolge der Zeile',
-      lines.length === 11 && rows.length === 5 && rows.some(r => r.querySelector('.arights')) &&
-      orders.every(o => o.every((n, i) => n >= 0 && (i === 0 || n > o[i - 1]))),
-      `${lines.join(' ')} · ${orders.map(o => o.join(',')).join(' | ')}`);
-    check('Die Zeile uebernimmt die Spalten der Liste, fehlende Knoepfe lassen ihre Spalte leer',
-      /\.arow \{ display: grid; grid-template-columns: subgrid; gap: 0; \}/.test(grid) &&
-      /#atts > \* \{ grid-column: 1 \/ -1; \}/.test(grid) && /grid-column: name;/.test(grid) &&
-      /\[name\] minmax\(0, 1fr\)/.test(grid), grid.slice(0, 200) || '(kein Block mit subgrid)');
-    const narrow = css.slice(css.indexOf('@media (max-width: 700px), (max-height: 500px) and (max-width: 960px) {'));
-    check('Auf dem Telefon bricht die Zeile um wie bisher',
-      /\n  #atts \{ display: block; \}\n  \.arow \{ display: flex; flex-wrap: wrap; gap: 10px; row-gap: 2px; \}\n  \.arow > \* \+ \* \{ margin-left: 0; \}/.test(narrow),
-      (narrow.match(/\n  \.arow \{[^}]*\}/) || ['(keine Regel)'])[0]);
     w.close();
 
     const EN = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'languages', 'en.json'), 'utf8'));

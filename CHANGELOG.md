@@ -30,6 +30,38 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.45.0] - 2026-09-28
+
+*Der Block „Dateien“ in Kacheln.*
+
+Fingerprint `6935aee7` — davor `46ae4e39`.
+
+### Hinzugefügt
+
+- **Kacheln:** jede Datei ist eine quadratische Kachel mit Vorschaubild oder
+  Endung, darunter Name und Größe; 128 px am Rechner, 96 px am Telefon.
+- **Menü ⋯** an jeder Kachel, immer sichtbar. Es bietet nur an, was der
+  Server annimmt; am Telefon steht es am unteren Rand.
+- **Hochladen** über die Kachel „+“ und durch Ablegen auf dem Block. Jede
+  Datei geht einzeln hoch, mit Fortschritt; „Abbrechen“ und „Erneut
+  versuchen“ im Menü. Ein Upload läuft weiter, wenn man den Eintrag wechselt.
+- **Tastatur:** jede Kachel und jeder Menüeintrag ist erreichbar;
+  Umschalt+F10 öffnet das Menü.
+
+### Geändert
+
+- Ein Klick lädt nie mehr herunter: ein Bild öffnet das Vollbild, PDF, Text
+  und Office die Vorschau unter den Kacheln, jede andere Datei ihr Menü.
+- Höchstens eine Vorschau im Block; ein offener Betrachter des Document
+  Servers bleibt beim Neuzeichnen stehen.
+- Die Adresse einer Bilddatei öffnet den Eintrag und darin das Vollbild, auch
+  über die Marke in Kommentar und Beschreibung.
+- Ein Eintrag trägt 100 Dateien statt 20; je Upload bleiben es 20.
+
+### Entfernt
+
+- Die Dateizeile mit ihren Knöpfen, die erst beim Überfahren erschienen.
+
 ## [0.44.2] - 2026-09-27
 
 *Der Name an der Linkzeile rechts.*

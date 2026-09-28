@@ -342,38 +342,61 @@ unverändert.
 
 - **Tags:** Klick in der Tagwolke vergibt oder entfernt. Testtage können eigene
   Tags tragen.
-- **Dateien:** bis 50 MB je Datei, höchstens 20 je Eintrag. Bilder, PDF, Text,
-  Markdown, CSV, Log und `.docx` lassen sich ansehen, alles andere wird
-  heruntergeladen. Hat der Admin einen Document Server eingeschaltet, zeigt er
-  auch Word-, Excel- und PowerPoint-Dateien und ihre OpenDocument-Gegenstücke
-  an. Unter dem Betrachter steht, welcher Document Server die Datei anzeigt.
-- **Kachel:** eine Bilddatei zeigt in der Dateizeile eine Kachel, wie ein
-  Foto. Kann Kriterion die Datei nicht als Bild lesen, steht dort ▣.
-- **Link kopieren:** das Zeichen der Kette in der Dateizeile kopiert die
-  Adresse der Datei. Die Adresse öffnet die Datei in der eigenen Ansicht; eine
-  Datei ohne Vorschau lädt man dort mit ↓ herunter.
-- **Vorschau und Öffnen:** Ein Klick auf eine solche Datei zeigt die Vorschau
-  im Eintrag. Das Zeichen ⤢ öffnet die Datei in einer eigenen Ansicht über das
-  ganze Fenster; der Pfeil oben links führt zurück zum Eintrag. Auf dem Telefon
-  öffnet schon der Klick auf die Datei diese Ansicht. Das Zeichen für Vollbild in
-  der Leiste zeigt nur das Dokument über den ganzen Bildschirm, auch quer;
-  Zurück oder Esc beendet es. Kann der Browser kein Vollbild, fehlt das Zeichen.
-- **Bearbeiten:** Der Stift an der Datei öffnet sie in der eigenen Ansicht zum
-  Bearbeiten; er steht nur an Dateien, die man bearbeiten darf. ⤢ öffnet sie
-  zum Ansehen. Bearbeiten darf, wer die Datei hochgeladen hat. Trägt die Datei
-  „Bearbeiten durch alle“, bearbeitet jeder Account; sonst auch der Admin
-  nicht, er darf die Datei nur löschen. Ob neue Dateien es tragen, gibt jeder
-  Account im eigenen Bereich unter „Dokumente“ vor; ohne eigene Vorgabe gilt
-  der Startwert des Admins. Eine einzelne Datei stellt, wer sie hochgeladen
-  hat, mit dem Zeichen der zwei Personen in der Dateizeile um oder mit dem
-  Haken in der Leiste der Ansicht.
+- **Dateien:** stehen als Kacheln im Block „Dateien“: Vorschaubild oder
+  Endung, darunter Name und Größe. Bis 50 MB je Datei, höchstens 100 je
+  Eintrag und 20 auf einmal. Hochgeladen wird mit der Kachel „+“ oder durch
+  Ablegen von Dateien auf dem Block. Jede Datei steht sofort als Kachel da und
+  geht einzeln hoch, die kleinste zuerst. Die Kachel zeigt „wartet“, den
+  Fortschritt in Prozent oder ⚠ mit dem Grund. Ein Upload läuft weiter, wenn
+  man einen anderen Eintrag öffnet; beim Schließen des Tabs fragt der Browser
+  nach. Fehlt die Verbindung, versucht Kriterion es nach 2, 5 und 15 Sekunden
+  erneut.
+- **Klick auf eine Datei:** Ein Bild öffnet das Vollbild; ← und → blättern
+  durch die Bilder unter „Dateien“. PDF, Text, Markdown, CSV, Log und `.docx`
+  zeigen die Vorschau unter den Kacheln, auf dem Telefon die eigene Ansicht.
+  Hat der Admin einen Document Server eingeschaltet, gilt das auch für Word-,
+  Excel- und PowerPoint-Dateien und ihre OpenDocument-Gegenstücke; unter dem
+  Betrachter steht, welcher Document Server die Datei anzeigt. Jede andere
+  Datei öffnet ihr Menü. Ein Klick lädt nie herunter.
+- **Vorschau:** höchstens eine im Block; ein Klick auf eine andere Kachel
+  wechselt sie, ein Klick auf dieselbe schließt sie. Im Kopf öffnet ⤢ die
+  eigene Ansicht, ↓ lädt herunter, × oder Esc schließt. Kann Kriterion eine
+  Bilddatei nicht als Bild lesen, steht auf der Kachel die Endung.
+- **Menü ⋯:** steht an jeder Kachel und bietet nur an, was man darf:
+  „Bearbeiten durch alle“, „Bearbeiten“, „Öffnen“, „Link auf diese Datei
+  kopieren“, „Herunterladen“, „Vorige Fassung wiederherstellen“ und „Datei
+  löschen“. Oben steht der Name, bei mehreren Accounts auch, wer die Datei
+  wann hochgeladen hat. Auf dem Telefon öffnet das Menü am unteren Rand. An
+  einer Kachel, die noch hochgeht, steht „Abbrechen“, nach einem Fehler
+  „Erneut versuchen“ und „Entfernen“.
+- **Tastatur:** Tab erreicht jede Kachel und ihr ⋯. Umschalt+F10 öffnet das
+  Menü, ↑ und ↓ wählen, Enter führt aus, Esc schließt.
+- **Link kopieren:** kopiert die Adresse der Datei. Die Adresse einer
+  Bilddatei öffnet den Eintrag und darin das Vollbild. Jede andere öffnet die
+  Datei in der eigenen Ansicht; eine Datei ohne Vorschau lädt man dort mit ↓
+  herunter.
+- **Eigene Ansicht:** zeigt die Datei über das ganze Fenster. Der Pfeil oben
+  links führt zurück zum Eintrag, zur Kachel der Datei. Das Zeichen für
+  Vollbild in der Leiste zeigt nur das Dokument über den ganzen Bildschirm,
+  auch quer; Zurück oder Esc beendet es. Kann der Browser kein Vollbild, fehlt
+  das Zeichen.
+- **Bearbeiten:** „Bearbeiten“ im Menü öffnet die Datei in der eigenen Ansicht
+  zum Bearbeiten; es steht nur an Dateien, die man bearbeiten darf. „Öffnen“
+  zeigt sie zum Ansehen. Bearbeiten darf, wer die Datei hochgeladen hat. Trägt
+  die Datei „Bearbeiten durch alle“, bearbeitet jeder Account; sonst auch der
+  Admin nicht, er darf die Datei nur löschen. Ob neue Dateien es tragen, gibt
+  jeder Account im eigenen Bereich unter „Dokumente“ vor; ohne eigene Vorgabe
+  gilt der Startwert des Admins. Eine einzelne Datei stellt, wer sie
+  hochgeladen hat, mit „Bearbeiten durch alle“ im Menü um oder mit dem Haken
+  in der Leiste der Ansicht.
   Gespeichert wird mit Speichern im Editor und etwa 10 Sekunden, nachdem der
   Letzte die Ansicht verlassen hat. `.doc`, `.xls` und `.ppt` werden dabei zu
   `.docx`, `.xlsx` und `.pptx`; vorher fragt die Ansicht nach, ohne OK wird
   nur angesehen. Auf dem Telefon wird nur angesehen.
 - **Vorige Fassung:** Kriterion hebt die Fassung vor der letzten Bearbeitung
-  auf. Das Zeichen ↶ in der Leiste stellt sie wieder her; die aktuelle wird
-  dabei zur vorigen, ein zweites Mal macht es rückgängig. Die vorige Fassung
+  auf. „Vorige Fassung wiederherstellen“ im Menü oder ↶ in der Leiste der
+  Ansicht stellt sie wieder her; die aktuelle wird dabei zur vorigen, ein
+  zweites Mal macht es rückgängig. Die vorige Fassung
   steht nur im Backup, nicht im JSON-Export und nicht im Papierkorb.
 - **Links:** jeder darf eintragen. Umsortieren darf der Verfasser des Eintrags
   oder der Admin. Ein Text ohne Adresse (Wort, Artikelnummer) wird zur Suche
@@ -447,8 +470,9 @@ Angepinnte Kommentare tragen einen goldenen Rahmen.
   Dateinamen; ein Klick klappt darunter einen kleinen Betrachter auf, ein
   zweiter schließt ihn, ⤢ öffnet die eigene Ansicht. Erst der Klick lädt den
   Betrachter; auf dem Telefon öffnet er die eigene Ansicht. Eine Bilddatei
-  zeigt ihre Kachel, andere Dateien Zeichen und Dateinamen; beide öffnen
-  die eigene Ansicht. Ein Foto zeigt seine Kachel und öffnet das Vollbild.
+  zeigt ihre Kachel und öffnet das Vollbild im Eintrag, andere Dateien zeigen
+  Zeichen und Dateinamen und öffnen die eigene Ansicht. Ein Foto zeigt seine
+  Kachel und öffnet das Vollbild.
   Eine gelöschte Datei steht als „gelöscht“ da.
 - **Zitieren:** das Anführungszeichen in der Kopfzeile übernimmt den
   Kommentar ins Schreibfeld. Markierter Text lässt sich über das Menü

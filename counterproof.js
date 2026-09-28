@@ -2546,8 +2546,8 @@ const REGRESSIONS = [
   {
     nr: '352', name: 'Der Rueckweg beim Schliessen faellt weg',
     file: 'public/app.js',
-    search: "    hold();\n    restore();\n    lightboxOpen = false;",
-    replacement: "    halteAn();\n    lightboxOpen = false;",
+    search: "    hold();\n    restore();\n    shown?.(null);\n    lightboxOpen = false;",
+    replacement: "    halteAn();\n    shown?.(null);\n    lightboxOpen = false;",
     expected: 'Genau ein Abspieler laeuft — 0.17.1'
   },
   {
@@ -8505,10 +8505,10 @@ const REGRESSIONS = [
     expected: 'Document Server: die Pruefung der Karte'
   },
   {
-    nr: '1228', name: 'destroyEditor() wird beim Neuzeichnen nicht gerufen',
+    nr: '1228', name: 'destroyEditor() wird beim Schliessen der Vorschau nicht gerufen',
     file: 'public/app.js',
-    search: "    for (const v of officeViewers.values()) { try { v.destroyEditor(); } catch {} }\n",
-    replacement: "",
+    search: "  function dropPreview() {\n    endOfficeViewer();\n",
+    replacement: "  function dropPreview() {\n",
     expected: 'Document Server: der Betrachter im Browser'
   },
   {
@@ -8533,10 +8533,10 @@ const REGRESSIONS = [
     expected: 'Document Server: Account, Chat und Dateinamen'
   },
   {
-    nr: '1232', name: 'Die Dateizeile verliert das Symbol Oeffnen',
+    nr: '1232', name: 'Das Menue verliert Oeffnen',
     file: 'public/app.js',
-    search: "        ${a.preview === 'office' ? `<a class=\"aopen\" href=\"${esc(fileAddress(id, a.id))}\" title=\"${esc(t('entry.openFile'))}\">⤢</a>` : ''}\n",
-    replacement: "",
+    search: "    if (FILE_READABLE.includes(a.preview))\n      items.push({ label: t('entry.openFile')",
+    replacement: "    if (false)\n      items.push({ label: t('entry.openFile')",
     expected: 'Document Server: die eigene Ansicht'
   },
   {
@@ -8549,7 +8549,7 @@ const REGRESSIONS = [
   {
     nr: '1234', name: 'Auf dem Telefon klappt die Vorschau wieder im Eintrag auf',
     file: 'public/app.js',
-    search: "        if (a.preview === 'office' && isNarrow()) { location.hash = fileAddress(id, a.id); return; }\n",
+    search: "    if (isNarrow()) { location.hash = fileAddress(id, a.id); return; }\n",
     replacement: "",
     expected: 'Document Server: die eigene Ansicht'
   },
@@ -8731,9 +8731,9 @@ const REGRESSIONS = [
   {
     nr: '1260', name: 'Der Name fehlt wieder an Dateien des Verfassers',
     file: 'public/app.js',
-    search: "      // Dieselbe Regel fuer den Namen wie in drawLinks().\n      const showFrom = multipleUsers();",
-    replacement: "      // Dieselbe Regel fuer den Namen wie in drawLinks().\n      const showFrom = multipleUsers() && (a.author?.id ?? null) !== (item.author?.id ?? null);",
-    expected: 'Der Name an der Dateizeile'
+    search: "    const from = multipleUsers() ? authorName(a.author) : '';",
+    replacement: "    const from = multipleUsers() && (a.author?.id ?? null) !== (item.author?.id ?? null) ? authorName(a.author) : '';",
+    expected: 'Der Name an der Dateikachel'
   },
   {
     nr: '1261', name: 'Der Name fehlt wieder an Links des Verfassers',
@@ -8743,10 +8743,10 @@ const REGRESSIONS = [
     expected: 'Der Name an der Linkzeile'
   },
   {
-    nr: '1262', name: 'Der Stift steht an jeder Buerodatei',
+    nr: '1262', name: 'Bearbeiten steht im Menue jeder Buerodatei',
     file: 'public/app.js',
-    search: "        ${a.preview === 'office' && a.edit && !isNarrow() ? `<a class=\"aopen aedit\"",
-    replacement: "        ${a.preview === 'office' ? `<a class=\"aopen aedit\"",
+    search: "    if (a.preview === 'office' && a.edit && !isNarrow())\n      items.push({ label: t('entry.edit')",
+    replacement: "    if (a.preview === 'office')\n      items.push({ label: t('entry.edit')",
     expected: 'Bearbeiten: im Browser'
   },
   {
@@ -8785,10 +8785,10 @@ const REGRESSIONS = [
     expected: 'Bearbeiten: Haken und Rechte'
   },
   {
-    nr: '1268', name: 'Das Zeichen fuer die Schreibrechte steht an jeder Datei',
+    nr: '1268', name: 'Bearbeiten durch alle steht an jeder bearbeitbaren Datei',
     file: 'public/app.js',
-    search: "        ${a.mine && a.edit ? `<button class=\"arights",
-    replacement: "        ${a.edit ? `<button class=\"arights",
+    search: "    if (a.mine && a.edit) items.push({ label: t('entry.editAll')",
+    replacement: "    if (a.edit) items.push({ label: t('entry.editAll')",
     expected: 'Bearbeiten: im Browser'
   },
   {
@@ -8904,10 +8904,10 @@ const REGRESSIONS = [
     expected: 'Verweise auf Dateien: Adresse des Fotos und Link kopieren'
   },
   {
-    nr: '1285', name: 'Link kopieren in der Dateizeile kopiert den Eintrag',
+    nr: '1285', name: 'Link kopieren im Menue kopiert den Eintrag',
     file: 'public/app.js',
-    search: "        copyText(fullAddress(fileAddress(id, a.id)), t('card.linkCopied'));",
-    replacement: "        copyText(fullAddress(entryAddress(id)), t('card.linkCopied'));",
+    search: "  const fileLink = (a) => fullAddress(fileAddress(id, a.id));",
+    replacement: "  const fileLink = (a) => fullAddress(entryAddress(id));",
     expected: 'Verweise auf Dateien: Adresse des Fotos und Link kopieren'
   },
   {
@@ -8967,16 +8967,16 @@ const REGRESSIONS = [
     expected: 'Verweise auf Dateien: Marken im Browser'
   },
   {
-    nr: '1294', name: 'Die Dateizeile zeigt wieder nur das Zeichen',
+    nr: '1294', name: 'Die Kachel einer Bilddatei zeigt nur die Endung',
     file: 'public/app.js',
-    search: "      row.innerHTML = `<span class=\"aicon\">${a.preview === 'image'",
-    replacement: "      row.innerHTML = `<span class=\"aicon\">${false",
+    search: "      picture: a.preview === 'image' ? fileTileSource(a.id) : '',",
+    replacement: "      picture: '',",
     expected: 'Verweise auf Dateien: Adresse des Fotos und Link kopieren'
   },
   {
-    nr: '1295', name: 'Ohne Kachel bleibt das Feld in der Dateizeile leer',
+    nr: '1295', name: 'Ohne Vorschaubild bleibt die Bildflaeche leer',
     file: 'public/app.js',
-    search: "      if (tile) tile.onerror = () => { tile.parentElement.textContent = fileSign(a.preview); };\n",
+    search: "      if (img) img.onerror = () => { pic.dataset.broken = src; pic.dataset.shows = `|${kind}|0`; pic.innerHTML = `<span class=\"aext\">${esc(kind)}</span>`; };\n",
     replacement: "",
     expected: 'Verweise auf Dateien: Adresse des Fotos und Link kopieren'
   },
@@ -8985,49 +8985,28 @@ const REGRESSIONS = [
     file: 'public/languages/de.json',
     search: "\"card.documentsEditAll\": \"Bearbeiten durch alle: Startwert, solange ein Account keinen eigenen gesetzt hat\",",
     replacement: "\"card.documentsEditAll\": \"Startwert für „Bearbeiten durch alle“, solange ein Account keinen eigenen gesetzt hat\",",
-    expected: 'Link am Bild und Dateizeilen in Spalten'
+    expected: 'Link am Bild'
   },
   {
     nr: '1297', name: 'Das grosse Bild hat keinen Knopf Link kopieren',
     file: 'public/app.js',
     search: "        ${cropMode ? '' : `<button class=\"vlink\"",
     replacement: "        ${true ? '' : `<button class=\"vlink\"",
-    expected: 'Link am Bild und Dateizeilen in Spalten'
+    expected: 'Link am Bild'
   },
   {
     nr: '1298', name: 'Im Ausschnittmodus steht der Knopf Link kopieren',
     file: 'public/app.js',
     search: "        ${cropMode ? '' : `<button class=\"vlink\"",
     replacement: "        ${false ? '' : `<button class=\"vlink\"",
-    expected: 'Link am Bild und Dateizeilen in Spalten'
+    expected: 'Link am Bild'
   },
   {
     nr: '1299', name: 'Der Knopf am Bild kopiert den Eintrag',
     file: 'public/app.js',
     search: "      () => copyText(photoLink(ps[idx]), t('card.linkCopied')));",
     replacement: "      () => copyText(fullAddress(entryAddress(id)), t('card.linkCopied')));",
-    expected: 'Link am Bild und Dateizeilen in Spalten'
-  },
-  {
-    nr: '1300', name: 'Die Dateizeile uebernimmt die Spalten der Liste nicht',
-    file: 'public/style.css',
-    search: "  .arow { display: grid; grid-template-columns: subgrid; gap: 0; }\n",
-    replacement: "",
-    expected: 'Link am Bild und Dateizeilen in Spalten'
-  },
-  {
-    nr: '1301', name: 'Der Stift hat keine eigene Spalte',
-    file: 'public/style.css',
-    search: "  .arow .aedit { grid-column: edit; }\n",
-    replacement: "",
-    expected: 'Link am Bild und Dateizeilen in Spalten'
-  },
-  {
-    nr: '1302', name: 'Auf dem Telefon bleibt die Liste ein Raster',
-    file: 'public/style.css',
-    search: "  #atts { display: block; }\n",
-    replacement: "",
-    expected: 'Link am Bild und Dateizeilen in Spalten'
+    expected: 'Link am Bild'
   },
   {
     nr: '1303', name: 'Der Name steht wieder hinter dem Pfad',
@@ -9056,6 +9035,62 @@ const REGRESSIONS = [
     search: ".lrow .lfrom { flex-shrink: 0; font-size: .7rem; color: var(--muted); }",
     replacement: ".lrow .lfrom { font-size: .7rem; color: var(--muted); }",
     expected: 'Der Name an der Linkzeile'
+  },
+  {
+    nr: '1307', name: 'Ein Klick auf eine Datei ohne Vorschau laedt sie herunter',
+    file: 'public/app.js',
+    search: "    if (!FILE_READABLE.includes(a.preview)) return tileMenu(li);\n",
+    replacement: "    if (!FILE_READABLE.includes(a.preview)) {\n      const load = document.createElement('a');\n      load.href = `/api/attachments/${a.id}/raw`;\n      load.setAttribute('download', '');\n      load.click();\n      return;\n    }\n",
+    expected: 'Dateien in Kacheln: Kachel und Klick'
+  },
+  {
+    nr: '1308', name: 'Set statt Nummer: die erste Vorschau bleibt neben der zweiten stehen',
+    file: 'public/app.js',
+    search: "  function showPreview(a) {\n    dropPreview();\n",
+    replacement: "  function showPreview(a) {\n    if (openPreview) previewBox.after(previewBox.cloneNode(true));\n    dropPreview();\n",
+    expected: 'Dateien in Kacheln: Kachel und Klick'
+  },
+  {
+    nr: '1309', name: 'Das Neuzeichnen beendet den Betrachter',
+    file: 'public/app.js',
+    search: "    if (!attsBox.isConnected) return;\n",
+    replacement: "    if (!attsBox.isConnected) return;\n    endOfficeViewer();\n",
+    expected: 'Dateien in Kacheln: der Betrachter uebersteht das Neuzeichnen'
+  },
+  {
+    nr: '1310', name: 'Das Menue bietet Datei loeschen ohne Pruefung der Rechte an',
+    file: 'public/app.js',
+    search: "    if (mayDeleteFile(a)) items.push({ label: t('entry.deleteFile'), danger: true, own: true,",
+    replacement: "    if (true) items.push({ label: t('entry.deleteFile'), danger: true, own: true,",
+    expected: 'Dateien in Kacheln: das Menue zeigt nur Erlaubtes'
+  },
+  {
+    nr: '1311', name: 'Abbrechen laesst die Datei in der Warteschlange',
+    file: 'public/app.js',
+    search: "  const at = UPLOADS.indexOf(u);\n  if (at >= 0) UPLOADS.splice(at, 1);\n",
+    replacement: "  const at = UPLOADS.indexOf(u);\n",
+    expected: 'Dateien in Kacheln: die Warteschlange'
+  },
+  {
+    nr: '1312', name: 'Die Adresse einer Bilddatei oeffnet wieder die eigene Ansicht',
+    file: 'public/app.js',
+    search: "  if (a && a.preview === 'image' && !editWanted) {",
+    replacement: "  if (false) {",
+    expected: 'Dateien in Kacheln: Adresse und Vollbild einer Bilddatei'
+  },
+  {
+    nr: '1313', name: 'Der Server zaehlt je Eintrag bis 20',
+    file: 'server.js',
+    search: "    if (da + fresh > FILES_PER_ENTRY)",
+    replacement: "    if (da + fresh > FILES_PER_REQUEST)",
+    expected: 'Dateien in Kacheln: 100 je Eintrag, 20 je Anfrage'
+  },
+  {
+    nr: '1314', name: 'Die Warteschlange endet mit der Ansicht des Eintrags',
+    file: 'public/app.js',
+    search: "  /* Von Hand geoeffnete oder geschlossene Bloecke gelten nur fuer einen Eintrag. */\n  GLANCE.clear();\n",
+    replacement: "  /* Von Hand geoeffnete oder geschlossene Bloecke gelten nur fuer einen Eintrag. */\n  GLANCE.clear();\n  for (const u of [...UPLOADS]) uploadCancel(u);\n",
+    expected: 'Dateien in Kacheln: die Warteschlange'
   },
 ];
 

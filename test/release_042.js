@@ -350,8 +350,9 @@ async function run() {
       if (url === '/api/attachments/45/preview') return reply({ text: 'Rohtext', shortened: false });
       return inner(url, opt);
     };
-    const rowsOf = () => [...w.document.querySelectorAll('#atts .arow')];
-    const open = (n) => rowsOf()[n]?.onclick({ target: rowsOf()[n].querySelector('.aname') });
+    const rowsOf = () => [...w.document.querySelectorAll('#atts .atile[data-file]')];
+    const open = (n) => rowsOf()[n]?.querySelector('.aface')?.click();
+    const shownPreview = (x) => x.document.querySelector('#atts .apreview:not([hidden])');
     await until(w, (x) => rowsOf().length === 6 && openRequests(x) === 0, 3000, 'die Dateiliste');
     const made = [], destroyed = [];
     w.DocsAPI = { DocEditor: function (id, c) { made.push({ id, c }); this.destroyEditor = () => destroyed.push(id); } };
@@ -364,9 +365,9 @@ async function run() {
     check('Unter dem Betrachter steht entry.officeHint mit dem Rechnernamen',
       hint?.textContent === deText('entry.officeHint', { host: 'ds.invalid' }), hint?.textContent);
     open(4);
-    await until(w, (x) => !x.document.querySelector('#atts .apreview') && openRequests(x) === 0,
+    await until(w, (x) => !shownPreview(x) && openRequests(x) === 0,
       2000, 'die geschlossene Vorschau');
-    check('Beim Neuzeichnen wird destroyEditor() gerufen', equal(destroyed, ['office-45']), destroyed.join(' '));
+    check('Beim Schliessen der Vorschau wird destroyEditor() gerufen', equal(destroyed, ['office-45']), destroyed.join(' '));
 
     delete w.DocsAPI;
     open(4);
@@ -382,11 +383,11 @@ async function run() {
       failedBox?.querySelector('.atext')?.textContent === 'Rohtext' && !scriptOf(w),
       failedBox?.textContent);
     open(4);
-    await until(w, (x) => !x.document.querySelector('#atts .apreview') && openRequests(x) === 0, 2000, 'das Schliessen');
+    await until(w, (x) => !shownPreview(x) && openRequests(x) === 0, 2000, 'das Schliessen');
     open(5);
     await until(w, (x) => x.document.querySelector('#atts .apreview')?.textContent.includes(DE['entry.officeFailed'])
       && openRequests(x) === 0, 2000, 'die Absage');
-    check('Eine .xlsx ohne Document Server zeigt nur die Zeile, keine Textvorschau',
+    check('Eine .xlsx ohne Document Server zeigt nur den Hinweis, keine Textvorschau',
       !w.document.querySelector('#atts .apreview .atext'), 'Textvorschau da');
     w.close();
 
@@ -396,14 +397,26 @@ async function run() {
     const fInner = fw.fetch;
     fw.fetch = (url, opt) => /^\/api\/attachments\/45\/office\?mobile=[01]&edit=[01]&theme=dark$/.test(url)
       ? reply({ script: 'http://ds.invalid' + API_PATH, host: 'ds.invalid', config }) : fInner(url, opt);
-    const fRows = () => [...fw.document.querySelectorAll('#atts .arow')];
+    const fRows = () => [...fw.document.querySelectorAll('#atts .atile[data-file]')];
     await until(fw, (x) => fRows().length === 5 && openRequests(x) === 0, 3000, 'die Dateiliste');
     const fMade = [], fDestroyed = [];
     fw.DocsAPI = { DocEditor: function (id) { fMade.push(id); this.destroyEditor = () => fDestroyed.push(id); } };
-    const links = [...fw.document.querySelectorAll('#atts .arow .aopen')];
-    check('Nur die Buerodatei traegt das Symbol Oeffnen, mit der Adresse der Ansicht',
-      links.length === 1 && links[0].getAttribute('href') === '#/item/1/file/45' &&
-      links[0].title === DE['entry.openFile'], links.map(l => l.getAttribute('href')).join(' '));
+    const menuWords = (n) => {
+      fRows()[n]?.querySelector('.amore')?.click();
+      const words = [...fw.document.querySelectorAll('.fmenu .fmenu-item')].map(e => e.textContent);
+      fw.document.activeElement?.dispatchEvent(new fw.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      return words;
+    };
+    fRows()[4]?.querySelector('.aface')?.click();
+    await until(fw, () => fMade.length === 1 && openRequests(fw) === 0, 2000, 'die Vorschau');
+    const toView = fw.document.querySelector('#atts .apreview .apreview-open');
+    check('Oeffnen steht im Menue der Buerodatei, nicht am Archiv; ⤢ in der Vorschau fuehrt zur Ansicht',
+      menuWords(4).includes(DE['entry.openFile']) && !menuWords(3).includes(DE['entry.openFile']) &&
+      toView?.getAttribute('href') === '#/item/1/file/45' && toView?.title === DE['entry.openFile'],
+      `${menuWords(4).join(' / ')} · ${toView?.getAttribute('href')}`);
+    fRows()[4]?.querySelector('.aface')?.click();
+    fMade.length = 0;
+    fDestroyed.length = 0;
     // jsdom kennt kein Vollbild; der Browser haette beides.
     Object.defineProperty(fw.document, 'fullscreenEnabled', { value: true, configurable: true });
     const fullAsked = [];
@@ -430,11 +443,11 @@ async function run() {
     fw.matchMedia = () => ({ matches: true, addEventListener() {}, removeEventListener() {},
       addListener() {}, removeListener() {} });
     Object.defineProperty(fw.document, 'fullscreenEnabled', { value: false, configurable: true });
-    fRows()[4].onclick({ target: fRows()[4].querySelector('.aname') });
+    fRows()[4]?.querySelector('.aface')?.click();
     const phoneHash = fw.location.hash;
     // Ansicht oder Vorschau: danach laeuft nichts mehr, und das Fenster darf zu.
     await until(fw, (x) => fMade.length === 2 && openRequests(x) === 0, 2000, 'den zweiten Betrachter');
-    check('Auf dem Telefon oeffnet ein Klick auf die Zeile die Ansicht',
+    check('Auf dem Telefon oeffnet ein Klick auf die Kachel die Ansicht',
       phoneHash === '#/item/1/file/45', phoneHash);
     check('Kann der Browser kein Vollbild, fehlt das Zeichen',
       !!fw.document.querySelector('.fileview') && !fw.document.getElementById('fileview-full'),

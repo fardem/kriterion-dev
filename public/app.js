@@ -2220,7 +2220,9 @@ function markupFileSign(a, row, term, name) {
 
 function markupFileRef(a, row, term, name) {
   a.href = fileAddress(row.itemId, row.id);
-  a.title = `${t(row.preview === 'office' ? 'entry.refOfficeHint' : 'entry.refFileHint')} · ${row.itemTitle}`;
+  const hint = row.preview === 'image' ? 'entry.clickFullscreen'
+    : row.preview === 'office' ? 'entry.refOfficeHint' : 'entry.refFileHint';
+  a.title = `${t(hint)} · ${row.itemTitle}`;
   if (row.preview === 'image') {
     markupThumb(a, fileTileSource(row.id), false);
     const img = a.querySelector('img');
@@ -2228,6 +2230,13 @@ function markupFileRef(a, row, term, name) {
     // Ohne Kachel, etwa bei BMP, wie jede andere Datei.
     img.onerror = () => { a.classList.remove('markup-pic'); markupFileSign(a, row, term, name); };
     if (name) a.appendChild(raiseHighlight(name, term));
+    // Wie beim Foto: im geoeffneten Eintrag das Vollbild ohne Hash-Wechsel.
+    a.onclick = (e) => {
+      if (!plainClick(e)) return;
+      const open = Number((ENTRY_PATTERN.exec(location.hash || '') || [])[1]);
+      if (open !== Number(row.itemId) || PHOTO_SHOW?.itemId !== open) return;
+      if (PHOTO_SHOW.showFile(row.id)) e.preventDefault();
+    };
     return a;
   }
   markupFileSign(a, row, term, name);
@@ -3002,7 +3011,9 @@ function route() {
   redrawCloud = null;
   endFileViewer();
   endRefViewers();
+  closeFileMenu();
   PHOTO_SHOW = null;
+  UPLOAD_VIEW = null;
   const m = h.match(ENTRY_PATTERN);
   const f = h.match(FILE_PATTERN);
   const p = h.match(PHOTO_PATTERN);
@@ -4291,6 +4302,9 @@ function imageSource(p, filesize) {
   // Ein Kommentarvideo hat nur die Kachel; sie ist auch das Poster.
   if (p.source === 'commentVideo')
     return `/api/comment-videos/${p.id}/raw${filesize ? '?size=thumb' : ''}`;
+  // Eine Bilddatei hat Kachel und Original; `inline=1` zeigt, ohne Angabe laedt es herunter.
+  if (p.source === 'file') return filesize === 'thumb' ? fileTileSource(p.id)
+    : filesize ? `/api/attachments/${p.id}/raw?inline=1` : `/api/attachments/${p.id}/raw`;
   if (!filesize) return `/api/photos/${p.id}/raw`;
   const f = Number(p.thumbLength);
   const version = filesize === 'thumb' && Number.isFinite(f) ? `&v=${f}` : '';
@@ -4315,8 +4329,9 @@ function centerStage(stage) {
 }
 
 /* Ohne `remove` kein Papierkorb, ohne `linkOf` kein Link kopieren; `inside`
-   liefert den Abspieler der Seite fuer die Uebergabe eines laufenden Videos. */
-function openLightbox(photos, startIdx, title, remove, inside, linkOf) {
+   liefert den Abspieler der Seite fuer die Uebergabe eines laufenden Videos.
+   `removable(p)` blendet den Papierkorb je Bild aus, `shown(p)` meldet das Bild, beim Schliessen null. */
+function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removable, shown } = {}) {
   if (!photos.length) return;
   lightboxOpen = true;
   let i = startIdx, zoomed = false;
@@ -4423,6 +4438,9 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf) {
     lb.querySelector('.zoom').hidden = !hasOriginal(photos[i]);
     img.title = hasOriginal(photos[i]) ? t('list.clickZoomHint') : '';
     lb.querySelector('.lb-count').textContent = `${i + 1} / ${photos.length}`;
+    const bin = lb.querySelector('.remove');
+    if (bin && removable) bin.hidden = !removable(photos[i]);
+    shown?.(photos[i]);
     /* Nach dem Loeschen bis auf eines verschwinden Pfeile und Streifen. */
     lb.querySelectorAll('.lb-nav').forEach(k => { k.hidden = photos.length < 2; });
     if (strip) {
@@ -4449,6 +4467,7 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf) {
   const close = () => {
     hold();
     restore();
+    shown?.(null);
     lightboxOpen = false;
     document.removeEventListener('keydown', onKey, true);
     document.body.classList.remove('lb-open');
@@ -4601,8 +4620,242 @@ function sparkline(days) {
     ${dots}</svg>`;
 }
 
+/* ---- Kachel einer Datei ---- */
+// Diese Arten klappen die Vorschau unter der Gruppe auf; Bilder zeigt das Vollbild.
+const FILE_READABLE = ['pdf', 'text', 'docx', 'office'];
+const fileKind = (name) => ((/\.([^.\s/\\]{1,5})$/.exec(name || '') || [])[1] || '').toUpperCase();
+/* Zeichen der zweiten Zeile; bei 96 px Kachelbreite passen rund 14. */
+const FILE_NAME_TAIL = 10;
+
+/* Zwei Zeilen, in der Mitte gekuerzt: die zweite traegt das Ende samt Endung.
+   Ein kurzer Name bricht nur um. */
+function nameLines(name) {
+  const signs = Array.from(String(name));
+  const line = (text, kind) => {
+    const el = document.createElement('span');
+    el.className = kind;
+    el.textContent = text;
+    return el;
+  };
+  if (signs.length <= FILE_NAME_TAIL * 1.5) return [line(signs.join(''), 'aname-all')];
+  return [line(signs.slice(0, -FILE_NAME_TAIL).join(''), 'aname-head'),
+          line(signs.slice(-FILE_NAME_TAIL).join(''), 'aname-tail')];
+}
+
+/* ---- Menue an Kachel und Ordner ---- */
+let FILE_MENU = null;
+// Ziel je Taste aus Stelle und Zahl der Eintraege; ↑ und ↓ laufen um.
+const MENU_KEYS = { ArrowDown: (at) => at + 1, ArrowUp: (at) => at - 1, Home: () => 0, End: (at, n) => n - 1 };
+const MENU_CLOSE = { Escape: true, Tab: true };
+
+/* `items`: { label, run, href, checked, danger, own }; `own` setzt den Fokus selbst.
+   Am Rechner haengt das Menue an `anchor`, am Telefon steht es am unteren Rand. */
+function openFileMenu(anchor, tile, head, sub, items) {
+  closeFileMenu();
+  const sheet = isNarrow();
+  const box = document.createElement('div');
+  box.className = 'fmenu' + (sheet ? ' sheet' : '');
+  box.innerHTML = `<div class="fmenu-head"><span class="fmenu-name"></span><span class="fmenu-sub"></span></div>`
+    + `<div class="fmenu-list" id="fmenu" role="menu"></div>`;
+  box.querySelector('.fmenu-name').textContent = head;
+  const subLine = box.querySelector('.fmenu-sub');
+  if (sub) subLine.textContent = sub; else subLine.remove();
+  const list = box.querySelector('.fmenu-list');
+  list.setAttribute('aria-label', head);
+  for (const it of items) {
+    const el = document.createElement(it.href ? 'a' : 'button');
+    el.className = 'fmenu-item' + (it.danger ? ' danger' : '');
+    el.tabIndex = -1;
+    if (it.href) { el.href = it.href; el.setAttribute('download', ''); }
+    else el.type = 'button';
+    el.setAttribute('role', it.checked === undefined ? 'menuitem' : 'menuitemcheckbox');
+    if (it.checked !== undefined) el.setAttribute('aria-checked', String(!!it.checked));
+    const mark = document.createElement('span');
+    mark.className = 'fmenu-mark';
+    mark.textContent = it.checked ? '✓' : '';
+    el.append(mark, document.createTextNode(it.label));
+    el.onclick = () => {
+      // Der Download folgt dem Link erst nach dem Klick.
+      if (it.href) { setTimeout(() => closeFileMenu(true), 0); return; }
+      closeFileMenu(!it.own);
+      it.run();
+    };
+    list.appendChild(el);
+  }
+  list.addEventListener('keydown', (e) => {
+    const all = [...list.querySelectorAll('.fmenu-item')];
+    const at = all.indexOf(document.activeElement);
+    const to = MENU_KEYS[e.key]?.(at, all.length);
+    if (to !== undefined) { e.preventDefault(); all[(to + all.length) % all.length]?.focus(); }
+    else if (MENU_CLOSE[e.key]) { e.preventDefault(); e.stopPropagation(); closeFileMenu(true); }
+    else if (e.key === ' ' && document.activeElement?.tagName === 'A') { e.preventDefault(); document.activeElement.click(); }
+  });
+  let shade = null;
+  if (sheet) {
+    shade = document.createElement('div');
+    shade.className = 'fmenu-shade';
+    document.body.appendChild(shade);
+  }
+  document.body.appendChild(box);
+  if (!sheet) {
+    const r = anchor.getBoundingClientRect();
+    const w = box.offsetWidth, h = box.offsetHeight;
+    const left = Math.max(8, Math.min(r.right - w, window.innerWidth - w - 8));
+    const below = r.bottom + 4 + h <= window.innerHeight - 8 || r.top - 4 - h < 8;
+    box.style.left = (left + window.scrollX) + 'px';
+    box.style.top = ((below ? r.bottom + 4 : r.top - 4 - h) + window.scrollY) + 'px';
+  }
+  const outside = (e) => { if (!box.contains(e.target) && !tile.contains(e.target)) closeFileMenu(); };
+  document.addEventListener('pointerdown', outside, true);
+  anchor.setAttribute('aria-expanded', 'true');
+  anchor.setAttribute('aria-controls', 'fmenu');
+  FILE_MENU = { box, anchor, tile, shade, off: () => document.removeEventListener('pointerdown', outside, true) };
+  list.querySelector('.fmenu-item')?.focus();
+}
+
+function closeFileMenu(focusAnchor = false) {
+  const m = FILE_MENU;
+  if (!m) return;
+  FILE_MENU = null;
+  m.off();
+  m.box.remove();
+  m.shade?.remove();
+  m.anchor.setAttribute('aria-expanded', 'false');
+  m.anchor.removeAttribute('aria-controls');
+  if (focusAnchor && m.anchor.isConnected) m.anchor.focus();
+}
+
+/* ---- Warteschlange der Dateien ---- */
+/* Je Auswahl und je Eintrag, gleich `FILES_PER_REQUEST` und `FILES_PER_ENTRY` in
+   server.js. Der Server prueft selbst. */
+const FILES_PER_REQUEST = 20;
+const FILES_PER_ENTRY = 100;
+// Wartezeit in ms vor dem zweiten, dritten und vierten Versuch, wenn die Verbindung fehlt.
+const UPLOAD_RETRIES = [2000, 5000, 15000];
+// Auf Modulebene: ein Wechsel des Eintrags haelt keinen Upload an.
+const UPLOADS = [];
+let UPLOAD_NO = 0, UPLOADS_DONE = 0;
+// Vom geoeffneten Eintrag gesetzt: { itemId, redraw(), took(eintrag) }.
+let UPLOAD_VIEW = null;
+
+const uploadsOf = (itemId) => UPLOADS.filter(u => u.itemId === Number(itemId));
+const uploadChanged = (u) => { if (UPLOAD_VIEW?.itemId === u.itemId) UPLOAD_VIEW.redraw(); };
+
+// Nichts geht hoch, wenn eine Datei oder die Anzahl ueber einer Grenze liegt.
+function uploadRefusal(itemId, files, present) {
+  if (files.length > FILES_PER_REQUEST) return t('server.uploadCap', { cap: FILES_PER_REQUEST });
+  if (present + uploadsOf(itemId).length + files.length > FILES_PER_ENTRY)
+    return t('server.fileCap', { cap: FILES_PER_ENTRY });
+  const tooBig = overLimit(files, 'attachment');
+  return tooBig ? tooBigText(tooBig, 'attachment') : '';
+}
+
+// Die kleinste zuerst; in dieser Reihenfolge stehen auch die Kacheln.
+function queueUploads(itemId, files) {
+  for (const file of [...files].sort((a, b) => a.size - b.size))
+    UPLOADS.push({ no: ++UPLOAD_NO, itemId: Number(itemId), file, name: file.name, size: file.size,
+                   state: 'waiting', sent: 0, error: '', xhr: null, tries: 0, clock: 0 });
+  if (UPLOAD_VIEW?.itemId === Number(itemId)) UPLOAD_VIEW.redraw();
+  uploadNext();
+}
+
+function uploadNext() {
+  if (UPLOADS.some(u => u.state === 'running')) return;
+  const next = UPLOADS.find(u => u.state === 'waiting');
+  if (next) return uploadSend(next);
+  if (UPLOADS_DONE) toast(t('entry.filesAttached', { n: UPLOADS_DONE }));
+  UPLOADS_DONE = 0;
+}
+
+// XMLHttpRequest statt fetch(): nur er meldet den Fortschritt beim Senden.
+function uploadSend(u) {
+  u.state = 'running';
+  u.sent = 0;
+  const xhr = new XMLHttpRequest();
+  u.xhr = xhr;
+  xhr.open('POST', `/api/items/${u.itemId}/attachments`);
+  for (const [name, value] of Object.entries(csrfHeader())) xhr.setRequestHeader(name, value);
+  xhr.upload.onprogress = (e) => {
+    if (u.xhr !== xhr || !e.lengthComputable) return;
+    u.sent = e.loaded / e.total;
+    uploadChanged(u);
+  };
+  xhr.onload = () => { if (u.xhr === xhr) uploadAnswer(u, xhr); };
+  xhr.onerror = () => { if (u.xhr === xhr) uploadLost(u); };
+  const form = new FormData();
+  form.append('files', u.file, u.name);
+  xhr.send(form);
+  uploadChanged(u);
+}
+
+function uploadAnswer(u, xhr) {
+  u.xhr = null;
+  let data = null;
+  try { data = JSON.parse(xhr.responseText); } catch {}
+  if (xhr.status === 401) {
+    for (const v of UPLOADS) if (v.state !== 'running' || v === u) uploadFail(v, t('server.sessionExpired'));
+    showLogin();
+    return;
+  }
+  if (xhr.status >= 200 && xhr.status < 300 && data) {
+    UPLOADS.splice(UPLOADS.indexOf(u), 1);
+    UPLOADS_DONE++;
+    if (UPLOAD_VIEW?.itemId === u.itemId) UPLOAD_VIEW.took(data);
+  } else {
+    uploadFail(u, data?.error || (xhr.status === 413 ? t('error.proxyTooLarge')
+      : t('error.serverStatus', { status: xhr.status })));
+    toast(`${u.name}: ${u.error}`, true);
+  }
+  uploadNext();
+}
+
+function uploadFail(u, why) {
+  u.state = 'failed';
+  u.error = why;
+  uploadChanged(u);
+}
+
+// Die Datei haelt ihren Platz in der Warteschlange, bis die Versuche aufgebraucht sind.
+function uploadLost(u) {
+  u.xhr = null;
+  if (u.tries < UPLOAD_RETRIES.length) {
+    u.sent = 0;
+    u.clock = setTimeout(() => { u.clock = 0; uploadSend(u); }, UPLOAD_RETRIES[u.tries++]);
+    uploadChanged(u);
+    return;
+  }
+  uploadFail(u, t('entry.uploadOffline'));
+  toast(`${u.name}: ${u.error}`, true);
+  uploadNext();
+}
+
+function uploadCancel(u) {
+  const xhr = u.xhr;
+  u.xhr = null;
+  xhr?.abort();
+  clearTimeout(u.clock);
+  const at = UPLOADS.indexOf(u);
+  if (at >= 0) UPLOADS.splice(at, 1);
+  uploadChanged(u);
+  uploadNext();
+}
+
+function uploadRetry(u) {
+  u.state = 'waiting';
+  u.error = '';
+  u.tries = 0;
+  uploadChanged(u);
+  uploadNext();
+}
+
+window.addEventListener('beforeunload', (e) => {
+  if (!UPLOADS.some(u => u.state !== 'failed')) return;
+  e.preventDefault();
+  e.returnValue = '';
+});
+
 /* ---- Detailansicht ---- */
-async function renderDetail(id, termAddress, commentWanted, photoWanted = 0) {
+async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fileWanted = 0) {
   /* Von Hand geoeffnete oder geschlossene Bloecke gelten nur fuer einen Eintrag. */
   GLANCE.clear();
   /* Suchbegriff aus der Adresse oder aus state.search; danach sind beide gleich. */
@@ -4736,12 +4989,16 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0) {
 
     <div class="block block-wide" data-block="dateien">
       <div class="block-head"><span class="label">${tH('dialog.files')}</span><span class="hint" id="acount"></span></div>
-      <div id="atts"></div>
-      <div class="row-in">
-        <input type="file" id="afile" multiple hidden>
-        <button class="btn btn-sm" id="aadd">${tH('entry.attachFiles')}</button>
-        <span class="hint">${tH('entry.fileLimitHint', { mb: UPLOAD_LIMITS.attachment })}</span>
+      ${/* Die Vorschau wird nie verschoben: ein iframe laedt dabei neu. */''}
+      <div id="atts">
+        <div class="agroup">
+          <p class="aempty" hidden><span class="hint">${tH('entry.noFilesYet')}</span>
+            <span class="hint adrop-hint">${tH('entry.fileDropHint')}</span></p>
+          <ul class="agrid" aria-label="${esc(t('dialog.files'))}"></ul>
+          <div class="apreview" id="apreview" role="region" hidden></div>
+        </div>
       </div>
+      <input type="file" id="afile" multiple hidden>
     </div>
 
     <div class="block block-wide" data-block="kommentare">
@@ -5077,7 +5334,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0) {
                  () => document.querySelector('#viewer video'), photoLink);
     return true;
   }
-  PHOTO_SHOW = { itemId: Number(id), show: showPhoto };
+  PHOTO_SHOW = { itemId: Number(id), show: showPhoto, showFile };
 
   function drawThumbs() {
     const box = document.getElementById('thumbs');
@@ -6070,9 +6327,16 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0) {
 
   /* ---- Dateien ---- */
   // Die Vorschauart liefert der Server in `preview`; der Dateiname wird nicht ausgewertet.
-  const openPreview = new Set();
-  // Offene Betrachter des Document Servers nach Nummer der Datei.
-  const officeViewers = new Map();
+  const attsBox = document.getElementById('atts');
+  const fileGroup = attsBox.querySelector('.agroup');
+  const fileGrid = fileGroup.querySelector('.agrid');
+  const previewBox = fileGroup.querySelector('.apreview');
+  // Nummer der Datei in der Vorschau, 0 ohne; hoechstens eine im Block.
+  let openPreview = 0;
+  let previewRun = 0;
+  let officeViewer = null;
+  // Die Bilddatei im Vollbild, fuer den Rahmen ihrer Kachel.
+  let lightboxFile = 0;
 
   function filesize(bytes) {
     if (bytes < 1024) return bytes + ' B';
@@ -6080,130 +6344,355 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0) {
     return number(bytes / 1024 / 1024, 1) + ' MB';
   }
 
+  const fileOf = (key) => (item.attachments || []).find(a => 'f' + a.id === key) || null;
+  const uploadOf = (key) => UPLOADS.find(u => 'u' + u.no === key) || null;
+  const fileLink = (a) => fullAddress(fileAddress(id, a.id));
+  const mayDeleteFile = (a) => a.mine === true || ADMIN;
+  const uploadedLine = (a) => multipleUsers()
+    ? t('entry.uploadedByOn', { author: authorName(a.author), created_at: fmtDate(a.created_at) }) : '';
+
+  function newTile(key) {
+    const li = document.createElement('li');
+    li.className = 'atile' + (key === 'add' ? ' aadd' : '');
+    li.dataset.key = key;
+    li.innerHTML = `<button type="button" class="aface"><span class="apic"></span>`
+      + `<span class="aname"></span><span class="ameta"></span></button>`
+      + (key === 'add' ? '' : `<button type="button" class="amore" aria-haspopup="menu" aria-expanded="false">⋯</button>`);
+    const face = li.querySelector('.aface');
+    face.onclick = () => tileAction(li);
+    // Umschalt+F10; die Menuetaste und die rechte Maustaste kommen als `contextmenu`.
+    face.addEventListener('keydown', (e) => {
+      if (key === 'add' || !e.shiftKey || e.key !== 'F10') return;
+      e.preventDefault();
+      tileMenu(li);
+    });
+    face.addEventListener('contextmenu', (e) => {
+      if (key === 'add') return;
+      e.preventDefault();
+      tileMenu(li);
+    });
+    const more = li.querySelector('.amore');
+    if (more) more.onclick = () => { if (FILE_MENU?.tile === li) closeFileMenu(true); else tileMenu(li); };
+    return li;
+  }
+
+  // Die Bildflaeche nur neu, wenn sich ihre Art aendert; ein neues img laedt die Kachel neu.
+  function fillTile(li, { name, size, kind, picture, video, meta, label, corner, open }) {
+    const face = li.querySelector('.aface');
+    face.setAttribute('aria-label', label);
+    li.classList.toggle('open', !!open);
+    const pic = li.querySelector('.apic');
+    // Ohne Kachel, etwa bei BMP, die Endung wie bei jeder anderen Datei; geladen wird sie nur einmal.
+    const src = picture && pic.dataset.broken !== picture ? picture : '';
+    const want = `${src}|${kind}|${video ? 1 : 0}`;
+    if (pic.dataset.shows !== want) {
+      pic.dataset.shows = want;
+      pic.innerHTML = src ? `<img class="athumb" src="${esc(src)}" alt="" loading="lazy">`
+        : `<span class="aext">${esc(kind)}</span>${video ? '<span class="play-badge">▶</span>' : ''}`;
+      const img = pic.querySelector('img');
+      if (img) img.onerror = () => { pic.dataset.broken = src; pic.dataset.shows = `|${kind}|0`; pic.innerHTML = `<span class="aext">${esc(kind)}</span>`; };
+    }
+    let state = pic.querySelector('.astate');
+    if (!corner) state?.remove();
+    else {
+      if (!state) { state = document.createElement('span'); pic.appendChild(state); }
+      state.className = 'astate ' + corner.kind;
+      state.textContent = corner.text;
+      state.style.setProperty('--done', String(corner.done || 0));
+    }
+    const nameBox = li.querySelector('.aname');
+    if (nameBox.dataset.name !== name) {
+      nameBox.dataset.name = name;
+      nameBox.replaceChildren(...nameLines(name));
+    }
+    li.querySelector('.ameta').textContent = [size, meta].filter(Boolean).join(' · ');
+  }
+
+  function fillFileTile(li, a) {
+    li.dataset.file = a.id;
+    const kind = fileKind(a.filename);
+    const readable = FILE_READABLE.includes(a.preview);
+    const face = li.querySelector('.aface');
+    const from = multipleUsers() ? authorName(a.author) : '';
+    fillTile(li, { name: a.filename, size: filesize(a.size), kind, meta: from,
+      picture: a.preview === 'image' ? fileTileSource(a.id) : '',
+      video: /^video\//.test(a.mime_type || ''),
+      label: [a.filename, kind, filesize(a.size), from].filter(Boolean).join(', '),
+      open: openPreview === a.id || lightboxFile === a.id });
+    if (readable && !isNarrow()) {
+      face.setAttribute('aria-expanded', String(openPreview === a.id));
+      face.setAttribute('aria-controls', previewBox.id);
+    } else { face.removeAttribute('aria-expanded'); face.removeAttribute('aria-controls'); }
+    if (a.preview === 'image' || readable) face.removeAttribute('aria-haspopup');
+    else face.setAttribute('aria-haspopup', 'menu');
+    const more = li.querySelector('.amore');
+    more.setAttribute('aria-label', t('entry.fileMenu', { name: a.filename }));
+    more.title = t('entry.fileMenu', { name: a.filename });
+  }
+
+  function fillUploadTile(li, u) {
+    const kind = fileKind(u.name);
+    const failed = u.state === 'failed';
+    const percent = Math.round(u.sent * 100);
+    const corner = failed ? { kind: 'fail', text: '⚠' }
+      : u.state === 'running' ? { kind: 'run', text: `${percent} %`, done: percent }
+      : { kind: 'wait', text: t('entry.fileWaiting') };
+    const state = failed ? `${t('entry.fileFailed')}: ${u.error}` : corner.text;
+    // Nach einem Fehler steht der Grund an der Stelle der Groesse.
+    fillTile(li, { name: u.name, size: failed ? '' : filesize(u.size), kind, meta: u.error,
+      label: [u.name, kind, filesize(u.size), state].filter(Boolean).join(', '), corner });
+    li.classList.toggle('busy', !failed);
+    li.classList.toggle('failed', failed);
+    li.title = u.error || '';
+    li.querySelector('.aface').setAttribute('aria-haspopup', 'menu');
+    const more = li.querySelector('.amore');
+    more.setAttribute('aria-label', t('entry.fileMenu', { name: u.name }));
+    more.title = t('entry.fileMenu', { name: u.name });
+  }
+
+  function fillAddTile(li, taken) {
+    const full = taken >= FILES_PER_ENTRY;
+    li.classList.toggle('full', full);
+    const face = li.querySelector('.aface');
+    face.setAttribute('aria-disabled', String(full));
+    const limit = t('entry.fileLimitHint', { mb: UPLOAD_LIMITS.attachment, cap: FILES_PER_ENTRY });
+    const count = t('entry.fileFull', { n: taken, cap: FILES_PER_ENTRY });
+    face.setAttribute('aria-label', full ? `${t('entry.fileAdd')}, ${count}` : `${t('entry.fileAdd')}, ${limit}`);
+    face.title = full ? count : limit;
+    const pic = li.querySelector('.apic');
+    if (!pic.firstChild) pic.innerHTML = '<span class="aplus" aria-hidden="true">+</span>';
+    li.querySelector('.ameta').textContent = full ? count : t('entry.fileAddLimit', { mb: UPLOAD_LIMITS.attachment });
+  }
+
+  /* Aktualisiert die Kacheln nach Nummer; die Vorschau darunter bleibt stehen. */
   function drawAtts() {
-    const box = document.getElementById('atts');
+    // Nach einem await kann die Ansicht schon gewechselt haben.
+    if (!attsBox.isConnected) return;
     const list = item.attachments || [];
-    // drawAtts() zeichnet die ganze Liste neu; ein alter Betrachter bliebe sonst verbunden.
-    for (const v of officeViewers.values()) { try { v.destroyEditor(); } catch {} }
-    officeViewers.clear();
+    const jobs = uploadsOf(id);
+    if (openPreview && !list.some(a => a.id === openPreview)) dropPreview();
     document.getElementById('acount').textContent = list.length
       ? t('entry.fileCount', { n: list.length,
           filesize: filesize(list.reduce((s2, a) => s2 + a.size, 0)) }) : '';
-    box.innerHTML = '';
-    if (!list.length) {
-      box.innerHTML = emptyState(t('entry.noFilesYet'));
-      return;
-    }
-    list.forEach(a => {
-      const row = document.createElement('div');
-      row.className = 'arow';
-      row.dataset.file = a.id;
-      const canPreview = a.preview !== 'keine';
-      const open = openPreview.has(a.id);
-      row.classList.toggle('open', open);
-      row.title = canPreview
-        ? (open ? t('entry.clickToCollapse') : t('entry.clickToView'))
-        : t('entry.clickToDownload');
-      // Dieselbe Regel fuer den Namen wie in drawLinks().
-      const showFrom = multipleUsers();
-      const uploaded = showFrom
-        ? t('entry.uploadedByOn', { author: authorName(a.author), created_at: fmtDate(a.created_at) }) : '';
-      if (uploaded) row.title = `${row.title} · ${uploaded}`;
-      // Wie am Link: loeschen duerfen der Verfasser und Admins.
-      const mayPath = a.mine === true || ADMIN;
-
-      row.innerHTML = `<span class="aicon">${a.preview === 'image'
-          ? `<img class="athumb" src="${esc(fileTileSource(a.id))}" alt="" loading="lazy">` : esc(fileSign(a.preview))}</span>
-        <span class="aname">${esc(a.filename)}</span>
-        <span class="asize">${esc(filesize(a.size))}</span>
-        ${showFrom ? `<span class="afrom">(${esc(authorName(a.author))})</span>` : ''}
-        <span class="ago">${canPreview ? (open ? '▾' : '▸') : '↓'}</span>
-        ${a.mine && a.edit ? `<button class="arights${a.editAll ? ' on' : ''}" title="${esc(t(a.editAll ? 'entry.editAllOn' : 'entry.editAllOff'))}">${ICON_PEOPLE}</button>` : ''}
-        ${a.preview === 'office' && a.edit && !isNarrow() ? `<a class="aopen aedit" href="${esc(fileAddress(id, a.id, true))}" title="${esc(t('entry.edit'))}">${ICON_PEN}</a>` : ''}
-        ${a.preview === 'office' ? `<a class="aopen" href="${esc(fileAddress(id, a.id))}" title="${esc(t('entry.openFile'))}">⤢</a>` : ''}
-        <button class="alink" title="${esc(t('entry.copyFileLink'))}">${ICON_LINK}</button>
-        <a class="adl" href="/api/attachments/${Number(a.id)}/raw" download title="${esc(t('entry.download'))}">↓</a>
-        ${mayPath ? `<button class="xdel" title="${esc(t('entry.deleteFile'))}">${ICON_X}</button>` : ''}`;
-
-      const tile = row.querySelector('.athumb');
-      if (tile) tile.onerror = () => { tile.parentElement.textContent = fileSign(a.preview); };
-      row.querySelector('.alink').onclick = (e) => {
-        e.stopPropagation();
-        copyText(fullAddress(fileAddress(id, a.id)), t('card.linkCopied'));
-      };
-      // Nur wer hochgeladen hat; der Server prueft das ebenso.
-      const rights = row.querySelector('.arights');
-      if (rights) rights.onclick = async (e) => {
-        e.stopPropagation();
-        try { item = await api('PUT', `/api/attachments/${a.id}/editing`, { editAll: !a.editAll }); drawAtts(); }
-        catch (e2) { toast(e2.message, true); }
-      };
-      if (mayPath) row.querySelector('.xdel').onclick = async (e) => {
-        e.stopPropagation();
-        if (!await confirmBox(t('entry.deleteFileAsk'), t('entry.fileDeleteHint', { filename: a.filename }))) return;
-        try { item = await api('DELETE', `/api/attachments/${a.id}`); openPreview.delete(a.id); drawAtts(); }
-        catch (e2) { toast(e2.message, true); }
-      };
-
-      row.onclick = (e) => {
-        if (e.target.closest('.xdel, .adl, .aopen, .arights, .alink')) return;
-        if (!canPreview) return row.querySelector('.adl')?.click();
-        // Auf dem Telefon waere die Vorschau im Eintrag zu klein.
-        if (a.preview === 'office' && isNarrow()) { location.hash = fileAddress(id, a.id); return; }
-        if (open) openPreview.delete(a.id); else openPreview.add(a.id);
-        drawAtts();
-      };
-      box.appendChild(row);
-
-      if (canPreview && open) box.appendChild(buildPreview(a));
+    fileGroup.querySelector('.aempty').hidden = list.length + jobs.length > 0;
+    const old = new Map([...fileGrid.children].map(li => [li.dataset.key, li]));
+    const want = [...list.map(a => ['f' + a.id, li => fillFileTile(li, a)]),
+                  ...jobs.map(u => ['u' + u.no, li => fillUploadTile(li, u)]),
+                  ['add', li => fillAddTile(li, list.length + jobs.length)]];
+    want.forEach(([key, fill], at) => {
+      const li = old.get(key) || newTile(key);
+      old.delete(key);
+      fill(li);
+      if (fileGrid.children[at] !== li) fileGrid.insertBefore(li, fileGrid.children[at] || null);
     });
+    for (const li of old.values()) li.remove();
     setUpBlocksOut(item);
   }
 
-  function buildPreview(a) {
-    const boxId = document.createElement('div');
-    boxId.className = 'apreview';
-    if (a.preview === 'office') buildOffice(a, boxId);
-    else filePreview(a, boxId);
-    return boxId;
+  function tileAction(li) {
+    const key = li.dataset.key;
+    if (key === 'add') return pickFiles();
+    const a = fileOf(key);
+    if (!a) return tileMenu(li);
+    if (a.preview === 'image') return showFile(a.id);
+    if (!FILE_READABLE.includes(a.preview)) return tileMenu(li);
+    // Auf dem Telefon waere die Vorschau im Eintrag zu klein.
+    if (isNarrow()) { location.hash = fileAddress(id, a.id); return; }
+    if (openPreview === a.id) closePreview(true);
+    else showPreview(a);
   }
 
-  function buildOffice(a, boxId) {
+  function tileMenu(li) {
+    const a = fileOf(li.dataset.key), u = uploadOf(li.dataset.key);
+    if (a) fileMenu(a, li);
+    else if (u) uploadMenu(u, li);
+  }
+
+  /* Nur was der Server annimmt; die eigene Nummer kennt der Browser nicht, daher `mine`. */
+  function fileMenu(a, li) {
+    const items = [];
+    if (a.mine && a.edit) items.push({ label: t('entry.editAll'), checked: a.editAll === true, run: async () => {
+      try { item = await api('PUT', `/api/attachments/${a.id}/editing`, { editAll: !a.editAll }); drawAtts(); }
+      catch (e) { toast(e.message, true); }
+    } });
+    if (a.preview === 'office' && a.edit && !isNarrow())
+      items.push({ label: t('entry.edit'), run: () => { location.hash = fileAddress(id, a.id, true); } });
+    if (FILE_READABLE.includes(a.preview))
+      items.push({ label: t('entry.openFile'), run: () => { location.hash = fileAddress(id, a.id); } });
+    items.push({ label: t('entry.copyFileLink'), run: () => copyText(fileLink(a), t('card.linkCopied')) });
+    items.push({ label: t('entry.download'), href: `/api/attachments/${Number(a.id)}/raw` });
+    if (a.restore) items.push({ label: t('entry.restorePrevious'), run: () => restorePrevious(a) });
+    if (mayDeleteFile(a)) items.push({ label: t('entry.deleteFile'), danger: true, own: true,
+      run: () => deleteFromMenu(a, li) });
+    openFileMenu(li.querySelector('.amore'), li, a.filename, uploadedLine(a), items);
+  }
+
+  function uploadMenu(u, li) {
+    const items = u.state === 'failed'
+      ? [{ label: t('entry.uploadRetry'), run: () => uploadRetry(u) },
+         { label: t('entry.remove'), run: () => uploadCancel(u) }]
+      : [{ label: t('dialog.cancel'), run: () => uploadCancel(u) }];
+    openFileMenu(li.querySelector('.amore'), li, u.name, u.error, items);
+  }
+
+  async function deleteFile(a) {
+    if (!await confirmBox(t('entry.deleteFileAsk'), t('entry.fileDeleteHint', { filename: a.filename }))) return false;
+    try { item = await api('DELETE', `/api/attachments/${a.id}`); drawAtts(); return true; }
+    catch (e) { toast(e.message, true); return false; }
+  }
+
+  // Der Fokus geht zur naechsten Kachel, nach der letzten Datei zu „+".
+  async function deleteFromMenu(a, li) {
+    const at = [...fileGrid.children].indexOf(li);
+    if (!await deleteFile(a)) { li.querySelector('.amore')?.focus(); return; }
+    fileGrid.children[Math.min(at, fileGrid.children.length - 1)]?.querySelector('.aface')?.focus();
+  }
+
+  async function restorePrevious(a) {
+    if (!await confirmBox(t('entry.restorePrevious'), t('entry.restoreHint'), t('card.restore'), 'accent')) return;
+    try {
+      item = await api('POST', `/api/attachments/${Number(a.id)}/previous`);
+      toast(t('entry.restored'));
+      const fresh = fileOf('f' + a.id);
+      // Der Betrachter zeigte sonst die alte Fassung weiter.
+      if (openPreview === a.id && fresh) showPreview(fresh);
+      drawAtts();
+    } catch (e) { toast(e.message, true); }
+  }
+
+  /* ---- Vollbild einer Bilddatei ---- */
+  function showFile(fileId) {
+    const pictures = (item.attachments || []).filter(a => a.preview === 'image')
+      .map(a => ({ ...a, source: 'file' }));
+    const at = pictures.findIndex(a => a.id === Number(fileId));
+    if (at < 0) return false;
+    openLightbox(pictures, at, item.title, deleteFile, null, fileLink, {
+      removable: mayDeleteFile,
+      shown: (a) => { lightboxFile = a ? a.id : 0; drawAtts(); }
+    });
+    return true;
+  }
+
+  /* ---- Vorschau unter der Gruppe ---- */
+  function endOfficeViewer() {
+    if (officeViewer) { try { officeViewer.destroyEditor(); } catch {} }
+    officeViewer = null;
+  }
+
+  function dropPreview() {
+    endOfficeViewer();
+    openPreview = 0;
+    previewRun++;
+    previewBox.hidden = true;
+    previewBox.replaceChildren();
+  }
+
+  function closePreview(focusTile) {
+    const was = openPreview;
+    dropPreview();
+    drawAtts();
+    if (focusTile) fileGrid.querySelector(`[data-key="f${was}"] .aface`)?.focus();
+  }
+
+  function showPreview(a) {
+    dropPreview();
+    openPreview = a.id;
+    const run = previewRun;
+    previewBox.hidden = false;
+    previewBox.setAttribute('aria-label', a.filename);
+    previewBox.innerHTML = `<div class="apreview-head">
+        <span class="apreview-name">${esc(a.filename)}</span>
+        <span class="apreview-size">${esc(filesize(a.size))}</span>
+        <a class="apreview-open" href="${esc(fileAddress(id, a.id))}" title="${esc(t('entry.openFile'))}" aria-label="${esc(t('entry.openFile'))}">⤢</a>
+        <a class="apreview-dl" href="/api/attachments/${Number(a.id)}/raw" download title="${esc(t('entry.download'))}" aria-label="${esc(t('entry.download'))}">↓</a>
+        <button type="button" class="apreview-close" title="${esc(t('list.closeEsc'))}" aria-label="${esc(t('list.closeEsc'))}">${ICON_X}</button>
+      </div><div class="apreview-body"></div>`;
+    previewBox.querySelector('.apreview-close').onclick = () => closePreview(true);
+    const body = previewBox.querySelector('.apreview-body');
+    if (a.preview === 'office') buildOffice(a, body, run);
+    else filePreview(a, body);
+    drawAtts();
+  }
+
+  function buildOffice(a, body, run) {
     const holder = `office-${Number(a.id)}`;
-    boxId.innerHTML = `<div class="aoffice"><div id="office-${Number(a.id)}"></div></div>
+    body.innerHTML = `<div class="aoffice"><div id="office-${Number(a.id)}"></div></div>
       <p class="hint aoffice-hint"></p>`;
     const failed = () => {
-      try { officeViewers.get(a.id)?.destroyEditor(); } catch {}
-      officeViewers.delete(a.id);
-      boxId.innerHTML = `<p class="hint">${tH('entry.officeFailed')}</p>`;
+      if (run !== previewRun) return;
+      endOfficeViewer();
+      body.innerHTML = `<p class="hint">${tH('entry.officeFailed')}</p>`;
       // Bei .docx bleibt die Textvorschau als Rueckfall.
       if (/\.docx$/i.test(a.filename)) {
         const rest = document.createElement('div');
-        boxId.appendChild(rest);
+        body.appendChild(rest);
         textPreview(a, rest);
       }
     };
-    startOffice(a, holder, boxId.querySelector('.aoffice-hint'), failed)
-      .then(editor => { if (editor) officeViewers.set(a.id, editor); })
+    startOffice(a, holder, body.querySelector('.aoffice-hint'), failed)
+      .then(editor => {
+        if (!editor) return;
+        // Inzwischen geschlossen oder gewechselt: der Betrachter gehoert zu keiner Vorschau.
+        if (run !== previewRun) { try { editor.destroyEditor(); } catch {} return; }
+        officeViewer = editor;
+      })
       .catch(failed);
   }
 
-  document.getElementById('aadd').onclick = () => document.getElementById('afile').click();
-  document.getElementById('afile').onchange = async (e) => {
+  fileGroup.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !openPreview || e.defaultPrevented) return;
+    e.preventDefault();
+    closePreview(true);
+  });
+
+  /* ---- Hochladen ---- */
+  const fileInput = document.getElementById('afile');
+  function pickFiles() {
+    const taken = (item.attachments || []).length + uploadsOf(id).length;
+    if (taken >= FILES_PER_ENTRY) return toast(t('server.fileCap', { cap: FILES_PER_ENTRY }), true);
+    fileInput.click();
+  }
+  function addFiles(files) {
+    if (!files.length) return;
+    const refusal = uploadRefusal(id, files, (item.attachments || []).length);
+    if (refusal) return toast(refusal, true);
+    queueUploads(id, files);
+  }
+  fileInput.onchange = (e) => {
     const files = [...e.target.files];
     e.target.value = '';
-    if (!files.length) return;
-    const tooBig = overLimit(files, 'attachment');
-    if (tooBig) return toast(tooBigText(tooBig, 'attachment'), true);
-    const fd = new FormData();
-    files.forEach(f => fd.append('files', f));
-    try {
-      toast(t('entry.uploadingTitle'));
-      item = await sendForm(`/api/items/${id}/attachments`, fd);
-      drawAtts();
-      toast(t('entry.filesAttached', { n: files.length }));
-    } catch (e2) { toast(e2.message, true); }
+    addFiles(files);
   };
+
+  // Nur Dateien; ohne preventDefault oeffnete der Browser eine abgelegte Datei im Tab.
+  const fileBlock = attsBox.closest('.block');
+  const carriesFiles = (e) => [...(e.dataTransfer?.types || [])].includes('Files');
+  let dragDepth = 0;
+  fileBlock.addEventListener('dragenter', (e) => {
+    if (!carriesFiles(e)) return;
+    e.preventDefault();
+    dragDepth++;
+    fileBlock.classList.add('over');
+  });
+  fileBlock.addEventListener('dragover', (e) => {
+    if (!carriesFiles(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  });
+  fileBlock.addEventListener('dragleave', (e) => {
+    if (!carriesFiles(e) || --dragDepth > 0) return;
+    dragDepth = 0;
+    fileBlock.classList.remove('over');
+  });
+  fileBlock.addEventListener('drop', (e) => {
+    if (!carriesFiles(e)) return;
+    e.preventDefault();
+    dragDepth = 0;
+    fileBlock.classList.remove('over');
+    addFiles([...(e.dataTransfer.files || [])]);
+  });
+
+  UPLOAD_VIEW = { itemId: Number(id), redraw: drawAtts, took: (fresh) => { item = fresh; drawAtts(); } };
 
   /* ---- Kommentare ---- */
   function drawComments() {
@@ -6565,11 +7054,15 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0) {
   drawRatings(); drawTestDays(); drawLinks(); drawAtts(); drawComments();
   if (LIT_COMMENT) commentJump(LIT_COMMENT);
   if (photoWanted) showPhoto(photoWanted);
+  if (fileWanted) showFile(fileWanted);
   const back = fileReturn;
   fileReturn = null;
+  // Der Block steht nur fuer diese Ansicht offen, wie nach einem Sprung.
   if (back && back.itemId === Number(id) && !LIT_COMMENT) {
     openBlock('dateien');
-    document.querySelector(`#atts .arow[data-file="${back.fileId}"]`)?.scrollIntoView?.({ block: 'center' });
+    const tile = fileGrid.querySelector(`[data-file="${Number(back.fileId)}"]`);
+    tile?.scrollIntoView?.({ block: 'center' });
+    tile?.querySelector('.aface')?.focus({ preventScroll: true });
   }
 }
 
@@ -6806,6 +7299,11 @@ async function renderFileView(itemId, fileId, editWanted = false) {
     return;
   }
   const a = (item.attachments || []).find(x => x.id === Number(fileId));
+  // Eine Bilddatei oeffnet das Vollbild im Eintrag, wie die Adresse eines Fotos.
+  if (a && a.preview === 'image' && !editWanted) {
+    fileReturn = null;
+    return renderDetail(itemId, '', 0, 0, a.id);
+  }
   const shown = a && a.preview === 'office';
   // Jede andere Datei, auch ohne Vorschau: der Link auf sie laesst sich kopieren.
   const plain = a && !shown;
