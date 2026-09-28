@@ -447,7 +447,7 @@ async function run() {
     const phoneHash = fw.location.hash;
     // Ansicht oder Vorschau: danach laeuft nichts mehr, und das Fenster darf zu.
     await until(fw, (x) => fMade.length === 2 && openRequests(x) === 0, 2000, 'den zweiten Betrachter');
-    check('Auf dem Telefon oeffnet ein Klick auf die Zeile die Ansicht',
+    check('Auf dem Telefon oeffnet ein Klick auf die Kachel die Ansicht',
       phoneHash === '#/item/1/file/45', phoneHash);
     check('Kann der Browser kein Vollbild, fehlt das Zeichen',
       !!fw.document.querySelector('.fileview') && !fw.document.getElementById('fileview-full'),

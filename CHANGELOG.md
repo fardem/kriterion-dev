@@ -34,7 +34,7 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Der Block „Dateien“ in Kacheln.*
 
-Fingerprint `FINGERPRINT` — davor `46ae4e39`.
+Fingerprint `6935aee7` — davor `46ae4e39`.
 
 ### Hinzugefügt
 
