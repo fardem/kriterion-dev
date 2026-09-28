@@ -37,6 +37,8 @@ Alle übrigen Punkte sind entschieden (Abschnitt 3).
   Export trägt dazu Standbild und Dauer eines Videos (Vorgabe F9).
 - In der eigenen Ansicht einer Datei steht oben rechts ✕ „Schließen“, beim
   Ansehen wie beim Bearbeiten.
+- Weist der Reverse Proxy davor eine Anfrage mit 403 ab, sagt die Meldung das:
+  „Der Reverse Proxy davor hat die Anfrage abgewiesen (403).“
 
 ---
 
@@ -55,6 +57,7 @@ Alle übrigen Punkte sind entschieden (Abschnitt 3).
 | Löschdialog des Eintrags | `GET /api/items/:id/inventory` (`server.js:3441`) zählt keine Ordner |
 | Handbuch | „Wer was darf“ (`manual-de.md:205-230`) nennt weder Ordner noch das Vorschaubild eines Videos |
 | Eigene Ansicht einer Datei | Die Leiste (`renderFileView()`, `app.js:7495-7504`) hat „← Titel“, aber kein ✕; der Kopf der Vorschau hat eins (`app.js:6791`) |
+| Meldung bei 403 | Videos von 15,5 und 19,3 MB scheitern beim Betreiber über NPMplus mit „Der Server meldet einen Fehler (403).“; direkt nimmt Kriterion dieselbe Datei an (201). Die WAF von CrowdSec (AppSec) in NPMplus liest nach Vorgabe höchstens 10 MB einer Anfrage und weist größere mit 403 ab. `api()` (`app.js:186`), `sendForm()` (`app.js:1067`) und `uploadAnswer()` (`app.js:4895`) nennen den Proxy nur bei 413 (`error.proxyTooLarge`) |
 
 ---
 
@@ -76,6 +79,7 @@ Alle übrigen Punkte sind entschieden (Abschnitt 3).
 | 28. September 2026 | F7: Adresse und Marke einer Bild- oder Videodatei öffnen das Vollbild; danach steht ihr Ordner offen |
 | 28. September 2026 | F9: Vorschaubild und Dauer eines Videos in Papierkorb, Export und Import; Export und Import mit Format 21 in 0.47.0 |
 | 28. September 2026 | Das ✕ aus dem Kopf der Vorschau auch in der eigenen Ansicht einer Datei, auch wenn sie zum Bearbeiten geöffnet ist (zwei Bildschirmfotos des Betreibers) |
+| 28. September 2026 | Fragetafel „Meldung 403“: Eine 403 ohne Text von Kriterion nennt den Reverse Proxy, wie die 413; in 0.47.0, nicht als eigener Patch |
 
 ### Entschieden in diesem Auftrag
 
@@ -105,6 +109,7 @@ Alle übrigen Punkte sind entschieden (Abschnitt 3).
 | Upload in einen gelöschten Ordner | nach C2 |
 | Verschobene Datei | nach C3 |
 | ✕ in der eigenen Ansicht | letztes Zeichen der Leiste, hinter ↓; `ICON_X`, Titel und `aria-label` „Schließen“ (`list.close`). In jeder eigenen Ansicht: Ansehen, Bearbeiten, Datei ohne Vorschau, auch am Telefon. Ziel nach C4. Keine Rückfrage: Der Document Server speichert wie nach „← Titel“. Kein Esc: Steht der Fokus im Dokument, gehen die Tasten an den Document Server und erreichen Kriterion nicht |
+| Meldung bei 403 | nur bei 403 ohne `error` in der Antwort: neuer Schlüssel `error.proxyDenied`, in `api()`, `sendForm()` und `uploadAnswer()` neben `error.proxyTooLarge`. Jede 403 von Kriterion trägt einen Text; ohne Text antwortet nur `refuseFetch()` (`server.js:811`), und diese Route ruft nur der Document Server |
 
 ---
 
@@ -199,7 +204,13 @@ Alle übrigen Punkte sind entschieden (Abschnitt 3).
   der Kachel den Fokus. C4 b): dazu öffnet `renderDetail()` über `fileReturn`
   die Vorschau der Datei, wenn sie eine hat.
 
-### BA 9 — Texte
+### BA 9 — Die Meldung bei 403
+
+- `api()`, `sendForm()` und `uploadAnswer()`: Eine 403 ohne `error` in der
+  Antwort ergibt `error.proxyDenied`. Eine 403 mit `error` zeigt weiter diesen
+  Text, jeder andere Status bleibt, wie er ist.
+
+### BA 10 — Texte
 
 Neue Schlüssel in `de.json`, `en.json` und `tr.json`, jeder mit einem Leser im
 Code: „Ordner hinzufügen“, der Platzhalter des Namens, „Bearbeiten …“, „Ordner
@@ -207,10 +218,11 @@ löschen“ mit Rückfrage und Hinweis, „leer“, „Verschieben nach …“, 
 Ordner“, „Zurück“, die Meldung nach dem Verschieben, der Grund beim Ablegen auf
 einem fremden Ordner, die Zählwörter „Ordner“ für die Löschdialoge,
 `server.folderGone`, `server.folderName`, `server.folderForeign` und die
-Absage für `testDay`. Vorhandene Wörter werden weiter genutzt, wo sie passen;
-das ✕ nutzt `list.close`.
+Absage für `testDay`, `error.proxyDenied` („Der Reverse Proxy davor hat die
+Anfrage abgewiesen (403).“). Vorhandene Wörter werden weiter genutzt, wo sie
+passen; das ✕ nutzt `list.close`.
 
-### BA 10 — Der Prüfstand
+### BA 11 — Der Prüfstand
 
 Neues Modul `test/release_047.js` auf der Portbasis 7340, eingetragen hinter
 `release_046`.
@@ -232,6 +244,7 @@ Neues Modul `test/release_047.js` auf der Portbasis 7340, eingetragen hinter
 | 13 | Adresse und Marke einer Datei in einem Ordner: Vollbild, danach steht der Ordner offen; offene Ordner überstehen die Rückkehr aus der eigenen Ansicht, und danach steht der Ordner der Datei offen |
 | 14 | Der Löschdialog des Eintrags und der Dialog „Account löschen“ nennen die Ordner |
 | 15 | Eigene Ansicht: ✕ beim Ansehen, beim Bearbeiten und bei einer Datei ohne Vorschau; es führt nach C4 zum Eintrag, die Kachel der Datei hat den Fokus |
+| 16 | Eine 403 ohne Text in `api()`, `sendForm()` und beim Hochladen unter „Dateien“: Die Meldung nennt den Reverse Proxy. Eine 403 mit `error` zeigt diesen Text |
 
 **Gegenproben**, je eine: Verschieben legt die Datei neu an · Ordner löschen
 löscht die Dateien mit · `PUT /api/folders/:id` nimmt `testDay` an · `selfOnly`
@@ -239,7 +252,8 @@ am Ordner entfernt · Eintrag von Datei und Ordner nicht verglichen · `folders`
 nicht exportiert · Standbild nicht exportiert · Import legt keine Ordner an ·
 Papierkorb ohne Ordner · beim Öffnen stehen Ordner offen · Vollbild blättert
 über die Gruppe hinaus · ⋯ an einem fremden Ordner für jeden · ✕ fehlt beim
-Bearbeiten.
+Bearbeiten · eine 403 ohne Text ergibt beim Hochladen wieder „Der Server meldet
+einen Fehler (403).“
 
 **Was mitgeht:**
 
@@ -260,13 +274,20 @@ Bearbeiten.
   „Der Export (Format 21) traegt Standbild und Dauer“.
 - Stellen in `test/`, die den Block „Dateien“ als ein Raster lesen.
 
-### BA 11 — Dokumentation und Zahlen
+### BA 12 — Dokumentation und Zahlen
 
 - **`manual-de.md`:** „Wer was darf“ mit Ordner anlegen, umbenennen, löschen,
   in einen Ordner hochladen, Datei verschieben und dem Vorschaubild eines
   Videos. „Tags, Dateien, Links“ mit einem Punkt „Ordner“. „Export und Import“
   und „Löschen und Papierkorb“ nennen die Ordner. „Eigene Ansicht“
   (`manual-de.md:390-394`) nennt das ✕.
+- **`README.md`:** Bei den Punkten zum Proxy (`README.md:380-381`) eine Zeile:
+  Die WAF von CrowdSec (AppSec) liest nach Vorgabe höchstens 10 MB einer
+  Anfrage und weist größere mit 403 ab; in NPMplus schaltet
+  `set $crowdsec_disable_appsec 1;` in einer eigenen Location sie für die
+  Upload-Adressen ab. In der Tabelle der Störungen (`README.md:456`) eine Zeile
+  zu „Der Reverse Proxy davor hat die Anfrage abgewiesen (403)“ mit Verweis
+  auf diesen Punkt.
 - **`Doku/Aenderungsprotokoll_0.47.0.md`** mit den Zahlen am fertigen Stand.
 - **`CHANGELOG.md`:** `## [0.47.0]`, mit dem Kasten zu den zwei neuen Tabellen
   und dem Hinweis, dass eine Exportdatei aus 0.47.0 Format 21 trägt.
@@ -297,6 +318,8 @@ Der Betreiber prüft nach dem Einspielen:
 10. Eine Office-Datei in einem Ordner in der eigenen Ansicht ansehen, dann
     zum Bearbeiten öffnen, jeweils mit ✕ schließen: Der Eintrag steht da, wie
     C4 es sagt, der Ordner offen. Am Telefon das Ansehen ebenso.
+11. Solange der Proxy davor große Uploads mit 403 abweist: Die Kachel nennt
+    den Reverse Proxy. Nach der Änderung am Proxy geht dieselbe Datei hoch.
 
 ---
 
