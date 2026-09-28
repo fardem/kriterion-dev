@@ -8871,7 +8871,7 @@ const REGRESSIONS = [
   {
     nr: '1280', name: 'Die Bilddatei im Verweis bekommt kein Vorschaubild',
     file: 'public/app.js',
-    search: "  if (row.preview === 'image') {\n    markupThumb(",
+    search: "  if (row.preview === 'image' || (row.preview === 'video' && row.still)) {\n    markupThumb(",
     replacement: "  if (false) {\n    markupThumb(",
     expected: 'Verweise auf Dateien: Marken im Browser'
   },
@@ -8934,7 +8934,7 @@ const REGRESSIONS = [
   {
     nr: '1289', name: 'Der erste Abruf legt die Kachel nicht ab',
     file: 'server.js',
-    search: "    if (db.prepare('SELECT 1 FROM attachments WHERE id = ?').get(id)) putFileTile.run(id, row.thumb);\n",
+    search: "    if (current) putFileTile.run(id, row.thumb);\n",
     replacement: "",
     expected: 'Verweise auf Dateien: die Kachel einer Bilddatei'
   },
@@ -8948,15 +8948,15 @@ const REGRESSIONS = [
   {
     nr: '1291', name: 'Jede Datei bekommt beim Abruf eine Kachel',
     file: 'server.js',
-    search: "  if (!a || attachments.previewKind(a.filename) !== 'image') return res.status(404).end();",
+    search: "  if (kind !== 'image' && kind !== 'video') return res.status(404).end();",
     replacement: "  if (!a) return res.status(404).end();",
     expected: 'Verweise auf Dateien: die Kachel einer Bilddatei'
   },
   {
     nr: '1292', name: 'Marke und Dateizeile laden wieder die ganze Datei',
     file: 'public/app.js',
-    search: "const fileTileSource = (fileId) => `/api/attachments/${Number(fileId)}/raw?size=thumb`;",
-    replacement: "const fileTileSource = (fileId) => `/api/attachments/${Number(fileId)}/raw?inline=1`;",
+    search: "const fileTileSource = (a) => `/api/attachments/${Number(a.id)}/raw?size=thumb${a.still ? `&v=${Number(a.still)}` : ''}`;",
+    replacement: "const fileTileSource = (a) => `/api/attachments/${Number(a.id)}/raw?inline=1`;",
     expected: 'Verweise auf Dateien: Marken im Browser'
   },
   {
@@ -8969,15 +8969,15 @@ const REGRESSIONS = [
   {
     nr: '1294', name: 'Die Kachel einer Bilddatei zeigt nur die Endung',
     file: 'public/app.js',
-    search: "      picture: a.preview === 'image' ? fileTileSource(a.id) : '',",
-    replacement: "      picture: '',",
+    search: "      picture: a.preview === 'image' || (video && a.still) ? fileTileSource(a) : coming,",
+    replacement: "      picture: coming,",
     expected: 'Verweise auf Dateien: Adresse des Fotos und Link kopieren'
   },
   {
     nr: '1295', name: 'Ohne Vorschaubild bleibt die Bildflaeche leer',
     file: 'public/app.js',
-    search: "      if (img) img.onerror = () => { pic.dataset.broken = src; pic.dataset.shows = `|${kind}|0`; pic.innerHTML = `<span class=\"aext\">${esc(kind)}</span>`; };\n",
-    replacement: "",
+    search: "        pic.innerHTML = `<span class=\"aext\">${esc(kind)}</span>${video ? '<span class=\"play-badge\">▶</span>' : ''}`\n          + `${shown ? `<span class=\"duration\">${esc(shown)}</span>` : ''}`; };\n",
+    replacement: "        null; };\n",
     expected: 'Verweise auf Dateien: Adresse des Fotos und Link kopieren'
   },
   {
@@ -9074,8 +9074,8 @@ const REGRESSIONS = [
   {
     nr: '1312', name: 'Die Adresse einer Bilddatei oeffnet wieder die eigene Ansicht',
     file: 'public/app.js',
-    search: "  if (a && a.preview === 'image' && !editWanted) {",
-    replacement: "  if (false) {",
+    search: "  if (a && (a.preview === 'video' || (a.preview === 'image' && !editWanted))) {",
+    replacement: "  if (a && a.preview === 'video') {",
     expected: 'Dateien in Kacheln: Adresse und Vollbild einer Bilddatei'
   },
   {
@@ -9091,6 +9091,104 @@ const REGRESSIONS = [
     search: "  /* Von Hand geoeffnete oder geschlossene Bloecke gelten nur fuer einen Eintrag. */\n  GLANCE.clear();\n",
     replacement: "  /* Von Hand geoeffnete oder geschlossene Bloecke gelten nur fuer einen Eintrag. */\n  GLANCE.clear();\n  for (const u of [...UPLOADS]) uploadCancel(u);\n",
     expected: 'Dateien in Kacheln: die Warteschlange'
+  },
+  {
+    nr: '1315', name: "/raw schickt die Datei ohne Range",
+    file: 'server.js',
+    search: "    sendRanged(req, res, a.data);\n",
+    replacement: "    res.send(a.data);\n",
+    expected: "Videos unter Dateien: Vorschauart, Range und Standbild am Server"
+  },
+  {
+    nr: '1316', name: "Ein Video ohne Standbild bekommt ein Bild ohne Quelle",
+    file: 'public/app.js',
+    search: "      picture: a.preview === 'image' || (video && a.still) ? fileTileSource(a) : coming,",
+    replacement: "      picture: a.preview === 'image' || video ? fileTileSource(a) : coming,",
+    expected: "Videos unter Dateien: Kachel, Vollbild und Tasten"
+  },
+  {
+    nr: '1317', name: "Das Standbild setzt auch der Admin",
+    file: 'server.js',
+    search: "  if (!selfOnly(req, a.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});\n  if (!isVideoFile(a.filename))",
+    replacement: "  if (!mayChange(req, a.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});\n  if (!isVideoFile(a.filename))",
+    expected: "Videos unter Dateien: Vorschauart, Range und Standbild am Server"
+  },
+  {
+    nr: '1318', name: "Der Umschlag des Papierkorbs traegt kein Standbild",
+    file: 'server.js',
+    search: "                    ...(a2.still ? { duration: a2.duration,\n                                     ['still' + extension]: funnel.take(null, ['fileStill', a2.id]) } : {}) }));",
+    replacement: "                    }));",
+    expected: "Videos unter Dateien: Papierkorb und Export"
+  },
+  {
+    nr: '1319', name: "Im Vollbild blaettern die Pfeile trotz Fokus auf dem Video",
+    file: 'public/app.js',
+    search: "    else if (document.activeElement === player) { if (seekVideo(e)) e.stopPropagation(); }\n",
+    replacement: "",
+    expected: "Videos unter Dateien: Kachel, Vollbild und Tasten"
+  },
+  {
+    nr: '1320', name: "Im Eintrag blaettern die Pfeile trotz Fokus auf dem Kurzvideo",
+    file: 'public/app.js',
+    search: "    // Ein Video mit Fokus spult, statt zu blaettern.\n    if (seekVideo(e)) return;\n",
+    replacement: "",
+    expected: "Videos unter Dateien: Kachel, Vollbild und Tasten"
+  },
+  {
+    nr: '1321', name: "Die Adresse eines Videos oeffnet die eigene Ansicht",
+    file: 'public/app.js',
+    search: "  if (a && (a.preview === 'video' || (a.preview === 'image' && !editWanted))) {",
+    replacement: "  if (a && a.preview === 'image' && !editWanted) {",
+    expected: "Videos unter Dateien: Adresse, Marke und Bildleiste"
+  },
+  {
+    nr: '1322', name: "Das Nachholen laeuft bei jedem Zeichnen",
+    file: 'public/app.js',
+    search: "  if (STILLS_TRIED.has(a.id) || STILLS_ON_WAY.has(a.id)) return;",
+    replacement: "  if (STILLS_ON_WAY.has(a.id)) return;",
+    expected: "Videos unter Dateien: Standbild beim Hochladen, von Hand und nachgeholt"
+  },
+  {
+    nr: '1323', name: "Die Bildleiste nennt „Dateien“ ohne Blick auf die Grenze „Anhang“",
+    file: 'public/app.js',
+    search: "        + (overLimit([bigVideo], 'attachment') ? '' : ' ' + t('entry.videoToFiles')));",
+    replacement: "        + ' ' + t('entry.videoToFiles'));",
+    expected: "Videos unter Dateien: Adresse, Marke und Bildleiste"
+  },
+  {
+    nr: '1324', name: "Das Wiederherstellen legt das Standbild nicht an",
+    file: 'server.js',
+    search: "        if (a2.still) putStill.run(added.lastInsertRowid, a2.duration, a2.still);\n",
+    replacement: "",
+    expected: "Videos unter Dateien: Papierkorb und Export"
+  },
+  {
+    nr: '1325', name: "Nach dem Upload geht kein Standbild an den Server",
+    file: 'public/app.js',
+    search: "    stillAfterUpload(u, data);\n",
+    replacement: "",
+    expected: "Videos unter Dateien: Standbild beim Hochladen, von Hand und nachgeholt"
+  },
+  {
+    nr: '1326', name: "Ein neues Standbild laesst die alte Kachel stehen",
+    file: 'server.js',
+    search: "      dropFileTile.run(req.params.id);\n",
+    replacement: "",
+    expected: "Videos unter Dateien: Vorschauart, Range und Standbild am Server"
+  },
+  {
+    nr: '1327', name: "Der Browser spult zusaetzlich zum festen Sprung",
+    file: 'public/app.js',
+    search: "  if (!(v instanceof HTMLVideoElement) || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return false;\n  e.preventDefault();\n",
+    replacement: "  if (!(v instanceof HTMLVideoElement) || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return false;\n",
+    expected: "Videos unter Dateien: Kachel, Vollbild und Tasten"
+  },
+  {
+    nr: '1328', name: "Der Sprung laeuft ueber Anfang und Ende hinaus",
+    file: 'public/app.js',
+    search: "  v.currentTime = Math.min(end, Math.max(0, v.currentTime + (e.key === 'ArrowLeft' ? -SEEK_STEP : SEEK_STEP)));",
+    replacement: "  v.currentTime = v.currentTime + (e.key === 'ArrowLeft' ? -SEEK_STEP : SEEK_STEP);",
+    expected: "Videos unter Dateien: Kachel, Vollbild und Tasten"
   },
 ];
 

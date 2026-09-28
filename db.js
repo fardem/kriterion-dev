@@ -336,6 +336,13 @@ CREATE TABLE IF NOT EXISTS attachment_thumbs (
   thumb BLOB
 );
 
+-- Standbild eines Videos, im Browser erzeugt; duration in Sekunden, NULL unbekannt.
+CREATE TABLE IF NOT EXISTS attachment_stills (
+  attachment_id INTEGER PRIMARY KEY REFERENCES attachments(id) ON DELETE CASCADE,
+  duration REAL,
+  still BLOB NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL

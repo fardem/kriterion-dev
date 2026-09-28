@@ -49,7 +49,7 @@ function measure(file) {
 // Abkuerzungen, die gross geschrieben werden und keine Betonung sind.
 const ABBREVIATIONS = new Set(('HTTP HTTPS JSON HTML UTF8 NULL TRUE FALSE CSRF TOTP SMTP UUID ASCII MIME ' +
   'HMAC HEIC WEBP JPEG AVIF ARIA WCAG EXIF SQLITE SQLCIPHER AGPL DKIM DMARC STARTTLS RGBA HSLA ' +
-  'OKLCH XLSX DOCX CRLF EBML FTYP IETF IPV4 IPV6 LGPL').split(' '));
+  'OKLCH XLSX DOCX CRLF EBML FTYP IETF IPV4 IPV6 LGPL HEVC').split(' '));
 
 /* Kommentarbloecke einer Datei. Aufeinanderfolgende Zeilenkommentare zaehlen
    als ein Block. `emphasis`: ein Wort aus vier oder mehr Grossbuchstaben,

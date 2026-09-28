@@ -102,8 +102,8 @@ async function run() {
       extraAttachments: [
         { id: 47, filename: 'Messprotokoll-Sommer-2026.xlsx', mime_type: 'application/octet-stream', size: 2048,
           sort_order: 4, preview: 'keine', created_at: '2026-08-04 10:00:00', mine: true, author: vChefin },
-        { id: 48, filename: 'clip.mp4', mime_type: 'video/mp4', size: 3000, sort_order: 5, preview: 'keine',
-          created_at: '2026-08-04 11:00:00', mine: true, author: vChefin }] });
+        { id: 48, filename: 'clip.mp4', mime_type: 'video/mp4', size: 3000, sort_order: 5, preview: 'video',
+          created_at: '2026-08-04 11:00:00', mine: false, author: vChefin, still: null, duration: null }] });
     const w = m.w;
     await settle(w, 7);
     check('Jede Datei ist eine Kachel, am Ende steht „+"',
@@ -143,8 +143,9 @@ async function run() {
       `${w.document.querySelector('.fmenu-name')?.textContent} · ${loads.join(' ')}`);
     press(w.document.activeElement, 'Escape');
     faceOf(w, 'f48')?.click();
-    check('Ein Video unter „Dateien" oeffnet ebenso das Menue', w.document.querySelector('.fmenu-name')?.textContent === 'clip.mp4' &&
-      loads.length === 0, w.document.querySelector('.fmenu-name')?.textContent);
+    check('Ein Video unter „Dateien" oeffnet das Vollbild', !w.document.querySelector('.fmenu') &&
+      w.document.querySelector('.lightbox .lb-video')?.getAttribute('src') === '/api/attachments/48/raw?inline=1' &&
+      loads.length === 0, w.document.querySelector('.lightbox .lb-video')?.getAttribute('src'));
     press(w.document.activeElement, 'Escape');
 
     const box = w.document.getElementById('apreview');

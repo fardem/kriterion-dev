@@ -33,8 +33,8 @@ async function run() {
     fUnknown.length === 0 && fGone.length === 0,
     `ohne Entscheidung: ${fUnknown.join(' · ') || '—'} · verschwunden: ${fGone.join(' · ') || '—'}`);
   // Die feste Zahl macht jede neue Route in F_ROUTES sichtbar.
-  check('Und es sind jetzt genau 79 schreibende Routen',
-    F_ROUTES.length === 79 && fFound.length === 79,
+  check('Und es sind jetzt genau 80 schreibende Routen',
+    F_ROUTES.length === 80 && fFound.length === 80,
     `${F_ROUTES.length} erwartet, ${fFound.length} gefunden`);
   /* Gelesen werden die geladenen Listen aus auth.js, nicht ihr Quelltext;
      ein Textvergleich schluege auch bei Kommentaren an. */
@@ -393,7 +393,7 @@ async function run() {
   /* ---- Papierkorb und Abfragen auf den Bestand ---- */
   const DATATABLES = ['items', 'photos', 'comments', 'ratings', 'test_days',
                             'links', 'attachments', 'comment_images', 'comment_videos', 'item_tags',
-                            'test_day_tags', 'item_pins'];
+                            'test_day_tags', 'item_pins', 'attachment_stills'];
   const inventoryQueries = (text) => text.split('\n')
     .filter(z => DATATABLES.some(t =>
       z.includes(`FROM ${t}`) || z.includes(`INTO ${t}`) || z.includes(`UPDATE ${t} `)));
@@ -405,11 +405,14 @@ async function run() {
   /* Ausnahme: die Kopieranweisungen des Papierkorbs lesen den Bestand
      ungefiltert und schreiben nach trash_bytes. */
   const fTrashCopies = fInventoryRows.filter(z => z.includes('INSERT INTO trash_bytes'));
-  check('Die sechs Kopieranweisungen des Papierkorbs stehen da',
-    fTrashCopies.length === 6, `${fTrashCopies.length} Zeilen`);
+  check('Die sieben Kopieranweisungen des Papierkorbs stehen da',
+    fTrashCopies.length === 7, `${fTrashCopies.length} Zeilen`);
+  // Das Standbild einer Datei steht unter ihrer Nummer in attachment_stills.
+  const fTrashKey = /WHERE (id|attachment_id) = \?'\)/;
   check('Und keine von ihnen verengt den Bestand',
-    fTrashCopies.every(z => /WHERE id = \?'\)/.test(z) && !/deleted/i.test(z)),
-    fTrashCopies.filter(z => !/WHERE id = \?'\)/.test(z)).join(' · '));
+    fTrashCopies.every(z => fTrashKey.test(z) && !/deleted/i.test(z)) &&
+    fTrashCopies.filter(z => /WHERE attachment_id = \?'\)/.test(z)).length === 1,
+    fTrashCopies.filter(z => !fTrashKey.test(z)).join(' · ') || 'attachment_id nicht genau einmal');
   check('Keine davon nennt den Papierkorb oder einen Zustand geloescht',
     tainted(fInventoryRows.filter(z => !fTrashCopies.includes(z))).length === 0,
     tainted(fInventoryRows.filter(z => !fTrashCopies.includes(z))).slice(0, 3).join(' · '));
@@ -1037,7 +1040,7 @@ async function run() {
         if (part.kind === CODE)
           for (const m of part.value.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) benchNames.add(m[0]);
     check('Der Waechter sieht wirklich den ganzen Pruefstand',
-      benchNames.size > 2000 && BENCH.length === 26,
+      benchNames.size > 2000 && BENCH.length === 27,
       `${benchNames.size} Bezeichner aus ${BENCH.length} Dateien`);
 
     /* Keine Benennungen, sondern Gegenstaende von Pruefungen: abgelegte
@@ -1074,8 +1077,8 @@ async function run() {
     const readShipped = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
     const stWord = 'Stolper' + 'stein';
     const stAll = [...BENCH, ...SHIPPED];
-    check('Der Waechter sieht alle zweiundvierzig Dateien',
-      stAll.length === 42, `${stAll.length} Dateien`);
+    check('Der Waechter sieht alle dreiundvierzig Dateien',
+      stAll.length === 43, `${stAll.length} Dateien`);
     /* Die SQL-Kommentare im SCHEMA von db.js stehen in einem Template-String,
        den segment() als Text liefert; hier zaehlen sie als Kommentar. */
     const stSqlRow = /^\s*--/;
@@ -1607,7 +1610,7 @@ async function run() {
         : part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('/'));
     // Auf leeren Mengen waeren die Pruefungen darunter immer gruen.
     check('Der Waechter sieht beide Seiten',
-      rrRoutes.length === 114 && rrBrowser.length > 100000,
+      rrRoutes.length === 115 && rrBrowser.length > 100000,
       `${rrRoutes.length} Routen, ${rrBrowser.length} Zeichen im Browser`);
     /* Die Verwaltungstafel baut diese Adressen aus ihrem Feld `url`; eine
        Suche, die das faende, faende jede Adresse. */
@@ -1838,8 +1841,8 @@ async function run() {
       }
       if (has) ssCode++;
     }
-    check('Und es stehen genau 1789 Regelzeilen da',
-      ssCode === 1789, `${ssCode} Zeilen`);
+    check('Und es stehen genau 1795 Regelzeilen da',
+      ssCode === 1795, `${ssCode} Zeilen`);
     // Laenger als drei Zeilen darf nur eine Tabelle gemessener Werte sein.
     const ssLines = ssBlocks.map(b => b.split('\n').length);
     const ssOver = ssLines.filter(n => n > 3).length;
@@ -1903,9 +1906,9 @@ async function run() {
     /* Jede Hochladeroute reicht ihre Grenzen an den Fehler-Handler weiter,
        sonst steht dort die englische Meldung von multer. */
     const fgLive = (fgServer.match(/cappedLive\(/g) || []).length;
-    check('Und alle sieben Hochladerouten reichen ihre Grenzen weiter',
-      fgLive === 7 && /capped\(importUpload\.single\('file'\)/.test(fgServer),
-      `${fgLive} Stellen mit cappedLive (sechs Routen und der Helfer selbst), dazu der Import`);
+    check('Und alle acht Hochladerouten reichen ihre Grenzen weiter',
+      fgLive === 8 && /capped\(importUpload\.single\('file'\)/.test(fgServer),
+      `${fgLive} Stellen mit cappedLive (sieben Routen und der Helfer selbst), dazu der Import`);
     check('Der Fehler-Handler kennt LIMIT_FILE_SIZE und LIMIT_UNEXPECTED_FILE',
       /err\.code === 'LIMIT_FILE_SIZE'/.test(fgServer)
       && /err\.code === 'LIMIT_UNEXPECTED_FILE'/.test(fgServer)

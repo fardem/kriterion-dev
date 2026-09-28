@@ -30,6 +30,41 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.46.0] - 2026-09-28
+
+*Videos unter „Dateien“.*
+
+Fingerprint `643e8f9e` — davor `6935aee7`.
+
+> **Die Datenbank bekommt beim ersten Start die Tabelle `attachment_stills`.**
+> Zu tun ist nichts.
+
+### Hinzugefügt
+
+- **Videos unter „Dateien“:** MP4, M4V, WebM und MOV spielen im Vollbild,
+  auch auf dem iPhone. ← → blättern durch Bilder und Videos der Gruppe.
+- **Vorschaubild eines Videos:** die Kachel zeigt es mit ▶ und der Dauer. Es
+  entsteht beim Hochladen im Browser bei 10 % der Länge; für vorhandene Videos
+  erzeugt es der Browser dessen, der sie hochgeladen hat, beim Öffnen des
+  Eintrags.
+- **„Dieses Bild als Vorschaubild“** im Menü ⋯ und im Vollbild eines eigenen
+  Videos.
+- Spielt der Browser ein Video nicht, steht im Vollbild ein Satz und
+  „Herunterladen“.
+
+### Geändert
+
+- Hat ein Video den Fokus, springen ← und → darin 5 Sekunden, im Vollbild wie
+  im großen Bild des Eintrags. Ohne Fokus blättern sie wie bisher.
+- Die Adresse einer Videodatei öffnet den Eintrag und darin das Vollbild, auch
+  über die Marke in Kommentar und Beschreibung; die Marke zeigt das
+  Vorschaubild mit ▶.
+- Jede Datei wird mit Range ausgeliefert; ein Video lässt sich darin spulen.
+- Ist ein Video für die Bildleiste zu groß, passt aber unter die Grenze
+  „Anhang“, nennt die Meldung den Block „Dateien“.
+- Vorschaubild und Dauer eines Videos kommen aus dem Papierkorb mit zurück.
+  Der Export trägt sie nicht; nach einem Import entsteht das Vorschaubild neu.
+
 ## [0.45.0] - 2026-09-28
 
 *Der Block „Dateien“ in Kacheln.*

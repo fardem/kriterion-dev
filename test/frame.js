@@ -455,8 +455,9 @@ const F_ROUTES = [
   // Hochladen darf jeder: eine Datei erscheint nur dort, wo man sie hinsetzt.
   ['POST',   '/api/items/:id/attachments',     'offen'],
   ['DELETE', '/api/attachments/:id',           'im Rumpf'],
-  // Den Haken stellt nur um, wer hochgeladen hat; die vorige Fassung, wer bearbeiten darf.
+  // Haken und Standbild setzt nur, wer hochgeladen hat; die vorige Fassung, wer bearbeiten darf.
   ['PUT',    '/api/attachments/:id/editing',   'im Rumpf'],
+  ['PUT',    '/api/attachments/:id/still',     'im Rumpf'],
   ['POST',   '/api/attachments/:id/previous',  'im Rumpf'],
   ['PUT',    '/api/items/:id/photo-order',     'entryAuthorOnly'],
   ['DELETE', '/api/photos/:id',                'im Rumpf'],
