@@ -229,6 +229,29 @@ Rückbauten mit neuem Suchtext: 1280 (Marke), 1289 und 1291 (Kachel am
 Server), 1292 (Adresse der Kachel), 1294 und 1295 (Bildfläche), 1312 (Adresse
 einer Bilddatei).
 
+**21 rot, 0 stumm**, gefahren auf `60b0bff` mit drei Spuren. Jeder ist in
+seiner erwarteten Gruppe rot und zusätzlich in „Jeder Suchtext kommt in seiner
+Datei genau einmal vor“, weil die Prüfung den zurückgebauten Stand liest. Rot
+auch in weiteren Gruppen:
+
+- 1280 in „Adresse, Marke und Bildleiste“. Die Bedingung gilt für Bilddateien
+  und für Videos mit Standbild.
+- 1289 in „Vorschauart, Range und Standbild am Server“. Auch die Kachel eines
+  Videos wird beim ersten Abruf von `?size=thumb` abgelegt.
+- 1292 in fünf weiteren Gruppen, 1294 in drei. `fileTileSource()` und das
+  Feld `picture` gelten für Bilddateien und Videos.
+- 1295 in „Keine nackte Einsetzung in innerHTML“ und „Dateien in Kacheln:
+  Kachel und Klick“.
+- 1312 in „Verweise auf Dateien: die eigene Ansicht jeder Datei“.
+- 1316 in „Dateien in Kacheln: Kachel und Klick“ und in „Standbild beim
+  Hochladen, von Hand und nachgeholt“. Dort verlangt „Einmal je Sitzung und
+  Datei und nur beim Verfasser“ eine Kachel ohne Bild, wenn das Nachholen
+  scheitert.
+- 1316 in der Prüfung „Eine Sekunde vor Ablauf traegt der Link noch“ und 1321
+  in „Und das Vierfache an Text kostet nicht das Sechzehnfache an Zeit“: zwei
+  Zeitmessungen ohne Bezug zum Rückbau, rot unter der Last von drei Spuren. Im
+  vollen `npm test` auf `60b0bff` waren beide grün.
+
 ---
 
 ## 6. Nicht geprüft und offen
