@@ -473,12 +473,23 @@ async function run() {
     };
     sw.DocsAPI = { DocEditor: function () { this.destroyEditor = () => {}; } };
     sw.HTMLElement.prototype.scrollIntoView = function () { scrolled.push(this.dataset.file || this.className); };
-    await until(sw, (x) => x.document.querySelectorAll('#atts .arow').length === 6 && openRequests(x) === 0, 3000, 'die Dateiliste');
-    const pens = [...sw.document.querySelectorAll('#atts .arow .aedit')];
-    check('Der Stift steht nur an der Datei, die bearbeitet werden darf, und fuehrt zum Editor',
-      pens.length === 1 && pens[0].getAttribute('href') === '#/item/1/file/45/edit' &&
-      pens[0].closest('.arow')?.dataset.file === '45' && pens[0].title === DE['entry.edit'],
-      pens.map(p => p.getAttribute('href')).join(' '));
+    await until(sw, (x) => x.document.querySelectorAll('#atts .atile[data-file]').length === 6 && openRequests(x) === 0, 3000, 'die Kacheln');
+    const menuOf = (win, id) => {
+      win.document.querySelector(`#atts .atile[data-file="${id}"] .amore`)?.click();
+      return [...win.document.querySelectorAll('.fmenu .fmenu-item')];
+    };
+    const closeMenu = (win) =>
+      win.document.activeElement?.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    const foreignWords = menuOf(sw, 46).map(e => e.textContent);
+    closeMenu(sw);
+    const editItem = menuOf(sw, 45).find(e => e.textContent === DE['entry.edit']);
+    editItem?.click();
+    const editHash = sw.location.hash;
+    await until(sw, () => sAsked.length === 1 && openRequests(sw) === 0, 2000, 'den Editor').catch(() => {});
+    check('„Bearbeiten" steht nur im Menue der Datei, die bearbeitet werden darf, und fuehrt zum Editor',
+      !!editItem && !foreignWords.includes(DE['entry.edit']) && editHash === '#/item/1/file/45/edit' &&
+      /&edit=1&/.test(sAsked[0] || ''), `${editHash} · ${foreignWords.join(' / ')}`);
+    sAsked.length = 0;
     sw.document.documentElement.dataset.theme = 'light';
     sw.history.replaceState(null, '', '#/item/1/file/45');
     await sw.eval('route()');
@@ -490,8 +501,8 @@ async function run() {
     scrolled.length = 0;
     sw.history.replaceState(null, '', '#/item/1');
     await sw.eval('route()');
-    await until(sw, (x) => x.document.querySelectorAll('#atts .arow').length === 6 && openRequests(x) === 0, 3000, 'den Eintrag');
-    check('Zurueck im Eintrag steht die Zeile der Datei im Bild',
+    await until(sw, (x) => x.document.querySelectorAll('#atts .atile[data-file]').length === 6 && openRequests(x) === 0, 3000, 'den Eintrag');
+    check('Zurueck im Eintrag steht die Kachel der Datei im Bild',
       scrolled.includes('45'), scrolled.join(' ') || 'nicht gescrollt');
     sw.close();
 
@@ -515,18 +526,31 @@ async function run() {
       }
       return pInner(url, opt);
     };
-    const rightsButtons = [...pw.document.querySelectorAll('#atts .arow .arights')];
-    check('Das Zeichen fuer die Schreibrechte steht nur an der eigenen Datei',
-      rightsButtons.length === 1 && rightsButtons[0].closest('.arow')?.dataset.file === '45' &&
-      rightsButtons[0].title === DE['entry.editAllOff'], rightsButtons.map(b => b.closest('.arow')?.dataset.file).join(' '));
-    await rightsButtons[0]?.onclick({ stopPropagation() {} });
+    const foreignRights = menuOf(pw, 46).some(e => e.textContent.endsWith(DE['entry.editAll']));
+    closeMenu(pw);
+    const rights = menuOf(pw, 45).find(e => e.textContent.endsWith(DE['entry.editAll']));
+    check('„Bearbeiten durch alle" steht nur im Menue der eigenen Datei, ohne Haken',
+      !!rights && !foreignRights && rights.getAttribute('role') === 'menuitemcheckbox' &&
+      rights.getAttribute('aria-checked') === 'false', `${rights?.outerHTML} · fremd ${foreignRights}`);
+    rights?.click();
+    await until(pw, () => toggled.length === 1 && openRequests(pw) === 0, 2000, 'das Umschalten').catch(() => {});
     check('Ein Klick schaltet Bearbeiten durch alle fuer diese Datei um',
       equal(toggled, [{ editAll: true }]), JSON.stringify(toggled));
-    const uploadRow = pw.document.getElementById('aadd')?.parentElement;
-    await pw.document.getElementById('afile').onchange({ target: { files: [new pw.File(['x'], 'neu.docx')], value: '' } });
-    check('Beim Hochladen steht kein Haken mehr, und es geht kein editAll mit',
-      !uploadRow?.querySelector('input[type=checkbox]') && !!form && form.get('editAll') === null,
-      `${uploadRow?.querySelector('input[type=checkbox]') ? 'Haken da' : ''} ${form?.get?.('editAll')}`);
+    pw.XMLHttpRequest = class {
+      constructor() { this.upload = {}; }
+      open() {}
+      setRequestHeader() {}
+      send(body) { form = body; }
+      abort() {}
+    };
+    const addTile = pw.document.querySelector('#atts .atile[data-key="add"]');
+    const input = pw.document.getElementById('afile');
+    Object.defineProperty(input, 'files', { value: [new pw.File(['x'], 'neu.docx')], configurable: true });
+    input.onchange({ target: input });
+    check('Beim Hochladen steht kein Haken, und es geht kein editAll mit',
+      !!addTile && !addTile.querySelector('input[type=checkbox]') && !!form && form.get('editAll') === null &&
+      form.get('files')?.name === 'neu.docx',
+      `${addTile?.querySelector('input[type=checkbox]') ? 'Haken da' : ''} ${form?.get?.('editAll')}`);
     pw.DocsAPI = { DocEditor: function () { this.destroyEditor = () => {}; } };
     pw.document.documentElement.dataset.theme = 'light';
     pw.history.replaceState(null, '', '#/item/1/file/45');

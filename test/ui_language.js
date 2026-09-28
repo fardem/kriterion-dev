@@ -221,6 +221,8 @@ async function run() {
       'image/', 'image/*', 'image/jpeg', 'PNG', 'JPEG', 'GIF', '_blank', 'https://',
       // Die Auswahl im Kommentar nimmt auch Videos.
       'image/*,video/*', 'video/',
+      // Die Art im DataTransfer, wenn Dateien auf den Block gezogen werden
+      'Files',
       'SSL/TLS', 'STARTTLS',
       // Der Name des Programms, bevor /api/config antwortet
       'Kriterion',

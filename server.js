@@ -3652,7 +3652,9 @@ app.put('/api/photos/:id/focus', (req, res) => {
 /* ---- Anhaenge ---- */
 /* Keine Pruefung beim Hochladen; die Sicherheit liegt bei der Auslieferung
    (attachments.setHeader). */
-const ATTACHMENT_COUNT = 20;
+/* Je Anfrage und je Eintrag; beide auch in public/app.js. */
+const FILES_PER_REQUEST = 20;
+const FILES_PER_ENTRY = 100;
 const attachmentUpload = (bytes) => upload({ storage: multer.memoryStorage(), limits: { fileSize: bytes } });
 
 /* Hochladen darf jeder, wie bei Links: die Datei erscheint nur an diesem
@@ -3664,8 +3666,8 @@ const putFileTile = db.prepare('INSERT OR REPLACE INTO attachment_thumbs (attach
 const fileTile = async (bytes) => (await makeVariants(bytes, DEFAULT_CROP, ['thumb'])).thumb;
 
 app.post('/api/items/:id/attachments',
-         cappedLive(bytes => attachmentUpload(bytes).array('files', ATTACHMENT_COUNT),
-                    () => ({ count: ATTACHMENT_COUNT, bytes: limitBytes('attachment'), key: 'server.uploadCap' })),
+         cappedLive(bytes => attachmentUpload(bytes).array('files', FILES_PER_REQUEST),
+                    () => ({ count: FILES_PER_REQUEST, bytes: limitBytes('attachment'), key: 'server.uploadCap' })),
          async (req, res, next) => {
   try {
     // Nur der Name, nie ein Pfad: "../../etwas" bleibt ein Dateiname.
@@ -3679,8 +3681,8 @@ app.post('/api/items/:id/attachments',
     if (entryTooLarge(req.params.id, req.files)) return refuseEntryFull(req, res);
     const da = db.prepare('SELECT COUNT(*) n FROM attachments WHERE item_id = ?').get(req.params.id).n;
     const fresh = (req.files || []).length;
-    if (da + fresh > ATTACHMENT_COUNT)
-      return res.status(400).json({ error: t(localeOf(req), 'server.fileCap', { cap: ATTACHMENT_COUNT })});
+    if (da + fresh > FILES_PER_ENTRY)
+      return res.status(400).json({ error: t(localeOf(req), 'server.fileCap', { cap: FILES_PER_ENTRY })});
     let pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM attachments WHERE item_id = ?')
       .get(req.params.id).m + 1;
     const into = db.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)

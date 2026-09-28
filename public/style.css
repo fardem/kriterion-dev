@@ -125,6 +125,7 @@
   --z-masthead: 20;
   --z-masthead-menu: 30;
   --z-compare-bar: 40;
+  --z-file-menu: 50;
   --z-lightbox: 90;
   --z-dialog: 100;
   --z-toast: 120;
@@ -717,7 +718,7 @@ mark {
 .thumb .del { position: absolute; top: 0; right: 0; width: 19px; height: 19px; background: rgba(var(--photo-rgb), .82); color: var(--on-photo); font-size: .73rem; display: flex; align-items: center; justify-content: center; border-radius: 0 0 0 6px; opacity: 0; transition: opacity .15s var(--ease); }
 /* `pointer-events: none`, sonst faengt die Marke das Ziehen zum
    Umsortieren ab. */
-.thumb .play-badge, .lb-thumb .play-badge, .cmt-img .play-badge, .markup-pic .play-badge {
+.thumb .play-badge, .lb-thumb .play-badge, .cmt-img .play-badge, .markup-pic .play-badge, .apic .play-badge {
   position: absolute; top: 3px; left: 3px; pointer-events: none;
   font-size: .58rem; line-height: 1; color: var(--text-2);
   width: 16px; height: 16px; display: flex; align-items: center; justify-content: center;
@@ -890,7 +891,7 @@ mark {
 .xdel { color: var(--faint); font-size: .87rem; opacity: 0; transition: opacity .15s var(--ease), color .15s var(--ease); padding: 2px 5px; border-radius: 4px; }
 /* Jede Zeilenart mit `.xdel` hier eintragen, sonst bleibt das Kreuz
    unsichtbar. */
-.lrow:hover .xdel, .trow:hover .xdel, .arow:hover .xdel { opacity: 1; }
+.lrow:hover .xdel, .trow:hover .xdel { opacity: 1; }
 @media (hover: none) { .xdel { opacity: 1; } }
 /* An einer Stimme ist das Kreuz immer sichtbar; in der schmalen Zeile
    faende man es sonst nicht. */
@@ -957,7 +958,7 @@ mark {
 .lbottom .path, .lbottom .snames { flex: 0 1 auto; min-width: 0; }
 /* Nicht abschneiden; gekuerzt wird die Adresse. */
 .lrow .lfrom { flex-shrink: 0; font-size: .7rem; color: var(--muted); }
-/* Wie `#atts`: alle Zeilen in denselben Spalten, auch auf dem Telefon. */
+/* Alle Linkzeilen in denselben Spalten, auch auf dem Telefon. */
 @supports (grid-template-columns: subgrid) {
   #links { display: grid; grid-template-columns: [grip] auto [num] auto [url] minmax(0, 1fr) [from] auto [go] auto [del] auto; }
   #links > * { grid-column: 1 / -1; }
@@ -1297,7 +1298,7 @@ mark {
 .mrow .cleanup-badge { flex-shrink: 0; font-size: .7rem; letter-spacing: .03em; text-transform: uppercase; }
 .mrow .cleanup-badge.remove { color: var(--red); }
 .mrow .cleanup-badge.old { color: var(--faint); }
-/* Hover wie bei `.lrow`, `.trow` und `.arow`; zusammen aendern. */
+/* Hover wie bei `.lrow` und `.trow`; zusammen aendern. */
 .mrow { display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: var(--r-sm); background: var(--surface-2); margin-bottom: 5px; border: 1px solid transparent;
   transition: background .15s var(--ease), border-color .15s var(--ease); }
 .mrow:hover { border-color: var(--line); background: var(--surface-3); }
@@ -1688,59 +1689,68 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
 }
 
 /* ================= Dateien am Eintrag ================= */
-.arow {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 10px; border-radius: var(--r-sm); background: var(--surface-2);
-  margin-bottom: 5px; border: 1px solid transparent;
-  transition: background .15s var(--ease), border-color .15s var(--ease);
+/* Kante der Kachel: 128 px am Rechner, 96 px am Telefon. auto-fill wie `.thumbs`. */
+.agrid {
+  --file-tile: 128px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--file-tile), 1fr));
+  gap: 12px 10px; margin: 10px 0; padding: 0; list-style: none;
 }
-.arow { cursor: pointer; }
-.arow:hover { border-color: var(--line); background: var(--surface-3); }
-.arow.open { border-color: var(--line); }
-.arow.open .aicon { color: var(--accent-text); }
-.arow .ago { color: var(--faint); font-size: .73rem; flex-shrink: 0; }
-.arow:hover .ago { color: var(--muted); }
-/* Eigener Download-Knopf: bei Dateien mit Vorschau oeffnet der Klick auf
-   die Zeile die Vorschau. */
-.arow .adl, .arow .aopen, .arow .alink {
-  color: var(--faint); font-size: .87rem; line-height: 1; padding: 2px 6px; border-radius: 4px;
-  opacity: 0; flex-shrink: 0; transition: opacity .15s var(--ease), color .15s var(--ease);
+.atile { position: relative; min-width: 0; }
+.aface {
+  display: flex; flex-direction: column; gap: 3px; width: 100%; min-width: 0;
+  padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer;
 }
-.arow:hover .adl, .arow:hover .aopen, .arow:hover .alink { opacity: 1; }
-.arow .adl:hover, .arow .aopen:hover, .arow .alink:hover { color: var(--accent-text); background: var(--surface); }
-@media (hover: none) { .arow .adl, .arow .aopen, .arow .alink { opacity: 1; } }
-.arow .alink { display: inline-flex; }
-/* Der Stift steht immer da: er zeigt, welche Datei bearbeitet werden kann. */
-.arow .aedit, .fileview-bar .aedit { opacity: 1; color: var(--accent-text); }
-.arow .arights { display: inline-flex; padding: 4px 8px; border: 0; border-radius: 4px; background: none; color: var(--faint); cursor: pointer; }
-.arow .arights.on { color: var(--accent-text); }
-.arow .aicon { color: var(--faint); font-size: .87rem; flex-shrink: 0; }
-.arow .athumb { display: block; width: 28px; height: 28px; object-fit: cover; border-radius: 3px; }
-.arow .aname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .87rem; }
-.arow .asize { font-family: var(--mono); font-size: .7rem; color: var(--faint); flex-shrink: 0; }
-/* Nicht abschneiden; schrumpfen darf nur `.aname`. */
-.arow .afrom { font-size: .7rem; color: var(--muted); flex-shrink: 0; }
-/* Alle Zeilen in denselben Spalten, so breit wie der breiteste Eintrag der
-   Liste. Fehlt ein Knopf, bleibt seine Spalte leer; Abstand ueber margin, damit
-   eine leere Spalte keinen Abstand traegt. */
-@supports (grid-template-columns: subgrid) {
-  #atts { display: grid; grid-template-columns: [icon] auto [name] minmax(0, 1fr) [size] auto [from] auto [go] auto [rights] auto [edit] auto [open] auto [link] auto [dl] auto [del] auto; }
-  #atts > * { grid-column: 1 / -1; }
-  .arow { display: grid; grid-template-columns: subgrid; gap: 0; }
-  .arow > * + * { margin-left: 10px; }
-  .arow .aicon { grid-column: icon; }
-  .arow .aname { grid-column: name; }
-  .arow .asize { grid-column: size; justify-self: end; }
-  .arow .afrom { grid-column: from; }
-  .arow .ago { grid-column: go; }
-  .arow .arights { grid-column: rights; }
-  .arow .aopen { grid-column: open; }
-  /* Nach `.aopen`: der Stift traegt beide Klassen. */
-  .arow .aedit { grid-column: edit; }
-  .arow .alink { grid-column: link; }
-  .arow .adl { grid-column: dl; }
-  .arow .xdel { grid-column: del; }
+.apic {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  aspect-ratio: 1 / 1; margin-bottom: 3px; border-radius: 8px; overflow: hidden;
+  background: var(--surface-2); border: 2px solid var(--line);
+  transition: border-color .15s var(--ease);
 }
+.aface:hover .apic { border-color: var(--line-hover-2); }
+.aface:focus-visible { outline: none; }
+.aface:focus-visible .apic { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+/* Rahmen, solange Vorschau oder Vollbild dieser Datei offen ist. */
+.atile.open .apic { border-color: var(--accent); }
+.apic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.aext { font-family: var(--mono); font-size: 1.05rem; font-weight: 700; letter-spacing: .05em; color: var(--muted); }
+.aname { display: block; min-width: 0; font-size: .77rem; line-height: 1.3; color: var(--text-2); }
+.aname-head, .aname-tail { display: block; overflow: hidden; white-space: nowrap; }
+.aname-head { text-overflow: ellipsis; }
+.aname-all {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; overflow-wrap: anywhere;
+}
+.ameta { font-family: var(--mono); font-size: .66rem; color: var(--faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Immer sichtbar, auch ohne Zeiger. */
+.amore {
+  position: absolute; top: 5px; right: 5px; width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  border: 0; border-radius: 6px; background: rgba(var(--photo-rgb), .78); color: var(--on-photo);
+  font-size: 1rem; line-height: 1; cursor: pointer;
+}
+.amore:hover, .amore[aria-expanded="true"] { background: var(--accent); color: var(--on-accent); }
+/* Genau eins: Ring mit Prozent, „wartet" oder ⚠. `--done` setzt app.js. */
+.astate {
+  position: absolute; right: 5px; bottom: 5px; min-width: 24px; height: 24px; padding: 0 7px;
+  display: flex; align-items: center; justify-content: center; border-radius: 999px;
+  background: rgba(var(--photo-rgb), .82); color: var(--on-photo);
+  font-family: var(--mono); font-size: .6rem; white-space: nowrap;
+}
+.astate.run {
+  width: 38px; height: 38px; padding: 0;
+  background: radial-gradient(closest-side, rgb(var(--photo-rgb)) 78%, transparent 80%),
+    conic-gradient(var(--accent) calc(var(--done, 0) * 1%), var(--line-hover-2) 0);
+}
+.astate.fail { background: var(--red); color: var(--on-signal); font-size: .8rem; }
+.atile.failed .aname { color: var(--red); }
+.aadd .apic { background: none; border-style: dashed; }
+.aplus { font-size: 2rem; font-weight: 300; line-height: 1; color: var(--muted); }
+.aadd.full .aface { cursor: not-allowed; }
+.aadd.full .aplus { opacity: .35; }
+.aempty { margin: 8px 0 0; }
+/* Ablegen nur mit Maus; auf dem Telefon waere der Satz falsch. */
+@media (pointer: coarse), (pointer: none) { .adrop-hint { display: none; } }
+.block[data-block="dateien"].over { outline: 2px dashed var(--accent); outline-offset: 4px; }
 /* Nur der Ausweichknopf der PDF-Vorschau. */
 .abtn {
   font-size: .73rem; color: var(--muted); padding: 3px 8px; border-radius: 5px;
@@ -1752,6 +1762,15 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
   margin: 0 0 10px; padding: 10px; border-radius: var(--r-sm);
   background: var(--image-bg); border: 1px solid var(--line);
 }
+.apreview-head { display: flex; align-items: center; gap: 6px; margin: -4px 0 8px; font-size: .85rem; }
+.apreview-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.apreview-size { flex-shrink: 0; font-family: var(--mono); font-size: .7rem; color: var(--faint); }
+.apreview-head a, .apreview-head button {
+  flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+  min-width: 32px; height: 32px; padding: 0 6px; border: 0; border-radius: 5px;
+  background: none; color: var(--muted); font-size: .95rem; cursor: pointer;
+}
+.apreview-head a:hover, .apreview-head button:hover { color: var(--accent-text); background: var(--surface); }
 .apreview img { max-width: 100%; max-height: 460px; display: block; margin: 0 auto; border-radius: 4px; }
 .apreview iframe { width: 100%; height: 520px; border: 0; border-radius: 4px; background: var(--preview-bg); }
 /* Der Document Server ersetzt das innere div durch seinen Rahmen. */
@@ -1786,6 +1805,31 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
 .ex-files { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: .83rem; color: var(--muted); cursor: pointer; }
 .ex-files input { accent-color: var(--accent); }
 .apdf-hint { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 0 0; flex-wrap: wrap; }
+
+/* ================= Menue an Kachel und Ordner ================= */
+.fmenu {
+  position: absolute; z-index: var(--z-file-menu); min-width: 220px; max-width: min(320px, calc(100vw - 16px));
+  padding: 6px; border-radius: var(--r-sm); background: var(--surface-2); border: 1px solid var(--line);
+  box-shadow: var(--sh-lg);
+}
+.fmenu-head { display: flex; flex-direction: column; gap: 2px; padding: 6px 10px 8px; margin-bottom: 4px; border-bottom: 1px solid var(--line); }
+.fmenu-name { font-size: .85rem; font-weight: 600; overflow-wrap: anywhere; }
+.fmenu-sub { font-size: .74rem; color: var(--muted); overflow-wrap: anywhere; }
+.fmenu-item {
+  display: flex; align-items: center; gap: 6px; width: 100%; padding: 8px 10px;
+  border: 0; border-radius: 5px; background: none; color: var(--text);
+  font: inherit; font-size: .87rem; text-align: left; text-decoration: none; cursor: pointer;
+}
+.fmenu-item:hover, .fmenu-item:focus-visible { background: var(--surface-3); outline: none; }
+.fmenu-item.danger { color: var(--red); }
+.fmenu-mark { width: 16px; flex-shrink: 0; color: var(--accent-text); }
+/* Am Telefon als Liste am unteren Rand, ueber einem Schleier. */
+.fmenu.sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; max-width: none;
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); border-radius: 14px 14px 0 0;
+}
+.fmenu.sheet .fmenu-item { padding: 13px 12px; }
+.fmenu-shade { position: fixed; inset: 0; z-index: var(--z-file-menu); background: var(--scrim); }
 
 /* ================= Verknüpfung der Tagfilter ================= */
 .tagmode { display: inline-flex; gap: 3px; flex-shrink: 0; margin-right: 4px; }
@@ -2035,7 +2079,6 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
   /* 32 px, sonst trifft man oft den fuenften Stern daneben. */
   .rreset { width: 32px; height: 32px; }
   .mrow .mact { padding: 9px 11px; }
-  .arow .adl, .arow .alink { padding: 9px 11px; }
   .cmt-head button { padding: 8px 10px; }
   .cmt-head .acts, .cmt-head .marks { gap: 2px; }
   /* 2 px `gap` plus 11 px: 13 px Abstand vor dem Loeschknopf. */
@@ -2068,7 +2111,7 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      Nicht am Vollbild: dort hat der Doppeltipp eine Bedeutung. */
   .btn, .icon-btn, .pill, .mark, .switch, .chip, .pick-box, .star,
   .abtn, .link-btn, .xdel, .open-check, .pin-btn, .vnav, .vfocus, .vlink, .vfull,
-  .cmt-head button, .mrow .mact, .arow .adl, .arow .alink,
+  .cmt-head button, .mrow .mact, .aface, .amore,
   .rej-note .mact { touch-action: manipulation; }
 
   /* Bei kleinerer Schrift zoomt Safari auf iOS beim Tippen die Seite heran. `max()`,
@@ -2256,7 +2299,7 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
 
   /* Gleicher Radius fuer alles in einer Flucht, der groessere des Bildbereichs.
      `.keyline` und `.two-factor-key` fehlen, sie liegen in einem Kasten. */
-  .viewer, .drop, .ta, .cmt, .lrow, .trow, .arow, .mrow, .open-group,
+  .viewer, .drop, .ta, .cmt, .lrow, .trow, .mrow, .open-group,
   .apreview, .vocabulary-preview, .warn-box, .ok-box, .engine, .empty, .timeline {
     border-radius: var(--r);
   }
@@ -2345,13 +2388,9 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
   .rlist:not(.no-average) .rrow .ravg,
   .rlist:not(.no-average) .rrow .rreset-cell { padding-bottom: 5px; }
 
-  /* Datei- und Testtagzeile brechen um, sonst wird die Dateiendung abgeschnitten. */
-  #atts { display: block; }
-  .arow { display: flex; flex-wrap: wrap; gap: 10px; row-gap: 2px; }
-  .arow > * + * { margin-left: 0; }
-  .arow .aname { flex: 1 1 auto; }
-  .arow .asize, .arow .afrom { order: 2; }
-  .arow .asize { margin-left: auto; }
+  /* Drei Spalten bei 344 px; ⋯ bekommt 44 px fuer den Finger. */
+  .agrid { --file-tile: 96px; gap: 10px 8px; }
+  .amore { top: 0; right: 0; width: 44px; height: 44px; border-radius: 0 8px 0 8px; }
   /* 8px: Datum, Verfasser, Knopf, Sterne und Papierkorb brauchen 311 von 344 px.
      `row-gap` muss nach `gap` stehen, das beide Richtungen setzt. */
   .trow { flex-wrap: wrap; gap: 8px; row-gap: 4px; }
