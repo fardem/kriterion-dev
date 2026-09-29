@@ -34,7 +34,7 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Dateien: Liste, Vorschaubilder für Dokumente, Ordner eingefasst.*
 
-Fingerprint `FINGERPRINT` — davor `e480ecfc`.
+Fingerprint `210a7f57` — davor `e480ecfc`.
 
 > **Mit eingeschaltetem Document Server holt er jede Office-Datei und jedes PDF
 > einmal für das Vorschaubild ab.** Sie liegen danach unverschlüsselt in seinem

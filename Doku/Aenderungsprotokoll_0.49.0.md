@@ -1,6 +1,6 @@
 # Änderungsprotokoll 0.49.0 — „Dateien: Liste, Vorschaubilder für Dokumente, Ordner eingefasst“
 
-**Gebaut am 29. September 2026 auf 0.48.0. Fingerprint `FINGERPRINT`, davor
+**Gebaut am 29. September 2026 auf 0.48.0. Fingerprint `210a7f57`, davor
 `e480ecfc`.**
 
 Nach `Doku/Auftrag_0.49.0.md` und dem Eintrag 0.49.0 im Fahrplan. Schema: nein.
