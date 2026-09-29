@@ -1,6 +1,6 @@
 # Fahrplan
 
-**Der Plan von 0.41.0 bis 0.48.0 · Stand 28. September 2026, 0.44.2 gebaut**
+**Der Plan von 0.41.0 bis 0.49.0 · Stand 29. September 2026, 0.47.1 gebaut**
 
 *Hier stand vorher „von 0.26.0 bis 1.0 · Stand 9. September 2026": beides ist
 überholt — es wird kein 1.0.0 geben, und seither sind dreizehn Runden gebaut.*
@@ -204,6 +204,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.47.0**~~ | ~~**Ordner**~~ | **GEBAUT am 29. September 2026** auf 0.46.0 — Änderungsprotokoll 0.47.0, nach `Doku/Auftrag_0.47.0.md`. Ordner unter „Dateien": „Ordner hinzufügen" im Kopf des Blocks, oben die Dateien ohne Ordner, darunter die Ordner neueste oben, beim Öffnen eines Eintrags alle zu; „+" und Ablegen in eigene Ordner; „Verschieben nach …" als zweite Ebene im Menü (C1), die Datei behält ihre Stelle (C3); ein gelöschter Ordner lässt seine Dateien ohne Ordner stehen, ein Upload in ihn endet mit ⚠ (C2). Neue Tabellen `folders` und `attachment_folders`, vier neue Routen. Export mit Format 21 samt Ordnern, Vorschaubild und Dauer; Import und Papierkorb stellen beides her. ✕ in der eigenen Ansicht einer Datei, beim Ansehen wie beim Bearbeiten (C4); eine 403 ohne Text meldet den Reverse Proxy. Die Fragetafel ist vor dem Bau beantwortet worden. **MINOR** *(1.245 → 1.259 Rückbauten, Prüfstand 7.642 → 7.687). Fingerprint `636c7c11` (davor `643e8f9e`)* | **ja** | 20 → 21 |
 | ~~**0.47.1**~~ | ~~**Abhängigkeiten ohne bekannte Lücke**~~ | **GEBAUT am 29. September 2026** auf 0.47.0 — Änderungsprotokoll 0.47.1. *Fragetafel vom 29. September 2026:* `nodemailer` 9.1.1 → 10.0.12, `multer` 2.3.0 → 2.4.0, `undici` 8.10.0 → 8.11.2 nur im Prüfstand; `npm audit` meldet danach keine Lücke. nodemailer 10 verlangt Node 20, das Image bringt Node 22. **PATCH** *(1.259 Rückbauten, Prüfstand 7.687). Fingerprint `a49b4154` (davor `636c7c11`)* | nein | — |
 | **0.48.0** | **Testtage und Dateien auf der Platte** | Ordner einem Testtag zuweisen, Sprung von der Testtagzeile; was zu einem Testtag gehört, liegt verschlüsselt auf der Platte; Upload in Stücken, große Videos bis 2 GB, Backup mit Dateien | **ja** | 21 → 22 |
+| **0.49.0** | **Dateien als Kacheln oder als Liste** | Umschalter im Kopf des Blocks „Dateien“: „Kacheln“, der Stand seit 0.45.0, und „Liste“, eine Zeile je Datei mit Spalten wie die Detailansicht im Windows-Explorer. Ordner, Menü ⋯, Vorschau, Vollbild und Hochladen verhalten sich in beiden Ansichten gleich. Offene Fragen im Abschnitt 0.49.0 | nein | — |
 | ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. Die zwei offenen Punkte des Eintrags stehen in der Zeile darunter | — | — |
 | ~~*ohne Nummer*~~ | ~~**Vorgabewerte und Tastaturbedienung beim Sortieren**~~ | **VORLÄUFIG GESTRICHEN am 21. September 2026:** der Inhalt ist nirgends beschrieben — weder hier noch im Sammelblatt noch im Projektstand steht, welche Vorgabewerte gemeint sind und was die Tastatur beim Sortieren tun soll. *Die Zeile kommt zurück, sobald der Betreiber sagt, was gemeint war.* | — | — |
 | ~~*ohne Nummer*~~ | ~~**Die Doppelung in der README auflösen**~~ | **GEBAUT mit 0.38.0 am 19. September 2026.** *Befund aus BA 6 der 0.37.0: zwei Abschnitte der README trugen dieselben drei Sachverhalte — dass eine fehlende Spalte nicht nachgerüstet wird, dass der Kasten jede fehlende Spalte samt altem Namen nennt, und dass die Instanz startet, aber jede Seite scheitert, die eine der Spalten liest.* **Jetzt verweist jeder der beiden auf den anderen:** `README.md`:348 nach unten, `README.md`:464 nach oben. *0.38.5 hat die README danach noch einmal gegliedert.* | nein | — |
@@ -3369,6 +3370,45 @@ Verzeichnis je Ordner, Entschlüsseln im Browser.
 `README.md` und `keytool.sh` (0.48.0), die Module des Prüfstands und
 `counterproof.js`. Je Version stehen die Stellen im Konzept, Abschnitt 10 und
 Anhang A.
+
+---
+
+## 0.49.0 — „Dateien als Kacheln oder als Liste“
+
+**Aufgenommen am 29. September 2026.** Wunsch des Betreibers: Der Block
+„Dateien“ bekommt zwei Ansichten, „Kacheln“ wie heute und „Liste“ ähnlich der
+Detailansicht im Windows-Explorer. Gebaut wird nach 0.48.0.
+
+### Was gemeint ist
+
+| Ansicht | Inhalt |
+|---|---|
+| Kacheln | der Stand seit 0.45.0: Vorschaubild oder Endung, darunter Name und Größe, Menü ⋯ an jeder Kachel |
+| Liste | eine Zeile je Datei: kleines Zeichen, Name und weitere Spalten, etwa Art, Größe, Datum des Uploads und wer hochgeladen hat; Menü ⋯ am Ende der Zeile |
+
+Umgeschaltet wird im Kopf des Blocks, neben „Ordner hinzufügen“. Es gelten
+die Regeln der Strecke 0.45.0 bis 0.48.0: Ein Klick zeigt eine Datei und lädt
+nie herunter, alles andere steht im Menü ⋯. Ordner, Vorschau, Vollbild,
+Hochladen, Ablegen und Tastatur verhalten sich in beiden Ansichten gleich.
+
+### Offen für den Auftrag
+
+- Welche Spalten, in welcher Reihenfolge, und welche davon am Telefon.
+- Sortieren über den Spaltenkopf wie im Explorer oder feste Reihenfolge nach
+  der Zeit des Uploads wie heute.
+- Wo die Wahl gilt: je Account für alle Einträge, je Eintrag oder nur im
+  Browser. Je Account käme ein persönlicher Schlüssel in `user_settings` dazu,
+  wie für die Anordnung der Blöcke.
+- Die Vorgabe für neue Accounts.
+- Ordner in der Liste: als Zeile mit ▸ und ▾ und eingerückten Dateien oder als
+  Kopfzeile je Gruppe wie bei den Kacheln.
+- Wo die Vorschau in der Liste öffnet: unter der Zeile oder unter der Gruppe.
+
+### Was es anfasst
+
+`public/app.js`, `public/style.css`, die drei Sprachdateien, `manual-de.md`,
+die Module des Prüfstands und `counterproof.js`; je nach Antwort zur Wahl der
+Ansicht auch `server.js`. Schema: nein. Das Austauschformat bleibt.
 
 ---
 
