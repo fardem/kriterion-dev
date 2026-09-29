@@ -10101,6 +10101,13 @@ const REGRESSIONS = [
     replacement: "      tileTries++;\n",
     expected: "Dateien: Vorschaubild und Nachladen im Browser"
   },
+  {
+    nr: '1459', name: "Der Pfad fuer NPMplus traegt wieder {32}",
+    file: 'README.md',
+    search: "  `^/api/(import|uploads/[0-9a-f]+|(items|comments)/[0-9]+/(photos|videos|attachments|comments|images))$`",
+    replacement: "  `^/api/(import|uploads/[0-9a-f]{32}|(items|comments)/[0-9]+/(photos|videos|attachments|comments|images))$`",
+    expected: "Reverse Proxy: die Pfade fuer NPMplus in der README"
+  },
 ];
 
 /* ---- Spuren und Versatz ---- */

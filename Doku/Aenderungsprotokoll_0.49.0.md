@@ -30,6 +30,7 @@ beim Schreiben des Auftrags.
 | 29. September 2026 | E12 a): ohne eigene Wahl die Kacheln |
 | 29. September 2026 | E13 a): keine Kopfzeile mit Spaltennamen |
 | 29. September 2026 | E14 a): der Browser fragt nach 3, 6, 12 und 24 s nach |
+| 29. September 2026 | Befund des Betreibers während des Baus: Der Pfad der Upload-Location aus der README lässt sich in NPMplus nicht eintragen, der Host geht offline |
 
 ---
 
@@ -48,7 +49,7 @@ Gemessen am fertigen Stand gegen 0.48.0.
 | Protokollzeilen in den sechs Dateien | 72 | **73** |
 | Kommentarzeilen | 6.878 in 45 Dateien | **6.920 in 46** |
 | Dateien des Prüfstands samt `counterproof.js` | 29 | **30** |
-| Rückbauten | 1.335 | **1.375** |
+| Rückbauten | 1.335 | **1.376** |
 | Prüfungen im Prüfstand | 7.765 | **PRUEFSTAND** |
 
 ---
@@ -105,6 +106,13 @@ nicht mehr.
 `--no-install-recommends` und löscht die Paketlisten. Ohne Schrift zeichnet
 `sharp` Text in SVG als Kästchen; geprüft mit leerer Fontconfig.
 
+**README, Reverse Proxy.** Der Pfad der Location für Uploads in NPMplus hieß
+seit 0.48.0 `…uploads/[0-9a-f]{32}…`. NPMplus schreibt den Pfad ohne
+Anführungszeichen in `location ~ … {`, und nginx liest die geschweifte Klammer
+als Beginn des Blocks; die Konfiguration ist ungültig, der Host geht offline.
+Jetzt steht dort `uploads/[0-9a-f]+`; die Nummer prüft Kriterion selbst
+(`UPLOAD_ID`). Die README nennt den Grund in einem Satz.
+
 **Texte.** `entry.filesView` („Dateien als Kacheln oder Liste“, Name der
 Gruppe), `entry.filesTiles`, `entry.filesList` in drei Sprachen. Türkisch
 „Döşeme“ und „Liste“, Englisch „Tiles“ und „List“.
@@ -146,6 +154,7 @@ Antwort zurück.
 | Dateien: Stilblatt, Dockerfile und Quelltext | 3 |
 | Dateien: Kacheln oder Liste im Browser | 5 |
 | Dateien: Vorschaubild und Nachladen im Browser | 5 |
+| Reverse Proxy: die Pfade fuer NPMplus in der README | 2 |
 
 **Angepasst:** `test/roundtrip.js` (vierzehn persönliche Schlüssel, `filesView`
 gesetzt), `test/source.js` (23 Anweisungen auf `data`, 73 Protokollzeilen,
@@ -154,7 +163,7 @@ Grenzwerte der Kommentarzeilen), `test/release_042.js` (PDF an der
 Abrufroute 200, Mock ohne Vorschaubilder), `test/release_048.js` (`finishUpload`
 gibt die neue Nummer zurück).
 
-**Rückbauten.** 1419 bis 1458 neu; 1291, 1292, 1294, 1309, 1316 und 1411 mit
+**Rückbauten.** 1419 bis 1459 neu; 1291, 1292, 1294, 1309, 1316 und 1411 mit
 neuem Suchtext, 1291 dazu mit neuem Ersatz, der auch die Zeile `picture`
 zurückbaut.
 

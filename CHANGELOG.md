@@ -42,6 +42,11 @@ Fingerprint `210a7f57` — davor `e480ecfc`.
 >
 > **Nach dem Update entstehen die Vorschaubilder aller vorhandenen Dokumente im
 > Hintergrund**, eines nach dem anderen.
+>
+> **Hinter NPMplus:** Im Pfad der Location für Uploads steht
+> `uploads/[0-9a-f]+` statt `uploads/[0-9a-f]{32}` (README). Mit den
+> geschweiften Klammern ist die Konfiguration von nginx ungültig, und der Host
+> geht offline.
 
 ### Hinzugefügt
 
@@ -59,6 +64,11 @@ Fingerprint `210a7f57` — davor `e480ecfc`.
   Ordner ist eine Leiste.
 - Der Document Server holt auch PDF ab, nur für das Vorschaubild.
 - Das Image enthält die Schrift `fonts-dejavu-core`.
+
+### Behoben
+
+- README: Der Pfad der Location für Uploads in NPMplus kommt ohne geschweifte
+  Klammern aus; mit `{32}` ging der Host offline.
 
 ## [0.48.0] - 2026-09-29
 

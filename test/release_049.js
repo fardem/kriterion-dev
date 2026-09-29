@@ -366,6 +366,20 @@ async function run() {
     /rm -rf \/var\/lib\/apt\/lists\/\*/.test(runtime.slice(runtime.indexOf('fonts-dejavu-core'))),
     runtime.slice(0, 300));
 
+  group('Reverse Proxy: die Pfade fuer NPMplus in der README');
+  const readme = read('README.md');
+  const npmPaths = [...readme.matchAll(/`(\^\/api\/[^`]+)`/g)].map(x => x[1]);
+  const npmRx = npmPaths.map(x => { try { return new RegExp(x); } catch { return null; } });
+  const uploadId = crypto.randomBytes(16).toString('hex');
+  const hits = (url) => npmRx.some(r => r && r.test(url));
+  check('Keine geschweifte Klammer: NPMplus schreibt den Pfad ohne Anfuehrungszeichen, nginx laese einen Block',
+    npmPaths.length === 2 && npmPaths.every(x => !/[{}]/.test(x)), npmPaths.join(' · '));
+  check('Die Pfade treffen Upload in Stuecken, Import, Hochladen und die Auslieferung, sonst nichts',
+    npmRx.every(Boolean) && hits(`/api/uploads/${uploadId}`) && hits('/api/import') &&
+    hits('/api/items/12/attachments') && hits('/api/comments/3/images') && hits('/api/attachments/7/raw') &&
+    !hits('/api/items/12') && !hits('/api/uploads/') && !hits('/api/attachments/7/raw/x'),
+    npmPaths.join(' · '));
+
   if (!JSDOM) { check('jsdom steht bereit', false, 'npm install'); return; }
   const tiles = (w) => [...w.document.querySelectorAll('#atts .atile')];
   const tileIn = (w, key) => w.document.querySelector(`#atts .atile[data-key="${key}"]`);

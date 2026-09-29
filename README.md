@@ -421,9 +421,11 @@ Der Start meldet die Lage im Protokoll: `Behind proxy: on` oder `off`.
 - Die WAF von CrowdSec (AppSec) liest nach Vorgabe höchstens 10 MB einer
   Anfrage und weist größere mit 403 ab. In NPMplus unter „Custom Locations“
   eine Location mit `~` und dem Pfad
-  `^/api/(import|uploads/[0-9a-f]{32}|(items|comments)/[0-9]+/(photos|videos|attachments|comments|images))$`
+  `^/api/(import|uploads/[0-9a-f]+|(items|comments)/[0-9]+/(photos|videos|attachments|comments|images))$`
   anlegen, Ziel wie beim Host, und dort „Disable Crowdsec Appsec“ und „Disable
-  Request Buffering“ einschalten.
+  Request Buffering“ einschalten. Im Pfad keine geschweiften Klammern: NPMplus
+  schreibt ihn ohne Anführungszeichen, nginx liest `{` als Beginn eines Blocks,
+  und der Host geht offline.
 - Eine zweite Location mit `~` und dem Pfad `^/api/attachments/[0-9]+/raw$`,
   Ziel wie beim Host, bekommt „Disable Response Buffering“; AppSec bleibt dort
   an. Sonst legt nginx Dateien und Videos als Klartext in Zwischendateien ab.
