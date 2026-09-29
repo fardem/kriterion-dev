@@ -39,7 +39,7 @@ Gemessen am fertigen Stand gegen 0.47.1.
 | Schlüssel je Sprachdatei | 1.254 | **1.324** |
 | Regelzeilen des Stilblatts | 1.818 | **1.840** |
 | Protokollzeilen in den sechs Dateien | 62 | **72** |
-| Kommentarzeilen | 6.690 in 44 Dateien | **6.875 in 45** |
+| Kommentarzeilen | 6.690 in 44 Dateien | **6.878 in 45** |
 | Dateien des Prüfstands samt `counterproof.js` | 28 | **29** |
 | Rückbauten | 1.259 | **1.335** |
 | Prüfungen im Prüfstand | 7.687 | **7.765** |
@@ -162,7 +162,7 @@ Prüfschalter.
 | Gegenprobe „`UNIQUE` entfernt“ | 1343 entfernt die Prüfung in `folderDay()` | Die Spalte behält `UNIQUE`; ohne die Prüfung antwortet der Server 500 statt 409. Ohne `UNIQUE` hielte die Prüfung allein die Zusage, der Rückbau bliebe stumm |
 | Gegenproben „`received ≠ n` nicht geprüft“ und „gelesene Länge nicht geprüft“ | keine eigene | Beide Prüfungen sind zweite Sicherungen hinter der Sperre bzw. der Marke von GCM; ein Rückbau allein bliebe stumm |
 | Gegenprobe 1331 | prüft jetzt den Testtag eines anderen Eintrags | Die Zusage aus 0.47.0 („nimmt keinen Testtag an“) gilt nicht mehr |
-| Kommentargrenzen | mit `node tools/comments.js --write`: `server.js` 904 → 1.005, `public/app.js` 1.093 → 1.142, `db.js` 55 → 58, `attachments.js` 34 → 42, `test/frame.js` 119 → 121, `test/source.js` 213 → 216, `test/roundtrip.js` 1.310 → 1.311, `counterproof.js` 335 → 336, `test/release_045.js` 4 → 5, `test/release_047.js` 11 → 12, neu `test/release_048.js` | rund 1.300 neue Zeilen in `server.js`: Nonce, Reihenfolge von Commit und `rename`, Checkpoint, Sperren, Prüfschalter |
+| Kommentargrenzen | mit `node tools/comments.js --write`: `server.js` 904 → 1.007, `public/app.js` 1.093 → 1.142, `db.js` 55 → 58, `attachments.js` 34 → 42, `test/frame.js` 119 → 121, `test/source.js` 213 → 216, `test/roundtrip.js` 1.310 → 1.311, `counterproof.js` 335 → 336, `test/release_045.js` 4 → 5, `test/release_047.js` 11 → 12, neu `test/release_048.js` | rund 1.300 neue Zeilen in `server.js`: Nonce, Reihenfolge von Commit und `rename`, Checkpoint, Sperren, Prüfschalter |
 
 ---
 
@@ -308,12 +308,40 @@ Rückbauten, neu: 1343 bis 1418, zusammen 76.
 | 1417 | Die Liste der Anweisungen auf data ist gekuerzt | Dateien auf der Platte im Quelltext |
 | 1418 | file_key wird mit SELECT * gelesen | Dateien auf der Platte im Quelltext |
 
-**77 rot, 0 stumm**, jeder in seiner erwarteten Gruppe. Gefahren nicht mit
-`counterproof.js`, sondern je Rückbau nur das Modul der erwarteten Gruppe
+Vor dem ersten Push gefahren: je Rückbau nur das Modul der erwarteten Gruppe
 (`test/release_048.js`, für 1416 bis 1418 `test/source.js`) in einer Kopie des
-Arbeitsbaums, drei Spuren. Ein Lauf von `counterproof.js` fährt je Rückbau den
-ganzen Prüfstand, über sechs Minuten; für 77 Rückbauten wären das rund vier
-Stunden. Dieser Lauf steht aus.
+Arbeitsbaums, drei Spuren. Ergebnis: 77 rot, 0 stumm.
+
+Danach mit `counterproof.js`, drei Spuren, `NPM_CONFIG_OFFLINE=true`: die 77
+neuen Rückbauten und die 15 mit neuem Suchtext (233, 448, 551, 593, 925, 1072,
+1155, 1246, 1323, 1325, 1329, 1332, 1334, 1336, 1337), zusammen 92.
+
+**Erster Lauf auf `2cab758`: 92 rot, 0 stumm, aber 17 Module abgebrochen.**
+Zwölfmal brach `test/roundtrip.js` mit `EISDIR` auf `kopien/kriterion-files`
+ab. Dazu waren „Das Lockfile einer anderen Instanz sperrt das Backup“ (18-mal)
+und drei Prüfungen zum Aufräumen alter Backups (13- bis 17-mal) auch bei
+Rückbauten rot, die sie nicht berühren. Ursache: `POST /api/backup` und
+`POST /api/backup/cleanup` schickten die Antwort vor dem `finally`, das
+Lockfile und das leere `kriterion-files/` entfernt. Unter Last las der Test
+den Ordner dazwischen, und das Ende eines Backups löschte das Lockfile, das der
+Test gerade angelegt hatte. Beide Routen geben die Sperre jetzt vor der
+Antwort frei (`e1d5047`). Nachgestellt mit drei gleichzeitigen Läufen von
+`test/roundtrip.js`: vorher einmal rot, danach zweimal 3.160 von 3.160.
+
+Die übrigen fünf Abbrüche waren `test/release_048.js` bei 551, 1329, 1355,
+1371 und 1397: Der Rückbau ließ eine Datei fehlen, und der Test griff
+ungeschützt auf ihren Pfad zu. Diese Stellen machen jetzt die Prüfung rot
+statt das Modul abzubrechen. 551 hat einen neuen Suchtext.
+
+**Zweiter Lauf auf `acc2a68`: 92 rot, 0 stumm.** Jeder Rückbau ist in seiner
+erwarteten Gruppe rot, dazu 90 in „Jeder Suchtext kommt in seiner Datei genau
+einmal vor“; der Ersatz von 1385 und 1412 enthält seinen Suchtext. Rot in weiteren Gruppen sind nur Gruppen von
+`test/release_048.js` hinter der erwarteten; sie bauen auf dem Stand der
+Gruppen davor auf. Die beiden Rückbauten in `public/app.js` (1347, 1415) sind
+nur in ihrer Gruppe rot. Einmal brach ein Modul ab: bei 1415 `ui_export` in
+„Der Export in Teilen“ mit „fetch failed … other side closed“. 1415 ändert nur
+den Klick auf den Kopf eines Blocks. Einzeln gefahren lief 1415 ohne Abbruch,
+7.763 von 7.765, rot nur in seiner Gruppe und im Suchtext.
 
 1385 war zuerst stumm in ihrer Gruppe und rot erst in „Backup mit Dateien“ und
 „Checkpoint und FULL“. Die Prüfung hielt eine Schreibsperre auf der Datenbank;
