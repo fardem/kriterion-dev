@@ -380,9 +380,10 @@ Der Start meldet die Lage im Protokoll: `Behind proxy: on` oder `off`.
   (bis 100 MB). nginx: `client_max_body_size 100m;` (Vorgabe 1 MB). Cloudflare
   lässt in Free und Pro 100 MB durch.
 - Die WAF von CrowdSec (AppSec) liest nach Vorgabe höchstens 10 MB einer
-  Anfrage und weist größere mit 403 ab. In NPMplus eine eigene Location für
-  `~ ^/api/(import|(items|comments)/[0-9]+/(photos|videos|attachments|comments|images))$`
-  anlegen, mit `set $crowdsec_disable_appsec 1;` im Zahnrad.
+  Anfrage und weist größere mit 403 ab. In NPMplus unter „Custom Locations“
+  eine Location mit `~` und dem Pfad
+  `^/api/(import|(items|comments)/[0-9]+/(photos|videos|attachments|comments|images))$`
+  anlegen, Ziel wie beim Host, und dort „Disable Crowdsec Appsec“ einschalten.
 
 Für CrowdSec oder fail2ban antwortet `POST /api/login` unterscheidbar: 401
 (Name oder Passwort falsch), 429 (zu viele Versuche), 403 (Account gesperrt).
