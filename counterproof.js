@@ -3958,8 +3958,8 @@ const REGRESSIONS = [
   {
     nr: '551', name: 'Nach der gescheiterten Sicherung wird doch aufgeraeumt',
     file: 'server.js',
-    search: "    if (fs.existsSync(file))\n      return res.status(409).json({ error: t(localeOf(req), 'server.backupConcurrent')});",
-    replacement: "    if (fs.existsSync(datei)) {\n      const r = cleanupStatus();\n      if (r.an) removeBackups(ziel.pfad, ruleHit(backupList(ziel.pfad) || [],\n        r.behalten, r.tage, Date.now(), (changeMark() || {}).ms ?? null).map(d => d.name));\n      return res.status(409).json({ error: t(localeOf(req), 'server.backupConcurrent')});\n    }",
+    search: "    if (fs.existsSync(file)) return answer(409, { error: t(localeOf(req), 'server.backupConcurrent')});",
+    replacement: "    if (fs.existsSync(datei)) {\n      const r = cleanupStatus();\n      if (r.an) removeBackups(ziel.pfad, ruleHit(backupList(ziel.pfad) || [],\n        r.behalten, r.tage, Date.now(), (changeMark() || {}).ms ?? null).map(d => d.name));\n      return answer(409, { error: t(localeOf(req), 'server.backupConcurrent')});\n    }",
     expected: 'Alte Sicherungen aufraeumen: der Anschluss an die Sicherung'
   },
   {

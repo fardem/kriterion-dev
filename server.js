@@ -6833,6 +6833,10 @@ app.post('/api/backup', ownerOnly, async (req, res, next) => {
   if (!lock) return res.status(409).json({ error: t(localeOf(req), 'server.backupRunning')});
   SWEEP_HELD++;
   let answered = false;
+  // Sperre frei vor der Antwort: sonst liest der Browser den Ablageort mit Sperre.
+  let held = true;
+  const release = () => { if (held) { held = false; dropBackupLock(lock); SWEEP_HELD--; } };
+  const answer = (status, body) => { release(); res.status(status).json(body); };
   // Name mit Datum und Uhrzeit: ein Backup ueberschreibt nie das vorige.
   const mark = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
   const file = path.join(target.filePath, `kriterion-${mark}.sqlite`);
@@ -6841,10 +6845,9 @@ app.post('/api/backup', ownerOnly, async (req, res, next) => {
   const becoming = file + '.wird';
   try {
     clearBackupRest(target.filePath);
-    if (fs.existsSync(file))
-      return res.status(409).json({ error: t(localeOf(req), 'server.backupConcurrent')});
+    if (fs.existsSync(file)) return answer(409, { error: t(localeOf(req), 'server.backupConcurrent')});
     const short = backupSpaceShort(target.filePath);
-    if (short) return res.status(507).json({ error: t(localeOf(req), 'server.backupNoSpace',
+    if (short) return answer(507, { error: t(localeOf(req), 'server.backupNoSpace',
       { needed: short.needed, free: short.free }) });
     const t0 = Date.now();
     db.prepare('VACUUM INTO ?').run(becoming);
@@ -6870,17 +6873,16 @@ app.post('/api/backup', ownerOnly, async (req, res, next) => {
     auth.log('backup', { actor: req.user.id });
     const cleaned = backupRuleCleanup(target.filePath, req.user.id);
     BACKUP_COPY = { ...BACKUP_COPY, running: false, file: path.basename(file) };
-    if (!answered) res.json({ ok: true, file: path.basename(file), filePath: target.filePath, bytes, ms,
-                              ...lastBackup(target.filePath), cleaned, copy: BACKUP_COPY });
+    if (!answered) answer(200, { ok: true, file: path.basename(file), filePath: target.filePath, bytes, ms,
+                                 ...lastBackup(target.filePath), cleaned, copy: BACKUP_COPY });
   } catch (e) {
     try { if (fs.existsSync(becoming)) fs.unlinkSync(becoming); } catch {}
     logFail('Backup failed:', e.message);
     BACKUP_COPY = { ...(BACKUP_COPY || {}), running: false, error: 'server.backupFailed' };
     // Fester Text: ein SQL-Fehler nennt Pfade und Tabellen, die gehoeren nur ins Protokoll.
-    if (!answered) res.status(500).json({ error: t(localeOf(req), 'server.backupFailed')});
+    if (!answered) answer(500, { error: t(localeOf(req), 'server.backupFailed')});
   } finally {
-    dropBackupLock(lock);
-    SWEEP_HELD--;
+    release();
     sweepSoon(true);
   }
 });
@@ -7092,24 +7094,26 @@ app.post('/api/backup/cleanup', ownerOnly,
     return res.status(400).json({ error: t(localeOf(req), 'server.backupDirUnreachable')});
   const lock = takeBackupLock(target.filePath);
   if (!lock) return res.status(409).json({ error: t(localeOf(req), 'server.backupRunning')});
-  try { cleanupUnderLock(req, res, target, files, kind); }
+  // Sperre frei vor der Antwort, wie beim Backup.
+  let out;
+  try { out = cleanupUnderLock(req, target, files, kind); }
   finally { dropBackupLock(lock); }
+  res.status(out[0]).json(out[1]);
 });
 
-function cleanupUnderLock(req, res, target, files, kind) {
+function cleanupUnderLock(req, target, files, kind) {
   const mark = changeMark();
   let matched;
   if (kind === 'outdated') {
-    if (!mark) return res.status(400).json({
-      error: t(localeOf(req), 'server.keyNeverChanged')});
+    if (!mark) return [400, { error: t(localeOf(req), 'server.keyNeverChanged')}];
     matched = files.filter(d => d.time < mark.ms);
   } else {
     const b = checkRuleValue(getSetting('backupKeep', CLEANUP_KEEP.fallback),
                               CLEANUP_KEEP, 'server.ruleKeep');
-    if (b.error) return res.status(400).json({ error: t(localeOf(req), b.error, b.values) });
+    if (b.error) return [400, { error: t(localeOf(req), b.error, b.values) }];
     const rule = checkRuleValue(getSetting('backupDays', CLEANUP_DAYS.fallback),
                               CLEANUP_DAYS, 'server.ruleDays');
-    if (rule.error) return res.status(400).json({ error: t(localeOf(req), rule.error, rule.values) });
+    if (rule.error) return [400, { error: t(localeOf(req), rule.error, rule.values) }];
     matched = ruleHit(files, b.value, rule.value, Date.now(), mark ? mark.ms : null);
   }
   const out2 = removeBackups(target.filePath, matched.map(d => d.name));
@@ -7122,11 +7126,11 @@ function cleanupUnderLock(req, res, target, files, kind) {
   }
   /* Mit frischer Vorschau, aus der sich die Karte neu zeichnet. */
   const after = cleanupStatus();
-  res.json({ ok: true, kind, removed: out2.removed, notDeleted: out2.stayed.length, bytes: out2.bytes,
-             copyBytes: copies.bytes, ...lastBackup(target.filePath),
-             cleanup: { ...after,
-                           limits: { keep: CLEANUP_KEEP, days: CLEANUP_DAYS },
-                           ...cleanupPreview(target.filePath, after.keep, after.days, localeOf(req)) } });
+  return [200, { ok: true, kind, removed: out2.removed, notDeleted: out2.stayed.length, bytes: out2.bytes,
+                 copyBytes: copies.bytes, ...lastBackup(target.filePath),
+                 cleanup: { ...after,
+                               limits: { keep: CLEANUP_KEEP, days: CLEANUP_DAYS },
+                               ...cleanupPreview(target.filePath, after.keep, after.days, localeOf(req)) } }];
 }
 
 /* ---- Backup pruefen ---- */

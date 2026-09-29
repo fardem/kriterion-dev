@@ -138,7 +138,9 @@ async function run() {
     .get(attachmentId)?.n);
   const goneNames = () => inDb(d => d.prepare('SELECT name FROM disk_files_gone').all().map(z => z.name));
   const namesIn = (where) => { try { return fs.readdirSync(where).filter(n => HEX.test(n)); } catch { return []; } };
-  const onDisk = (name) => fs.existsSync(path.join(filesDir, name));
+  const onDisk = (name) => !!name && fs.existsSync(path.join(filesDir, name));
+  // Ein Rueckbau kann eine Datei fehlen lassen; dann wird die Pruefung rot, nicht das Modul.
+  const tryFs = (work) => { try { work(); return true; } catch { return false; } };
   const until2 = async (test, ms = 5000) => {
     for (const t0 = Date.now(); Date.now() - t0 < ms; await wait(100)) if (await test()) return true;
     return false;
@@ -167,7 +169,7 @@ async function run() {
   const twice = await as('uploader', 'POST', `/api/items/${item}/folders`, { name: 'Doppelt', testDay: upDay });
   const loose = await newFolder('uploader', item, 'Ohne Tag');
   const renamedTwice = await as('uploader', 'PUT', `/api/folders/${loose}`, { testDay: upDay });
-  const north = folderNamed(made.content, 'Nordhang');
+  const north = folderNamed(made.content, 'Nordhang') || {};
   check('Ein Ordner je Testtag: ein zweiter mit demselben Testtag ergibt 409, beim Anlegen und beim Zuweisen',
     made.status === 201 && north?.testDay === upDay &&
     (made.content?.testDays || []).find(x => x.id === upDay)?.folder === north?.id &&
@@ -291,7 +293,7 @@ async function run() {
     hashOf(againFile()) === hashBefore && hashBefore !== '', `${firstPiece.status} ${repeated.status} ${repeated.content?.error}`);
   const keyOfUpload = (id) => inDb(d => d.prepare('SELECT file_key FROM uploads WHERE id = ?').get(id)?.file_key);
   const nameBefore = uploadRow(againId)?.name, keyBefore = keyOfUpload(againId);
-  fs.truncateSync(againFile(), encLen(PIECE) - 5);
+  tryFs(() => fs.truncateSync(againFile(), encLen(PIECE) - 5));
   const cut = await putPiece('stranger', againId, tenMb.subarray(PIECE), PIECE);
   const nameCut = uploadRow(againId)?.name, keyCut = keyOfUpload(againId);
   fs.rmSync(againFile(), { force: true });
@@ -408,9 +410,9 @@ async function run() {
   const headId = byName(headSent.last.content)['kopf.txt']?.id;
   const headName = diskRow(headId)?.name;
   const headOk = await rawOf('uploader', headId, {}, 'HEAD');
-  fs.truncateSync(path.join(filesDir, headName), 10);
+  tryFs(() => fs.truncateSync(path.join(filesDir, headName), 10));
   const headShort = await rawOf('uploader', headId, {}, 'HEAD');
-  fs.rmSync(path.join(filesDir, headName), { force: true });
+  tryFs(() => fs.rmSync(path.join(filesDir, headName), { force: true }));
   const headMissing = await rawOf('uploader', headId, {}, 'HEAD');
   check('HEAD nennt die Laenge ohne Rumpf, meldet eine gekuerzte Datei mit 500 und eine fehlende mit 404',
     headOk.status === 200 && headOk.headers.get('content-length') === String(text('Kopf').length) &&
@@ -528,7 +530,7 @@ async function run() {
   const save2 = await callback(report, 'v2.docx', v2);
   const current1 = diskRow(report.id), previous1 = previousRow(report.id);
   check('Die erste Speicherung einer Sitzung: neue Datei mit neuem Namen und Schluessel; die bisherige wird die vorige, die aeltere steht in der Loeschliste',
-    save2.json?.error === 0 && current1 && current1.name !== current0?.name && !current1.file_key.equals(current0.file_key) &&
+    save2.json?.error === 0 && current1 && current1.name !== current0?.name && !current1.file_key.equals(current0?.file_key || Buffer.alloc(0)) &&
     previous1.length === 1 && previous1[0].name === current0?.name &&
     (goneNames().includes(previous0?.name) || !onDisk(previous0?.name)) && (await rawOf('uploader', report.id)).buf.equals(v2),
     `${JSON.stringify(save2.json)} ${current1?.name === current0?.name} ${previous1.length} ${previous1[0]?.name === current0?.name}`);
@@ -580,9 +582,12 @@ async function run() {
   probe.pragma('foreign_keys = ON');
   const tries = (sql, ...values) => { try { probe.prepare(sql).run(...values); return 'ok'; } catch (e) { return e.message; } };
   const memoName = diskRow(memo.id)?.name;
+  let inside = null;
   probe.prepare('BEGIN').run();
-  probe.prepare('DELETE FROM attachments WHERE id = ?').run(memo.id);
-  const inside = probe.prepare('SELECT 1 FROM disk_files_gone WHERE name = ?').get(memoName);
+  tryFs(() => {
+    probe.prepare('DELETE FROM attachments WHERE id = ?').run(memo.id);
+    inside = probe.prepare('SELECT 1 FROM disk_files_gone WHERE name = ?').get(memoName);
+  });
   probe.prepare('ROLLBACK').run();
   check('Ein Rollback laesst Zeile und Datei stehen',
     !!inside && !!diskRow(memo.id) && !goneNames().includes(memoName) && onDisk(memoName), `${!!inside} ${!!diskRow(memo.id)}`);
@@ -687,6 +692,7 @@ async function run() {
   const secondBackup = await as('owner', 'POST', '/api/backup');
   check('Ohne Kopierbedarf antwortet das Backup mit 200',
     secondBackup.status === 200 && !!secondBackup.content?.file, `${secondBackup.status} ${secondBackup.content?.error || ''}`);
+  fs.mkdirSync(copyDir, { recursive: true });
   fs.writeFileSync(path.join(copyDir, '.lock'), 'anderer-host 1 jetzt\n');
   await wait(1100);
   const lockedOut = await as('owner', 'POST', '/api/backup');
@@ -694,6 +700,7 @@ async function run() {
   check('Das Lockfile einer anderen Instanz sperrt das Backup',
     lockedOut.status === 409 && lockedOut.content?.error === DE['server.backupRunning'], `${lockedOut.status}`);
   const unnamed = hex();
+  fs.mkdirSync(copyDir, { recursive: true });
   fs.writeFileSync(path.join(copyDir, 'notiz.txt'), 'bleibt');
   fs.writeFileSync(path.join(copyDir, unnamed), crypto.randomBytes(100));
   const namedCopy = listRows[0]?.[0];
@@ -706,7 +713,11 @@ async function run() {
 
   group('Platte: Dateien ohne Verweis loeschen');
   await start();
-  const plant = (where, name, bytes) => { fs.writeFileSync(path.join(where, name), bytes); return name; };
+  const plant = (where, name, bytes) => {
+    fs.mkdirSync(where, { recursive: true });
+    fs.writeFileSync(path.join(where, name), bytes);
+    return name;
+  };
   const same = crypto.randomBytes(5000);
   const withCopy = plant(filesDir, hex(), same);
   plant(copyDir, withCopy, same);
@@ -754,7 +765,7 @@ async function run() {
   group('Platte: Lauf und upload/');
   await start();
   const trackName = diskRow(trackId)?.name;
-  fs.renameSync(path.join(filesDir, trackName), path.join(uploadDir, trackName));
+  const trackMoved = tryFs(() => fs.renameSync(path.join(filesDir, trackName), path.join(uploadDir, trackName)));
   const nudge = byName((await upload('uploader', item, [{ name: 'anstoss.txt', content: text('Anstoss') }])).content)['anstoss.txt'];
   const nudged = await as('uploader', 'PUT', `/api/attachments/${nudge.id}/folder`, { folderId: north.id });
   await wait(300);
@@ -762,10 +773,10 @@ async function run() {
   await start({ run: 500 });
   const trackBack = onDisk(trackName) && !fs.existsSync(path.join(uploadDir, trackName));
   const nudgeName = diskRow(nudge.id)?.name;
-  fs.renameSync(path.join(filesDir, nudgeName), path.join(uploadDir, nudgeName));
+  const nudgeMoved = tryFs(() => fs.renameSync(path.join(filesDir, nudgeName), path.join(uploadDir, nudgeName)));
   const byRun = await until2(() => onDisk(nudgeName), 3000);
   check('Liegt die Datei einer Zeile noch unter upload/, uebersteht sie den Abgleich; Start und stuendlicher Lauf holen das rename nach',
-    nudged.status === 200 && trackSurvived && trackBack && byRun &&
+    trackMoved && nudgeMoved && nudged.status === 200 && trackSurvived && trackBack && byRun &&
     (await rawOf('uploader', trackId)).buf.equals(track) && (await rawOf('uploader', nudge.id)).buf.equals(text('Anstoss')),
     `${nudged.status} ${trackSurvived} ${trackBack} ${byRun}`);
   await start({ run: 300, hold: 1500 });
@@ -905,7 +916,8 @@ async function run() {
   const harmSent = await sendFile('uploader', item, 'schaden.mp4', harm, north.id);
   const harmId = byName(harmSent.last.content)['schaden.mp4']?.id;
   const harmFile = path.join(filesDir, diskRow(harmId)?.name || '-');
-  const pristine = fs.readFileSync(harmFile);
+  let pristine = Buffer.alloc(0);
+  tryFs(() => { pristine = fs.readFileSync(harmFile); });
   const STEP = MB + TAG;
   const streamed = (headers = {}) => new Promise((done) => {
     const u = new URL(`${B.base}/api/attachments/${harmId}/raw`);
@@ -921,7 +933,7 @@ async function run() {
     req.on('error', () => done({ status: 0, buf: Buffer.alloc(0) }));
     req.end();
   });
-  const damage = (bytes) => fs.writeFileSync(harmFile, bytes);
+  const damage = (bytes) => pristine.length && tryFs(() => fs.writeFileSync(harmFile, bytes));
   const flipped = Buffer.from(pristine);
   flipped[STEP + 100] ^= 1;
   damage(flipped);
@@ -929,9 +941,11 @@ async function run() {
   const flipRange = await streamed({ range: `bytes=${MB}-${MB + 10}` });
   const smallHarm = byName((await sendFile('uploader', item, 'ganz.txt', text('ganz'), north.id)).last.content)['ganz.txt'];
   const smallFile = path.join(filesDir, diskRow(smallHarm?.id)?.name || '-');
-  const smallBytes = Buffer.from(fs.readFileSync(smallFile));
-  smallBytes[20] ^= 1;
-  fs.writeFileSync(smallFile, smallBytes);
+  tryFs(() => {
+    const smallBytes = Buffer.from(fs.readFileSync(smallFile));
+    smallBytes[20] ^= 1;
+    fs.writeFileSync(smallFile, smallBytes);
+  });
   const smallPreview = await as('uploader', 'GET', `/api/attachments/${smallHarm?.id}/preview`);
   check('Ein gekipptes Bit: kein Byte des Stuecks geht hinaus, auch nicht beim Entschluesseln im Ganzen',
     flipWhole.buf.length === MB && flipWhole.buf.equals(harm.subarray(0, MB)) && flipRange.status === 500 &&
