@@ -355,6 +355,7 @@ function removeUser(userId, options = {}, actor) {
     // Von Hand: die Zeile in users bleibt, also greift keine Kaskade.
     db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);
     db.prepare('DELETE FROM tokens WHERE user_id = ?').run(u.id);
+    db.prepare('DELETE FROM uploads WHERE user_id = ?').run(u.id);
     db.prepare('DELETE FROM item_pins WHERE user_id = ?').run(u.id);
     db.prepare('DELETE FROM user_settings WHERE user_id = ?').run(u.id);
     db.prepare('DELETE FROM two_factor WHERE user_id = ?').run(u.id);

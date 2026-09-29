@@ -61,8 +61,10 @@ const SESSION_GONE = 'kriterion:session-gone';
    weil die Route auch ohne Browser erreichbar ist. */
 const PHOTO_COUNT = 40;
 /* Die Grenzen beim Hochladen in MB; die Werte kommen aus GET /api/settings. */
-let UPLOAD_LIMITS = { photo: 30, commentImage: 20, video: 20, commentVideo: 20, attachment: 50 };
+let UPLOAD_LIMITS = { photo: 30, commentImage: 20, video: 20, commentVideo: 20, attachment: 50, dayVideo: 2048 };
 let UPLOAD_LIMIT_RANGES = {};
+// Endungen, die ueber die Grenze „Anhang" duerfen; aus GET /api/settings.
+let VIDEO_EXTENSIONS = ['mp4', 'm4v', 'webm', 'mov'];
 // Die erste Datei ueber der Grenze ihrer Art, oder null.
 const overLimit = (files, kind) => files.find(f => f.size > UPLOAD_LIMITS[kind] * 1048576) || null;
 const tooBigText = (file, kind) => t('entry.tooBig', { name: file.name, mb: UPLOAD_LIMITS[kind] });
@@ -121,6 +123,16 @@ function fmtDate(iso) {
   const d = new Date(iso.replace(' ', 'T') + 'Z');
   return d.toLocaleString(LOCALE, { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
 }
+// Stunde und Minute eines Zeitstempels des Servers (UTC).
+function fmtClock(iso) {
+  if (!iso) return '';
+  return new Date(iso.replace(' ', 'T') + 'Z').toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' });
+}
+// Tag, Monat und Uhrzeit, fuer den Verfall eines Uploads.
+function fmtUntil(ms) {
+  return new Date(ms).toLocaleString(LOCALE, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+const fmtMb = (mb) => (mb >= 1024 ? `${number(mb / 1024, 0, 1)} GB` : `${mb} MB`);
 function fmtDay(day) {
   const d = new Date(day + 'T12:00:00');
   return d.toLocaleDateString(LOCALE, { day:'2-digit', month:'2-digit', year:'numeric' });
@@ -188,7 +200,8 @@ async function api(method, url, body, isForm = false) {
     try { j = await res.json(); } catch {}
     if (j && j.error) m = j.error;
     else m = proxyAnswer(res.status) || m;
-    throw new Error(m);
+    // Status und Rumpf fuer Aufrufer, die nach der Absage den Weg wechseln.
+    throw Object.assign(new Error(m), { status: res.status, data: j });
   }
   return res.status === 204 ? null : res.json();
 }
@@ -944,6 +957,8 @@ function blockSummary(name, item) {
 
 /* Sternkaesten, deren Zustand gerade von closedByState() abweicht; wird nicht gespeichert. */
 let GLANCE = new Set();
+/* Bloecke, die ein Sprung fuer diese Ansicht geoeffnet hat; wird nicht gespeichert. */
+let JUMPED = new Set();
 
 const hasStars = (item, phase) => (item.ratings || [])
   .some(r => r.phase === phase && (r.value > 0 || r.avg != null));
@@ -964,6 +979,7 @@ function blockPathAfterState(name, item) {
 function openBlock(name) {
   const block = document.querySelector(`.block[data-block="${name}"]`);
   if (!block || !block.classList.contains('closed')) return;
+  if (BLOCKS.closed.includes(name)) JUMPED.add(name);
   block.classList.remove('closed');
   const caret = block.querySelector('.bcaret');
   if (caret) caret.textContent = '▾';
@@ -997,7 +1013,7 @@ function setUpBlocksOut(item) {
     const afterState = BLOCKS_ALWAYS_OPEN.includes(name);
     const closed = afterState
       ? (GLANCE.has(name) ? !closedByState(name, item) : closedByState(name, item))
-      : BLOCKS.closed.includes(name);
+      : BLOCKS.closed.includes(name) && !JUMPED.has(name);
     block.hidden = blockPathAfterState(name, item);
     block.classList.toggle('closed', closed);
     head.querySelector('.bcaret').textContent = closed ? '▸' : '▾';
@@ -1012,6 +1028,9 @@ function setUpBlocksOut(item) {
       if (afterState) {
         /* Nicht speichern: der Klick gilt nur fuer diese Ansicht. */
         if (GLANCE.has(name)) GLANCE.delete(name); else GLANCE.add(name);
+      } else if (JUMPED.has(name)) {
+        // Ein Sprung hat ihn geoeffnet: zuklappen, die Einstellung bleibt.
+        JUMPED.delete(name);
       } else {
         BLOCKS.closed = closed ? BLOCKS.closed.filter(k => k !== name) : [...BLOCKS.closed, name];
         saveBlocks();
@@ -2133,7 +2152,7 @@ function commentHoldStop() {
 
 /* scrollIntoView loest keines der JUMP_EVENTS aus; jedes davon kommt vom
    Leser und beendet das Halten. */
-function commentHold(id, want) {
+function jumpHold(find, want) {
   commentHoldStop();
   if (typeof requestAnimationFrame !== 'function') return;
   const end = Date.now() + JUMP_HOLD_MS;
@@ -2141,7 +2160,7 @@ function commentHold(id, want) {
   JUMP_OFF = () => JUMP_EVENTS.forEach(n => window.removeEventListener(n, commentHoldStop));
   JUMP_EVENTS.forEach(n => window.addEventListener(n, commentHoldStop, { passive: true }));
   const step = () => {
-    const row = commentRow(id);
+    const row = find();
     if (!row || Date.now() > end) return commentHoldStop();
     const now = row.getBoundingClientRect().top;
     if (Math.abs(now - at) > 1) {
@@ -2158,21 +2177,28 @@ const SOFT_OK = () => !window.matchMedia?.('(prefers-reduced-motion: reduce)')?.
 /* `soft` nur im eigenen Eintrag: die Seite steht schon, und das Gleiten zeigt
    die Richtung. */
 function commentJump(id, soft) {
-  const target = commentRow(id);
-  if (!target) { LIT_COMMENT = 0; return false; }
+  if (!commentRow(id)) { LIT_COMMENT = 0; return false; }
   openBlock('kommentare');
-  clearTimeout(LIT_TIMER);
-  for (const k of document.querySelectorAll('.cmt.lit')) k.classList.remove('lit');
   LIT_COMMENT = Number(id);
+  return jumpTo(() => commentRow(id), soft);
+}
+
+/* Fuer Kommentar, Ordner und Testtagzeile: das Ziel steht in der Mitte und leuchtet
+   2,6 s; `find` sucht es nach jedem Neuzeichnen neu. */
+function jumpTo(find, soft) {
+  const target = find();
+  if (!target) return false;
+  clearTimeout(LIT_TIMER);
+  for (const k of document.querySelectorAll('.lit')) k.classList.remove('lit');
   target.classList.add('lit');
   const smooth = soft && SOFT_OK();
   commentHoldStop();
   target.scrollIntoView?.(smooth ? { behavior: 'smooth', block: 'center' } : { block: 'center' });
   // Das Nachfuehren je Frame braeche das sanfte Scrollen ab.
-  if (!smooth) commentHold(id, target.getBoundingClientRect?.().top ?? 0);
+  if (!smooth) jumpHold(find, target.getBoundingClientRect?.().top ?? 0);
   LIT_TIMER = setTimeout(() => {
     LIT_COMMENT = 0;
-    for (const k of document.querySelectorAll('.cmt.lit')) k.classList.remove('lit');
+    for (const k of document.querySelectorAll('.lit')) k.classList.remove('lit');
   }, 2600);
   return true;
 }
@@ -2781,6 +2807,7 @@ async function loadSettings() {
   if (SETTINGS.trashDays) TRASH_DAYS = SETTINGS.trashDays;
   if (SETTINGS.uploadLimits) UPLOAD_LIMITS = { ...UPLOAD_LIMITS, ...SETTINGS.uploadLimits };
   if (SETTINGS.uploadLimitRanges) UPLOAD_LIMIT_RANGES = SETTINGS.uploadLimitRanges;
+  if (Array.isArray(SETTINGS.videoTypes)) VIDEO_EXTENSIONS = SETTINGS.videoTypes;
   TWO_FACTOR = SETTINGS.twoFactor === true;
   applyFont();
   applyTiles();
@@ -3027,6 +3054,9 @@ const commentAddress = (id, comment) => fullAddress(entryAddress(id, '', comment
 /* Oeffnet den Eintrag und darin das Vollbild an diesem Foto oder Video. */
 const PHOTO_PATTERN = /^#\/item\/(\d+)\/photo\/(\d+)$/;
 const photoAddress = (itemId, photoId) => `#/item/${Number(itemId)}/photo/${Number(photoId)}`;
+/* Oeffnet den Eintrag, darin den Block „Dateien" und den Ordner. */
+const FOLDER_PATTERN = /^#\/item\/(\d+)\/folder\/(\d+)$/;
+const folderAddress = (itemId, folderId) => `#/item/${Number(itemId)}/folder/${Number(folderId)}`;
 
 /* Alte Adressen umschreiben, damit gespeicherte Links weiter funktionieren. */
 const OLD_ADDRESSES = { '#/offen': '#/open' };
@@ -3054,9 +3084,10 @@ function route() {
   const m = h.match(ENTRY_PATTERN);
   const f = h.match(FILE_PATTERN);
   const p = h.match(PHOTO_PATTERN);
+  const fo = h.match(FOLDER_PATTERN);
   /* Einstellungen: `#/system` und `#/system/<abschnitt>`. */
   const view = SYS_PATTERN.test(h) ? 'system' : h === '#/compare' ? 'compare'
-    : h === '#/open' ? 'open' : f ? 'file' : m || p ? 'entry' : 'list';
+    : h === '#/open' ? 'open' : f ? 'file' : m || p || fo ? 'entry' : 'list';
   if (LAST_VIEW === 'list' && view !== 'list') rememberSeen();
   LAST_VIEW = view;
   if (view === 'system') return renderSystem();
@@ -3064,6 +3095,7 @@ function route() {
   if (view === 'open') return renderOpen();
   if (f) return renderFileView(+f[1], +f[2], !!f[3]);
   if (p) return renderDetail(+p[1], '', 0, +p[2]);
+  if (fo) return renderDetail(+fo[1], '', 0, 0, 0, +fo[2]);
   if (m) return renderDetail(+m[1], termOutAddress(m[2]), commentOutAddress(m[2]));
   return renderList();
 }
@@ -4825,8 +4857,12 @@ const FILES_PER_REQUEST = 20;
 const FILES_PER_ENTRY = 100;
 // Zeichen im Namen eines Ordners, gleich FOLDER_NAME_MAX in server.js.
 const FOLDER_NAME_MAX = 80;
+// Klartext je Anfrage beim Upload in Stuecken, gleich UPLOAD_PIECE in server.js.
+const UPLOAD_PIECE = 8 * 1048576;
 // Wartezeit in ms vor dem zweiten, dritten und vierten Versuch, wenn die Verbindung fehlt.
 const UPLOAD_RETRIES = [2000, 5000, 15000];
+// Ohne angenommene Anfrage verfaellt ein Upload in Stuecken, gleich UPLOAD_STALE_MS in server.js.
+const UPLOAD_STALE_MS = 24 * 3600000;
 // Auf Modulebene: ein Wechsel des Eintrags haelt keinen Upload an.
 const UPLOADS = [];
 let UPLOAD_NO = 0, UPLOADS_DONE = 0;
@@ -4834,31 +4870,45 @@ let UPLOAD_NO = 0, UPLOADS_DONE = 0;
 let UPLOAD_VIEW = null;
 
 const uploadsOf = (itemId) => UPLOADS.filter(u => u.itemId === Number(itemId));
-const uploadChanged = (u) => { if (UPLOAD_VIEW?.itemId === u.itemId) UPLOAD_VIEW.redraw(); };
+const uploadChanged = (u) => {
+  if (UPLOAD_VIEW?.itemId === u.itemId) UPLOAD_VIEW.redraw();
+  drawUploadBar();
+};
+const extensionOf = (name) => (String(name).toLowerCase().match(/\.([a-z0-9]+)$/) || [])[1] || '';
 
-// Nichts geht hoch, wenn eine Datei oder die Anzahl ueber einer Grenze liegt.
-function uploadRefusal(itemId, files, present) {
+/* Nichts geht hoch, wenn eine Datei oder die Anzahl ueber einer Grenze liegt. Ueber
+   „Anhang" nur Videos, und nur in einen Ordner mit {dayOne}. */
+function uploadRefusal(itemId, files, present, dayFolder = false) {
   if (files.length > FILES_PER_REQUEST) return t('server.uploadCap', { cap: FILES_PER_REQUEST });
   if (present + uploadsOf(itemId).length + files.length > FILES_PER_ENTRY)
     return t('server.fileCap', { cap: FILES_PER_ENTRY });
-  const tooBig = overLimit(files, 'attachment');
-  return tooBig ? tooBigText(tooBig, 'attachment') : '';
+  const bigVideos = UPLOAD_LIMITS.dayVideo > UPLOAD_LIMITS.attachment;
+  for (const f of files) {
+    if (f.size <= UPLOAD_LIMITS.attachment * 1048576) continue;
+    if (!bigVideos || !VIDEO_EXTENSIONS.includes(extensionOf(f.name))) return tooBigText(f, 'attachment');
+    if (!dayFolder) return t('server.bigVideoFolder');
+    if (f.size > UPLOAD_LIMITS.dayVideo * 1048576) return tooBigText(f, 'dayVideo');
+  }
+  return '';
 }
 
-// Die kleinste zuerst; in dieser Reihenfolge stehen auch die Kacheln. `folderId` 0: ohne Ordner.
-function queueUploads(itemId, files, folderId = 0) {
+/* Die kleinste zuerst; in dieser Reihenfolge stehen auch die Kacheln. `folderId` 0: ohne
+   Ordner. `chunked`: in einen Ordner mit {dayOne} geht jede Datei in Stuecken. */
+function queueUploads(itemId, files, folderId = 0, chunked = false) {
   for (const file of [...files].sort((a, b) => a.size - b.size))
     UPLOADS.push({ no: ++UPLOAD_NO, itemId: Number(itemId), folderId: Number(folderId) || 0,
-                   file, name: file.name, size: file.size,
+                   file, name: file.name, size: file.size, chunked: !!chunked, uploadId: '', received: 0,
                    state: 'waiting', sent: 0, error: '', xhr: null, tries: 0, clock: 0 });
   if (UPLOAD_VIEW?.itemId === Number(itemId)) UPLOAD_VIEW.redraw();
   uploadNext();
 }
 
 function uploadNext() {
+  keepAwake();
   if (UPLOADS.some(u => u.state === 'running')) return;
   const next = UPLOADS.find(u => u.state === 'waiting');
   if (next) return uploadSend(next);
+  drawUploadBar();
   if (UPLOADS_DONE) toast(t('entry.filesAttached', { n: UPLOADS_DONE }));
   UPLOADS_DONE = 0;
 }
@@ -4866,8 +4916,9 @@ function uploadNext() {
 // XMLHttpRequest statt fetch(): nur er meldet den Fortschritt beim Senden.
 function uploadSend(u) {
   u.state = 'running';
-  u.sent = 0;
+  u.sent = u.size ? u.received / u.size : 0;
   if (u.still === undefined) u.still = /^video\//.test(u.file.type || '') ? uploadStill(u) : null;
+  if (u.chunked) return u.uploadId ? chunkPut(u) : chunkBegin(u);
   const xhr = new XMLHttpRequest();
   u.xhr = xhr;
   xhr.open('POST', `/api/items/${u.itemId}/attachments`);
@@ -4886,20 +4937,20 @@ function uploadSend(u) {
   uploadChanged(u);
 }
 
+function uploadsEnded(u) {
+  for (const v of UPLOADS) if (v.state !== 'running' || v === u) uploadFail(v, t('server.sessionExpired'));
+  showLogin();
+}
+
 function uploadAnswer(u, xhr) {
   u.xhr = null;
   let data = null;
   try { data = JSON.parse(xhr.responseText); } catch {}
-  if (xhr.status === 401) {
-    for (const v of UPLOADS) if (v.state !== 'running' || v === u) uploadFail(v, t('server.sessionExpired'));
-    showLogin();
-    return;
-  }
+  if (xhr.status === 401) return uploadsEnded(u);
   if (xhr.status >= 200 && xhr.status < 300 && data) {
-    UPLOADS.splice(UPLOADS.indexOf(u), 1);
-    UPLOADS_DONE++;
-    stillAfterUpload(u, data);
-    if (UPLOAD_VIEW?.itemId === u.itemId) UPLOAD_VIEW.took(data);
+    uploadDone(u, data);
+  } else if (xhr.status === 409 && data?.item && uploadReroute(u, data.item)) {
+    return uploadNext();
   } else {
     // 404: Eintrag oder Ordner gibt es nicht mehr; ein neuer Versuch aendert daran nichts.
     u.final = xhr.status === 404;
@@ -4909,9 +4960,31 @@ function uploadAnswer(u, xhr) {
   uploadNext();
 }
 
+function uploadDone(u, data) {
+  UPLOADS.splice(UPLOADS.indexOf(u), 1);
+  UPLOADS_DONE++;
+  if (u.chunked) uploadSay(u, 'done');
+  stillAfterUpload(u, data);
+  if (UPLOAD_VIEW?.itemId === u.itemId) UPLOAD_VIEW.took(data);
+}
+
+/* Hat der Verfasser die Zuweisung des Ordners geaendert, nennt der Server den neuen
+   Stand; der Weg wird einmal neu gewaehlt. */
+function uploadReroute(u, fresh) {
+  if (UPLOAD_VIEW?.itemId === u.itemId) UPLOAD_VIEW.took(fresh);
+  if (u.rerouted) return false;
+  u.rerouted = true;
+  const folder = (fresh.folders || []).find(f => f.id === u.folderId);
+  u.chunked = folder?.testDay != null;
+  u.state = 'waiting';
+  uploadChanged(u);
+  return true;
+}
+
 function uploadFail(u, why) {
   u.state = 'failed';
   u.error = why;
+  if (u.chunked) uploadSay(u, 'fail');
   uploadChanged(u);
 }
 
@@ -4919,17 +4992,97 @@ function uploadFail(u, why) {
 function uploadLost(u) {
   u.xhr = null;
   if (u.tries < UPLOAD_RETRIES.length) {
-    u.sent = 0;
+    u.sent = u.size ? u.received / u.size : 0;
     u.clock = setTimeout(() => { u.clock = 0; uploadSend(u); }, UPLOAD_RETRIES[u.tries++]);
     uploadChanged(u);
     return;
   }
-  uploadFail(u, t('entry.uploadOffline'));
+  // In Stuecken bleibt der Upload auf dem Server; ein Klick oder das Netz setzt fort.
+  if (u.chunked && u.uploadId) {
+    u.state = 'paused';
+    uploadChanged(u);
+  } else {
+    uploadFail(u, t('entry.uploadOffline'));
+    toast(`${u.name}: ${u.error}`, true);
+  }
+  uploadNext();
+}
+
+/* ---- Upload in Stuecken ---- */
+async function chunkBegin(u) {
+  let r;
+  try {
+    r = await api('POST', `/api/items/${u.itemId}/uploads`,
+      { filename: u.name, size: u.size, modified: u.file.lastModified, folderId: u.folderId || null });
+  } catch (e) {
+    if (e.message === SESSION_GONE) return uploadsEnded(u);
+    if (e.status === undefined) return uploadLost(u);
+    if (e.status === 409 && e.data?.item && uploadReroute(u, e.data.item)) return uploadNext();
+    u.final = e.status === 404;
+    uploadFail(u, e.message);
+    toast(`${u.name}: ${u.error}`, true);
+    return uploadNext();
+  }
+  if (u.gone) return api('DELETE', `/api/uploads/${r.id}`).catch(() => {});
+  u.uploadId = r.id;
+  u.received = r.received;
+  u.touched = Date.now();
+  uploadSay(u, 'begin');
+  chunkPut(u);
+}
+
+function chunkPut(u) {
+  const from = u.received;
+  const xhr = new XMLHttpRequest();
+  u.xhr = xhr;
+  xhr.open('PUT', `/api/uploads/${u.uploadId}`);
+  for (const [name, value] of Object.entries(csrfHeader())) xhr.setRequestHeader(name, value);
+  xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+  xhr.setRequestHeader('Upload-Offset', String(from));
+  xhr.upload.onprogress = (e) => {
+    if (u.xhr !== xhr || !e.lengthComputable || !u.size) return;
+    u.sent = (from + e.loaded) / u.size;
+    uploadSay(u);
+    uploadChanged(u);
+  };
+  xhr.onload = () => { if (u.xhr === xhr) chunkAnswer(u, xhr); };
+  // Der Server kann die Anfrage trotzdem angenommen haben; ein 409 danach ist dann kein zweiter Sender.
+  xhr.onerror = () => { if (u.xhr === xhr) { u.ownLost = true; uploadLost(u); } };
+  xhr.send(u.file.slice(from, Math.min(u.size, from + UPLOAD_PIECE)));
+  uploadChanged(u);
+}
+
+function chunkAnswer(u, xhr) {
+  u.xhr = null;
+  let data = null;
+  try { data = JSON.parse(xhr.responseText); } catch {}
+  if (xhr.status === 401) return uploadsEnded(u);
+  if (xhr.status === 201 && data) { uploadDone(u, data); return uploadNext(); }
+  const received = Number.isFinite(data?.received) ? data.received : null;
+  if (xhr.status === 200 && received !== null) {
+    Object.assign(u, { received, tries: 0, ownLost: false, touched: Date.now(), sent: u.size ? received / u.size : 0 });
+    return chunkPut(u);
+  }
+  if (xhr.status === 409 && received !== null) {
+    u.received = received;
+    // Laeuft die eigene abgebrochene Anfrage noch, wird nach Plan wiederholt.
+    if (u.ownLost) return uploadLost(u);
+    if (received === 0) return chunkPut(u);
+    uploadFail(u, t('entry.uploadElsewhere'));
+    u.final = true;
+    return uploadNext();
+  }
+  if (xhr.status === 404) u.final = true;
+  uploadFail(u, xhr.status === 404 ? t('entry.uploadCancelled')
+    : data?.error || proxyAnswer(xhr.status) || t('error.serverStatus', { status: xhr.status }));
   toast(`${u.name}: ${u.error}`, true);
   uploadNext();
 }
 
-function uploadCancel(u) {
+// Mit Rueckfrage, sobald Bytes auf dem Server liegen.
+async function uploadCancel(u, asked = false) {
+  if (!asked && u.chunked && u.received > 0 &&
+      !await confirmBox(t('entry.uploadCancelAsk'), t('entry.uploadCancelHint', { name: u.name }), t('entry.uploadStop'))) return;
   const xhr = u.xhr;
   u.xhr = null;
   xhr?.abort();
@@ -4938,6 +5091,12 @@ function uploadCancel(u) {
   dropStill(u);
   const at = UPLOADS.indexOf(u);
   if (at >= 0) UPLOADS.splice(at, 1);
+  if (u.uploadId) {
+    try {
+      const fresh = await api('DELETE', `/api/uploads/${u.uploadId}`);
+      if (UPLOAD_VIEW?.itemId === u.itemId) UPLOAD_VIEW.took(fresh);
+    } catch { /* schon abgebrochen oder verfallen */ }
+  }
   uploadChanged(u);
   uploadNext();
 }
@@ -4948,6 +5107,68 @@ function uploadRetry(u) {
   u.tries = 0;
   uploadChanged(u);
   uploadNext();
+}
+
+// Tab wieder sichtbar oder Netz wieder da: jeder eigene ⏸-Upload, dessen Datei der Tab haelt.
+function uploadsWake() {
+  if (document.visibilityState === 'hidden') return;
+  // Im Hintergrund gibt der Browser die Sperre des Bildschirms frei.
+  WAKE_LOCK = null;
+  let woke = false;
+  for (const u of UPLOADS) if (u.state === 'paused') { u.state = 'waiting'; u.tries = 0; woke = true; }
+  if (woke) uploadNext();
+}
+window.addEventListener('online', uploadsWake);
+document.addEventListener('visibilitychange', uploadsWake);
+
+/* ---- Kopfleiste, Ansage, Bildschirm ---- */
+// „↑ 23 %" ueber jeder anderen Ansicht; ein Klick fuehrt zum Eintrag zurueck.
+function drawUploadBar() {
+  const u = UPLOADS.find(v => v.chunked && v.state === 'running');
+  let bar = document.getElementById('upload-bar');
+  if (!u || UPLOAD_VIEW?.itemId === u.itemId) { if (bar) bar.hidden = true; return; }
+  if (!bar) {
+    bar = document.createElement('a');
+    bar.id = 'upload-bar';
+    bar.className = 'upload-bar';
+    document.body.appendChild(bar);
+  }
+  const percent = Math.round(u.sent * 100);
+  bar.hidden = false;
+  bar.href = entryAddress(u.itemId);
+  bar.textContent = `↑ ${percent} %`;
+  bar.setAttribute('aria-label', t('entry.uploadBar', { name: u.name, percent }));
+}
+
+// Meldet Beginn, je 25 %, Ende und Fehler eines Uploads in Stuecken.
+function uploadSay(u, kind = '') {
+  let live = document.getElementById('upload-live');
+  if (!live) {
+    live = document.createElement('div');
+    live.id = 'upload-live';
+    live.className = 'sr-only';
+    live.setAttribute('aria-live', 'polite');
+    document.body.appendChild(live);
+  }
+  const quarter = Math.floor(u.sent * 4);
+  if (!kind && (quarter === (u.said ?? -1) || quarter === 0 || quarter >= 4)) return;
+  if (!kind) u.said = quarter;
+  live.textContent = kind === 'begin' ? t('entry.uploadBegins', { name: u.name })
+    : kind === 'done' ? t('entry.uploadEnded', { name: u.name })
+    : kind === 'fail' ? `${u.name}: ${u.error}`
+    : t('entry.uploadAt', { name: u.name, percent: quarter * 25 });
+}
+
+// Mit HTTPS haelt der Browser den Bildschirm an, solange ein Upload in Stuecken laeuft.
+let WAKE_LOCK = null;
+function keepAwake() {
+  const want = UPLOADS.some(u => u.chunked && (u.state === 'running' || u.state === 'waiting'));
+  if (want && !WAKE_LOCK && navigator.wakeLock?.request) {
+    WAKE_LOCK = navigator.wakeLock.request('screen').catch(() => null);
+  } else if (!want && WAKE_LOCK) {
+    WAKE_LOCK.then(lock => lock?.release()).catch(() => {});
+    WAKE_LOCK = null;
+  }
 }
 
 /* ---- Standbild eines Videos unter „Dateien" ---- */
@@ -5024,9 +5245,10 @@ window.addEventListener('beforeunload', (e) => {
 });
 
 /* ---- Detailansicht ---- */
-async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fileWanted = 0) {
+async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fileWanted = 0, folderWanted = 0) {
   /* Von Hand geoeffnete oder geschlossene Bloecke gelten nur fuer einen Eintrag. */
   GLANCE.clear();
+  JUMPED.clear();
   /* Suchbegriff aus der Adresse oder aus state.search; danach sind beide gleich. */
   const term = (termAddress || state.search).trim();
   if (term) state.search = term;
@@ -5173,6 +5395,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
         </div>
         <div class="afolders"></div>
       </div>
+      <p class="hint hint-sm" id="aawake" hidden>${tH('entry.uploadKeepAwake')}</p>
       <input type="file" id="afile" multiple hidden>
     </div>
 
@@ -5567,9 +5790,10 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     try {
       const bigPhoto = overLimit(images, 'photo'), bigVideo = overLimit(videos, 'video');
       if (bigPhoto) throw new Error(tooBigText(bigPhoto, 'photo'));
-      // Den Weg unter „Dateien" nennt der Satz nur, wenn das Video dort unter die Grenze passt.
+      // Den Weg unter „Dateien" nennt der Satz nur, wenn das Video dort unter „Anhang" oder „Video am {dayOne}" passt.
       if (bigVideo) throw new Error(tooBigText(bigVideo, 'video')
-        + (overLimit([bigVideo], 'attachment') ? '' : ' ' + t('entry.videoToFiles')));
+        + (overLimit([bigVideo], 'attachment') && (UPLOAD_LIMITS.dayVideo <= UPLOAD_LIMITS.attachment
+             || overLimit([bigVideo], 'dayVideo')) ? '' : ' ' + t('entry.videoToFiles')));
       if (images.length) {
         /* In Buendeln von PHOTO_COUNT: darueber bricht multer die ganze Anfrage ab.
            Keine Obergrenze je Eintrag. */
@@ -6240,6 +6464,16 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   }
 
   /* ---- Testtage ---- */
+  // Der Rueckweg vom Ordnerkopf: die Zeile leuchtet, der Fokus steht auf 📁.
+  function jumpToDay(dayId) {
+    openBlock('testtage');
+    const find = () => document.querySelector(`#tdays .trow[data-day="${Number(dayId)}"]`);
+    if (!jumpTo(find, true)) return;
+    find()?.querySelector('.tfolder')?.focus({ preventScroll: true });
+    if (typeof history !== 'undefined' && typeof history.replaceState === 'function')
+      history.replaceState(null, '', entryAddress(id));
+  }
+
   function drawTestDays() {
     const box = document.getElementById('testblock');
     if (!item.tested) {
@@ -6273,13 +6507,29 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
         try { item = await api('PUT', `/api/test-days/${d.id}`, { rating: v }); drawTestDays(); }
         catch (e) { toast(e.message, true); }
       }));
+      const folder = d.folder != null ? (item.folders || []).find(f => f.id === d.folder) : null;
       const x = document.createElement('button');
       x.className = 'xdel'; x.innerHTML = ICON_X; x.title = t('entry.deleteDay');
       x.onclick = async () => {
-        if (!await confirmBox(t('entry.deleteDayAsk'), t('entry.dayDeleteHint', { day: fmtDay(d.day) }))) return;
-        try { item = await api('DELETE', `/api/test-days/${d.id}`); drawTestDays(); drawSwitches(); }
+        if (!await confirmBox(t('entry.deleteDayAsk'), t('entry.dayDeleteHint', { day: fmtDay(d.day) })
+            + (folder ? ' ' + t('entry.dayDeleteFolder', { name: folder.name }) : ''))) return;
+        try { item = await api('DELETE', `/api/test-days/${d.id}`); drawTestDays(); drawSwitches(); drawAtts(); }
         catch (e) { toast(e.message, true); }
       };
+      // Nur an einem Testtag mit Ordner; der Klick oeffnet Block und Ordner.
+      let open = null;
+      if (folder) {
+        open = document.createElement('button');
+        open.type = 'button';
+        open.className = 'tfolder';
+        open.textContent = '📁';
+        const words = t('entry.dayFolderOpen', { n: (item.attachments || []).filter(a => a.folder === folder.id).length });
+        open.title = words;
+        open.setAttribute('aria-label', words);
+        open.onclick = () => jumpToFolder(folder.id, true);
+        row.classList.add('trow-folder');
+      }
+      row.dataset.day = d.id;
 
       // Tags am Testtag, aus demselben Vorrat wie am Eintrag.
       const tagBox = document.createElement('span');
@@ -6329,9 +6579,9 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
         const from = document.createElement('span');
         from.className = 'tfrom' + (d.mine ? ' mine' : '');
         from.textContent = authorName(d.author);
-        row.append(date, wd, from, tagBox, more, s, x);
+        row.append(date, wd, ...(open ? [open] : []), from, tagBox, more, s, x);
       } else {
-        row.append(date, wd, tagBox, more, s, x);
+        row.append(date, wd, ...(open ? [open] : []), tagBox, more, s, x);
       }
       list.appendChild(row);
 
@@ -6526,6 +6776,13 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
 
   const fileOf = (key) => (item.attachments || []).find(a => 'f' + a.id === key) || null;
   const uploadOf = (key) => UPLOADS.find(u => 'u' + u.no === key) || null;
+  // Uploads, die dieser Tab nicht haelt: aus einem anderen Fenster, einem frueheren Tab oder fremd.
+  const remoteUploads = () => {
+    const local = new Set(uploadsOf(id).map(u => u.uploadId).filter(Boolean));
+    return (item.uploads || []).filter(x => !local.has(x.id));
+  };
+  const remoteOf = (key) => (item.uploads || []).find(x => 's' + x.id === key) || null;
+  const dayOf = (dayId) => (item.testDays || []).find(d => d.id === Number(dayId)) || null;
   const fileLink = (a) => fullAddress(fileAddress(id, a.id));
   const mayDeleteFile = (a) => a.mine === true || ADMIN;
   const uploadedLine = (a) => multipleUsers()
@@ -6534,6 +6791,8 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   // Ohne bekannten Ordner steht eine Datei in Gruppe 0.
   const groupOf = (a) => (a.folder != null && folderOf(a.folder) ? a.folder : 0);
   const jobGroup = (u) => (u.folderId && folderOf(u.folderId) ? u.folderId : 0);
+  const remoteGroup = (x) => (x.folder && folderOf(x.folder) ? x.folder : 0);
+  const dayFolder = (key) => !!key && folderOf(key)?.testDay != null;
   const groupBox = (key) => (key ? folderBox.querySelector(`.afolder[data-folder="${Number(key)}"]`) : looseGroup);
   const previewIdOf = (key) => (key ? `apreview-${Number(key)}` : 'apreview');
 
@@ -6630,14 +6889,17 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
 
   function fillUploadTile(li, u) {
     const kind = fileKind(u.name);
-    const failed = u.state === 'failed';
+    const failed = u.state === 'failed', paused = u.state === 'paused';
     const percent = Math.round(u.sent * 100);
     const corner = failed ? { kind: 'fail', text: '⚠' }
+      : paused ? { kind: 'pause', text: '⏸' }
       : u.state === 'running' ? { kind: 'run', text: `${percent} %`, done: percent }
       : { kind: 'wait', text: t('entry.fileWaiting') };
-    const state = failed ? `${t('entry.fileFailed')}: ${u.error}` : corner.text;
+    const pausedLine = paused ? t('entry.uploadPaused', { done: fmtBytes(u.received), size: fmtBytes(u.size),
+      until: fmtUntil((u.touched || Date.now()) + UPLOAD_STALE_MS) }) : '';
+    const state = failed ? `${t('entry.fileFailed')}: ${u.error}` : pausedLine || corner.text;
     // Nach einem Fehler steht der Grund an der Stelle der Groesse.
-    fillTile(li, { name: u.name, size: failed ? '' : filesize(u.size), kind, meta: u.error,
+    fillTile(li, { name: u.name, size: failed || paused ? '' : filesize(u.size), kind, meta: pausedLine || u.error,
       picture: u.stillUrl, video: !!u.stillUrl,
       label: [u.name, kind, filesize(u.size), state].filter(Boolean).join(', '), corner });
     li.classList.toggle('busy', !failed);
@@ -6649,18 +6911,51 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     more.title = t('entry.fileMenu', { name: u.name });
   }
 
-  function fillAddTile(li, taken) {
+  // Im Ordner mit {dayOne} nennt „+" beide Grenzen.
+  function fillAddTile(li, taken, day) {
     const full = taken >= FILES_PER_ENTRY;
     li.classList.toggle('full', full);
     const face = li.querySelector('.aface');
     face.setAttribute('aria-disabled', String(full));
-    const limit = t('entry.fileLimitHint', { mb: UPLOAD_LIMITS.attachment, cap: FILES_PER_ENTRY });
+    const video = day && UPLOAD_LIMITS.dayVideo > UPLOAD_LIMITS.attachment ? fmtMb(UPLOAD_LIMITS.dayVideo) : '';
+    const limit = video
+      ? t('entry.dayLimitHint', { mb: UPLOAD_LIMITS.attachment, video, cap: FILES_PER_ENTRY })
+      : t('entry.fileLimitHint', { mb: UPLOAD_LIMITS.attachment, cap: FILES_PER_ENTRY });
     const count = t('entry.fileFull', { n: taken, cap: FILES_PER_ENTRY });
     face.setAttribute('aria-label', full ? `${t('entry.fileAdd')}, ${count}` : `${t('entry.fileAdd')}, ${limit}`);
     face.title = full ? count : limit;
     const pic = li.querySelector('.apic');
     if (!pic.firstChild) pic.innerHTML = '<span class="aplus" aria-hidden="true">+</span>';
-    li.querySelector('.ameta').textContent = full ? count : t('entry.fileAddLimit', { mb: UPLOAD_LIMITS.attachment });
+    li.querySelector('.ameta').textContent = full ? count : video
+      ? t('entry.dayAddLimit', { mb: UPLOAD_LIMITS.attachment, video })
+      : t('entry.fileAddLimit', { mb: UPLOAD_LIMITS.attachment });
+  }
+
+  /* Ohne Prozentzahl: die Ansicht fragt nicht nach. Die Uhrzeit ist die letzte
+     angenommene Anfrage. */
+  function fillRemoteTile(li, x) {
+    const kind = fileKind(x.filename);
+    const time = fmtClock(x.touched_at || x.created_at);
+    const state = x.active
+      ? (x.mine ? t('entry.uploadOtherWindow') : t('entry.uploadRunsAt', { time }))
+      : x.mine ? t('entry.uploadPaused', { done: fmtBytes(x.received), size: fmtBytes(x.size),
+          until: fmtUntil(Date.parse((x.touched_at || x.created_at).replace(' ', 'T') + 'Z') + UPLOAD_STALE_MS) })
+      : t('entry.uploadPausedSince', { time });
+    const meta = x.mine ? state : t('entry.uploadForeign', { author: authorName(x.author), state });
+    fillTile(li, { name: x.filename, size: '', kind, meta,
+      label: [x.filename, kind, filesize(x.size), meta].join(', '),
+      corner: x.active ? { kind: 'wait', text: '…' } : { kind: 'pause', text: '⏸' } });
+    li.classList.add('busy');
+    li.title = meta;
+    // Ein fremder Upload ohne erlaubte Handlung ist kein Knopf.
+    const face = li.querySelector('.aface');
+    const acts = x.mine || ADMIN;
+    face.disabled = !acts;
+    if (acts) face.setAttribute('aria-haspopup', 'menu'); else face.removeAttribute('aria-haspopup');
+    const more = li.querySelector('.amore');
+    more.hidden = !acts;
+    more.setAttribute('aria-label', t('entry.fileMenu', { name: x.filename }));
+    more.title = t('entry.fileMenu', { name: x.filename });
   }
 
   function newFolderGroup(folderId) {
@@ -6670,6 +6965,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     el.innerHTML = `<div class="afolder-head"><button type="button" class="afolder-face" aria-controls="afolder-${Number(folderId)}">`
       + `<span class="afolder-caret" aria-hidden="true"></span><span class="afolder-icon" aria-hidden="true">📁</span>`
       + `<span class="afolder-name"></span><span class="afolder-meta"></span></button>`
+      + `<button type="button" class="link-btn afolder-day" hidden></button>`
       + `<button type="button" class="afolder-more" aria-haspopup="menu" aria-expanded="false">⋯</button></div>`
       + `<div class="afolder-body" id="afolder-${Number(folderId)}"><ul class="agrid"></ul>`
       + `<div class="apreview" id="${esc(previewIdOf(folderId))}" role="region" hidden></div></div>`;
@@ -6716,6 +7012,14 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       state.style.setProperty('--done', String(corner.done || 0));
     }
     face.setAttribute('aria-label', [f.name, meta, corner?.say].filter(Boolean).join(', '));
+    const day = f.testDay != null ? dayOf(f.testDay) : null;
+    const dayLink = el.querySelector('.afolder-day');
+    dayLink.hidden = !day;
+    if (day) {
+      dayLink.textContent = `↑ ${fmtDay(day.day)}`;
+      dayLink.setAttribute('aria-label', t('entry.folderDayShow', { day: fmtDay(day.day) }));
+      dayLink.onclick = () => jumpToDay(day.id);
+    }
     el.querySelector('.afolder-body').hidden = !open;
     const more = el.querySelector('.afolder-more');
     more.hidden = !folderMenuItems(f).length;
@@ -6731,9 +7035,11 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     const list = item.attachments || [];
     const folders = item.folders || [];
     const jobs = uploadsOf(id);
-    // Wartet ein Upload auf einen geloeschten Ordner, geht er nicht mehr hoch.
+    const remote = remoteUploads();
+    /* Wartet ein Upload auf einen geloeschten Ordner, geht er nicht mehr hoch; ein Upload in
+       Stuecken, den der Server schon kennt, laeuft zu Ende und steht dann ohne Ordner. */
     for (const u of jobs) {
-      if (!u.folderId || folderOf(u.folderId) || u.state !== 'waiting') continue;
+      if (!u.folderId || folderOf(u.folderId) || u.state !== 'waiting' || u.uploadId) continue;
       u.state = 'failed';
       u.error = t('server.folderGone');
       u.final = true;
@@ -6744,13 +7050,14 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     document.getElementById('acount').textContent = list.length
       ? t('entry.fileCount', { n: list.length,
           filesize: filesize(list.reduce((s2, a) => s2 + a.size, 0)) }) : '';
-    looseGroup.querySelector('.aempty').hidden = list.length + jobs.length > 0;
+    looseGroup.querySelector('.aempty').hidden = list.length + jobs.length + remote.length > 0;
     const old = new Map([...attsBox.querySelectorAll('.atile')].map(li => [li.dataset.key, li]));
-    const taken = list.length + jobs.length;
+    const taken = list.length + jobs.length + remote.length;
     const tilesOf = (key, shown, adds) => [
       ...list.filter(a => groupOf(a) === key).map(a => ['f' + a.id, li => fillFileTile(li, a, key, shown)]),
+      ...remote.filter(x => remoteGroup(x) === key).map(x => ['s' + x.id, li => fillRemoteTile(li, x)]),
       ...jobs.filter(u => jobGroup(u) === key).map(u => ['u' + u.no, li => fillUploadTile(li, u)]),
-      ...(adds ? [[key ? `add-f${key}` : 'add', li => fillAddTile(li, taken)]] : [])];
+      ...(adds ? [[key ? `add-f${key}` : 'add', li => fillAddTile(li, taken, dayFolder(key))]] : [])];
     const place = (grid, want) => want.forEach(([key, fill], at) => {
       const li = old.get(key) || newTile(key);
       old.delete(key);
@@ -6770,12 +7077,18 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     });
     for (const li of old.values()) li.remove();
     for (const el of oldGroups.values()) el.remove();
+    // Am Telefon stoppt der Browser Anfragen bei gesperrtem Bildschirm.
+    document.getElementById('aawake').hidden =
+      !(isNarrow() && jobs.some(u => u.chunked && (u.state === 'running' || u.state === 'waiting')));
     setUpBlocksOut(item);
   }
 
   function tileAction(li) {
     const key = li.dataset.key;
     if (key.startsWith('add')) return pickFiles(addTarget(key));
+    const x = remoteOf(key);
+    if (x) return x.mine && !x.active ? resumePick(x) : x.mine || ADMIN ? tileMenu(li) : undefined;
+    if (uploadOf(key)?.state === 'paused') return uploadRetry(uploadOf(key));
     const a = fileOf(key);
     if (!a) return tileMenu(li);
     if (a.preview === 'image' || a.preview === 'video') return showFile(a.id);
@@ -6787,9 +7100,10 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   }
 
   function tileMenu(li) {
-    const a = fileOf(li.dataset.key), u = uploadOf(li.dataset.key);
+    const a = fileOf(li.dataset.key), u = uploadOf(li.dataset.key), x = remoteOf(li.dataset.key);
     if (a) fileMenu(a, li);
     else if (u) uploadMenu(u, li);
+    else if (x) remoteMenu(x, li);
   }
 
   /* Nur was der Server annimmt; die eigene Nummer kennt der Browser nicht, daher `mine`. */
@@ -6852,10 +7166,12 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     drawAtts();
   }
 
-  // Wie die Routen: umbenennen nur der Verfasser, loeschen er und der Admin.
+  // Wie die Routen: bearbeiten nur der Verfasser, loeschen er und der Admin.
   function folderMenuItems(f) {
     const items = [];
     if (f.mine === true) items.push({ label: t('entry.folderEdit'), run: () => renameFolder(f) });
+    items.push({ label: t('entry.copyFolderLink'),
+                 run: () => copyText(fullAddress(folderAddress(id, f.id)), t('card.linkCopied')) });
     if (f.mine === true || ADMIN)
       items.push({ label: t('entry.folderDelete'), danger: true, own: true, run: () => deleteFolder(f) });
     return items;
@@ -6867,26 +7183,83 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     if (items.length) openFileMenu(el.querySelector('.afolder-more'), el, f.name, '', items);
   }
 
+  /* „Name" und {dayOne}: ein eigener Testtag dieses Eintrags ohne Ordner. Bis zur Antwort
+     des Servers bleibt der Dialog offen, weil das Zuweisen umlagert. */
+  function folderDialog(title, f, send) {
+    const current = f ? f.testDay : null;
+    const days = (item.testDays || []).filter(d => d.mine === true && (d.folder == null || d.id === current));
+    return new Promise(resolve => {
+      const { bd, done } = openModal(`<div class="modal"><h2>${esc(title)}</h2>
+        <div class="field"><label for="nb-name">${tH('entry.folderNameLabel')}</label>
+          <input class="input" id="nb-name" maxlength="${FOLDER_NAME_MAX}" value="${esc(f ? f.name : '')}"
+            placeholder="${esc(t('entry.folderNameHint'))}"></div>
+        ${days.length ? `<div class="field"><label for="nb-day">${esc(V.dayOne)}</label>
+          <select class="select" id="nb-day"><option value="">${tH('entry.folderNoDay')}</option>${days.map(d =>
+            `<option value="${Number(d.id)}"${d.id === current ? ' selected' : ''}>${esc(fmtDay(d.day))} · ${'★'.repeat(d.rating)}</option>`).join('')}
+          </select></div>` : ''}
+        <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.cancel')}</button>
+        <button class="btn btn-accent" data-yes>${tH('dialog.save')}</button></div></div>`,
+        resolve, false, (e) => e.key === 'Enter' && document.activeElement === field && (go(), true));
+      const field = bd.querySelector('#nb-name'), pick = bd.querySelector('#nb-day');
+      const yes = bd.querySelector('[data-yes]');
+      // Ein leeres Feld bekommt den Tag als Vorschlag; gespeichert wird, was im Feld steht.
+      if (pick) pick.onchange = () => {
+        const d = dayOf(pick.value);
+        if (d && !field.value.trim()) field.value = t('entry.folderDayName', { day: fmtDay(d.day) });
+      };
+      const go = async () => {
+        const name = field.value.trim();
+        if (!name || yes.disabled) return field.focus();
+        yes.disabled = true;
+        if (await send(name, pick ? (pick.value ? Number(pick.value) : null) : undefined)) done(true);
+        else yes.disabled = false;
+      };
+      bd.querySelector('[data-no]').onclick = () => done(false);
+      yes.onclick = go;
+      field.focus(); field.select();
+    });
+  }
+
   async function newFolder() {
-    const name = await nameBox(t('entry.folderAdd'), '', '', t('dialog.save'), FOLDER_NAME_MAX,
-                               t('entry.folderNameHint'));
-    if (!name) return;
     const before = new Set((item.folders || []).map(f => f.id));
-    try { item = await api('POST', `/api/items/${id}/folders`, { name }); }
-    catch (e) { toast(e.message, true); return; }
+    const made = await folderDialog(t('entry.folderAdd'), null, async (name, testDay) => {
+      try { item = await api('POST', `/api/items/${id}/folders`, { name, ...(testDay ? { testDay } : {}) }); return true; }
+      catch (e) { toast(e.message, true); return false; }
+    });
+    if (!made) return;
     const fresh = (item.folders || []).find(f => !before.has(f.id) && f.mine === true);
     if (fresh) FOLDERS_OPEN.open.add(fresh.id);
     openBlock('dateien');
     drawAtts();
+    drawTestDays();
     if (fresh) groupBox(fresh.id)?.querySelector('.afolder-face')?.focus();
   }
 
   async function renameFolder(f) {
-    const name = await nameBox(t('entry.folderEdit'), '', f.name, t('dialog.save'), FOLDER_NAME_MAX,
-                               t('entry.folderNameHint'));
-    if (!name || name === f.name) return;
-    try { item = await api('PUT', `/api/folders/${Number(f.id)}`, { name }); drawAtts(); }
-    catch (e) { toast(e.message, true); }
+    await folderDialog(t('entry.folderEdit'), f, async (name, testDay) => {
+      if (name === f.name && (testDay === undefined || testDay === f.testDay)) return true;
+      try {
+        item = await api('PUT', `/api/folders/${Number(f.id)}`,
+                         { name, ...(testDay === undefined ? {} : { testDay }) });
+      } catch (e) { toast(e.message, true); return false; }
+      drawAtts();
+      drawTestDays();
+      return true;
+    });
+  }
+
+  /* Sprung von der Testtagzeile oder ueber die Adresse: Block und Ordner stehen fuer
+     diese Ansicht offen. */
+  function jumpToFolder(folderId, soft) {
+    if (!folderOf(folderId)) return false;
+    openBlock('dateien');
+    FOLDERS_OPEN.open.add(Number(folderId));
+    drawAtts();
+    if (!jumpTo(() => groupBox(folderId), soft)) return false;
+    groupBox(folderId)?.querySelector('.afolder-face')?.focus({ preventScroll: true });
+    if (typeof history !== 'undefined' && typeof history.replaceState === 'function')
+      history.replaceState(null, '', folderAddress(id, folderId));
+    return true;
   }
 
   async function deleteFolder(f) {
@@ -6900,6 +7273,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     catch (e) { toast(e.message, true); return; }
     FOLDERS_OPEN.open.delete(f.id);
     drawAtts();
+    drawTestDays();
     (after?.querySelector('.afolder-face') || document.getElementById('afolder-new'))?.focus();
   }
 
@@ -6908,8 +7282,26 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     const items = u.state === 'failed'
       ? [...(u.final ? [] : [{ label: t('entry.uploadRetry'), run: () => uploadRetry(u) }]),
          { label: t('entry.remove'), run: () => uploadCancel(u) }]
+      : u.state === 'paused'
+      ? [{ label: t('entry.uploadResume'), run: () => uploadRetry(u) },
+         { label: t('dialog.cancel'), run: () => uploadCancel(u) }]
       : [{ label: t('dialog.cancel'), run: () => uploadCancel(u) }];
     openFileMenu(li.querySelector('.amore'), li, u.name, u.error, items);
+  }
+
+  // Fortsetzen nur mit derselben Datei; abbrechen darf auch der Admin.
+  function remoteMenu(x, li) {
+    const items = [];
+    if (x.mine && !x.active) items.push({ label: t('entry.uploadResume'), run: () => resumePick(x) });
+    if (x.mine || ADMIN) items.push({ label: t('dialog.cancel'), run: () => cancelRemote(x) });
+    if (items.length) openFileMenu(li.querySelector('.amore'), li, x.filename, '', items);
+  }
+
+  async function cancelRemote(x) {
+    if (!await confirmBox(t('entry.uploadCancelAsk'), t('entry.uploadCancelHint', { name: x.filename }),
+                          t('entry.uploadStop'))) return;
+    try { item = await api('DELETE', `/api/uploads/${x.id}`); drawAtts(); }
+    catch (e) { toast(e.message, true); }
   }
 
   async function deleteFile(a) {
@@ -7043,25 +7435,40 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
 
   /* ---- Hochladen ---- */
   const fileInput = document.getElementById('afile');
-  let pickTarget = 0;
+  let pickTarget = 0, pickResume = null;
   function pickFiles(folderId) {
-    const taken = (item.attachments || []).length + uploadsOf(id).length;
+    const taken = (item.attachments || []).length + uploadsOf(id).length + remoteUploads().length;
     if (taken >= FILES_PER_ENTRY) return toast(t('server.fileCap', { cap: FILES_PER_ENTRY }), true);
     pickTarget = folderId;
+    pickResume = null;
     fileInput.click();
   }
+  // Nach dem Schliessen des Tabs: dieselbe Datei (Name, Groesse, Aenderungszeit) setzt fort.
+  function resumePick(x) {
+    pickResume = x;
+    fileInput.click();
+  }
+  // In einen Ordner mit {dayOne} geht jede Datei in Stuecken, sonst in einer Anfrage.
   function addFiles(files, folderId) {
     if (!files.length) return;
     if (folderId && folderOf(folderId)?.mine !== true) return toast(t('entry.folderDropForeign'), true);
-    const refusal = uploadRefusal(id, files, (item.attachments || []).length);
+    const day = dayFolder(folderId);
+    const refusal = uploadRefusal(id, files, (item.attachments || []).length + remoteUploads().length, day);
     if (refusal) return toast(refusal, true);
     if (folderId) FOLDERS_OPEN.open.add(folderId);
-    queueUploads(id, files, folderId);
+    queueUploads(id, files, folderId, day);
   }
   fileInput.onchange = (e) => {
     const files = [...e.target.files];
     e.target.value = '';
-    addFiles(files, pickTarget);
+    const x = pickResume;
+    pickResume = null;
+    if (!x) return addFiles(files, pickTarget);
+    const file = files[0];
+    if (!file) return;
+    if (file.name !== x.filename || file.size !== x.size || file.lastModified !== x.modified)
+      return toast(t('entry.uploadOtherFile'), true);
+    queueUploads(id, [file], remoteGroup(x), true);
   };
 
   // Nur Dateien; ohne preventDefault oeffnete der Browser eine abgelegte Datei im Tab.
@@ -7464,6 +7871,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   if (LIT_COMMENT) commentJump(LIT_COMMENT);
   if (photoWanted) showPhoto(photoWanted);
   if (fileWanted) showFile(fileWanted);
+  if (folderWanted) jumpToFolder(folderWanted, false);
   const back = fileReturn;
   fileReturn = null;
   // Der Block steht nur fuer diese Ansicht offen, wie nach einem Sprung.
@@ -10097,6 +10505,7 @@ function cardStats(fetched) {
         <div class="kv"><span class="k">${tH('dialog.links')}</span><span class="v">${stats.linkCount}</span></div>
         <div class="kv"><span class="k">${esc(V.dayMany)}</span><span class="v">${stats.testDayCount}</span></div>
           <div class="kv"><span class="k">${tH('dialog.files')}</span><span class="v">${stats.attachmentCount} · ${fmtBytes(stats.attachmentBytes)}</span></div>
+        ${diskRows(stats.disk)}
         ${/* Papierkorb als eigene Zeile: sonst wirkt die Datenbank nach dem Aufraeumen
              groesser als vorher. */''}
         <div class="kv"><span class="k">${tH('card.commentImages')}</span><span class="v">${stats.commentImageCount || 0} · ${fmtBytes(stats.commentImageBytes)}</span></div>
@@ -10138,7 +10547,39 @@ function cardStats(fetched) {
       </div>`;
 }
 
+/* Dateien auf der Platte; „fehlen", „warten auf Loeschen" und „ohne Verweis" nur,
+   wenn es welche gibt. */
+function diskRows(d) {
+  if (!d) return '';
+  const row = (label, value) => `<div class="kv"><span class="k">${label}</span><span class="v">${value}</span></div>`;
+  const without = d.unknownCount - d.copiedCount;
+  return [
+    row(tH('card.diskFiles'), `${d.count} · ${fmtBytes(d.bytes)}`),
+    d.largeCount ? row(tH('card.diskLarge'), `${d.largeCount} · ${fmtBytes(d.largeBytes)}`) : '',
+    d.trashCount ? row(tH('card.diskTrash'), `${d.trashCount} · ${fmtBytes(d.trashBytes)}`) : '',
+    row(tH('card.diskUploads'), `${d.uploadCount} · ${fmtBytes(d.uploadBytes)}`),
+    d.missing ? row(tH('card.diskMissing'), String(d.missing)) : '',
+    d.gone ? row(tH('card.diskGone'), String(d.gone)) : '',
+    d.unknownCount ? row(tH('card.diskUnknown'), `${d.unknownCount} · ${fmtBytes(d.unknownBytes)}`)
+      + row(tH('card.diskCopied'), `${d.copiedCount} · ${fmtBytes(d.copiedBytes)}`)
+      + (without ? `<p class="hint hint-sm" style="margin:4px 2px 0">${tH('card.diskUncopied', { n: without })}</p>` : '')
+      + (OWNER && d.copiedCount ? `<div class="kv kv-act"><button class="btn btn-sm btn-danger" id="disk-unknown-delete"
+          data-n="${Number(d.copiedCount)}" data-bytes="${Number(d.copiedBytes)}">${tH('dialog.delete')}</button></div>` : '') : '',
+    d.free != null ? row(tH('card.diskFree'), fmtBytes(d.free)) : ''
+  ].join('');
+}
+
 function setUpStatsOut() {
+  atElement('disk-unknown-delete', b => b.onclick = async () => {
+    const n = Number(b.dataset.n);
+    const ask = t('card.unknownDeleteAsk', { n, bytes: fmtBytes(Number(b.dataset.bytes)) });
+    if (!await confirmBox(ask, t('card.unknownDeleteHint'))) return;
+    try {
+      const r = await api('DELETE', '/api/files/unknown');
+      toast(t('card.unknownDeleted', { n: r.removed, bytes: fmtBytes(r.bytes) }));
+      renderSystem({ keepScroll: true });
+    } catch (e) { toast(e.message, true); }
+  });
   const button = document.getElementById('fp-files');
   const list = document.getElementById('fp-list');
   // Ohne Liste kein Knopf: die Karte zeichnet beide oder keinen von beiden.
@@ -10202,7 +10643,7 @@ function cardImageStore(fetched) {
 /* ---- Karte „Grenzen beim Hochladen" — Abschnitt „Datenbank" ---- */
 const LIMIT_KINDS = [['photo', 'card.limitPhoto'], ['commentImage', 'card.limitCommentImage'],
   ['video', 'card.limitVideo'], ['commentVideo', 'card.limitCommentVideo'],
-  ['attachment', 'card.limitAttachment']];
+  ['attachment', 'card.limitAttachment'], ['dayVideo', 'card.limitDayVideo']];
 function cardLimits() {
   return `<div class="sys-card">
         <h3>${tH('card.uploadLimits')}</h3>
@@ -10355,6 +10796,12 @@ function setUpBackupOut(fetched) {
                tH('card.backupsBeforeChange', { n: d.outdated })}</strong>
                (${esc(fmtDate(d.changedAt))}). ${tH('card.opensOnlyWith', { n: d.outdated })}</div>`
           : `<div class="ok-box" style="margin:0 0 12px">${tH('card.keyChangedHint', { changedAt: fmtDate(d.changedAt) })}</div>`));
+    const copy = d.copy || {};
+    const copying = Boolean(copy.running);
+    const copyBox = copying
+      ? `<p class="desc" id="backup-copy" style="margin:0 0 10px">${esc(backupCopyText(copy))}</p>`
+      : copy.error ? `<div class="warn-box" style="margin:0 0 12px">${esc(backupCopyError(copy))}</div>`
+      : copy.absent ? `<div class="warn-box" style="margin:0 0 12px">${tH('card.backupAbsent', { n: copy.absent })}</div>` : '';
     const situation = d.inWorkDir
       ? `<div class="warn-box" id="backup-place" style="margin:0 0 12px">${tH('card.backupDirHint')} <code>${COMPOSE_FILE}</code>.</div>`
       : `<div class="ok-box" id="backup-place" style="margin:0 0 12px">${tH('card.backupDirOutsideHint')}</div>`;
@@ -10369,8 +10816,11 @@ function setUpBackupOut(fetched) {
       <div class="sys-part"></div>
       ${stateBox}
       ${changeBox}
+      ${copyBox}
       <p class="desc" style="margin:0 0 10px">${tH('card.duringBackupHint', { dbBytes: fmtBytes(d.dbBytes), durationSeconds: d.durationSeconds })}</p>
-      <button class="btn btn-accent btn-sm" id="backup-run">${tH('card.backupNow')}</button>`;
+      <button class="btn btn-accent btn-sm" id="backup-run"${copying ? ' disabled' : ''}>${
+        copying ? tH('card.backupRunning') : tH('card.backupNow')}</button>`;
+    if (copying) followBackup(fetched);
 
     document.getElementById('backup-dir-save').onclick = async () => {
       const value = document.getElementById('backup-dir').value;
@@ -10392,8 +10842,13 @@ function setUpBackupOut(fetched) {
       button.textContent = t('card.backupRunning');
       try {
         const r = await api('POST', '/api/backup');
+        // 202: die Dateien werden noch kopiert; die Karte fragt alle 2 s nach.
+        if (r.running) {
+          fetched.backup = { ...fetched.backup, copy: r.copy };
+          return drawBackup(fetched);
+        }
         fetched.backup = { ...fetched.backup, reachable: r.reachable, last: r.last, number: r.number,
-                      changedAt: r.changedAt, outdated: r.outdated };
+                      changedAt: r.changedAt, outdated: r.outdated, copy: r.copy };
         /* Eine Meldung statt zwei: toast() ersetzt die vorige. */
         toast(t('card.backupWrittenFile', { file: r.file, bytes: fmtBytes(r.bytes) }) +
               (r.cleaned && r.cleaned.removed
@@ -10412,6 +10867,29 @@ function setUpBackupOut(fetched) {
     };
   }
 
+
+const backupCopyText = (c) => t('card.backupCopying', { done: c.done, total: c.total,
+  bytesDone: fmtBytes(c.bytesDone), bytesTotal: fmtBytes(c.bytesTotal) });
+const backupCopyError = (c) => (c.error === 'server.backupRestarted'
+  ? t('server.backupRestarted', { at: fmtDate(c.at) }) : t('server.backupFailed'));
+
+// Die Kopie der Dateien dauert laenger als eine Anfrage; die Karte fragt alle 2 s nach.
+let BACKUP_CLOCK = null;
+function followBackup(fetched) {
+  if (BACKUP_CLOCK) return;
+  const stop = () => { clearInterval(BACKUP_CLOCK); BACKUP_CLOCK = null; };
+  BACKUP_CLOCK = setInterval(async () => {
+    if (!document.getElementById('backup-box')) return stop();
+    let d;
+    try { d = await api('GET', '/api/backup'); } catch { return stop(); }
+    fetched.backup = d;
+    if (d.copy?.running) return atElement('backup-copy', el => { el.textContent = backupCopyText(d.copy); });
+    stop();
+    if (d.copy?.error) toast(backupCopyError(d.copy), true);
+    else toast(t('card.backupWrittenFile', { file: d.copy?.file || '', bytes: fmtBytes(d.last?.bytes || 0) }));
+    renderSystem({ keepScroll: true });
+  }, 2000);
+}
 
 /* ---- Karte „Alte Backups" — Abschnitt „Datenbank" ---- */
 function cardCleanup() {
@@ -10464,7 +10942,7 @@ function setUpCleanupOut(fetched) {
 
     const stateBox = !a.reachable ? '' : (matched.length
       ? `<p class="desc" style="margin:10px 0 6px">${tH('card.deleteFreesHint',
-           { n: matched.length, bytes: fmtBytes(a.bytes || 0) })}</p>`
+           { n: matched.length, bytes: fmtBytes((a.bytes || 0) + (a.copyBytes || 0)) })}</p>`
       : `<p class="desc" style="margin:10px 0 6px">${tH('card.nothingDeleted')} ${
            esc(a.reason || '')}</p>`);
 
@@ -10553,7 +11031,7 @@ function setUpCleanupOut(fetched) {
       fetched.backup = { ...fetched.backup, reachable: r.reachable, last: r.last,
                            number: r.number, changedAt: r.changedAt, outdated: r.outdated,
                            cleanup: { ...(fetched.backup || {}).cleanup, ...r.cleanup } };
-      toast(t('card.backupsDeleted', { n: r.removed, bytes: fmtBytes(r.bytes),
+      toast(t('card.backupsDeleted', { n: r.removed, bytes: fmtBytes(r.bytes + (r.copyBytes || 0)),
         extra: r.notDeleted ? t('card.notDeleted', { notDeleted: r.notDeleted }) : '' }));
       // Die Karte "Backup" nennt das letzte Backup, und das kann jetzt ein anderes sein.
       renderSystem();
@@ -10584,7 +11062,8 @@ function setUpCleanupOut(fetched) {
             out.innerHTML = r.ok
               ? `<span class="probe-ok">${esc(V.entryMany)} ${Number(r.itemCount)} · ${
                    tH('list.photos')} ${Number(r.photoCount)} · ${tH('card.checkUsers')} ${Number(r.userCount)}${
-                   r.contentUntil ? ` · ${tH('card.checkUntil')} ${esc(fmtDate(r.contentUntil))}` : ''}</span>`
+                   r.contentUntil ? ` · ${tH('card.checkUntil')} ${esc(fmtDate(r.contentUntil))}` : ''}${
+                   r.files ? ` · ${tH('card.checkCopies', { present: r.files.present, listed: r.files.listed })}` : ''}</span>`
               : `<span class="probe-no">${
                    r.reason === 'key' ? tH('card.checkKeyWrong') : tH('card.checkForeign')}</span>`;
           }
@@ -10616,6 +11095,8 @@ function cardExport(fetched) {
           ${tH('card.includeVideos', { size: fmtBytes(stats.export?.videos || 0) })}</label>
         ${stats.videoCount ? `<p class="hint hint-sm" style="margin:6px 2px 0">
           ${tH('card.videosExcludedHint')}</p>` : ''}
+        ${stats.disk?.largeCount ? `<p class="hint hint-sm" id="ex-large" style="margin:6px 2px 0">
+          ${tH('card.exportLargeHint', { n: stats.disk.largeCount, bytes: fmtBytes(stats.disk.largeBytes) })}</p>` : ''}
         <div id="ex-warn"></div>
         <div class="ex-parts">
           <div class="row-in" style="align-items:baseline">
@@ -10656,7 +11137,7 @@ function setUpExportOut(fetched) {
   atElement('imp', imp => imp.onchange = e => {
     const file = e.target.files[0];
     e.target.value = '';
-    if (file) askImport(file, fetched.stats && fetched.stats.export);
+    if (file) askImport(file, fetched.stats);
   });
 }
 
@@ -10791,7 +11272,11 @@ async function importSizeTested(file, limits) {
     t('card.tryAnyway'));
 }
 
-function askImport(file, limits) {
+function askImport(file, stats) {
+  const limits = stats && stats.export;
+  // Kein Export traegt die grossen Videos; „ersetzen" nennt, was dabei faellt.
+  const large = stats?.disk?.largeCount ? t('card.replaceLargeHint',
+    { n: stats.disk.largeCount, bytes: fmtBytes(stats.disk.largeBytes) }) : '';
   let info = null;
   const reader = new FileReader();
   reader.onload = () => {
@@ -10842,7 +11327,7 @@ function askImport(file, limits) {
     const run = async (mode) => {
       if (!await longRunNotice('card.importRunTitle')) return;
       if (mode === 'replace' && !await confirmBox(t('card.replaceAsk'),
-        t('card.importWipeHint'), t('card.replace'))) return;
+        [t('card.importWipeHint'), large].filter(Boolean).join(' '), t('card.replace'))) return;
       if (!await secondConfirm('import', null, t('card.confirmImport'),
         mode === 'replace'
           ? t('card.importReplaceHint')
@@ -10867,7 +11352,11 @@ function askImport(file, limits) {
         /* Melden statt abbrechen: fehlt ein Video, kann das naechste Foto zum
            Hauptbild geworden sein. */
         const missing = (r.videosWithoutFile || 0) + (r.videosUnreadable || 0);
-        if (missing) toast(t('card.videosMissing', { n: missing }), true);
+        const empty = Array.isArray(r.filesWithoutContent) ? r.filesWithoutContent : [];
+        const notes = [missing ? t('card.videosMissing', { n: missing }) : '',
+          empty.length ? t('card.filesWithoutContent', { n: empty.length, names: empty.join(', ') }) : '',
+          r.foldersWithoutDay ? t('card.foldersWithoutDay', { n: r.foldersWithoutDay }) : ''].filter(Boolean);
+        if (notes.length) toast(notes.join(' '), true);
         location.hash = '#/';
         if (location.hash === '#/') renderList();
       } catch (e) { busy.remove(); toast(e.message, true); }

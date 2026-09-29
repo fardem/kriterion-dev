@@ -383,15 +383,17 @@ const photoUpload = (bytes) => upload({
       : cb(new Message('server.imagesOnly'))
 });
 
-/* Grenzen beim Hochladen in MB. Die Obergrenzen sind fest: jede Datei liegt
-   ganz im Arbeitsspeicher und geht als ein Blob in SQLite. */
+/* Grenzen beim Hochladen in MB. Die ersten fuenf Obergrenzen sind fest: jede
+   solche Datei liegt ganz im Arbeitsspeicher und geht als ein Blob in SQLite. */
 const MB = 1048576;
 const UPLOAD_LIMITS = {
   photo: { fallback: 30, min: 1, max: 50, label: 'card.limitPhoto' },
   commentImage: { fallback: 20, min: 1, max: 50, label: 'card.limitCommentImage' },
   video: { fallback: 20, min: 1, max: 100, label: 'card.limitVideo' },
   commentVideo: { fallback: 20, min: 1, max: 100, label: 'card.limitCommentVideo' },
-  attachment: { fallback: 50, min: 1, max: 100, label: 'card.limitAttachment' }
+  attachment: { fallback: 50, min: 1, max: 100, label: 'card.limitAttachment' },
+  // Geht in Stuecken auf die Platte; liegt sie nicht ueber „Anhang", gibt es keine grossen Videos.
+  dayVideo: { fallback: 2048, min: 1, max: 4096, label: 'card.limitDayVideo' }
 };
 // Der gespeicherte Stand; was fehlt oder ausserhalb der Spanne liegt, ist die Vorgabe.
 function uploadLimits() {
@@ -578,6 +580,12 @@ app.use((req, res, next) => {
   if (CSRF_FREE_SET.has(`${req.method} ${where}`)) return next();
   if (auth.csrfOk(req, token)) return next();
   res.status(403).json({ error: t(localeOf(req), 'server.deniedOrigin') });
+});
+
+/* Steht nach einer schreibenden Antwort ein Name in der Loeschliste, laeuft sweepDisk(). */
+app.use((req, res, next) => {
+  if (WRITING_METHODS.has(req.method)) res.on('finish', sweepSoon);
+  next();
 });
 
 /* ---- Oeffentlich ---- */
@@ -815,11 +823,13 @@ app.get('/api/document-server/attachments/:id', (req, res) => {
   const result = docserver.checkFetch(req);
   if (!result.ok) return result.reason === 'setup' ? res.status(404).end() : refuseFetch(req, res, result);
   if (!documentServerOn()) return res.status(404).end();
-  const a = db.prepare('SELECT filename, data FROM attachments WHERE id = ?').get(req.params.id);
+  const a = db.prepare('SELECT id, filename, data FROM attachments WHERE id = ?').get(req.params.id);
   if (!a || !docserver.officeType(a.filename)) return res.status(404).end();
+  let bytes;
+  try { bytes = fileBytes(a.id, a.data); } catch (e) { if (e.damaged) return res.status(404).end(); throw e; }
   attachments.setHeader(res, a.filename);
   res.set('Cache-Control', 'no-store');
-  res.send(a.data);
+  res.send(bytes);
 });
 
 // Geht auch bei ausgeschaltetem Schalter: der Admin prueft vor dem Einschalten.
@@ -845,29 +855,53 @@ const keepPrevious = db.prepare(`INSERT OR REPLACE INTO attachment_previous
   (attachment_id, session_key, filename, mime_type, size, data)
   SELECT id, ?, filename, mime_type, size, data FROM attachments WHERE id = ?`);
 const qPreviousKey = db.prepare('SELECT session_key FROM attachment_previous WHERE attachment_id = ?');
-const replaceFile = db.prepare(
-  'UPDATE attachments SET filename = ?, mime_type = ?, size = ?, data = ? WHERE id = ?');
+// Eine Datei auf der Platte wird hier nie ueberschrieben: ohne Treffer hat eine Umlagerung sie umgelagert.
+const replaceFile = db.prepare(`UPDATE attachments SET filename = ?, mime_type = ?, size = ?, data = ? WHERE id = ?
+  AND NOT EXISTS (SELECT 1 FROM disk_files d WHERE d.attachment_id = attachments.id)`);
+const replaceDiskFile = db.prepare(`UPDATE attachments SET filename = ?, mime_type = ?, size = ?, data = x'' WHERE id = ?`);
+// Die aktuelle Fassung wird zur vorigen; disk_files_held laesst genau diesen Wechsel zu.
+const diskToPrevious = db.prepare('UPDATE disk_files SET attachment_id = NULL, previous_of = ? WHERE attachment_id = ?');
+const diskDropPrevious = db.prepare('UPDATE disk_files SET previous_of = NULL WHERE previous_of = ?');
+const diskDropRow = db.prepare('UPDATE disk_files SET previous_of = NULL WHERE id = ?');
 
 // Mit Haken jeder Account, sonst nur wer hochgeladen hat; auch kein Admin.
 const mayEditFile = (userId, a) =>
   editingOf(a.id).edit_all === 1 || (a.user_id != null && a.user_id === userId);
 
 /* Die erste Speicherung einer Sitzung legt die bisherige Fassung ab; weitere
-   Speicherungen derselben Sitzung ersetzen nur die aktuelle. */
-function saveEdited(id, key, data, filetype, sessionEnds) {
-  return db.transaction(() => {
+   Speicherungen derselben Sitzung ersetzen nur die aktuelle. `disk`: die neue
+   Fassung liegt schon verschluesselt unter upload/. */
+const SAVE_MOVED = { ok: false, reason: 'moved' };
+function saveEdited(id, key, data, filetype, sessionEnds, disk = null) {
+  try { return saveEditedIn(id, key, data, filetype, sessionEnds, disk); }
+  catch (e) { if (e === SAVE_MOVED) return SAVE_MOVED; throw e; }
+}
+function saveEditedIn(id, key, data, filetype, sessionEnds, disk) {
+  return (disk ? commitFull : (work) => db.transaction(work)())(() => {
     const a = db.prepare('SELECT id, item_id, filename, mime_type, created_at FROM attachments WHERE id = ?')
       .get(id);
     if (!a) return { ok: false, reason: 'gone' };
     const as = docserver.savedAs(a, filetype);
     if (!as) return { ok: false, reason: 'format' };
-    if ((qPreviousKey.get(id) || {}).session_key !== key) keepPrevious.run(key, id);
-    replaceFile.run(as.filename, as.mime, data.length, data, id);
+    const now = qDiskName.get(id);
+    if (!now !== !disk) return { ok: false, reason: 'moved' };
+    const first = (qPreviousKey.get(id) || {}).session_key !== key;
+    if (!disk) {
+      if (first) keepPrevious.run(key, id);
+      if (!replaceFile.run(as.filename, as.mime, data.length, data, id).changes) throw SAVE_MOVED;
+    } else {
+      if (first) diskDropPrevious.run(id);
+      diskToPrevious.run(id, id);
+      if (first) keepPrevious.run(key, id);
+      else diskDropRow.run(now.id);
+      addDiskFile.run(disk.name, disk.size, CHUNK, disk.key, id, null);
+      replaceDiskFile.run(as.filename, as.mime, data.length, id);
+    }
     const current = docserver.editorKey(a, editingOf(id).revision) === key;
     countSave.run(id, sessionEnds && current ? 1 : 0);
     touch.run(a.item_id);
     return { ok: true };
-  })();
+  });
 }
 
 const editedGone = (id) =>
@@ -899,8 +933,21 @@ app.post('/api/document-server/callback/:id', async (req, res, next) => {
       logWarn(`Document server: edited file ${id} not fetched (${got.reason}).`);
       return res.json({ error: 1 });
     }
-    const saved = saveEdited(id, key, got.data, cb.data.filetype, status === 2);
+    // Jede Speicherung auf der Platte ist eine neue Datei mit neuem Namen und Schluessel.
+    const disk = qDiskName.get(id)
+      ? { name: freshName(), key: crypto.randomBytes(32), chunk: CHUNK, size: got.data.length } : null;
+    let saved;
+    try {
+      if (disk) {
+        DISK_WRITING.add(disk.name);
+        await attachments.sealInto(diskPath(disk.name, true), disk, 0, got.data, { fresh: true });
+      }
+      saved = saveEdited(id, key, got.data, cb.data.filetype, status === 2, disk);
+      if (disk && saved.ok) moveIntoPlace(disk.name);
+    } finally { if (disk) { DISK_WRITING.delete(disk.name); sweepSoon(true); } }
     if (saved.reason === 'gone') { editedGone(id); return res.json({ error: 0 }); }
+    // Der Document Server versucht es erneut und trifft dann den anderen Ort.
+    if (saved.reason === 'moved') return res.json({ error: 1 });
     if (!saved.ok) {
       logWarn(`Document server: file ${id} came back as "${cb.data.filetype}"; not saved.`);
       return res.json({ error: 1 });
@@ -1719,7 +1766,9 @@ app.get('/api/settings', (req, res) => res.json({
   trashDays: TRASH_DAYS,
   // Jeder braucht die Grenzen beim Hochladen: der Browser prueft vorher.
   uploadLimits: uploadLimits(),
-  uploadLimitRanges: uploadLimitRanges()
+  uploadLimitRanges: uploadLimitRanges(),
+  // Nur diese Endungen gehen ueber die Grenze „Anhang".
+  videoTypes: Object.keys(attachments.VIDEO_TYPES)
 }));
 function uploadLimitRanges() {
   return Object.fromEntries(Object.entries(UPLOAD_LIMITS)
@@ -2319,15 +2368,21 @@ app.delete('/api/items/:id/tags/:tagId', entryAuthorOnly, (req, res) => {
 const qAttachments = lateStatement(`SELECT a.id, a.filename, a.mime_type, a.size, a.sort_order,
     a.created_at, a.user_id, COALESCE(e.edit_all, 0) AS edit_all,
     (p.attachment_id IS NOT NULL) AS has_previous, s.duration, length(s.still) AS still,
-    f.folder_id AS folder
+    f.folder_id AS folder, d.name AS stored
   FROM attachments a
   LEFT JOIN attachment_editing e ON e.attachment_id = a.id
   LEFT JOIN attachment_previous p ON p.attachment_id = a.id
   LEFT JOIN attachment_stills s ON s.attachment_id = a.id
   LEFT JOIN attachment_folders f ON f.attachment_id = a.id
+  LEFT JOIN disk_files d ON d.attachment_id = a.id
   WHERE a.item_id = ? ORDER BY a.sort_order, a.id`);
-const qFolders = lateStatement(
-  'SELECT id, name, created_at, user_id FROM folders WHERE item_id = ? ORDER BY created_at DESC, id DESC');
+const qFolders = lateStatement(`SELECT f.id, f.name, f.created_at, f.user_id, f.test_day_id
+  FROM folders f LEFT JOIN test_days td ON td.id = f.test_day_id WHERE f.item_id = ?
+  ORDER BY COALESCE(td.day, substr(f.created_at, 1, 10)) DESC, f.created_at DESC, f.id DESC`);
+const qEntryUploads = db.prepare(`SELECT id, user_id, folder_id, filename, size, modified, large, received,
+  touched_at, created_at FROM uploads WHERE item_id = ? ORDER BY created_at, id`);
+// Laeuft eine Anfrage oder kam die letzte vor weniger als 30 s, gilt ein Upload als aktiv.
+const UPLOAD_ACTIVE_MS = 30000;
 // Chronologisch in Gruppen: Angepinntes zuerst (vor der Art), dann Aufgaben,
 // Berichte, Notizen.
 const qCommentsRaw = db.prepare(`
@@ -2648,12 +2703,21 @@ function detail(id, userId, locale) {
       convertTo: docserver.needsConversion(a2.filename) ? docserver.editFormat(a2.filename) : null,
       restore: rights && a2.has_previous === 1,
       // `still` ist die Laenge des Standbilds; der Browser haengt sie als `v=` an.
-      duration: a2.duration, still: a2.still, folder: a2.folder
+      duration: a2.duration, still: a2.still, folder: a2.folder,
+      missing: a2.stored != null && DISK_MISSING.has(a2.stored)
     };
   });
   it.folders = qFolders().all(id).map(f => ({
-    id: f.id, name: f.name, created_at: f.created_at,
+    id: f.id, name: f.name, created_at: f.created_at, testDay: f.test_day_id,
     mine: f.user_id === userId, author: authorFrom(card, f.user_id)
+  }));
+  const touchedBefore = sqlTime(nowMs() - UPLOAD_ACTIVE_MS);
+  it.uploads = qEntryUploads.all(id).map(u => ({
+    id: u.id, filename: u.filename, size: u.size, folder: u.folder_id, large: u.large === 1,
+    created_at: u.created_at, touched_at: u.touched_at,
+    active: UPLOADS_RUNNING.has(u.id) || (u.touched_at != null && u.touched_at >= touchedBefore),
+    mine: u.user_id === userId, author: authorFrom(card, u.user_id),
+    ...(u.user_id === userId ? { modified: u.modified, received: u.received } : {})
   }));
   /* `mine` steuert das Loeschkreuz; bei einem geloeschten Zugang laesst es
      sich aus `author` nicht ableiten. */
@@ -2663,6 +2727,8 @@ function detail(id, userId, locale) {
   }));
   it.tags = qTags.all(id);
   it.testDays = qTestDays(id, userId, card);
+  const folderOfDay = new Map(it.folders.filter(f => f.testDay != null).map(f => [f.testDay, f.id]));
+  for (const d of it.testDays) d.folder = folderOfDay.get(d.id) ?? null;
   it.comments = qComments(id, userId, card);
   // Die eigenen Bewertungen.
   it.ratings = named(db.prepare(`
@@ -3671,9 +3737,98 @@ const FILES_PER_REQUEST = 20;
 const FILES_PER_ENTRY = 100;
 const attachmentUpload = (bytes) => upload({ storage: multer.memoryStorage(), limits: { fileSize: bytes } });
 
+/* ---- Dateien auf der Platte ---- */
+const FILES_DIR = path.join(DATA_DIR, 'files');
+const UPLOAD_DIR = path.join(FILES_DIR, 'upload');
+const DISK_NAME = /^[0-9a-f]{32}$/;
+// sealFile: importPrepare() nennt eine eigene Variable `attachments`.
+const { encLen, CHUNK, sealInto: sealFile } = attachments;
+// Jeder Pfad unter data/files/ entsteht hier; keine Route nimmt einen Namen an.
+function diskPath(name, inUpload = false) {
+  if (!DISK_NAME.test(String(name))) throw new Error('not a disk file name');
+  return path.join(inUpload ? UPLOAD_DIR : FILES_DIR, name);
+}
+const freshName = () => crypto.randomBytes(16).toString('hex');
+// Namen unter upload/, die der Server gerade schreibt; der Lauf laesst sie stehen.
+const DISK_WRITING = new Set();
+// Beim Start ohne Datei der richtigen Laenge gefunden; die Kachel zeigt ⚠.
+const DISK_MISSING = new Set();
+const VIDEO_MIMES = Object.values(attachments.VIDEO_TYPES);
+
+/* Nur der Pruefstand setzt `clock` (Sekunden vor), `free` (MB frei), `statfail`, `run`
+   (ms zwischen zwei Laeufen) und `hold` (ms Halt vor dem Schreiben unter upload/ und je
+   Kopie des Backups). */
+const BENCH = keys.testbenchSwitch() || {};
+const benchHold = () => (BENCH.hold ? new Promise(done => setTimeout(done, BENCH.hold)) : null);
+const nowMs = () => Date.now() + (BENCH.clock || 0) * 1000;
+const sqlTime = (ms) => new Date(ms).toISOString().slice(0, 19).replace('T', ' ');
+const HOUR_MS = 3600000;
+
+function diskFree() {
+  if (BENCH.statfail) return null;
+  if (BENCH.free !== undefined) return BENCH.free * MB;
+  try { const z = fs.statfsSync(FILES_DIR); return z.bsize * z.bavail; } catch { return null; }
+}
+// Platz fuer WAL und Papierkorb neben der Datenbank; intoTrash kopiert die Bytes eines Eintrags.
+const DB_SPARE = 1024 * MB;
+const qReserved = db.prepare('SELECT size, received FROM uploads WHERE touched_at >= ? AND id IS NOT ?');
+/* null: genug Platz, oder statfs ist gescheitert (dann wird wie in importSpace() nicht
+   abgelehnt); sonst die Zahlen fuer die Meldung. */
+function spaceShort(needed, except = null) {
+  const free = diskFree();
+  if (free === null) return null;
+  const reserved = qReserved.all(sqlTime(nowMs() - HOUR_MS), except)
+    .reduce((n, u) => n + encLen(u.size) - encLen(u.received), 0);
+  let dbSize = 0;
+  try { dbSize = fs.statSync(DB_FILE).size; } catch {}
+  const reserve = dbSize + DB_SPARE;
+  return free >= needed + reserved + reserve ? null : { free, reserved, needed, reserve };
+}
+const gbText = (locale, bytes) => new Intl.NumberFormat(localeTag(locale),
+  { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(bytes / 1024 / MB);
+const refuseSpace = (req, res, s) => {
+  const locale = localeOf(req);
+  res.status(507).json({ error: t(locale, 'server.diskSpace', { free: gbText(locale, s.free),
+    reserved: gbText(locale, s.reserved), needed: gbText(locale, s.needed), reserve: gbText(locale, s.reserve) }) });
+};
+
+// Neben qUploadFile die einzige Anweisung, die file_key liest.
+const qDiskFile = db.prepare('SELECT id, name, size, chunk, large, file_key FROM disk_files WHERE attachment_id = ?');
+const diskFileOf = (attachmentId) => {
+  const r = qDiskFile.get(attachmentId);
+  return r ? { id: r.id, name: r.name, size: r.size, chunk: r.chunk, large: r.large, key: r.file_key } : null;
+};
+const qDiskName = db.prepare('SELECT id, name FROM disk_files WHERE attachment_id = ?');
+
+// Nach dem Commit; scheitert es, holt der naechste Lauf es nach.
+function moveIntoPlace(name) {
+  try {
+    if (!fs.existsSync(diskPath(name))) fs.renameSync(diskPath(name, true), diskPath(name));
+  } catch (e) { logFail(`Disk file ${name} stays under upload/: ${e.message}`); }
+  DISK_WRITING.delete(name);
+}
+
+/* Nur die Transaktionen vor einem rename(): im WAL-Modus waere ein Commit sonst erst
+   nach dem naechsten Checkpoint dauerhaft. */
+function commitFull(work) {
+  const before = db.pragma('synchronous', { simple: true });
+  db.pragma('synchronous = FULL');
+  try { return db.transaction(work)(); }
+  finally { db.pragma(`synchronous = ${Number(before)}`); }
+}
+
+// Ganz entschluesselt nur bis zur Grenze „Anhang"; bei einem grossen Video null.
+function fileBytes(id, data) {
+  const f = diskFileOf(id);
+  if (!f) return data;
+  if (f.large) return null;
+  try { return attachments.openWholeSync(diskPath(f.name), f); }
+  catch (e) { if (e.damaged) DISK_MISSING.add(f.name); throw e; }
+}
+
 /* ---- Ordner ---- */
 const FOLDER_NAME_MAX = 80;
-const qFolderRow = lateStatement('SELECT id, item_id, user_id FROM folders WHERE id = ?');
+const qFolderRow = lateStatement('SELECT id, item_id, user_id, name, test_day_id FROM folders WHERE id = ?');
 const folderRow = (raw) => {
   const n = Number(raw);
   return raw !== null && raw !== '' && Number.isSafeInteger(n) ? qFolderRow().get(n) || null : null;
@@ -3686,8 +3841,8 @@ const folderName = (raw) => {
 };
 const refuseFolderName = (req, res) =>
   res.status(400).json({ error: t(localeOf(req), 'server.folderName', { max: FOLDER_NAME_MAX }) });
-const addFolder = db.prepare('INSERT INTO folders (item_id, name, user_id) VALUES (?, ?, ?)');
-const renameFolder = db.prepare('UPDATE folders SET name = ? WHERE id = ?');
+const addFolder = db.prepare('INSERT INTO folders (item_id, name, user_id, test_day_id) VALUES (?, ?, ?, ?)');
+const renameFolder = db.prepare('UPDATE folders SET name = ?, test_day_id = ? WHERE id = ?');
 const dropFolder = db.prepare('DELETE FROM folders WHERE id = ?');
 const putFileFolder = db.prepare(
   'INSERT OR REPLACE INTO attachment_folders (attachment_id, folder_id) VALUES (?, ?)');
@@ -3721,8 +3876,12 @@ app.post('/api/items/:id/attachments',
       return res.status(404).json({ error: t(localeOf(req), 'server.folderGone')});
     if (target && (target.item_id !== Number(req.params.id) || !selfOnly(req, target.user_id)))
       return res.status(403).json({ error: t(localeOf(req), 'server.folderForeign')});
+    // Mit dem Stand des Eintrags: der Browser waehlt dann den Upload in Stuecken.
+    if (target && target.test_day_id != null)
+      return res.status(409).json({ error: t(localeOf(req), 'server.folderHasDay'),
+                                    item: detail(req.params.id, req.user.id, localeOf(req)) });
     if (entryTooLarge(req.params.id, req.files)) return refuseEntryFull(req, res);
-    const da = db.prepare('SELECT COUNT(*) n FROM attachments WHERE item_id = ?').get(req.params.id).n;
+    const da = fileSlots(req.params.id);
     const fresh = (req.files || []).length;
     if (da + fresh > FILES_PER_ENTRY)
       return res.status(400).json({ error: t(localeOf(req), 'server.fileCap', { cap: FILES_PER_ENTRY })});
@@ -3744,18 +3903,241 @@ app.post('/api/items/:id/attachments',
   } catch (e) { next(e); }
 });
 
+/* ---- Upload in Stuecken ---- */
+// Klartext je Anfrage; das letzte Stueck ist kuerzer.
+const UPLOAD_PIECE = 8 * MB;
+const UPLOADS_PER_USER = 3;
+const UPLOAD_ID = /^[0-9a-f]{32}$/;
+// Uploads mit laufender Anfrage; frei erst am Ende des Handlers, nicht bei `close`.
+const UPLOADS_RUNNING = new Set();
+// Neben qDiskFile die einzige Anweisung, die file_key liest.
+const qUploadFile = db.prepare(`SELECT id, item_id, user_id, folder_id, filename, size, modified, large,
+  name, received, touched_at, file_key FROM uploads WHERE id = ?`);
+const qUploadRow = db.prepare('SELECT id, item_id, user_id FROM uploads WHERE id = ?');
+const qOwnUpload = db.prepare(`SELECT id, received FROM uploads
+  WHERE item_id = ? AND user_id = ? AND filename = ? AND size = ? AND modified = ?`);
+const qUploadsOf = db.prepare('SELECT filename FROM uploads WHERE user_id = ? ORDER BY created_at, id');
+const qUploadCount = db.prepare('SELECT COUNT(*) n FROM uploads WHERE item_id = ?');
+const addUpload = db.prepare(`INSERT INTO uploads (id, item_id, user_id, folder_id, filename, size, modified,
+  large, name, created_at, file_key) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+const renewUpload = db.prepare('UPDATE uploads SET name = ?, file_key = ?, received = 0 WHERE id = ?');
+const stepUpload = db.prepare('UPDATE uploads SET received = ?, touched_at = ? WHERE id = ? AND received = ?');
+const dropUpload = db.prepare('DELETE FROM uploads WHERE id = ?');
+const addDiskFromUpload = db.prepare(`INSERT INTO disk_files (name, size, chunk, large, file_key, attachment_id)
+  SELECT name, size, ?, large, file_key, ? FROM uploads WHERE id = ?`);
+const addDiskAttachment = lateStatement(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
+  VALUES (?, ?, ?, ?, x'', ?, ?)`);
+
+// Ein offener Upload belegt einen Platz, so kommt kein Wettlauf ueber FILES_PER_ENTRY.
+function fileSlots(itemId) {
+  return db.prepare('SELECT COUNT(*) n FROM attachments WHERE item_id = ?').get(itemId).n
+    + qUploadCount.get(itemId).n;
+}
+
+const freshUploadFile = (name) => fs.writeFileSync(diskPath(name, true), '', { flag: 'wx', mode: 0o600 });
+
+/* Beginnt oder setzt fort, nur in einen eigenen Ordner mit Testtag. Synchron bis zum
+   INSERT: ein zweiter Beginn kommt nicht dazwischen. */
+app.post('/api/items/:id/uploads', (req, res) => {
+  const b = req.body || {};
+  const itemId = Number(req.params.id);
+  const locale = localeOf(req);
+  if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(itemId))
+    return res.status(404).json({ error: t(locale, 'server.entryUnknown')});
+  const filename = path.basename(String(b.filename || 'datei')).slice(0, 200) || 'datei';
+  const size = Number(b.size), modified = Number(b.modified);
+  if (!Number.isSafeInteger(size) || size < 0 || !Number.isSafeInteger(modified))
+    return res.status(400).json({ error: t(locale, 'server.uploadInvalid')});
+  // Fortsetzen ohne Pruefung der Zahlen und Grenzen: sie galten beim Beginn.
+  const own = qOwnUpload.get(itemId, req.user.id, filename, size, modified);
+  if (own) {
+    const short = spaceShort(encLen(size) - encLen(own.received), own.id);
+    if (short) return refuseSpace(req, res, short);
+    return res.json({ id: own.id, received: own.received });
+  }
+  const target = b.folderId == null ? null : folderRow(b.folderId);
+  if (b.folderId != null && !target) return res.status(404).json({ error: t(locale, 'server.folderGone')});
+  if (target && (target.item_id !== itemId || !selfOnly(req, target.user_id)))
+    return res.status(403).json({ error: t(locale, 'server.folderForeign')});
+  const limits = uploadLimits();
+  const large = size > limits.attachment * MB;
+  if (!target || target.test_day_id == null)
+    return large ? res.status(413).json({ error: t(locale, 'server.bigVideoFolder') })
+      : res.status(409).json({ error: t(locale, 'server.folderNoDay'), item: detail(itemId, req.user.id, localeOf(req)) });
+  if (large && !attachments.VIDEO_TYPES[attachments.extension(filename)])
+    return res.status(415).json({ error: t(locale, 'server.videoOnly', { mb: limits.attachment }) });
+  if (large && (limits.dayVideo <= limits.attachment || size > limits.dayVideo * MB))
+    return res.status(413).json({ error: t(locale, 'server.uploadSize', { mb: Math.max(limits.attachment, limits.dayVideo) }) });
+  if (!large && entryTooLarge(itemId, [{ size }])) return refuseEntryFull(req, res);
+  if (fileSlots(itemId) >= FILES_PER_ENTRY)
+    return res.status(400).json({ error: t(locale, 'server.fileCap', { cap: FILES_PER_ENTRY })});
+  const open = qUploadsOf.all(req.user.id);
+  const openNames = open.map(u => u.filename).join(', ');
+  if (open.length >= UPLOADS_PER_USER)
+    return res.status(409).json({ error: t(locale, 'server.uploadsOpen', { n: open.length, names: openNames }) });
+  const short = spaceShort(encLen(size));
+  if (short) return refuseSpace(req, res, short);
+  const id = crypto.randomBytes(16).toString('hex'), name = freshName();
+  freshUploadFile(name);
+  addUpload.run(id, itemId, req.user.id, target.id, filename, size, modified, large ? 1 : 0, name,
+                sqlTime(nowMs()), crypto.randomBytes(32));
+  res.status(201).json({ id, received: 0 });
+});
+
+app.put('/api/uploads/:id', uploadTurn, uploadBody, async (req, res, next) => {
+  const u = req.upload;
+  const locale = localeOf(req);
+  try {
+    const body = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+    if (body.length !== u.piece) return res.status(400).json({ error: t(locale, 'server.uploadPiece') });
+    // Vor dem Verschluesseln: ein grosses Video muss an den ersten Bytes eines sein.
+    if (u.n === 0 && u.large === 1 && !VIDEO_MIMES.includes(attachments.typeFromBytes(body.subarray(0, 12)))) {
+      dropUpload.run(u.id);
+      return res.status(415).json({ error: t(locale, 'server.videoOnly', { mb: uploadLimits().attachment }) });
+    }
+    await benchHold();
+    await attachments.sealInto(diskPath(u.name, true),
+      { name: u.name, size: u.size, chunk: CHUNK, key: u.file_key }, u.n / CHUNK, body);
+    const now = qUploadFile.get(u.id);
+    if (!now || now.name !== u.name) return res.status(404).json({ error: t(locale, 'server.uploadGone') });
+    if (now.received !== u.n)
+      return res.status(409).json({ error: t(locale, 'server.uploadOffset'), received: now.received });
+    if (u.n + body.length === u.size) return finishUpload(req, res, now);
+    stepUpload.run(u.n + body.length, sqlTime(nowMs()), u.id, u.n);
+    res.json({ received: u.n + body.length });
+  } catch (e) { next(e); }
+  finally { UPLOADS_RUNNING.delete(u.id); }
+});
+
+/* Vor dem Rumpf wie entryAuthorOnly vor multer: ein fremder oder falscher Upload liest
+   kein Byte. Ein Stueck wird nur an die Stelle encLen(received) geschrieben. */
+function uploadTurn(req, res, next) {
+  const locale = localeOf(req);
+  const u = UPLOAD_ID.test(req.params.id) ? qUploadFile.get(req.params.id) : null;
+  if (!u || !selfOnly(req, u.user_id)) return res.status(404).json({ error: t(locale, 'server.uploadGone') });
+  if (UPLOADS_RUNNING.has(u.id))
+    return res.status(409).json({ error: t(locale, 'server.uploadBusy'), received: u.received });
+  const n = Number(req.headers['upload-offset']);
+  if (n !== u.received)
+    return res.status(409).json({ error: t(locale, 'server.uploadOffset'), received: u.received });
+  if (req.headers['content-length'] === undefined)
+    return res.status(411).json({ error: t(locale, 'server.uploadLength') });
+  const piece = Math.min(UPLOAD_PIECE, u.size - n);
+  if (Number(req.headers['content-length']) !== piece)
+    return res.status(400).json({ error: t(locale, 'server.uploadPiece') });
+  const short = spaceShort(encLen(u.size) - encLen(n), u.id);
+  if (short) return refuseSpace(req, res, short);
+  let there = -1;
+  try { there = fs.statSync(diskPath(u.name, true)).size; } catch {}
+  // Neubeginn mit neuem Name und Schluessel: sonst gaebe es zu einer Nonce zwei Geheimtexte.
+  if (there !== encLen(n)) {
+    const name = freshName();
+    freshUploadFile(name);
+    renewUpload.run(name, crypto.randomBytes(32), u.id);
+    return res.status(409).json({ error: t(locale, 'server.uploadRestart'), received: 0 });
+  }
+  UPLOADS_RUNNING.add(u.id);
+  req.upload = { ...u, n, piece };
+  next();
+}
+
+const rawPiece = express.raw({ type: 'application/octet-stream', limit: '8mb', inflate: false });
+function uploadBody(req, res, next) {
+  rawPiece(req, res, (err) => {
+    if (err) UPLOADS_RUNNING.delete(req.upload.id);
+    next(err);
+  });
+}
+
+// Ist der Ordner inzwischen geloescht, steht die Datei ohne Ordner.
+function finishUpload(req, res, u) {
+  commitFull(() => {
+    const pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM attachments WHERE item_id = ?')
+      .get(u.item_id).m + 1;
+    const added = addDiskAttachment().run(u.item_id, u.filename, attachments.outType(u.filename), u.size,
+                                        pos, u.user_id).lastInsertRowid;
+    addDiskFromUpload.run(CHUNK, added, u.id);
+    if (u.folder_id != null) putFileFolder.run(added, u.folder_id);
+    if (filesEditAllOf(u.user_id) && docserver.editFormat(u.filename)) putEditAll.run(added, 1);
+    dropUpload.run(u.id);
+    touch.run(u.item_id);
+  });
+  moveIntoPlace(u.name);
+  res.status(201).json(detail(u.item_id, req.user.id, localeOf(req)));
+}
+
+// Abbrechen darf, wer begonnen hat, und der Admin; die Datei unter upload/ loescht der Lauf.
+app.delete('/api/uploads/:id', (req, res) => {
+  const u = UPLOAD_ID.test(req.params.id) ? qUploadRow.get(req.params.id) : null;
+  if (!u || !mayChange(req, u.user_id)) return res.status(404).json({ error: t(localeOf(req), 'server.uploadGone') });
+  dropUpload.run(u.id);
+  sweepSoon();
+  res.json(detail(u.item_id, req.user.id, localeOf(req)));
+});
+
 /* Einzige Stelle, die den Inhalt eines Anhangs ausliefert. Range fuer jede
    Datei: iOS Safari spielt ein Video nur mit 206. */
 app.get('/api/attachments/:id/raw', async (req, res, next) => {
   try {
     if (req.query.size === 'thumb') return await sendFileTile(req.params.id, res);
     if (req.query.size === 'still') return sendStill(req.params.id, res);
+    const f = diskFileOf(req.params.id);
+    if (f) return await sendDiskFile(req, res, f);
     const a = db.prepare('SELECT * FROM attachments WHERE id = ?').get(req.params.id);
     if (!a) return res.status(404).end();
     attachments.setHeader(res, a.filename, { inline: req.query.inline === '1' });
     sendRanged(req, res, a.data);
   } catch (e) { next(e); }
 });
+
+/* Stueck fuer Stueck, jedes erst nach seiner Marke hinaus; das naechste wird erst nach
+   `drain` entschluesselt. HEAD entschluesselt nichts. */
+async function sendDiskFile(req, res, f) {
+  const a = db.prepare('SELECT filename FROM attachments WHERE id = ?').get(req.params.id);
+  attachments.setHeader(res, a.filename, { inline: req.query.inline === '1' });
+  res.set('Cache-Control', 'private, max-age=3600, no-transform');
+  res.set('Accept-Ranges', 'bytes');
+  const b = attachments.rangeOut(req.headers.range, f.size);
+  if (b && b.invalid) {
+    res.set('Content-Range', `bytes */${f.size}`);
+    return res.status(416).end();
+  }
+  const from = b ? b.from : 0, to = b ? b.to : f.size - 1;
+  let handle;
+  try { handle = await fs.promises.open(diskPath(f.name), 'r'); }
+  catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+    DISK_MISSING.add(f.name);
+    return res.status(404).end();
+  }
+  try {
+    const head = () => {
+      res.status(b ? 206 : 200);
+      if (b) res.set('Content-Range', `bytes ${from}-${to}/${f.size}`);
+      res.set('Content-Length', String(Math.max(0, to - from + 1)));
+    };
+    if (req.method === 'HEAD') {
+      if ((await handle.stat()).size !== encLen(f.size, f.chunk)) return res.status(500).end();
+      head();
+      return res.end();
+    }
+    const first = Math.floor(from / f.chunk), last = f.size ? Math.floor(to / f.chunk) : -1;
+    let plain = f.size ? await attachments.readChunk(handle, f, first) : null;
+    head();
+    for (let i = first; i <= last; i++) {
+      if (i > first) plain = await attachments.readChunk(handle, f, i);
+      const start = i === first ? from - i * f.chunk : 0;
+      const end = i === last ? to - i * f.chunk + 1 : plain.length;
+      if (!res.write(plain.subarray(start, end))) await untilDrained(res);
+    }
+    res.end();
+  } catch (e) {
+    if (e.damaged) DISK_MISSING.add(f.name);
+    if (res.headersSent) return res.destroy();
+    if (e.damaged) return res.status(500).end();
+    throw e;
+  } finally { await handle.close(); }
+}
 
 const qStill = db.prepare('SELECT still FROM attachment_stills WHERE attachment_id = ?');
 const qStillSize = db.prepare('SELECT length(still) AS n FROM attachment_stills WHERE attachment_id = ?');
@@ -3769,8 +4151,11 @@ async function sendFileTile(id, res) {
   if (kind !== 'image' && kind !== 'video') return res.status(404).end();
   let row = qFileTile.get(id);
   if (!row) {
-    const bytes = kind === 'video' ? qStill.get(id)?.still
+    let bytes = kind === 'video' ? qStill.get(id)?.still
       : db.prepare('SELECT data FROM attachments WHERE id = ?').get(id)?.data;
+    if (kind === 'image' && bytes) {
+      try { bytes = fileBytes(id, bytes); } catch (e) { if (e.damaged) return res.status(404).end(); throw e; }
+    }
     if (!bytes) return res.status(404).end();
     row = { thumb: await fileTile(bytes) };
     // Waehrend des Rechnens kann die Datei geloescht oder das Standbild ersetzt worden sein.
@@ -3835,9 +4220,13 @@ app.get('/api/attachments/:id/preview', (req, res) => {
   const a = db.prepare('SELECT * FROM attachments WHERE id = ?').get(req.params.id);
   if (!a) return res.status(404).json({ error: t(localeOf(req), 'server.fileGone')});
   const kind = attachments.previewKind(a.filename);
-  if (kind === 'text') return res.json({ kind, ...attachments.textPreview(a.data) });
+  if (kind !== 'text' && kind !== 'docx') return res.status(400).json({ error: t(localeOf(req), 'server.noTextPreview')});
+  let bytes;
+  try { bytes = fileBytes(a.id, a.data); }
+  catch (e) { if (e.damaged) return res.status(404).json({ error: t(localeOf(req), 'server.fileMissing')}); throw e; }
+  if (kind === 'text') return res.json({ kind, ...attachments.textPreview(bytes) });
   if (kind === 'docx') {
-    const v = attachments.docxPreview(a.data);
+    const v = attachments.docxPreview(bytes);
     if (!v) return res.status(422).json({ error: t(localeOf(req), 'server.fileNotText')});
     return res.json({ kind, ...v });
   }
@@ -3892,6 +4281,8 @@ app.post('/api/attachments/:id/previous', (req, res) => {
   if (!a) return res.status(404).json({ error: t(localeOf(req), 'server.fileGone')});
   if (!mayEditFile(req.user.id, a)) return res.status(403).json({ error: t(localeOf(req), 'server.editDenied')});
   const swapped = db.transaction(() => {
+    const onDisk = qDiskName.get(a.id);
+    if (onDisk) return swapOnDisk(a.id);
     const now = db.prepare('SELECT filename, mime_type, data FROM attachments WHERE id = ?').get(a.id);
     const before = db.prepare('SELECT filename, mime_type, data FROM attachment_previous WHERE attachment_id = ?')
       .get(a.id);
@@ -3907,6 +4298,25 @@ app.post('/api/attachments/:id/previous', (req, res) => {
   if (!swapped) return res.status(409).json({ error: t(localeOf(req), 'server.noPrevious')});
   res.json(detail(a.item_id, req.user.id, localeOf(req)));
 });
+
+/* Auf der Platte tauschen nur die Besitzer; nichts wird neu verschluesselt. Die Groesse
+   kommt aus `size`, weil `data` dort x'' ist. */
+const qDiskPrevious = db.prepare('SELECT id FROM disk_files WHERE previous_of = ?');
+const diskToCurrent = db.prepare('UPDATE disk_files SET previous_of = NULL, attachment_id = ? WHERE id = ?');
+function swapOnDisk(id) {
+  const now = db.prepare('SELECT filename, mime_type, size FROM attachments WHERE id = ?').get(id);
+  const before = db.prepare('SELECT filename, mime_type, size FROM attachment_previous WHERE attachment_id = ?').get(id);
+  const previousRow = qDiskPrevious.get(id);
+  if (!before || !previousRow) return false;
+  diskToPrevious.run(id, id);
+  diskToCurrent.run(id, previousRow.id);
+  replaceDiskFile.run(before.filename, before.mime_type, before.size, id);
+  db.prepare(`UPDATE attachment_previous SET session_key = '', filename = ?, mime_type = ?, size = ?,
+    data = x'', saved_at = datetime('now') WHERE attachment_id = ?`).run(now.filename, now.mime_type, now.size, id);
+  countSave.run(id, 1);
+  touch.run(db.prepare('SELECT item_id FROM attachments WHERE id = ?').get(id).item_id);
+  return true;
+}
 
 // Das Secret selbst geht nie hinaus, nur ob es gesetzt ist.
 app.get('/api/document-server', adminOnly, (req, res) => {
@@ -3932,29 +4342,60 @@ app.delete('/api/attachments/:id', (req, res) => {
   res.json(detail(a.item_id, req.user.id, localeOf(req)));
 });
 
-// Anlegen darf jeder, wie Dateien ohne Ordner hochladen.
+/* Ein Ordner hat hoechstens einen Testtag, und nur einen eigenen desselben Eintrags;
+   auch der Admin verbindet nicht. `undefined`: bleibt, null: ohne. */
+const qDayRow = db.prepare('SELECT id, item_id, user_id FROM test_days WHERE id = ?');
+const qDayTaken = db.prepare('SELECT id FROM folders WHERE test_day_id = ?');
+function folderDay(req, res, raw, itemId, folderId) {
+  if (raw === undefined) return { keep: true };
+  if (raw === null) return { value: null };
+  const d = Number.isSafeInteger(Number(raw)) ? qDayRow.get(Number(raw)) : null;
+  if (!d) { res.status(404).json({ error: t(localeOf(req), 'server.dayUnknown')}); return null; }
+  if (d.item_id !== Number(itemId) || !selfOnly(req, d.user_id)) {
+    res.status(403).json({ error: t(localeOf(req), 'server.folderDayForeign')});
+    return null;
+  }
+  const taken = qDayTaken.get(d.id);
+  if (taken && taken.id !== folderId) {
+    res.status(409).json({ error: t(localeOf(req), 'server.folderDayTaken')});
+    return null;
+  }
+  return { value: d.id };
+}
+
+// Anlegen darf jeder, wie Dateien ohne Ordner hochladen; ein neuer Ordner ist leer.
 app.post('/api/items/:id/folders', (req, res) => {
   const name = folderName((req.body || {}).name);
   if (name === null) return refuseFolderName(req, res);
   if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
     return res.status(404).json({ error: t(localeOf(req), 'server.entryUnknown')});
-  addFolder.run(req.params.id, name, req.user.id);
+  const day = folderDay(req, res, (req.body || {}).testDay, req.params.id, null);
+  if (!day) return;
+  addFolder.run(req.params.id, name, req.user.id, day.keep ? null : day.value);
   touch.run(req.params.id);
   res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
 });
 
-// Nur wer ihn angelegt hat, auch kein Admin. `testDay` nimmt noch keine Route an.
-app.put('/api/folders/:id', (req, res) => {
-  const f = folderRow(req.params.id);
-  if (!f) return res.status(404).json({ error: t(localeOf(req), 'server.folderGone')});
-  if (!selfOnly(req, f.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
-  if ((req.body || {}).testDay !== undefined)
-    return res.status(400).json({ error: t(localeOf(req), 'server.folderTestDay')});
-  const name = folderName((req.body || {}).name);
-  if (name === null) return refuseFolderName(req, res);
-  renameFolder.run(name, f.id);
-  touch.run(f.item_id);
-  res.json(detail(f.item_id, req.user.id, localeOf(req)));
+// Nur wer ihn angelegt hat, auch kein Admin. Ein neuer Testtag lagert die Dateien um.
+app.put('/api/folders/:id', async (req, res, next) => {
+  try {
+    const f = folderRow(req.params.id);
+    if (!f) return res.status(404).json({ error: t(localeOf(req), 'server.folderGone')});
+    if (!selfOnly(req, f.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
+    const b = req.body || {};
+    const name = b.name === undefined ? f.name : folderName(b.name);
+    if (name === null) return refuseFolderName(req, res);
+    const day = folderDay(req, res, b.testDay, f.item_id, f.id);
+    if (!day) return;
+    const testDay = day.keep ? f.test_day_id : day.value;
+    const moving = testDay != null && f.test_day_id == null ? qDbFilesIn.all(f.id).map(z => z.id) : [];
+    const short = moving.length ? spaceShort(relocateNeed(moving)) : null;
+    if (short) return refuseSpace(req, res, short);
+    renameFolder.run(name, testDay, f.id);
+    touch.run(f.item_id);
+    if (moving.length) await relocate(qDbFilesIn.all(f.id).map(z => z.id));
+    res.json(detail(f.item_id, req.user.id, localeOf(req)));
+  } catch (e) { next(e); }
 });
 
 // Die Dateien darin bleiben und stehen danach ohne Ordner.
@@ -3969,22 +4410,90 @@ app.delete('/api/folders/:id', (req, res) => {
 
 /* Datei und Ziel gehoeren dem, der verschiebt, und haengen am selben Eintrag.
    sort_order bleibt: die Datei steht im Ziel nach der Zeit ihres Uploads. */
-app.put('/api/attachments/:id/folder', (req, res) => {
-  const a = db.prepare('SELECT item_id, user_id FROM attachments WHERE id = ?').get(req.params.id);
-  if (!a) return res.status(404).json({ error: t(localeOf(req), 'server.fileGone')});
-  if (!selfOnly(req, a.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
-  const wanted = (req.body || {}).folderId;
-  if (wanted === null) dropFileFolder.run(req.params.id);
-  else {
-    const f = folderRow(wanted);
-    if (!f) return res.status(404).json({ error: t(localeOf(req), 'server.folderGone')});
-    if (f.item_id !== a.item_id || !selfOnly(req, f.user_id))
-      return res.status(403).json({ error: t(localeOf(req), 'server.folderForeign')});
-    putFileFolder.run(req.params.id, f.id);
-  }
-  touch.run(a.item_id);
-  res.json(detail(a.item_id, req.user.id, localeOf(req)));
+app.put('/api/attachments/:id/folder', async (req, res, next) => {
+  try {
+    const a = db.prepare('SELECT id, item_id, user_id FROM attachments WHERE id = ?').get(req.params.id);
+    if (!a) return res.status(404).json({ error: t(localeOf(req), 'server.fileGone')});
+    if (!selfOnly(req, a.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
+    const wanted = (req.body || {}).folderId;
+    let moving = false;
+    if (wanted === null) dropFileFolder.run(a.id);
+    else {
+      const f = folderRow(wanted);
+      if (!f) return res.status(404).json({ error: t(localeOf(req), 'server.folderGone')});
+      if (f.item_id !== a.item_id || !selfOnly(req, f.user_id))
+        return res.status(403).json({ error: t(localeOf(req), 'server.folderForeign')});
+      moving = f.test_day_id != null && !qDiskName.get(a.id);
+      const short = moving ? spaceShort(relocateNeed([a.id])) : null;
+      if (short) return refuseSpace(req, res, short);
+      putFileFolder.run(a.id, f.id);
+    }
+    touch.run(a.item_id);
+    if (moving) await relocate([a.id]);
+    res.json(detail(a.item_id, req.user.id, localeOf(req)));
+  } catch (e) { next(e); }
 });
+
+/* ---- Umlagerung ---- */
+/* Eine Datei geht aus der Datenbank auf die Platte, wenn sie in einen Ordner mit
+   Testtag kommt; zurueck geht keine. */
+const qDbFilesIn = db.prepare(`SELECT a.id FROM attachments a
+  JOIN attachment_folders af ON af.attachment_id = a.id
+  WHERE af.folder_id = ? AND NOT EXISTS (SELECT 1 FROM disk_files d WHERE d.attachment_id = a.id)`);
+const qRelocatePending = db.prepare(`SELECT a.id FROM attachments a
+  JOIN attachment_folders af ON af.attachment_id = a.id JOIN folders f ON f.id = af.folder_id
+  WHERE f.test_day_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM disk_files d WHERE d.attachment_id = a.id)`);
+const qRelocateNeed = db.prepare(`SELECT a.size, p.size AS before FROM attachments a
+  LEFT JOIN attachment_previous p ON p.attachment_id = a.id WHERE a.id = ?`);
+const qInDayFolder = db.prepare(`SELECT 1 FROM attachment_folders af JOIN folders f ON f.id = af.folder_id
+  WHERE af.attachment_id = ? AND f.test_day_id IS NOT NULL`);
+const qFileThere = db.prepare('SELECT 1 FROM attachments WHERE id = ?');
+const qRelocateData = db.prepare('SELECT data FROM attachments WHERE id = ?');
+const qPreviousData = db.prepare('SELECT data FROM attachment_previous WHERE attachment_id = ?');
+const addDiskFile = db.prepare(`INSERT INTO disk_files (name, size, chunk, large, file_key, attachment_id, previous_of)
+  VALUES (?, ?, ?, 0, ?, ?, ?)`);
+const emptyFile = db.prepare(`UPDATE attachments SET data = x'' WHERE id = ?`);
+const emptyPrevious = db.prepare(`UPDATE attachment_previous SET data = x'' WHERE attachment_id = ?`);
+
+const relocateNeed = (ids) => ids.reduce((n, id) => {
+  const r = qRelocateNeed.get(id);
+  return r ? n + encLen(r.size) + (r.before == null ? 0 : encLen(r.before)) : n;
+}, 0);
+
+async function relocate(ids) {
+  for (const id of ids) await relocateOne(id, true);
+  if (ids.length) reclaim();
+}
+
+/* Liest Inhalt und `saves` ohne await dazwischen; hat der Document Server inzwischen
+   gespeichert, gilt die Datei einmal neu. */
+async function relocateOne(id, again) {
+  const row = qRelocateData.get(id);
+  if (!row || qDiskName.get(id) || !qInDayFolder.get(id)) return;
+  const saves = editingOf(id).saves;
+  const before = qPreviousData.get(id);
+  const parts = [{ data: row.data, current: id, previous: null },
+                 ...(before ? [{ data: before.data, current: null, previous: id }] : [])]
+    .map(p => ({ ...p, f: { name: freshName(), key: crypto.randomBytes(32), chunk: CHUNK, size: p.data.length } }));
+  for (const p of parts) DISK_WRITING.add(p.f.name);
+  try {
+    for (const p of parts) await attachments.sealInto(diskPath(p.f.name, true), p.f, 0, p.data, { fresh: true });
+    await benchHold();
+    const outcome = commitFull(() => {
+      if (!qFileThere.get(id) || qDiskName.get(id) || !qInDayFolder.get(id)) return 'skip';
+      if (editingOf(id).saves !== saves) return 'changed';
+      for (const p of parts) addDiskFile.run(p.f.name, p.f.size, CHUNK, p.f.key, p.current, p.previous);
+      emptyFile.run(id);
+      if (before) emptyPrevious.run(id);
+      return 'done';
+    });
+    if (outcome === 'done') parts.forEach(p => moveIntoPlace(p.f.name));
+    else if (outcome === 'changed' && again) await relocateOne(id, false);
+  } finally {
+    for (const p of parts) DISK_WRITING.delete(p.f.name);
+    sweepSoon(true);
+  }
+}
 
 app.put('/api/items/:id/photo-order', entryAuthorOnly, (req, res) => {
   const ids = Array.isArray(req.body.order) ? req.body.order : [];
@@ -4520,7 +5029,9 @@ app.get('/api/stats', adminOnly, (req, res) => {
       f.count += g.n; f.bytes += g.o;
     }
   }
-  const an = db.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(size),0) AS o FROM attachments').get();
+  // Nur Dateien in der Datenbank; die auf der Platte stehen in `disk`.
+  const an = db.prepare(`SELECT COUNT(*) AS n, COALESCE(SUM(size),0) AS o FROM attachments a
+    WHERE NOT EXISTS (SELECT 1 FROM disk_files d WHERE d.attachment_id = a.id)`).get();
   /* Papierkorb getrennt: sonst wirkt die Datenbank nach dem Aufraeumen groesser. */
   const pk = db.prepare(`SELECT COUNT(*) AS n,
       COALESCE(SUM(length(content)),0) + COALESCE((SELECT SUM(length(data)) FROM trash_bytes),0) AS o
@@ -4539,6 +5050,7 @@ app.get('/api/stats', adminOnly, (req, res) => {
     trashCount: pk.n, trashBytes: pk.o,
     commentImageCount: ci.n, commentImageBytes: ci.o,
     commentVideoCount: cv.n, commentVideoBytes: cv.o,
+    disk: diskStats(),
     imageFormats,
     conversion: batchState('conversion'),
     /* Eigenes Feld: die Karte muss unterscheiden, welcher Lauf gerade laeuft. */
@@ -4563,6 +5075,63 @@ app.get('/api/stats', adminOnly, (req, res) => {
   });
 });
 
+const qDiskCount = db.prepare(`SELECT COUNT(*) AS n, COALESCE(SUM(size),0) AS o,
+    COALESCE(SUM(large),0) AS ln, COALESCE(SUM(CASE WHEN large = 1 THEN size END),0) AS lo,
+    COUNT(trash_id) AS tn, COALESCE(SUM(CASE WHEN trash_id IS NOT NULL THEN size END),0) AS tbytes
+  FROM disk_files`);
+const qUploadSum = db.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(received),0) AS o FROM uploads');
+const qGoneCount = db.prepare('SELECT COUNT(*) AS n FROM disk_files_gone');
+
+// `copy`: unter kriterion-files/ am Ablageort liegt eine Kopie gleicher Laenge.
+function unknownFiles() {
+  let names = [];
+  try { names = fs.readdirSync(FILES_DIR); } catch {}
+  const known = new Set([...qDiskNames.all(), ...qGone.all()].map(z => z.name));
+  const place = backupState().input ? checkPlace(getSetting('backupPlace', '')) : { error: true };
+  const copies = place.error ? null : path.join(place.filePath, COPY_DIR);
+  const out = [];
+  for (const name of names) {
+    if (!DISK_NAME.test(name) || known.has(name)) continue;
+    const file = diskPath(name);
+    let size;
+    try { const st = fs.lstatSync(file); if (!st.isFile()) continue; size = st.size; } catch { continue; }
+    let copy = false;
+    try { copy = !!copies && fs.statSync(path.join(copies, name)).size === size; } catch {}
+    out.push({ name, file, size, copy });
+  }
+  return out;
+}
+
+function diskStats() {
+  const d = qDiskCount.get(), u = qUploadSum.get();
+  const unknown = unknownFiles();
+  const copied = unknown.filter(f => f.copy);
+  return {
+    count: d.n, bytes: d.o, largeCount: d.ln, largeBytes: d.lo, trashCount: d.tn, trashBytes: d.tbytes,
+    uploadCount: u.n, uploadBytes: u.o, missing: DISK_MISSING.size, gone: qGoneCount.get().n,
+    unknownCount: unknown.length, unknownBytes: unknown.reduce((n, f) => n + f.size, 0),
+    copiedCount: copied.length, copiedBytes: copied.reduce((n, f) => n + f.size, 0),
+    free: diskFree()
+  };
+}
+
+app.delete('/api/files/unknown', ownerOnly, (req, res) => {
+  if (DATABASE_INCOMPLETE) return res.status(409).json({ error: t(localeOf(req), 'server.databaseIncomplete')});
+  const place = backupState().input ? checkPlace(getSetting('backupPlace', '')) : { error: true };
+  if (place.error) return res.json({ removed: 0, bytes: 0, disk: diskStats() });
+  const lock = takeBackupLock(place.filePath);
+  if (!lock) return res.status(409).json({ error: t(localeOf(req), 'server.backupRunning')});
+  let removed = 0, bytes = 0;
+  try {
+    for (const f of unknownFiles().filter(z => z.copy)) {
+      try { fs.unlinkSync(f.file); removed++; bytes += f.size; }
+      catch (e) { logFail(`Unknown disk file ${f.name} not removed: ${e.code || e.message}`); }
+    }
+  } finally { dropBackupLock(lock); }
+  if (removed) logLine(`Disk files without a reference removed: ${removed} (${bytes} bytes).`);
+  res.json({ removed, bytes, disk: diskStats() });
+});
+
 /* Vorhandene Fotos umstellen, Knopf im Reiter „Datenbank". */
 app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, res) => {
   if (batchStates.conversion && batchStates.conversion.running)
@@ -4580,7 +5149,7 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, 
 /* ---- Austauschformat ---- */
 
 // Der Import prueft nur EXCHANGE_FORMAT_MIN; eine hoehere Nummer als die eigene nimmt er an.
-const EXCHANGE_FORMAT = 21;
+const EXCHANGE_FORMAT = 22;
 
 const EXCHANGE_FORMAT_MIN = 14;
 
@@ -4671,13 +5240,15 @@ const qBundlePhotos = lateStatement(
 const EDIT_ALL_OF = `COALESCE((SELECT e.edit_all FROM attachment_editing e
   WHERE e.attachment_id = attachments.id), 0) AS edit_all`;
 const qBundleAttachments = lateStatement(
-  `SELECT id, filename, mime_type, data, user_id, ${EDIT_ALL_OF}, s.duration, s.still, f.folder_id AS folder
+  `SELECT attachments.id, filename, mime_type, data, user_id, ${EDIT_ALL_OF}, s.duration, s.still,
+          f.folder_id AS folder, d.name AS stored, d.large
      FROM attachments LEFT JOIN attachment_stills s ON s.attachment_id = attachments.id
      LEFT JOIN attachment_folders f ON f.attachment_id = attachments.id
-    WHERE item_id = ? ORDER BY sort_order, id`);
+     LEFT JOIN disk_files d ON d.attachment_id = attachments.id
+    WHERE item_id = ? ORDER BY sort_order, attachments.id`);
 // Aelteste zuerst: die Stelle im Feld `folders` ist die Zuordnung der Dateien.
 const qBundleFolders = db.prepare(
-  'SELECT id, name, user_id, created_at FROM folders WHERE item_id = ? ORDER BY created_at, id');
+  'SELECT id, name, user_id, created_at, test_day_id FROM folders WHERE item_id = ? ORDER BY created_at, id');
 
 /* Ohne Blobspalten fuer funnelStore(); `thumb` und `still` sagen nur, ob es ein
    Standbild gibt. */
@@ -4691,15 +5262,29 @@ const qRefPhotos = lateStatement(
      (medium IS NOT NULL OR thumb IS NOT NULL) AS still
      FROM photos WHERE item_id = ? ORDER BY sort_order, id`);
 const qRefAttachments = lateStatement(
-  `SELECT id, filename, mime_type, user_id, ${EDIT_ALL_OF}, s.duration, (s.attachment_id IS NOT NULL) AS still,
-          f.folder_id AS folder
+  `SELECT attachments.id, filename, mime_type, user_id, ${EDIT_ALL_OF}, s.duration,
+          (s.attachment_id IS NOT NULL) AS still, f.folder_id AS folder, d.name AS stored
      FROM attachments LEFT JOIN attachment_stills s ON s.attachment_id = attachments.id
      LEFT JOIN attachment_folders f ON f.attachment_id = attachments.id
-    WHERE item_id = ? ORDER BY sort_order, id`);
+     LEFT JOIN disk_files d ON d.attachment_id = attachments.id
+    WHERE item_id = ? ORDER BY sort_order, attachments.id`);
+
+/* Inhalt einer Datei im Export: von der Platte ganz entschluesselt, ein grosses Video
+   ohne Inhalt. Im Papierkorb nur der Name auf der Platte. */
+function bundleContent(a2, funnel) {
+  const extension = funnel.extension;
+  if (a2.stored == null) return { ['data' + extension]: funnel.take(a2.data, ['file', a2.id]) };
+  if (!funnel.blobs) return { data_stored: a2.stored };
+  if (a2.large) return {};
+  let bytes = null;
+  try { bytes = fileBytes(a2.id, null); } catch (e) { if (!e.damaged) throw e; }
+  return bytes ? { ['data' + extension]: funnel.take(bytes, ['file', a2.id]) } : {};
+}
 
 function entryAsBundle(it, situation) {
   const { authorName, pins, funnel, withPhotos, withFiles, withVideos } = situation;
   const extension = funnel.extension;
+  const days = qBundleTestDays.all(it.id);
   const o = {
     title: it.title, description: it.description,
     rejected: !!it.rejected, tested: !!it.tested, favorite: pins.has(it.id),
@@ -4713,7 +5298,7 @@ function entryAsBundle(it, situation) {
     tags: qTags.all(it.id).map(x => x.name),
     links: qLinks().all(it.id).map(l => ({ url: l.url, author: authorName(l.user_id) })),
     // ORDER BY day, id: zwei Leute duerfen denselben Tag eintragen.
-    testDays: qBundleTestDays.all(it.id)
+    testDays: days
       .map(x => ({ day: x.day, rating: x.rating, author: authorName(x.user_id),
                    tags: qTestDayTags.all(x.id).map(y => y.name) })),
     // Je Kriterium eine Zeile je Bewerter.
@@ -4760,7 +5345,10 @@ function entryAsBundle(it, situation) {
   if (withFiles) {
     const folders = qBundleFolders.all(it.id);
     const place = new Map(folders.map((f, i) => [f.id, i]));
-    o.folders = folders.map(f => ({ name: f.name, author: authorName(f.user_id), created_at: f.created_at }));
+    // Der Testtag als Stelle im Feld testDays: dort stehen Testtage ohne Nummer.
+    const dayAt = new Map(days.map((x, i) => [x.id, i]));
+    o.folders = folders.map(f => ({ name: f.name, author: authorName(f.user_id), created_at: f.created_at,
+                                     ...(dayAt.has(f.test_day_id) ? { testDay: dayAt.get(f.test_day_id) } : {}) }));
     // Ohne author gehoerten eingespielte Dateien niemandem.
     o.attachments = (funnel.blobs ? qBundleAttachments() : qRefAttachments()).all(it.id)
       .map(a2 => ({ filename: a2.filename, mime_type: a2.mime_type,
@@ -4768,7 +5356,7 @@ function entryAsBundle(it, situation) {
                     // Die vorige Fassung reist nicht mit, nur der Haken.
                     ...(a2.edit_all === 1 ? { edit_all: true } : {}),
                     ...(place.has(a2.folder) ? { folder: place.get(a2.folder) } : {}),
-                    ['data' + extension]: funnel.take(a2.data, ['file', a2.id]),
+                    ...bundleContent(a2, funnel),
                     // `still` ist im Export das Bild, im Papierkorb nur ein Merker.
                     ...(a2.still ? { duration: a2.duration,
                                      ['still' + extension]: funnel.take(funnel.blobs ? a2.still : null,
@@ -4847,9 +5435,11 @@ function exchangeParts(switches) {
       `SELECT COALESCE(SUM(length(data) + COALESCE(length(medium), length(thumb), 0)),0) n
          FROM photos WHERE kind = 'video'`));
   if (switches.withFiles) {
+    // Dateien auf der Platte mit ihrer Groesse, grosse Videos ohne Inhalt.
     parts.attachments = base64(one(
       `SELECT COALESCE(SUM(length(data)),0) n FROM attachments`) + one(
-      `SELECT COALESCE(SUM(length(still)),0) n FROM attachment_stills`));
+      `SELECT COALESCE(SUM(length(still)),0) n FROM attachment_stills`) + one(
+      `SELECT COALESCE(SUM(size),0) n FROM disk_files WHERE attachment_id IS NOT NULL AND large = 0`));
     // Wie in entryAsBundle: Kommentarbilder und -videos haengen an withFiles.
     parts.commentImages = base64(one(
       `SELECT COALESCE(SUM(length(ci.data)),0) n FROM comment_images ci
@@ -4894,7 +5484,9 @@ const PART_SIZES = `
                 FROM photos p WHERE p.item_id = i.id AND p.kind = 'video'), 0) AS video,
     COALESCE((SELECT SUM(length(a.data)) FROM attachments a WHERE a.item_id = i.id), 0)
       + COALESCE((SELECT SUM(length(s.still)) FROM attachment_stills s
-                    JOIN attachments a ON a.id = s.attachment_id WHERE a.item_id = i.id), 0) AS attachment,
+                    JOIN attachments a ON a.id = s.attachment_id WHERE a.item_id = i.id), 0)
+      + COALESCE((SELECT SUM(d.size) FROM disk_files d JOIN attachments a ON a.id = d.attachment_id
+                    WHERE a.item_id = i.id AND d.large = 0), 0) AS attachment,
     COALESCE((SELECT SUM(length(ci.data)) FROM comment_images ci
                 JOIN comments c ON c.id = ci.comment_id WHERE c.item_id = i.id), 0) AS commentImage,
     COALESCE((SELECT SUM(length(cv.data) + COALESCE(length(cv.thumb), 0)) FROM comment_videos cv
@@ -4928,12 +5520,14 @@ function partBytes(z, switches) {
     + z.nz * ENVELOPE_PER.testDay + z.nf * ENVELOPE_PER.photo + z.nd * ENVELOPE_PER.file;
 }
 
-/* entryTooLarge: rechnet wie der Export mit allen Schaltern an, neue Dateien als Base64. */
+/* entryTooLarge: rechnet wie der Export mit allen Schaltern an, neue Dateien und offene
+   Uploads bis „Anhang" als Base64. */
 const filesOf = (req) => Object.values(req.files || {}).flat();
+const qSmallUploads = db.prepare('SELECT COALESCE(SUM(size),0) n FROM uploads WHERE item_id = ? AND large = 0');
 function entryTooLarge(itemId, files) {
   const z = qPartSizeOf().get(itemId);
   if (!z) return false;
-  const added = (files || []).reduce((n, f) => n + (f.size || 0), 0);
+  const added = (files || []).reduce((n, f) => n + (f.size || 0), 0) + qSmallUploads.get(itemId).n;
   return exchangeEnvelopeFrame() + partBytes(z, ALL_SWITCHES) + Math.round(added * 4 / 3) > EXCHANGE_MAX;
 }
 const refuseEntryFull = (req, res) =>
@@ -4986,12 +5580,17 @@ function exchangeEnvelopeFrame() {
 
 /* ---- Export ---- */
 app.get('/api/export/plan', ownerOnly, (req, res) => {
-  res.json(exchangePlan({
+  res.json({ ...exchangePlan({
     withPhotos: req.query.photos !== '0',
     withFiles: req.query.files === '1',
     withVideos: req.query.videos === '1'
-  }, req.query.target));
+  }, req.query.target), large: largeVideos() });
 });
+
+// Kein Export traegt sie; der Dialog nennt sie vorher.
+const qLargeVideos = db.prepare(`SELECT COUNT(*) AS count, COALESCE(SUM(size),0) AS bytes
+  FROM disk_files WHERE large = 1 AND attachment_id IS NOT NULL`);
+const largeVideos = () => qLargeVideos.get();
 
 /* Aufruf per Browsernavigation, darum die zweite Bestaetigung in der Routenzeile. */
 app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), async (req, res) => {
@@ -5251,8 +5850,9 @@ const iPhotoAdd = lateStatement(`INSERT INTO photos (item_id, mime_type, data, t
                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
 const iAttachmentAdd = lateStatement(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
                       VALUES (?, ?, ?, ?, ?, ?, ?)`);
-const iFolderAdd = db.prepare(`INSERT INTO folders (item_id, name, user_id, created_at)
-                      VALUES (?, ?, ?, COALESCE(?, datetime('now')))`);
+const iFolderAdd = db.prepare(`INSERT INTO folders (item_id, name, user_id, created_at, test_day_id)
+                      VALUES (?, ?, ?, COALESCE(?, datetime('now')), ?)`);
+const NO_BYTES = Buffer.alloc(0);
 const iUserByName = db.prepare('SELECT id FROM users WHERE username = ?');
 const iCritNameAdd = db.prepare(
   'INSERT OR REPLACE INTO criterion_names (criterion_id, language, name) VALUES (?, ?, ?)');
@@ -5265,15 +5865,42 @@ const findOrCreate = (find, add, name, extra = () => []) => {
   return f ? f.id : add.run(name, ...extra()).lastInsertRowid;
 };
 
-/* Asynchrone Arbeit vor der Transaktion: db.transaction() in better-sqlite3 laeuft synchron. */
-async function importPrepare(payload, bytesSource) {
+/* Welcher Ordner seinen Testtag behaelt: nur einen desselben Accounts, und jeden Testtag
+   nur einmal. Die Namen werden aufgeloest wie beim Einspielen mit authorId(). */
+function importFolderDays(it, userId) {
+  const idOf = (name) => {
+    const clean = String(name == null ? '' : name).trim();
+    return clean ? (iUserByName.get(clean)?.id ?? userId) : userId;
+  };
+  const days = Array.isArray(it.testDays) ? it.testDays : [];
+  const itemAuthor = idOf(it.author);
+  const kept = new Map(), used = new Set();
+  let refused = 0;
+  (Array.isArray(it.folders) ? it.folders : []).forEach((f, i) => {
+    if (!f || typeof f !== 'object' || !Number.isSafeInteger(f.testDay)) return;
+    const d = days[f.testDay];
+    const whose = 'author' in f ? idOf(f.author) : itemAuthor;
+    if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d.day || '') || used.has(f.testDay) ||
+        idOf(d.author) !== whose || folderName(f.name) === null) { refused++; return; }
+    used.add(f.testDay);
+    kept.set(i, f.testDay);
+  });
+  return { kept, refused };
+}
+
+/* Asynchrone Arbeit vor der Transaktion: db.transaction() in better-sqlite3 laeuft synchron.
+   Dateien eines Ordners mit Testtag gehen verschluesselt nach upload/. */
+async function importPrepare(payload, bytesSource, userId, written) {
   const prepared = [];
   // Schluessel ist das Kommentarobjekt aus payload.items.
   const commentImages = new Map();
   const commentVideos = new Map();
   /* Fehlende oder unlesbare Videos brechen nicht ab, sie werden gezaehlt und gemeldet. */
-  let videosWithoutFile = 0, videosUnreadable = 0;
+  let videosWithoutFile = 0, videosUnreadable = 0, foldersWithoutDay = 0;
+  const filesWithoutContent = [];
   for (const it of payload.items) {
+    const folderDays = importFolderDays(it, userId);
+    foldersWithoutDay += folderDays.refused;
     const photos = [];
     for (const p of it.photos || []) {
       /* Entscheidet nach vorhandenen Feldern, nicht nach der Formatnummer. */
@@ -5301,17 +5928,27 @@ async function importPrepare(payload, bytesSource) {
     const attachments = [];
     for (const a2 of it.attachments || []) {
       const buf = bytesOf(a2, 'data', bytesSource);
-      if (!buf) continue;
       const name = path.basename(String(a2.filename || 'datei')).slice(0, 200) || 'datei';
+      // Nur der Papierkorb nennt eine Datei auf der Platte; /api/import gibt keine Quelle mit.
+      const stored = bytesSource && typeof a2.data_stored === 'string' && DISK_NAME.test(a2.data_stored)
+        ? a2.data_stored : null;
+      if (!buf && !stored) { filesWithoutContent.push(name); continue; }
+      const folder = Number.isSafeInteger(a2.folder) ? a2.folder : null;
+      let disk = null;
+      if (buf && folder !== null && folderDays.kept.has(folder)) {
+        disk = { name: freshName(), key: crypto.randomBytes(32), chunk: CHUNK, size: buf.length };
+        written.push(disk.name);
+        DISK_WRITING.add(disk.name);
+        await sealFile(diskPath(disk.name, true), disk, 0, buf, { fresh: true });
+      }
       // Ein unlesbares Standbild faellt weg, die Datei bleibt; der Browser holt es nach.
       let still = isVideoFile(name) ? bytesOf(a2, 'still', bytesSource) : null;
       if (still && !await gridImage(still)) still = null;
       attachments.push({
-        name, mime: String(a2.mime_type || '').slice(0, 120), buf,
+        name, mime: String(a2.mime_type || '').slice(0, 120), buf: disk ? null : buf, disk, stored,
         // Erst in der Transaktion aufgeloest: authorId() zaehlt dort mit.
         hasAuthor: 'author' in a2, author: a2.author, editAll: a2.edit_all === true,
-        still, duration: durationValue(a2.duration),
-        folder: Number.isSafeInteger(a2.folder) ? a2.folder : null
+        still, duration: durationValue(a2.duration), folder
       });
     }
     for (const c of it.comments || []) {
@@ -5341,9 +5978,10 @@ async function importPrepare(payload, bytesSource) {
     it.photos = undefined;
     it.attachments = undefined;
     for (const c of it.comments || []) { c.images = undefined; c.videos = undefined; }
-    prepared.push({ it, photos, attachments });
+    prepared.push({ it, photos, attachments, folderDays: folderDays.kept });
   }
-  return { prepared, commentImages, commentVideos, videosWithoutFile, videosUnreadable };
+  return { prepared, commentImages, commentVideos, videosWithoutFile, videosUnreadable,
+           foldersWithoutDay, filesWithoutContent };
 }
 
 /* Ausserhalb der Transaktion: ein Phasenkonflikt wird vor dem ersten Schreiben abgewiesen. */
@@ -5391,7 +6029,28 @@ function importTables(payload) {
   return { fileWeights, weightsDropped, phaseFrom, lower };
 }
 
-async function importInto(payload, userId, mode2, bytesSource = null) {
+/* `trashId`: nur beim Wiederherstellen; dann faellt die Zeile in trash in derselben
+   Transaktion, und Dateien auf der Platte bekommen ihren Besitzer zurueck. */
+async function importInto(payload, userId, mode2, bytesSource = null, trashId = null) {
+  const written = [];
+  try { return await importEntries(payload, userId, mode2, bytesSource, trashId, written); }
+  finally {
+    for (const name of written) DISK_WRITING.delete(name);
+    sweepSoon(true);
+  }
+}
+
+const trashGone = () => {
+  const e = new Message('server.trashGone');
+  e.denial = true;
+  e.status = 404;
+  return e;
+};
+const qTrashThere = db.prepare('SELECT 1 FROM trash WHERE id = ?');
+const qTrashDisk = db.prepare('SELECT size FROM disk_files WHERE name = ? AND trash_id = ?');
+const diskFromTrash = db.prepare('UPDATE disk_files SET attachment_id = ? WHERE name = ? AND trash_id = ?');
+
+async function importEntries(payload, userId, mode2, bytesSource, trashId, written) {
   /* Vor importPrepare(), damit eine zu alte Datei keine Bildvarianten kostet. */
   const fileFormat = Number(payload && payload.version);
   if (!Number.isFinite(fileFormat) || fileFormat < EXCHANGE_FORMAT_MIN) {
@@ -5402,8 +6061,9 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
     e.denial = true;
     throw e;
   }
-  const { prepared, commentImages, commentVideos, videosWithoutFile, videosUnreadable } =
-    await importPrepare(payload, bytesSource);
+  const { prepared, commentImages, commentVideos, videosWithoutFile, videosUnreadable,
+          filesWithoutContent, ...counted } = await importPrepare(payload, bytesSource, userId, written);
+  let foldersWithoutDay = counted.foldersWithoutDay;
 
   /* `names`: eingespielte Namen je Sprache. */
   const stats = { items: 0, photos: 0, videos: 0, comments: 0, links: 0, testDays: 0,
@@ -5431,7 +6091,8 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
 
   const { fileWeights, weightsDropped, phaseFrom, lower } = importTables(payload);
 
-  db.transaction(() => {
+  commitFull(() => {
+    if (trashId != null && !qTrashThere.get(trashId)) throw trashGone();
     if (mode2 === 'replace') {
       /* Diese Loeschungen fuellen den Papierkorb nicht. */
       iDropItems.run();
@@ -5468,7 +6129,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
       if (clean) critByName(clean);
     }
 
-    for (const { it, photos, attachments } of prepared) {
+    for (const { it, photos, attachments, folderDays } of prepared) {
       const itemAuthor = authorId(it.author);
       /* Anders als bei Verfassern: ohne Namen bleibt rejected_by leer. */
       const rejectedBy = String(it.rejected_author == null ? '' : it.rejected_author).trim()
@@ -5500,10 +6161,14 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
         stats.links++;
       });
 
+      // Nummer je Stelle im Feld testDays; ein Ordner nennt seinen Testtag ueber die Stelle.
+      const dayIds = [];
       for (const date of it.testDays || []) {
+        dayIds.push(null);
         if (!/^\d{4}-\d{2}-\d{2}$/.test(date.day || '')) continue;
         const simple = iTestDayAdd
           .run(id, date.day, Math.max(1, Math.min(5, Number(date.rating) || 1)), authorId(date.author));
+        dayIds[dayIds.length - 1] = simple.lastInsertRowid;
         for (const name of Array.isArray(date.tags) ? date.tags : []) {
           const clean = String(name || '').trim();
           if (clean) iTestDayTagAdd.run(simple.lastInsertRowid, tagByName(clean));
@@ -5541,17 +6206,27 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
       });
 
       // Ein Ordner ohne gueltigen Namen faellt weg; seine Dateien stehen ohne Ordner.
-      const folderIds = (Array.isArray(it.folders) ? it.folders : []).map(f => {
+      const folderIds = (Array.isArray(it.folders) ? it.folders : []).map((f, fi) => {
         const name = f && typeof f === 'object' ? folderName(f.name) : null;
         if (name === null) return null;
-        return iFolderAdd.run(id, name, 'author' in f ? authorId(f.author) : itemAuthor,
-                              typeof f.created_at === 'string' && f.created_at ? f.created_at : null)
+        const whose = 'author' in f ? authorId(f.author) : itemAuthor;
+        // Hat ein doppelter Testtag der Datei den ersten ersetzt, bleibt der Ordner ohne.
+        const day = folderDays.has(fi) ? qDayRow.get(dayIds[folderDays.get(fi)]) : null;
+        if (folderDays.has(fi) && (!day || day.user_id !== whose || qDayTaken.get(day.id))) foldersWithoutDay++;
+        const testDay = day && day.user_id === whose && !qDayTaken.get(day.id) ? day.id : null;
+        return iFolderAdd.run(id, name, whose,
+                              typeof f.created_at === 'string' && f.created_at ? f.created_at : null, testDay)
           .lastInsertRowid;
       });
 
       attachments.forEach((a2, i) => {
         const whose = a2.hasAuthor ? authorId(a2.author) : itemAuthor;
-        const added = iAttachmentAdd().run(id, a2.name, a2.mime, a2.buf.length, a2.buf, i, whose);
+        const fromTrash = a2.stored ? qTrashDisk.get(a2.stored, trashId) : null;
+        if (a2.stored && !fromTrash) throw trashGone();
+        const size = a2.disk ? a2.disk.size : fromTrash ? fromTrash.size : a2.buf.length;
+        const added = iAttachmentAdd().run(id, a2.name, a2.mime, size, a2.buf || NO_BYTES, i, whose);
+        if (a2.disk) addDiskFile.run(a2.disk.name, a2.disk.size, CHUNK, a2.disk.key, added.lastInsertRowid, null);
+        if (a2.stored && diskFromTrash.run(added.lastInsertRowid, a2.stored, trashId).changes !== 1) throw trashGone();
         if (a2.editAll) putEditAll.run(added.lastInsertRowid, 1);
         if (a2.still) putStill.run(added.lastInsertRowid, a2.duration, a2.still);
         if (a2.folder !== null && folderIds[a2.folder] != null)
@@ -5574,7 +6249,10 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
         }
       }
     }
-  })();
+    if (trashId != null) delTrashRow.run(trashId);
+  });
+  for (const { attachments } of prepared)
+    for (const a2 of attachments) if (a2.disk) moveIntoPlace(a2.disk.name);
 
   renumberCriteria();
   reclaim();
@@ -5594,9 +6272,13 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
   if (videosUnreadable)
     logLine(`Import: ${videosUnreadable} video(s) without a readable ` +
                 `still image skipped.`);
+  if (filesWithoutContent.length)
+    logLine(`Import: ${filesWithoutContent.length} file(s) without content skipped: ` +
+                filesWithoutContent.join(', '));
   return { ok: true, mode: mode2, ...stats,
            authorAssigned: assigned, authorUnknown: unknown,
-           weightsDropped: dropped, videosWithoutFile, videosUnreadable, newIds };
+           weightsDropped: dropped, videosWithoutFile, videosUnreadable, newIds,
+           filesWithoutContent, foldersWithoutDay };
 }
 
 /* secondConfirmNeeded und importSpace vor multer: sonst wird eine Datei von mehreren GB
@@ -5665,13 +6347,19 @@ const delTrashOld = db.prepare(
    ON DELETE CASCADE daran. */
 const trashRestoring = new Set();
 
-/* Aufruf beim Start und in GET /api/trash. */
+/* Aufruf beim Start, stuendlich und in GET /api/trash. Was gerade wiederhergestellt
+   wird, bleibt; sonst stuende danach eine Datei ohne Inhalt da. */
 function cleanupTrash() {
-  const n = delTrashOld.run(`-${TRASH_DAYS} days`).changes;
+  let n = 0;
+  if (!trashRestoring.size) n = delTrashOld.run(`-${TRASH_DAYS} days`).changes;
+  else for (const z of qTrashOld.all(`-${TRASH_DAYS} days`))
+    if (!trashRestoring.has(z.id)) n += delTrashRow.run(z.id).changes;
   if (n) logLine(`Trash: ${n} row(s) older than ` +
     `${TRASH_DAYS} days removed.`);
   return n;
 }
+const qTrashOld = db.prepare("SELECT id FROM trash WHERE deleted_at < datetime('now', ?)");
+const delTrashRow = db.prepare('DELETE FROM trash WHERE id = ?');
 cleanupTrash();
 // Auch in GET /api/users.
 if (!DATABASE_INCOMPLETE) auth.cleanupTokens();
@@ -5695,10 +6383,14 @@ function intoTrash(itemId, actor) {
     const p = insertTrash.run(it.title, JSON.stringify(envelope), actor);
     sources.forEach(([column, id], nr) =>
       insertTrashBytes[column].run(p.lastInsertRowid, nr, id));
+    // Vor dem DELETE: sonst verloere die Datei auf der Platte ihren letzten Besitzer.
+    diskIntoTrash.run(p.lastInsertRowid, it.id);
     db.prepare('DELETE FROM items WHERE id = ?').run(it.id);
     return p.lastInsertRowid;
   })();
 }
+const diskIntoTrash = db.prepare(`UPDATE disk_files SET trash_id = ?
+  WHERE attachment_id IN (SELECT id FROM attachments WHERE item_id = ?)`);
 
 /* created_by und created_at aus dem gespeicherten JSON. */
 const qTrash = db.prepare(`SELECT p.id, p.title, p.deleted_at, p.deleted_by,
@@ -5706,7 +6398,9 @@ const qTrash = db.prepare(`SELECT p.id, p.title, p.deleted_at, p.deleted_by,
     json_extract(p.content, '$.items[0].created_at') AS created_at,
     (SELECT COUNT(*) FROM trash_bytes b WHERE b.trash_id = p.id) AS files,
     length(p.content) + COALESCE(
-      (SELECT SUM(length(b.data)) FROM trash_bytes b WHERE b.trash_id = p.id), 0) AS bytes
+      (SELECT SUM(length(b.data)) FROM trash_bytes b WHERE b.trash_id = p.id), 0)
+      + COALESCE((SELECT SUM(d.size) FROM disk_files d WHERE d.trash_id = p.id), 0) AS bytes,
+    (SELECT COUNT(*) FROM disk_files d WHERE d.trash_id = p.id) AS disk
   FROM trash p ORDER BY p.deleted_at DESC, p.id DESC`);
 
 app.get('/api/trash', adminOnly, (req, res) => {
@@ -5722,7 +6416,7 @@ app.get('/api/trash', adminOnly, (req, res) => {
       deletedBy: authorFrom(card, z.deleted_by),
       createdBy: z.created_by ? authorByName(card, z.created_by) : null,
       created_at: z.created_at || null,
-      files: z.files, bytes: z.bytes,
+      files: z.files + z.disk, bytes: z.bytes,
       // Frist auf dem Server, damit TRASH_DAYS nur hier steht.
       daysOpen: Math.max(0, TRASH_DAYS - Math.floor(
         (Date.now() - Date.parse(z.deleted_at.replace(' ', 'T') + 'Z')) / 86400000))
@@ -5749,13 +6443,12 @@ app.post('/api/trash/:id/restore', ownerOnly, async (req, res, next) => {
       const b = qTrashBytes.get(z.id, nr);
       return b ? b.data : null;
     };
-    const result = await importInto(envelope, req.user.id, 'merge', source);
-    // Erst nach dem Einspielen: scheitert es, bleibt die Zeile liegen.
-    db.prepare('DELETE FROM trash WHERE id = ?').run(z.id);
+    // Die Zeile in trash faellt in der Transaktion des Einspielens.
+    const result = await importInto(envelope, req.user.id, 'merge', source, z.id);
     reclaim();
     res.json({ ...result, itemId: result.newIds[0] ?? null, title: z.title });
   } catch (e) {
-    if (e && e.denial) return res.status(400).json({ error: errorText(req, e) });
+    if (e && e.denial) return res.status(e.status || 400).json({ error: errorText(req, e) });
     next(e);
   } finally {
     // Auch bei Fehlern freigeben, sonst bliebe die Id bis zum Neustart gesperrt.
@@ -5764,12 +6457,112 @@ app.post('/api/trash/:id/restore', ownerOnly, async (req, res, next) => {
 });
 
 app.delete('/api/trash/:id', ownerOnly, (req, res) => {
+  if (trashRestoring.has(Number(req.params.id)))
+    return res.status(409).json({ error: t(localeOf(req), 'server.trashRestoring')});
   const n = db.prepare('DELETE FROM trash WHERE id = ?').run(req.params.id).changes;
   if (!n) return res.status(404).json({ error: t(localeOf(req), 'server.trashGone')});
   reclaim();
   res.status(204).end();
 });
 
+
+/* ---- Loeschliste und Laeufe ---- */
+/* In data/files/ loescht nur, was hier steht: die Loeschliste und unter upload/,
+   was weder uploads noch disk_files kennt. Nur im Haupt-Thread von server.js. */
+// Waehrend einer Backup-Kopie wird nichts geloescht.
+let SWEEP_HELD = 0;
+const qGone = db.prepare('SELECT name FROM disk_files_gone');
+const qGoneAny = db.prepare('SELECT 1 FROM disk_files_gone LIMIT 1');
+const dropGone = db.prepare('DELETE FROM disk_files_gone WHERE name = ?');
+const qUploadNames = db.prepare('SELECT name FROM uploads');
+const qDiskNames = db.prepare('SELECT name FROM disk_files');
+const qDiskKnown = db.prepare('SELECT 1 FROM disk_files WHERE name = ?');
+const qDiskSizes = db.prepare('SELECT name, size, chunk FROM disk_files');
+const qStaleUploads = db.prepare(
+  'SELECT id FROM uploads WHERE (touched_at IS NULL AND created_at < ?) OR touched_at < ?');
+// Ohne angenommene Anfrage 24 h, ohne erste 15 min.
+const UPLOAD_STALE_MS = 24 * HOUR_MS;
+const UPLOAD_UNSTARTED_MS = 15 * 60000;
+const SWEEP_LOGGED = new Set();
+
+function sweepDisk() {
+  if (SWEEP_HELD || DATABASE_INCOMPLETE) return;
+  const names = qGone.all().map(z => z.name);
+  if (!names.length) return;
+  /* Erst danach der Checkpoint: usertool.js kann aus einem eigenen Prozess committen.
+     Nur bei checkpointed = log stehen die Commits dieser Namen sicher auf der Platte. */
+  const [mark] = db.pragma('wal_checkpoint(PASSIVE)');
+  if (!mark || mark.checkpointed !== mark.log) return;
+  for (const name of names) {
+    if (DISK_NAME.test(name)) {
+      try { fs.unlinkSync(diskPath(name)); }
+      catch (e) {
+        if (e.code !== 'ENOENT') {
+          if (!SWEEP_LOGGED.has(`${name} ${e.code}`)) logFail(`Disk file ${name} not removed: ${e.code || e.message}`);
+          SWEEP_LOGGED.add(`${name} ${e.code}`);
+          continue;
+        }
+      }
+    }
+    dropGone.run(name);
+    DISK_MISSING.delete(name);
+  }
+}
+
+function sweepUploadDir() {
+  if (SWEEP_HELD || DATABASE_INCOMPLETE) return;
+  let names;
+  try { names = fs.readdirSync(UPLOAD_DIR); } catch { return; }
+  const known = new Set([...qUploadNames.all(), ...qDiskNames.all()].map(z => z.name));
+  for (const name of names) {
+    if (!DISK_NAME.test(name) || known.has(name) || DISK_WRITING.has(name)) continue;
+    try { fs.unlinkSync(diskPath(name, true)); } catch {}
+  }
+}
+
+let SWEEP_SOON = false, SWEEP_UPLOADS_SOON = false;
+function sweepSoon(uploadsToo = false) {
+  if (uploadsToo === true) SWEEP_UPLOADS_SOON = true;
+  if (SWEEP_SOON) return;
+  SWEEP_SOON = true;
+  setImmediate(() => {
+    SWEEP_SOON = false;
+    if (SWEEP_UPLOADS_SOON) { SWEEP_UPLOADS_SOON = false; sweepUploadDir(); }
+    if (qGoneAny.get()) sweepDisk();
+  });
+}
+
+/* Beim Start und stuendlich, in dieser Folge. Bei DATABASE_INCOMPLETE nur Verzeichnisse
+   und die Pruefung der Dateien. */
+async function diskRun(start) {
+  if (start) {
+    fs.mkdirSync(UPLOAD_DIR, { recursive: true, mode: 0o700 });
+    for (const dir of [FILES_DIR, UPLOAD_DIR]) try { fs.chmodSync(dir, 0o700); } catch {}
+  }
+  if (!DATABASE_INCOMPLETE) {
+    // Abschluesse nachholen: die Zeile steht, die Datei liegt noch unter upload/.
+    try {
+      for (const name of fs.readdirSync(UPLOAD_DIR))
+        if (DISK_NAME.test(name) && !DISK_WRITING.has(name) && qDiskKnown.get(name)) moveIntoPlace(name);
+    } catch (e) { logFail(`Disk files: ${e.message}`); }
+    const now = nowMs();
+    for (const z of qStaleUploads.all(sqlTime(now - UPLOAD_UNSTARTED_MS), sqlTime(now - UPLOAD_STALE_MS)))
+      if (!UPLOADS_RUNNING.has(z.id)) dropUpload.run(z.id);
+    sweepUploadDir();
+    cleanupTrash();
+    sweepDisk();
+  }
+  if (start) {
+    for (const z of qDiskSizes.all()) {
+      let size = -1;
+      try { size = fs.statSync(diskPath(z.name)).size; } catch {}
+      if (size === encLen(z.size, z.chunk)) DISK_MISSING.delete(z.name);
+      else DISK_MISSING.add(z.name);
+    }
+    if (DISK_MISSING.size) logWarn(`Disk files missing or of the wrong length: ${DISK_MISSING.size}.`);
+  }
+  if (!DATABASE_INCOMPLETE) await relocate(qRelocatePending.all().map(z => z.id));
+}
 
 /* ---- Backup ---- */
 
@@ -5818,6 +6611,8 @@ function checkPlace(raw) {
   if (s.length > 200) return { error: 'server.subDirTooLong', values: { cap: 200 } };
   if (!PLACE_PATTERN.test(s))
     return { error: 'server.subDirForm', values: {} };
+  // Sonst raeumte das Aufraeumen am uebergeordneten Ort die Backups darin weg.
+  if (s.split('/').includes(COPY_DIR)) return { error: 'server.subDirCopies', values: { folder: COPY_DIR } };
   let real;
   try { real = fs.realpathSync(path.resolve(situation.root, s)); }
   catch { return { error: 'server.subDirGone', values: { folder: s } }; }
@@ -5948,6 +6743,7 @@ function cleanupPreview(filePath, keep, days, locale) {
     })),
     matched: matched.map(d => cleanupRow(d, now)),
     bytes: matched.reduce((n, d) => n + d.bytes, 0),
+    copyBytes: copiesFreed(filePath, matched.map(d => d.name)),
     reason,
     oldCount: old.length,
     oldBytes: old.reduce((n, d) => n + d.bytes, 0),
@@ -6004,7 +6800,7 @@ app.get('/api/backup', ownerOnly, (req, res) => {
   }
   const rule = { ...status2, keep, days,
                   limits: { keep: CLEANUP_KEEP, days: CLEANUP_DAYS } };
-  const base = { place, dbBytes, durationSeconds: duration, cleanup: rule };
+  const base = { place, dbBytes, durationSeconds: duration, cleanup: rule, copy: BACKUP_COPY };
   const off = { ...base, reachable: false, last: null, changedAt, outdated: 0 };
   if (!situation.input) return res.json({ ...off, configured: false,
     reason: t(localeOf(req), situation.reason, situation.values) });
@@ -6025,62 +6821,264 @@ app.put('/api/backup/dir', ownerOnly, (req, res) => {
   res.json({ ok: true, place: checked.place, filePath: checked.filePath, ...lastBackup(checked.filePath) });
 });
 
-app.post('/api/backup', ownerOnly, (req, res) => {
+/* Ein Backup ist die Datenbank und jede Datei auf der Platte, die sie nennt. Ist
+   etwas zu kopieren, antwortet die Route mit 202 und kopiert danach. */
+app.post('/api/backup', ownerOnly, async (req, res, next) => {
   const situation = backupState();
   if (!situation.input) return res.status(400).json({ error: t(localeOf(req), situation.reason, situation.values) });
   const target = checkPlace(getSetting('backupPlace', ''));
   if (target.error) return res.status(400).json({ error: t(localeOf(req), target.error, target.values) });
+  let lock;
+  try { lock = takeBackupLock(target.filePath); } catch (e) { return next(e); }
+  if (!lock) return res.status(409).json({ error: t(localeOf(req), 'server.backupRunning')});
+  SWEEP_HELD++;
+  let answered = false;
+  // Sperre frei vor der Antwort: sonst liest der Browser den Ablageort mit Sperre.
+  let held = true;
+  const release = () => { if (held) { held = false; dropBackupLock(lock); SWEEP_HELD--; } };
+  const answer = (status, body) => { release(); res.status(status).json(body); };
   // Name mit Datum und Uhrzeit: ein Backup ueberschreibt nie das vorige.
   const mark = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
   const file = path.join(target.filePath, `kriterion-${mark}.sqlite`);
-  if (fs.existsSync(file))
-    return res.status(409).json({ error: t(localeOf(req), 'server.backupConcurrent')});
   /* Erst unter `.wird` schreiben, dann umbenennen: ein halbes Backup passt nie auf
      BACKUP_PATTERN. */
   const becoming = file + '.wird';
-  try { if (fs.existsSync(becoming)) fs.unlinkSync(becoming); } catch {}
-  const t0 = Date.now();
   try {
+    clearBackupRest(target.filePath);
+    if (fs.existsSync(file)) return answer(409, { error: t(localeOf(req), 'server.backupConcurrent')});
+    const short = backupSpaceShort(target.filePath);
+    if (short) return answer(507, { error: t(localeOf(req), 'server.backupNoSpace',
+      { needed: short.needed, free: short.free }) });
+    const t0 = Date.now();
     db.prepare('VACUUM INTO ?').run(becoming);
+    // Die Liste aus dem Backup selbst: usertool.js kann waehrenddessen committen.
+    const rows = backupDiskList(becoming);
+    const missing = rows.filter(z => !copyPresent(target.filePath, z));
+    BACKUP_COPY = { running: missing.length > 0, done: 0, total: missing.length, bytesDone: 0,
+                    bytesTotal: missing.reduce((n, z) => n + z.length, 0), absent: 0, error: null };
+    if (missing.length) {
+      res.status(202).json({ ok: true, running: true, copy: BACKUP_COPY });
+      answered = true;
+      await copyDiskFiles(target.filePath, missing, BACKUP_COPY);
+    }
+    // Die Liste nur, wenn das Backup Dateien auf der Platte nennt; Klartext fuer das Zurueckspielen.
+    if (rows.length) fs.writeFileSync(file.replace(/\.sqlite$/, '.files'),
+      rows.map(z => `${z.name} ${z.length}${z.absent ? ` ${ABSENT_MARK}` : ''}\n`).join(''));
     fs.renameSync(becoming, file);
+    const ms = Date.now() - t0;
+    let bytes = 0;
+    try { bytes = fs.statSync(file).size; } catch {}
+    logLine(`Backup written: ${path.basename(file)} ` +
+      `(${bytes} bytes, ${ms} ms, ${missing.length} file(s) copied).`);
+    auth.log('backup', { actor: req.user.id });
+    const cleaned = backupRuleCleanup(target.filePath, req.user.id);
+    BACKUP_COPY = { ...BACKUP_COPY, running: false, file: path.basename(file) };
+    if (!answered) answer(200, { ok: true, file: path.basename(file), filePath: target.filePath, bytes, ms,
+                                 ...lastBackup(target.filePath), cleaned, copy: BACKUP_COPY });
   } catch (e) {
     try { if (fs.existsSync(becoming)) fs.unlinkSync(becoming); } catch {}
     logFail('Backup failed:', e.message);
+    BACKUP_COPY = { ...(BACKUP_COPY || {}), running: false, error: 'server.backupFailed' };
     // Fester Text: ein SQL-Fehler nennt Pfade und Tabellen, die gehoeren nur ins Protokoll.
-    return res.status(500).json({ error: t(localeOf(req), 'server.backupFailed')});
+    if (!answered) answer(500, { error: t(localeOf(req), 'server.backupFailed')});
+  } finally {
+    release();
+    sweepSoon(true);
   }
-  const ms = Date.now() - t0;
-  let bytes = 0;
-  try { bytes = fs.statSync(file).size; } catch {}
-  logLine(`Backup written: ${path.basename(file)} ` +
-    `(${bytes} bytes, ${ms} ms).`);
-  auth.log('backup', { actor: req.user.id });
-  // Erst nach `rename` und `statSync` aufraeumen: dann ist das neue Backup vollstaendig.
+});
+
+// Erst nach `rename`: dann ist das neue Backup vollstaendig.
+function backupRuleCleanup(folder, actor) {
   let cleaned = null;
   try {
     const rule = cleanupStatus();
     if (rule.an) {
-      const matched = ruleHit(backupList(target.filePath) || [], rule.keep, rule.days,
+      const matched = ruleHit(backupList(folder) || [], rule.keep, rule.days,
                                    Date.now(), (changeMark() || {}).ms ?? null);
       if (matched.length) {
-        const out2 = removeBackups(target.filePath, matched.map(d => d.name));
+        const out2 = removeBackups(folder, matched.map(d => d.name));
         cleaned = { removed: out2.removed, notDeleted: out2.stayed.length, bytes: out2.bytes };
         if (out2.removed) {
           logLine(`Old backups removed: ${out2.removed} ` +
             `(${out2.bytes} bytes freed)` +
             `${out2.stayed.length ? `, ${out2.stayed.length} kept` : ''}.`);
-          logRemoved(req.user.id, out2.removed);
+          logRemoved(actor, out2.removed);
         }
       }
     }
+    cleanBackupFiles(folder);
   } catch (e) {
     // Das Backup ist gelungen; ein Fehler beim Aufraeumen macht daraus keine Absage.
     logFail('Clearing up after the backup failed:', e.message);
     cleaned = { removed: 0, notDeleted: 0, bytes: 0, failed: true };
   }
-  res.json({ ok: true, file: path.basename(file), filePath: target.filePath, bytes, ms,
-             ...lastBackup(target.filePath), cleaned });
-});
+  return cleaned;
+}
+
+/* ---- Dateien am Ablageort ---- */
+const COPY_DIR = 'kriterion-files';
+const LIST_PATTERN = /^kriterion-.+\.files$/;
+const COPY_PATTERN = /^([0-9a-f]{32})(\.part)?$/;
+// Marke in `.files` fuer eine Datei, die beim Backup fehlte.
+const ABSENT_MARK = 'fehlt';
+const LOCK_STALE_MS = 24 * HOUR_MS;
+let BACKUP_BUSY = false;
+// Stand der letzten Kopie fuer die Karte; null, solange in dieser Laufzeit keine lief.
+let BACKUP_COPY = null;
+
+/* Sperre im Speicher und als Lockfile fuer alle Instanzen am Ablageort; null, wenn
+   schon ein Backup laeuft. */
+function takeBackupLock(folder) {
+  if (BACKUP_BUSY) return null;
+  const dir = path.join(folder, COPY_DIR);
+  fs.mkdirSync(dir, { recursive: true });
+  const lock = path.join(dir, '.lock');
+  const note = `${os.hostname()} ${process.pid} ${new Date().toISOString()}\n`;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      fs.writeFileSync(lock, note, { flag: 'wx' });
+      BACKUP_BUSY = true;
+      return lock;
+    } catch (e) {
+      if (e.code !== 'EEXIST') throw e;
+      let at = Date.now();
+      try { at = fs.statSync(lock).mtimeMs; } catch {}
+      if (Date.now() - at < LOCK_STALE_MS) return null;
+      try { fs.unlinkSync(lock); } catch {}
+    }
+  }
+  return null;
+}
+
+// Ein leeres kriterion-files/ faellt mit der Sperre; es gab nichts zu kopieren.
+function dropBackupLock(lock) {
+  try { fs.unlinkSync(lock); } catch {}
+  try { fs.rmdirSync(path.dirname(lock)); } catch {}
+  BACKUP_BUSY = false;
+}
+
+// Reste eines abgebrochenen Backups; nur unter der Sperre.
+function clearBackupRest(folder) {
+  for (const n of fs.readdirSync(folder))
+    if (/^kriterion-.+\.sqlite\.wird$/.test(n)) try { fs.unlinkSync(path.join(folder, n)); } catch {}
+  const dir = path.join(folder, COPY_DIR);
+  for (const n of fs.readdirSync(dir))
+    if (/^[0-9a-f]{32}\.part$/.test(n)) try { fs.unlinkSync(path.join(dir, n)); } catch {}
+}
+
+function backupDiskList(file) {
+  const probe = new Database(file, { readonly: true });
+  try {
+    probe.pragma("cipher='sqlcipher'");
+    probe.pragma(`key="x'${keyHex}'"`);
+    return probe.prepare('SELECT name, size, chunk FROM disk_files ORDER BY id').all()
+      .filter(z => DISK_NAME.test(z.name)).map(z => ({ name: z.name, length: encLen(z.size, z.chunk) }));
+  } finally { probe.close(); }
+}
+
+// Eine Kopie gleicher Laenge bleibt; eine Datei auf der Platte aendert sich nie.
+function copyPresent(folder, z) {
+  try { return fs.statSync(path.join(folder, COPY_DIR, z.name)).size === z.length; }
+  catch { return false; }
+}
+
+// Frei am Ablageort: die Datenbank mit Aufschlag und die dort fehlenden Dateien.
+function backupSpaceShort(folder) {
+  let free = null;
+  try { const z = fs.statfsSync(folder); free = z.bsize * z.bavail; } catch {}
+  if (free === null) return null;
+  let dbBytes = 0;
+  try { dbBytes = fs.statSync(DB_FILE).size; } catch {}
+  const missing = qDiskSizes.all().filter(z => DISK_NAME.test(z.name))
+    .map(z => ({ name: z.name, length: encLen(z.size, z.chunk) }))
+    .filter(z => !copyPresent(folder, z)).reduce((n, z) => n + z.length, 0);
+  const needed = Math.ceil(dbBytes * 1.1) + missing;
+  return free >= needed ? null : { needed: Math.ceil(needed / MB), free: Math.floor(free / MB) };
+}
+
+async function copyDiskFiles(folder, rows, state) {
+  const dir = path.join(folder, COPY_DIR);
+  for (const z of rows) {
+    const to = path.join(dir, z.name), part = to + '.part';
+    await benchHold();
+    if (!fs.existsSync(diskPath(z.name))) { z.absent = true; state.absent++; }
+    else {
+      await fs.promises.copyFile(diskPath(z.name), part);
+      const handle = await fs.promises.open(part, 'r+');
+      try { await handle.sync(); } finally { await handle.close(); }
+      await fs.promises.rename(part, to);
+    }
+    state.done++;
+    state.bytesDone += z.length;
+  }
+}
+
+/* Loescht Listen ohne Backup daneben und in kriterion-files/ jede Datei nach
+   COPY_PATTERN, die keine verbliebene Liste nennt. */
+function cleanBackupFiles(folder) {
+  const names = fs.readdirSync(folder);
+  const named = new Set();
+  let removed = 0, bytes = 0;
+  for (const n of names) {
+    if (!LIST_PATTERN.test(n)) continue;
+    if (!names.includes(n.replace(/\.files$/, '.sqlite'))) {
+      try { fs.unlinkSync(path.join(folder, n)); } catch {}
+      continue;
+    }
+    for (const row of fs.readFileSync(path.join(folder, n), 'utf8').split('\n'))
+      if (DISK_NAME.test(row.split(' ')[0])) named.add(row.split(' ')[0]);
+  }
+  const dir = path.join(folder, COPY_DIR);
+  let copies = [];
+  try { copies = fs.readdirSync(dir); } catch {}
+  for (const c of copies) {
+    const m = COPY_PATTERN.exec(c);
+    if (!m || (!m[2] && named.has(m[1]))) continue;
+    try {
+      const st = fs.lstatSync(path.join(dir, c));
+      if (!st.isFile()) continue;
+      fs.unlinkSync(path.join(dir, c));
+      removed++; bytes += st.size;
+    } catch {}
+  }
+  return { removed, bytes };
+}
+
+// „pruefen": die Liste des Backups gegen kriterion-files/; ohne Liste null.
+function listCheck(folder, backupName) {
+  let rows;
+  try { rows = fs.readFileSync(path.join(folder, backupName.replace(/\.sqlite$/, '.files')), 'utf8').split('\n'); }
+  catch { return null; }
+  const out = { listed: 0, present: 0, absent: 0 };
+  for (const row of rows) {
+    const [name, length, flag] = row.split(' ');
+    if (!DISK_NAME.test(name || '')) continue;
+    out.listed++;
+    if (flag === ABSENT_MARK) out.absent++;
+    else if (copyPresent(folder, { name, length: Number(length) })) out.present++;
+  }
+  return out;
+}
+
+// Die Kopien, die keine Liste der uebrigen Backups mehr nennt, wenn `leaving` faellt.
+function copiesFreed(folder, leaving) {
+  let names;
+  try { names = fs.readdirSync(folder); } catch { return 0; }
+  const gone = new Set(leaving.map(n => n.replace(/\.sqlite$/, '.files')));
+  const keptNames = new Set(), leftNames = new Set();
+  for (const n of names) {
+    if (!LIST_PATTERN.test(n) || !names.includes(n.replace(/\.files$/, '.sqlite'))) continue;
+    let rows = [];
+    try { rows = fs.readFileSync(path.join(folder, n), 'utf8').split('\n'); } catch {}
+    for (const row of rows) (gone.has(n) ? leftNames : keptNames).add(row.split(' ')[0]);
+  }
+  let bytes = 0;
+  for (const name of leftNames) {
+    if (!DISK_NAME.test(name) || keptNames.has(name)) continue;
+    try { bytes += fs.statSync(path.join(folder, COPY_DIR, name)).size; } catch {}
+  }
+  return bytes;
+}
 
 app.post('/api/backup/cleanup', ownerOnly,
          secondConfirmNeeded('backup'), (req, res) => {
@@ -6094,22 +7092,32 @@ app.post('/api/backup/cleanup', ownerOnly,
   const files = backupList(target.filePath);
   if (files === null)
     return res.status(400).json({ error: t(localeOf(req), 'server.backupDirUnreachable')});
+  const lock = takeBackupLock(target.filePath);
+  if (!lock) return res.status(409).json({ error: t(localeOf(req), 'server.backupRunning')});
+  // Sperre frei vor der Antwort, wie beim Backup.
+  let out;
+  try { out = cleanupUnderLock(req, target, files, kind); }
+  finally { dropBackupLock(lock); }
+  res.status(out[0]).json(out[1]);
+});
+
+function cleanupUnderLock(req, target, files, kind) {
   const mark = changeMark();
   let matched;
   if (kind === 'outdated') {
-    if (!mark) return res.status(400).json({
-      error: t(localeOf(req), 'server.keyNeverChanged')});
+    if (!mark) return [400, { error: t(localeOf(req), 'server.keyNeverChanged')}];
     matched = files.filter(d => d.time < mark.ms);
   } else {
     const b = checkRuleValue(getSetting('backupKeep', CLEANUP_KEEP.fallback),
                               CLEANUP_KEEP, 'server.ruleKeep');
-    if (b.error) return res.status(400).json({ error: t(localeOf(req), b.error, b.values) });
+    if (b.error) return [400, { error: t(localeOf(req), b.error, b.values) }];
     const rule = checkRuleValue(getSetting('backupDays', CLEANUP_DAYS.fallback),
                               CLEANUP_DAYS, 'server.ruleDays');
-    if (rule.error) return res.status(400).json({ error: t(localeOf(req), rule.error, rule.values) });
+    if (rule.error) return [400, { error: t(localeOf(req), rule.error, rule.values) }];
     matched = ruleHit(files, b.value, rule.value, Date.now(), mark ? mark.ms : null);
   }
   const out2 = removeBackups(target.filePath, matched.map(d => d.name));
+  const copies = cleanBackupFiles(target.filePath);
   if (out2.removed) {
     logLine(`Old backups removed (${kind}): ${out2.removed} ` +
       `(${out2.bytes} bytes freed)${out2.stayed.length ? `, ${out2.stayed.length} kept` : ''}.`);
@@ -6118,12 +7126,12 @@ app.post('/api/backup/cleanup', ownerOnly,
   }
   /* Mit frischer Vorschau, aus der sich die Karte neu zeichnet. */
   const after = cleanupStatus();
-  res.json({ ok: true, kind, removed: out2.removed, notDeleted: out2.stayed.length, bytes: out2.bytes,
-             ...lastBackup(target.filePath),
-             cleanup: { ...after,
-                           limits: { keep: CLEANUP_KEEP, days: CLEANUP_DAYS },
-                           ...cleanupPreview(target.filePath, after.keep, after.days, localeOf(req)) } });
-});
+  return [200, { ok: true, kind, removed: out2.removed, notDeleted: out2.stayed.length, bytes: out2.bytes,
+                 copyBytes: copies.bytes, ...lastBackup(target.filePath),
+                 cleanup: { ...after,
+                               limits: { keep: CLEANUP_KEEP, days: CLEANUP_DAYS },
+                               ...cleanupPreview(target.filePath, after.keep, after.days, localeOf(req)) } }];
+}
 
 /* ---- Backup pruefen ---- */
 app.post('/api/backup/check', ownerOnly, (req, res) => {
@@ -6164,6 +7172,7 @@ app.post('/api/backup/check', ownerOnly, (req, res) => {
       contentUntil: one('SELECT MAX(updated_at) AS t FROM items').t || null
     };
     probe.close();
+    out.files = listCheck(target.filePath, file.name);
     return res.json(out);
   } catch {
     try { probe.close(); } catch {}
@@ -6178,12 +7187,40 @@ app.post('/api/backup/check', ownerOnly, (req, res) => {
   logLine('Backup location: ' + (situation.input
     ? situation.root
     : `off -- ${t('en', situation.reason, situation.values)}`));
+  // Ein `.wird` hier stammt von einem Backup, das ein Neustart abgebrochen hat.
+  const target = situation.input ? checkPlace(getSetting('backupPlace', '')) : { error: true };
+  let rest = [];
+  try { rest = target.error ? [] : fs.readdirSync(target.filePath).filter(n => /^kriterion-.+\.sqlite\.wird$/.test(n)); }
+  catch {}
+  const restAt = (name) => name.replace(/^kriterion-(\d{4}-\d\d-\d\d)-(\d\d)-(\d\d)-(\d\d).*$/, '$1 $2:$3:$4');
+  if (rest.length) BACKUP_COPY = { running: false, error: 'server.backupRestarted', at: restAt(rest.sort().pop()) };
 }
+
+/* Die Werte von `err.type` aus body-parser und raw-body. */
+const BODY_ERRORS = {
+  'request.aborted': 'server.bodyAborted',
+  'entity.too.large': 'server.bodyTooLarge',
+  'request.size.invalid': 'server.bodyInvalid',
+  'entity.parse.failed': 'server.bodyInvalid',
+  'entity.verify.failed': 'server.bodyInvalid',
+  'encoding.unsupported': 'server.bodyInvalid',
+  'charset.unsupported': 'server.bodyInvalid',
+  'parameters.too.many': 'server.bodyInvalid',
+  'stream.encoding.set': 'server.bodyInvalid',
+  'stream.not.readable': 'server.bodyInvalid'
+};
 
 /* Fehler-Handler; muss nach allen Routen stehen. */
 app.use((err, req, res, next) => {
-  console.error(err);
   const locale = localeOf(req);
+  // Fehler von body-parser tragen `type`; ein Abbruch des Browsers ist der Normalfall.
+  if (err && typeof err.type === 'string' && BODY_ERRORS[err.type] !== undefined) {
+    if (err.type === 'request.aborted') logLine(`Request aborted: ${req.method} ${req.path}`);
+    else logWarn(`Request body refused (${err.type}): ${req.method} ${req.path}`);
+    if (res.headersSent) return res.destroy();
+    return res.status(err.status || 400).json({ error: t(locale, BODY_ERRORS[err.type]) });
+  }
+  console.error(err);
   /* `key` statt instanceof Message: mail.js baut dieselbe Form, ohne auth.js zu laden. */
   if (err && err.key)
     return res.status(err.status || 400).json({ error: t(locale, err.key, err.values || {}) });
@@ -6288,6 +7325,11 @@ for (const signal of ['SIGTERM', 'SIGINT']) {
     process.exit(0);
   });
 }
+
+// Die Verzeichnisse entstehen synchron im ersten Schritt, vor der ersten Anfrage.
+const diskRunLogged = (start) => diskRun(start).catch(e => logFail(`Disk run: ${e.message}`));
+diskRunLogged(true);
+setInterval(() => diskRunLogged(false), BENCH.run || HOUR_MS).unref();
 
 app.listen(PORT, () => {
   // auth.getUser() ohne Anfrage: beim Start gibt es keinen angemeldeten Account.

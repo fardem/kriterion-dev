@@ -338,8 +338,8 @@ async function run() {
   try { file = JSON.parse(await exported.text()); } catch { file = null; }
   const exportedFiles = file?.items?.find(i => i.title === 'Bearbeiten')?.attachments || [];
   const flag = Object.fromEntries(exportedFiles.map(a => [a.filename, a.edit_all]));
-  check('Format 21: der Haken reist mit, nur wo er gesetzt ist',
-    file?.version === 21 && flag['tabelle.xlsx'] === true && flag['bericht.docx'] === undefined &&
+  check('Format 22: der Haken reist mit, nur wo er gesetzt ist',
+    file?.version === 22 && flag['tabelle.xlsx'] === true && flag['bericht.docx'] === undefined &&
     flag['doku.pdf'] === undefined, JSON.stringify({ v: file?.version, flag }));
   check('Die vorige Fassung reist nicht mit',
     exportedFiles.length === 4 && !JSON.stringify(exportedFiles.map(Object.keys)).includes('previous'),

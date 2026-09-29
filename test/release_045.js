@@ -60,10 +60,12 @@ async function run() {
       !/ATTACHMENT_COUNT/.test(server + app),
       ['FILES_PER_REQUEST', 'FILES_PER_ENTRY'].map(n => `${n} ${numberOf(server, n)}/${numberOf(app, n)}`).join(' · '));
     const route = server.slice(server.indexOf("app.post('/api/items/:id/attachments',"));
-    const counted = route.slice(route.indexOf('SELECT COUNT(*) n FROM attachments'), route.indexOf('into.run('));
+    // fileSlots() zaehlt die Dateien des Eintrags und seine offenen Uploads.
+    const counted = route.slice(route.indexOf('fileSlots(req.params.id)'), route.indexOf('into.run('));
     check('Die Route zaehlt je Anfrage und je Eintrag, ohne await zwischen Zaehlen und Schreiben',
       /\.array\('files', FILES_PER_REQUEST\)/.test(route) && /da \+ fresh > FILES_PER_ENTRY/.test(route) &&
-      /\{ cap: FILES_PER_ENTRY \}/.test(route) && counted.length > 0 && !/await/.test(counted),
+      /\{ cap: FILES_PER_ENTRY \}/.test(route) && counted.length > 0 && !/await/.test(counted) &&
+      /function fileSlots\(itemId\) \{\n  return db\.prepare\('SELECT COUNT\(\*\) n FROM attachments/.test(server),
       counted.slice(0, 120) || '(keine Zaehlung gefunden)');
     const hints = ['de', 'en', 'tr'].map(c => JSON.parse(read(`public/languages/${c}.json`))['entry.fileLimitHint']);
     check('entry.fileLimitHint traegt beide Zahlen als Platzhalter, in drei Sprachen',

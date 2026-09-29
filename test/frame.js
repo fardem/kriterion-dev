@@ -454,6 +454,10 @@ const F_ROUTES = [
   ['PUT',    '/api/photos/:id/focus',          'im Rumpf'],
   // Hochladen darf jeder; in einen Ordner nur, wer ihn angelegt hat.
   ['POST',   '/api/items/:id/attachments',     'im Rumpf'],
+  // In Stuecken nur in einen eigenen Ordner mit Testtag; fortsetzen, wer begonnen hat, abbrechen dazu der Admin.
+  ['POST',   '/api/items/:id/uploads',         'im Rumpf'],
+  ['PUT',    '/api/uploads/:id',               'im Rumpf'],
+  ['DELETE', '/api/uploads/:id',               'im Rumpf'],
   ['DELETE', '/api/attachments/:id',           'im Rumpf'],
   // Haken und Standbild setzt nur, wer hochgeladen hat; die vorige Fassung, wer bearbeiten darf.
   ['PUT',    '/api/attachments/:id/editing',   'im Rumpf'],
@@ -496,7 +500,9 @@ const F_ROUTES = [
   ['POST',   '/api/backup',                 'ownerOnly'],
   ['POST',   '/api/images/convert',          'ownerOnly, zweitbestaetigt'],
   ['POST',   '/api/backup/cleanup',      'ownerOnly, zweitbestaetigt'],
-  ['POST',   '/api/backup/check',            'ownerOnly']
+  ['POST',   '/api/backup/check',            'ownerOnly'],
+  // Nur der Eigentuemer-Admin, und nur mit Kopie im Backup-Ordner.
+  ['DELETE', '/api/files/unknown',           'ownerOnly']
 ];
 
 function writingRoutes(text) {

@@ -139,9 +139,9 @@ async function run() {
     tlPackages.every(p => p?.version === tlPackages[0]?.version && p?.title === tlPackages[0]?.title
       && Array.isArray(p?.criteria) && p.criteria.length === tlPackages[0]?.criteria?.length),
     JSON.stringify(tlPackages.map(p => [p?.version, p?.criteria?.length])));
-  // 21: EXCHANGE_FORMAT in server.js.
+  // 22: EXCHANGE_FORMAT in server.js.
   check('Und jeder Teil traegt die Formatnummer des vollen Exports',
-    tlPackages.every(p => p?.version === 21), JSON.stringify(tlPackages.map(p => p?.version)));
+    tlPackages.every(p => p?.version === 22), JSON.stringify(tlPackages.map(p => p?.version)));
   check('Zusammen tragen die Teile jeden Eintrag genau einmal',
     tlPackages.reduce((n, p) => n + (p?.items?.length || 0), 0) === 6 &&
     new Set(tlPackages.flatMap(p => (p?.items || []).map(i => i.title))).size === 6,

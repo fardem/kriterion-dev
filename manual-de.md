@@ -369,9 +369,32 @@ unverändert.
   fremden lädt niemand hoch. „Verschieben nach …“ im Menü einer eigenen Datei
   bietet die eigenen Ordner und „Ohne Ordner“; die Datei behält Adresse,
   Vorschaubild und „Bearbeiten durch alle“. Das Menü ⋯ am Ordner bietet
-  „Bearbeiten …“ und „Ordner löschen“; die Dateien eines gelöschten Ordners
-  stehen danach ohne Ordner. Wird ein Ordner gelöscht, während Dateien in ihn
-  hochgehen, zeigen sie ⚠ „Diesen Ordner gibt es nicht mehr.“
+  „Bearbeiten …“, „Link kopieren“ und „Ordner löschen“; die Dateien eines
+  gelöschten Ordners stehen danach ohne Ordner. Wird ein Ordner gelöscht,
+  während Dateien in ihn hochgehen, zeigen die wartenden und die in einer
+  Anfrage ⚠ „Diesen Ordner gibt es nicht mehr.“ Ein Upload in Stücken läuft zu
+  Ende; die Datei steht danach ohne Ordner.
+- **Ordner mit Testtag:** Beim Anlegen und unter „Bearbeiten …“ bekommt ein
+  eigener Ordner einen eigenen Testtag desselben Eintrags; ein Testtag hat
+  höchstens einen Ordner. Die Testtagzeile zeigt dann 📁; ein Klick öffnet den
+  Block und den Ordner. Der Kopf des Ordners zeigt das Datum mit ↑ und führt
+  zur Testtagzeile zurück. Wird der Testtag gelöscht, bleibt der Ordner mit
+  Namen und Dateien.
+- **Upload in Stücken:** In einen Ordner mit Testtag geht jede Datei in
+  Anfragen zu 8 MB hoch. Reißt die Verbindung ab, zeigt die Kachel
+  „unterbrochen“ mit dem Stand; es geht von selbst weiter, sobald die
+  Verbindung steht. Nach dem Schließen des Tabs setzt „Fortsetzen“ im Menü mit
+  derselben Datei fort. Ein unterbrochener Upload verfällt nach 24 Stunden.
+  Jeder Account hat höchstens drei offene Uploads. Auf dem Telefon die Seite
+  offen und den Bildschirm an lassen.
+- **Große Videos:** Über der Grenze „Anhang“ nimmt nur ein Ordner mit Testtag
+  Videos an (MP4, M4V, WebM, MOV), bis zur Grenze „Video am Testtag“. Kein
+  Export enthält sie; sie stehen im Backup.
+- **Dateien auf der Platte:** Was in einem Ordner mit Testtag liegt, speichert
+  Kriterion einzeln verschlüsselt neben der Datenbank. Eine Datei, die man in
+  einen solchen Ordner verschiebt oder deren Ordner einen Testtag bekommt, geht
+  dorthin; zurück in die Datenbank geht keine. Fehlt eine Datei auf dem Server,
+  zeigt ihre Kachel ⚠.
 - **Klick auf eine Datei:** Ein Bild oder Video öffnet das Vollbild; ← und →
   blättern durch Bilder und Videos derselben Gruppe, ohne Ordner oder im
   selben Ordner. PDF, Text, Markdown, CSV,
@@ -445,7 +468,8 @@ verwirft. Die Formatierung ist dieselbe wie bei Kommentaren.
 Nur bei „Getestet". Jede Zeile ist ein Tag mit einer Gesamtnote. Ein Datum
 kommt je Benutzer einmal vor; ein erneuter Eintrag ersetzt die Note. Ab drei
 Tagen zeigt eine Kurve den Verlauf. Solange Testtage bestehen, lässt sich
-„Getestet" nicht zurücknehmen.
+„Getestet" nicht zurücknehmen. Hat ein Testtag einen Ordner, steht in seiner
+Zeile 📁; ein Klick springt zum Ordner.
 
 ### Ablehnen
 
@@ -460,7 +484,8 @@ im Feld.
 
 Die Blöcke eines Eintrags lassen sich am Griff verschieben und über die
 Kopfzeile einklappen. Die Anordnung gilt für alle Einträge und wird in
-„Darstellung" zurückgesetzt.
+„Darstellung" zurückgesetzt. Öffnet ein Sprung einen eingeklappten Block, gilt
+das nur für diese Ansicht; ein Klick auf die Kopfzeile klappt ihn wieder zu.
 
 ### Löschen und Papierkorb
 
@@ -563,7 +588,7 @@ Backup und Sicherheitsprotokoll nur der Eigentümer-Admin.
 |---|---|
 | Titel | Titel vor der Anmeldung (für jeden sichtbar, zurückhaltend wählen) und Titel nach der Anmeldung |
 | Dokumente | Anzeige und Bearbeiten über einen Document Server ein- und ausschalten; „Bearbeiten durch alle“: Startwert, solange ein Account keinen eigenen gesetzt hat; die Karte prüft die Verbindung. Adressen und Secret stehen in der `.env`, siehe README |
-| Kennzahlen | Umfang des Bestands, Datenbankgröße, Version, Fingerprint, Verschlüsselungsverfahren; für den Eigentümer-Admin der Schlüsselwert |
+| Kennzahlen | Umfang des Bestands, Datenbankgröße, Dateien auf der Platte (davon große Videos und im Papierkorb), Uploads, freier Platz, Version, Fingerprint, Verschlüsselungsverfahren; für den Eigentümer-Admin der Schlüsselwert. Nur wenn es welche gibt: fehlende Dateien, Dateien, die auf das Löschen warten, und Dateien ohne Verweis. Diese löscht der Eigentümer-Admin mit „Löschen“, aber nur, wenn im Backup-Ordner eine Kopie gleicher Länge liegt |
 | Kategorien, Tags | anlegen, umbenennen, löschen; ein Häkchen legt fest, ob jeder neue Namen am Eintrag anlegen darf |
 | Bewertung: Kriterien, Potenzial: Kriterien | anlegen, umbenennen, sortieren, gewichten (0,2 bis 2, Vorgabe 1) |
 | Suchmaschinen | sechs eingebaute und bis zu drei eigene (`%s` als Platzhalter); eine ist Standard |
@@ -582,8 +607,11 @@ Nur der Eigentümer-Admin ändert sie. Sie gelten ab dem nächsten Hochladen.
 | Video | 20 | 1 bis 100 |
 | Video im Kommentar | 20 | 1 bis 100 |
 | Anhang | 50 | 1 bis 100 |
+| Video am Testtag | 2048 | 1 bis 4096 |
 
-Steht ein Reverse Proxy davor, muss er diese Größe durchlassen (README).
+„Video am Testtag“ gilt für Videos über „Anhang“ in einem Ordner mit Testtag;
+liegt die Grenze nicht über „Anhang“, gibt es keine großen Videos. Steht ein
+Reverse Proxy davor, muss er „Anhang“ durchlassen (README).
 
 ### Bildformate
 
@@ -606,20 +634,29 @@ zeigt Ort und Dauer, das letzte Backup und die Lage des Backup-Ordners: rot im
 Projektordner, grün außerhalb. Backups von vor einem Schlüsselwechsel sind rot
 markiert. Zurückspielen geht nur auf dem Server (README, „Backup").
 
+Dateien auf der Platte kopiert das Backup nach `kriterion-files/` im
+Backup-Ordner, jede nur einmal. Solange es kopiert, nennt die Karte Zahl und
+Größe der kopierten Dateien. Fehlte eine Datei auf der Platte, nennt die Karte
+die Zahl. Läuft schon ein Backup in denselben Backup-Ordner, auch aus einer
+anderen Installation, legt der Knopf kein zweites an und meldet das.
+
 ### Alte Backups
 
 Listet alle Backups mit Nummer, Datum, Alter und Größe. „prüfen" öffnet ein
-Backup probeweise und nennt Einträge, Fotos, Accounts und das jüngste Datum;
-„Mit diesem Schlüssel nicht lesbar" heißt, es gehört zu einem anderen
-Schlüssel.
+Backup probeweise und nennt Einträge, Fotos, Accounts, das jüngste Datum und
+wie viele der Dateien aus seiner Liste in `kriterion-files/` liegen; „Mit
+diesem Schlüssel nicht lesbar" heißt, es gehört zu einem anderen Schlüssel.
 
 Aufräumen löscht ein Backup nur, wenn beides zutrifft: es gehört nicht zu den
 jüngsten N (1 bis 20) **und** ist älter als X Tage (7 bis 365).
 
 - Der Schalter „Nach erfolgreichem Backup aufräumen" steht ab Werk auf aus.
   Aufgeräumt wird nur nach einem gelungenen Backup oder per Knopf.
-- Gelöscht werden nur Dateien nach dem Muster `kriterion-….sqlite` im
-  eingestellten Ordner, nie in Unterordnern. Andere Dateien bleiben.
+- Gelöscht werden nur Backups nach dem Muster `kriterion-….sqlite` und ihre
+  Listen `kriterion-….files` im eingestellten Ordner, dazu in
+  `kriterion-files/` jede Kopie, die keine verbliebene Liste nennt. Andere
+  Dateien bleiben. `kriterion-files` ist als Unterordner für Backups nicht
+  erlaubt.
 - Backups von vor einem Schlüsselwechsel fasst die Regel nicht an; sie haben
   einen eigenen Knopf.
 - Jede Löschung steht im Sicherheitsprotokoll.
@@ -644,8 +681,10 @@ Passwortabfrage.
 | Backup | vollständige, verschlüsselte Sicherung der Datenbank (README) |
 
 Die Exportdatei enthält nur Einträge mit Verfassernamen. Mit dem Häkchen für
-Dateien trägt sie auch die Ordner und das Vorschaubild jedes Videos unter
-„Dateien“; aus einer älteren Exportdatei kommen die Dateien ohne Ordner.
+Dateien trägt sie auch die Ordner mit ihrem Testtag und das Vorschaubild jedes
+Videos unter „Dateien“; aus einer älteren Exportdatei kommen die Dateien ohne
+Ordner. Große Videos enthält kein Export; die Karte nennt sie vorher. Der
+Import legt die Dateien eines Ordners mit Testtag wieder auf die Platte.
 Nicht darin:
 Benutzer, Passwörter, Sitzungen, zweiter Faktor, Mailzugang, Titel,
 Vokabular, Suchmaschinen, Einstellungen, Sicherheitsprotokoll, Papierkorb.

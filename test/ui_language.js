@@ -215,6 +215,7 @@ async function run() {
     const REST_EXPECTED = [
       // HTTP-Methoden und Header
       'GET', 'POST', 'PUT', 'DELETE', 'Content-Type', 'application/json',
+      'Upload-Offset', 'application/octet-stream',
       // Tasten und Knotennamen
       'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 'INPUT', 'TEXTAREA', 'SELECT',
       // Formen, Typen und Ziele
@@ -265,7 +266,7 @@ async function run() {
     const missing = REST_EXPECTED.filter(t => !rest.includes(t));
     check('Restprobe: weniger als siebzig lesbare Texte in app.js',
       rest.length < 70, `${rest.length} verschiedene, ${restPlaces.length} Stellen`);
-    check('Und es sind genau die sechzig benannten',
+    check('Und es sind genau die zweiundsechzig benannten',
       tooMany.length === 0 && missing.length === 0,
       `zu viel: ${tooMany.slice(0, 8).map(t => JSON.stringify(t.slice(0, 40))).join(' · ')} · fehlt: ${missing.slice(0, 8).map(t => JSON.stringify(t.slice(0, 40))).join(' · ')}`);
     check('Und der Filter laesst einen deutschen Satz stehen',
@@ -355,7 +356,7 @@ async function run() {
       // Bildschirm des Wirts
       'Eigener Server',
       // Gespeicherte Werte und Bezeichner
-      'Ohne Titel', 'Model Bewertungen', 'standbild',
+      'Ohne Titel', 'Model Bewertungen', 'standbild', 'fehlt',
       'aus', 'eigen', 'unbekannt', 'wieder', 'wirt', 'note',
       'beschreibung', 'bewertung', 'datei', 'dateien', 'einstellung',
       'kategorie', 'kommentare', 'potenzial', 'testtage'

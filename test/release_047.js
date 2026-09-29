@@ -1,4 +1,4 @@
-/* Kriterion — Pruefstand: Ordner unter „Dateien", Verschieben, Export mit Format 21,
+/* Kriterion — Pruefstand: Ordner unter „Dateien", Verschieben, Export mit Format 22,
    Papierkorb, Account, das ✕ der eigenen Ansicht und die Meldung bei 403. */
 const H = require('./frame.js');
 const D = require('./dom.js');
@@ -101,12 +101,12 @@ async function run() {
   const renamed = await as('uploader', 'PUT', `/api/folders/${north}`, { name: 'Nordhang Süd' });
   const byAdmin = await as('owner', 'PUT', `/api/folders/${north}`, { name: 'Vom Admin' });
   const byStranger = await as('stranger', 'PUT', `/api/folders/${north}`, { name: 'Vom Fremden' });
-  const withDay = await as('uploader', 'PUT', `/api/folders/${north}`, { name: 'Mit Testtag', testDay: 1 });
+  const withDay = await as('uploader', 'PUT', `/api/folders/${north}`, { name: 'Mit Testtag', testDay: 999999 });
   const nameNow = folderNamed(await entry(item), 'Nordhang Süd');
-  check('Umbenennen: 200 fuer den Verfasser, 403 fuer Admin und fremden Account; testDay ergibt 400',
+  check('Umbenennen: 200 fuer den Verfasser, 403 fuer Admin und fremden Account; ein unbekannter Testtag ergibt 404',
     renamed.status === 200 && byAdmin.status === 403 && byStranger.status === 403 &&
     byAdmin.content?.error === deText('server.deniedSelf') &&
-    withDay.status === 400 && withDay.content?.error === DE['server.folderTestDay'].replace('{dayMany}', 'Testtage') &&
+    withDay.status === 404 && withDay.content?.error === deText('server.dayUnknown', { dayOne: 'Testtag' }) &&
     nameNow?.id === north,
     `${renamed.status} ${byAdmin.status} ${byStranger.status} ${withDay.status} ${withDay.content?.error}`);
   check('folders und attachment_folders entstehen beim Start; test_day_id bleibt leer',
@@ -194,8 +194,8 @@ async function run() {
   const packedItem = (exported?.items || []).find(it => it.title === 'Mit Ordnern');
   const packedFiles = Object.fromEntries((packedItem?.attachments || []).map(a => [a.filename, a]));
   const folderAt = (a) => packedItem?.folders?.[a?.folder]?.name;
-  check('Export mit Format 21: folders mit Name, Verfasser und Zeit, je Datei folder als Stelle',
-    exported?.version === 21 && packedItem?.folders?.length === 2 &&
+  check('Export mit Format 22: folders mit Name, Verfasser und Zeit, je Datei folder als Stelle',
+    exported?.version === 22 && packedItem?.folders?.length === 2 &&
     packedItem.folders.every(f => typeof f.created_at === 'string') &&
     packedItem.folders.find(f => f.name === 'Sonnig')?.author === 'zweit' &&
     packedItem.folders.find(f => f.name === 'Regen')?.author === 'eigen' &&
@@ -399,10 +399,11 @@ async function run() {
       headOf(w, 7)?.getAttribute('aria-controls') === 'afolder-7' && !!w.document.getElementById('afolder-7') &&
       headOf(w, 7)?.getAttribute('aria-label') === `Nordhang, ${meta(7)}`,
       `${meta(7)} · ${meta(9)} · ${headOf(w, 7)?.getAttribute('aria-label')}`);
-    check('„+" nur in eigenen Ordnern; ⋯ nur mit erlaubtem Eintrag',
+    // „Link kopieren" steht in jedem Ordner, also auch ⋯.
+    check('„+" nur in eigenen Ordnern; ⋯ an jedem Ordner',
       tilesIn(w, 7).join(' ') === 'f50 f51 f53 add-f7' && tilesIn(w, 9).join(' ') === 'add-f9' &&
       tilesIn(w, 8).join(' ') === 'f52' && sectionOf(w, 7)?.querySelector('.afolder-more')?.hidden === false &&
-      sectionOf(w, 8)?.querySelector('.afolder-more')?.hidden === true,
+      sectionOf(w, 8)?.querySelector('.afolder-more')?.hidden === false,
       `${tilesIn(w, 7).join(' ')} · ${tilesIn(w, 9).join(' ')} · ${tilesIn(w, 8).join(' ')}`);
 
     headOf(w, 7)?.click();
@@ -481,8 +482,8 @@ async function run() {
     w.document.querySelector('.modal [data-yes]')?.click();
     await until(w, (x) => x.document.querySelector('#atts .afolder[data-folder="7"] .afolder-name')?.textContent === 'Nordhang Ost'
       && openRequests(x) === 0, 2000, 'der neue Name').catch(() => {});
-    check('Menue eines Ordners: „Bearbeiten …" mit dem Namen und hoechstens 80 Zeichen, „Ordner loeschen"',
-      folderMenu.join('|') === [DE['entry.folderEdit'], DE['entry.folderDelete']].join('|') &&
+    check('Menue eines Ordners: „Bearbeiten …" mit dem Namen und hoechstens 80 Zeichen, „Link kopieren", „Ordner loeschen"',
+      folderMenu.join('|') === [DE['entry.folderEdit'], DE['entry.copyFolderLink'], DE['entry.folderDelete']].join('|') &&
       asked.value === 'Nordhang' && asked.max === 80 && asked.hint === DE['entry.folderNameHint'] &&
       log.some(([mth, u, b]) => mth === 'PUT' && u === '/api/folders/7' && b.name === 'Nordhang Ost'),
       `${folderMenu.join('|')} ${JSON.stringify(asked)}`);

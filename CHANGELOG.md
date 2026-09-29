@@ -30,6 +30,57 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.48.0] - 2026-09-29
+
+*Ordner mit Testtag, Dateien auf der Platte, Upload in Stücken.*
+
+Fingerprint `e480ecfc` — davor `a49b4154`.
+
+> **Die Datenbank bekommt beim ersten Start die Tabellen `uploads`,
+> `disk_files` und `disk_files_gone`.** Zu tun ist nichts; beim Update gibt es
+> noch keinen Ordner mit Testtag.
+>
+> **Dateien in einem Ordner mit Testtag liegen unter `data/files/`.** Eine
+> Kopie von `data/` gehört samt `data/files/` gezogen; `keytool.sh` und das
+> Update per ZIP lassen sie aus (README).
+>
+> **Der Backup-Ordner braucht Platz für alle Dateien auf der Platte.** Das
+> Backup kopiert sie nach `kriterion-files/`.
+>
+> **Hinter NPMplus:** Die Location für Uploads nimmt `uploads/[0-9a-f]{32}`
+> dazu und bekommt „Disable Request Buffering“; eine zweite Location für
+> `^/api/attachments/[0-9]+/raw$` bekommt „Disable Response Buffering“ (README).
+>
+> **Eine Exportdatei aus 0.48.0 trägt Format 22.** Eine ältere Version liest
+> sie ohne die Testtage der Ordner.
+
+### Hinzugefügt
+
+- **Ordner mit Testtag:** beim Anlegen und unter „Bearbeiten …“; ein Testtag
+  hat höchstens einen Ordner.
+- **📁 in der Testtagzeile** springt zum Ordner; „↑ Datum“ im Ordnerkopf führt
+  zurück. Jeder Ordner hat eine Adresse und im Menü „Link kopieren“.
+- **Upload in Stücken zu 8 MB** in einen Ordner mit Testtag; ein
+  unterbrochener Upload lässt sich fortsetzen, auch nach dem Schließen des Tabs.
+- **Große Videos** bis zur neuen Grenze „Video am Testtag“ (Vorgabe 2048 MB),
+  nur in einem Ordner mit Testtag.
+- **Dateien auf der Platte:** einzeln verschlüsselt unter `data/files/`, mit
+  Range beim Abspielen.
+- **„Kennzahlen“** nennt Dateien auf der Platte, Uploads, freien Platz, fehlende
+  Dateien und Dateien ohne Verweis; diese löscht der Eigentümer-Admin, wenn eine
+  Kopie im Backup-Ordner liegt.
+
+### Geändert
+
+- Verschieben in einen Ordner mit Testtag und das Zuweisen eines Testtags
+  lagern Dateien aus der Datenbank auf die Platte um; zurück geht keine.
+- Das Backup kopiert die Dateien auf der Platte und legt eine Liste daneben; es
+  antwortet mit 202, solange es kopiert, und die Karte zeigt den Stand.
+- Ein Backup sperrt den Backup-Ordner auch für andere Installationen.
+- Der Export trägt große Videos nicht; die Karte nennt sie vorher.
+- `keytool.sh` sichert `data/` ohne `data/files/`.
+- Ein Sprung öffnet einen eingeklappten Block nur für diese Ansicht.
+
 ## [0.47.1] - 2026-09-29
 
 *Abhängigkeiten ohne bekannte Lücke.*

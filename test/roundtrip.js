@@ -331,8 +331,8 @@ async function sendImport(object, mode, withoutShare = false) {
   /* Parameter wie :id durch eine Zahl ersetzen, sonst passt der Pfad auf keine Route. */
   const csAddress = (filePath) => filePath.replace(/:[A-Za-z]+/g, '7');
   const csGuarded = H.F_ROUTES.filter(([m, p]) => !csFree.has(`${m} ${p}`));
-  check('Sechsundsiebzig der vierundachtzig Routen stehen hinter dem Schutz',
-    csGuarded.length === 76 && H.F_ROUTES.length === 84,
+  check('Achtzig der achtundachtzig Routen stehen hinter dem Schutz',
+    csGuarded.length === 80 && H.F_ROUTES.length === 88,
     `${csGuarded.length} von ${H.F_ROUTES.length}`);
   const csThrough = [];
   for (const [method, filePath] of csGuarded) {
@@ -1014,7 +1014,7 @@ async function sendImport(object, mode, withoutShare = false) {
   let sxPaper = null;
   try { sxPaper = JSON.parse(sxText); } catch {}
   check('Und das Ganze ist gueltiges JSON mit beiden Eintraegen',
-    !!sxPaper && sxPaper.items?.length === 2 && sxPaper.version === 21,
+    !!sxPaper && sxPaper.items?.length === 2 && sxPaper.version === 22,
     sxPaper ? `${sxPaper.items?.length} Eintraege, Nummer ${sxPaper.version}` : 'nicht lesbar');
   check('Die Bytes der Fotos und Dateien gehen mit',
     !!sxPaper?.items?.[0]?.photos?.[0]?.data_base64 &&
@@ -2688,7 +2688,7 @@ async function sendImport(object, mode, withoutShare = false) {
     .map(m => m[1]).filter(a => a !== 'id, userId, locale');
   const withoutUser = calls.filter(a => !/,\s*req\.user\.id\s*,\s*localeOf\(req\s*$/.test(a));
   check('Keine Aufrufstelle von detail() ohne Benutzer und ohne Sprache',
-    calls.length === 33 && withoutUser.length === 0,
+    calls.length === 37 && withoutUser.length === 0,
     `${calls.length} Aufrufe, unvollstaendig: ${JSON.stringify(withoutUser)}`);
   check('detail() klemmt einen fehlenden Benutzer ab, statt still false zu liefern',
     /function detail\(id, userId, locale\) \{\s*\n\s*if \(userId == null\) throw/.test(source),
@@ -3127,8 +3127,8 @@ async function sendImport(object, mode, withoutShare = false) {
 
   /* ---- Sprachfassungen in der Exportdatei ---- */
   const rnFile = (await callF('GET', '/api/export?photos=0')).content;
-  check('Die Exportdatei traegt die Formatnummer 21',
-    rnFile?.version === 21, JSON.stringify(rnFile?.version));
+  check('Die Exportdatei traegt die Formatnummer 22',
+    rnFile?.version === 22, JSON.stringify(rnFile?.version));
   /* version nennt das Format der Felder, appVersion das Programm, das die Datei schrieb. */
   check('Und die Programmfassung daneben — 0.33.0',
     rnFile?.appVersion === require('./package.json').version,
@@ -3943,7 +3943,7 @@ async function sendImport(object, mode, withoutShare = false) {
     await call('PUT', `/api/criteria/${exCrit.id}`, { name: 'Üç dilli', language: 'tr' });
     const exFile = (await callF('GET', '/api/export?photos=0')).content;
     check('Ein Export traegt alle drei Sprachfassungen',
-      exFile?.version === 21 &&
+      exFile?.version === 22 &&
       exFile?.criteriaNames?.de?.['Dreisprachig'] === 'Dreisprachig DE' &&
       exFile?.criteriaNames?.tr?.['Dreisprachig'] === 'Üç dilli',
       JSON.stringify([exFile?.version, exFile?.criteriaNames?.de?.['Dreisprachig'],
@@ -4052,9 +4052,10 @@ async function sendImport(object, mode, withoutShare = false) {
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
       .all().map(z => z.name).sort();
     tzDb.close();
-    check('Die Datenbank traegt genau sechsunddreissig Tabellen',
-      tzTables.length === 36 && tzTables.includes('comment_videos') && tzTables.includes('attachment_stills') &&
-      tzTables.includes('folders') && tzTables.includes('attachment_folders'),
+    check('Die Datenbank traegt genau neununddreissig Tabellen',
+      tzTables.length === 39 && tzTables.includes('comment_videos') && tzTables.includes('attachment_stills') &&
+      tzTables.includes('folders') && tzTables.includes('attachment_folders') &&
+      ['uploads', 'disk_files', 'disk_files_gone'].every(n => tzTables.includes(n)),
       `${tzTables.length}: ${tzTables.join(' ')}`);
     /* login_attempts: in einer Map setzte jeder Neustart die Zaehler auf null. */
     check('Und die neue heisst login_attempts',
@@ -4412,7 +4413,7 @@ async function sendImport(object, mode, withoutShare = false) {
   await gSet('Preis', 1); await gSet('Kundendienst', 1);
   const eOneF = includingShare((m, p, k) => eCall('cookie-e-eins', m, p, k), eWord);
   const gOut = (await eOneF('GET', '/api/export?photos=0')).content;
-  check('Die Formatnummer steht auf 21', gOut?.version === 21, JSON.stringify(gOut?.version));
+  check('Die Formatnummer steht auf 22', gOut?.version === 22, JSON.stringify(gOut?.version));
   check('criteria bleibt eine Liste von Namen',
     Array.isArray(gOut?.criteria) && gOut.criteria.every(n => typeof n === 'string'),
     JSON.stringify(gOut?.criteria));
@@ -4999,7 +5000,7 @@ async function sendImport(object, mode, withoutShare = false) {
     e2Entry?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')?.author === null &&
     'author' in (e2Entry?.comments?.find(c => c.text === 'Kommentar ohne Verfasser') || {}),
     JSON.stringify(e2Entry?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')));
-  check('Die Formatnummer der Datei steht auf 21', e2Out?.version === 21, JSON.stringify(e2Out?.version));
+  check('Die Formatnummer der Datei steht auf 22', e2Out?.version === 22, JSON.stringify(e2Out?.version));
 
   /* Anhaenge stehen nur in einem Export mit Dateien. */
   const e2IncludingFiles = (await e2AnnaF('GET', '/api/export?photos=0&files=1')).content;
@@ -8687,7 +8688,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const agCallF = includingShare((m, p, k) => agCall('cookie-ag-anna', m, p, k), AG_WORD);
   const agFile = (await agCallF('GET', '/api/export?fotos=0')).content;
   const agPackage = agFile?.items?.find(i => i.title === 'Berts Saege');
-  check('Die Formatnummer der Datei steht auf 21', agFile?.version === 21,
+  check('Die Formatnummer der Datei steht auf 22', agFile?.version === 22,
     JSON.stringify(agFile?.version));
   check('Die Datei traegt Datum, Grund und den NAMEN des Ablehnenden',
     agPackage?.rejected_at === agBefore.rejected_at &&
@@ -13893,6 +13894,8 @@ async function sendImport(object, mode, withoutShare = false) {
       (c.notnull ? ' NOT NULL' : '') +
       (c.dflt_value === null ? '' : ` DEFAULT (${c.dflt_value})`)).join(', ');
     const names = kept.map(c => c.name).join(', ');
+    // Sonst prueft RENAME die Trigger auf disk_files, die nach DROP TABLE ins Leere zeigen.
+    d.pragma('legacy_alter_table = ON');
     d.exec(`CREATE TABLE ${table}__alt (${shape});
             INSERT INTO ${table}__alt (${names}) SELECT ${names} FROM ${table};
             DROP TABLE ${table};
@@ -16964,7 +16967,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
   /* ---- Das Austauschformat ---- */
   const phEx = await phExport(PH);
-  check('Die Formatnummer steht auf 21', phEx.version === 21, `${phEx.version}`);
+  check('Die Formatnummer steht auf 22', phEx.version === 22, `${phEx.version}`);
   /* Nur Abweichungen, wie bei den Gewichten: Nachher-Kriterien fehlen in
      criteriaPhase. */
   check('criteriaPhase nennt nur die Vorher-Kriterien',

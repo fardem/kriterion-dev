@@ -13,7 +13,9 @@ vergleichen, filtern und durchsuchen.
 
 Alles bleibt auf dem eigenen Server: kein Konto bei Dritten, keine Telemetrie,
 keine externen Schriftarten, kein CDN. Die Datenbank ist als Ganzes
-verschlüsselt (SQLCipher, AES-256); Fotos und Videos liegen darin. Mit einem
+verschlüsselt (SQLCipher, AES-256); Fotos und Videos liegen darin. Dateien in
+einem Ordner mit Testtag liegen einzeln verschlüsselt (AES-256-GCM) unter
+`data/files/`, ihre Schlüssel in der Datenbank. Mit einem
 [Document Server](#document-server) liegt jede dort angesehene Datei zusätzlich
 unverschlüsselt in dessen Zwischenspeicher.
 
@@ -49,13 +51,14 @@ Diese Datei beschreibt Installation und Betrieb. Die Bedienung steht im
 | | |
 |---|---|
 | Einträge | Titel, Beschreibung, Kategorie, Tags, Fotos, Kurzvideos, Dateien, Links |
+| Dateien | in Ordnern; ein Ordner mit Testtag nimmt Videos bis 2 GB, hochgeladen in Stücken, fortsetzbar |
 | Bewerten | eigene Kriterien mit 1 bis 5 Sternen, je Kriterium ein Gewicht, daraus ein gewichteter Schnitt |
 | Kommentare | Notiz, Bericht oder Aufgabe mit Fälligkeitsdatum, dazu Bilder und Videos |
 | Testtage | datierte Einträge mit Note und Tags |
 | Vergleichen | mehrere Einträge nebeneinander, Kriterium für Kriterium |
 | Suchen und filtern | Volltext über Titel, Beschreibung, Kategorie, Tags, Links und Kommentare; Filter als Ansicht speicherbar |
 | Mehrere Benutzer | drei Rollen, jeder Beitrag mit Verfasser |
-| Backup | verschlüsseltes Backup auf Knopfdruck, dazu ein JSON-Export ohne Schlüssel |
+| Backup | verschlüsseltes Backup auf Knopfdruck samt der Dateien unter `data/files/`, dazu ein JSON-Export ohne Schlüssel |
 
 ## Für wen
 
@@ -192,13 +195,18 @@ Nötig, wenn der Schlüssel in fremde Hände geraten sein kann, etwa weil `data/
 kopiert wurde, während `data/encryption.key` daneben lag. Das Löschen der
 Schlüsseldatei schützt nur gegen spätere Kopien.
 
+Dateien auf der Platte behalten ihren Schlüssel. Wer eine alte Kopie der
+Datenbank und den alten Schlüssel hat, liest sie weiter, auch aus späteren
+Backups. Schutz: Datei löschen und neu hochladen.
+
 ```bash
 ./keytool.sh show      # Stand anzeigen, ändert nichts
 ./keytool.sh change    # anhalten, Backup, wechseln, starten
 ```
 
 `keytool.sh change` legt ein Backup der `.env` (`.env.before-key-change-…`)
-und von `data/` (`../kriterion-data-before-key-change-…`) an, hält die
+und von `data/` ohne `data/files/` (`../kriterion-data-before-key-change-…`)
+an, hält die
 Installation an, wechselt den Schlüssel in einem temporären Container, trägt
 den neuen Wert erst nach Erfolg ein und startet wieder.
 
@@ -214,18 +222,23 @@ Nach dem Wechsel:
 - Passwörter und Anmeldungen bleiben gültig.
 
 **Den Wechsel vorher an einer Kopie ausprobieren.** Ein Fehler kann alle Daten
-kosten. Die Kopie braucht den echten Bestand und die echte `.env`:
+kosten. Die Kopie braucht den echten Bestand und die echte `.env`, aber nicht
+`data/files/` und einen eigenen Backup-Ordner:
 
 ```bash
 cd ..                                                   # Ordner über dem Projekt
 docker compose -f kriterion/docker-compose.yml stop
-cp -a kriterion kriterion-check
+mkdir -p kriterion-check/data
+find kriterion -mindepth 1 -maxdepth 1 ! -name data ! -name kriterion-backup ! -name .git \
+  -exec cp -a {} kriterion-check/ \;
+find kriterion/data -mindepth 1 -maxdepth 1 ! -name files -exec cp -a {} kriterion-check/data/ \;
 docker compose -f kriterion/docker-compose.yml start
 
 cd kriterion-check
-rm -rf kriterion-backup .git .env.before-*
+rm -rf .env.before-*
 sed -i 's/^    container_name: kriterion$/    container_name: kriterion-check/' docker-compose.yml
 sed -i 's/"3100:3000"/"3199:3000"/' docker-compose.yml
+sed -i 's#kriterion-backup:#kriterion-check-backup:#' docker-compose.yml
 docker compose up -d --build
 ./keytool.sh change
 docker compose logs --tail 30 kriterion
@@ -233,10 +246,12 @@ docker compose logs --tail 30 kriterion
 
 Die Probe war gültig, wenn die Ansage vor dem Wechsel die echte Größe nennt,
 danach `integrity_check: ok` steht, das Protokoll `owner: <Name>` meldet und
-der Bestand unter `http://<server>:3199` vollständig ist. Danach entfernen:
+der Bestand unter `http://<server>:3199` vollständig ist. Dateien auf der
+Platte fehlen in der Kopie; ihre Kacheln zeigen ⚠. Danach entfernen:
 
 ```bash
-cd .. && docker compose -f kriterion-check/docker-compose.yml down && rm -rf kriterion-check
+cd .. && docker compose -f kriterion-check/docker-compose.yml down
+rm -rf kriterion-check kriterion-check-backup
 ```
 
 Die `.env` der Probe nie in die echte Installation kopieren.
@@ -251,8 +266,13 @@ Die `.env` der Probe nie in die echte Installation kopieren.
 | lesbar von späteren Versionen | nein | nein | ja |
 
 Backup und JSON-Export werden in der Oberfläche ausgelöst; siehe Handbuch,
-„Einstellungen". Während das Backup entsteht, steht die Installation still
-(rund 10 bis 20 ms je MB).
+„Einstellungen". Während das Backup der Datenbank entsteht, steht die
+Installation still (rund 10 bis 20 ms je MB).
+
+Dateien unter `data/files/` kopiert das Backup nach `kriterion-files/` im
+Backup-Ordner, jede nur einmal: sie ändern sich nie. Neben jedem Backup steht
+eine Liste `kriterion-<zeitpunkt>.files` mit den Dateien, die es nennt. **Der
+Backup-Ordner braucht Platz für die Datenbank und alle Dateien auf der Platte.**
 
 **Backup-Ordner.** Die `docker-compose.yml` hängt ihn ein und nennt ihn dem
 Server. Beide Zeilen gehören zusammen; ohne `BACKUP_DIR` fehlt die Karte
@@ -277,18 +297,34 @@ Backups zugleich:
 
 Relative Pfade gelten ab dem Ort der `docker-compose.yml`.
 
-**Kopie von `data/`.** Erst `docker compose down`, dann kopieren. Die `.env`
-getrennt aufbewahren.
+**Kopie von `data/`.** Erst `docker compose down`, dann kopieren, samt
+`data/files/`. Die `.env` getrennt aufbewahren.
 
 ### Backup zurückspielen
+
+Vorher in der Oberfläche ein Backup anlegen. Es ist der Rückweg: Der erste
+Start nach dem Zurückspielen führt Frist und Löschliste des zurückgespielten
+Stands aus und löscht dabei auch Dateien unter `data/files/`.
 
 ```bash
 docker compose down
 mkdir data-before-restore
 mv data/katalog.sqlite* data-before-restore/
 cp kriterion-backup/kriterion-<zeitpunkt>.sqlite data/katalog.sqlite
+mkdir -p data/files
+while read -r n len rest; do
+  case "$n" in *[!0-9a-f]*|'') continue ;; esac; [ ${#n} -eq 32 ] || continue
+  [ "$rest" = fehlt ] && continue
+  [ -f "data/files/$n" ] && [ "$(wc -c < "data/files/$n")" -eq "$len" ] && continue
+  cp "kriterion-backup/kriterion-files/$n" "data/files/$n.part" &&
+    mv "data/files/$n.part" "data/files/$n"
+done < kriterion-backup/kriterion-<zeitpunkt>.files
 docker compose up -d
 ```
+
+Die Schleife holt die Dateien, die die Liste des Backups nennt. Eine Datei
+gleicher Länge bleibt, ein Abbruch hinterlässt nur `.part`. Ohne Liste neben
+dem Backup entfällt sie.
 
 Ein Backup öffnet sich nur mit dem Schlüssel, mit dem es angelegt wurde. Stammt
 es von vor einem Schlüsselwechsel, vorher den alten Wert als `ENCRYPTION_KEY`
@@ -309,15 +345,18 @@ docker compose up -d --build
 ```
 
 Mit dem ZIP wird das Projektverzeichnis ersetzt. `data/`, `.env`,
-`docker-compose.yml` und ein Backup-Ordner im Projekt werden übernommen:
+`docker-compose.yml` und ein Backup-Ordner im Projekt werden übernommen. Die
+Sicherheitskopie lässt `data/files/` aus: diese Dateien ändern sich nie und
+stehen im Backup.
 
 ```bash
 cd .../kriterion && docker compose down
-cd .. && cp -r kriterion/data ./data-before-update-$(date +%F)
+cd .. && mkdir data-before-update-$(date +%F)
+find kriterion/data -mindepth 1 -maxdepth 1 ! -name files -exec cp -a {} data-before-update-$(date +%F)/ \;
 mv kriterion kriterion-old
 python3 -m zipfile -e kriterion-main.zip .
 mv kriterion-main kriterion
-cp -r kriterion-old/data kriterion/data
+mv kriterion-old/data kriterion/data
 cp kriterion-old/.env kriterion/.env
 cp kriterion-old/docker-compose.yml kriterion/
 mv kriterion-old/kriterion-backup kriterion/ 2>/dev/null   # nur bei Backup-Ordner im Projekt
@@ -382,8 +421,14 @@ Der Start meldet die Lage im Protokoll: `Behind proxy: on` oder `off`.
 - Die WAF von CrowdSec (AppSec) liest nach Vorgabe höchstens 10 MB einer
   Anfrage und weist größere mit 403 ab. In NPMplus unter „Custom Locations“
   eine Location mit `~` und dem Pfad
-  `^/api/(import|(items|comments)/[0-9]+/(photos|videos|attachments|comments|images))$`
-  anlegen, Ziel wie beim Host, und dort „Disable Crowdsec Appsec“ einschalten.
+  `^/api/(import|uploads/[0-9a-f]{32}|(items|comments)/[0-9]+/(photos|videos|attachments|comments|images))$`
+  anlegen, Ziel wie beim Host, und dort „Disable Crowdsec Appsec“ und „Disable
+  Request Buffering“ einschalten.
+- Eine zweite Location mit `~` und dem Pfad `^/api/attachments/[0-9]+/raw$`,
+  Ziel wie beim Host, bekommt „Disable Response Buffering“; AppSec bleibt dort
+  an. Sonst legt nginx Dateien und Videos als Klartext in Zwischendateien ab.
+  Ohne NPMplus bei nginx: `proxy_request_buffering off;` für `/api/uploads/`
+  und `proxy_buffering off;` für `/api/attachments/`.
 
 Für CrowdSec oder fail2ban antwortet `POST /api/login` unterscheidbar: 401
 (Name oder Passwort falsch), 429 (zu viele Versuche), 403 (Account gesperrt).

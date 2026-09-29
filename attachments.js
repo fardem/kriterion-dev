@@ -1,6 +1,8 @@
 /* Anhaenge: Auslieferung und Vorschau. Keine Anlage wird so ausgeliefert,
  * dass der Browser sie als Webseite ausfuehrt. */
 const zlib = require('zlib');
+const fs = require('fs');
+const crypto = require('crypto');
 
 /* ---- Typen ---- */
 
@@ -237,8 +239,102 @@ function docxPreview(buf) {
   return { text: text.slice(0, PREVIEW_CHARS), shortened: text.length > PREVIEW_CHARS };
 }
 
+/* ---- Dateien auf der Platte ---- */
+/* AES-256-GCM je Stueck: Nonce aus 8 Nullbytes und der Stuecknummer (Big Endian),
+   AAD der Name auf der Platte. Stueck i liegt bei i × (chunk + TAG). */
+const CHUNK = 1048576;
+const TAG = 16;
+const encLen = (n, chunk = CHUNK) => n + TAG * Math.ceil(n / chunk);
+
+function damaged(why) {
+  const e = new Error(`disk file damaged: ${why}`);
+  e.damaged = true;
+  return e;
+}
+
+function nonce(index) {
+  const iv = Buffer.alloc(12);
+  iv.writeUInt32BE(index, 8);
+  return iv;
+}
+
+function sealChunk(key, name, index, plain) {
+  const c = crypto.createCipheriv('aes-256-gcm', key, nonce(index));
+  c.setAAD(Buffer.from(name, 'ascii'));
+  return Buffer.concat([c.update(plain), c.final(), c.getAuthTag()]);
+}
+
+// Klartext erst nach final(): update() liefert ihn vor der Pruefung der Marke.
+function openChunk(key, name, index, sealed) {
+  if (sealed.length < TAG) throw damaged('short');
+  const d = crypto.createDecipheriv('aes-256-gcm', key, nonce(index));
+  d.setAAD(Buffer.from(name, 'ascii'));
+  d.setAuthTag(sealed.subarray(sealed.length - TAG));
+  const plain = d.update(sealed.subarray(0, sealed.length - TAG));
+  try { d.final(); } catch { throw damaged('tag'); }
+  return plain;
+}
+
+// `f`: { name, size, chunk, key }. Stuecke ohne Klartext hat nur die leere Datei.
+const chunkCount = (f) => Math.ceil(f.size / f.chunk);
+const chunkPlain = (f, index) => Math.min(f.chunk, f.size - index * f.chunk);
+const chunkAt = (f, index) => index * (f.chunk + TAG);
+
+function readChunkSync(fd, f, index) {
+  const want = chunkPlain(f, index) + TAG;
+  const buf = Buffer.allocUnsafe(want);
+  let got = 0;
+  while (got < want) {
+    const n = fs.readSync(fd, buf, got, want - got, chunkAt(f, index) + got);
+    if (!n) break;
+    got += n;
+  }
+  if (got !== want) throw damaged('length');
+  return openChunk(f.key, f.name, index, buf);
+}
+
+async function readChunk(handle, f, index) {
+  const want = chunkPlain(f, index) + TAG;
+  const buf = Buffer.allocUnsafe(want);
+  let got = 0;
+  while (got < want) {
+    const { bytesRead } = await handle.read(buf, got, want - got, chunkAt(f, index) + got);
+    if (!bytesRead) break;
+    got += bytesRead;
+  }
+  if (got !== want) throw damaged('length');
+  return openChunk(f.key, f.name, index, buf);
+}
+
+// Fuer Dateien bis zur Grenze „Anhang"; ein grosses Video wird nur stueckweise gelesen.
+function openWholeSync(file, f) {
+  let fd;
+  try { fd = fs.openSync(file, 'r'); }
+  catch (e) { throw e.code === 'ENOENT' ? damaged('missing') : e; }
+  try {
+    const parts = [];
+    for (let i = 0; i < chunkCount(f); i++) parts.push(readChunkSync(fd, f, i));
+    return Buffer.concat(parts, f.size);
+  } finally { fs.closeSync(fd); }
+}
+
+/* Schreibt `plain` ab Stueck `first` an seine Stelle; `wx`, wenn die Datei neu ist.
+   Jedes Stueck wird unter seinem Schluessel genau einmal verschluesselt. */
+async function sealInto(file, f, first, plain, { fresh = false } = {}) {
+  const handle = await fs.promises.open(file, fresh ? 'wx' : 'r+', 0o600);
+  try {
+    for (let at = 0, index = first; at < plain.length; at += f.chunk, index++) {
+      const sealed = sealChunk(f.key, f.name, index, plain.subarray(at, Math.min(plain.length, at + f.chunk)));
+      await handle.write(sealed, 0, sealed.length, chunkAt(f, index));
+    }
+    await handle.datasync();
+  } finally { await handle.close(); }
+}
+
 module.exports = {
   extension, previewKind, setHeader, securityRule,
   typeFromBytes, setImageHeader, rangeOut,
-  textPreview, docxPreview, VIDEO_TYPES
+  textPreview, docxPreview, VIDEO_TYPES, INLINE_ALLOWED, outType,
+  CHUNK, TAG, encLen, sealChunk, openChunk, chunkCount, chunkPlain, chunkAt,
+  readChunk, readChunkSync, openWholeSync, sealInto
 };
