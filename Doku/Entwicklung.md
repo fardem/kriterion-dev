@@ -56,7 +56,14 @@ annehmen.
 - `attachment_thumbs`: Kachel einer Bild- oder Videodatei, 512 × 512 WebP wie
   bei Fotos. Entsteht beim Hochladen einer Bilddatei oder beim ersten Abruf
   von `?size=thumb`, bei einem Video aus dem Standbild; `thumb` ist `NULL`,
-  wenn `sharp` die Datei nicht lesen kann. Nicht im Export.
+  wenn `sharp` die Datei nicht lesen kann. Nicht im Export. Dazu das
+  Vorschaubild eines Dokuments: Text als SVG über `sharp`, Office und PDF als
+  PNG der ersten Seite vom Document Server (`docserver.firstPage()`). Es
+  entsteht nur in der Warteschlange `docTilesSoon()`, nie beim Abruf: beim
+  Hochladen, nach dem Speichern aus dem Editor und dem Tausch mit der vorigen
+  Fassung, nach Import und Papierkorb, nach dem Start, stündlich und beim
+  Einschalten des Document Servers. `NULL` steht nur, wenn der Document Server
+  mit `-3`, `-5`, `-9` oder `-10` absagt.
 - `attachment_stills`: Standbild und Dauer eines Videos unter „Dateien“, im
   Browser erzeugt, 1600 px WebP. Setzen darf nur, wer die Datei hochgeladen
   hat (`PUT /api/attachments/:id/still`). Im Papierkorb und im Export.
@@ -95,8 +102,10 @@ stehen die Kopien unter `kriterion-files/`, dazu je Backup eine Liste
 `kriterion-<zeitpunkt>.files` und während eines Backups `.lock`.
 - `settings`: globale Einstellungen, darunter Titel, Vokabular, Suchmaschinen
   und das Verfahren der Bildablage (`imageStore`).
-- `user_settings`: zehn persönliche Schlüssel je Benutzer, darunter Filter,
-  Ansichten, Bezugspunkt der Glocke, Farbschema, Schriftgröße, Blockanordnung.
+- `user_settings`: vierzehn persönliche Schlüssel je Benutzer (`PERSONAL_KEYS`),
+  darunter Filter, Ansichten, Bezugspunkt der Glocke, Farbschema,
+  Schriftgröße, Blockanordnung und Kacheln oder Liste (`filesView`). *Hier
+  stand „zehn“; gezählt am Stand 0.49.0 sind es vierzehn.*
 - `users`: scrypt-Hash, Rolle (`user` < `admin` < `owner`), Adresse, Status,
   letzte Anmeldung. Gelöschte Benutzer bleiben als Zeile mit
   `status = deleted` und dem Namen `deleted-<id>`.
