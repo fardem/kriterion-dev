@@ -232,9 +232,48 @@ Die zwölf Gegenproben des Auftrags sind 1329 bis 1340; 1341 und 1342 kommen
 mit dem ✕ und der Meldung bei 403 dazu.
 
 Rückbauten mit neuem Suchtext: 233 und 448 (Formatnummer 21), 1217 (die 413
-in `proxyAnswer()`), 1318 (der Umschlag des Papierkorbs).
+in `proxyAnswer()`), 1318 (der Umschlag des Papierkorbs). 673 ist
+mitgefahren, weil `api()` geändert ist; sein Suchtext ist gleich geblieben.
 
-GEGENPROBEN
+**18 rot, 1 stumm**, ohne Abbruch eines Moduls, gefahren auf `1e66ff9` mit
+drei Spuren und `NPM_CONFIG_OFFLINE=true`. Ohne Netz liefert `npm audit` einen
+leeren Bericht; so ist „npm audit meldet keine einzige Luecke“ in keinem Lauf
+rot, und jede rote Prüfung kommt vom Rückbau. Der erste Lauf endete nach zwei
+Minuten mit einem Neustart des Containers; alle 19 wurden danach neu
+gefahren, in Gruppen zu drei.
+
+1341 war stumm. „Das ✕ steht auch beim Bearbeiten“ prüfte nur Adresse und
+Beschriftung des ✕. Der Rückbau setzt `hidden` an das ✕, das Element bleibt
+da, und die Prüfung blieb grün. Beide Prüfungen zum ✕ in `test/release_047.js`
+verlangen jetzt, dass weder das ✕ noch ein Element darüber `hidden` trägt.
+Danach ist 1341 auf `3beb003` rot in „Das ✕ steht auch beim Bearbeiten“:
+**19 rot, 0 stumm**. Die Zahl der Prüfungen bleibt 7.687.
+
+Jeder außer 1330 ist in seiner erwarteten Gruppe rot und zusätzlich in „Jeder
+Suchtext kommt in seiner Datei genau einmal vor“, weil die Prüfung den
+zurückgebauten Stand liest. Der Ersatz von 1330 enthält seinen Suchtext. Rot
+auch in weiteren Gruppen:
+
+- 233 und 448 in 14 Gruppen, dort in jeder Prüfung der Formatnummer.
+- 673 in „Die sieben Waechter der Sprachdatei — 0.24.0“ und „Kein deutscher
+  Bildschirmsatz sitzt fest — die neue Wache — 0.30.0“. Der Rückbau setzt
+  einen deutschen Satz in `public/app.js`.
+- 1217 in „Ordner: Loeschdialoge und die Meldung bei 403“, weil die Prüfung
+  dort auch die 413 verlangt, und in den zwei Prüfungen auf Leser der
+  Sprachdatei: `error.proxyTooLarge` hat keinen mehr.
+- 1318 in „Ordner: Export, Import und Papierkorb“. Die Prüfung verlangt das
+  Standbild nach dem Zurückholen.
+- 1331 in den zwei Prüfungen auf Leser der Sprachdatei:
+  `server.folderTestDay` hat keinen mehr.
+- 1334, 1336 und 1337 in „Ordner: Account und Loeschdialoge“. Die Prüfung
+  zählt je einen Ordner aus Import und Papierkorb der Gruppe davor.
+- 1335 in „Videos unter Dateien: Papierkorb und Export“.
+- 1336 in seiner Gruppe auch in der Prüfung zum Papierkorb: das Zurückholen
+  läuft über den Import.
+- 1338 in „Ordner: Adresse, Rueckkehr und das ✕ der eigenen Ansicht“, in den
+  Prüfungen zur Adresse einer Bilddatei und zum neuen Öffnen.
+- 1339 in derselben Gruppe, in der Prüfung zur Adresse einer Bilddatei: sie
+  verlangt „1 / 2“ im Vollbild.
 
 ---
 
