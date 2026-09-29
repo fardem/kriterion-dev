@@ -204,7 +204,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.47.0**~~ | ~~**Ordner**~~ | **GEBAUT am 29. September 2026** auf 0.46.0 — Änderungsprotokoll 0.47.0, nach `Doku/Auftrag_0.47.0.md`. Ordner unter „Dateien": „Ordner hinzufügen" im Kopf des Blocks, oben die Dateien ohne Ordner, darunter die Ordner neueste oben, beim Öffnen eines Eintrags alle zu; „+" und Ablegen in eigene Ordner; „Verschieben nach …" als zweite Ebene im Menü (C1), die Datei behält ihre Stelle (C3); ein gelöschter Ordner lässt seine Dateien ohne Ordner stehen, ein Upload in ihn endet mit ⚠ (C2). Neue Tabellen `folders` und `attachment_folders`, vier neue Routen. Export mit Format 21 samt Ordnern, Vorschaubild und Dauer; Import und Papierkorb stellen beides her. ✕ in der eigenen Ansicht einer Datei, beim Ansehen wie beim Bearbeiten (C4); eine 403 ohne Text meldet den Reverse Proxy. Die Fragetafel ist vor dem Bau beantwortet worden. **MINOR** *(1.245 → 1.259 Rückbauten, Prüfstand 7.642 → 7.687). Fingerprint `636c7c11` (davor `643e8f9e`)* | **ja** | 20 → 21 |
 | ~~**0.47.1**~~ | ~~**Abhängigkeiten ohne bekannte Lücke**~~ | **GEBAUT am 29. September 2026** auf 0.47.0 — Änderungsprotokoll 0.47.1. *Fragetafel vom 29. September 2026:* `nodemailer` 9.1.1 → 10.0.12, `multer` 2.3.0 → 2.4.0, `undici` 8.10.0 → 8.11.2 nur im Prüfstand; `npm audit` meldet danach keine Lücke. nodemailer 10 verlangt Node 20, das Image bringt Node 22. **PATCH** *(1.259 Rückbauten, Prüfstand 7.687). Fingerprint `a49b4154` (davor `636c7c11`)* | nein | — |
 | **0.48.0** | **Testtage und Dateien auf der Platte** | **Auftrag vom 29. September 2026** in `Doku/Auftrag_0.48.0.md`; vor dem Bau die Fragen D1 und D2. Ordner einem Testtag zuweisen, Sprung von der Testtagzeile; was zu einem Testtag gehört, liegt verschlüsselt auf der Platte; Upload in Stücken, große Videos bis 2 GB, Backup mit Dateien | **ja** | 21 → 22 |
-| **0.49.0** | **Dateien: Liste, Vorschaubilder für Dokumente, Ordner eingefasst** | Umschalter im Kopf des Blocks „Dateien“: „Kacheln“, der Stand seit 0.45.0, und „Liste“ wie die Detailansicht im Windows-Explorer. Dokumente bekommen ein Vorschaubild der ersten Seite, die Endung steht darüber. Ein offener Ordner ist sichtbar eingefasst. Offene Fragen im Abschnitt 0.49.0 | nein | — |
+| **0.49.0** | **Dateien: Liste, Vorschaubilder für Dokumente, Ordner eingefasst** | Umschalter im Kopf des Blocks „Dateien“: „Kacheln“, der Stand seit 0.45.0, und „Liste“ wie die Detailansicht im Windows-Explorer. Dokumente bekommen ein Vorschaubild der ersten Seite, die Endung steht darüber. Jeder Ordner ist sichtbar eingefasst, auch zugeklappt; Vorbild ist Homarr. Offene Fragen im Abschnitt 0.49.0 | nein | — |
 | ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. Die zwei offenen Punkte des Eintrags stehen in der Zeile darunter | — | — |
 | ~~*ohne Nummer*~~ | ~~**Vorgabewerte und Tastaturbedienung beim Sortieren**~~ | **VORLÄUFIG GESTRICHEN am 21. September 2026:** der Inhalt ist nirgends beschrieben — weder hier noch im Sammelblatt noch im Projektstand steht, welche Vorgabewerte gemeint sind und was die Tastatur beim Sortieren tun soll. *Die Zeile kommt zurück, sobald der Betreiber sagt, was gemeint war.* | — | — |
 | ~~*ohne Nummer*~~ | ~~**Die Doppelung in der README auflösen**~~ | **GEBAUT mit 0.38.0 am 19. September 2026.** *Befund aus BA 6 der 0.37.0: zwei Abschnitte der README trugen dieselben drei Sachverhalte — dass eine fehlende Spalte nicht nachgerüstet wird, dass der Kasten jede fehlende Spalte samt altem Namen nennt, und dass die Instanz startet, aber jede Seite scheitert, die eine der Spalten liest.* **Jetzt verweist jeder der beiden auf den anderen:** `README.md`:348 nach unten, `README.md`:464 nach oben. *0.38.5 hat die README danach noch einmal gegliedert.* | nein | — |
@@ -3438,16 +3438,21 @@ Offen für den Auftrag:
 
 Unter einem offenen Ordner ist nicht zu sehen, welche Kacheln zu ihm gehören.
 Sie sind nur um 18 px eingerückt (`.afolder-body`, `style.css:1783`) und
-stehen sonst wie die Dateien ohne Ordner darüber.
+stehen sonst wie die Dateien ohne Ordner darüber. Zugeklappt ist ein Ordner
+eine Zeile ohne Rahmen unter den Kacheln; das fällt am meisten auf.
+
+Vorbild des Betreibers ist Homarr (Bildschirmfoto): Jede Gruppe ist eine Karte
+mit Rahmen, runden Ecken und eigenem Hintergrund. Zugeklappt ist sie eine
+Leiste mit Pfeil, Name und Menü; aufgeklappt stehen die Kacheln in derselben
+Karte.
 
 Möglich sind:
 
-- ein Rahmen um Kopf und Kacheln, wie die Gruppen bei Homarr
-- eine eigene Hintergrundfarbe für den offenen Ordner
+- Karte mit Rahmen und Hintergrund wie bei Homarr, zugeklappt und aufgeklappt
 - eine gestrichelte Linie vom Ordnerkopf nach unten, links neben den Kacheln,
-  wie die Baumansicht im Windows-Explorer
+  wie die Baumansicht im Windows-Explorer, allein oder in der Karte
 
-Offen für den Auftrag: welche Form; ob die Dateien ohne Ordner ebenfalls
+Offen für den Auftrag: die Form; ob die Dateien ohne Ordner ebenfalls
 eingefasst werden; die Farben in allen Themen, hell und dunkel.
 
 ### Was es anfasst
