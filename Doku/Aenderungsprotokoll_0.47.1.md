@@ -61,6 +61,28 @@ Den Versand prüfen die Gruppen „Der Mailversand: …“ in `test/roundtrip.js
 gegen einen SMTP-Empfänger des Prüfstands, darunter „das echte
 SMTP-Gespraech“ und „die Frist wird gemessen, nicht behauptet“.
 
+`npm test` auf `dff8066`: **7.687 von 7.687**.
+
+Neue Rückbauten gibt es nicht. Gefahren sind die sieben Rückbauten an
+`mail.js`, damit belegt ist, dass die Prüfungen zum Versand mit nodemailer 10
+greifen: auf `dff8066` mit drei Spuren und `NPM_CONFIG_OFFLINE=true`.
+
+| Nr | Rückbau | rot in |
+|---|---|---|
+| 05 | Die äußere Schranke über dem Versand fällt weg | „Der Mailversand: die Frist wird gemessen, nicht behauptet“ |
+| 06 | Die Fristen von nodemailer stehen wieder auf ihren Vorgaben | stumm, wie in seiner Beschreibung erwartet: die äußere Schranke in `mail.js` trägt die Zusage allein |
+| 20 | Ein mitgeschickter Server überschreibt die Vorlage | „Der Mailzugang: wer ihn setzen darf“ |
+| 21 | Ein unbekannter Anbieter wird durchgelassen | „Der Mailzugang: wer ihn setzen darf“ |
+| 904 | Die ausgelieferte Mailfrist ist gesenkt | „Der Pruefschalter und seine Grenzen — 0.30.0“ und „Der Mailversand: die Frist wird gemessen, nicht behauptet“ |
+| 1054 | Die Protokollzeile jagt auch Marken durch den Schlüssel | „Der Anbietername im Containerprotokoll — 0.33.1“ |
+| 1117 | Der Schlüssel der Frist reist wieder als Text | „Der Mailversand: die Frist wird gemessen, nicht behauptet“ |
+
+**6 rot, 1 stumm wie erwartet**, ohne Abbruch eines Moduls. Jeder ist
+zusätzlich rot in „Jeder Suchtext kommt in seiner Datei genau einmal vor“.
+05 ist außerdem rot in „Der Quelltext spricht Englisch — die sechs Waechter“,
+21 in den zwei Prüfungen auf Leser der Sprachdatei, 1054 in „Der Mailzugang:
+wer ihn setzen darf“.
+
 ---
 
 ## 5. Die Bilanz
