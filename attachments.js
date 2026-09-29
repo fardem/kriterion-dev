@@ -181,6 +181,25 @@ function textPreview(buf) {
   return { text, shortened: buf.length > PREVIEW_CHARS };
 }
 
+/* ---- Vorschaubild einer Textdatei ---- */
+const TEXT_TILE = { bytes: 4096, lines: 14, chars: 32, size: 512, font: 24, step: 32 };
+// In XML 1.0 verboten oder ohne Zeichen in der Schrift.
+const XML_UNFIT = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\ufffe\uffff]/g;
+const xmlText = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+// Die Schrift installiert das Dockerfile; ohne sie zeichnet sharp Kaesten.
+function textTileSvg(buf) {
+  const { lines, chars, size, font, step } = TEXT_TILE;
+  const rows = buf.subarray(0, TEXT_TILE.bytes).toString('utf8').split(/\r\n|\r|\n/).slice(0, lines)
+    .map(l => [...l.replace(/\t/g, '    ').replace(XML_UNFIT, '')].slice(0, chars).join(''));
+  const spans = rows.map((l, i) =>
+    `<tspan x="${font}" y="${font + 16 + i * step}">${xmlText(l)}</tspan>`).join('');
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">`
+    + `<rect width="${size}" height="${size}" fill="#ffffff"/>`
+    + `<text xml:space="preserve" font-family="DejaVu Sans Mono, monospace" font-size="${font}" fill="#1f2328">`
+    + `${spans}</text></svg>`;
+}
+
 /* ---- .docx-Vorschau ---- */
 function findInZip(buf, wantedName) {
   // Am Dateiende: End of Central Directory (22 Bytes), danach bis zu
@@ -334,7 +353,7 @@ async function sealInto(file, f, first, plain, { fresh = false } = {}) {
 module.exports = {
   extension, previewKind, setHeader, securityRule,
   typeFromBytes, setImageHeader, rangeOut,
-  textPreview, docxPreview, VIDEO_TYPES, INLINE_ALLOWED, outType,
+  textPreview, textTileSvg, TEXT_TILE_BYTES: TEXT_TILE.bytes, docxPreview, VIDEO_TYPES, INLINE_ALLOWED, outType,
   CHUNK, TAG, encLen, sealChunk, openChunk, chunkCount, chunkPlain, chunkAt,
   readChunk, readChunkSync, openWholeSync, sealInto
 };

@@ -133,6 +133,10 @@ function fmtUntil(ms) {
   return new Date(ms).toLocaleString(LOCALE, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 const fmtMb = (mb) => (mb >= 1024 ? `${number(mb / 1024, 0, 1)} GB` : `${mb} MB`);
+function fmtDateOnly(iso) {
+  if (!iso) return '';
+  return new Date(iso.replace(' ', 'T') + 'Z').toLocaleDateString(LOCALE, { day:'2-digit', month:'2-digit', year:'numeric' });
+}
 function fmtDay(day) {
   const d = new Date(day + 'T12:00:00');
   return d.toLocaleDateString(LOCALE, { day:'2-digit', month:'2-digit', year:'numeric' });
@@ -1297,6 +1301,7 @@ function authorName(v) {
 
 let LINK_ROWS = 5;          // sichtbare Zeilen, bevor aufgeklappt wird
 let TIMELINE_ON = true;
+let FILES_VIEW = 'tiles';
 // { theme, editAll } aus GET /api/settings; null ohne Document Server.
 let DOC_SETTINGS = null;
 const LINK_ROW_LEVELS = [3, 5, 8, 12];
@@ -2255,7 +2260,9 @@ const plainClick = (e) => !(e.ctrlKey || e.metaKey || e.shiftKey || e.button);
 const fileSign = (preview) => preview === 'image' ? '▣' : preview === 'video' ? '▶'
   : preview === 'pdf' ? '▤' : preview === 'keine' ? '▪' : '▥';
 // `v=` beim Video: sein Standbild kann wechseln, die Kachel liegt eine Woche im Cache.
-const fileTileSource = (a) => `/api/attachments/${Number(a.id)}/raw?size=thumb${a.still ? `&v=${Number(a.still)}` : ''}`;
+// `still` bei Videos, `thumb` bei Dokumenten: die Laenge des Bildes, damit ein neues neu geladen wird.
+const fileTileSource = (a) => `/api/attachments/${Number(a.id)}/raw?size=thumb${a.still || a.thumb
+  ? `&v=${Number(a.still || a.thumb)}` : ''}`;
 
 function markupThumb(a, src, video) {
   const img = document.createElement('img');
@@ -2771,6 +2778,7 @@ async function loadSettings() {
   takeBlocks(SETTINGS.blocks);
   if (SETTINGS.linkRows) LINK_ROWS = SETTINGS.linkRows;
   if (SETTINGS.timeline !== undefined) TIMELINE_ON = SETTINGS.timeline !== false;
+  if (SETTINGS.filesView === 'tiles' || SETTINGS.filesView === 'list') FILES_VIEW = SETTINGS.filesView;
   if (SETTINGS.documents !== undefined) DOC_SETTINGS = SETTINGS.documents;
   if (Array.isArray(SETTINGS.views)) VIEWS = SETTINGS.views;
   if (SETTINGS.viewsCap) VIEWS_CAP = SETTINGS.viewsCap;
@@ -5384,7 +5392,10 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
 
     <div class="block block-wide" data-block="dateien">
       <div class="block-head"><span class="label">${tH('dialog.files')}</span><span class="hint" id="acount"></span>
-        <button class="link-btn" id="afolder-new">${tH('entry.folderAdd')}</button></div>
+        <span class="ahead-acts"><span class="aview" role="group" aria-label="${esc(t('entry.filesView'))}">
+          <button type="button" class="aview-btn" data-view="tiles" aria-pressed="false">${tH('entry.filesTiles')}</button>
+          <button type="button" class="aview-btn" data-view="list" aria-pressed="false">${tH('entry.filesList')}</button></span>
+        <button class="link-btn" id="afolder-new">${tH('entry.folderAdd')}</button></span></div>
       ${/* Die Vorschau wird nie verschoben: ein iframe laedt dabei neu. Jede Gruppe hat ihre eigene. */''}
       <div id="atts">
         <div class="agroup">
@@ -6802,8 +6813,10 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     const li = document.createElement('li');
     li.className = 'atile' + (adds ? ' aadd' : '');
     li.dataset.key = key;
+    // Die Spalten der Liste stehen in jeder Kachel; die Ansicht zeigt nur ihre.
     li.innerHTML = `<button type="button" class="aface"><span class="apic"></span>`
-      + `<span class="aname"></span><span class="ameta"></span></button>`
+      + `<span class="aname"></span><span class="ameta"></span><span class="akind"></span><span class="asize"></span>`
+      + `<span class="adate"></span><span class="afrom"></span><span class="anote"></span></button>`
       + (adds ? '' : `<button type="button" class="amore" aria-haspopup="menu" aria-expanded="false">⋯</button>`);
     const face = li.querySelector('.aface');
     face.onclick = () => tileAction(li);
@@ -6824,7 +6837,9 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   }
 
   // Die Bildflaeche nur neu, wenn sich ihre Art aendert; ein neues img laedt die Kachel neu.
-  function fillTile(li, { name, size, kind, picture, video, duration, meta, label, corner, open }) {
+  // `badge`: die Endung ueber dem Vorschaubild eines Dokuments; `note`: der Zustand in der Liste.
+  function fillTile(li, { name, size, kind, picture, video, duration, meta, label, corner, open,
+                          badge = '', date = '', from = '', note = '' }) {
     const face = li.querySelector('.aface');
     face.setAttribute('aria-label', label);
     li.classList.toggle('open', !!open);
@@ -6833,10 +6848,12 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     const src = picture && pic.dataset.broken !== picture ? picture : '';
     // Die Zustandsecke eines Uploads steht an der Stelle der Dauer.
     const shown = corner ? '' : duration;
-    const want = `${src}|${kind}|${video ? 1 : 0}|${shown}`;
+    const want = `${src}|${kind}|${video ? 1 : 0}|${shown}|${badge}`;
     if (pic.dataset.shows !== want) {
       pic.dataset.shows = want;
-      pic.innerHTML = (src ? `<img class="athumb" src="${esc(src)}" alt="" loading="lazy">` : `<span class="aext">${esc(kind)}</span>`)
+      pic.innerHTML = (src ? `<img class="athumb${badge ? ' adoc' : ''}" src="${esc(src)}" alt="" loading="lazy">`
+        : `<span class="aext">${esc(kind)}</span>`)
+        + `${src && badge ? `<span class="abadge">${esc(badge)}</span>` : ''}`
         + `${video ? '<span class="play-badge">▶</span>' : ''}${shown ? `<span class="duration">${esc(shown)}</span>` : ''}`;
       const img = pic.querySelector('img');
       if (img) img.onerror = () => { pic.dataset.broken = src; pic.dataset.shows = `|${kind}|${video ? 1 : 0}|${shown}`;
@@ -6857,6 +6874,11 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       nameBox.replaceChildren(...nameLines(name));
     }
     li.querySelector('.ameta').textContent = [size, meta].filter(Boolean).join(' · ');
+    li.querySelector('.akind').textContent = kind;
+    li.querySelector('.asize').textContent = size;
+    li.querySelector('.adate').textContent = date;
+    li.querySelector('.afrom').textContent = from;
+    li.querySelector('.anote').textContent = note;
   }
 
   // `shown`: der Ordner ist offen; nachgeholt wird nur fuer eine sichtbare Kachel.
@@ -6871,8 +6893,9 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     // Bis PUT .../still antwortet, zeigt die Kachel das Standbild aus dem Browser.
     const coming = STILLS_ON_WAY.get(a.id)?.stillUrl || '';
     fillTile(li, { name: a.filename, size: filesize(a.size), kind, meta: from, duration: length,
-      picture: a.preview === 'image' || (video && a.still) ? fileTileSource(a) : coming,
-      video: video || /^video\//.test(a.mime_type || ''),
+      picture: a.preview === 'image' || (video && a.still) || a.thumb ? fileTileSource(a) : coming,
+      video: video || /^video\//.test(a.mime_type || ''), badge: a.thumb ? kind : '',
+      date: fmtDateOnly(a.created_at), from,
       label: [a.filename, kind, length, filesize(a.size), from].filter(Boolean).join(', '),
       open: openPreview === a.id || lightboxFile === a.id });
     if (video && !a.still && a.mine === true && shown) catchUpStill(id, a);
@@ -6900,7 +6923,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     const state = failed ? `${t('entry.fileFailed')}: ${u.error}` : pausedLine || corner.text;
     // Nach einem Fehler steht der Grund an der Stelle der Groesse.
     fillTile(li, { name: u.name, size: failed || paused ? '' : filesize(u.size), kind, meta: pausedLine || u.error,
-      picture: u.stillUrl, video: !!u.stillUrl,
+      picture: u.stillUrl, video: !!u.stillUrl, note: state,
       label: [u.name, kind, filesize(u.size), state].filter(Boolean).join(', '), corner });
     li.classList.toggle('busy', !failed);
     li.classList.toggle('failed', failed);
@@ -6926,9 +6949,13 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     face.title = full ? count : limit;
     const pic = li.querySelector('.apic');
     if (!pic.firstChild) pic.innerHTML = '<span class="aplus" aria-hidden="true">+</span>';
-    li.querySelector('.ameta').textContent = full ? count : video
+    const note = full ? count : video
       ? t('entry.dayAddLimit', { mb: UPLOAD_LIMITS.attachment, video })
       : t('entry.fileAddLimit', { mb: UPLOAD_LIMITS.attachment });
+    li.querySelector('.ameta').textContent = note;
+    // Der Name steht nur in der Liste.
+    li.querySelector('.aname').textContent = t('entry.fileAdd');
+    li.querySelector('.anote').textContent = note;
   }
 
   /* Ohne Prozentzahl: die Ansicht fragt nicht nach. Die Uhrzeit ist die letzte
@@ -6942,7 +6969,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
           until: fmtUntil(Date.parse((x.touched_at || x.created_at).replace(' ', 'T') + 'Z') + UPLOAD_STALE_MS) })
       : t('entry.uploadPausedSince', { time });
     const meta = x.mine ? state : t('entry.uploadForeign', { author: authorName(x.author), state });
-    fillTile(li, { name: x.filename, size: '', kind, meta,
+    fillTile(li, { name: x.filename, size: '', kind, meta, note: meta,
       label: [x.filename, kind, filesize(x.size), meta].join(', '),
       corner: x.active ? { kind: 'wait', text: '…' } : { kind: 'pause', text: '⏸' } });
     li.classList.add('busy');
@@ -7081,6 +7108,27 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     document.getElementById('aawake').hidden =
       !(isNarrow() && jobs.some(u => u.chunked && (u.state === 'running' || u.state === 'waiting')));
     setUpBlocksOut(item);
+    awaitTiles();
+  }
+
+  /* Vorschaubilder von Dokumenten entstehen auf dem Server nach dem Upload; nachgefragt wird
+     nach TILE_WAITS, fuer jede neue Menge wartender Dateien von vorn. */
+  const TILE_WAITS = [3000, 6000, 12000, 24000];
+  let tileTimer = null, tileTries = 0, tileWaiting = '';
+  function awaitTiles() {
+    const waiting = (item.attachments || []).filter(a => a.thumbSoon).map(a => a.id).join(',');
+    if (waiting !== tileWaiting) { tileWaiting = waiting; tileTries = 0; }
+    if (!waiting || tileTimer || tileTries >= TILE_WAITS.length) return;
+    tileTimer = setTimeout(async () => {
+      tileTimer = null;
+      tileTries++;
+      if (!attsBox.isConnected) return;
+      let fresh;
+      try { fresh = await api('GET', `/api/items/${id}`); } catch { return; }
+      if (!attsBox.isConnected) return;
+      item.attachments = fresh.attachments;
+      drawAtts();
+    }, TILE_WAITS[tileTries]);
   }
 
   function tileAction(li) {
@@ -7505,6 +7553,23 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     addFiles([...(e.dataTransfer.files || [])], Number(dropFolder(e)?.dataset.folder) || 0);
   });
   document.getElementById('afolder-new').onclick = newFolder;
+
+  /* ---- Kacheln oder Liste ---- */
+  const viewButtons = [...fileBlock.querySelectorAll('.aview-btn')];
+  function showFilesView() {
+    fileBlock.classList.toggle('alist', FILES_VIEW === 'list');
+    fileBlock.classList.toggle('afrom-on', multipleUsers());
+    for (const b of viewButtons) b.setAttribute('aria-pressed', String(b.dataset.view === FILES_VIEW));
+  }
+  // Erst zeichnen, dann speichern; scheitert das Speichern, bleibt die Ansicht bis zum Neuladen.
+  for (const b of viewButtons) b.onclick = async () => {
+    if (b.dataset.view === FILES_VIEW) return;
+    FILES_VIEW = b.dataset.view;
+    showFilesView();
+    try { await api('PUT', '/api/settings', { filesView: FILES_VIEW }); }
+    catch (e) { toast(e.message, true); }
+  };
+  showFilesView();
 
   UPLOAD_VIEW = { itemId: Number(id), redraw: drawAtts, took: (fresh) => { item = fresh; drawAtts(); } };
 

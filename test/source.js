@@ -1041,7 +1041,7 @@ async function run() {
         if (part.kind === CODE)
           for (const m of part.value.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) benchNames.add(m[0]);
     check('Der Waechter sieht wirklich den ganzen Pruefstand',
-      benchNames.size > 2000 && BENCH.length === 29,
+      benchNames.size > 2000 && BENCH.length === 30,
       `${benchNames.size} Bezeichner aus ${BENCH.length} Dateien`);
 
     /* Keine Benennungen, sondern Gegenstaende von Pruefungen: abgelegte
@@ -1078,8 +1078,8 @@ async function run() {
     const readShipped = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
     const stWord = 'Stolper' + 'stein';
     const stAll = [...BENCH, ...SHIPPED];
-    check('Der Waechter sieht alle fuenfundvierzig Dateien',
-      stAll.length === 45, `${stAll.length} Dateien`);
+    check('Der Waechter sieht alle sechsundvierzig Dateien',
+      stAll.length === 46, `${stAll.length} Dateien`);
     /* Die SQL-Kommentare im SCHEMA von db.js stehen in einem Template-String,
        den segment() als Text liefert; hier zaehlen sie als Kommentar. */
     const stSqlRow = /^\s*--/;
@@ -1842,8 +1842,8 @@ async function run() {
       }
       if (has) ssCode++;
     }
-    check('Und es stehen genau 1840 Regelzeilen da',
-      ssCode === 1840, `${ssCode} Zeilen`);
+    check('Und es stehen genau 1901 Regelzeilen da',
+      ssCode === 1901, `${ssCode} Zeilen`);
     // Laenger als drei Zeilen darf nur eine Tabelle gemessener Werte sein.
     const ssLines = ssBlocks.map(b => b.split('\n').length);
     const ssOver = ssLines.filter(n => n > 3).length;
@@ -1970,8 +1970,8 @@ async function run() {
     // Feste Zahl: auf einer leeren Menge waere die Pruefung darueber immer gruen.
     const zpCount = zpFiles.reduce((n, f) =>
       n + (zpRead(f).match(/\blog(?:Line|Warn|Fail)\(/g) || []).length, 0);
-    check('Und es sind 72 Protokollzeilen in den sechs Dateien',
-      zpCount === 72, `${zpCount} Zeilen`);
+    check('Und es sind 73 Protokollzeilen in den sechs Dateien',
+      zpCount === 73, `${zpCount} Zeilen`);
     // Ohne TZ laeuft der Container auf UTC, und der Versatz waere immer +00:00.
     const zpCompose = fs.readFileSync(
       path.join(__dirname, 'docker-compose.example.yml'), 'utf8');
@@ -2317,6 +2317,7 @@ async function run() {
     'SELECT filename, mime_type, data FROM attachments WHERE id = ?',
     'SELECT i.id, COALESCE((SELECT SUM(length(p.data)) FROM photos p WHERE p.item_id = i.id AND p.kind != \'video\'), 0) AS pho',
     'SELECT id, filename, data FROM attachments WHERE id = ?',
+    'SELECT substr(data, 1, ?) AS head FROM attachments WHERE id = ?',
     'UPDATE attachment_previous SET data = x\'\' WHERE attachment_id = ?',
     'UPDATE attachment_previous SET session_key = \'\', filename = ?, mime_type = ?, size = ?, data = ?, saved_at = datetime(\'n',
     'UPDATE attachment_previous SET session_key = \'\', filename = ?, mime_type = ?, size = ?, data = x\'\', saved_at = datetime(',
@@ -2330,7 +2331,7 @@ async function run() {
   const dLess = DATA_ROWS.filter((x, i) => DATA_ROWS.indexOf(x) === i &&
     DATA_ROWS.filter(y => y === x).length > dDataRows.filter(y => y === x).length);
   check('Jede Anweisung, die die Spalte data von Dateien liest oder schreibt, steht in der Liste — und keine mehr',
-    dMore.length === 0 && dLess.length === 0 && DATA_ROWS.length === 22,
+    dMore.length === 0 && dLess.length === 0 && DATA_ROWS.length === 23,
     `neu: ${dMore.join(' · ')} · fehlt: ${dLess.join(' · ')}`);
   check('batchrun.js liest keine Dateien', !/\battachments\b/.test(fs.readFileSync(path.join(__dirname, 'batchrun.js'), 'utf8')),
     'batchrun.js nennt attachments');
