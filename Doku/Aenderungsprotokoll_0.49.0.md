@@ -47,10 +47,10 @@ Gemessen am fertigen Stand gegen 0.48.0.
 | Schlüssel je Sprachdatei | 1.324 | **1.327** |
 | Regelzeilen des Stilblatts | 1.840 | **1.901** |
 | Protokollzeilen in den sechs Dateien | 72 | **73** |
-| Kommentarzeilen | 6.878 in 45 Dateien | **6.920 in 46** |
+| Kommentarzeilen | 6.878 in 45 Dateien | **6.921 in 46** |
 | Dateien des Prüfstands samt `counterproof.js` | 29 | **30** |
 | Rückbauten | 1.335 | **1.376** |
-| Prüfungen im Prüfstand | 7.765 | **PRUEFSTAND** |
+| Prüfungen im Prüfstand | 7.765 | **7.806** |
 
 ---
 
@@ -160,14 +160,39 @@ Antwort zurück.
 gesetzt), `test/source.js` (23 Anweisungen auf `data`, 73 Protokollzeilen,
 1.901 Regelzeilen, 30 und 46 Dateien), `test/selfcheck.js` (1.375 Rückbauten,
 Grenzwerte der Kommentarzeilen), `test/release_042.js` (PDF an der
-Abrufroute 200, Mock ohne Vorschaubilder), `test/release_048.js` (`finishUpload`
-gibt die neue Nummer zurück).
+Abrufroute 200, Mock ohne Vorschaubilder), `test/release_043.js` (Mock ohne
+Vorschaubilder, `fetch` mit `try`), `test/release_048.js` (`finishUpload` gibt
+die neue Nummer zurück).
 
 **Rückbauten.** 1419 bis 1459 neu; 1291, 1292, 1294, 1309, 1316 und 1411 mit
 neuem Suchtext, 1291 dazu mit neuem Ersatz, der auch die Zeile `picture`
 zurückbaut.
 
-GEGENPROBEN
+Gefahren mit `counterproof.js`, drei Spuren: die 40 neuen Rückbauten 1419 bis
+1458 und die sechs mit neuem Suchtext, zusammen 46, auf `bd28e93` bis
+`0b194cd` (der Code blieb dabei gleich). **Ergebnis: 46 rot, 0 stumm.** Jeder
+Rückbau ist in seiner erwarteten Gruppe rot, dazu in „Jeder Suchtext kommt in
+seiner Datei genau einmal vor“.
+
+Zwei Arten von Abbrüchen:
+
+- `test/release_043.js` meldete bei 1426, 1432 und 1433 keine Zahlen. Die
+  Warteschlange für Vorschaubilder rief seinen Mock des Document Servers im
+  Hintergrund; endete der Server dabei, warf `fetch` im Mock ohne `try`, und
+  der Testprozess brach ab. Der Mock lehnt Umwandlungen mit `tile-` jetzt ab
+  und fängt den Fehler (`9f18bbb`).
+- `test/ui_export.js` brach bei 1291, 1292, 1294, 1316, 1420, 1422, 1434 und
+  1444 in „Der Export in Teilen“ mit „fetch failed … other side closed“ ab,
+  wie bei 0.48.0 einmal unter 92. Der Server lief dabei weiter („Keine
+  Prueflage laesst ihren Server zurueck“ fand ihn), ein Absturz war es nicht.
+  Die Meldung kommt vom Client, wenn der Server eine Verbindung schließt, die
+  der Client noch nutzt; das häuft sich unter der Last von drei Spuren.
+
+Danach, auf `9f18bbb`: 1459 einzeln rot in „Reverse Proxy: die Pfade fuer
+NPMplus in der README“. 1420, 1422, 1444, 1426, 1432 und 1433 noch einmal auf
+drei Spuren: **6 rot, 0 stumm, kein Abbruch**; rot nur in der erwarteten
+Gruppe, 1432 und 1433 dazu in „Nachholen beim Start, stuendlich und beim
+Einschalten“, die auf dem Verhalten bei Fehlern aufbaut.
 
 ---
 
