@@ -34,7 +34,7 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Ordner mit Testtag, Dateien auf der Platte, Upload in Stücken.*
 
-Fingerprint `53a6fcc1` — davor `a49b4154`.
+Fingerprint `e480ecfc` — davor `a49b4154`.
 
 > **Die Datenbank bekommt beim ersten Start die Tabellen `uploads`,
 > `disk_files` und `disk_files_gone`.** Zu tun ist nichts; beim Update gibt es

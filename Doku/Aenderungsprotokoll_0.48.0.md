@@ -1,6 +1,6 @@
 # Änderungsprotokoll 0.48.0 — „Testtage und Dateien auf der Platte“
 
-**Gebaut am 29. September 2026 auf 0.47.1. Fingerprint `53a6fcc1`, davor
+**Gebaut am 29. September 2026 auf 0.47.1. Fingerprint `e480ecfc`, davor
 `a49b4154`.**
 
 Nach `Doku/Auftrag_0.48.0.md` und dem Eintrag 0.48.0 im Fahrplan; Grundlage
