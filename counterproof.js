@@ -1698,7 +1698,7 @@ const REGRESSIONS = [
   {
     nr: '233', name: 'Die Formatnummer bleibt auf 15',
     file: 'server.js',
-    search: "const EXCHANGE_FORMAT = 21;",
+    search: "const EXCHANGE_FORMAT = 22;",
     replacement: "const EXCHANGE_FORMAT = 15;",
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
@@ -3211,7 +3211,7 @@ const REGRESSIONS = [
     /* Derselbe Suchtext wie 233; geprueft wird hier die Exportdatei. */
     nr: '448', name: 'Die Formatnummer bleibt bei 15, obwohl das Faelligkeitsdatum mitgeht',
     file: 'server.js',
-    search: "const EXCHANGE_FORMAT = 21;",
+    search: "const EXCHANGE_FORMAT = 22;",
     replacement: "const EXCHANGE_FORMAT = 15;",
     expected: 'Die Exportdatei'
   },
@@ -3958,8 +3958,8 @@ const REGRESSIONS = [
   {
     nr: '551', name: 'Nach der gescheiterten Sicherung wird doch aufgeraeumt',
     file: 'server.js',
-    search: "  if (fs.existsSync(file))\n    return res.status(409).json({ error: t(localeOf(req), 'server.backupConcurrent')});",
-    replacement: "  if (fs.existsSync(datei)) {\n    const r = cleanupStatus();\n    if (r.an) removeBackups(ziel.pfad, ruleHit(backupList(ziel.pfad) || [],\n      r.behalten, r.tage, Date.now(), (changeMark() || {}).ms ?? null).map(d => d.name));\n    return res.status(409).json({ error: t(localeOf(req), 'server.backupConcurrent')});\n  }",
+    search: "    if (fs.existsSync(file))\n      return res.status(409).json({ error: t(localeOf(req), 'server.backupConcurrent')});",
+    replacement: "    if (fs.existsSync(datei)) {\n      const r = cleanupStatus();\n      if (r.an) removeBackups(ziel.pfad, ruleHit(backupList(ziel.pfad) || [],\n        r.behalten, r.tage, Date.now(), (changeMark() || {}).ms ?? null).map(d => d.name));\n      return res.status(409).json({ error: t(localeOf(req), 'server.backupConcurrent')});\n    }",
     expected: 'Alte Sicherungen aufraeumen: der Anschluss an die Sicherung'
   },
   {
@@ -4265,8 +4265,8 @@ const REGRESSIONS = [
   {
     nr: '593', name: 'Der Blick ueberlebt den Wechsel des Eintrags',
     file: 'public/app.js',
-    search: "  GLANCE.clear();\n  /* Suchbegriff aus der Adresse oder aus state.search; danach sind beide gleich. */",
-    replacement: "  /* Suchbegriff aus der Adresse oder aus state.search; danach sind beide gleich. */",
+    search: "  GLANCE.clear();\n  JUMPED.clear();\n  /* Suchbegriff aus der Adresse oder aus state.search; danach sind beide gleich. */",
+    replacement: "  JUMPED.clear();\n  /* Suchbegriff aus der Adresse oder aus state.search; danach sind beide gleich. */",
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
@@ -6381,8 +6381,8 @@ const REGRESSIONS = [
   {
     nr: "925", name: "\u201emehr\" steht hinter den Sternen statt bei den Tags",
     file: "public/app.js",
-    search: "        row.append(date, wd, tagBox, more, s, x);",
-    replacement: "        row.append(date, wd, tagBox, s, x, more);",
+    search: "        row.append(date, wd, ...(open ? [open] : []), tagBox, more, s, x);",
+    replacement: "        row.append(date, wd, ...(open ? [open] : []), tagBox, s, x, more);",
     expected: "Die Testtagzeile ordnet sich nach ihrem Inhalt \u2014 0.30.1"
   },
   {
@@ -7370,8 +7370,8 @@ const REGRESSIONS = [
   {
     nr: '1072', name: 'Die Sicherungsantwort sagt ihre Dauer nicht mehr an',
     file: 'server.js',
-    search: "  const base = { place, dbBytes, durationSeconds: duration, cleanup: rule };",
-    replacement: "  const base = { place, dbBytes, cleanup: rule };",
+    search: "  const base = { place, dbBytes, durationSeconds: duration, cleanup: rule, copy: BACKUP_COPY };",
+    replacement: "  const base = { place, dbBytes, cleanup: rule, copy: BACKUP_COPY };",
     expected: 'Die Sicherung auf Knopfdruck'
   },
 
@@ -7968,8 +7968,8 @@ const REGRESSIONS = [
   {
     nr: '1155', name: 'Der Verweis springt wieder nur ueber die Adresse',
     file: 'public/app.js',
-    search: "  const target = commentRow(id);\n  if (!target) { LIT_COMMENT = 0; return false; }",
-    replacement: "  const target = document.querySelector('.cmt.lit');\n  if (!target) { LIT_COMMENT = 0; return false; }",
+    search: "  if (!commentRow(id)) { LIT_COMMENT = 0; return false; }",
+    replacement: "  if (!document.querySelector('.cmt.lit')) { LIT_COMMENT = 0; return false; }",
     expected: 'Was der Betrieb an der Auszeichnung gefunden hat'
   },
   {
@@ -8633,8 +8633,8 @@ const REGRESSIONS = [
   {
     nr: '1246', name: 'Jede Speicherung legt die vorige Fassung neu ab',
     file: 'server.js',
-    search: "    if ((qPreviousKey.get(id) || {}).session_key !== key) keepPrevious.run(key, id);",
-    replacement: "    keepPrevious.run(key, id);",
+    search: "    const first = (qPreviousKey.get(id) || {}).session_key !== key;",
+    replacement: "    const first = true;",
     expected: 'Bearbeiten: der Rueckweg'
   },
   {
@@ -9151,7 +9151,7 @@ const REGRESSIONS = [
   {
     nr: '1323', name: "Die Bildleiste nennt „Dateien“ ohne Blick auf die Grenze „Anhang“",
     file: 'public/app.js',
-    search: "        + (overLimit([bigVideo], 'attachment') ? '' : ' ' + t('entry.videoToFiles')));",
+    search: "        + (overLimit([bigVideo], 'attachment') && (UPLOAD_LIMITS.dayVideo <= UPLOAD_LIMITS.attachment\n             || overLimit([bigVideo], 'dayVideo')) ? '' : ' ' + t('entry.videoToFiles')));",
     replacement: "        + ' ' + t('entry.videoToFiles'));",
     expected: "Videos unter Dateien: Adresse, Marke und Bildleiste"
   },
@@ -9165,7 +9165,7 @@ const REGRESSIONS = [
   {
     nr: '1325', name: "Nach dem Upload geht kein Standbild an den Server",
     file: 'public/app.js',
-    search: "    stillAfterUpload(u, data);\n",
+    search: "  stillAfterUpload(u, data);\n",
     replacement: "",
     expected: "Videos unter Dateien: Standbild beim Hochladen, von Hand und nachgeholt"
   },
@@ -9193,8 +9193,8 @@ const REGRESSIONS = [
   {
     nr: '1329', name: "Verschieben legt die Datei neu an",
     file: 'server.js',
-    search: "    putFileFolder.run(req.params.id, f.id);\n  }\n  touch.run(a.item_id);",
-    replacement: "    const copy = db.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)\n      SELECT item_id, filename, mime_type, size, data, sort_order, user_id FROM attachments WHERE id = ?`)\n      .run(req.params.id).lastInsertRowid;\n    db.prepare('DELETE FROM attachments WHERE id = ?').run(req.params.id);\n    putFileFolder.run(copy, f.id);\n  }\n  touch.run(a.item_id);",
+    search: "      putFileFolder.run(a.id, f.id);\n    }\n    touch.run(a.item_id);",
+    replacement: "      const copy = db.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)\n        SELECT item_id, filename, mime_type, size, data, sort_order, user_id FROM attachments WHERE id = ?`)\n        .run(a.id).lastInsertRowid;\n      db.prepare('DELETE FROM attachments WHERE id = ?').run(a.id);\n      putFileFolder.run(copy, f.id);\n    }\n    touch.run(a.item_id);",
     expected: "Ordner: Schema und Routen"
   },
   {
@@ -9205,17 +9205,17 @@ const REGRESSIONS = [
     expected: "Ordner: Schema und Routen"
   },
   {
-    nr: '1331', name: "PUT /api/folders/:id nimmt testDay an",
+    nr: '1331', name: "Ein Ordner nimmt einen Testtag eines anderen Eintrags an",
     file: 'server.js',
-    search: "  if ((req.body || {}).testDay !== undefined)\n    return res.status(400).json({ error: t(localeOf(req), 'server.folderTestDay')});",
-    replacement: "  if ((req.body || {}).testDay !== undefined)\n    db.prepare('UPDATE folders SET test_day_id = ? WHERE id = ?').run(Number(req.body.testDay) || null, f.id);",
-    expected: "Ordner: Schema und Routen"
+    search: "  if (d.item_id !== Number(itemId) || !selfOnly(req, d.user_id)) {",
+    replacement: "  if (!selfOnly(req, d.user_id)) {",
+    expected: "Platte: Ordner mit Testtag"
   },
   {
     nr: '1332', name: "Umbenennen darf auch der Admin",
     file: 'server.js',
-    search: "  if (!selfOnly(req, f.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});\n  if ((req.body || {}).testDay",
-    replacement: "  if (!mayChange(req, f.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});\n  if ((req.body || {}).testDay",
+    search: "    if (!selfOnly(req, f.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});\n    const b = req.body || {};",
+    replacement: "    if (!mayChange(req, f.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});\n    const b = req.body || {};",
     expected: "Ordner: Schema und Routen"
   },
   {
@@ -9228,8 +9228,8 @@ const REGRESSIONS = [
   {
     nr: '1334', name: "Der Export traegt keine Ordner",
     file: 'server.js',
-    search: "    o.folders = folders.map(f => ({ name: f.name, author: authorName(f.user_id), created_at: f.created_at }));",
-    replacement: "    o.folders = funnel.blobs ? [] : folders.map(f => ({ name: f.name, author: authorName(f.user_id), created_at: f.created_at }));",
+    search: "    o.folders = folders.map(f => ({ name: f.name, author: authorName(f.user_id), created_at: f.created_at,\n",
+    replacement: "    o.folders = funnel.blobs ? [] : folders.map(f => ({ name: f.name, author: authorName(f.user_id), created_at: f.created_at,\n",
     expected: "Ordner: Export, Import und Papierkorb"
   },
   {
@@ -9242,15 +9242,15 @@ const REGRESSIONS = [
   {
     nr: '1336', name: "Der Import legt keine Ordner an",
     file: 'server.js',
-    search: "      const folderIds = (Array.isArray(it.folders) ? it.folders : []).map(f => {",
-    replacement: "      const folderIds = [].map(f => {",
+    search: "      const folderIds = (Array.isArray(it.folders) ? it.folders : []).map((f, fi) => {",
+    replacement: "      const folderIds = [].map((f, fi) => {",
     expected: "Ordner: Export, Import und Papierkorb"
   },
   {
     nr: '1337', name: "Der Papierkorb vergisst die Ordner",
     file: 'server.js',
-    search: "    o.folders = folders.map(f => ({ name: f.name, author: authorName(f.user_id), created_at: f.created_at }));",
-    replacement: "    o.folders = !funnel.blobs ? [] : folders.map(f => ({ name: f.name, author: authorName(f.user_id), created_at: f.created_at }));",
+    search: "    o.folders = folders.map(f => ({ name: f.name, author: authorName(f.user_id), created_at: f.created_at,\n",
+    replacement: "    o.folders = !funnel.blobs ? [] : folders.map(f => ({ name: f.name, author: authorName(f.user_id), created_at: f.created_at,\n",
     expected: "Ordner: Export, Import und Papierkorb"
   },
   {
@@ -9287,6 +9287,539 @@ const REGRESSIONS = [
     search: "    uploadFail(u, data?.error || proxyAnswer(xhr.status) || t('error.serverStatus', { status: xhr.status }));",
     replacement: "    uploadFail(u, data?.error || t('error.serverStatus', { status: xhr.status }));",
     expected: "Ordner: Loeschdialoge und die Meldung bei 403"
+  },
+  /* ---- Dateien auf der Platte ---- */
+  {
+    nr: '1343', name: "Ein Testtag nimmt einen zweiten Ordner an",
+    file: 'server.js',
+    search: "  if (taken && taken.id !== folderId) {",
+    replacement: "  if (false) {",
+    expected: "Platte: Ordner mit Testtag"
+  },
+  {
+    nr: '1344', name: "Der Admin verbindet einen fremden Testtag",
+    file: 'server.js',
+    search: "  if (d.item_id !== Number(itemId) || !selfOnly(req, d.user_id)) {",
+    replacement: "  if (d.item_id !== Number(itemId) || !mayChange(req, d.user_id)) {",
+    expected: "Platte: Ordner mit Testtag"
+  },
+  {
+    nr: '1345', name: "Testtag loeschen loescht den Ordner mit",
+    file: 'db.js',
+    search: "  test_day_id INTEGER UNIQUE REFERENCES test_days(id) ON DELETE SET NULL",
+    replacement: "  test_day_id INTEGER UNIQUE REFERENCES test_days(id) ON DELETE CASCADE",
+    expected: "Platte: Ordner mit Testtag"
+  },
+  {
+    nr: '1346', name: "Der Export traegt den Testtag eines Ordners nicht",
+    file: 'server.js',
+    search: "                                     ...(dayAt.has(f.test_day_id) ? { testDay: dayAt.get(f.test_day_id) } : {}) }));",
+    replacement: "                                     }));",
+    expected: "Platte: Ordner mit Testtag"
+  },
+  {
+    nr: '1347', name: "Der Browser waehlt den Weg nach der Groesse",
+    file: 'public/app.js',
+    search: "    queueUploads(id, files, folderId, day);",
+    replacement: "    queueUploads(id, files, folderId, files.some(f => f.size > UPLOAD_LIMITS.attachment * 1048576));",
+    expected: "Platte: der Browser waehlt den Weg nach dem Ordner"
+  },
+  {
+    nr: '1348', name: "Der Upload in einer Anfrage geht in einen Ordner mit Testtag",
+    file: 'server.js',
+    search: "    if (target && target.test_day_id != null)\n      return res.status(409).json({ error: t(localeOf(req), 'server.folderHasDay'),",
+    replacement: "    if (false)\n      return res.status(409).json({ error: t(localeOf(req), 'server.folderHasDay'),",
+    expected: "Platte: Upload in Stuecken, Weg und Ordner"
+  },
+  {
+    nr: '1349', name: "Ein grosses Video beginnt ohne Ordner mit Testtag",
+    file: 'server.js',
+    search: "  if (!target || target.test_day_id == null)\n    return large ? res.status(413)",
+    replacement: "  if (!large && (!target || target.test_day_id == null))\n    return large ? res.status(413)",
+    expected: "Platte: Upload in Stuecken, Weg und Ordner"
+  },
+  {
+    nr: '1350', name: "Eine Datei bis „Anhang“ beginnt ohne Ordner mit Testtag",
+    file: 'server.js',
+    search: "  if (!target || target.test_day_id == null)\n    return large ? res.status(413)",
+    replacement: "  if (large && (!target || target.test_day_id == null))\n    return large ? res.status(413)",
+    expected: "Platte: Upload in Stuecken, Weg und Ordner"
+  },
+  {
+    nr: '1351', name: "Die Endung eines grossen Videos wird nicht geprueft",
+    file: 'server.js',
+    search: "  if (large && !attachments.VIDEO_TYPES[attachments.extension(filename)])",
+    replacement: "  if (false)",
+    expected: "Platte: grosse Videos, Endung und erste Bytes"
+  },
+  {
+    nr: '1352', name: "Die ersten Bytes eines grossen Videos werden nicht geprueft",
+    file: 'server.js',
+    search: "    if (u.n === 0 && u.large === 1 && !VIDEO_MIMES.includes(attachments.typeFromBytes(body.subarray(0, 12)))) {",
+    replacement: "    if (false) {",
+    expected: "Platte: grosse Videos, Endung und erste Bytes"
+  },
+  {
+    nr: '1353', name: "Die ersten Bytes werden erst nach dem Verschluesseln geprueft",
+    file: 'server.js',
+    search: "    if (u.n === 0 && u.large === 1 && !VIDEO_MIMES.includes(attachments.typeFromBytes(body.subarray(0, 12)))) {\n      dropUpload.run(u.id);\n      return res.status(415).json({ error: t(locale, 'server.videoOnly', { mb: uploadLimits().attachment }) });\n    }\n    await benchHold();\n    await attachments.sealInto(diskPath(u.name, true),\n      { name: u.name, size: u.size, chunk: CHUNK, key: u.file_key }, u.n / CHUNK, body);\n",
+    replacement: "    await benchHold();\n    await attachments.sealInto(diskPath(u.name, true),\n      { name: u.name, size: u.size, chunk: CHUNK, key: u.file_key }, u.n / CHUNK, body);\n    if (u.n === 0 && u.large === 1 && !VIDEO_MIMES.includes(attachments.typeFromBytes(body.subarray(0, 12)))) {\n      dropUpload.run(u.id);\n      return res.status(415).json({ error: t(locale, 'server.videoOnly', { mb: uploadLimits().attachment }) });\n    }\n",
+    expected: "Platte: grosse Videos, Endung und erste Bytes"
+  },
+  {
+    nr: '1354', name: "Nach falschen ersten Bytes bleibt der Upload stehen",
+    file: 'server.js',
+    search: "      dropUpload.run(u.id);\n      return res.status(415)",
+    replacement: "      return res.status(415)",
+    expected: "Platte: grosse Videos, Endung und erste Bytes"
+  },
+  {
+    nr: '1355', name: "Jedes Video wird an den ersten Bytes geprueft",
+    file: 'server.js',
+    search: "    if (u.n === 0 && u.large === 1 && !VIDEO_MIMES",
+    replacement: "    if (u.n === 0 && attachments.previewKind(u.filename) === 'video' && !VIDEO_MIMES",
+    expected: "Platte: grosse Videos, Endung und erste Bytes"
+  },
+  {
+    nr: '1356', name: "Ein erneutes Stueck wird verschluesselt",
+    file: 'server.js',
+    search: "  const n = Number(req.headers['upload-offset']);\n  if (n !== u.received)",
+    replacement: "  const n = Number(req.headers['upload-offset']);\n  if (n > u.received)",
+    expected: "Platte: Stueck, Laenge und Fortsetzen"
+  },
+  {
+    nr: '1357', name: "Die Laenge der Datei unter upload/ wird nicht geprueft",
+    file: 'server.js',
+    search: "  if (there !== encLen(n)) {",
+    replacement: "  if (there < 0) {",
+    expected: "Platte: Stueck, Laenge und Fortsetzen"
+  },
+  {
+    nr: '1358', name: "Die Zahlen werden vor der Suche nach dem eigenen Upload geprueft",
+    file: 'server.js',
+    search: "  // Fortsetzen ohne Pruefung der Zahlen und Grenzen: sie galten beim Beginn.\n  const own = qOwnUpload.get(itemId, req.user.id, filename, size, modified);",
+    replacement: "  if (fileSlots(itemId) >= FILES_PER_ENTRY)\n    return res.status(400).json({ error: t(locale, 'server.fileCap', { cap: FILES_PER_ENTRY })});\n  const own = qOwnUpload.get(itemId, req.user.id, filename, size, modified);",
+    expected: "Platte: Stueck, Laenge und Fortsetzen"
+  },
+  {
+    nr: '1359', name: "Die Pruefung eines Uploads liest erst den Rumpf",
+    file: 'server.js',
+    search: "app.put('/api/uploads/:id', uploadTurn, uploadBody, async (req, res, next) => {",
+    replacement: "app.put('/api/uploads/:id', express.raw({ type: 'application/octet-stream', limit: '8mb', inflate: false }), uploadTurn, uploadBody, async (req, res, next) => {",
+    expected: "Platte: Pruefungen vor dem Rumpf"
+  },
+  {
+    nr: '1360', name: "Ein fremder Upload nimmt Stuecke an",
+    file: 'server.js',
+    search: "  if (!u || !selfOnly(req, u.user_id)) return res.status(404).json({ error: t(locale, 'server.uploadGone') });",
+    replacement: "  if (!u) return res.status(404).json({ error: t(locale, 'server.uploadGone') });",
+    expected: "Platte: Pruefungen vor dem Rumpf"
+  },
+  {
+    nr: '1361', name: "Ein falscher Offset wird nicht abgewiesen",
+    file: 'server.js',
+    search: "  const n = Number(req.headers['upload-offset']);\n  if (n !== u.received)\n    return res.status(409).json({ error: t(locale, 'server.uploadOffset'), received: u.received });\n",
+    replacement: "  const n = Number(req.headers['upload-offset']);\n",
+    expected: "Platte: Pruefungen vor dem Rumpf"
+  },
+  {
+    nr: '1362', name: "Zu viele Bytes werden nicht abgewiesen",
+    file: 'server.js',
+    search: "  if (Number(req.headers['content-length']) !== piece)\n    return res.status(400).json({ error: t(locale, 'server.uploadPiece') });\n",
+    replacement: "",
+    expected: "Platte: Pruefungen vor dem Rumpf"
+  },
+  {
+    nr: '1363', name: "Ohne Platz nimmt ein Upload weiter Stuecke an",
+    file: 'server.js',
+    search: "  const short = spaceShort(encLen(u.size) - encLen(n), u.id);\n  if (short) return refuseSpace(req, res, short);\n",
+    replacement: "",
+    expected: "Platte: Pruefungen vor dem Rumpf"
+  },
+  {
+    nr: '1364', name: "Die volle Zahl offener Uploads sperrt nicht",
+    file: 'server.js',
+    search: "  if (open.length >= UPLOADS_PER_USER)",
+    replacement: "  if (false)",
+    expected: "Platte: Pruefungen vor dem Rumpf"
+  },
+  {
+    nr: '1365', name: "Scheitert statfs, gilt die Platte als voll",
+    file: 'server.js',
+    search: "  const free = diskFree();\n  if (free === null) return null;",
+    replacement: "  const free = diskFree();\n  if (free === null) return { free: 0, reserved: 0, needed, reserve: 0 };",
+    expected: "Platte: Pruefungen vor dem Rumpf"
+  },
+  {
+    nr: '1366', name: "Die Stueckgrenze ist verschoben",
+    file: 'server.js',
+    search: "    const first = Math.floor(from / f.chunk), last = f.size ? Math.floor(to / f.chunk) : -1;",
+    replacement: "    const first = Math.floor((from + 1) / f.chunk), last = f.size ? Math.floor(to / f.chunk) : -1;",
+    expected: "Platte: Ranges und HEAD"
+  },
+  {
+    nr: '1367', name: "Ein Range hinter dem Ende wird zurechtgebogen",
+    file: 'attachments.js',
+    search: "    if (from >= size) return { invalid: true };",
+    replacement: "    if (from >= size) from = size - 1;",
+    expected: "Platte: Ranges und HEAD"
+  },
+  {
+    nr: '1368', name: "HEAD prueft die Laenge der Datei nicht",
+    file: 'server.js',
+    search: "      if ((await handle.stat()).size !== encLen(f.size, f.chunk)) return res.status(500).end();\n",
+    replacement: "",
+    expected: "Platte: Ranges und HEAD"
+  },
+  {
+    nr: '1369', name: "Ein Proxy darf die Auslieferung umformen",
+    file: 'server.js',
+    search: "  res.set('Cache-Control', 'private, max-age=3600, no-transform');",
+    replacement: "  res.set('Cache-Control', 'private, max-age=3600');",
+    expected: "Platte: Ranges und HEAD"
+  },
+  {
+    nr: '1370', name: "Das Zuweisen eines Testtags lagert nicht um",
+    file: 'server.js',
+    search: "    if (moving.length) await relocate(qDbFilesIn.all(f.id).map(z => z.id));\n",
+    replacement: "",
+    expected: "Platte: Umlagerung"
+  },
+  {
+    nr: '1371', name: "Das Verschieben in einen Ordner mit Testtag lagert nicht um",
+    file: 'server.js',
+    search: "    if (moving) await relocate([a.id]);\n",
+    replacement: "",
+    expected: "Platte: Umlagerung"
+  },
+  {
+    nr: '1372', name: "Die Umlagerung leert data nicht",
+    file: 'server.js',
+    search: "      emptyFile.run(id);\n      if (before) emptyPrevious.run(id);",
+    replacement: "      if (before) emptyPrevious.run(id);",
+    expected: "Platte: Umlagerung"
+  },
+  {
+    nr: '1373', name: "Die Umlagerung vergleicht saves nicht",
+    file: 'server.js',
+    search: "      if (editingOf(id).saves !== saves) return 'changed';\n",
+    replacement: "",
+    expected: "Platte: Umlagerung"
+  },
+  {
+    nr: '1374', name: "Die Umlagerung prueft den Platz nicht",
+    file: 'server.js',
+    search: "      const short = moving ? spaceShort(relocateNeed([a.id])) : null;\n      if (short) return refuseSpace(req, res, short);",
+    replacement: "      const short = moving ? spaceShort(relocateNeed([a.id])) : null;",
+    expected: "Platte: Umlagerung"
+  },
+  {
+    nr: '1375', name: "Der Lauf holt die Umlagerung nicht nach",
+    file: 'server.js',
+    search: "  if (!DATABASE_INCOMPLETE) await relocate(qRelocatePending.all().map(z => z.id));\n",
+    replacement: "",
+    expected: "Platte: Umlagerung"
+  },
+  {
+    nr: '1376', name: "Das Verschieben aus dem Ordner holt die Datei in die Datenbank zurueck",
+    file: 'server.js',
+    search: "    if (wanted === null) dropFileFolder.run(a.id);",
+    replacement: "    if (wanted === null) { dropFileFolder.run(a.id); db.prepare('DELETE FROM disk_files WHERE attachment_id = ?').run(a.id); }",
+    expected: "Platte: kein Weg zurueck"
+  },
+  {
+    nr: '1377', name: "Der Rueckschrieb ueberschreibt die Datei an ihrer Stelle",
+    file: 'server.js',
+    search: "      ? { name: freshName(), key: crypto.randomBytes(32), chunk: CHUNK, size: got.data.length } : null;",
+    replacement: "      ? { name: qDiskName.get(id).name, key: crypto.randomBytes(32), chunk: CHUNK, size: got.data.length } : null;",
+    expected: "Platte: Rueckschrieb des Document Servers"
+  },
+  {
+    nr: '1378', name: "Die aeltere vorige Fassung bleibt",
+    file: 'server.js',
+    search: "      if (first) diskDropPrevious.run(id);\n",
+    replacement: "",
+    expected: "Platte: Rueckschrieb des Document Servers"
+  },
+  {
+    nr: '1379', name: "Wiederherstellen nimmt die Groesse aus data",
+    file: 'server.js',
+    search: "  const before = db.prepare('SELECT filename, mime_type, size FROM attachment_previous WHERE attachment_id = ?').get(id);",
+    replacement: "  const before = db.prepare('SELECT filename, mime_type, length(data) AS size FROM attachment_previous WHERE attachment_id = ?').get(id);",
+    expected: "Platte: Rueckschrieb des Document Servers"
+  },
+  {
+    nr: '1380', name: "Vorschau und Document Server entschluesseln die Datei nicht",
+    file: 'server.js',
+    search: "  if (!f) return data;\n  if (f.large) return null;",
+    replacement: "  if (!f) return data;\n  return null;",
+    expected: "Platte: Rueckschrieb des Document Servers"
+  },
+  {
+    nr: '1381', name: "Der Trigger disk_files_orphaned fehlt",
+    file: 'db.js',
+    search: "  INSERT OR IGNORE INTO disk_files_gone (name) VALUES (new.name);\n  DELETE FROM disk_files WHERE id = new.id;",
+    replacement: "  SELECT 1;",
+    expected: "Platte: Trigger und Loeschliste"
+  },
+  {
+    nr: '1382', name: "Der Trigger disk_files_held fehlt",
+    file: 'db.js',
+    search: "BEGIN SELECT RAISE(ABORT, 'disk file stays with its attachment'); END",
+    replacement: "BEGIN SELECT 1; END",
+    expected: "Platte: Trigger und Loeschliste"
+  },
+  {
+    nr: '1383', name: "Der Trigger disk_files_kept fehlt",
+    file: 'db.js',
+    search: "BEGIN SELECT RAISE(ABORT, 'disk file has an owner'); END",
+    replacement: "BEGIN SELECT 1; END",
+    expected: "Platte: Trigger und Loeschliste"
+  },
+  {
+    nr: '1384', name: "Die Ausnahme in disk_files_held vergleicht old.attachment_id nicht",
+    file: 'db.js',
+    search: "   AND NOT (new.attachment_id IS NULL AND new.previous_of IS old.attachment_id)",
+    replacement: "   AND NOT (new.attachment_id IS NULL AND new.previous_of IS NOT NULL)",
+    expected: "Platte: Trigger und Loeschliste"
+  },
+  {
+    nr: '1385', name: "Die Datei wird vor dem Commit geloescht",
+    file: 'server.js',
+    search: "  db.prepare('DELETE FROM attachments WHERE id = ?').run(req.params.id);\n  // Sortiernummern lueckenlos halten, wie bei Fotos und Links.",
+    replacement: "  const early = qDiskName.get(req.params.id);\n  if (early) fs.rmSync(diskPath(early.name), { force: true });\n  db.prepare('DELETE FROM attachments WHERE id = ?').run(req.params.id);\n  // Sortiernummern lueckenlos halten, wie bei Fotos und Links.",
+    expected: "Platte: Trigger und Loeschliste"
+  },
+  {
+    nr: '1386', name: "sweepDisk gleicht das Verzeichnis ab statt der Liste",
+    file: 'server.js',
+    search: "  const names = qGone.all().map(z => z.name);\n  if (!names.length) return;",
+    replacement: "  const known = new Set(qDiskNames.all().map(z => z.name));\n  const names = [...qGone.all().map(z => z.name),\n    ...fs.readdirSync(FILES_DIR).filter(n => DISK_NAME.test(n) && !known.has(n))];\n  if (!names.length) return;",
+    expected: "Platte: unbekannte Dateien und Wiederherstellen"
+  },
+  {
+    nr: '1387', name: "/api/import loest data_stored auf",
+    file: 'server.js',
+    search: "      const stored = bytesSource && typeof a2.data_stored === 'string' && DISK_NAME.test(a2.data_stored)",
+    replacement: "      const stored = typeof a2.data_stored === 'string' && DISK_NAME.test(a2.data_stored)",
+    expected: "Platte: unbekannte Dateien und Wiederherstellen"
+  },
+  {
+    nr: '1388', name: "Wiederherstellen prueft nicht, ob die Datei noch zur Zeile in trash gehoert",
+    file: 'server.js',
+    search: "        const fromTrash = a2.stored ? qTrashDisk.get(a2.stored, trashId) : null;\n        if (a2.stored && !fromTrash) throw trashGone();\n        const size = a2.disk ? a2.disk.size : fromTrash ? fromTrash.size : a2.buf.length;\n        const added = iAttachmentAdd().run(id, a2.name, a2.mime, size, a2.buf || NO_BYTES, i, whose);\n        if (a2.disk) addDiskFile.run(a2.disk.name, a2.disk.size, CHUNK, a2.disk.key, added.lastInsertRowid, null);\n        if (a2.stored && diskFromTrash.run(added.lastInsertRowid, a2.stored, trashId).changes !== 1) throw trashGone();",
+    replacement: "        const fromTrash = a2.stored ? qTrashDisk.get(a2.stored, trashId) : null;\n        const size = a2.disk ? a2.disk.size : fromTrash ? fromTrash.size : a2.buf ? a2.buf.length : 0;\n        const added = iAttachmentAdd().run(id, a2.name, a2.mime, size, a2.buf || NO_BYTES, i, whose);\n        if (a2.disk) addDiskFile.run(a2.disk.name, a2.disk.size, CHUNK, a2.disk.key, added.lastInsertRowid, null);\n        if (a2.stored) diskFromTrash.run(added.lastInsertRowid, a2.stored, trashId);",
+    expected: "Platte: unbekannte Dateien und Wiederherstellen"
+  },
+  {
+    nr: '1389', name: "Die Backup-Kopie haelt das Loeschen nicht an",
+    file: 'server.js',
+    search: "  SWEEP_HELD++;\n  let answered = false;",
+    replacement: "  let answered = false;",
+    expected: "Platte: Backup mit Dateien"
+  },
+  {
+    nr: '1390', name: "Die Liste des Backups kommt aus der laufenden Datenbank",
+    file: 'server.js',
+    search: "    if (rows.length) fs.writeFileSync(file.replace(/\\.sqlite$/, '.files'),\n      rows.map(",
+    replacement: "    if (rows.length) fs.writeFileSync(file.replace(/\\.sqlite$/, '.files'),\n      qDiskSizes.all().map(z => ({ name: z.name, length: encLen(z.size, z.chunk) })).map(",
+    expected: "Platte: Backup mit Dateien"
+  },
+  {
+    nr: '1391', name: "Das Backup antwortet immer mit 202",
+    file: 'server.js',
+    search: "    if (missing.length) {\n      res.status(202)",
+    replacement: "    if (true) {\n      res.status(202)",
+    expected: "Platte: Backup mit Dateien"
+  },
+  {
+    nr: '1392', name: "Die Sperre des Backups gilt nur im Speicher",
+    file: 'server.js',
+    search: "      fs.writeFileSync(lock, note, { flag: 'wx' });",
+    replacement: "      fs.writeFileSync(lock, note);",
+    expected: "Platte: Backup mit Dateien"
+  },
+  {
+    nr: '1393', name: "Das Aufraeumen nach dem Backup loescht ohne Muster",
+    file: 'server.js',
+    search: "    if (!m || (!m[2] && named.has(m[1]))) continue;",
+    replacement: "    if (m && !m[2] && named.has(m[1])) continue;",
+    expected: "Platte: Backup mit Dateien"
+  },
+  {
+    nr: '1394', name: "Dateien ohne Verweis loescht jeder Admin",
+    file: 'server.js',
+    search: "app.delete('/api/files/unknown', ownerOnly, (req, res) => {",
+    replacement: "app.delete('/api/files/unknown', adminOnly, (req, res) => {",
+    expected: "Platte: Dateien ohne Verweis loeschen"
+  },
+  {
+    nr: '1395', name: "Dateien ohne Verweis: die Kopie wird nicht geprueft",
+    file: 'server.js',
+    search: "    for (const f of unknownFiles().filter(z => z.copy)) {",
+    replacement: "    for (const f of unknownFiles()) {",
+    expected: "Platte: Dateien ohne Verweis loeschen"
+  },
+  {
+    nr: '1396', name: "Dateien ohne Verweis: die Laenge der Kopie wird nicht verglichen",
+    file: 'server.js',
+    search: "    try { copy = !!copies && fs.statSync(path.join(copies, name)).size === size; } catch {}",
+    replacement: "    try { copy = !!copies && fs.statSync(path.join(copies, name)).size > 0; } catch {}",
+    expected: "Platte: Dateien ohne Verweis loeschen"
+  },
+  {
+    nr: '1397', name: "Dateien ohne Verweis: der Abgleich kennt disk_files nicht",
+    file: 'server.js',
+    search: "  const known = new Set([...qDiskNames.all(), ...qGone.all()].map(z => z.name));",
+    replacement: "  const known = new Set(qGone.all().map(z => z.name));",
+    expected: "Platte: Dateien ohne Verweis loeschen"
+  },
+  {
+    nr: '1398', name: "Dateien ohne Verweis: der Abgleich kennt die Loeschliste nicht",
+    file: 'server.js',
+    search: "  const known = new Set([...qDiskNames.all(), ...qGone.all()].map(z => z.name));",
+    replacement: "  const known = new Set(qDiskNames.all().map(z => z.name));",
+    expected: "Platte: Dateien ohne Verweis loeschen"
+  },
+  {
+    nr: '1399', name: "Dateien ohne Verweis: upload/ wird mit durchsucht",
+    file: 'server.js',
+    search: "  try { names = fs.readdirSync(FILES_DIR); } catch {}\n  const known = new Set([...qDiskNames.all(), ...qGone.all()].map(z => z.name));\n  const place = backupState().input ? checkPlace(getSetting('backupPlace', '')) : { error: true };\n  const copies = place.error ? null : path.join(place.filePath, COPY_DIR);\n  const out = [];\n  for (const name of names) {\n    if (!DISK_NAME.test(name) || known.has(name)) continue;\n    const file = diskPath(name);",
+    replacement: "  try { names = [...fs.readdirSync(FILES_DIR), ...fs.readdirSync(UPLOAD_DIR).map(n => `upload/${n}`)]; } catch {}\n  const known = new Set([...qDiskNames.all(), ...qGone.all()].map(z => z.name));\n  const place = backupState().input ? checkPlace(getSetting('backupPlace', '')) : { error: true };\n  const copies = place.error ? null : path.join(place.filePath, COPY_DIR);\n  const out = [];\n  for (const listed of names) {\n    const name = listed.replace('upload/', '');\n    if (!DISK_NAME.test(name) || known.has(name)) continue;\n    const file = diskPath(name, listed.startsWith('upload/'));",
+    expected: "Platte: Dateien ohne Verweis loeschen"
+  },
+  {
+    nr: '1400', name: "Dateien ohne Verweis: die Sperre des Backups wird nicht genommen",
+    file: 'server.js',
+    search: "  const lock = takeBackupLock(place.filePath);\n  if (!lock) return res.status(409).json({ error: t(localeOf(req), 'server.backupRunning')});\n",
+    replacement: "  const lock = null;\n",
+    expected: "Platte: Dateien ohne Verweis loeschen"
+  },
+  {
+    nr: '1401', name: "Der Abgleich unter upload/ kennt disk_files nicht",
+    file: 'server.js',
+    search: "  const known = new Set([...qUploadNames.all(), ...qDiskNames.all()].map(z => z.name));",
+    replacement: "  const known = new Set(qUploadNames.all().map(z => z.name));",
+    expected: "Platte: Lauf und upload/"
+  },
+  {
+    nr: '1402', name: "Nur der Start holt ein rename nach",
+    file: 'server.js',
+    search: "    // Abschluesse nachholen: die Zeile steht, die Datei liegt noch unter upload/.\n    try {",
+    replacement: "    // Abschluesse nachholen: die Zeile steht, die Datei liegt noch unter upload/.\n    if (start) try {",
+    expected: "Platte: Lauf und upload/"
+  },
+  {
+    nr: '1403', name: "Der Lauf liest die Namen im Speicher nicht",
+    file: 'server.js',
+    search: "    if (!DISK_NAME.test(name) || known.has(name) || DISK_WRITING.has(name)) continue;",
+    replacement: "    if (!DISK_NAME.test(name) || known.has(name)) continue;",
+    expected: "Platte: Lauf und upload/"
+  },
+  {
+    nr: '1404', name: "sweepDisk vergleicht checkpointed nicht mit log",
+    file: 'server.js',
+    search: "  if (!mark || mark.checkpointed !== mark.log) return;",
+    replacement: "  if (!mark) return;",
+    expected: "Platte: Checkpoint und FULL"
+  },
+  {
+    nr: '1405', name: "Der Abschluss committet ohne synchronous = FULL",
+    file: 'server.js',
+    search: "  db.pragma('synchronous = FULL');\n",
+    replacement: "",
+    expected: "Platte: Checkpoint und FULL"
+  },
+  {
+    nr: '1406', name: "Eine Datei auf der Platte geht ohne Inhalt in den Export",
+    file: 'server.js',
+    search: "  if (a2.large) return {};\n  let bytes = null;",
+    replacement: "  if (a2.large || a2.stored) return {};\n  let bytes = null;",
+    expected: "Platte: Export und Import"
+  },
+  {
+    nr: '1407', name: "Ein grosses Video geht mit Inhalt in den Export",
+    file: 'server.js',
+    search: "  if (a2.large) return {};\n  let bytes = null;\n  try { bytes = fileBytes(a2.id, null); }",
+    replacement: "  let bytes = null;\n  try { bytes = attachments.openWholeSync(diskPath(a2.stored), diskFileOf(a2.id)); }",
+    expected: "Platte: Export und Import"
+  },
+  {
+    nr: '1408', name: "Der Import legt alles in die Datenbank",
+    file: 'server.js',
+    search: "      if (buf && folder !== null && folderDays.kept.has(folder)) {",
+    replacement: "      if (false) {",
+    expected: "Platte: Export und Import"
+  },
+  {
+    nr: '1409', name: "Der Plan zaehlt grosse Videos mit",
+    file: 'server.js',
+    search: "                    WHERE a.item_id = i.id AND d.large = 0), 0) AS attachment,",
+    replacement: "                    WHERE a.item_id = i.id), 0) AS attachment,",
+    expected: "Platte: Export und Import"
+  },
+  {
+    nr: '1410', name: "Der Plan zaehlt Dateien auf der Platte nicht",
+    file: 'server.js',
+    search: "      + COALESCE((SELECT SUM(d.size) FROM disk_files d JOIN attachments a ON a.id = d.attachment_id\n                    WHERE a.item_id = i.id AND d.large = 0), 0) AS attachment,",
+    replacement: "      AS attachment,",
+    expected: "Platte: Export und Import"
+  },
+  {
+    nr: '1411', name: "Der Upload in einen geloeschten Ordner geht verloren",
+    file: 'server.js',
+    search: "function finishUpload(req, res, u) {\n  commitFull(() => {",
+    replacement: "function finishUpload(req, res, u) {\n  if (u.folder_id == null) { dropUpload.run(u.id); return res.status(404).json({ error: t(localeOf(req), 'server.folderGone') }); }\n  commitFull(() => {",
+    expected: "Platte: Upload in einen geloeschten Ordner"
+  },
+  {
+    nr: '1412', name: "Die Sperre eines Uploads faellt bei close",
+    file: 'server.js',
+    search: "  rawPiece(req, res, (err) => {",
+    replacement: "  req.on('close', () => UPLOADS_RUNNING.delete(req.upload.id));\n  rawPiece(req, res, (err) => {",
+    expected: "Platte: Abbruch und zweite Anfrage"
+  },
+  {
+    nr: '1413', name: "Das Entschluesseln gibt ein Stueck vor der Pruefung der Marke heraus",
+    file: 'attachments.js',
+    search: "  try { d.final(); } catch { throw damaged('tag'); }",
+    replacement: "  try { d.final(); } catch {}",
+    expected: "Platte: beschaedigte Datei"
+  },
+  {
+    nr: '1414', name: "Ein Stueck geht unverschluesselt auf die Platte",
+    file: 'attachments.js',
+    search: "  return Buffer.concat([c.update(plain), c.final(), c.getAuthTag()]);",
+    replacement: "  c.update(plain);\n  c.final();\n  return Buffer.concat([plain, c.getAuthTag()]);",
+    expected: "Platte: beschaedigte Datei"
+  },
+  {
+    nr: '1415', name: "Ein Klick auf den Kopf nach einem Sprung schreibt BLOCKS.closed",
+    file: 'public/app.js',
+    search: "      } else if (JUMPED.has(name)) {\n        // Ein Sprung hat ihn geoeffnet: zuklappen, die Einstellung bleibt.\n        JUMPED.delete(name);\n      } else {",
+    replacement: "      } else {",
+    expected: "Platte: ein Sprung oeffnet den Block nur fuer die Ansicht"
+  },
+  {
+    nr: '1416', name: "keytool.sh nennt wieder rm -rf data als Rueckweg",
+    file: 'keytool.sh',
+    search: "      echo \"      find data -mindepth 1 -maxdepth 1 ! -name files -exec rm -rf {} + && cp -a $ZIEL/. data/\"",
+    replacement: "      echo \"      rm -rf data && cp -a $ZIEL data\"",
+    expected: "Dateien auf der Platte im Quelltext"
+  },
+  {
+    nr: '1417', name: "Die Liste der Anweisungen auf data ist gekuerzt",
+    file: 'test/source.js',
+    search: "    'SELECT COALESCE(SUM(length(data)),0) n FROM attachments',\n",
+    replacement: "",
+    expected: "Dateien auf der Platte im Quelltext"
+  },
+  {
+    nr: '1418', name: "file_key wird mit SELECT * gelesen",
+    file: 'server.js',
+    search: "const qDiskFile = db.prepare('SELECT id, name, size, chunk, large, file_key FROM disk_files WHERE attachment_id = ?');",
+    replacement: "const qDiskFile = db.prepare('SELECT * FROM disk_files WHERE attachment_id = ?');",
+    expected: "Dateien auf der Platte im Quelltext"
   },
 ];
 

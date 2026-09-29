@@ -181,8 +181,8 @@ async function run() {
     .catch(() => null);
   const exportedFiles = (exported?.items || []).flatMap(it => it.attachments || []);
   const clipOut = exportedFiles.find(a => a.filename === 'clip.mp4');
-  check('Der Export (Format 21) traegt Standbild und Dauer',
-    exported?.version === 21 && clipOut?.duration === 42 && !!clipOut?.still_base64 &&
+  check('Der Export (Format 22) traegt Standbild und Dauer',
+    exported?.version === 22 && clipOut?.duration === 42 && !!clipOut?.still_base64 &&
     exportedFiles.filter(a => /\.(txt|avi)$/.test(a.filename)).every(a => !Object.keys(a).some(k => /^still|^duration$/.test(k))),
     `${exported?.version} ${exportedFiles.map(a => Object.keys(a).join('+')).join(' ')}`);
   await B.stop();
@@ -447,7 +447,7 @@ async function run() {
     press(uw.document.body, 'Escape');
     uw.close();
 
-    const b = buildDom(JSDOM, { hash: '#/item/1', uploadLimits: { video: 1, attachment: 3 } });
+    const b = buildDom(JSDOM, { hash: '#/item/1', uploadLimits: { video: 1, attachment: 2, dayVideo: 3 } });
     const bw = b.w;
     await settle(bw, 5);
     const drop = (name, mb) => bw.document.getElementById('file')?.onchange({ target: {
@@ -456,8 +456,8 @@ async function run() {
     const middle = bw.document.querySelector('.toast')?.textContent;
     drop('riesig.mp4', 4);
     const huge = bw.document.querySelector('.toast')?.textContent;
-    check('Die Bildleiste nennt „Dateien" nur fuer ein Video, das unter die Grenze „Anhang" passt',
-      middle === `${deText('entry.tooBig', { name: 'mittel.mp4', mb: 1 })} ${DE['entry.videoToFiles']}` &&
+    check('Die Bildleiste nennt „Dateien" nur fuer ein Video, das unter „Anhang" oder „Video am Testtag" passt',
+      middle === `${deText('entry.tooBig', { name: 'mittel.mp4', mb: 1 })} ${deText('entry.videoToFiles', { dayOne: 'Testtag' })}` &&
       huge === deText('entry.tooBig', { name: 'riesig.mp4', mb: 1 }), `${middle} · ${huge}`);
     bw.close();
   }

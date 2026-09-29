@@ -73,10 +73,11 @@ case "$BEFEHL" in
     echo "  Instanz anhalten …"
     docker compose stop
 
-    # 4. Backup des Datenverzeichnisses. Pflicht.
+    # 4. Backup des Datenverzeichnisses. Pflicht. Ohne data/files/: die Dateien
+    #    behalten ihren Schluessel und aendern sich beim Wechsel nicht.
     ZIEL="../kriterion-data-before-key-change-$MARKE"
     echo "  Backup des Datenverzeichnisses nach $ZIEL …"
-    cp -a data "$ZIEL"
+    mkdir "$ZIEL" && find data -mindepth 1 -maxdepth 1 ! -name files -exec cp -a {} "$ZIEL"/ \;
 
     # 5. Der Wechsel selbst.
     if lauf change "${ENV_ARGUMENTE[@]}" --by "$WER" --yes; then
@@ -97,7 +98,7 @@ case "$BEFEHL" in
       rot "  Der Wechsel ist nicht durchgelaufen. Die Instanz bleibt ANGEHALTEN."
       rot "  Lies die Meldung darueber, bevor du irgendetwas startest."
       echo "  Zurueck geht es so:"
-      echo "      rm -rf data && cp -a $ZIEL data"
+      echo "      find data -mindepth 1 -maxdepth 1 ! -name files -exec rm -rf {} + && cp -a $ZIEL/. data/"
       echo "      cp .env.before-key-change-$MARKE .env"
       echo "      docker compose up -d"
       exit 1

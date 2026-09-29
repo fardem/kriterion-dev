@@ -33,8 +33,8 @@ async function run() {
     fUnknown.length === 0 && fGone.length === 0,
     `ohne Entscheidung: ${fUnknown.join(' · ') || '—'} · verschwunden: ${fGone.join(' · ') || '—'}`);
   // Die feste Zahl macht jede neue Route in F_ROUTES sichtbar.
-  check('Und es sind jetzt genau 84 schreibende Routen',
-    F_ROUTES.length === 84 && fFound.length === 84,
+  check('Und es sind jetzt genau 88 schreibende Routen',
+    F_ROUTES.length === 88 && fFound.length === 88,
     `${F_ROUTES.length} erwartet, ${fFound.length} gefunden`);
   /* Gelesen werden die geladenen Listen aus auth.js, nicht ihr Quelltext;
      ein Textvergleich schluege auch bei Kommentaren an. */
@@ -996,8 +996,8 @@ async function run() {
     /* Sonst bliebe die Gestaltprobe gruen, wenn die Zeile mit `.id = '…'`
        fehlte: `f-cat-none` steht nur dort. */
     const setIds = [...appSource.matchAll(/\.id = ['"]([\w-]+)['"]/g)].map(m => '#' + m[1]);
-    check('Und die zwoelf id, die das Skript selbst setzt, stehen alle in der Gestaltliste',
-      setIds.length === 12 && setIds.every(n => shapes.has(n)),
+    check('Und die vierzehn id, die das Skript selbst setzt, stehen alle in der Gestaltliste',
+      setIds.length === 14 && setIds.every(n => shapes.has(n)),
       setIds.filter(n => !shapes.has(n)).join(' ') || `${setIds.length} gesetzte id`);
 
     /* ---- Kuerzeprobe ---- */
@@ -1041,7 +1041,7 @@ async function run() {
         if (part.kind === CODE)
           for (const m of part.value.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) benchNames.add(m[0]);
     check('Der Waechter sieht wirklich den ganzen Pruefstand',
-      benchNames.size > 2000 && BENCH.length === 28,
+      benchNames.size > 2000 && BENCH.length === 29,
       `${benchNames.size} Bezeichner aus ${BENCH.length} Dateien`);
 
     /* Keine Benennungen, sondern Gegenstaende von Pruefungen: abgelegte
@@ -1078,8 +1078,8 @@ async function run() {
     const readShipped = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
     const stWord = 'Stolper' + 'stein';
     const stAll = [...BENCH, ...SHIPPED];
-    check('Der Waechter sieht alle vierundvierzig Dateien',
-      stAll.length === 44, `${stAll.length} Dateien`);
+    check('Der Waechter sieht alle fuenfundvierzig Dateien',
+      stAll.length === 45, `${stAll.length} Dateien`);
     /* Die SQL-Kommentare im SCHEMA von db.js stehen in einem Template-String,
        den segment() als Text liefert; hier zaehlen sie als Kommentar. */
     const stSqlRow = /^\s*--/;
@@ -1398,10 +1398,10 @@ async function run() {
     // Beide Schreibstellen und die Abweisung rechnen mit EXCHANGE_FORMAT.
     check('Die Formatnummer steht genau einmal als Zahl im Quelltext',
       (stServer.match(/EXCHANGE_FORMAT = \d+/g) || []).length === 1 &&
-      /const EXCHANGE_FORMAT = 21;/.test(stServer),
+      /const EXCHANGE_FORMAT = 22;/.test(stServer),
       (stServer.match(/EXCHANGE_FORMAT = \d+/g) || []).join(' · '));
     check('Und die aelteste gelesene daneben, unter ihr',
-      /const EXCHANGE_FORMAT_MIN = 14;/.test(stServer) && 14 < 21,
+      /const EXCHANGE_FORMAT_MIN = 14;/.test(stServer) && 14 < 22,
       (stServer.match(/EXCHANGE_FORMAT_MIN = \d+/g) || []).join(' · '));
     // Die Formatnummer steht nur im Server, damit keine zweite Angabe veraltet.
     check('Das Handbuch nennt keine Formatnummer',
@@ -1611,7 +1611,7 @@ async function run() {
         : part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('/'));
     // Auf leeren Mengen waeren die Pruefungen darunter immer gruen.
     check('Der Waechter sieht beide Seiten',
-      rrRoutes.length === 119 && rrBrowser.length > 100000,
+      rrRoutes.length === 123 && rrBrowser.length > 100000,
       `${rrRoutes.length} Routen, ${rrBrowser.length} Zeichen im Browser`);
     /* Die Verwaltungstafel baut diese Adressen aus ihrem Feld `url`; eine
        Suche, die das faende, faende jede Adresse. */
@@ -1842,8 +1842,8 @@ async function run() {
       }
       if (has) ssCode++;
     }
-    check('Und es stehen genau 1818 Regelzeilen da',
-      ssCode === 1818, `${ssCode} Zeilen`);
+    check('Und es stehen genau 1840 Regelzeilen da',
+      ssCode === 1840, `${ssCode} Zeilen`);
     // Laenger als drei Zeilen darf nur eine Tabelle gemessener Werte sein.
     const ssLines = ssBlocks.map(b => b.split('\n').length);
     const ssOver = ssLines.filter(n => n > 3).length;
@@ -1970,8 +1970,8 @@ async function run() {
     // Feste Zahl: auf einer leeren Menge waere die Pruefung darueber immer gruen.
     const zpCount = zpFiles.reduce((n, f) =>
       n + (zpRead(f).match(/\blog(?:Line|Warn|Fail)\(/g) || []).length, 0);
-    check('Und es sind 62 Protokollzeilen in den sechs Dateien',
-      zpCount === 62, `${zpCount} Zeilen`);
+    check('Und es sind 72 Protokollzeilen in den sechs Dateien',
+      zpCount === 72, `${zpCount} Zeilen`);
     // Ohne TZ laeuft der Container auf UTC, und der Versatz waere immer +00:00.
     const zpCompose = fs.readFileSync(
       path.join(__dirname, 'docker-compose.example.yml'), 'utf8');
@@ -2057,7 +2057,7 @@ async function run() {
     /* Variablen, die kurz vor der Zuweisung gebaut werden */
     'badgeRow', 'cardMarkup', 'findingRow', 'testLine', 'groupRows', 'testRow',
     'bottom', 'weightField', 'fallbackMark', 'situation', 'stateBox',
-    'changeBox', 'listBox', 'outdatedBox', 'tooBigBox'
+    'changeBox', 'listBox', 'outdatedBox', 'tooBigBox', 'copyBox'
   ];
 
   /* Kennt nur Strings, Template-Strings und Kommentare; das genuegt fuer die
@@ -2252,6 +2252,101 @@ async function run() {
     guided('ICON_X') && guided('a ? esc(it.title) : ""') &&
     guided('`<b>${esc(it.title)}</b>`') && guided('BRAND_LINE()'),
     'eine gefuehrte Einsetzung faerbt den Waechter');
+
+  group('Dateien auf der Platte im Quelltext');
+  /* Alle String-Literale einer Datei, ohne Kommentare. Ein Schraegstrich nach einem
+     dieser Zeichen beginnt einen regulaeren Ausdruck. */
+  function literalsOf(text) {
+    const out = [];
+    let i = 0, prev = '';
+    while (i < text.length) {
+      const c = text[i], two = text.slice(i, i + 2);
+      if (two === '//') { const nl = text.indexOf('\n', i); i = nl < 0 ? text.length : nl; continue; }
+      if (two === '/*') { const e = text.indexOf('*/', i + 2); i = e < 0 ? text.length : e + 2; continue; }
+      if (c === "'" || c === '"' || c === '`') {
+        let j = i + 1, body = '';
+        while (j < text.length) {
+          const d = text[j];
+          if (d === '\\') { body += text.slice(j, j + 2); j += 2; continue; }
+          if (c === '`' && text.slice(j, j + 2) === '${') {
+            let k = j + 2, level = 1;
+            while (k < text.length && level) { if (text[k] === '{') level++; else if (text[k] === '}') level--; k++; }
+            body += '${}'; j = k; continue;
+          }
+          if (d === c || (d === '\n' && c !== '`')) break;
+          body += d; j++;
+        }
+        out.push(body.replace(/\s+/g, ' ').trim());
+        i = j + 1; prev = c; continue;
+      }
+      if (c === '/' && /[(,=:[!&|?{};]/.test(prev)) {
+        let j = i + 1, inClass = false;
+        while (j < text.length && text[j] !== '\n') {
+          const d = text[j];
+          if (d === '\\') { j += 2; continue; }
+          if (d === '[') inClass = true; else if (d === ']') inClass = false; else if (d === '/' && !inClass) break;
+          j++;
+        }
+        i = j + 1; prev = '/'; continue;
+      }
+      if (!/\s/.test(c)) prev = c;
+      i++;
+    }
+    return out;
+  }
+  const dLiterals = literalsOf(fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8'));
+  const dSql = dLiterals.filter(x => /\b(SELECT|INSERT|UPDATE|DELETE)\b/.test(x));
+  // Jede Anweisung, die attachments.data oder attachment_previous.data liest oder schreibt, auch ueber SELECT *.
+  const dDataRows = dSql.filter(x => /\b(attachments|attachment_previous)\b/.test(x) &&
+    (/\bdata\b/.test(x) || /SELECT (\w+\.)?\* FROM (attachments|attachment_previous)\b/.test(x)))
+    .map(x => x.slice(0, 120)).sort();
+  const DATA_ROWS = [
+    'INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id) VALUES (?, ?, ?, ?, x\'\', ?, ?)',
+    'INSERT INTO trash_bytes (trash_id, part, data) SELECT ?, ?, data FROM attachments WHERE id = ?',
+    'INSERT OR REPLACE INTO attachment_previous (attachment_id, session_key, filename, mime_type, size, data) SELECT id, ?, f',
+    'SELECT * FROM attachments WHERE id = ?',
+    'SELECT * FROM attachments WHERE id = ?',
+    'SELECT COALESCE(SUM(length(data)),0) n FROM attachments',
+    'SELECT attachments.id, filename, mime_type, data, user_id, ${}, s.duration, s.still, f.folder_id AS folder, d.name AS st',
+    'SELECT data FROM attachment_previous WHERE attachment_id = ?',
+    'SELECT data FROM attachments WHERE id = ?',
+    'SELECT data FROM attachments WHERE id = ?',
+    'SELECT filename, mime_type, data FROM attachment_previous WHERE attachment_id = ?',
+    'SELECT filename, mime_type, data FROM attachments WHERE id = ?',
+    'SELECT i.id, COALESCE((SELECT SUM(length(p.data)) FROM photos p WHERE p.item_id = i.id AND p.kind != \'video\'), 0) AS pho',
+    'SELECT id, filename, data FROM attachments WHERE id = ?',
+    'UPDATE attachment_previous SET data = x\'\' WHERE attachment_id = ?',
+    'UPDATE attachment_previous SET session_key = \'\', filename = ?, mime_type = ?, size = ?, data = ?, saved_at = datetime(\'n',
+    'UPDATE attachment_previous SET session_key = \'\', filename = ?, mime_type = ?, size = ?, data = x\'\', saved_at = datetime(',
+    'UPDATE attachments SET data = x\'\' WHERE id = ?',
+    'UPDATE attachments SET filename = ?, mime_type = ?, size = ?, data = ? WHERE id = ? AND NOT EXISTS (SELECT 1 FROM disk_f',
+    'UPDATE attachments SET filename = ?, mime_type = ?, size = ?, data = x\'\' WHERE id = ?'
+  ];
+  check('Der Leser findet die SQL-Anweisungen von server.js', dSql.length > 300, `${dSql.length} Anweisungen`);
+  const dMore = dDataRows.filter((x, i) => dDataRows.indexOf(x) === i &&
+    dDataRows.filter(y => y === x).length > DATA_ROWS.filter(y => y === x).length);
+  const dLess = DATA_ROWS.filter((x, i) => DATA_ROWS.indexOf(x) === i &&
+    DATA_ROWS.filter(y => y === x).length > dDataRows.filter(y => y === x).length);
+  check('Jede Anweisung, die die Spalte data von Dateien liest oder schreibt, steht in der Liste — und keine mehr',
+    dMore.length === 0 && dLess.length === 0 && DATA_ROWS.length === 22,
+    `neu: ${dMore.join(' · ')} · fehlt: ${dLess.join(' · ')}`);
+  check('batchrun.js liest keine Dateien', !/\battachments\b/.test(fs.readFileSync(path.join(__dirname, 'batchrun.js'), 'utf8')),
+    'batchrun.js nennt attachments');
+  const dKey = dSql.filter(x => /\bfile_key\b/.test(x));
+  const dKeyRead = dKey.filter(x => !/^(INSERT|UPDATE) /.test(x));
+  check('file_key lesen nur qDiskFile und qUploadFile; sonst steht es nur in INSERT und UPDATE',
+    dKeyRead.length === 2 && dKeyRead.some(x => /^SELECT [^*]+ FROM disk_files WHERE attachment_id = \?$/.test(x)) &&
+    dKeyRead.some(x => /^SELECT [^*]+ FROM uploads WHERE id = \?$/.test(x)) && dKey.length === 6,
+    dKey.join(' · '));
+  const dStar = dSql.filter(x => /SELECT (\w+\.)?\*[^;]*\bFROM (disk_files|uploads)\b/.test(x));
+  check('Kein SELECT * auf disk_files oder uploads', dStar.length === 0, dStar.join(' · '));
+  const dTool = fs.readFileSync(path.join(__dirname, 'keytool.sh'), 'utf8').split('\n');
+  const dWhole = dTool.filter(z => /rm -rf data\b|cp -a data\b/.test(z) ||
+    (/rm -rf|cp -a/.test(z) && /\bdata\b/.test(z) && !/! -name files\b/.test(z) && !/\$ZIEL\/\. data\//.test(z)));
+  check('keytool.sh loescht und kopiert data nie ohne Ausnahme fuer files',
+    dWhole.length === 0 && dTool.filter(z => /! -name files\b/.test(z)).length === 2, dWhole.join(' · '));
 }
 
 module.exports = run;

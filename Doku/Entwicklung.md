@@ -11,7 +11,7 @@ Aufbau, Datenmodell, Sicherheit der Auslieferung und Prüfstand. Betrieb steht i
 | `auth.js` | Anmeldung, Sitzungen, Token, Sicherheitsprotokoll |
 | `db.js` | Schema und Verbindung zur verschlüsselten Datei |
 | `keys.js` | Schlüssel lesen, erzeugen, prüfen |
-| `attachments.js` | Anhänge: Auslieferung und Vorschau |
+| `attachments.js` | Anhänge: Auslieferung, Vorschau, Verschlüsselung der Dateien auf der Platte |
 | `images.js` | Bildableitungen: Kachel und mittlere Variante |
 | `batchrun.js` | Bestandsläufe in einem eigenen Thread |
 | `mail.js` | Versand über SMTP |
@@ -62,11 +62,37 @@ annehmen.
   hat (`PUT /api/attachments/:id/still`). Im Papierkorb und im Export.
 - `folders`: Ordner unter „Dateien“ mit Name (1 bis 80 Zeichen), Verfasser und
   Zeitpunkt; `AUTOINCREMENT`, damit ein Upload auf einen gelöschten Ordner nie
-  in einem neuen mit derselben Nummer landet. `test_day_id` wird noch nicht
-  gesetzt.
+  in einem neuen mit derselben Nummer landet. `test_day_id`: ein eigener
+  Testtag desselben Eintrags, je Testtag höchstens ein Ordner (`UNIQUE`); wird
+  der Testtag gelöscht, bleibt der Ordner (`ON DELETE SET NULL`). Im Export
+  steht `testDay` als Stelle im Feld `testDays`.
 - `attachment_folders`: je Datei höchstens ein Ordner; ohne Zeile steht sie
   ohne Ordner. Im Export steht je Datei `folder` als Stelle im Feld `folders`
   des Eintrags.
+- `uploads`: offene Uploads in Stücken mit Name unter `data/files/upload/`,
+  Schlüssel (`file_key`), angenommenen Bytes (`received`) und letzter Anfrage
+  (`touched_at`). Verfällt nach 24 h ohne Anfrage, nach 15 min ohne erste.
+- `disk_files`: je Datei auf der Platte eine Zeile mit Name aus 32 Hexzeichen,
+  Klartextgröße, Stückgröße (1 MiB), `large` für Videos über „Anhang“ und
+  `file_key`. Besitzer ist genau einer von `attachment_id` (aktuelle Fassung),
+  `previous_of` (vorige Fassung) und `trash_id` (Papierkorb). `attachments.data`
+  und `attachment_previous.data` sind dann `x''`.
+- `disk_files_gone`: die Löschliste. Nur `sweepDisk()` in `server.js` löscht
+  unter `data/files/`, und nur Namen aus dieser Liste, nach einem vollständigen
+  Checkpoint.
+
+**Trigger auf `disk_files`**, beim Start angelegt und bei abweichendem Text
+ersetzt: `disk_files_orphaned` trägt eine Zeile ohne Besitzer in die Löschliste
+ein und löscht sie; `disk_files_held` verhindert, dass eine lebende Datei ihren
+Besitzer wechselt, außer zur vorigen Fassung derselben Datei; `disk_files_kept`
+verhindert das Löschen einer Zeile mit Besitzer. `recursive_triggers` bleibt 0.
+
+**Verzeichnisse:** `data/files/<Name>` hält je Datei die Stücke, jedes mit
+AES-256-GCM verschlüsselt (Nonce aus Stücknummer, AAD der Name), 16 Bytes Marke
+je Stück. `data/files/upload/` hält Uploads und Dateien, die noch nicht
+committet sind. Beide Verzeichnisse haben den Modus `0700`. Im Backup-Ordner
+stehen die Kopien unter `kriterion-files/`, dazu je Backup eine Liste
+`kriterion-<zeitpunkt>.files` und während eines Backups `.lock`.
 - `settings`: globale Einstellungen, darunter Titel, Vokabular, Suchmaschinen
   und das Verfahren der Bildablage (`imageStore`).
 - `user_settings`: zehn persönliche Schlüssel je Benutzer, darunter Filter,
@@ -224,6 +250,16 @@ KRITERION_TESTBENCH=pruefstand:scrypt=1024:mail=40:brake=10
 | `scrypt=<N>` | Kostenstufe von scrypt (ausgeliefert 16384) | 1024, Zweierpotenz |
 | `mail=<Teiler>` | die drei Mailfristen (20 s, 7 s, 7 s) | 100 ms |
 | `brake=<Teiler>` | Wartezeit der Anmeldebremse, nicht ihre Schwellen | 10 ms |
+
+Für die Dateien auf der Platte, nur in `server.js`:
+
+| Wert | Wirkung |
+|---|---|
+| `free=<MB>` | freier Platz statt `statfs` |
+| `statfail=1` | `statfs` scheitert |
+| `clock=<s>` | die Uhr der Uploads geht so viele Sekunden vor |
+| `hold=<ms>` | Halt vor dem Schreiben unter `upload/` und vor jeder Kopie des Backups |
+| `run=<ms>` | Abstand der Läufe statt einer Stunde |
 
 Ein gesetzter Schalter steht beim Start im Protokoll (`TEST SWITCH ACTIVE`).
 

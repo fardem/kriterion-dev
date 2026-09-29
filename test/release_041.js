@@ -227,7 +227,7 @@ async function run() {
     try { rtFile = JSON.parse(await a.text()); } catch { rtFile = null; }
     const item = rtFile?.items?.find(i => i.title === 'Kommentarvideos');
     const c = item?.comments?.find(z => z.text === 'Mit Video');
-    check('Die Exportdatei traegt Format 21', rtFile?.version === 21, JSON.stringify(rtFile?.version));
+    check('Die Exportdatei traegt Format 22', rtFile?.version === 22, JSON.stringify(rtFile?.version));
     check('Der Kommentar traegt sein Video samt Standbild',
       c?.videos?.length === 1 && Buffer.from(c.videos[0].data_base64 || '', 'base64').equals(cvVideo) &&
       !!c.videos[0].still_base64 && c.videos[0].duration === 7,
@@ -715,11 +715,12 @@ async function run() {
   group('Die Grenzen beim Hochladen');
   {
     const limits = (await call('GET', '/api/settings')).content;
-    check('GET /api/settings nennt die fuenf Grenzen und ihre Obergrenzen',
-      equal(limits.uploadLimits, { photo: 30, commentImage: 20, video: 20, commentVideo: 20, attachment: 50 }) &&
+    check('GET /api/settings nennt die sechs Grenzen und ihre Obergrenzen',
+      equal(limits.uploadLimits, { photo: 30, commentImage: 20, video: 20, commentVideo: 20, attachment: 50, dayVideo: 2048 }) &&
       limits.uploadLimitRanges?.photo?.max === 50 && limits.uploadLimitRanges?.commentImage?.max === 50 &&
       limits.uploadLimitRanges?.video?.max === 100 && limits.uploadLimitRanges?.commentVideo?.max === 100 &&
-      limits.uploadLimitRanges?.attachment?.max === 100, JSON.stringify([limits.uploadLimits, limits.uploadLimitRanges]));
+      limits.uploadLimitRanges?.attachment?.max === 100 && limits.uploadLimitRanges?.dayVideo?.max === 4096,
+      JSON.stringify([limits.uploadLimits, limits.uploadLimitRanges]));
     const zero = await call('PUT', '/api/settings', { uploadLimits: { video: 0 } });
     const over = await call('PUT', '/api/settings', { uploadLimits: { video: 101 } });
     const photoOver = await call('PUT', '/api/settings', { uploadLimits: { photo: 51 } });
@@ -749,7 +750,7 @@ async function run() {
     const stored = JSON.parse(d.prepare("SELECT value FROM settings WHERE key = 'uploadLimits'").get()?.value || '{}');
     d.close();
     check('Gespeichert in settings unter uploadLimits', equal(stored,
-      { photo: 30, commentImage: 20, video: 20, commentVideo: 20, attachment: 50 }), JSON.stringify(stored));
+      { photo: 30, commentImage: 20, video: 20, commentVideo: 20, attachment: 50, dayVideo: 2048 }), JSON.stringify(stored));
     const serverCode = readText('server.js');
     check('uploadLimits steht in OWNER_KEYS',
       /const OWNER_KEYS = \[[^\]]*'uploadLimits'[^\]]*\]/.test(serverCode), 'fehlt');

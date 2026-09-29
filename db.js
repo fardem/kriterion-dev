@@ -363,6 +363,46 @@ CREATE TABLE IF NOT EXISTS attachment_folders (
 );
 CREATE INDEX IF NOT EXISTS idx_attachment_folders_folder ON attachment_folders(folder_id);
 
+-- Offener Upload in Stuecken; file_key lesen nur qUploadFile und qDiskFile in server.js.
+CREATE TABLE IF NOT EXISTS uploads (
+  id TEXT PRIMARY KEY,
+  item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  folder_id INTEGER REFERENCES folders(id) ON DELETE SET NULL,
+  filename TEXT NOT NULL,
+  size INTEGER NOT NULL,
+  modified INTEGER NOT NULL,          -- File.lastModified, ms
+  large INTEGER NOT NULL DEFAULT 0,   -- 1: beim Beginn ueber der Grenze „Anhang"
+  name TEXT NOT NULL UNIQUE,
+  received INTEGER NOT NULL DEFAULT 0,
+  touched_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  file_key BLOB NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_uploads_item ON uploads(item_id);
+
+-- Datei unter data/files/; attachments.data traegt dann x''. size ist der Klartext.
+CREATE TABLE IF NOT EXISTS disk_files (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  size INTEGER NOT NULL,
+  chunk INTEGER NOT NULL,
+  large INTEGER NOT NULL DEFAULT 0,
+  attachment_id INTEGER UNIQUE REFERENCES attachments(id) ON DELETE SET NULL,
+  -- Ohne UNIQUE: Wiederherstellen tauscht zwei Zeilen ueber einen Zwischenstand.
+  previous_of INTEGER REFERENCES attachments(id) ON DELETE SET NULL,
+  trash_id INTEGER REFERENCES trash(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  file_key BLOB NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_disk_files_previous ON disk_files(previous_of);
+CREATE INDEX IF NOT EXISTS idx_disk_files_trash ON disk_files(trash_id);
+
+-- Namen, deren Datei nach dem Commit geloescht wird; nur ein Trigger schreibt.
+CREATE TABLE IF NOT EXISTS disk_files_gone (
+  name TEXT PRIMARY KEY
+);
+
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
@@ -666,6 +706,42 @@ tryIndex('idx_photos_tile', `CREATE INDEX IF NOT EXISTS idx_photos_tile
    idx_attachments_item traegt nur item_id. */
 tryIndex('idx_attachments_list', `CREATE INDEX IF NOT EXISTS idx_attachments_list
            ON attachments(item_id, sort_order, id, filename, mime_type, size, created_at, user_id)`);
+
+/* Verliert eine Datei auf der Platte ihren letzten Besitzer, kommt ihr Name in die
+   Loeschliste; auch am Ende einer Kaskade und aus usertool.js. */
+const TRIGGERS = {
+  disk_files_orphaned: `CREATE TRIGGER disk_files_orphaned AFTER UPDATE OF attachment_id, trash_id, previous_of ON disk_files
+  WHEN new.attachment_id IS NULL AND new.trash_id IS NULL AND new.previous_of IS NULL
+BEGIN
+  INSERT OR IGNORE INTO disk_files_gone (name) VALUES (new.name);
+  DELETE FROM disk_files WHERE id = new.id;
+END`,
+  disk_files_held: `CREATE TRIGGER disk_files_held BEFORE UPDATE OF attachment_id ON disk_files
+  WHEN old.attachment_id IS NOT NULL AND new.attachment_id IS NOT old.attachment_id
+   AND NOT (new.attachment_id IS NULL AND new.previous_of IS old.attachment_id)
+   AND EXISTS (SELECT 1 FROM attachments WHERE id = old.attachment_id)
+BEGIN SELECT RAISE(ABORT, 'disk file stays with its attachment'); END`,
+  disk_files_kept: `CREATE TRIGGER disk_files_kept BEFORE DELETE ON disk_files
+  WHEN old.attachment_id IS NOT NULL OR old.trash_id IS NOT NULL OR old.previous_of IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'disk file has an owner'); END`
+};
+
+// Ohne Rueckfall wie bei tryIndex: ohne die Trigger blieben Dateien ohne Besitzer liegen.
+function installTriggers() {
+  const stale = Object.entries(TRIGGERS).filter(([name, sql]) => {
+    const there = db.prepare(
+      `SELECT sql FROM sqlite_master WHERE type = 'trigger' AND name = ?`).get(name);
+    return !there || indexWording(there.sql) !== indexWording(sql);
+  });
+  if (!stale.length) return;
+  db.transaction(() => {
+    for (const [name, sql] of stale) {
+      db.exec(`DROP TRIGGER IF EXISTS ${name}`);
+      db.exec(sql);
+    }
+  })();
+}
+installTriggers();
 
 /* Partieller UNIQUE-Index, weil SQLite an einer Tabelle kein UNIQUE nachruestet.
    Scheitert er an doppelten Adressen, nennt emailsDoubled() sie. */
