@@ -3747,9 +3747,9 @@ async function sendImport(object, mode, withoutShare = false) {
     /* Fest eingetragen: aus der Lockfile gelesen, koennte die Pruefung nicht scheitern. */
     const BP_RANGES = {
       'better-sqlite3-multiple-ciphers': '^11.5.0',
-      express: '^4.21.0', multer: '^2.0.1', nodemailer: '^9.0.5', sharp: '^0.35.3'
+      express: '^4.21.0', multer: '^2.0.1', nodemailer: '^10.0.12', sharp: '^0.35.3'
     };
-    check('Beipackprobe: package.json nennt dieselben fuenf Bereiche wie vor der Hebung',
+    check('Beipackprobe: package.json nennt die fuenf Bereiche',
       equal(bpPackage.dependencies, BP_RANGES), JSON.stringify(bpPackage.dependencies));
     check('Und die eine Entwicklungsabhaengigkeit steht unveraendert daneben',
       equal(bpPackage.devDependencies, { jsdom: '^30.0.1' }),
@@ -3757,7 +3757,7 @@ async function sendImport(object, mode, withoutShare = false) {
     const bpLock = JSON.parse(fs.readFileSync(path.join(__dirname, 'package-lock.json'), 'utf8'));
     const bpAt = (name) => ((bpLock.packages || {})[`node_modules/${name}`] || {}).version;
     check('Und die Lockfile traegt die gehobenen Staende',
-      bpAt('multer') === '2.3.0' && bpAt('nodemailer') === '9.1.1' &&
+      bpAt('multer') === '2.4.0' && bpAt('nodemailer') === '10.0.12' &&
       bpAt('sharp') === '0.35.4' && bpAt('body-parser') === '1.20.8',
       JSON.stringify(['multer', 'nodemailer', 'sharp', 'body-parser'].map(n => `${n}=${bpAt(n)}`)));
     check('Und express bleibt bei 4 — der Sprung auf 5 ist eine eigene Runde',

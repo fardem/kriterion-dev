@@ -30,6 +30,19 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.47.1] - 2026-09-29
+
+*Abhängigkeiten ohne bekannte Lücke.*
+
+Fingerprint `a49b4154` — davor `636c7c11`.
+
+### Sicherheit
+
+- `nodemailer` 9.1.1 → 10.0.12 (GHSA-6vj9-mwq6-2f5v); Version 10 verlangt
+  Node 20, das Image bringt Node 22.
+- `multer` 2.3.0 → 2.4.0 (GHSA-3pph-fpjx-jg34).
+- `undici` 8.10.0 → 8.11.2, nur im Prüfstand (GHSA-3wwx-pv8p-q78v).
+
 ## [0.47.0] - 2026-09-29
 
 *Ordner unter „Dateien“.*
