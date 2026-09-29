@@ -615,7 +615,8 @@ async function run() {
     const backLink = w.document.querySelector('.fileview-back');
     const bar = [...(w.document.querySelector('.fileview-bar')?.children || [])];
     check('Die eigene Ansicht hat oben rechts ✕ „Schliessen", das zum Eintrag fuehrt wie „← Titel"',
-      !!close && close.getAttribute('href') === backLink?.getAttribute('href') && close.getAttribute('href') === '#/item/1' &&
+      !!close && !close.closest('[hidden]') && close.getAttribute('href') === backLink?.getAttribute('href') &&
+      close.getAttribute('href') === '#/item/1' &&
       close.getAttribute('aria-label') === DE['list.close'] && close.title === DE['list.close'] && bar[bar.length - 1] === close,
       `${close?.outerHTML} · ${bar.map(e => e.className).join(' ')}`);
     headOf(w, 7);
@@ -641,7 +642,8 @@ async function run() {
         file(45, 'tabelle.xlsx', 'office', { edit: true, editAll: false })] });
       await until(e.w, (x) => !!x.document.querySelector('.fileview') && openRequests(x) === 0, 3000, 'die eigene Ansicht').catch(() => {});
       const x = e.w.document.querySelector('.fileview-bar .fileview-close');
-      check(`Das ✕ steht auch ${label}`, x?.getAttribute('href') === '#/item/1' && x?.getAttribute('aria-label') === DE['list.close'],
+      check(`Das ✕ steht auch ${label}`, !!x && !x.closest('[hidden]') && x.getAttribute('href') === '#/item/1' &&
+        x.getAttribute('aria-label') === DE['list.close'],
         e.w.document.querySelector('.fileview-bar')?.innerHTML?.slice(0, 200));
       e.w.close();
     }
