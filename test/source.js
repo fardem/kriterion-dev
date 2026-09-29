@@ -393,7 +393,8 @@ async function run() {
   /* ---- Papierkorb und Abfragen auf den Bestand ---- */
   const DATATABLES = ['items', 'photos', 'comments', 'ratings', 'test_days',
                             'links', 'attachments', 'comment_images', 'comment_videos', 'item_tags',
-                            'test_day_tags', 'item_pins', 'attachment_stills'];
+                            'test_day_tags', 'item_pins', 'attachment_stills', 'folders',
+                            'attachment_folders'];
   const inventoryQueries = (text) => text.split('\n')
     .filter(z => DATATABLES.some(t =>
       z.includes(`FROM ${t}`) || z.includes(`INTO ${t}`) || z.includes(`UPDATE ${t} `)));

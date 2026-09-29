@@ -275,6 +275,11 @@ auch in weiteren Gruppen:
 - 1339 in derselben Gruppe, in der Prüfung zur Adresse einer Bilddatei: sie
   verlangt „1 / 2“ im Vollbild.
 
+Nachgetragen nach dem Bau: `DATATABLES` in `test/source.js` nennt jetzt
+`folders` und `attachment_folders`. BA 11 des Auftrags verlangte das; beim Bau
+fehlte es. Die Prüfung, dass keine Abfrage auf den Bestand den Papierkorb
+nennt, liest damit elf Zeilen mehr und bleibt grün.
+
 ---
 
 ## 6. Nicht geprüft und offen
