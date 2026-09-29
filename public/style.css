@@ -1758,6 +1758,29 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
 /* Ablegen nur mit Maus; auf dem Telefon waere der Satz falsch. */
 @media (pointer: coarse), (pointer: none) { .adrop-hint { display: none; } }
 .block[data-block="dateien"].over { outline: 2px dashed var(--accent); outline-offset: 4px; }
+.afolder { margin-top: 4px; }
+.afolder-head { display: flex; align-items: center; gap: 4px; }
+.afolder-face {
+  flex: 1 1 auto; min-width: 0; min-height: 44px; display: flex; align-items: center; gap: 8px;
+  padding: 4px 6px; border: 0; border-radius: 6px; background: none; color: inherit; font: inherit;
+  text-align: left; cursor: pointer;
+}
+.afolder-face:hover, .afolder.over .afolder-face { background: var(--surface-2); }
+.afolder-face:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.afolder-caret { width: 12px; flex-shrink: 0; color: var(--muted); }
+.afolder-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.afolder-meta {
+  flex: 0 1 auto; min-width: 0; margin-left: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--mono); font-size: .66rem; color: var(--faint);
+}
+.afolder-face .astate { position: static; flex-shrink: 0; }
+.afolder-face .astate.run { width: 30px; height: 30px; }
+.afolder-more {
+  flex-shrink: 0; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+  border: 0; border-radius: 6px; background: none; color: var(--muted); font-size: 1rem; cursor: pointer;
+}
+.afolder-more:hover, .afolder-more[aria-expanded="true"] { background: var(--accent); color: var(--on-accent); }
+.afolder-body { padding-left: 18px; }
 /* Nur der Ausweichknopf der PDF-Vorschau. */
 .abtn {
   font-size: .73rem; color: var(--muted); padding: 3px 8px; border-radius: 5px;

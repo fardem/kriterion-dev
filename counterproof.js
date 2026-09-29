@@ -1698,7 +1698,7 @@ const REGRESSIONS = [
   {
     nr: '233', name: 'Die Formatnummer bleibt auf 15',
     file: 'server.js',
-    search: "const EXCHANGE_FORMAT = 20;",
+    search: "const EXCHANGE_FORMAT = 21;",
     replacement: "const EXCHANGE_FORMAT = 15;",
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
@@ -3211,7 +3211,7 @@ const REGRESSIONS = [
     /* Derselbe Suchtext wie 233; geprueft wird hier die Exportdatei. */
     nr: '448', name: 'Die Formatnummer bleibt bei 15, obwohl das Faelligkeitsdatum mitgeht',
     file: 'server.js',
-    search: "const EXCHANGE_FORMAT = 20;",
+    search: "const EXCHANGE_FORMAT = 21;",
     replacement: "const EXCHANGE_FORMAT = 15;",
     expected: 'Die Exportdatei'
   },
@@ -8430,8 +8430,8 @@ const REGRESSIONS = [
   {
     nr: '1217', name: 'Eine Antwort 413 ohne JSON zeigt wieder den Statuscode',
     file: 'public/app.js',
-    search: "    else if (res.status === 413) m = t('error.proxyTooLarge');\n",
-    replacement: '',
+    search: "const proxyAnswer = (status) => (status === 413 ? t('error.proxyTooLarge')",
+    replacement: "const proxyAnswer = (status) => (status === 413 ? ''",
     expected: 'Die Antwort 413 vom Reverse Proxy'
   },
   {
@@ -9116,8 +9116,8 @@ const REGRESSIONS = [
   {
     nr: '1318', name: "Der Umschlag des Papierkorbs traegt kein Standbild",
     file: 'server.js',
-    search: "                    ...(a2.still ? { duration: a2.duration,\n                                     ['still' + extension]: funnel.take(null, ['fileStill', a2.id]) } : {}) }));",
-    replacement: "                    }));",
+    search: "                    ...(a2.still ? { duration: a2.duration,\n                                     ['still' + extension]: funnel.take(funnel.blobs ? a2.still : null,",
+    replacement: "                    ...(a2.still && funnel.blobs ? { duration: a2.duration,\n                                     ['still' + extension]: funnel.take(funnel.blobs ? a2.still : null,",
     expected: "Videos unter Dateien: Papierkorb und Export"
   },
   {
@@ -9189,6 +9189,104 @@ const REGRESSIONS = [
     search: "  v.currentTime = Math.min(end, Math.max(0, v.currentTime + (e.key === 'ArrowLeft' ? -SEEK_STEP : SEEK_STEP)));",
     replacement: "  v.currentTime = v.currentTime + (e.key === 'ArrowLeft' ? -SEEK_STEP : SEEK_STEP);",
     expected: "Videos unter Dateien: Kachel, Vollbild und Tasten"
+  },
+  {
+    nr: '1329', name: "Verschieben legt die Datei neu an",
+    file: 'server.js',
+    search: "    putFileFolder.run(req.params.id, f.id);\n  }\n  touch.run(a.item_id);",
+    replacement: "    const copy = db.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)\n      SELECT item_id, filename, mime_type, size, data, sort_order, user_id FROM attachments WHERE id = ?`)\n      .run(req.params.id).lastInsertRowid;\n    db.prepare('DELETE FROM attachments WHERE id = ?').run(req.params.id);\n    putFileFolder.run(copy, f.id);\n  }\n  touch.run(a.item_id);",
+    expected: "Ordner: Schema und Routen"
+  },
+  {
+    nr: '1330', name: "Ordner loeschen loescht die Dateien darin mit",
+    file: 'server.js',
+    search: "  dropFolder.run(f.id);",
+    replacement: "  db.prepare('DELETE FROM attachments WHERE id IN (SELECT attachment_id FROM attachment_folders WHERE folder_id = ?)').run(f.id);\n  dropFolder.run(f.id);",
+    expected: "Ordner: Schema und Routen"
+  },
+  {
+    nr: '1331', name: "PUT /api/folders/:id nimmt testDay an",
+    file: 'server.js',
+    search: "  if ((req.body || {}).testDay !== undefined)\n    return res.status(400).json({ error: t(localeOf(req), 'server.folderTestDay')});",
+    replacement: "  if ((req.body || {}).testDay !== undefined)\n    db.prepare('UPDATE folders SET test_day_id = ? WHERE id = ?').run(Number(req.body.testDay) || null, f.id);",
+    expected: "Ordner: Schema und Routen"
+  },
+  {
+    nr: '1332', name: "Umbenennen darf auch der Admin",
+    file: 'server.js',
+    search: "  if (!selfOnly(req, f.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});\n  if ((req.body || {}).testDay",
+    replacement: "  if (!mayChange(req, f.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});\n  if ((req.body || {}).testDay",
+    expected: "Ordner: Schema und Routen"
+  },
+  {
+    nr: '1333', name: "Verschieben vergleicht den Eintrag von Datei und Ordner nicht",
+    file: 'server.js',
+    search: "    if (f.item_id !== a.item_id || !selfOnly(req, f.user_id))",
+    replacement: "    if (!selfOnly(req, f.user_id))",
+    expected: "Ordner: Schema und Routen"
+  },
+  {
+    nr: '1334', name: "Der Export traegt keine Ordner",
+    file: 'server.js',
+    search: "    o.folders = folders.map(f => ({ name: f.name, author: authorName(f.user_id), created_at: f.created_at }));",
+    replacement: "    o.folders = funnel.blobs ? [] : folders.map(f => ({ name: f.name, author: authorName(f.user_id), created_at: f.created_at }));",
+    expected: "Ordner: Export, Import und Papierkorb"
+  },
+  {
+    nr: '1335', name: "Der Export traegt kein Standbild",
+    file: 'server.js',
+    search: "                    ...(a2.still ? { duration: a2.duration,\n                                     ['still' + extension]: funnel.take(funnel.blobs ? a2.still : null,",
+    replacement: "                    ...(a2.still && !funnel.blobs ? { duration: a2.duration,\n                                     ['still' + extension]: funnel.take(funnel.blobs ? a2.still : null,",
+    expected: "Ordner: Export, Import und Papierkorb"
+  },
+  {
+    nr: '1336', name: "Der Import legt keine Ordner an",
+    file: 'server.js',
+    search: "      const folderIds = (Array.isArray(it.folders) ? it.folders : []).map(f => {",
+    replacement: "      const folderIds = [].map(f => {",
+    expected: "Ordner: Export, Import und Papierkorb"
+  },
+  {
+    nr: '1337', name: "Der Papierkorb vergisst die Ordner",
+    file: 'server.js',
+    search: "    o.folders = folders.map(f => ({ name: f.name, author: authorName(f.user_id), created_at: f.created_at }));",
+    replacement: "    o.folders = !funnel.blobs ? [] : folders.map(f => ({ name: f.name, author: authorName(f.user_id), created_at: f.created_at }));",
+    expected: "Ordner: Export, Import und Papierkorb"
+  },
+  {
+    nr: '1338', name: "Beim Oeffnen eines Eintrags stehen die Ordner offen",
+    file: 'public/app.js',
+    search: "      const open = FOLDERS_OPEN.open.has(f.id);",
+    replacement: "      const open = true;",
+    expected: "Ordner: Block, Kopf und Menue"
+  },
+  {
+    nr: '1339', name: "Das Vollbild blaettert ueber die Gruppe hinaus",
+    file: 'public/app.js',
+    search: "      .filter(a => (a.preview === 'image' || a.preview === 'video') && groupOf(a) === key)",
+    replacement: "      .filter(a => a.preview === 'image' || a.preview === 'video')",
+    expected: "Ordner: Block, Kopf und Menue"
+  },
+  {
+    nr: '1340', name: "Das Menue eines fremden Ordners steht jedem offen",
+    file: 'public/app.js',
+    search: "    if (f.mine === true || ADMIN)\n      items.push({ label: t('entry.folderDelete')",
+    replacement: "    if (true)\n      items.push({ label: t('entry.folderDelete')",
+    expected: "Ordner: Block, Kopf und Menue"
+  },
+  {
+    nr: '1341', name: "Beim Bearbeiten fehlt das ✕ der eigenen Ansicht",
+    file: 'public/app.js',
+    search: "      <a class=\"fileview-full fileview-close\" href=\"${esc(entryAddress(itemId))}\"",
+    replacement: "      <a class=\"fileview-full fileview-close\"${editWanted ? ' hidden' : ''} href=\"${esc(entryAddress(itemId))}\"",
+    expected: "Ordner: Adresse, Rueckkehr und das ✕ der eigenen Ansicht"
+  },
+  {
+    nr: '1342', name: "Eine 403 ohne Text zeigt beim Hochladen wieder nur den Statuscode",
+    file: 'public/app.js',
+    search: "    uploadFail(u, data?.error || proxyAnswer(xhr.status) || t('error.serverStatus', { status: xhr.status }));",
+    replacement: "    uploadFail(u, data?.error || t('error.serverStatus', { status: xhr.status }));",
+    expected: "Ordner: Loeschdialoge und die Meldung bei 403"
   },
 ];
 

@@ -143,6 +143,8 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
   entryMine = false,
   /* Anhaenge hinter den vier der Vorgabe. */
   extraAttachments = [],
+  /* Ordner unter „Dateien", neueste oben wie am Server. */
+  folders = [],
   /* Die Karte „Dokumente": Zustand und Ergebnis der Pruefung. */
   documentServer = null, documentServerCheck = null } = {}) {
   // Kommt aus dem jsdom-Paket des Aufrufers; require liest nur den Modulcache.
@@ -402,6 +404,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
         created_at: '2026-08-03 13:00:00', mine: false, author: null },
       ...extraAttachments
     ],
+    folders,
     tags: tags.filter(t => t.assigned),
     // mine: ob der Testtag dem Abrufenden gehoert, wie am Server.
     testDays: dayInventory || [{ id: 3, day: '2026-08-01', rating: 4, mine: true, author: vChefin,

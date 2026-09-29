@@ -227,7 +227,7 @@ async function run() {
     try { rtFile = JSON.parse(await a.text()); } catch { rtFile = null; }
     const item = rtFile?.items?.find(i => i.title === 'Kommentarvideos');
     const c = item?.comments?.find(z => z.text === 'Mit Video');
-    check('Die Exportdatei traegt Format 20', rtFile?.version === 20, JSON.stringify(rtFile?.version));
+    check('Die Exportdatei traegt Format 21', rtFile?.version === 21, JSON.stringify(rtFile?.version));
     check('Der Kommentar traegt sein Video samt Standbild',
       c?.videos?.length === 1 && Buffer.from(c.videos[0].data_base64 || '', 'base64').equals(cvVideo) &&
       !!c.videos[0].still_base64 && c.videos[0].duration === 7,

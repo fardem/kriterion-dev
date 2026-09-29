@@ -59,7 +59,14 @@ annehmen.
   wenn `sharp` die Datei nicht lesen kann. Nicht im Export.
 - `attachment_stills`: Standbild und Dauer eines Videos unter „Dateien“, im
   Browser erzeugt, 1600 px WebP. Setzen darf nur, wer die Datei hochgeladen
-  hat (`PUT /api/attachments/:id/still`). Im Papierkorb, nicht im Export.
+  hat (`PUT /api/attachments/:id/still`). Im Papierkorb und im Export.
+- `folders`: Ordner unter „Dateien“ mit Name (1 bis 80 Zeichen), Verfasser und
+  Zeitpunkt; `AUTOINCREMENT`, damit ein Upload auf einen gelöschten Ordner nie
+  in einem neuen mit derselben Nummer landet. `test_day_id` wird noch nicht
+  gesetzt.
+- `attachment_folders`: je Datei höchstens ein Ordner; ohne Zeile steht sie
+  ohne Ordner. Im Export steht je Datei `folder` als Stelle im Feld `folders`
+  des Eintrags.
 - `settings`: globale Einstellungen, darunter Titel, Vokabular, Suchmaschinen
   und das Verfahren der Bildablage (`imageStore`).
 - `user_settings`: zehn persönliche Schlüssel je Benutzer, darunter Filter,

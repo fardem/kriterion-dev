@@ -127,7 +127,7 @@ Zwei Häkchen löschen auf Wunsch mit:
 
 - die Einträge des Benutzers, samt fremder Kommentare, Bewertungen und
   Testtage daran (das Fenster nennt die Zahlen);
-- seine Beiträge in Einträgen anderer.
+- seine Beiträge in Einträgen anderer, auch seine Ordner dort.
 
 Sitzungen, offene Links, Favoriten und persönliche Einstellungen gehen immer
 mit. Wer nur die Anmeldung unterbinden will, sperrt statt zu löschen. Gelöschte
@@ -218,6 +218,11 @@ Am einzelnen Eintrag. „Verfasser" ist, wer die jeweilige Sache angelegt hat.
 | Link eintragen, Datei hochladen | ✔ | ✔ | ✔ |
 | eigenen Link, eigene Datei löschen | ✔ | ✔ | ✔ |
 | fremden Link, fremde Datei löschen | — | — | ✔ |
+| Ordner anlegen | ✔ | ✔ | ✔ |
+| Ordner umbenennen, in einen Ordner hochladen | ✔ | — | — |
+| Ordner löschen | ✔ | — | ✔ |
+| Datei verschieben, nur in eigene Ordner | ✔ | — | — |
+| Vorschaubild eines Videos unter „Dateien“ setzen | ✔ | — | — |
 | Links umsortieren | ✔ | — | ✔ |
 | Kommentar schreiben | ✔ | ✔ | ✔ |
 | eigenen Kommentar ändern | ✔ | — | — |
@@ -354,8 +359,22 @@ unverändert.
   man einen anderen Eintrag öffnet; beim Schließen des Tabs fragt der Browser
   nach. Fehlt die Verbindung, versucht Kriterion es nach 2, 5 und 15 Sekunden
   erneut.
+- **Ordner:** „Ordner hinzufügen“ im Kopf des Blocks legt einen an; der Name
+  hat 1 bis 80 Zeichen, gleiche Namen sind erlaubt. Oben stehen die Dateien
+  ohne Ordner, darunter die Ordner, der neueste oben. Beim Öffnen eines
+  Eintrags sind alle Ordner zu; ein Klick auf den Kopf klappt einen auf. Der
+  Kopf nennt Zahl und Größe der Dateien, bei mehreren Accounts auch, wer den
+  Ordner angelegt hat; zugeklappt zeigt er den Stand seiner Uploads. In einen
+  eigenen Ordner lädt man über sein „+“ oder durch Ablegen auf ihm; in einen
+  fremden lädt niemand hoch. „Verschieben nach …“ im Menü einer eigenen Datei
+  bietet die eigenen Ordner und „Ohne Ordner“; die Datei behält Adresse,
+  Vorschaubild und „Bearbeiten durch alle“. Das Menü ⋯ am Ordner bietet
+  „Bearbeiten …“ und „Ordner löschen“; die Dateien eines gelöschten Ordners
+  stehen danach ohne Ordner. Wird ein Ordner gelöscht, während Dateien in ihn
+  hochgehen, zeigen sie ⚠ „Diesen Ordner gibt es nicht mehr.“
 - **Klick auf eine Datei:** Ein Bild oder Video öffnet das Vollbild; ← und →
-  blättern durch Bilder und Videos unter „Dateien“. PDF, Text, Markdown, CSV,
+  blättern durch Bilder und Videos derselben Gruppe, ohne Ordner oder im
+  selben Ordner. PDF, Text, Markdown, CSV,
   Log und `.docx` zeigen die Vorschau unter den Kacheln, auf dem Telefon die
   eigene Ansicht. Hat der Admin einen Document Server eingeschaltet, gilt das
   auch für Word-, Excel- und PowerPoint-Dateien und ihre
@@ -370,14 +389,15 @@ unverändert.
   im Menü ⋯ oder im Vollbild nimmt das gezeigte Bild; das darf nur, wer das
   Video hochgeladen hat. Kann der Browser ein Video nicht abspielen, etwa
   HEVC in Firefox, stehen dort ein Satz und „Herunterladen“.
-- **Vorschau:** höchstens eine im Block; ein Klick auf eine andere Kachel
-  wechselt sie, ein Klick auf dieselbe schließt sie. Im Kopf öffnet ⤢ die
+- **Vorschau:** höchstens eine im Block, unter den Kacheln ihrer Gruppe; ein
+  Klick auf eine andere Kachel wechselt sie, ein Klick auf dieselbe schließt
+  sie, ebenso das Zuklappen ihres Ordners. Im Kopf öffnet ⤢ die
   eigene Ansicht, ↓ lädt herunter, × oder Esc schließt. Kann Kriterion eine
   Bilddatei nicht als Bild lesen, steht auf der Kachel die Endung.
 - **Menü ⋯:** steht an jeder Kachel und bietet nur an, was man darf:
   „Bearbeiten durch alle“, „Bearbeiten“, „Öffnen“, „Dieses Bild als
   Vorschaubild“, „Link auf diese Datei kopieren“, „Herunterladen“, „Vorige
-  Fassung wiederherstellen“ und „Datei löschen“. Oben steht der Name, bei
+  Fassung wiederherstellen“, „Verschieben nach …“ und „Datei löschen“. Oben steht der Name, bei
   mehreren Accounts auch, wer die Datei wann hochgeladen hat. Auf dem Telefon öffnet das Menü am unteren Rand. An
   einer Kachel, die noch hochgeht, steht „Abbrechen“, nach einem Fehler
   „Erneut versuchen“ und „Entfernen“.
@@ -388,7 +408,8 @@ unverändert.
   Datei in der eigenen Ansicht; eine Datei ohne Vorschau lädt man dort mit ↓
   herunter.
 - **Eigene Ansicht:** zeigt die Datei über das ganze Fenster. Der Pfeil oben
-  links führt zurück zum Eintrag, zur Kachel der Datei. Das Zeichen für
+  links und ✕ oben rechts führen zurück zum Eintrag, zur Kachel der Datei;
+  ihr Ordner steht dann offen. Das Zeichen für
   Vollbild in der Leiste zeigt nur das Dokument über den ganzen Bildschirm,
   auch quer; Zurück oder Esc beendet es. Kann der Browser kein Vollbild, fehlt
   das Zeichen.
@@ -445,8 +466,8 @@ Kopfzeile einklappen. Die Anordnung gilt für alle Einträge und wird in
 
 Jedes Löschen fragt nach. Beim Eintrag nennt die Rückfrage, was daran hängt.
 Gelöschte Einträge liegen 30 Tage im Papierkorb; zurückholen kann sie der
-Eigentümer-Admin (Einstellungen › Bestand, Karte „Papierkorb"). Vorschaubild
-und Dauer eines Videos kommen mit zurück.
+Eigentümer-Admin (Einstellungen › Bestand, Karte „Papierkorb"). Ordner sowie
+Vorschaubild und Dauer eines Videos kommen mit zurück.
 
 ### Eintrag exportieren
 
@@ -622,7 +643,10 @@ Passwortabfrage.
 | Export in Teilen | wenn eine Upload-Grenze oder ein Datenträger gegen eine große Datei spricht |
 | Backup | vollständige, verschlüsselte Sicherung der Datenbank (README) |
 
-Die Exportdatei enthält nur Einträge mit Verfassernamen. Nicht darin:
+Die Exportdatei enthält nur Einträge mit Verfassernamen. Mit dem Häkchen für
+Dateien trägt sie auch die Ordner und das Vorschaubild jedes Videos unter
+„Dateien“; aus einer älteren Exportdatei kommen die Dateien ohne Ordner.
+Nicht darin:
 Benutzer, Passwörter, Sitzungen, zweiter Faktor, Mailzugang, Titel,
 Vokabular, Suchmaschinen, Einstellungen, Sicherheitsprotokoll, Papierkorb.
 

@@ -180,9 +180,10 @@ async function run() {
   const exported = await (await fetch(B.base + '/api/export?files=1', { headers: withCsrf(B.cookieValue()) })).json()
     .catch(() => null);
   const exportedFiles = (exported?.items || []).flatMap(it => it.attachments || []);
-  check('Der Export (Format 20) traegt kein Standbild',
-    exported?.version === 20 && exportedFiles.some(a => a.filename === 'clip.mp4') &&
-    exportedFiles.every(a => !Object.keys(a).some(k => /^still|^duration$/.test(k))),
+  const clipOut = exportedFiles.find(a => a.filename === 'clip.mp4');
+  check('Der Export (Format 21) traegt Standbild und Dauer',
+    exported?.version === 21 && clipOut?.duration === 42 && !!clipOut?.still_base64 &&
+    exportedFiles.filter(a => /\.(txt|avi)$/.test(a.filename)).every(a => !Object.keys(a).some(k => /^still|^duration$/.test(k))),
     `${exported?.version} ${exportedFiles.map(a => Object.keys(a).join('+')).join(' ')}`);
   await B.stop();
   fs.rmSync(dir, { recursive: true, force: true });
