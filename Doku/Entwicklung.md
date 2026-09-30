@@ -9,7 +9,9 @@ Aufbau, Datenmodell, Sicherheit der Auslieferung und Prüfstand. Betrieb steht i
 |---|---|
 | `server.js` | Routen und Auslieferung |
 | `auth.js` | Anmeldung, Sitzungen, Token, Sicherheitsprotokoll |
-| `db.js` | Schema und Verbindung zur verschlüsselten Datei |
+| `db.js` | Verbindung zur verschlüsselten Datei, Prüfung beim Start |
+| `schema.js` | Schema der Datenbank und der Vergleich eines Backups damit |
+| `backup.js` | Backups am Ablageort: Ort, Liste, Regel, Lockfile, Kopie der Dateien |
 | `keys.js` | Schlüssel lesen, erzeugen, prüfen |
 | `attachments.js` | Anhänge: Auslieferung, Vorschau, Verschlüsselung der Dateien auf der Platte |
 | `images.js` | Bildableitungen: Kachel und mittlere Variante |
@@ -19,6 +21,7 @@ Aufbau, Datenmodell, Sicherheit der Auslieferung und Prüfstand. Betrieb steht i
 | `log.js` | Containerprotokoll: Zeitstempel und Name |
 | `usertool.js` | Zugangsverwaltung auf dem Server |
 | `keytool.js`, `keytool.sh` | Schlüsselwechsel bei angehaltener Instanz |
+| `backuptool.js`, `backuptool.sh` | Backups ansehen und zurückspielen |
 | `public/` | `index.html`, `app.js`, `style.css`, `theme.js`, drei Sprachdateien |
 | `test/`, `testbench.js`, `counterproof.js` | Prüfstand und Gegenproben |
 

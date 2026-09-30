@@ -841,6 +841,13 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
         return m ? Number(decodeURIComponent(m[1])) : null;
       };
       const gr = backup.cleanup && backup.cleanup.limits;
+      /* Die Rueckfrage der Auswahl: frei wuerden die Dateien, die nur diese Backups nennen. */
+      const freedNames = (q.match(/(?:^|&)freed=([^&]*)/) || [])[1];
+      if (freedNames !== undefined) {
+        const names = new Set(decodeURIComponent(freedNames).split('|'));
+        return give({ ...backup, freed: cleanupCopies.filter(z => names.has(z.file))
+          .reduce((n, z) => n + ((z.files && z.files.onlyBytes) || 0), 0) });
+      }
       if (!gr || !q) return give(backup);
       const b = numberOut('keep'), t = numberOut('days');
       for (const [value, span, event] of [[b, gr.keep, 'Immer behalten'],
@@ -858,7 +865,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       const names = new Set(matched.map(z => z.file));
       const oldNames = new Set((backup.cleanup.oldFiles || []).map(z => z.file));
       return give({ ...backup, cleanup: { ...backup.cleanup, keep, days,
-        files: cleanupCopies.map((z, i) => ({ ...z, nr: i + 1,
+        files: cleanupCopies.map((z, i) => ({ ...z, nr: i + 1, locked: i < backup.cleanup.keep,
           affected: names.has(z.file), outdated: oldNames.has(z.file) })),
         matched, bytes: matched.reduce((n, z) => n + z.bytes, 0),
         reason: matched.length ? '' : (cleanupCopies.length <= keep
@@ -869,15 +876,22 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       if (settings.isOwner === false)
         return give({ error: DE_TEXTS['server.deniedOwner'] }, 403);
       const k = JSON.parse(opt.body || '{}');
-      if (k.kind !== 'rule' && k.kind !== 'outdated')
+      if (k.kind !== 'rule' && k.kind !== 'outdated' && k.kind !== 'selected')
         return give({ error: 'Diese Art des Aufräumens gibt es nicht.' }, 400);
       const a = backup.cleanup || {};
+      // Wie am Server: die `keep` juengsten sind gesperrt, ein unbekannter Name loescht nichts.
+      const chosen = new Set(k.kind === 'selected' ? k.names || [] : []);
+      if (k.kind === 'selected' && (!chosen.size || [...chosen].some(n =>
+        cleanupCopies.findIndex(z => z.file === n) < (a.keep ?? 3))))
+        return give({ error: DE_TEXTS['server.cleanupSelection'] }, 400);
       const outdatedFiles = k.kind === 'outdated'
         ? (a.oldFiles || [])
+        : k.kind === 'selected' ? cleanupCopies.filter(z => chosen.has(z.file))
         : cleanupCopies.slice(a.keep).filter(z => z.daysAgo > a.days);
       const names = new Set(outdatedFiles.map(z => z.file));
       for (let i = cleanupCopies.length - 1; i >= 0; i--)
         if (names.has(cleanupCopies[i].file)) cleanupCopies.splice(i, 1);
+      if (Array.isArray(a.files)) a.files = a.files.filter(z => !names.has(z.file));
       const bytes = outdatedFiles.reduce((n, z) => n + z.bytes, 0);
       backup.number = Math.max(0, (backup.number || 0) - outdatedFiles.length);
       if (k.kind === 'outdated') { backup.outdated = 0; a.oldCount = 0; a.oldBytes = 0;

@@ -7,6 +7,7 @@ data
 testbench.js
 counterproof.js
 keytool.sh
+backuptool.sh
 Doku
 kriterion-backup
 kriterion-sicherung

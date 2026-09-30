@@ -385,9 +385,11 @@ async function checkBatchRun() {
       /startBatchThread\('geometry', rows, maintainStorage\);/.test(blServer),
       (blRun.match(/db\.exec\('VACUUM'\)/) || ['(kein VACUUM im Thread — richtig)'])[0]);
     // Der Thread laedt db.js ein zweites Mal; das Oeffnen muss wiederholbar sein.
-    const blWithoutWhen = (blDb.match(/CREATE TABLE (?!IF NOT EXISTS)/g) || []).length;
-    check('db.js legt keine Tabelle ohne IF NOT EXISTS an',
-      blWithoutWhen === 0 && !/db\.exec\('VACUUM'\)/.test(blDb), `${blWithoutWhen} Stellen`);
+    const blSchema = fs.readFileSync(path.join(__dirname, 'schema.js'), 'utf8');
+    const blWithoutWhen = ((blDb + blSchema).match(/CREATE TABLE (?!IF NOT EXISTS)/g) || []).length;
+    check('db.js und schema.js legen keine Tabelle ohne IF NOT EXISTS an',
+      blWithoutWhen === 0 && /CREATE TABLE IF NOT EXISTS/.test(blSchema)
+      && !/db\.exec\('VACUUM'\)/.test(blDb), `${blWithoutWhen} Stellen`);
     check('Und der Nachweis der Wiederholbarkeit steht dort geschrieben',
       /muss wiederholbar sein/.test(blDb),
       'die Begruendung fehlt');

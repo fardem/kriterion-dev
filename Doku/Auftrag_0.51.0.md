@@ -3,7 +3,9 @@
 **Aufgestellt am 30. September 2026.** Grundlage sind der Abschnitt 0.51.0 in
 `Doku/Fahrplan.md` und die Prüfung vom selben Tag (Abschnitt 2). Die Fragen
 aus Abschnitt 0 sind am 30. September 2026 beantwortet: F1 bis F4, F6, F7 und
-F10 bis F12 in drei Fragetafeln, F5, F8 und F9 in Nachrichten des Betreibers. Gebaut wird, wenn der Betreiber den Auftrag erteilt, auf dem
+F10 bis F12 in drei Fragetafeln, F5, F8 und F9 in Nachrichten des Betreibers,
+F13 und F14 in Fragetafeln während des Baus. **Erteilt am 30. September 2026**
+(„bitte bau jetzt 0.51.0 nach dem entsprechenden auftrag“), gebaut auf dem
 Branch, der in der Aufgabe genannt ist.
 
 Zeilennummern gelten für `d430711` (0.50.0).
@@ -26,6 +28,8 @@ Zeilennummern gelten für `d430711` (0.50.0).
 | F10 | Folgen die Ordner der Sortierung? | Ordner sortieren mit · nur die Dateien in jeder Gruppe | **Ordner sortieren mit** (Empfehlung) |
 | F11 | Was steht in der Listenzeile direkt, neben dem Menü „…“? | Bearbeiten · Herunterladen · Öffnen · Löschen, auch mehrere | **Bearbeiten** |
 | F12 | Bleibt der Eintrag zusätzlich im Menü „…“? | Menü bleibt vollständig · in der Liste herausnehmen | **Menü bleibt vollständig** (Empfehlung) |
+| F13 | Woher kommt das Alter eines Backups? Der Prüfstand hält seit 0.20.0 fest, dass ein Name über das Alter nichts sagt | Änderungszeit wie bisher · aus dem Namen | **Änderungszeit wie bisher**; Fragetafel während des Baus |
+| F14 | Welche Folge haben die Ordner bei der Vorgabe „Älteste zuerst“? Heute steht der neueste oben | ältester Ordner oben · neuester Ordner oben | **ältester Ordner oben** (Empfehlung); Fragetafel während des Baus |
 
 ---
 
@@ -40,7 +44,8 @@ Zeilennummern gelten für `d430711` (0.50.0).
 - Jedes Backup nennt die Version, die es geschrieben hat. Das Skript spielt
   nur zurück, was zum Schema der installierten Version passt.
 - Die Regel „mindestens x behalten, älter als y Tage löschen“ gilt wie bisher
-  für Datenbank und Dateien. Das Alter kommt aus dem Namen.
+  für Datenbank und Dateien. Das Alter kommt wie bisher aus der Änderungszeit
+  (F13).
 - In „Alte Backups“ lassen sich mehrere Backups auswählen und zusammen löschen.
   Die jüngsten x bleiben.
 - Beim Weiterspielen eines Videos steht „ab 3:12“ mit „Von vorn“ 10 s lang.
@@ -131,7 +136,7 @@ Ohne Befund geprüft:
 
 ### Vorgaben des Betreibers
 
-F1 bis F12 aus Abschnitt 0, alle vom 30. September 2026.
+F1 bis F14 aus Abschnitt 0, alle vom 30. September 2026.
 
 ### Entschieden in diesem Auftrag
 
@@ -143,7 +148,7 @@ F1 bis F12 aus Abschnitt 0, alle vom 30. September 2026.
 | Auswahl | die Nr. aus `list` (1 ist das jüngste), die Zeit aus dem Namen (`2026-09-28-12-18-03`, auch gekürzt bis zum Datum) oder die Ortszeit der Karte (`28.09.2026` oder `28.09.2026 14:18`). Trifft sie mehrere Backups, nennt das Skript sie und bricht ab |
 | Ortszeit | aus `TZ` des Containers. Die Namen bleiben in UTC |
 | Version | Die Liste beginnt mit `# version 0.51.0`. Beim Backup vor dem Zurückspielen folgt `# vor <Name des zurückgespielten Backups>`. Die Liste entsteht bei jedem Backup, auch ohne Dateien. Jeder Leser überspringt Zeilen mit `#`; die Schleife der README tut es schon (`case`) |
-| Alter | aus dem Namen `kriterion-JJJJ-MM-TT-hh-mm-ss` (UTC). Passt der Name nicht, gilt die Änderungszeit |
+| Alter | aus der Änderungszeit der Datei wie bisher (F13). Eine Kopie des Backup-Ordners mit `cp -a` behält sie |
 | Schema passt | Jede Tabelle des Backups außer `sqlite_*` steht in `SCHEMA` und hat genau dessen Spalten. Fehlende Tabellen sind erlaubt, der Start legt sie an. Sonst spielt das Skript nicht zurück und nennt die Abweichungen und die Version aus der Liste |
 | `schema.js` | `SCHEMA` zieht aus `db.js` (`db.js:51-598`) in ein eigenes Modul. `db.js` öffnet beim Laden die laufende Datenbank; das Skript muss das Schema kennen, ohne sie zu öffnen |
 | `backup.js` | Liste lesen und schreiben, Alter, Regel, Lockfile, Kopie, Aufräumen, Prüfung und das Schreiben eines Backups ziehen aus `server.js` in ein Modul. `server.js` behält die Routen, `BACKUP_BUSY`, `BACKUP_COPY` und `SWEEP_HELD` |
@@ -162,10 +167,10 @@ F1 bis F12 aus Abschnitt 0, alle vom 30. September 2026.
 | Hinweis beim Weiterspielen | `SPOT_HINT_MS` von 5000 auf 10000 (`public/app.js:4421`). Es gilt für jedes Video mit gemerkter Stelle: großes Bild, Vollbild, „Dateien“, Kommentare |
 | Sortieren: Bedienung | eine Auswahl neben „Kacheln \| Liste“ im Kopf von „Dateien“ mit „Älteste zuerst“, „Jüngste zuerst“, „Name“. Sie gilt für Kacheln und Liste |
 | Sortieren: Speicher | je Account am Server und für alle Einträge, wie `filesView`: neuer Schlüssel `filesSort` in `PERSONAL_KEYS` (`server.js:451`) und in der Liste der erlaubten Werte (`server.js:1692`), `oldest`, `newest`, `name`, Vorgabe `oldest`. Ein anderer Wert wird mit 400 abgewiesen |
-| Sortieren: Vorgabe | „Älteste zuerst“ ist die heutige Reihenfolge (`ORDER BY a.sort_order, a.id`, `server.js:2387`). Wer nichts umstellt, sieht keinen Unterschied |
+| Sortieren: Vorgabe | „Älteste zuerst“ ist die heutige Reihenfolge der Dateien (`ORDER BY a.sort_order, a.id`, `server.js:2387`). Die Ordner stehen danach umgekehrt zu heute, der älteste oben (F14) |
 | Sortieren: Datum | das des Uploads (`attachments.created_at`), wie in der Spalte der Liste. Ein Speichern über den Document Server ändert es nicht |
 | Sortieren: Name | ohne Unterschied von Groß- und Kleinschreibung, Zahlen in natürlicher Folge („2“ vor „10“), nach der Sprache der Oberfläche (`localeCompare` mit `numeric`) |
-| Sortieren: Ordner | Dateien ohne Ordner bleiben oben. Die Ordner folgen der Sortierung (F10): „Jüngste zuerst“ ist die heutige Folge des Servers (Testtag oder Anlage, `server.js:2388-2390`), „Älteste zuerst“ die umgekehrte, „Name“ nach dem Ordnernamen. Laufende Uploads stehen am Ende ihrer Gruppe. Sortiert wird im Browser in `drawAtts()` (`public/app.js:7235`); der Server bleibt bei seiner Folge |
+| Sortieren: Ordner | Dateien ohne Ordner bleiben oben. Die Ordner folgen der Sortierung (F10, F14): „Jüngste zuerst“ ist die heutige Folge des Servers (Testtag oder Anlage, `server.js:2388-2390`), „Älteste zuerst“ die umgekehrte, auch als Vorgabe, „Name“ nach dem Ordnernamen. Laufende Uploads stehen am Ende ihrer Gruppe. Sortiert wird im Browser in `drawAtts()` (`public/app.js:7235`); der Server bleibt bei seiner Folge |
 | Bearbeiten in der Zeile | nur in der Listenansicht, nur am Rechner, nur unter derselben Bedingung wie im Menü: `a.preview === 'office' && a.edit && !isNarrow()` (`public/app.js:7356`). Der Knopf „Bearbeiten“ öffnet `fileAddress(id, a.id, true)` wie der Menüeintrag. Die Kacheln bleiben, wie sie sind |
 | Menü „…“ | bleibt vollständig (F12) |
 
@@ -277,8 +282,6 @@ nennt den Stand · `2` falscher Aufruf.
 ## 5. Server und Oberfläche
 
 - `POST /api/backup` schreibt die Liste immer, mit `# version`.
-- `backupList()` nimmt das Alter aus dem Namen; Reihenfolge, Regel,
-  `lastBackup()` und der Vergleich mit dem Schlüsselwechsel folgen.
 - `GET /api/backup` nennt je Backup `version`, `before` und
   `files: { count, bytes, onlyCount, onlyBytes }`, dazu
   `store: { count, bytes }` für `kriterion-files/`.
@@ -308,7 +311,7 @@ Arbeitsspeicher. `db.js` lädt `SCHEMA` von dort. Verhalten unverändert.
 Die Funktionen aus `server.js:6675-7290` ohne Routen und ohne Zustand des
 Servers. Verhalten unverändert; der Prüfstand bleibt grün, bevor BA 3 beginnt.
 
-### BA 3 — Liste mit Version, Alter aus dem Namen
+### BA 3 — Liste mit Version
 
 ### BA 4 — `backuptool.js`: `list`, `show`, `check`
 
@@ -340,8 +343,8 @@ Neues Modul `test/release_051.js`, der Server und `backuptool.js` direkt mit
 `node`, ohne Docker:
 
 - das Beispiel aus Abschnitt 2.2 mit Listen, Kopfzeilen und `kriterion-files/`
-- Alter aus dem Namen: junger Name mit alter Änderungszeit bleibt, alter Name
-  mit junger Änderungszeit fällt
+- Alter aus der Änderungszeit (F13): ein junger Name mit alter Änderungszeit
+  fällt unter die Regel
 - `list` und `show` mit Version, Zahlen und dem Unterschied B/D
 - `restore` von Backup 1: `data/files/` enthält genau A, B, C; D ist gelöscht;
   das Backup davor trägt `# vor`; der Server startet, der Eintrag zeigt A, B,
@@ -414,6 +417,7 @@ niemand arbeitet: Zurückspielen nimmt alle Änderungen seit dem Backup zurück.
 | | Grund |
 |---|---|
 | Einzelne Dateien aus einem Backup zurückholen | F4: eigene Runde, 0.52.0 |
+| Alter aus dem Namen | F13 |
 | Ein Ordner je Backup, Hardlinks | F1 |
 | Klartextliste mit Dateinamen im Backup-Ordner | F3; die Namen stünden unverschlüsselt |
 | Knopf „Zurückspielen“ in der Oberfläche | F5 |

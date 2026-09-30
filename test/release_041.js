@@ -534,7 +534,7 @@ async function run() {
       'card.exportOnlyEntries': 'Export und Import enthalten nur die {entryMany} — keine Benutzer und keine Einstellungen von Kriterion.',
       'card.wayBackupHint': 'der Notfall. Die vollständige, verschlüsselte Sicherung der Datenbank — auch mit Benutzern und Einstellungen.',
       'card.exportPurposeHint': '**Export:** für Umzug, Archiv und Weitergabe — unverschlüsselt, auch mit späteren Versionen lesbar. Er enthält nur die {entryMany}, keine Benutzer und keine Einstellungen. Für den Notfall: Karte **Backup**.',
-      'card.backupWhatHint': '**Backup:** die vollständige, verschlüsselte Sicherung der Datenbank — auch mit Benutzern und Einstellungen, die der Export nicht enthält. Lässt sich nur in dieselbe Programmversion zurückspielen.'
+      'card.backupWhatHint': '**Backup:** die vollständige, verschlüsselte Sicherung der Datenbank — auch mit Benutzern und Einstellungen, die der Export nicht enthält. Zurückgespielt wird auf dem Server mit ./backuptool.sh.'
     };
     const off = Object.keys(WANT).filter(k => DE[k] !== WANT[k]);
     check('Die fuenf Saetze stehen im verlangten Wortlaut', off.length === 0, off.join(' ') || 'alle');
@@ -616,7 +616,9 @@ async function run() {
       ['docker-compose.example.yml', hashComments(readText('docker-compose.example.yml'))],
       ['keytool.js', jsOutput(readText('keytool.js'))],
       ['keys.js', jsOutput(readText('keys.js'))],
-      ['keytool.sh', shOutput(readText('keytool.sh'))]];
+      ['keytool.sh', shOutput(readText('keytool.sh'))],
+      ['backuptool.js', jsOutput(readText('backuptool.js'))],
+      ['backuptool.sh', shOutput(readText('backuptool.sh'))]];
     const hits = sources.flatMap(([f, lines]) => lines
       .filter(z => OLD_WORD.test(z))
       .map(z => `${f}: ${z.trim().slice(0, 70)}`));

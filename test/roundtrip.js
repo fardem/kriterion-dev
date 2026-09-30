@@ -417,8 +417,8 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify(titleAfter));
 
   const ALLOWED = ['katalog.sqlite', 'Bewertungskatalog'];
-  const TESTED = ['server.js', 'db.js', 'auth.js', 'keys.js', 'usertool.js', 'attachments.js',
-    'package.json', 'docker-compose.example.yml', 'Dockerfile', '.env.example',
+  const TESTED = ['server.js', 'db.js', 'schema.js', 'backup.js', 'backuptool.js', 'auth.js', 'keys.js',
+    'usertool.js', 'attachments.js', 'package.json', 'docker-compose.example.yml', 'Dockerfile', '.env.example',
     'public/app.js', 'public/index.html', 'public/style.css',
     'public/languages/de.json'];
   const finds = [];
@@ -2724,9 +2724,9 @@ async function sendImport(object, mode, withoutShare = false) {
       .map(s => s.trim().replace(/^'|'$/g, '')).filter(Boolean).sort();
   };
   const dListSrv = listOut(srvSource, 'PERSONAL_KEYS');
-  const dExpected = ['bellSeen', 'blocks', 'documentTheme', 'filesEditAll', 'filesView', 'filters', 'font',
-                 'language', 'linkRows', 'searchNames', 'strip', 'theme', 'timeline', 'views'];
-  check('server.js kennt genau die vierzehn persoenlichen Schluessel — 0.24.3',
+  const dExpected = ['bellSeen', 'blocks', 'documentTheme', 'filesEditAll', 'filesSort', 'filesView', 'filters',
+                 'font', 'language', 'linkRows', 'searchNames', 'strip', 'theme', 'timeline', 'views'];
+  check('server.js kennt genau die fuenfzehn persoenlichen Schluessel — 0.24.3',
     equal(dListSrv, dExpected), JSON.stringify(dListSrv));
   check('Und `zuletztGesehen` steht in keiner Zeile Code mehr',
     !/zuletztGesehen/.test(srvSource.replace(/\/\*[\s\S]*?\*\//g, '')
@@ -2796,7 +2796,8 @@ async function sendImport(object, mode, withoutShare = false) {
   };
 
   await dCall('cookie-d-eins', 'PUT', '/api/settings',
-    { font: 120, linkRows: 12, timeline: false, searchNames: 4, strip: 100, language: 'de', filesView: 'list' });
+    { font: 120, linkRows: 12, timeline: false, searchNames: 4, strip: 100, language: 'de', filesView: 'list',
+      filesSort: 'name' });
   await dCall('cookie-d-zwei', 'PUT', '/api/settings',
     { font: 80, linkRows: 3, searchNames: 1 });
   await dCall('cookie-d-eins', 'PUT', '/api/settings', { filters: { tested: 'yes' } });
@@ -2919,7 +2920,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const dMissing = dExpected.filter(k => !personalDa(k, 1));
   check('Kein persoenlicher Schluessel landet in der globalen Tabelle',
     dWrongGlobal.length === 0, `global gefunden: ${JSON.stringify(dWrongGlobal)}`);
-  check('Alle vierzehn stehen beim Benutzer, der sie gesetzt hat — 0.24.3',
+  check('Alle fuenfzehn stehen beim Benutzer, der sie gesetzt hat — 0.24.3',
     dMissing.length === 0, `fehlt bei Benutzer 1: ${JSON.stringify(dMissing)}`);
   check('Der Suchvorrat bleibt in der globalen Tabelle',
     globalDa('searchOn') && !personalDa('searchOn', 1),
@@ -6700,22 +6701,24 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Die Aufraeumregel an der Tafel');
 
-  /* Geprueft wird die Funktion aus server.js selbst, keine Nachbildung. */
+  /* Geprueft wird die Funktion aus backup.js selbst, keine Nachbildung. */
   const auSource = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+  const auBackup = fs.readFileSync(path.join(__dirname, 'backup.js'), 'utf8');
   const auAverage = (head) => {
-    const from = auSource.indexOf(head);
+    const from = auBackup.indexOf(head);
     if (from < 0) return '';
-    const to = auSource.indexOf('\n}\n', from);
-    return to < 0 ? '' : auSource.slice(from, to + 2);
+    const to = auBackup.indexOf('\n}\n', from);
+    return to < 0 ? '' : auBackup.slice(from, to + 2);
   };
-  const auTagMs = (auSource.match(/^const DAY_MS = (\d+);$/m) || [])[1] || '';
+  const auTagMs = (auBackup.match(/^const DAY_MS = (\d+);$/m) || [])[1] || '';
   const auRuleSource = auAverage('function ruleHit(');
-  check('Die Regel steht in server.js als eine Funktion',
+  check('Die Regel steht in backup.js als eine Funktion',
     auRuleSource.length > 100 && auTagMs === '86400000',
     `${auRuleSource.length} Zeichen, DAY_MS ${JSON.stringify(auTagMs)}`);
-  check('Und zwar genau einmal',
-    (auSource.match(/function ruleHit\(/g) || []).length === 1,
-    `${(auSource.match(/function ruleHit\(/g) || []).length} Stellen`);
+  check('Und zwar genau einmal, und server.js hat keine eigene',
+    (auBackup.match(/function ruleHit\(/g) || []).length === 1 &&
+    !/function ruleHit\(/.test(auSource),
+    `${(auBackup.match(/function ruleHit\(/g) || []).length} Stellen`);
   const ruleHit = auRuleSource
     // eslint-disable-next-line no-new-func
     ? new Function(`const DAY_MS = ${auTagMs};\n${auRuleSource}\nreturn ruleHit;`)()
@@ -7160,9 +7163,10 @@ async function sendImport(object, mode, withoutShare = false) {
     }
     const before = auDa().length;
     const backupOut = await auCall('cookie-au-anna', 'POST', '/api/backup');
+    // Dazu kommen das neue Backup und seine Liste.
     check('Bei ausgeschaltetem Schalter raeumt die Sicherung nichts weg',
       backupOut.status === 200 && backupOut.content?.cleaned === null &&
-      auDa().length === before + 1,
+      auDa().length === before + 2,
       `Status ${backupOut.status} · ${JSON.stringify(backupOut.content?.cleaned)} · ${auDa().length} Dateien`);
     // Die eben geschriebene Kopie ist die juengste und verschoebe sonst den Boden.
     for (const n of auDa())
@@ -7237,10 +7241,21 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und hinter ihm steht kein Fehlerausgang mehr',
       !/return res\.status\((4|5)\d\d\)/.test(core.slice(callAn)),
       (core.slice(callAn).match(/return res\.status\(\d+\)/g) || []).join(' · '));
-    check('Er steht hinter dem Umbenennen und hinter statSync',
-      core.indexOf('fs.renameSync(becoming, datei);') < callAn &&
-      core.indexOf('bytes = fs.statSync(datei).size;') < callAn,
-      `rename ${core.indexOf('fs.renameSync(becoming, datei);')}, Aufruf ${callAn}`);
+    // backup.writeBackup() kehrt erst nach dem Umbenennen zurueck.
+    const auWritten = core.indexOf('await backup.writeBackup(');
+    const auFailed = core.indexOf('if (written.error) return answer(');
+    const auCalled = core.indexOf('backupRuleCleanup(target.filePath, req.user.id)');
+    check('Er steht hinter dem geschriebenen Backup und hinter dessen Fehlerausgang',
+      auWritten >= 0 && auFailed > auWritten && auCalled > auFailed,
+      `writeBackup ${auWritten}, Fehler ${auFailed}, Aufruf ${auCalled}`);
+    const auWrite = (() => {
+      const a = auBackup.indexOf('async function writeBackup(');
+      return a < 0 ? '' : auBackup.slice(a, auBackup.indexOf('\n}\n', a));
+    })();
+    check('Und writeBackup() benennt vor seiner Rueckgabe um',
+      auWrite.indexOf('fs.renameSync(becoming, file);') > 0 &&
+      auWrite.indexOf('fs.renameSync(becoming, file);') < auWrite.indexOf('return { name: path.basename(file)'),
+      auWrite ? 'rename fehlt oder steht dahinter' : '(writeBackup nicht gefunden)');
     check('Und er haengt in seinem eigenen try',
       /let cleaned = null;\n  try \{\n    const rule = cleanupStatus\(\);/.test(core),
       (core.match(/let cleaned[^\n]*\n[^\n]*\n[^\n]*/) || ['(nicht gefunden)'])[0]);
@@ -7248,13 +7263,14 @@ async function sendImport(object, mode, withoutShare = false) {
     const lTo = auSource.indexOf('\n});', lFrom);
     const lCore = lFrom >= 0 && lTo > lFrom ? auSource.slice(lFrom, lTo) : '';
     const lAccesses = lCore.match(/req\.body[^\n]*/g) || [];
-    check('Die Loeschroute liest aus dem Rumpf genau ein Feld, und das ist die Art',
-      lCore.length > 500 && lAccesses.length === 1 &&
-      lAccesses[0].startsWith("req.body?.kind || ''"),
+    check('Die Loeschroute liest aus dem Rumpf die Art und bei der Auswahl die Namen',
+      lCore.length > 500 && lAccesses.length === 2 &&
+      lAccesses[0].startsWith("req.body?.kind || ''") &&
+      lAccesses[1].startsWith("req.body?.names : [];"),
       JSON.stringify(lAccesses));
-    const eFrom = auSource.indexOf('function removeBackups(');
-    const eTo = auSource.indexOf('\n}\n', eFrom);
-    const eCore = eFrom >= 0 ? auSource.slice(eFrom, eTo) : '';
+    const eFrom = auBackup.indexOf('function removeBackups(');
+    const eTo = auBackup.indexOf('\n}\n', eFrom);
+    const eCore = eFrom >= 0 ? auBackup.slice(eFrom, eTo) : '';
     check('Und das Entfernen prueft jeden Namen unmittelbar davor noch einmal',
       /const short = path\.basename\(String\(n\)\);/.test(eCore) &&
       /if \(short !== String\(n\) \|\| !BACKUP_PATTERN\.test\(short\)\)/.test(eCore) &&
@@ -15936,9 +15952,9 @@ async function sendImport(object, mode, withoutShare = false) {
   {
     /* SQLite liest eine Zeile von vorn; was hinter einem grossen BLOB steht, ist
        nur ueber dessen Overflow-Kette erreichbar. */
-    /* Gelesen wird das Schema aus db.js. Zeilen ohne Spaltennamen am Anfang sind
+    /* Gelesen wird das Schema aus schema.js. Zeilen ohne Spaltennamen am Anfang sind
        Bedingungen: UNIQUE(trash_id, part) steht hinter data. */
-    const sfSource = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
+    const sfSource = fs.readFileSync(path.join(__dirname, 'schema.js'), 'utf8');
     const SF_CONSTRAINT = /^(UNIQUE|PRIMARY|FOREIGN|CHECK|CONSTRAINT)\b/i;
     const sfColumns = (table) => {
       const head = `CREATE TABLE IF NOT EXISTS ${table} (`;

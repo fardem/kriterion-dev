@@ -639,7 +639,7 @@ async function run() {
   let listRows = [], backupRows = [];
   try {
     listRows = fs.readFileSync(path.join(backupRoot, backupName.replace(/\.sqlite$/, '.files')), 'utf8')
-      .split('\n').filter(Boolean).map(z => z.split(' '));
+      .split('\n').filter(z => z && !z.startsWith('#')).map(z => z.split(' '));
     const bdb = open(path.join(backupRoot, backupName));
     try { backupRows = bdb.prepare('SELECT name, size FROM disk_files ORDER BY id').all(); } finally { bdb.close(); }
   } catch {}

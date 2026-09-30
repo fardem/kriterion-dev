@@ -264,7 +264,8 @@ async function run() {
   check('Und der Server fragt nirgends mehr nach der kleinsten Nummer',
     fMinIdImServer === 0, `${fMinIdImServer} Vorkommen`);
   // "Leitung" ist ein frueherer Name des Admins.
-  const fLine = ['server.js', 'auth.js', 'db.js', 'public/app.js', 'public/index.html']
+  const fLine = ['server.js', 'auth.js', 'db.js', 'schema.js', 'backup.js', 'backuptool.js',
+    'public/app.js', 'public/index.html']
     .filter(d => fs.readFileSync(path.join(__dirname, d), 'utf8').includes('Leitung'));
   check('Das Wort Leitung kommt nirgends mehr vor', fLine.length === 0, fLine.join(' · '));
 
@@ -428,7 +429,8 @@ async function run() {
       "  const x = db.prepare('SELECT * FROM items WHERE deleted = 0').all();")).length === 1,
     'der Waechter sieht den Zusatz nicht');
 
-  const fDbSource = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
+  const fDbSource = ['db.js', 'schema.js']
+    .map(f => fs.readFileSync(path.join(__dirname, f), 'utf8')).join('\n');
   /* Zwischen `MIGRATION x —` und `ENTFAELLT MIT 1.0` duerfen nur Weissraum
      und ein Kommentarstrich stehen. */
   const fMarkNumbers = [...new Set(
@@ -497,14 +499,18 @@ async function run() {
     (fAppSource.match(/.*tageOffen\s*=.*/) || [''])[0]);
 
   const fBackupCore = (() => {
-    const a = fCodeRows.indexOf("app.post('/api/backup'");
+    const code = fs.readFileSync(path.join(__dirname, 'backup.js'), 'utf8').split('\n')
+      .filter(z => { const t = z.trim(); return t && !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*'); })
+      .join('\n');
+    const a = code.indexOf('async function writeBackup(');
     if (a < 0) return '';
-    const e = fCodeRows.indexOf('\n});', a);
-    return e < 0 ? '' : fCodeRows.slice(a, e);
+    const e = code.indexOf('\n}', a);
+    return e < 0 ? '' : code.slice(a, e);
   })();
-  check('Die Route zur Sicherung ist ueberhaupt da', fBackupCore.length > 0,
-    'kein Rumpf gefunden');
-  check('Sie schreibt unter einem Arbeitsnamen und benennt erst danach um',
+  check('Das Schreiben des Backups steht in backup.js, und die Route ruft es',
+    fBackupCore.length > 0 && /await backup\.writeBackup\(db, target\.filePath, \{/.test(fCodeRows),
+    fBackupCore ? 'die Route ruft backup.writeBackup() nicht' : 'kein Rumpf gefunden');
+  check('Es schreibt unter einem Arbeitsnamen und benennt erst danach um',
     /VACUUM INTO \?'\)\.run\(becoming\)/.test(fBackupCore) &&
     fBackupCore.includes('fs.renameSync(becoming, file)'),
     fBackupCore ? 'kein Arbeitsname im Rumpf' : '(kein Rumpf)');
@@ -518,8 +524,8 @@ async function run() {
     'der Waechter sieht die Verletzung nicht');
 
   // Der Cookiename kommt nur aus auth.COOKIE_NAME.
-  const COOKIE_FILES = ['server.js', 'db.js', 'attachments.js', 'keys.js',
-                          'public/app.js', 'public/index.html', 'usertool.js'];
+  const COOKIE_FILES = ['server.js', 'db.js', 'schema.js', 'backup.js', 'attachments.js', 'keys.js',
+                          'public/app.js', 'public/index.html', 'usertool.js', 'backuptool.js'];
   // Gegenstueck zu onlyComments() weiter unten.
   function withoutComments(text) {
     let inBlock = false;
@@ -537,8 +543,8 @@ async function run() {
     .map(d => [d, cookieCount(fs.readFileSync(path.join(__dirname, d), 'utf8'))])
     .filter(([, n]) => n > 0);
   // Auf null Dateien waere die Pruefung darunter immer gruen.
-  check('Der Cookiewaechter sieht alle sieben ausgelieferten Dateien an',
-    COOKIE_FILES.length === 7 &&
+  check('Der Cookiewaechter sieht alle zehn ausgelieferten Dateien an',
+    COOKIE_FILES.length === 10 &&
     COOKIE_FILES.every(n => fs.existsSync(path.join(__dirname, n))),
     JSON.stringify(COOKIE_FILES.filter(n => !fs.existsSync(path.join(__dirname, n)))));
   check('Der Cookiename steht in keiner davon abgeschrieben',
@@ -572,9 +578,9 @@ async function run() {
     'die Karte nennt den Link nicht beim Namen');
 
   // Das Wort heisst Backup; das alte steht nur noch in „Sicherung der Datenbank".
-  const BACKUP_FILES = ['server.js', 'db.js', 'auth.js', 'attachments.js', 'keys.js',
-                             'public/app.js', 'public/index.html', 'usertool.js',
-                             'keytool.js', 'public/style.css'];
+  const BACKUP_FILES = ['server.js', 'db.js', 'schema.js', 'backup.js', 'auth.js', 'attachments.js',
+                             'keys.js', 'public/app.js', 'public/index.html', 'usertool.js',
+                             'keytool.js', 'backuptool.js', 'public/style.css'];
   const withoutConsole = (src) => {
     let out = '', i = 0;
     // Auch die Aufrufe von log.js schreiben ins Containerprotokoll und fallen weg.
@@ -615,15 +621,15 @@ async function run() {
     'der Schnitt nimmt zu viel oder zu wenig weg');
 
   // Am Bildschirm heisst es Sicherheitsprotokoll, nicht Protokoll.
-  const PROT_FILES = ['server.js', 'db.js', 'auth.js', 'attachments.js', 'keys.js',
-                        'public/app.js', 'public/index.html', 'usertool.js',
-                        'public/languages/de.json'];
+  const PROT_FILES = ['server.js', 'db.js', 'schema.js', 'backup.js', 'auth.js', 'attachments.js',
+                        'keys.js', 'public/app.js', 'public/index.html', 'usertool.js',
+                        'backuptool.js', 'public/languages/de.json'];
   const protCount = (text) => (withoutComments(text).match(/(?<!Sicherheits)\bProtokoll\b/g) || []).length;
   const fProt = PROT_FILES
     .map(d => [d, protCount(fs.readFileSync(path.join(__dirname, d), 'utf8'))])
     .filter(([, n]) => n > 0);
-  check('Der Protokollwaechter sieht alle neun ausgelieferten Dateien an',
-    PROT_FILES.length === 9 && PROT_FILES.every(n => fs.existsSync(path.join(__dirname, n))),
+  check('Der Protokollwaechter sieht alle zwoelf ausgelieferten Dateien an',
+    PROT_FILES.length === 12 && PROT_FILES.every(n => fs.existsSync(path.join(__dirname, n))),
     JSON.stringify(PROT_FILES.filter(n => !fs.existsSync(path.join(__dirname, n)))));
   // Das eine Vorkommen meint das Containerprotokoll nach einem gescheiterten Backup.
   check('Das alleinstehende Wort steht in genau einer ausgelieferten Zeile — 0.22.0',
@@ -749,7 +755,8 @@ async function run() {
   const LANGUAGE_SOURCES = ['server.js', 'db.js', 'auth.js', 'attachments.js', 'keys.js',
                           'usertool.js', 'keytool.js', 'twofactor.js', 'testbench.js',
                           'counterproof.js', 'public/app.js',
-                          'images.js', 'batchrun.js', 'mail.js', 'docserver.js'];
+                          'images.js', 'batchrun.js', 'mail.js', 'docserver.js',
+                          'schema.js', 'backup.js', 'backuptool.js'];
   const LANGUAGE_MODULES = benchFiles().filter(n => n !== 'testbench.js');
   const languageSource = [...LANGUAGE_SOURCES, ...LANGUAGE_MODULES].flatMap(n => {
     const p = path.join(__dirname, n);
@@ -768,8 +775,8 @@ async function run() {
   });
 
   // Feste Zahl: eine gekuerzte Liste bliebe sonst gruen.
-  check('Der Sprachwaechter sieht alle fuenfzehn Quelltextdateien an',
-    LANGUAGE_SOURCES.length === 15 &&
+  check('Der Sprachwaechter sieht alle achtzehn Quelltextdateien an',
+    LANGUAGE_SOURCES.length === 18 &&
     LANGUAGE_SOURCES.every(n => fs.existsSync(path.join(__dirname, n))),
     `${LANGUAGE_SOURCES.length} Dateien, fehlend: ` +
     JSON.stringify(LANGUAGE_SOURCES.filter(n => !fs.existsSync(path.join(__dirname, n)))));
@@ -875,7 +882,7 @@ async function run() {
     const isGerman = (name) => pieces(name).some(w => GERMAN[w]);
     const SHIPPED = ['server.js', 'auth.js', 'db.js', 'mail.js', 'keys.js', 'attachments.js',
       'images.js', 'batchrun.js', 'log.js', 'usertool.js', 'twofactor.js', 'keytool.js',
-      'docserver.js', 'public/app.js', 'public/theme.js'];
+      'docserver.js', 'schema.js', 'backup.js', 'backuptool.js', 'public/app.js', 'public/theme.js'];
     const readShipped = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
 
     // Erst der Leser: findet er nichts, waere jede Probe darunter gruen.
@@ -895,7 +902,7 @@ async function run() {
         if (part.kind === CODE)
           for (const m of part.value.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) identifiers.add(m[0]);
     check('Der Waechter sieht wirklich den ganzen ausgelieferten Code',
-      identifiers.size > 2000 && SHIPPED.length === 15, `${identifiers.size} Bezeichner aus ${SHIPPED.length} Dateien`);
+      identifiers.size > 2000 && SHIPPED.length === 18, `${identifiers.size} Bezeichner aus ${SHIPPED.length} Dateien`);
 
     // Englische Namen, die das Woerterbuch als deutsch kennt.
     const FALSE_FRIENDS = ['MAILTEST_KEY', 'cleanNote', 'liesIn', 'note', 'noteFailure', 'noteSuccess'];
@@ -1040,7 +1047,7 @@ async function run() {
         if (part.kind === CODE)
           for (const m of part.value.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) benchNames.add(m[0]);
     check('Der Waechter sieht wirklich den ganzen Pruefstand',
-      benchNames.size > 2000 && BENCH.length === 31,
+      benchNames.size > 2000 && BENCH.length === 32,
       `${benchNames.size} Bezeichner aus ${BENCH.length} Dateien`);
 
     /* Keine Benennungen, sondern Gegenstaende von Pruefungen: abgelegte
@@ -1072,14 +1079,15 @@ async function run() {
   {
     const SHIPPED = ['server.js', 'auth.js', 'db.js', 'mail.js', 'keys.js', 'attachments.js',
       'images.js', 'batchrun.js', 'log.js', 'usertool.js', 'twofactor.js', 'keytool.js',
-      'docserver.js', 'public/app.js', 'public/theme.js', 'public/style.css'];
+      'docserver.js', 'schema.js', 'backup.js', 'backuptool.js',
+      'public/app.js', 'public/theme.js', 'public/style.css'];
     const BENCH = [...benchFiles(), 'counterproof.js'];
     const readShipped = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
     const stWord = 'Stolper' + 'stein';
     const stAll = [...BENCH, ...SHIPPED];
-    check('Der Waechter sieht alle siebenundvierzig Dateien',
-      stAll.length === 47, `${stAll.length} Dateien`);
-    /* Die SQL-Kommentare im SCHEMA von db.js stehen in einem Template-String,
+    check('Der Waechter sieht alle einundfuenfzig Dateien',
+      stAll.length === 51, `${stAll.length} Dateien`);
+    /* Die SQL-Kommentare im SCHEMA von schema.js stehen in einem Template-String,
        den segment() als Text liefert; hier zaehlen sie als Kommentar. */
     const stSqlRow = /^\s*--/;
     let stRows = 0;
@@ -1102,7 +1110,7 @@ async function run() {
     // Sonst bliebe die Pruefung gruen, wenn sie eine der beiden Quellen nicht liest.
     check('Und er liest das Stilblatt und die SQL-Kommentare des Schemas',
       stAll.includes('public/style.css')
-      && segment(readShipped('db.js'), 'db.js')
+      && segment(readShipped('schema.js'), 'schema.js')
            .some(q => q.kind === TEXT && q.value.split('\n').some(z => stSqlRow.test(z))),
       'eine der beiden Quellen fehlt');
     check('Und der Leser wuerde einen Verweis in einer SQL-Zeile melden',
@@ -1139,12 +1147,12 @@ async function run() {
       'public/languages/en.json': 0, 'public/languages/tr.json': 0,
       'public/favicon.svg': 0,
       'log.js': 0, 'Dockerfile': 0, 'docker-compose.example.yml': 0,
-      'LICENSE': 0
+      'LICENSE': 0, 'schema.js': 0, 'backup.js': 0, 'backuptool.js': 0
     };
     const VN_TOTAL = 3;
     const vnFiles = Object.keys(VN_CEILING);
-    check('Der Waechter sieht alle vierundzwanzig Dateien, und jede liegt da',
-      vnFiles.length === 24
+    check('Der Waechter sieht alle siebenundzwanzig Dateien, und jede liegt da',
+      vnFiles.length === 27
       && vnFiles.every(f => fs.existsSync(path.join(__dirname, ...f.split('/')))),
       vnFiles.filter(f => !fs.existsSync(path.join(__dirname, ...f.split('/')))).join(' ') || `${vnFiles.length} Dateien`);
     const vnCount = {};
@@ -1157,8 +1165,8 @@ async function run() {
       vnOver.length === 0,
       vnOver.map(f => `${f}: ${vnCount[f]} statt ${VN_CEILING[f]}`).join(' · ') || 'alle darunter');
     const vnZero = vnFiles.filter(f => VN_CEILING[f] === 0);
-    check('Zweiundzwanzig Dateien tragen keine einzige Versionsnummer',
-      vnZero.length === 22 && vnZero.every(f => vnCount[f] === 0),
+    check('Fuenfundzwanzig Dateien tragen keine einzige Versionsnummer',
+      vnZero.length === 25 && vnZero.every(f => vnCount[f] === 0),
       vnZero.filter(f => vnCount[f] !== 0).map(f => `${f}: ${vnCount[f]}`).join(' · ') || `${vnZero.length} auf null`);
     const vnNow = vnFiles.reduce((n, f) => n + vnCount[f], 0);
     check(`Und zusammen sind es ${VN_TOTAL} -- die Zahl steht hier und nicht in einem Papier`,
@@ -1645,12 +1653,12 @@ async function run() {
     const dvFiles = [
       'server.js', 'auth.js', 'db.js', 'mail.js', 'keys.js', 'attachments.js',
       'images.js', 'batchrun.js', 'log.js', 'usertool.js', 'twofactor.js',
-      'keytool.js', 'public/app.js', 'public/theme.js',
+      'keytool.js', 'schema.js', 'backup.js', 'backuptool.js', 'public/app.js', 'public/theme.js',
       'public/index.html', 'public/style.css', 'public/favicon.svg',
       '.env.example', 'docker-compose.example.yml', 'Dockerfile',
       'README.md', 'manual-de.md', 'CHANGELOG.md', 'package.json', 'LICENSE'];
-    check('Der Waechter sieht alle fuenfundzwanzig Dateien, und jede liegt da',
-      dvFiles.length === 25
+    check('Der Waechter sieht alle achtundzwanzig Dateien, und jede liegt da',
+      dvFiles.length === 28
       && dvFiles.every(f => fs.existsSync(path.join(__dirname, ...f.split('/')))),
       dvFiles.filter(f => !fs.existsSync(path.join(__dirname, ...f.split('/')))).join(' ')
       || `${dvFiles.length} Dateien`);
@@ -1670,14 +1678,14 @@ async function run() {
   }
 
   /* Gelesen wird der rohe Text: segment() liefert die SQL-Kommentare im
-     SCHEMA-String von db.js als Text. */
+     SCHEMA-String von schema.js als Text. */
   group('Kein Papierverweis geht mit hinaus');
   {
     // CHANGELOG.md fehlt, weil es die Dokumente nennen darf, die es fortschreibt.
     const pvFiles = [
       'server.js', 'auth.js', 'db.js', 'mail.js', 'keys.js', 'attachments.js',
       'images.js', 'batchrun.js', 'log.js', 'usertool.js', 'twofactor.js',
-      'keytool.js', 'public/app.js', 'public/theme.js',
+      'keytool.js', 'schema.js', 'backup.js', 'backuptool.js', 'public/app.js', 'public/theme.js',
       'public/style.css', 'public/index.html',
       'public/languages/de.json', 'public/languages/en.json',
       'public/languages/tr.json',
@@ -1704,8 +1712,8 @@ async function run() {
       ['BA <Zahl>', /\bBA\s+\d/g],
       ['(F<Zahl>)', /\(F\d+[a-z]?\)/g],
       ['Punkt <Zahl>', /\bPunkt\s+\d/g]];
-    check('Der Waechter sieht alle fuenfundzwanzig Dateien, und jede liegt da',
-      pvFiles.length === 25
+    check('Der Waechter sieht alle achtundzwanzig Dateien, und jede liegt da',
+      pvFiles.length === 28
       && pvFiles.every(f => fs.existsSync(path.join(__dirname, ...f.split('/')))),
       pvFiles.filter(f => !fs.existsSync(path.join(__dirname, ...f.split('/')))).join(' ')
       || `${pvFiles.length} Dateien`);
@@ -1841,8 +1849,8 @@ async function run() {
       }
       if (has) ssCode++;
     }
-    check('Und es stehen genau 1944 Regelzeilen da',
-      ssCode === 1944, `${ssCode} Zeilen`);
+    check('Und es stehen genau 1955 Regelzeilen da',
+      ssCode === 1955, `${ssCode} Zeilen`);
     // Laenger als drei Zeilen darf nur eine Tabelle gemessener Werte sein.
     const ssLines = ssBlocks.map(b => b.split('\n').length);
     const ssOver = ssLines.filter(n => n > 3).length;
@@ -1932,7 +1940,7 @@ async function run() {
   group('Das Containerprotokoll traegt seine Zeit — 0.35.2');
   {
     const zpFiles = ['server.js', 'db.js', 'auth.js', 'keys.js',
-                     'batchrun.js', 'images.js'];
+                     'batchrun.js', 'images.js', 'backup.js'];
     const zpRead = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
     const zpLog = zpRead('log.js');
     check('log.js liegt daneben und nennt seine vier Ausgaenge',
@@ -1961,15 +1969,15 @@ async function run() {
     for (const f of zpFiles) {
       const raw = zpRead(f);
       if (raw.includes('[Kriterion]')) zpLoose.push(f);
-      if (!/const \{ logLine, logWarn, logFail \} = require\('\.\/log'\);/.test(raw))
+      if (!/const \{ (?:log(?:Line|Warn|Fail)(?:, )?)+ \} = require\('\.\/log'\);/.test(raw))
         zpLoose.push(`${f} ohne require`);
     }
-    check('Keine der sechs Dateien schreibt den Namen noch selbst',
+    check('Keine der sieben Dateien schreibt den Namen noch selbst',
       zpLoose.length === 0, zpLoose.join(' · ') || 'alle ueber log.js');
     // Feste Zahl: auf einer leeren Menge waere die Pruefung darueber immer gruen.
     const zpCount = zpFiles.reduce((n, f) =>
       n + (zpRead(f).match(/\blog(?:Line|Warn|Fail)\(/g) || []).length, 0);
-    check('Und es sind 74 Protokollzeilen in den sechs Dateien',
+    check('Und es sind 74 Protokollzeilen in den sieben Dateien',
       zpCount === 74, `${zpCount} Zeilen`);
     // Ohne TZ laeuft der Container auf UTC, und der Versatz waere immer +00:00.
     const zpCompose = fs.readFileSync(
@@ -1992,7 +2000,8 @@ async function run() {
     // Dieselbe Liste wie in tools/comments.js, ohne public/theme.js, mit public/index.html.
     const LK_FILES = ['public/app.js', 'public/index.html', 'server.js', 'auth.js',
       'mail.js', 'db.js', 'keys.js', 'attachments.js', 'images.js',
-      'usertool.js', 'keytool.js', 'twofactor.js', 'batchrun.js', 'docserver.js'];
+      'usertool.js', 'keytool.js', 'twofactor.js', 'batchrun.js', 'docserver.js',
+      'schema.js', 'backup.js', 'backuptool.js'];
     const lkText = LK_FILES.map(lkRead).join('\n');
     const lkKeys = Object.keys(JSON.parse(lkRead('public/languages/de.json')))
       .filter(k => k !== '_locale' && k !== '_name');

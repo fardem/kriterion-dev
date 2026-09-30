@@ -51,14 +51,14 @@ Diese Datei beschreibt Installation und Betrieb. Die Bedienung steht im
 | | |
 |---|---|
 | Einträge | Titel, Beschreibung, Kategorie, Tags, Fotos, Kurzvideos, Dateien, Links |
-| Dateien | bis 2 GB je Datei, hochgeladen in Stücken, fortsetzbar; als Kacheln oder Liste, mit Vorschaubild auch für Text, Office und PDF; in Ordnern; mehrere auf einmal löschen oder verschieben; Videos spielen an der zuletzt gesehenen Stelle weiter |
+| Dateien | bis 2 GB je Datei, hochgeladen in Stücken, fortsetzbar; als Kacheln oder Liste, nach Alter oder Name sortiert, mit Vorschaubild auch für Text, Office und PDF; in Ordnern; mehrere auf einmal löschen oder verschieben; Videos spielen an der zuletzt gesehenen Stelle weiter |
 | Bewerten | eigene Kriterien mit 1 bis 5 Sternen, je Kriterium ein Gewicht, daraus ein gewichteter Schnitt |
 | Kommentare | Notiz, Bericht oder Aufgabe mit Fälligkeitsdatum, dazu Bilder und Videos |
 | Testtage | datierte Einträge mit Note und Tags |
 | Vergleichen | mehrere Einträge nebeneinander, Kriterium für Kriterium |
 | Suchen und filtern | Volltext über Titel, Beschreibung, Kategorie, Tags, Links und Kommentare; Filter als Ansicht speicherbar |
 | Mehrere Benutzer | drei Rollen, jeder Beitrag mit Verfasser |
-| Backup | verschlüsseltes Backup auf Knopfdruck samt der Dateien unter `data/files/`, dazu ein JSON-Export ohne Schlüssel |
+| Backup | verschlüsseltes Backup auf Knopfdruck samt der Dateien unter `data/files/`, zurückgespielt mit einem Befehl auf dem Server; dazu ein JSON-Export ohne Schlüssel |
 
 ## Für wen
 
@@ -94,7 +94,7 @@ ZIP", dann:
 python3 -m zipfile -e kriterion-main.zip .
 mv kriterion-main kriterion
 cd kriterion
-chmod +x keytool.sh
+chmod +x keytool.sh backuptool.sh
 ```
 
 `python3 -m zipfile -e` setzt kein Ausführungsrecht; `chmod` holt es nach.
@@ -271,7 +271,8 @@ Installation still (rund 10 bis 20 ms je MB).
 
 Dateien unter `data/files/` kopiert das Backup nach `kriterion-files/` im
 Backup-Ordner, jede nur einmal: sie ändern sich nie. Neben jedem Backup steht
-eine Liste `kriterion-<zeitpunkt>.files` mit den Dateien, die es nennt. **Der
+eine Liste `kriterion-<zeitpunkt>.files`: in der ersten Zeile die Version, die
+das Backup geschrieben hat, danach die Dateien, die es nennt. **Der
 Backup-Ordner braucht Platz für die Datenbank und alle Dateien auf der Platte.**
 
 **Backup-Ordner.** Die `docker-compose.yml` hängt ihn ein und nennt ihn dem
@@ -302,9 +303,41 @@ Relative Pfade gelten ab dem Ort der `docker-compose.yml`.
 
 ### Backup zurückspielen
 
-Vorher in der Oberfläche ein Backup anlegen. Es ist der Rückweg: Der erste
-Start nach dem Zurückspielen führt Frist und Löschliste des zurückgespielten
-Stands aus und löscht dabei auch Dateien unter `data/files/`.
+Zurückgespielt wird im Projektordner mit `backuptool.sh`. Es startet einen
+Wegwerf-Container mit dem Image der Installation.
+
+```bash
+./backuptool.sh list          # alle Backups: Zeit, Version, Dateien, Schlüssel, Schema
+./backuptool.sh show 2        # Inhalt und Unterschied zum laufenden Stand
+./backuptool.sh restore 2     # prüfen, anhalten, Backup davor, zurückspielen, starten
+```
+
+Die Auswahl ist die Nr. aus `list` (1 ist das jüngste), die Zeit aus dem Namen
+(`JJJJ-MM-TT-hh-mm-ss`, gekürzt bis zum Datum) oder die Ortszeit wie in der
+Karte „Alte Backups" (`TT.MM.JJJJ` oder `TT.MM.JJJJ hh:mm`). Die Ortszeit kommt
+aus `TZ` in der `docker-compose.yml`.
+
+`restore` prüft bei laufender Instanz: Schlüssel, Schema der installierten
+Version, jede Datei der Liste im Backup-Ordner, Platz. Erst danach fragt es,
+hält die Instanz an, legt ein Backup des aktuellen Stands an und spielt das
+gewählte zurück. `data/files/` enthält danach genau die Dateien des gewählten
+Stands; gelöscht wird dort nur, was ein Backup im Backup-Ordner enthält. Die
+Ausgabe endet mit dem Rückweg:
+
+```
+Rückweg:        ./backuptool.sh restore 2026-10-30-07-15-40
+```
+
+Bricht `restore` ab, bleibt die Instanz angehalten, und die Meldung nennt den
+Stand. Ein zweiter Aufruf mit derselben Auswahl führt es zu Ende. Der erste
+Start danach führt Frist und Löschliste des zurückgespielten Stands aus.
+
+Ein Backup öffnet sich nur mit dem Schlüssel, mit dem es angelegt wurde. Stammt
+es von vor einem Schlüsselwechsel, vorher den alten Wert als `ENCRYPTION_KEY`
+eintragen.
+
+**Von Hand**, wenn sich kein Image bauen lässt. Vorher in der Oberfläche ein
+Backup anlegen: Es ist der Rückweg.
 
 ```bash
 docker compose down
@@ -322,14 +355,9 @@ done < kriterion-backup/kriterion-<zeitpunkt>.files
 docker compose up -d
 ```
 
-Die Schleife holt die Dateien, die die Liste des Backups nennt. Eine Datei
-gleicher Länge bleibt, ein Abbruch hinterlässt nur `.part`. Ohne Liste neben
-dem Backup entfällt sie.
-
-Ein Backup öffnet sich nur mit dem Schlüssel, mit dem es angelegt wurde. Stammt
-es von vor einem Schlüsselwechsel, vorher den alten Wert als `ENCRYPTION_KEY`
-eintragen. Die Karte „Alte Backups" prüft mit „prüfen", ob ein Backup mit dem
-aktuellen Schlüssel lesbar ist.
+Die Schleife holt die Dateien, die die Liste des Backups nennt, und übergeht
+ihre Kopfzeilen. Sie löscht keine; Dateien des neueren Stands bleiben liegen,
+und „Kennzahlen" nennt sie als Dateien ohne Verweis.
 
 ## Update
 
@@ -360,7 +388,7 @@ mv kriterion-old/data kriterion/data
 cp kriterion-old/.env kriterion/.env
 cp kriterion-old/docker-compose.yml kriterion/
 mv kriterion-old/kriterion-backup kriterion/ 2>/dev/null   # nur bei Backup-Ordner im Projekt
-chmod +x kriterion/keytool.sh
+chmod +x kriterion/keytool.sh kriterion/backuptool.sh
 cd kriterion && docker compose up -d --build
 ```
 
@@ -389,8 +417,8 @@ Weicht er ab, findet diese Schleife die Datei, im Projektordner oder im
 Container (`docker compose exec kriterion sh`):
 
 ```bash
-for f in attachments.js auth.js batchrun.js docserver.js images.js db.js keys.js \
-         log.js mail.js package.json server.js twofactor.js public/*; do
+for f in attachments.js auth.js backup.js batchrun.js docserver.js images.js db.js keys.js \
+         log.js mail.js package.json schema.js server.js twofactor.js public/*; do
   printf "%-26s %s\n" "$f" "$(sha256sum "$f" | cut -c1-8)"
 done
 ```
@@ -497,6 +525,7 @@ stehen im Sicherheitsprotokoll als „per Kommandozeile am Server".
 | `docker compose exec kriterion node usertool.js remove <name>` | Account stilllegen |
 | `docker compose exec kriterion node usertool.js owner <name>` | Eigentümer-Admin bestimmen, wenn der bisherige nicht mehr hereinkommt |
 | `./keytool.sh show`, `./keytool.sh change` | Schlüssel anzeigen oder wechseln |
+| `./backuptool.sh list`, `show`, `check`, `restore` | Backups ansehen und zurückspielen, siehe [Backup zurückspielen](#backup-zurückspielen) |
 
 Läuft der Container nicht, geht dasselbe mit
 `docker compose run --rm kriterion node usertool.js …`.
@@ -509,7 +538,7 @@ Benutzer und Passwörter lassen sich nicht über Umgebungsvariablen setzen.
 |---|---|
 | Niemand kommt mehr herein | `usertool.js password <name>`, siehe [Befehle auf dem Server](#befehle-auf-dem-server) |
 | Telefon und Wiederherstellungscodes verloren | `usertool.js twofactor <name>` |
-| `./keytool.sh` meldet „Keine Berechtigung" | `chmod +x keytool.sh` oder `bash keytool.sh show` |
+| `./keytool.sh` oder `./backuptool.sh` meldet „Keine Berechtigung" | `chmod +x keytool.sh backuptool.sh` oder `bash keytool.sh show` |
 | Warnung über eine Schlüsseldatei, obwohl `ENCRYPTION_KEY` gesetzt ist | die `.env` wurde nicht gelesen; anhalten und prüfen |
 | Der Start nennt eine fehlende Spalte | die Anwendung startet, Seiten mit dieser Spalte scheitern; Backup zurückspielen oder die passende Version einspielen |
 | Fingerprint weicht ab | Dateien vollständig neu einspielen, siehe [Update](#update) |

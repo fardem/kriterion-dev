@@ -1,6 +1,6 @@
 # Fahrplan
 
-**Der Plan von 0.41.0 bis 0.52.0 · Stand 30. September 2026, 0.50.0 gebaut**
+**Der Plan von 0.41.0 bis 0.52.0 · Stand 30. September 2026, 0.51.0 gebaut**
 
 *Hier stand bis 0.48.0 „0.47.1 gebaut“; 0.48.0 hat die Zeile nicht nachgeführt.*
 
@@ -208,7 +208,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.48.0**~~ | ~~**Testtage und Dateien auf der Platte**~~ | **GEBAUT am 29. September 2026** auf 0.47.1 — Änderungsprotokoll 0.48.0, nach `Doku/Auftrag_0.48.0.md`. Ein Ordner bekommt einen eigenen Testtag desselben Eintrags, je Testtag einer; 📁 in der Testtagzeile springt zum Ordner, „↑ Datum“ zurück, jeder Ordner hat eine Adresse und „Link kopieren“. Was in einem Ordner mit Testtag liegt, steht einzeln verschlüsselt (AES-256-GCM je MiB) unter `data/files/`; Upload in Stücken zu 8 MiB, fortsetzbar; große Videos bis „Video am Testtag“ (2048 MB); Umlagerung beim Verschieben und Zuweisen, nie zurück; Löschliste mit drei Triggern; Backup mit Kopien unter `kriterion-files/`, Liste und Lockfile; „Kennzahlen“ mit Dateien auf der Platte; Export ohne große Videos. Neue Tabellen `uploads`, `disk_files`, `disk_files_gone`, vier neue Routen. D1 a) und D2 a) vor dem Bau beantwortet. **MINOR** *(1.259 → 1.335 Rückbauten, Prüfstand 7.687 → 7.765). Fingerprint `e480ecfc` (davor `a49b4154`)* | **ja** | 21 → 22 |
 | ~~**0.49.0**~~ | ~~**Dateien: Liste, Vorschaubilder für Dokumente, Ordner eingefasst**~~ | **GEBAUT am 29. September 2026** auf 0.48.0 — Änderungsprotokoll 0.49.0, nach `Doku/Auftrag_0.49.0.md`. „Kacheln“ und „Liste“ im Kopf des Blocks „Dateien“, je Account (`filesView`), ohne Wahl die Kacheln; die Liste mit festen Spalten, am Telefon zweizeilig, ohne Kopfzeile und ohne Sortieren. Vorschaubilder: Text, Markdown, CSV und Log über `sharp` und SVG, das Image bekommt `fonts-dejavu-core`; Office und PDF mit der ersten Seite vom Document Server, in einer Warteschlange nach dem Upload, beim Start, stündlich und beim Einschalten; abgelegt in `attachment_thumbs`, nicht im Export; der Browser fragt nach 3, 6, 12 und 24 s nach. Jede Gruppe ist eine Karte, auch die Dateien ohne Ordner. Dazu ein Befund des Betreibers: der Pfad der Upload-Location für NPMplus in der README kommt ohne `{32}` aus, sonst geht der Host offline. Fragetafeln E1 bis E14 vor dem Bau beantwortet. **MINOR** *(1.335 → 1.376 Rückbauten, Prüfstand 7.765 → 7.806). Fingerprint `210a7f57` (davor `e480ecfc`)* | nein | — |
 | ~~**0.50.0**~~ | ~~**Alle Dateien auf der Platte, Auswahl, Videos merken sich die Stelle**~~ | **GEBAUT am 30. September 2026** auf 0.49.0 — Änderungsprotokoll 0.50.0, nach `Doku/Auftrag_0.50.0.md`. Jede Datei unter „Dateien“ liegt verschlüsselt auf der Platte und geht in Stücken hoch, bis zur Grenze „Datei“ (Vorgabe 2048 MB, `dayVideo` wird nicht übernommen); `POST /api/items/:id/attachments` entfällt. Der Bestand wird nach dem Start umgelagert; reicht der Platz für Dateien und 1 GB Reserve nicht, startet Kriterion nicht. Über „Anhang“ nur zum Herunterladen, außer PDF, Bild und Video. Kompatible Marken im `ftyp`-Kasten zählen (Sony XAVC HS). Stelle im Video je Account (`video_positions`), Ordnerzustand je Account (`folder_open`), „Auswählen“ unter „Dateien“ und in der Bildleiste; `limitCloud()` nach `offsetTop`. Fragetafeln F1 bis F23 vor dem Bau beantwortet. **MINOR** *(1.376 → 1.390 Rückbauten, Prüfstand 7.806 → 7.848). Fingerprint `2b87077f` (davor `210a7f57`)* | **ja** | — |
-| **0.51.0** | **Backup: Stände sichtbar, Zurückspielen mit Skript; Dateien sortieren** | Wunsch des Betreibers vom 29. September 2026; **Konzept abgestimmt am 30. September 2026**, Auftrag `Doku/Auftrag_0.51.0.md`. `./backuptool.sh list`, `show` und `restore`: Backups mit Version, Dateien und Unterschied zum laufenden Stand; Zurückspielen mit Backup davor, danach enthält `data/files/` genau die Dateien des gewählten Stands. Version als Kopfzeile jeder Liste, Alter aus dem Namen, Dateien je Backup in „Alte Backups“, dort auch „Auswählen“ und „Ausgewählte löschen“; die jüngsten x bleiben. Dazu: „ab 3:12“ und „Von vorn“ stehen 10 s statt 5 s; „Dateien“ nach Alter oder Name sortieren, die Gruppen bleiben; „Bearbeiten“ direkt in der Listenzeile | nein | — |
+| ~~**0.51.0**~~ | ~~**Backup: Stände sichtbar, Zurückspielen mit Skript; Dateien sortieren**~~ | **GEBAUT am 30. September 2026** auf 0.50.0 — Änderungsprotokoll 0.51.0, nach `Doku/Auftrag_0.51.0.md`. `./backuptool.sh list`, `show`, `check` und `restore`; `restore` prüft bei laufender Instanz, hält an, legt ein Backup davor an (`# vor` in der Liste) und spielt zurück, danach enthält `data/files/` genau die Dateien des gewählten Stands; ein zweiter Aufruf führt einen Abbruch zu Ende. Jede Liste beginnt mit `# version`, auch ohne Dateien; das Alter bleibt die Änderungszeit (F13). „Alte Backups“ mit Version, Dateien und „nur hier“ je Backup, „Auswählen“ und Löschen mehrerer, die jüngsten nach „Mindestens behalten“ gesperrt; „prüfen“ nennt Version und Schema. Neue Module `schema.js`, `backup.js`, `backuptool.js`. „ab 3:12“ steht 10 s; „Dateien“ sortiert nach „Älteste zuerst“, „Jüngste zuerst“, „Name“, die Ordner mit, der älteste oben bei der Vorgabe (F14); „Bearbeiten“ in der Listenzeile. **MINOR** *(1.390 → 1.431 Rückbauten, Prüfstand 7.848 → 7.912, Sprachschlüssel 1.341 → 1.359). Fingerprint `7ace25ed` (davor `2b87077f`)* | nein | — |
 | **0.52.0** | **Einzelne Dateien aus einem Backup zurückholen** | Vorgabe des Betreibers vom 30. September 2026 (F4 in `Doku/Auftrag_0.51.0.md`): eigene Runde nach 0.51.0. **Vor dem Bau wird das Konzept mit dem Betreiber abgestimmt** (Abschnitt 0.52.0) | offen | — |
 | ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. Die zwei offenen Punkte des Eintrags stehen in der Zeile darunter | — | — |
 | ~~*ohne Nummer*~~ | ~~**Vorgabewerte und Tastaturbedienung beim Sortieren**~~ | **VORLÄUFIG GESTRICHEN am 21. September 2026:** der Inhalt ist nirgends beschrieben — weder hier noch im Sammelblatt noch im Projektstand steht, welche Vorgabewerte gemeint sind und was die Tastatur beim Sortieren tun soll. *Die Zeile kommt zurück, sobald der Betreiber sagt, was gemeint war.* | — | — |
@@ -3504,9 +3504,9 @@ Betreibers).
 
 **Aufgenommen am 29. September 2026** als „Backup der Dateien: Stände
 sichtbar, Aufbewahrung“, Wunsch des Betreibers. **Konzept abgestimmt am
-30. September 2026**; der Auftrag steht in `Doku/Auftrag_0.51.0.md`. Gebaut
-wird, wenn der Betreiber ihn erteilt. Mit 0.50.0 liegen alle Dateien auf der
-Platte, und jedes Backup betrifft alle.
+30. September 2026**; der Auftrag steht in `Doku/Auftrag_0.51.0.md`. **Erteilt
+und gebaut am 30. September 2026**, Änderungsprotokoll 0.51.0. Mit 0.50.0 liegen
+alle Dateien auf der Platte, und jedes Backup betrifft alle.
 
 ### Der Stand seit 0.48.0
 
@@ -3557,6 +3557,8 @@ Dateien.
 | Sortieren unter „Dateien“ | „Älteste zuerst“, „Jüngste zuerst“, „Name“; die Gruppen bleiben erhalten (Nachricht des Betreibers) |
 | Ordner beim Sortieren | sortieren mit; Dateien ohne Ordner bleiben oben |
 | Listenzeile | „Bearbeiten“ direkt in der Zeile; das Menü „…“ bleibt vollständig |
+| Alter eines Backups (F13, während des Baus) | wie bisher aus der Änderungszeit, nicht aus dem Namen |
+| Ordner bei „Älteste zuerst“ (F14, während des Baus) | der älteste Ordner oben, auch bei der Vorgabe |
 
 ### Was gebaut wird
 
@@ -3564,8 +3566,7 @@ Dateien.
   Muster von `keytool.sh`.
 - Jede Liste beginnt mit der Version, die das Backup geschrieben hat. Das
   Skript spielt nur zurück, was zum Schema der installierten Version passt.
-- Das Alter eines Backups kommt aus seinem Namen, nicht aus der
-  Änderungszeit.
+- Das Alter eines Backups kommt wie bisher aus der Änderungszeit (F13).
 - „Alte Backups“ nennt die Dateien je Backup und die Größe von
   `kriterion-files/`.
 - „Alte Backups“ bekommt „Auswählen“ und „Ausgewählte löschen“; die jüngsten

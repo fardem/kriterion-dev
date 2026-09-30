@@ -1303,6 +1303,9 @@ function authorName(v) {
 let LINK_ROWS = 5;          // sichtbare Zeilen, bevor aufgeklappt wird
 let TIMELINE_ON = true;
 let FILES_VIEW = 'tiles';
+// Dieselben Werte wie filesSort in PICK_SETTINGS (server.js).
+const FILES_SORTS = { oldest: 'entry.filesSortOldest', newest: 'entry.filesSortNewest', name: 'entry.filesSortName' };
+let FILES_SORT = 'oldest';
 // { theme, editAll } aus GET /api/settings; null ohne Document Server.
 let DOC_SETTINGS = null;
 const LINK_ROW_LEVELS = [3, 5, 8, 12];
@@ -2780,6 +2783,7 @@ async function loadSettings() {
   if (SETTINGS.linkRows) LINK_ROWS = SETTINGS.linkRows;
   if (SETTINGS.timeline !== undefined) TIMELINE_ON = SETTINGS.timeline !== false;
   if (SETTINGS.filesView === 'tiles' || SETTINGS.filesView === 'list') FILES_VIEW = SETTINGS.filesView;
+  if (FILES_SORTS[SETTINGS.filesSort]) FILES_SORT = SETTINGS.filesSort;
   if (SETTINGS.documents !== undefined) DOC_SETTINGS = SETTINGS.documents;
   if (Array.isArray(SETTINGS.views)) VIEWS = SETTINGS.views;
   if (SETTINGS.viewsCap) VIEWS_CAP = SETTINGS.viewsCap;
@@ -4418,7 +4422,7 @@ function durationText(s) {
 
 /* ---- Stelle im Video ---- */
 const SPOT_EVERY_MS = 15000;
-const SPOT_HINT_MS = 5000;
+const SPOT_HINT_MS = 10000;
 const SPOT_WAIT_MS = 1500;
 // Was dieser Browser gespeichert hat; gilt vor `position` aus einer aelteren Antwort.
 const VIDEO_SPOTS = new Map();
@@ -5459,7 +5463,9 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
 
     <div class="block block-wide" data-block="dateien">
       <div class="block-head"><span class="label">${tH('dialog.files')}</span><span class="hint" id="acount"></span>
-        <span class="ahead-acts"><span class="aview" role="group" aria-label="${esc(t('entry.filesView'))}">
+        <span class="ahead-acts"><select class="select asort" id="asort" aria-label="${esc(t('entry.filesSort'))}">${
+            Object.entries(FILES_SORTS).map(([v, key]) => `<option value="${esc(v)}">${tH(key)}</option>`).join('')}</select>
+          <span class="aview" role="group" aria-label="${esc(t('entry.filesView'))}">
           <button type="button" class="aview-btn" data-view="tiles" aria-pressed="false">${tH('entry.filesTiles')}</button>
           <button type="button" class="aview-btn" data-view="list" aria-pressed="false">${tH('entry.filesList')}</button></span>
         <button class="link-btn" id="apick-start" hidden>${tH('entry.pick')}</button>
@@ -6963,7 +6969,8 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       + `<span class="aname"></span><span class="ameta"></span><span class="akind"></span><span class="asize"></span>`
       + `<span class="adate"></span><span class="afrom"></span><span class="anote"></span>`
       + `<span class="acheck" aria-hidden="true"></span></button>`
-      + (adds ? '' : `<button type="button" class="amore" aria-haspopup="menu" aria-expanded="false">⋯</button>`);
+      + (adds ? '' : `<button type="button" class="abtn aedit" hidden>${tH('entry.edit')}</button>`
+        + `<button type="button" class="amore" aria-haspopup="menu" aria-expanded="false">⋯</button>`);
     const face = li.querySelector('.aface');
     face.onclick = () => tileAction(li);
     // Umschalt+F10; die Menuetaste und die rechte Maustaste kommen als `contextmenu`.
@@ -7054,6 +7061,11 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     const more = li.querySelector('.amore');
     more.setAttribute('aria-label', t('entry.fileMenu', { name: a.filename }));
     more.title = t('entry.fileMenu', { name: a.filename });
+    // Dieselbe Bedingung wie „Bearbeiten" in fileMenu(); die Kacheln blenden den Knopf aus.
+    const edit = li.querySelector('.aedit');
+    edit.hidden = !!filesPicked || !(a.preview === 'office' && a.edit && !isNarrow());
+    edit.setAttribute('aria-label', t('entry.editNamed', { name: a.filename }));
+    edit.onclick = () => { location.hash = fileAddress(id, a.id, true); };
     pickState(li, filesPicked && mayDeleteFile(a) ? filesPicked.has(a.id) : null);
   }
 
@@ -7231,6 +7243,22 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     el.querySelector('.agrid').setAttribute('aria-label', f.name);
   }
 
+  /* ---- Sortieren ---- */
+  const byName = (x, y) => x.localeCompare(y, LOCALE, { numeric: true, sensitivity: 'accent' });
+  const byText = (x, y) => (x > y) - (x < y);
+  // „Älteste zuerst" ist die Folge des Servers: sort_order, dann id.
+  function sortedFiles(files) {
+    if (FILES_SORT === 'newest') return files.slice().sort((a, b) => byText(b.created_at, a.created_at) || b.id - a.id);
+    if (FILES_SORT === 'name') return files.slice().sort((a, b) => byName(a.filename, b.filename) || a.id - b.id);
+    return files;
+  }
+  // Die Ordner kommen vom Server als „Jüngste zuerst" (Testtag oder Erstelldatum).
+  function sortedFolders(folders) {
+    if (FILES_SORT === 'oldest') return folders.slice().reverse();
+    if (FILES_SORT === 'name') return folders.slice().sort((a, b) => byName(a.name, b.name) || a.id - b.id);
+    return folders;
+  }
+
   /* Aktualisiert die Kacheln nach Nummer, auch ueber Gruppen hinweg; die Vorschau bleibt stehen. */
   function drawAtts() {
     // Nach einem await kann die Ansicht schon gewechselt haben.
@@ -7267,7 +7295,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     const old = new Map([...attsBox.querySelectorAll('.atile')].map(li => [li.dataset.key, li]));
     const taken = list.length + jobs.length + remote.length;
     const tilesOf = (key, shown, adds) => [
-      ...list.filter(a => groupOf(a) === key).map(a => ['f' + a.id, li => fillFileTile(li, a, key, shown)]),
+      ...sortedFiles(list.filter(a => groupOf(a) === key)).map(a => ['f' + a.id, li => fillFileTile(li, a, key, shown)]),
       ...remote.filter(x => remoteGroup(x) === key).map(x => ['s' + x.id, li => fillRemoteTile(li, x)]),
       ...jobs.filter(u => jobGroup(u) === key).map(u => ['u' + u.no, li => fillUploadTile(li, u)]),
       ...(adds ? [[key ? `add-f${key}` : 'add', li => fillAddTile(li, taken)]] : [])];
@@ -7279,7 +7307,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     });
     place(looseGroup.querySelector('.agrid'), tilesOf(0, true, true));
     const oldGroups = new Map([...folderBox.children].map(el => [Number(el.dataset.folder), el]));
-    folders.forEach((f, at) => {
+    sortedFolders(folders).forEach((f, at) => {
       const el = oldGroups.get(f.id) || newFolderGroup(f.id);
       oldGroups.delete(f.id);
       const open = FOLDERS_OPEN.open.has(f.id);
@@ -7646,8 +7674,8 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     const target = (item.attachments || []).find(a => a.id === Number(fileId));
     if (!target) return false;
     const key = groupOf(target);
-    const pictures = (item.attachments || [])
-      .filter(a => (a.preview === 'image' || a.preview === 'video') && groupOf(a) === key)
+    const pictures = sortedFiles((item.attachments || [])
+      .filter(a => (a.preview === 'image' || a.preview === 'video') && groupOf(a) === key))
       .map(a => ({ ...a, source: 'file', kind: a.preview === 'video' ? 'video' : 'image' }));
     const at = pictures.findIndex(a => a.id === Number(fileId));
     if (at < 0) return false;
@@ -7831,6 +7859,14 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     catch (e) { toast(e.message, true); }
   };
   showFilesView();
+  const sortBox = document.getElementById('asort');
+  sortBox.value = FILES_SORT;
+  sortBox.onchange = async () => {
+    FILES_SORT = sortBox.value;
+    drawAtts();
+    try { await api('PUT', '/api/settings', { filesSort: FILES_SORT }); }
+    catch (e) { toast(e.message, true); }
+  };
 
   UPLOAD_VIEW = { itemId: Number(id), redraw: drawAtts, took: (fresh) => { item = fresh; drawAtts(); } };
 
@@ -11218,6 +11254,8 @@ function followBackup(fetched) {
 }
 
 /* ---- Karte „Alte Backups" — Abschnitt „Datenbank" ---- */
+// Namen der gewaehlten Backups; null ausserhalb der Auswahl.
+let CLEANUP_PICK = null;
 function cardCleanup() {
   return `<div class="sys-card">
         <h3>${tH('card.oldBackups')}</h3>
@@ -11243,27 +11281,50 @@ function setUpCleanupOut(fetched) {
     const keep = Number.isInteger(a.keep) ? a.keep : gB.fallback;
     const days = Number.isInteger(a.days) ? a.days : gT.fallback;
 
+    const all = Array.isArray(a.files) ? a.files : [];
+    const pickable = all.filter(z => !z.locked);
+    if (CLEANUP_PICK) for (const n of [...CLEANUP_PICK])
+      if (!pickable.some(z => z.file === n)) CLEANUP_PICK.delete(n);
+    if (!pickable.length) CLEANUP_PICK = null;
+    const filesLine = (z) => {
+      const parts = [tH('card.backupVersion', { version: z.version || '–' })];
+      if (z.before) parts.push(`<span class="mbefore">${tH('card.beforeRestore')}</span>`);
+      parts.push(z.files ? tH('card.backupFiles', { n: z.files.count, bytes: fmtBytes(z.files.bytes),
+        only: z.files.onlyCount, onlyBytes: fmtBytes(z.files.onlyBytes) }) : tH('card.backupNoList'));
+      return `<span class="mfiles">${parts.join(' · ')}</span>`;
+    };
     /* Der Knopf heisst nur „prüfen": die Zeile misst am Telefon 366 px. */
     const row = (z) => {
       const mark = z.affected ? `<span class="cleanup-badge remove">${tH('card.deleteLower')}</span>`
                   : z.outdated ? `<span class="cleanup-badge old">${tH('card.oldKey')}</span>` : '';
-      return `<div class="mrow">
+      const label = z.locked ? t('card.pickLocked', { n: all.filter(y => y.locked).length, nr: z.nr, at: fmtDate(z.at) })
+                             : t('card.pickBackup', { nr: z.nr, at: fmtDate(z.at) });
+      const pick = !CLEANUP_PICK ? '' : `<input type="checkbox" class="cleanup-pick" data-name="${esc(z.file)}"
+        aria-label="${esc(label)}"${z.locked ? ` disabled title="${esc(label)}"` : ''}${
+        CLEANUP_PICK.has(z.file) ? ' checked' : ''}>`;
+      return `<div class="mrow">${pick}
         <span class="mname">#${z.nr} · ${esc(fmtDate(z.at))}</span>${mark}
         <span class="mcount">${esc(fmtBytes(z.bytes))} · ${
           tH('card.daysAgo', { n: z.daysAgo })}</span>
         <button class="link-btn backup-check" data-nr="${z.nr}">${tH('card.checkBackup')}</button>
+        ${filesLine(z)}
         </div><div class="backup-probe" id="probe-${z.nr}" hidden></div>`;
     };
-    const all = Array.isArray(a.files) ? a.files : [];
     const matched = Array.isArray(a.matched) ? a.matched : [];
     const oldCount = Number(a.oldCount) || 0;
+    const store = a.store || { count: 0, bytes: 0 };
 
     const listBox = !a.reachable
       ? `<div class="warn-box" style="margin:0 0 12px">${esc(d.error ||
            t('server.backupDirUnreachable'))}</div>`
       : (all.length
-        ? `<div class="label" style="margin:0 0 6px">${tH('card.backupsCount', { length: all.length })}</div>
-           <div class="manage-list" id="cleanup-list">${all.map(row).join('')}</div>`
+        ? `<div class="cleanup-head"><span class="label">${tH('card.backupsCount', { length: all.length })}</span>
+             <button class="link-btn" id="cleanup-pick-start"${CLEANUP_PICK || !pickable.length ? ' hidden' : ''}>${
+               tH('entry.pick')}</button></div>
+           <p class="hint hint-sm" id="cleanup-store">${tH('card.backupStore',
+             { n: store.count, bytes: fmtBytes(store.bytes) })}</p>
+           <div class="manage-list" id="cleanup-list">${all.map(row).join('')}</div>
+           ${pickBarHtml('cleanup-pick')}`
         : `<p class="hint hint-sm" style="margin:2px 2px 0">${tH('card.noBackupInFolder')}</p>`);
 
     const stateBox = !a.reachable ? '' : (matched.length
@@ -11373,6 +11434,58 @@ function setUpCleanupOut(fetched) {
           { n: oldCount, bytes: fmtBytes(a.oldBytes || 0) }));
     });
 
+    /* ---- Auswahl ---- */
+    const pickBar = document.getElementById('cleanup-pick');
+    const picking = (on, focusId) => {
+      CLEANUP_PICK = on ? new Set() : null;
+      drawCleanup(fetched);
+      document.querySelector(focusId || (on ? '#cleanup-pick [data-pick="cancel"]' : '#cleanup-pick-start'))?.focus();
+    };
+    const deletePicked = async () => {
+      const chosen = all.filter(z => CLEANUP_PICK.has(z.file));
+      const names = chosen.map(z => z.file);
+      let freed = 0;
+      try { freed = (await api('GET', `/api/backup?freed=${encodeURIComponent(names.join('|'))}`)).freed || 0; }
+      catch (e) { return toast(e.message, true); }
+      if (!(await secondConfirm('backup', null, t('card.deletePickedBackups'), t('card.pickedPurgeHint',
+        { n: chosen.length, bytes: fmtBytes(chosen.reduce((n, z) => n + z.bytes, 0)), files: fmtBytes(freed) })))) return;
+      let r;
+      try { r = await api('POST', '/api/backup/cleanup', { kind: 'selected', names }); }
+      catch (e) { return toast(e.message, true); }
+      CLEANUP_PICK = null;
+      fetched.backup = { ...fetched.backup, reachable: r.reachable, last: r.last,
+                           number: r.number, changedAt: r.changedAt, outdated: r.outdated,
+                           cleanup: { ...(fetched.backup || {}).cleanup, ...r.cleanup } };
+      toast(t('card.backupsDeleted', { n: r.removed, bytes: fmtBytes(r.bytes + (r.copyBytes || 0)),
+        extra: r.notDeleted ? t('card.notDeleted', { notDeleted: r.notDeleted }) : '' }));
+      renderSystem();
+    };
+    if (pickBar) {
+      pickBar.hidden = !CLEANUP_PICK;
+      if (CLEANUP_PICK) drawPickBar(pickBar, CLEANUP_PICK.size, pickable.length);
+      pickBar.onclick = (e) => {
+        const b = e.target.closest('[data-pick]');
+        if (!b || b.disabled || !CLEANUP_PICK) return;
+        ({ cancel: () => picking(false), delete: deletePicked,
+           all: () => {
+             const on = CLEANUP_PICK.size < pickable.length;
+             CLEANUP_PICK = new Set(on ? pickable.map(z => z.file) : []);
+             drawCleanup(fetched);
+             document.querySelector('#cleanup-pick [data-pick="all"]')?.focus();
+           } })[b.dataset.pick]();
+      };
+    }
+    atElement('cleanup-pick-start', (b) => { b.onclick = () => picking(true); });
+    box.querySelectorAll('.cleanup-pick').forEach(c => {
+      c.onchange = () => {
+        if (c.checked) CLEANUP_PICK.add(c.dataset.name); else CLEANUP_PICK.delete(c.dataset.name);
+        drawPickBar(pickBar, CLEANUP_PICK.size, pickable.length);
+      };
+    });
+    box.onkeydown = (e) => {
+      if (e.key === 'Escape' && CLEANUP_PICK) { e.preventDefault(); picking(false); }
+    };
+
     /* Ohne Rueckfrage: die Pruefung liest nur. */
     box.querySelectorAll('.backup-check').forEach(button => {
       button.onclick = async () => {
@@ -11389,7 +11502,10 @@ function setUpCleanupOut(fetched) {
               ? `<span class="probe-ok">${esc(V.entryMany)} ${Number(r.itemCount)} · ${
                    tH('list.photos')} ${Number(r.photoCount)} · ${tH('card.checkUsers')} ${Number(r.userCount)}${
                    r.contentUntil ? ` · ${tH('card.checkUntil')} ${esc(fmtDate(r.contentUntil))}` : ''}${
-                   r.files ? ` · ${tH('card.checkCopies', { present: r.files.present, listed: r.files.listed })}` : ''}</span>`
+                   r.files ? ` · ${tH('card.checkCopies', { present: r.files.present, listed: r.files.listed })}` : ''} · ${
+                   tH('card.backupVersion', { version: r.version || '–' })} · ${r.schema && r.schema.ok
+                     ? tH('card.checkSchemaOk')
+                     : tH('card.checkSchemaDiffers', { differences: ((r.schema && r.schema.differences) || []).join(', ') })}</span>`
               : `<span class="probe-no">${
                    r.reason === 'key' ? tH('card.checkKeyWrong') : tH('card.checkForeign')}</span>`;
           }

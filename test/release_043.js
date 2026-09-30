@@ -352,7 +352,7 @@ async function run() {
     backRows['tabelle.xlsx']?.editAll === true && backRows['bericht.docx']?.editAll === false &&
     backRows['bericht.docx']?.restore === false, JSON.stringify(backRows['bericht.docx']));
 
-  const schema = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
+  const schema = fs.readFileSync(path.join(__dirname, 'schema.js'), 'utf8');
   check('Zwei neue Tabellen, keine neue Spalte in attachments',
     /CREATE TABLE IF NOT EXISTS attachment_editing \(/.test(schema) &&
     /CREATE TABLE IF NOT EXISTS attachment_previous \(/.test(schema) &&
