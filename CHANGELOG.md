@@ -30,6 +30,40 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.52.0] - 2026-09-30
+
+*Dateien: Gruppieren, Sortieren mit Richtung, Kopfzeile; Erweiterte Infos; Video ganz laden.*
+
+Fingerprint `a4d2ab5e` — davor `7ace25ed`.
+
+> **Nach dem Update liest Kriterion im Hintergrund jedes Bild und Video unter
+> „Dateien“ einmal**, eines nach dem anderen, für die Erweiterten Infos und den
+> Codec am Vorschaubild. Die Dateien bleiben unverändert.
+
+### Hinzugefügt
+
+- **Sortieren mit Richtung unter „Dateien“:** Name, Datum oder Größe, daneben
+  ein Knopf für die Richtung; die Ordner folgen, nach Größe mit der Summe ihrer
+  Dateien.
+- **„Nach Typ gruppiert“:** je Art eine Zwischenzeile mit Zahl, auch in jedem
+  Ordner.
+- **Kopfzeile der Liste am Rechner:** ein Klick auf Name, Größe oder Datum
+  sortiert, ein zweiter kehrt die Richtung um.
+- ✎ und 🔗 in einer festen Spalte der Listenzeile.
+- **„Erweiterte Infos“ zu Bildern und Videos** im Menü „…“: Codec, Auflösung,
+  Bitraten, Bildrate, Bittiefe, Tonspuren. Neue Abhängigkeit `mediainfo.js`.
+- Der Codec eines Videos steht am Vorschaubild, in der Liste mit der Länge.
+- **Video ganz laden:** beim Abspielen im Vollbild bis 2 GB am Rechner und
+  500 MB am Telefon, mit „geladen … %“.
+
+### Geändert
+
+- „Art“ nennt die Art der Datei (Video, Bild, PDF, Word …) statt der Endung.
+- Das Menü „…“ steht in fünf Gruppen mit Trennlinien; „Öffnen“ auch bei Bildern
+  und Videos; „Vorschaubild wählen …“ statt „Dieses Bild als Vorschaubild“.
+- Art, Größe und Datum stehen in jeder Listenzeile untereinander, auch neben
+  „Bearbeiten“.
+
 ## [0.51.0] - 2026-09-30
 
 *Backup: Stände sichtbar, Zurückspielen mit Skript; Dateien sortieren.*

@@ -299,6 +299,12 @@ CREATE TABLE IF NOT EXISTS attachment_stills (
   still BLOB NOT NULL
 );
 
+-- Angaben von MediaInfo zu einem Bild oder Video als JSON, gelesen in einer Warteschlange.
+CREATE TABLE IF NOT EXISTS attachment_media (
+  attachment_id INTEGER PRIMARY KEY REFERENCES attachments(id) ON DELETE CASCADE,
+  info TEXT NOT NULL
+);
+
 -- Ordner unter „Dateien“. AUTOINCREMENT: ein Upload, der auf einen geloeschten
 -- Ordner wartet, landet nie in einem neuen mit derselben Nummer.
 CREATE TABLE IF NOT EXISTS folders (

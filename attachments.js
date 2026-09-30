@@ -3,6 +3,7 @@
 const zlib = require('zlib');
 const fs = require('fs');
 const crypto = require('crypto');
+const mediaInfoFactory = require('mediainfo.js').default;
 
 /* ---- Typen ---- */
 
@@ -354,10 +355,44 @@ async function sealInto(file, f, first, plain, { fresh = false } = {}) {
   } finally { await handle.close(); }
 }
 
+/* ---- Erweiterte Infos zu Bildern und Videos ---- */
+const mediaKind = (filename) => (['image', 'video'].includes(previewKind(filename)) ? previewKind(filename) : null);
+const mediaNumber = (v) => (v === undefined || v === null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
+const mediaText = (v) => (v === undefined || v === null || v === '' ? null : String(v).slice(0, 80));
+const HDR_TRANSFERS = ['PQ', 'HLG'];
+
+// Nur was der Dialog zeigt; Bitraten in bit/s, Dauer in Sekunden.
+function mediaSummary(tracks) {
+  const of = (type) => tracks.filter(tr => tr['@type'] === type);
+  const g = of('General')[0] || {};
+  const profile = (tr) => [tr.Format_Profile, tr.Format_Level && `L${tr.Format_Level}`, tr.Format_Tier]
+    .filter(Boolean).join('@');
+  return {
+    general: { format: mediaText(g.Format), size: mediaNumber(g.FileSize), duration: mediaNumber(g.Duration),
+      bitRate: mediaNumber(g.OverallBitRate), recorded: mediaText(g.Recorded_Date || g.Encoded_Date) },
+    video: of('Video').map(tr => ({ format: mediaText(tr.Format), profile: mediaText(profile(tr)),
+      width: mediaNumber(tr.Width), height: mediaNumber(tr.Height), frameRate: mediaNumber(tr.FrameRate),
+      bitRate: mediaNumber(tr.BitRate), bitDepth: mediaNumber(tr.BitDepth), chroma: mediaText(tr.ChromaSubsampling),
+      hdr: mediaText(tr.HDR_Format || (HDR_TRANSFERS.includes(tr.transfer_characteristics) ? tr.transfer_characteristics : null)) })),
+    audio: of('Audio').map(tr => ({ format: mediaText(tr.Format), channels: mediaNumber(tr.Channels),
+      samplingRate: mediaNumber(tr.SamplingRate), bitRate: mediaNumber(tr.BitRate), language: mediaText(tr.Language) })),
+    image: of('Image').map(tr => ({ format: mediaText(tr.Format), width: mediaNumber(tr.Width),
+      height: mediaNumber(tr.Height), bitDepth: mediaNumber(tr.BitDepth), colorSpace: mediaText(tr.ColorSpace),
+      chroma: mediaText(tr.ChromaSubsampling) }))
+  };
+}
+
+// `read(length, offset)` liefert die Bytes ab `offset`. Eine Instanz je Datei, danach freigegeben.
+async function mediaFacts(size, read) {
+  const mi = await mediaInfoFactory({ format: 'object' });
+  try { return mediaSummary((await mi.analyzeData(size, read))?.media?.track || []); }
+  finally { mi.close(); }
+}
+
 module.exports = {
   extension, previewKind, setHeader, securityRule,
   typeFromBytes, setImageHeader, rangeOut,
   textPreview, textTileSvg, TEXT_TILE_BYTES: TEXT_TILE.bytes, docxPreview, VIDEO_TYPES, INLINE_ALLOWED, outType,
   CHUNK, TAG, encLen, sealChunk, openChunk, chunkCount, chunkPlain, chunkAt,
-  readChunk, readChunkSync, openWholeSync, sealInto
+  readChunk, readChunkSync, openWholeSync, sealInto, mediaKind, mediaFacts
 };

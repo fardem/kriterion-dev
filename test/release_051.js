@@ -353,13 +353,13 @@ async function run() {
 
   group('Dateien sortieren: die Einstellung');
   {
-    const set = await as('uploader', 'PUT', '/api/settings', { filesSort: 'name' });
+    const set = await as('uploader', 'PUT', '/api/settings', { filesSort: 'name_asc' });
     const wrong = await as('uploader', 'PUT', '/api/settings', { filesSort: 'groesse' });
-    check('filesSort wird je Account gespeichert; ein fremder Wert: 400; ohne Wert gilt oldest',
-      set.status === 200 && set.content?.filesSort === 'name' && wrong.status === 400 &&
+    check('filesSort wird je Account gespeichert; ein fremder Wert: 400; ohne Wert gilt date_asc',
+      set.status === 200 && set.content?.filesSort === 'name_asc' && wrong.status === 400 &&
       wrong.content?.error === DE['server.sortUnknown'] &&
-      (await as('uploader', 'GET', '/api/settings')).content?.filesSort === 'name' &&
-      (await as('owner', 'GET', '/api/settings')).content?.filesSort === 'oldest',
+      (await as('uploader', 'GET', '/api/settings')).content?.filesSort === 'name_asc' &&
+      (await as('owner', 'GET', '/api/settings')).content?.filesSort === 'date_asc',
       `${set.status} ${wrong.status}`);
   }
   await stop();
@@ -477,12 +477,14 @@ async function run() {
     const folderOrder = () => [...w.document.querySelectorAll('#atts .afolders > .afolder')]
       .map(el => el.querySelector('.afolder-name')?.textContent);
     const box = w.document.getElementById('asort');
-    check('Die Auswahl steht neben „Kacheln | Liste" mit drei Folgen; ohne Wahl „Älteste zuerst"',
-      box?.closest('.ahead-acts')?.querySelector('.aview') !== null && box?.value === 'oldest' &&
+    const dir = w.document.getElementById('asort-dir');
+    check('Die Auswahl steht neben „Kacheln | Liste" mit Name, Datum, Größe; ohne Wahl Datum, alt → neu',
+      box?.closest('.ahead-acts')?.querySelector('.aview') !== null && box?.value === 'date' &&
+      dir?.textContent === DE['list.dirOldNew'] &&
       equal([...(box?.options || [])].map(o => o.textContent),
-        [DE['entry.filesSortOldest'], DE['entry.filesSortNewest'], DE['entry.filesSortName']]) &&
-      box?.getAttribute('aria-label') === DE['entry.filesSort'], box?.value);
-    check('Älteste zuerst: die Folge des Servers; die Ordner in umgekehrter Folge des Servers',
+        [DE['entry.filesSortName'], DE['entry.filesSortDate'], DE['entry.filesSortSize']]) &&
+      box?.getAttribute('aria-label') === DE['entry.filesSort'], `${box?.value} ${dir?.textContent}`);
+    check('Datum, alt → neu: die Folge des Servers; die Ordner in umgekehrter Folge des Servers',
       equal(loose(), ['notiz.txt', 'foto.png', 'doku.pdf', 'archiv.zip', 'b10.txt', 'b2.txt']) &&
       equal(folderOrder(), ['Erster Ordner', 'Zweiter Ordner']), `${loose().join(' ')} | ${folderOrder().join(' ')}`);
     const choose = async (value) => {
@@ -490,8 +492,9 @@ async function run() {
       box.dispatchEvent(new w.Event('change', { bubbles: true }));
       await until(w, () => openRequests(w) === 0, 2000, 'das Speichern').catch(() => {});
     };
-    await choose('newest');
-    check('Jüngste zuerst: nach Datum des Uploads; die Ordner wie vom Server',
+    dir?.click();
+    await until(w, () => openRequests(w) === 0, 2000, 'das Speichern').catch(() => {});
+    check('Datum, neu → alt: nach Datum des Uploads; die Ordner wie vom Server',
       equal(loose(), ['b2.txt', 'b10.txt', 'archiv.zip', 'doku.pdf', 'foto.png', 'notiz.txt']) &&
       equal(folderOrder(), ['Zweiter Ordner', 'Erster Ordner']), `${loose().join(' ')} | ${folderOrder().join(' ')}`);
     await choose('name');
@@ -501,7 +504,7 @@ async function run() {
       w.document.querySelector('#atts > .agroup') !== null, `${loose().join(' ')} | ${folderOrder().join(' ')}`);
     check('Jede Wahl geht an PUT /api/settings',
       equal(m.sent.filter(x => x.method === 'PUT' && x.url === '/api/settings').map(x => x.body),
-        [{ filesSort: 'newest' }, { filesSort: 'name' }]), JSON.stringify(m.sent.filter(x => x.method === 'PUT').map(x => x.body)));
+        [{ filesSort: 'date_desc' }, { filesSort: 'name_asc' }]), JSON.stringify(m.sent.filter(x => x.method === 'PUT').map(x => x.body)));
     // Der Mock gibt dasselbe Objekt zurueck, das die Seite als Eintrag haelt.
     m.example.uploads = [{ id: 'up1', filename: 'aaa-laeuft.mp4', size: 5000, received: 100, folder: null,
       created_at: '2026-08-09 09:00:00', touched_at: '2026-08-09 09:00:00', active: true, mine: false, author: vChefin }];
@@ -528,13 +531,13 @@ async function run() {
       .catch(() => {});
     const editOf = (key) => w.document.querySelector(`#atts .atile[data-key="${key}"] .aedit`);
     check('In der Liste steht „Bearbeiten" nur bei einer Datei, die der Account bearbeiten darf',
-      editOf('f71')?.hidden === false && editOf('f71')?.textContent === DE['entry.edit'] &&
+      editOf('f71')?.hidden === false && editOf('f71')?.title === DE['entry.edit'] &&
       editOf('f72')?.hidden === true && editOf('f41')?.hidden === true &&
       editOf('f71')?.getAttribute('aria-label') === deText('entry.editNamed', { name: 'bericht.docx' }),
       `${editOf('f71')?.hidden} ${editOf('f72')?.hidden}`);
     const css = read('public/style.css');
-    check('In den Kacheln blendet das Stilblatt den Knopf aus',
-      /\n\.aedit \{ display: none; \}/.test(css) && /\n\.alist \.aedit \{ display: block; \}/.test(css), 'Regel fehlt');
+    check('In den Kacheln blendet das Stilblatt die Spalte mit dem Knopf aus',
+      /\n\.aacts \{ display: none; \}/.test(css) && /\n\.alist \.aacts \{ display: grid;/.test(css), 'Regel fehlt');
     editOf('f71')?.click();
     check('Der Klick oeffnet den Editor', w.location.hash === '#/item/1/file/71/edit', w.location.hash);
     w.close();

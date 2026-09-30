@@ -362,10 +362,10 @@ async function run() {
 
     tileOf(w, 'f60')?.querySelector('.amore')?.click();
     const menu = [...w.document.querySelectorAll('.fmenu [role^="menuitem"]')];
-    const entry = menu.find(e => e.textContent === DE['entry.setStill']);
+    const entry = menu.find(e => e.textContent === DE['entry.chooseStill']);
     entry?.click();
     const keep = lbOf(w)?.querySelector('.still');
-    check('Im Menue eines eigenen Videos oeffnet „Dieses Bild als Vorschaubild" das Vollbild daran',
+    check('Im Menue eines eigenen Videos oeffnet „Vorschaubild waehlen …" das Vollbild daran',
       !!entry && countOf(w) === '2 / 2' && playerOf(w)?.getAttribute('src') === '/api/attachments/60/raw?inline=1' &&
       keep?.hidden === false && keep?.getAttribute('aria-label') === DE['entry.setStill'], countOf(w));
     w.eval('frameImage = async () => new Blob(["bild"], { type: "image/jpeg" })');
