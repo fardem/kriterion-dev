@@ -183,6 +183,10 @@ sagt der Fahrplan.
 | **53** | „Dateien“: Gruppieren nach Typ oder ohne; Sortieren nach Name, Datum und Größe, die Richtung als eigener Knopf wie auf der Einstiegsseite | mittel | mittel | Auftrag mit Fragetafel |
 | **54** | „Dateien“ wie im Windows-Explorer gestalten; welche Teile gemeint sind, ist offen | mittel | groß | zusammen mit 53 und 55 |
 | **55** | „Bearbeiten“ und „Link“ am Desktop in der Zeile statt nur im Menü „…“ | mittel | klein | zusammen mit 53 und 54 |
+| **56** | Angaben zu Videos wie in MediaInfo: Codec, Auflösung, Bildrate, Bitrate, Ton; ohne ffmpeg über `mediainfo.js` möglich | mittel | mittel | Machbarkeit zuerst besprechen (Vorgabe) |
+| **57** | Vorpuffern im Player bei schlechter Verbindung; eine schnell abspielbare Fassung für das Telefon mit ffmpeg, nur wenn es schnell geht | offen | offen | Machbarkeit zuerst besprechen, Umwandeln auf dem Server messen (Vorgabe) |
+| **58** | „Der Papierkorb: der Rundlauf“ wartet nicht auf die Umlagerung beim Start und wird dann rot | hoch | klein | beheben |
+| **59** | `test/ui_export.js` bricht unter drei Spuren mit „other side closed“ ab; Ursache nicht untersucht | mittel | offen | untersuchen |
 | ~~Protokoll 0.38.2~~ | ~~Die Strichstärke des Löschkreuzes bleibt 1.8, dieselbe wie am Stift und am Zitatzeichen~~ | — | — | **ABGELEHNT am 21. September 2026** |
 | ~~Protokoll 0.38.2~~ | ~~Der Trefferausschnitt zeigt bei einem Treffer im Ziel eines Links den Rohtext samt seiner Marken~~ | — | — | **RUHT seit dem 21. September 2026** |
 | ~~Protokoll 0.38.3~~ | ~~Der Halt nach einem Sprung ist eine Frist von 1600 Millisekunden und keine Messung~~ | — | — | **RUHT seit dem 21. September 2026** |
@@ -2809,3 +2813,108 @@ Kacheln nicht. „Link auf diese Datei kopieren“ steht nur im Menü „…“.
 **Offen:** ob „Bearbeiten“ bei einer Office-Datei in der Liste fehlte (dann ein
 Befund zu 0.51.0) oder die Kacheln gemeint sind; ob „Link“ als Zeichen oder als
 Wort in der Zeile steht.
+
+## 56. Angaben zu Videos wie in MediaInfo
+
+**Art: Wunsch** *(Betreiber)* **· Herkunft: Abnahme von 0.51.0, 30. September
+2026 · Einschätzung: mittel · Fahrplan: offen**
+
+Wortlaut: „gibt es sowas wie mediinfo für die video-dateien?“ und „oder
+brauchen wir dafür ffmpeg als packet?“
+
+**Vorgabe des Betreibers:** „kannst notieren aber bevor das in umsetzung geht
+muss die machbarkeit besprochen und abgestimmt werden. die umsetzung muss
+realistisch sein.“
+
+**Stand mit 0.51.0:** Kriterion kennt den Typ aus den ersten Bytes (bei MP4
+die Marken im `ftyp`-Kasten, `attachments.js`), die Größe und die Dauer in
+ganzen Sekunden. Die Dauer misst der Browser beim Standbild
+(`attachment_stills.duration`). Die Auflösung sieht nur der Browser beim
+Abspielen. Codec, Bildrate, Bitrate, Bittiefe und Ton stehen nirgends. Im Image
+ist kein ffmpeg.
+
+**Wege** (npm, 30. September 2026):
+
+| Weg | Lizenz | Größe | Umfang |
+|---|---|---|---|
+| `mediainfo.js` 0.3.8, MediaInfoLib als WebAssembly | BSD-2-Clause | 4,5 MB entpackt | Angaben wie MediaInfo für MP4, MOV und WebM; läuft im Browser und in Node |
+| `mp4box` 2.4.1, MP4Box von GPAC in JavaScript | BSD-3-Clause | 2,3 MB entpackt | nur MP4 und MOV, Rohdaten |
+| ffmpeg (`ffprobe`) im Image | — | nicht gemessen | alles; lohnt sich erst, wenn auch umgewandelt wird (Punkt 57), und nur, wenn es schnell geht (Vorgabe) |
+
+**Zu klären:** ob der Browser beim Upload liest oder der Server über
+entschlüsselte Abschnitte, was mit vorhandenen Videos geschieht, wo die Angaben
+stehen und ob sie gespeichert werden.
+
+## 57. Vorpuffern im Player und eine schnell abspielbare Fassung für das Telefon
+
+**Art: Frage und Wunsch** *(Betreiber)* **· Herkunft: Abnahme von 0.51.0,
+30. September 2026 · Einschätzung: offen · Fahrplan: offen**
+
+Wortlaut: „wie verhält es sich bei schlechter verbindung kann es
+vorpuffern?“ und „alos der player?“
+
+Nachtrag: „ffmpeg lohnt sich nur wenn es schnell geht“ und „andfere frage
+wäre ob wir für mibil mit ffmpeg egal welche format das hat ein schnelles
+abspiellbare konvertierung durchführen lassen.“
+
+**Vorgabe des Betreibers:** wie bei Punkt 56; vor einer Umsetzung wird die
+Machbarkeit besprochen und abgestimmt. ffmpeg lohnt sich nur, wenn es schnell
+geht.
+
+**Stand mit 0.51.0:** Es spielt der eingebaute Player des Browsers
+(`<video controls>`, `preload="metadata"`). Vor dem Start lädt er nur den Kopf
+der Datei. Danach lädt er voraus, auch in der Pause, bis zu einer Grenze, die
+der Browser selbst festlegt; gemessen ist sie nicht. Der Server liefert Bereiche
+(HTTP 206) und entschlüsselt nur die nötigen Stücke zu 1 MiB; Springen lädt
+nicht von vorn. Es gibt eine Qualität, die Originaldatei. Ist die Verbindung
+dauerhaft langsamer als die Bitrate des Videos, stockt es.
+
+**Wege:**
+
+1. `preload="auto"` beim Öffnen einer Datei: lädt vor dem Start, kostet
+   Datenvolumen auch ohne Abspielen.
+2. „Ganz laden“ per Knopf: nur für kleinere Dateien; Videos mit mehreren GB
+   passen nicht in den Speicher des Browsers.
+3. Eine zweite, kleinere Fassung für das Telefon: ffmpeg wandelt jedes Format,
+   auch HEVC der A6700, nach H.264 und AAC in MP4 mit dem `moov`-Kasten vorn
+   (`-movflags +faststart`), etwa 720p mit 5 Mbit/s, rund 37 MB je Minute.
+   Umgewandelt wird im Hintergrund nach dem Upload, wie bei den Vorschaubildern.
+   Braucht ffmpeg im Image, Rechenzeit je Video und Platz für die zweite Fassung.
+
+**Zu klären:** wie weit Chrome, Firefox und Safari tatsächlich vorladen
+(messen), welche Bitraten die Videos im Bestand haben und welche Verbindung die
+schlechteste ist, mit der abgespielt werden soll. Für Weg 3: wie lange der
+Server für ein echtes Video der A6700 braucht, nur mit der CPU und mit
+Hardware-Beschleunigung (etwa Intel Quick Sync, dafür `/dev/dri` im Container).
+
+## 58. „Der Papierkorb: der Rundlauf“ wartet nicht auf die Umlagerung
+
+**Art: Fehler** *(Prüfstand)* **· Herkunft: Bau von 0.51.0, 30. September
+2026 · Einschätzung: klein · Fahrplan: offen**
+
+Die Gruppe in `test/roundtrip.js` startet einen eigenen Server und löscht kurz
+danach einen Eintrag mit zwei Dateien. Die Prüfungen ab „Die Bytes liegen
+daneben, eine Zeile je Blob“ setzen voraus, dass die Umlagerung beim Start beide
+Dateien schon auf die Platte gelegt hat; gewartet wird darauf nicht. Ist sie
+noch nicht fertig, gehen die Dateien als Blobs in `trash_bytes`: 6 Zeilen statt
+4, `disk_files` bleibt leer, fünf Prüfungen werden rot. So am 30. September
+2026 zweimal: im ersten vollen Lauf des Baus und bei Rückbau 1522 unter drei
+Spuren. Einzeln ließ es sich nicht nachstellen.
+
+**Der Weg:** vor dem Löschen warten, bis keine Datei mehr zur Umlagerung
+ansteht. Der Server meldet das Ende der Umlagerung nicht im Protokoll
+(`relocate()` in `server.js`); gewartet werden müsste an der Datenbank. Offen
+ist, ob ein Löschen während einer laufenden Umlagerung etwas liegen lässt.
+
+## 59. `test/ui_export.js` bricht unter drei Spuren ab
+
+**Art: Fehler** *(Prüfstand)* **· Herkunft: Gegenprobe zu 0.51.0, 30. September
+2026 · Einschätzung: offen · Fahrplan: offen**
+
+Bei Rückbau 1518 brach `test/ui_export.js` in „Der Export in Teilen“ mit
+„fetch failed <- [UND_ERR_SOCKET] other side closed“ ab. Der Rückbau ändert
+nur die Dauer des Hinweises beim Weiterspielen und berührt den Export nicht. Es
+ist derselbe Abbruch wie vor dem Warten auf das `VACUUM` des ersten Starts; der
+Lauf lief unter drei Spuren auf vier Kernen. Die Ursache ist nicht untersucht,
+und die Ausgabe des Servers liegt nicht vor, weil `counterproof.js` sie nicht
+aufhebt.
