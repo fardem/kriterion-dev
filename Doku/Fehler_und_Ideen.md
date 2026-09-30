@@ -180,6 +180,9 @@ sagt der Fahrplan.
 |---|---|---|---|---|
 | **42**, Fahrplan | Der Kommentaranteil von `public/style.css` liegt bei 40 Prozent — 1.215 von 3.029 Zeilen; offen ist, ob die gemessenen Zahlen in ein eigenes Papier wandern | niedrig | — | Entscheidung des Betreibers |
 | **20** | Nach einem Umbenennen holt die Oberfläche vier Antworten statt drei; die vierte ist die größte der Installation | niedrig | klein | liegen lassen |
+| **53** | „Dateien“: Gruppieren nach Typ oder ohne; Sortieren nach Name, Datum und Größe, die Richtung als eigener Knopf wie auf der Einstiegsseite | mittel | mittel | Auftrag mit Fragetafel |
+| **54** | „Dateien“ wie im Windows-Explorer gestalten; welche Teile gemeint sind, ist offen | mittel | groß | zusammen mit 53 und 55 |
+| **55** | „Bearbeiten“ und „Link“ am Desktop in der Zeile statt nur im Menü „…“ | mittel | klein | zusammen mit 53 und 54 |
 | ~~Protokoll 0.38.2~~ | ~~Die Strichstärke des Löschkreuzes bleibt 1.8, dieselbe wie am Stift und am Zitatzeichen~~ | — | — | **ABGELEHNT am 21. September 2026** |
 | ~~Protokoll 0.38.2~~ | ~~Der Trefferausschnitt zeigt bei einem Treffer im Ziel eines Links den Rohtext samt seiner Marken~~ | — | — | **RUHT seit dem 21. September 2026** |
 | ~~Protokoll 0.38.3~~ | ~~Der Halt nach einem Sprung ist eine Frist von 1600 Millisekunden und keine Messung~~ | — | — | **RUHT seit dem 21. September 2026** |
@@ -2745,3 +2748,64 @@ genauso.
 **Der Weg:** `.env.*` in beide Listen, mit `!.env.example` in der
 `.gitignore`. 0.41.0 ändert daran nichts, weil der Auftrag kein Verhalten
 außerhalb seiner Bauabschnitte ändert.
+
+## 53. „Dateien“: Gruppieren nach Typ, Sortieren nach Name, Datum, Größe mit Richtung
+
+**Art: Wunsch** *(Betreiber)* **· Herkunft: Abnahme von 0.51.0, 30. September
+2026 · Einschätzung: mittel · Fahrplan: offen**
+
+Wortlaut („#Befund/Wunsch-1“): „Grupperieren (Nach Typ/Ohne) - Sortieren nach
+Name, Datum, Größe (dann absteigend/auftseigend) … ein wenig wie im explorer und
+das mit aufteigend und absteigend ähn lich wie im einstiegsseite da haben wir
+auch filter für die bewertungen, noten etc“
+
+**Stand mit 0.51.0:** Die Auswahl `#asort` im Kopf von „Dateien“ bietet
+„Älteste zuerst“, „Jüngste zuerst“ und „Name“ (`filesSort` je Account).
+Gruppiert wird nur nach Ordnern; die Ordner sortieren mit.
+
+**Vorbild auf der Einstiegsseite:** Die Auswahl `#f-sort` nennt nur die
+Sortierung. Der Knopf `#f-sort-dir` daneben nennt die Richtung, etwa „neu → alt“
+oder „A → Z“. Jede Sortierung hat eine Startrichtung.
+
+**Offen für einen Auftrag:**
+
+- „Nach Typ“: welche Typen, und ob die Typgruppen in jedem Ordner stehen oder
+  die Ordner ersetzen.
+- „Datum“: Datum des Uploads; wonach die Ordner sortieren.
+- „Größe“: ob die Ordner nach der Summe ihrer Dateien sortieren.
+- Ob Gruppieren und Richtung je Account gespeichert werden wie `filesSort`, und
+  was aus den Werten `oldest`, `newest` und `name` wird.
+- Ob Kacheln und Liste beides bekommen, auch am Telefon.
+
+## 54. „Dateien“ wie im Windows-Explorer gestalten
+
+**Art: Wunsch** *(Betreiber)* **· Herkunft: Abnahme von 0.51.0, 30. September
+2026 · Einschätzung: groß · Fahrplan: offen**
+
+Wortlaut („#Befund/Wunsch 2“): „eventuell können wir das ähnlich wie windows
+explorer gestalten ist ja auch dateien“
+
+**Stand mit 0.51.0:** „Kacheln“ und „Liste“. Die Liste hat feste Spalten
+(Zeichen, Name, Art, Größe, Datum, Von), keine Kopfzeile und sortiert nicht
+selbst; sortiert wird über die Auswahl `#asort` (Punkt 53).
+
+**Offen für einen Auftrag:** welche Teile des Explorers gemeint sind, etwa
+Kopfzeile mit Sortieren per Klick und Pfeil für die Richtung, Gruppieren
+(Punkt 53), Auswahl mit Strg und Umschalt, Menü mit der rechten Maustaste,
+Doppelklick zum Öffnen. Punkt 53 und 55 gehören in dieselbe Runde.
+
+## 55. „Bearbeiten“ und „Link“ in der Zeile, am Desktop
+
+**Art: Wunsch** *(Betreiber)* **· Herkunft: Abnahme von 0.51.0, 30. September
+2026 · Einschätzung: klein · Fahrplan: offen**
+
+Wortlaut („#Befund/Wunsch 3“): „bearbiten/Link, in die zeile ((bei desktop)
+holen“
+
+**Stand mit 0.51.0:** „Bearbeiten“ steht in der Listenzeile, nur bei
+Office-Dateien, die der Account bearbeiten darf, und nicht am Telefon; in den
+Kacheln nicht. „Link auf diese Datei kopieren“ steht nur im Menü „…“.
+
+**Offen:** ob „Bearbeiten“ bei einer Office-Datei in der Liste fehlte (dann ein
+Befund zu 0.51.0) oder die Kacheln gemeint sind; ob „Link“ als Zeichen oder als
+Wort in der Zeile steht.
