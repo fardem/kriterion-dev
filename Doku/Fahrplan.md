@@ -1,6 +1,6 @@
 # Fahrplan
 
-**Der Plan von 0.41.0 bis 0.52.0 · Stand 30. September 2026, 0.51.0 gebaut**
+**Der Plan von 0.41.0 bis 0.53.0 · Stand 30. September 2026, 0.51.0 gebaut**
 
 *Hier stand bis 0.48.0 „0.47.1 gebaut“; 0.48.0 hat die Zeile nicht nachgeführt.*
 
@@ -209,7 +209,8 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.49.0**~~ | ~~**Dateien: Liste, Vorschaubilder für Dokumente, Ordner eingefasst**~~ | **GEBAUT am 29. September 2026** auf 0.48.0 — Änderungsprotokoll 0.49.0, nach `Doku/Auftrag_0.49.0.md`. „Kacheln“ und „Liste“ im Kopf des Blocks „Dateien“, je Account (`filesView`), ohne Wahl die Kacheln; die Liste mit festen Spalten, am Telefon zweizeilig, ohne Kopfzeile und ohne Sortieren. Vorschaubilder: Text, Markdown, CSV und Log über `sharp` und SVG, das Image bekommt `fonts-dejavu-core`; Office und PDF mit der ersten Seite vom Document Server, in einer Warteschlange nach dem Upload, beim Start, stündlich und beim Einschalten; abgelegt in `attachment_thumbs`, nicht im Export; der Browser fragt nach 3, 6, 12 und 24 s nach. Jede Gruppe ist eine Karte, auch die Dateien ohne Ordner. Dazu ein Befund des Betreibers: der Pfad der Upload-Location für NPMplus in der README kommt ohne `{32}` aus, sonst geht der Host offline. Fragetafeln E1 bis E14 vor dem Bau beantwortet. **MINOR** *(1.335 → 1.376 Rückbauten, Prüfstand 7.765 → 7.806). Fingerprint `210a7f57` (davor `e480ecfc`)* | nein | — |
 | ~~**0.50.0**~~ | ~~**Alle Dateien auf der Platte, Auswahl, Videos merken sich die Stelle**~~ | **GEBAUT am 30. September 2026** auf 0.49.0 — Änderungsprotokoll 0.50.0, nach `Doku/Auftrag_0.50.0.md`. Jede Datei unter „Dateien“ liegt verschlüsselt auf der Platte und geht in Stücken hoch, bis zur Grenze „Datei“ (Vorgabe 2048 MB, `dayVideo` wird nicht übernommen); `POST /api/items/:id/attachments` entfällt. Der Bestand wird nach dem Start umgelagert; reicht der Platz für Dateien und 1 GB Reserve nicht, startet Kriterion nicht. Über „Anhang“ nur zum Herunterladen, außer PDF, Bild und Video. Kompatible Marken im `ftyp`-Kasten zählen (Sony XAVC HS). Stelle im Video je Account (`video_positions`), Ordnerzustand je Account (`folder_open`), „Auswählen“ unter „Dateien“ und in der Bildleiste; `limitCloud()` nach `offsetTop`. Fragetafeln F1 bis F23 vor dem Bau beantwortet. **MINOR** *(1.376 → 1.390 Rückbauten, Prüfstand 7.806 → 7.848). Fingerprint `2b87077f` (davor `210a7f57`)* | **ja** | — |
 | ~~**0.51.0**~~ | ~~**Backup: Stände sichtbar, Zurückspielen mit Skript; Dateien sortieren**~~ | **GEBAUT am 30. September 2026** auf 0.50.0 — Änderungsprotokoll 0.51.0, nach `Doku/Auftrag_0.51.0.md`. `./backuptool.sh list`, `show`, `check` und `restore`; `restore` prüft bei laufender Instanz, hält an, legt ein Backup davor an (`# vor` in der Liste) und spielt zurück, danach enthält `data/files/` genau die Dateien des gewählten Stands; ein zweiter Aufruf führt einen Abbruch zu Ende. Jede Liste beginnt mit `# version`, auch ohne Dateien; das Alter bleibt die Änderungszeit (F13). „Alte Backups“ mit Version, Dateien und „nur hier“ je Backup, „Auswählen“ und Löschen mehrerer, die jüngsten nach „Mindestens behalten“ gesperrt; „prüfen“ nennt Version und Schema. Neue Module `schema.js`, `backup.js`, `backuptool.js`. „ab 3:12“ steht 10 s; „Dateien“ sortiert nach „Älteste zuerst“, „Jüngste zuerst“, „Name“, die Ordner mit, der älteste oben bei der Vorgabe (F14); „Bearbeiten“ in der Listenzeile. **MINOR** *(1.390 → 1.431 Rückbauten, Prüfstand 7.848 → 7.912, Sprachschlüssel 1.341 → 1.359). Fingerprint `7ace25ed` (davor `2b87077f`)* | nein | — |
-| **0.52.0** | **Einzelne Dateien aus einem Backup zurückholen** | Vorgabe des Betreibers vom 30. September 2026 (F4 in `Doku/Auftrag_0.51.0.md`): eigene Runde nach 0.51.0. **Vor dem Bau wird das Konzept mit dem Betreiber abgestimmt** (Abschnitt 0.52.0) | offen | — |
+| **0.52.0** | **Dateien: Gruppieren, Sortieren mit Richtung, Kopfzeile; Erweiterte Infos; Video ganz laden** | Wünsche des Betreibers aus der Abnahme von 0.51.0 (Punkte 53 bis 59 aus `Doku/Fehler_und_Ideen.md`); **Auftrag erteilt am 30. September 2026**, `Doku/Auftrag_0.52.0.md`. Sortieren nach Name, Datum, Größe mit Richtungsknopf wie auf der Einstiegsseite; „Nach Typ“ gruppiert in jeder Gruppe; Kopfzeile der Liste; Zeile und Menü „…“ nach einer Prüfung auf Sinn neu geordnet; „Erweiterte Infos“ zu Bildern und Videos mit `mediainfo.js` auf dem Server, der Codec am Vorschaubild; ein Video lädt beim Abspielen ganz, bis 2 GB am Rechner und 500 MB am Telefon; der Cache bleibt; nichts zum Umwandeln. Dazu das Messverfahren für den N100 | **ja** | — |
+| **0.53.0** | **Einzelne Dateien aus einem Backup zurückholen** | Vorgabe des Betreibers vom 30. September 2026 (F4 in `Doku/Auftrag_0.51.0.md`): eigene Runde nach 0.51.0. **Vor dem Bau wird das Konzept mit dem Betreiber abgestimmt** (Abschnitt 0.53.0; bis 30. September 2026 als 0.52.0 geführt) | offen | — |
 | ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. Die zwei offenen Punkte des Eintrags stehen in der Zeile darunter | — | — |
 | ~~*ohne Nummer*~~ | ~~**Vorgabewerte und Tastaturbedienung beim Sortieren**~~ | **VORLÄUFIG GESTRICHEN am 21. September 2026:** der Inhalt ist nirgends beschrieben — weder hier noch im Sammelblatt noch im Projektstand steht, welche Vorgabewerte gemeint sind und was die Tastatur beim Sortieren tun soll. *Die Zeile kommt zurück, sobald der Betreiber sagt, was gemeint war.* | — | — |
 | ~~*ohne Nummer*~~ | ~~**Die Doppelung in der README auflösen**~~ | **GEBAUT mit 0.38.0 am 19. September 2026.** *Befund aus BA 6 der 0.37.0: zwei Abschnitte der README trugen dieselben drei Sachverhalte — dass eine fehlende Spalte nicht nachgerüstet wird, dass der Kasten jede fehlende Spalte samt altem Namen nennt, und dass die Instanz startet, aber jede Seite scheitert, die eine der Spalten liest.* **Jetzt verweist jeder der beiden auf den anderen:** `README.md`:348 nach unten, `README.md`:464 nach oben. *0.38.5 hat die README danach noch einmal gegliedert.* | nein | — |
@@ -3549,7 +3550,7 @@ Dateien.
 | Aufbau des Backup-Ordners | flach wie heute; die Übersicht liefert das Skript |
 | Aktueller Stand beim Zurückspielen | Das Skript legt vorher ein Backup an. Danach enthält `data/files/` genau die Dateien des gewählten Stands |
 | Wo die Zuordnung zu sehen ist | im Skript (`list`, `show`) und in der Karte „Alte Backups“: Zahl und Größe der Dateien je Backup, „nur hier“ |
-| Einzelne Dateien zurückholen | eigene Runde, 0.52.0 |
+| Einzelne Dateien zurückholen | eigene Runde, 0.52.0; seit dem 30. September 2026 0.53.0 |
 | Ort des Zurückspielens | Skript auf dem Server, kein Knopf in der Oberfläche |
 | Mehrere Backups löschen | in „Alte Backups“ auswählen und zusammen löschen, mit zweiter Bestätigung |
 | Schutz dabei | die jüngsten x nach „Mindestens behalten“ sind nicht wählbar |
@@ -3579,9 +3580,214 @@ Dateien.
 
 ---
 
-## 0.52.0 — „Einzelne Dateien aus einem Backup zurückholen“
+## 0.52.0 — „Dateien: Gruppieren, Sortieren mit Richtung, Kopfzeile; Erweiterte Infos; Video ganz laden“
 
-**Aufgenommen am 30. September 2026.** Vorgabe des Betreibers in der
+**Aufgenommen am 30. September 2026** aus den Wünschen und Funden nach 0.51.0.
+**Auftrag erteilt am selben Tag:** `Doku/Auftrag_0.52.0.md`, mit den Antworten
+U1 bis U5 und F1 bis F11 und der Prüfung von Zeile und Menü „…“. Schema: ja,
+die Tabelle `attachment_media`.
+
+### Ausarbeitung, fortgezogen aus `Doku/Fehler_und_Ideen.md`
+
+Die Punkte stehen so, wie sie im Sammelblatt standen. 54 und 57 sind dort
+gekürzt weiter offen: von 54 die Auswahl mit Strg und Umschalt und der
+Doppelklick, von 57 die zweite Fassung für das Telefon.
+
+### 53. „Dateien“: Gruppieren nach Typ, Sortieren nach Name, Datum, Größe mit Richtung
+
+**Art: Wunsch** *(Betreiber)* **· Herkunft: Abnahme von 0.51.0, 30. September
+2026 · Einschätzung: mittel · Fahrplan: offen**
+
+Wortlaut („#Befund/Wunsch-1“): „Grupperieren (Nach Typ/Ohne) - Sortieren nach
+Name, Datum, Größe (dann absteigend/auftseigend) … ein wenig wie im explorer und
+das mit aufteigend und absteigend ähn lich wie im einstiegsseite da haben wir
+auch filter für die bewertungen, noten etc“
+
+**Stand mit 0.51.0:** Die Auswahl `#asort` im Kopf von „Dateien“ bietet
+„Älteste zuerst“, „Jüngste zuerst“ und „Name“ (`filesSort` je Account).
+Gruppiert wird nur nach Ordnern; die Ordner sortieren mit.
+
+**Vorbild auf der Einstiegsseite:** Die Auswahl `#f-sort` nennt nur die
+Sortierung. Der Knopf `#f-sort-dir` daneben nennt die Richtung, etwa „neu → alt“
+oder „A → Z“. Jede Sortierung hat eine Startrichtung.
+
+**Offen für einen Auftrag:**
+
+- „Nach Typ“: welche Typen, und ob die Typgruppen in jedem Ordner stehen oder
+  die Ordner ersetzen.
+- „Datum“: Datum des Uploads; wonach die Ordner sortieren.
+- „Größe“: ob die Ordner nach der Summe ihrer Dateien sortieren.
+- Ob Gruppieren und Richtung je Account gespeichert werden wie `filesSort`, und
+  was aus den Werten `oldest`, `newest` und `name` wird.
+- Ob Kacheln und Liste beides bekommen, auch am Telefon.
+
+### 54. „Dateien“ wie im Windows-Explorer gestalten
+
+**Art: Wunsch** *(Betreiber)* **· Herkunft: Abnahme von 0.51.0, 30. September
+2026 · Einschätzung: groß · Fahrplan: offen**
+
+Wortlaut („#Befund/Wunsch 2“): „eventuell können wir das ähnlich wie windows
+explorer gestalten ist ja auch dateien“
+
+**Stand mit 0.51.0:** „Kacheln“ und „Liste“. Die Liste hat feste Spalten
+(Zeichen, Name, Art, Größe, Datum, Von), keine Kopfzeile und sortiert nicht
+selbst; sortiert wird über die Auswahl `#asort` (Punkt 53).
+
+**Offen für einen Auftrag:** welche Teile des Explorers gemeint sind, etwa
+Kopfzeile mit Sortieren per Klick und Pfeil für die Richtung, Gruppieren
+(Punkt 53), Auswahl mit Strg und Umschalt, Menü mit der rechten Maustaste,
+Doppelklick zum Öffnen. Punkt 53 und 55 gehören in dieselbe Runde.
+
+### 55. „Bearbeiten“ und „Link“ in der Zeile, am Desktop
+
+**Art: Wunsch** *(Betreiber)* **· Herkunft: Abnahme von 0.51.0, 30. September
+2026 · Einschätzung: klein · Fahrplan: offen**
+
+Wortlaut („#Befund/Wunsch 3“): „bearbiten/Link, in die zeile ((bei desktop)
+holen“
+
+**Stand mit 0.51.0:** „Bearbeiten“ steht in der Listenzeile, nur bei
+Office-Dateien, die der Account bearbeiten darf, und nicht am Telefon; in den
+Kacheln nicht. „Link auf diese Datei kopieren“ steht nur im Menü „…“.
+
+**Offen:** ob „Bearbeiten“ bei einer Office-Datei in der Liste fehlte (dann ein
+Befund zu 0.51.0) oder die Kacheln gemeint sind; ob „Link“ als Zeichen oder als
+Wort in der Zeile steht.
+
+### 56. Angaben zu Videos wie in MediaInfo
+
+**Art: Wunsch** *(Betreiber)* **· Herkunft: Abnahme von 0.51.0, 30. September
+2026 · Einschätzung: mittel · Fahrplan: offen**
+
+Wortlaut: „gibt es sowas wie mediinfo für die video-dateien?“ und „oder
+brauchen wir dafür ffmpeg als packet?“
+
+**Vorgabe des Betreibers:** „kannst notieren aber bevor das in umsetzung geht
+muss die machbarkeit besprochen und abgestimmt werden. die umsetzung muss
+realistisch sein.“
+
+**Stand mit 0.51.0:** Kriterion kennt den Typ aus den ersten Bytes (bei MP4
+die Marken im `ftyp`-Kasten, `attachments.js`), die Größe und die Dauer in
+ganzen Sekunden. Die Dauer misst der Browser beim Standbild
+(`attachment_stills.duration`). Die Auflösung sieht nur der Browser beim
+Abspielen. Codec, Bildrate, Bitrate, Bittiefe und Ton stehen nirgends. Im Image
+ist kein ffmpeg.
+
+**Wege** (npm, 30. September 2026):
+
+| Weg | Lizenz | Größe | Umfang |
+|---|---|---|---|
+| `mediainfo.js` 0.3.8, MediaInfoLib als WebAssembly | BSD-2-Clause | 4,5 MB entpackt | Angaben wie MediaInfo für MP4, MOV und WebM; läuft im Browser und in Node |
+| `mp4box` 2.4.1, MP4Box von GPAC in JavaScript | BSD-3-Clause | 2,3 MB entpackt | nur MP4 und MOV, Rohdaten |
+| ffmpeg (`ffprobe`) im Image | — | nicht gemessen | alles; lohnt sich erst, wenn auch umgewandelt wird (Punkt 57), und nur, wenn es schnell geht (Vorgabe) |
+
+**Zu klären:** ob der Browser beim Upload liest oder der Server über
+entschlüsselte Abschnitte, was mit vorhandenen Videos geschieht, wo die Angaben
+stehen und ob sie gespeichert werden.
+
+### 57. Vorpuffern im Player und eine schnell abspielbare Fassung für das Telefon
+
+**Art: Frage und Wunsch** *(Betreiber)* **· Herkunft: Abnahme von 0.51.0,
+30. September 2026 · Einschätzung: offen · Fahrplan: offen**
+
+Wortlaut: „wie verhält es sich bei schlechter verbindung kann es
+vorpuffern?“ und „alos der player?“
+
+Nachtrag: „ffmpeg lohnt sich nur wenn es schnell geht“ und „andfere frage
+wäre ob wir für mibil mit ffmpeg egal welche format das hat ein schnelles
+abspiellbare konvertierung durchführen lassen.“ und „Wäre das puffern und
+chachen zu verbessern nicht dir sofftere Methode?“
+
+**Vorgabe des Betreibers:** wie bei Punkt 56; vor einer Umsetzung wird die
+Machbarkeit besprochen und abgestimmt. ffmpeg lohnt sich nur, wenn es schnell
+geht.
+
+**Server:** Intel N100 (Angabe des Betreibers). Seine Grafik hat Quick Sync.
+In Hardware dekodiert sie H.264 nur mit 8 Bit und 4:2:0, HEVC auch mit 10 Bit
+und 4:2:2, dazu VP9 und AV1; sie kodiert H.264 und HEVC. XAVC HS der A6700
+(HEVC) geht damit in Hardware, XAVC S mit 4:2:2 und 10 Bit und XAVC S-I
+(H.264) nicht; die rechnet die CPU allein. Im Container braucht es `/dev/dri`,
+ffmpeg mit VA-API und den Intel-Mediatreiber.
+
+**Stand mit 0.51.0:** Es spielt der eingebaute Player des Browsers
+(`<video controls>`, `preload="metadata"`). Vor dem Start lädt er nur den Kopf
+der Datei. Danach lädt er voraus, auch in der Pause, bis zu einer Grenze, die
+der Browser selbst festlegt; gemessen ist sie nicht. Der Server liefert Bereiche
+(HTTP 206) und entschlüsselt nur die nötigen Stücke zu 1 MiB; Springen lädt
+nicht von vorn. Die Dateien kommen mit `Cache-Control: private, max-age=3600`
+und ohne `ETag`; nach einer Stunde lädt der Browser sie neu. Es gibt eine
+Qualität, die Originaldatei. Ist die Verbindung dauerhaft langsamer als die
+Bitrate des Videos, stockt es.
+
+**Wege:**
+
+1. `preload="auto"` beim Öffnen einer Datei: lädt vor dem Start, kostet
+   Datenvolumen auch ohne Abspielen.
+2. Länger cachen: braucht eine Kennung je Fassung (`ETag`), weil eine
+   bearbeitete Office-Datei unter derselben Adresse neuen Inhalt bekommt.
+   Was im Cache liegt, liegt unverschlüsselt auf dem Gerät; wie lange, ist
+   eine Entscheidung zur Sicherheit.
+3. „Ganz laden“ per Knopf: nur für kleinere Dateien; Videos mit mehreren GB
+   passen nicht in den Speicher des Browsers.
+4. Eine zweite, kleinere Fassung für das Telefon: ffmpeg wandelt jedes Format,
+   auch HEVC der A6700, nach H.264 und AAC in MP4 mit dem `moov`-Kasten vorn
+   (`-movflags +faststart`), etwa 720p mit 5 Mbit/s, rund 37 MB je Minute.
+   Umgewandelt wird im Hintergrund nach dem Upload, wie bei den Vorschaubildern.
+   Braucht ffmpeg im Image, Rechenzeit je Video und Platz für die zweite Fassung.
+
+**Grenze von Puffer und Cache:** Ist die Verbindung dauerhaft langsamer als die
+Bitrate, wird aus Stocken Warten. Ein Video von 10 Minuten mit 100 Mbit/s hat
+7,5 GB; über 20 Mbit/s dauert das Laden 50 Minuten, ohne Stocken abspielen geht
+erst nach 40 Minuten. Dann hilft nur Weg 4.
+
+**Vorschlag zur Reihenfolge:** zuerst Weg 1 und 2 als die sanftere Methode,
+dann messen (Bitrate aus Punkt 56, Verbindung), erst danach entscheiden, ob
+Weg 4 nötig ist.
+
+**Zu klären:** wie weit Chrome, Firefox und Safari tatsächlich vorladen
+(messen), welche Bitraten die Videos im Bestand haben und welche Verbindung die
+schlechteste ist, mit der abgespielt werden soll. Für Weg 4: wie lange der
+N100 für ein echtes Video der A6700 braucht, mit Quick Sync und nur mit der
+CPU, und in welchem Format die Kamera aufnimmt.
+
+### 58. „Der Papierkorb: der Rundlauf“ wartet nicht auf die Umlagerung
+
+**Art: Fehler** *(Prüfstand)* **· Herkunft: Bau von 0.51.0, 30. September
+2026 · Einschätzung: klein · Fahrplan: offen**
+
+Die Gruppe in `test/roundtrip.js` startet einen eigenen Server und löscht kurz
+danach einen Eintrag mit zwei Dateien. Die Prüfungen ab „Die Bytes liegen
+daneben, eine Zeile je Blob“ setzen voraus, dass die Umlagerung beim Start beide
+Dateien schon auf die Platte gelegt hat; gewartet wird darauf nicht. Ist sie
+noch nicht fertig, gehen die Dateien als Blobs in `trash_bytes`: 6 Zeilen statt
+4, `disk_files` bleibt leer, fünf Prüfungen werden rot. So am 30. September
+2026 zweimal: im ersten vollen Lauf des Baus und bei Rückbau 1522 unter drei
+Spuren. Einzeln ließ es sich nicht nachstellen.
+
+**Der Weg:** vor dem Löschen warten, bis keine Datei mehr zur Umlagerung
+ansteht. Der Server meldet das Ende der Umlagerung nicht im Protokoll
+(`relocate()` in `server.js`); gewartet werden müsste an der Datenbank. Offen
+ist, ob ein Löschen während einer laufenden Umlagerung etwas liegen lässt.
+
+### 59. `test/ui_export.js` bricht unter drei Spuren ab
+
+**Art: Fehler** *(Prüfstand)* **· Herkunft: Gegenprobe zu 0.51.0, 30. September
+2026 · Einschätzung: offen · Fahrplan: offen**
+
+Bei Rückbau 1518 brach `test/ui_export.js` in „Der Export in Teilen“ mit
+„fetch failed <- [UND_ERR_SOCKET] other side closed“ ab. Der Rückbau ändert
+nur die Dauer des Hinweises beim Weiterspielen und berührt den Export nicht. Es
+ist derselbe Abbruch wie vor dem Warten auf das `VACUUM` des ersten Starts; der
+Lauf lief unter drei Spuren auf vier Kernen. Die Ursache ist nicht untersucht,
+und die Ausgabe des Servers liegt nicht vor, weil `counterproof.js` sie nicht
+aufhebt.
+
+---
+
+## 0.53.0 — „Einzelne Dateien aus einem Backup zurückholen“
+
+**Aufgenommen am 30. September 2026** als 0.52.0; am selben Tag auf 0.53.0
+gerückt (U1 in `Doku/Auftrag_0.52.0.md`). Vorgabe des Betreibers in der
 Fragetafel zu 0.51.0 (F4 in `Doku/Auftrag_0.51.0.md`). **Gebaut wird erst,
 wenn das Konzept mit ihm abgestimmt ist.**
 
