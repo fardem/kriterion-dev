@@ -362,7 +362,7 @@ async function run() {
       ['test/selfcheck.js', 85],
       ['test/source.js', 216],
       ['test/ui_entry.js', 261],
-      ['test/ui_export.js', 185],
+      ['test/ui_export.js', 186],
       ['test/ui_inventory.js', 79],
       ['test/ui_language.js', 108],
       ['test/ui_overview.js', 171],
@@ -387,7 +387,7 @@ async function run() {
       ['public/theme.js', 2],
       ['public/style.css', 521],
     ];
-    const COMMENT_TOTAL = { comment: 6931, code: 79594 };
+    const COMMENT_TOTAL = { comment: 6932, code: 79594 };
     // Ausgelieferte Dateien: Bloecke ueber drei Zeilen und Bloecke mit Betonung in Grossbuchstaben.
     const COMMENT_LIMITS = { longBlocks: 3, emphasis: 6 };
     check('Der Waechter sieht alle siebenundvierzig Dateien',
