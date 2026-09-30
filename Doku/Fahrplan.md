@@ -210,7 +210,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.50.0**~~ | ~~**Alle Dateien auf der Platte, Auswahl, Videos merken sich die Stelle**~~ | **GEBAUT am 30. September 2026** auf 0.49.0 — Änderungsprotokoll 0.50.0, nach `Doku/Auftrag_0.50.0.md`. Jede Datei unter „Dateien“ liegt verschlüsselt auf der Platte und geht in Stücken hoch, bis zur Grenze „Datei“ (Vorgabe 2048 MB, `dayVideo` wird nicht übernommen); `POST /api/items/:id/attachments` entfällt. Der Bestand wird nach dem Start umgelagert; reicht der Platz für Dateien und 1 GB Reserve nicht, startet Kriterion nicht. Über „Anhang“ nur zum Herunterladen, außer PDF, Bild und Video. Kompatible Marken im `ftyp`-Kasten zählen (Sony XAVC HS). Stelle im Video je Account (`video_positions`), Ordnerzustand je Account (`folder_open`), „Auswählen“ unter „Dateien“ und in der Bildleiste; `limitCloud()` nach `offsetTop`. Fragetafeln F1 bis F23 vor dem Bau beantwortet. **MINOR** *(1.376 → 1.390 Rückbauten, Prüfstand 7.806 → 7.848). Fingerprint `2b87077f` (davor `210a7f57`)* | **ja** | — |
 | ~~**0.51.0**~~ | ~~**Backup: Stände sichtbar, Zurückspielen mit Skript; Dateien sortieren**~~ | **GEBAUT am 30. September 2026** auf 0.50.0 — Änderungsprotokoll 0.51.0, nach `Doku/Auftrag_0.51.0.md`. `./backuptool.sh list`, `show`, `check` und `restore`; `restore` prüft bei laufender Instanz, hält an, legt ein Backup davor an (`# vor` in der Liste) und spielt zurück, danach enthält `data/files/` genau die Dateien des gewählten Stands; ein zweiter Aufruf führt einen Abbruch zu Ende. Jede Liste beginnt mit `# version`, auch ohne Dateien; das Alter bleibt die Änderungszeit (F13). „Alte Backups“ mit Version, Dateien und „nur hier“ je Backup, „Auswählen“ und Löschen mehrerer, die jüngsten nach „Mindestens behalten“ gesperrt; „prüfen“ nennt Version und Schema. Neue Module `schema.js`, `backup.js`, `backuptool.js`. „ab 3:12“ steht 10 s; „Dateien“ sortiert nach „Älteste zuerst“, „Jüngste zuerst“, „Name“, die Ordner mit, der älteste oben bei der Vorgabe (F14); „Bearbeiten“ in der Listenzeile. **MINOR** *(1.390 → 1.431 Rückbauten, Prüfstand 7.848 → 7.912, Sprachschlüssel 1.341 → 1.359). Fingerprint `7ace25ed` (davor `2b87077f`)* | nein | — |
 | ~~**0.52.0**~~ | ~~**Dateien: Gruppieren, Sortieren mit Richtung, Kopfzeile; Erweiterte Infos; Video ganz laden**~~ | **GEBAUT am 30. September 2026** auf 0.51.0 — Änderungsprotokoll 0.52.0, nach `Doku/Auftrag_0.52.0.md`. Sortieren nach Name, Datum, Größe mit Richtungsknopf, gespeichert als `filesSort` mit Richtung (alte Werte gelten weiter); „Nach Typ gruppiert“ (`filesGroup`) in jeder Gruppe, das Vollbild blättert in derselben Folge; Kopfzeile der Liste am Rechner; ✎ und 🔗 in einer festen Spalte, Art, Größe und Datum stehen untereinander; „Art“ als Beschreibung, bei Videos Codec und Länge; Menü „…“ in fünf Gruppen, „Öffnen“ auch bei Bildern und Videos, „Vorschaubild wählen …“. „Erweiterte Infos“ zu Bildern und Videos mit `mediainfo.js` auf dem Server, neue Tabelle `attachment_media`, neue Route `GET /api/attachments/:id/info`, der Codec am Vorschaubild. Ein Video lädt beim Abspielen ganz, bis 2 GB am Rechner und 500 MB am Telefon, gemessen in Chromium. Punkt 58 behoben; Punkt 59 nachgestellt und im Prüfstand behoben. Das Messverfahren für den N100 liegt vor. **MINOR** *(1.431 → 1.482 Rückbauten, Prüfstand 7.912 → 7.975, Sprachschlüssel 1.359 → 1.410). Fingerprint `a4d2ab5e` (davor `7ace25ed`)* | **ja** | — |
-| **0.53.0** | **Einzelne Dateien aus einem Backup zurückholen; Erweiterte Infos, Sortieren nach Typ** | Vorgabe des Betreibers vom 30. September 2026 (F4 in `Doku/Auftrag_0.51.0.md`): eigene Runde nach 0.51.0. **Vor dem Bau wird das Konzept mit dem Betreiber abgestimmt** (Abschnitt 0.53.0; bis 30. September 2026 als 0.52.0 geführt). Dazu vier Punkte aus der Abnahme von 0.52.0, aufgenommen am 30. September 2026: „Audio“ statt „Ton“ unter „Erweiterte Infos“ (A1), „Typ“ in „Dateien sortieren“ (A2), „Container“ statt „Format“ und „H.264 (AVC)“ statt „AVC“ (A3), ⓘ im Vollbild öffnet „Erweiterte Infos“ (A4) | offen | — |
+| **0.53.0** | **Papierkorb für Dateien, Dateien aus Backups zurückholen; Erweiterte Infos, Sortieren nach Typ; README, Anleitung und CHANGELOG englisch** | Vorgabe des Betreibers vom 30. September 2026 (F4 in `Doku/Auftrag_0.51.0.md`) und fünf Punkte aus der Abnahme von 0.52.0 (A1 bis A5). **Auftrag geschrieben am 30. September 2026:** `Doku/Auftrag_0.53.0.md`, F1 bis F24 in sechs Fragetafeln beantwortet. Gebaut wird nach dem Start durch den Betreiber. Einzeln gelöschte Dateien liegen 30 Tage im Papierkorb (F10); „Gelöschte Dateien …“ im Eintrag holt sie für den Eigentümer-Admin aus dem Papierkorb und aus allen lesbaren Backups zurück (F1, F2); „Audio“, „Container“, „H.264 (AVC)“; Erweiterte Infos auch für Fotos des Eintrags (F16), ⓘ im Vollbild; „Typ“ in „Dateien sortieren“; README und Anleitung englisch, deutsch und türkisch, das CHANGELOG englisch und höchstens 1.500 Zeilen lang (F20, F24) | **ja** | — |
 | ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. Die zwei offenen Punkte des Eintrags stehen in der Zeile darunter | — | — |
 | ~~*ohne Nummer*~~ | ~~**Vorgabewerte und Tastaturbedienung beim Sortieren**~~ | **VORLÄUFIG GESTRICHEN am 21. September 2026:** der Inhalt ist nirgends beschrieben — weder hier noch im Sammelblatt noch im Projektstand steht, welche Vorgabewerte gemeint sind und was die Tastatur beim Sortieren tun soll. *Die Zeile kommt zurück, sobald der Betreiber sagt, was gemeint war.* | — | — |
 | ~~*ohne Nummer*~~ | ~~**Die Doppelung in der README auflösen**~~ | **GEBAUT mit 0.38.0 am 19. September 2026.** *Befund aus BA 6 der 0.37.0: zwei Abschnitte der README trugen dieselben drei Sachverhalte — dass eine fehlende Spalte nicht nachgerüstet wird, dass der Kasten jede fehlende Spalte samt altem Namen nennt, und dass die Instanz startet, aber jede Seite scheitert, die eine der Spalten liest.* **Jetzt verweist jeder der beiden auf den anderen:** `README.md`:348 nach unten, `README.md`:464 nach oben. *0.38.5 hat die README danach noch einmal gegliedert.* | nein | — |
@@ -3786,12 +3786,17 @@ aufhebt.
 
 ---
 
-## 0.53.0 — „Einzelne Dateien aus einem Backup zurückholen; Erweiterte Infos, Sortieren nach Typ“
+## 0.53.0 — „Papierkorb für Dateien, Dateien aus Backups zurückholen; Erweiterte Infos, Sortieren nach Typ; README, Anleitung und CHANGELOG englisch“
 
 **Aufgenommen am 30. September 2026** als 0.52.0; am selben Tag auf 0.53.0
 gerückt (U1 in `Doku/Auftrag_0.52.0.md`). Vorgabe des Betreibers in der
 Fragetafel zu 0.51.0 (F4 in `Doku/Auftrag_0.51.0.md`). **Gebaut wird erst,
 wenn das Konzept mit ihm abgestimmt ist.**
+
+**Der Auftrag steht in `Doku/Auftrag_0.53.0.md`.** Die Fragen für das Konzept
+und die offenen Fragen zu A1 bis A5 sind dort als F1 bis F24 am 30. September
+2026 beantwortet. Wo darunter „offen“ oder ein Vorschlag steht, gilt die
+Antwort im Auftrag.
 
 Zurückspielen nimmt den ganzen Stand zurück. Wer mit einem älteren Backup
 eine gelöschte Datei B zurückholt, verliert die danach hochgeladene Datei D
@@ -3816,7 +3821,7 @@ wird nichts.
 - Einzeln gelöschte Dateien zusätzlich für 30 Tage in den Papierkorb, als Weg
   ohne Backup?
 
-### Dazu vier Punkte aus der Abnahme von 0.52.0
+### Dazu fünf Punkte aus der Abnahme von 0.52.0
 
 **Aufgenommen am 30. September 2026** auf Wunsch des Betreibers. Die offenen
 Fragen je Punkt kommen in Abschnitt 0 des Auftrags.
@@ -3827,6 +3832,7 @@ Fragen je Punkt kommen in Abschnitt 0 des Auftrags.
 | A2 | „Typ“ in der Auswahl „Dateien sortieren“ | zusätzlich zu Name, Datum und Größe |
 | A3 | Container und Codec benennen | Fragetafel: „Container und H.264“ |
 | A4 | ⓘ in der Leiste des Vollbilds | ein Klick öffnet „Erweiterte Infos“ |
+| A5 | README und Anleitung in drei Sprachen | „das README einmal als Englisch (Haupt-README), dann Deutsch und Türkisch; das Gleiche bitte auch mit dem Manual“ |
 
 #### A1 — „Audio“ statt „Ton“
 
@@ -3930,6 +3936,15 @@ Offen für den Auftrag:
   Infos und bekommen keinen Knopf. Sollen sie welche bekommen? Vorschlag:
   nein. Der Server liest heute nur Dateien unter „Dateien“
   (`attachment_media`).
+
+#### A5 — README und Anleitung in drei Sprachen
+
+Aufgenommen am 30. September 2026. Englisch ist die Hauptfassung: `README.md`
+und `manual.md`, dazu `README-de.md`, `manual-de.md`, `README-tr.md` und
+`manual-tr.md` (F17). Das CHANGELOG wird nur noch englisch fortgeführt, auch
+die bestehenden Einträge, gekürzt auf höchstens 1.500 Zeilen (F20, F24).
+`CLAUDE.md` bekommt beide Regeln (F19, F20). Die Einzelheiten stehen in
+`Doku/Auftrag_0.53.0.md`, Abschnitt 3.
 
 ---
 
