@@ -1259,6 +1259,14 @@ mark {
 #cleanup-list .mrow .mcount { flex: 1 1 0; min-width: 0; overflow: hidden;
   text-overflow: ellipsis; white-space: nowrap; text-align: right; }
 .backup-probe { padding: 0 0 6px 14px; font-size: .83rem; }
+.cleanup-head { display: flex; align-items: baseline; justify-content: space-between; gap: 9px; }
+#cleanup-store { margin: 2px 2px 6px; }
+/* Zweite Zeile je Backup: Version, Marke und Dateien. */
+#cleanup-list .mrow { flex-wrap: wrap; row-gap: 1px; }
+#cleanup-list .mrow .mfiles { flex: 0 0 100%; min-width: 0; font-family: var(--mono); font-size: .68rem;
+  color: var(--faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#cleanup-list .mrow .mbefore { color: var(--accent-text); }
+.mrow .cleanup-pick { flex-shrink: 0; margin: 0; }
 .probe-ok { font-family: var(--mono); font-size: .8rem; }
 .probe-no { color: var(--muted); }
 
@@ -1310,8 +1318,8 @@ mark {
    Import aus dem Blick (20 GB sind 70 Zeilen). */
 #ex-part-list { flex: none; max-height: 280px; }
 
-/* Fuenf Zeilen: 5 x 41,92 px / 15 = 13,973 rem. */
-#cleanup-list { flex: none; max-height: 13.98rem; }
+/* Fuenf Zeilen mit zweiter Zeile: 5 x 58,73 px / 15 = 19,578 rem. */
+#cleanup-list { flex: none; max-height: 19.58rem; }
 /* Rot: wird beim naechsten Lauf geloescht. Gedaempft: bleibt. */
 .mrow .cleanup-badge { flex-shrink: 0; font-size: .7rem; letter-spacing: .03em; text-transform: uppercase; }
 .mrow .cleanup-badge.remove { color: var(--red); }
@@ -1864,6 +1872,7 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
 .aview-btn:hover { color: var(--text); }
 .aview-btn[aria-pressed="true"] { background: var(--surface-3); color: var(--text); font-weight: 600; }
 .aview-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.asort { padding: 3px 8px; border-radius: 999px; font-family: var(--mono); font-size: .72rem; color: var(--muted); }
 /* Feste Spaltenbreiten: jede Zeile ist ein eigenes Grid, und nur so stehen die Spalten untereinander. */
 .alist { --acols: 32px minmax(0, 1fr) 3.6rem 4.6rem 5.8rem; }
 .alist.afrom-on { --acols: 32px minmax(0, 1fr) 3.6rem 4.6rem 5.8rem minmax(0, 7.5rem); }
@@ -1895,6 +1904,8 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
 }
 .alist .atile.failed .anote { color: var(--red); }
 .alist .amore { position: static; flex-shrink: 0; width: 44px; height: 44px; background: none; color: var(--muted); }
+.aedit { display: none; }
+.alist .aedit { display: block; }
 /* Nur der Ausweichknopf der PDF-Vorschau. */
 .abtn {
   font-size: .73rem; color: var(--muted); padding: 3px 8px; border-radius: 5px;
@@ -2546,6 +2557,7 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
   .alist .anote:not(:empty) { grid-row: 3; }
   .alist .amore { border-radius: 6px; }
   .aview-btn { min-height: 44px; padding: 0 14px; }
+  .asort { min-height: 44px; }
   /* 8px: Datum, Verfasser, Knopf, Sterne und Papierkorb brauchen 311 von 344 px.
      `row-gap` muss nach `gap` stehen, das beide Richtungen setzt. */
   .trow { flex-wrap: wrap; gap: 8px; row-gap: 4px; }

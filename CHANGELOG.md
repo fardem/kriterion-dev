@@ -30,6 +30,41 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.51.0] - 2026-09-30
+
+*Backup: Stände sichtbar, Zurückspielen mit Skript; Dateien sortieren.*
+
+Fingerprint `7ace25ed` — davor `2b87077f`.
+
+> **Neu im Projektordner: `backuptool.sh`.** Beim Update mit dem ZIP braucht es
+> wie `keytool.sh` das Ausführungsrecht: `chmod +x kriterion/backuptool.sh`
+> (README, „Update“).
+>
+> **Unter „Dateien“ steht jetzt der älteste Ordner oben.** Die Ordner folgen der
+> neuen Sortierung, und „Älteste zuerst“ ist die Vorgabe; „Jüngste zuerst“ zeigt
+> die bisherige Folge.
+
+### Hinzugefügt
+
+- **`./backuptool.sh list`, `show`, `check`, `restore`:** Backups mit Version,
+  Dateien, Schlüssel und Schema ansehen und zurückspielen. Vorher entsteht ein
+  Backup des aktuellen Stands; danach enthält `data/files/` genau die Dateien
+  des gewählten Stands.
+- **„Alte Backups“:** je Backup Version, Dateien und „nur hier“, darüber die
+  Dateien aller Backups; „Auswählen“ löscht mehrere zusammen, die jüngsten nach
+  „Mindestens behalten“ bleiben.
+- „prüfen“ nennt Version und ob das Schema zur installierten Version passt.
+- **Sortieren unter „Dateien“:** „Älteste zuerst“, „Jüngste zuerst“, „Name“, je
+  Account; die Ordner sortieren mit.
+- „Bearbeiten“ steht in der Listenansicht direkt in der Zeile.
+
+### Geändert
+
+- Jedes Backup schreibt seine Liste, auch ohne Dateien; die erste Zeile nennt
+  die Version.
+- „ab 3:12“ und „Von vorn“ stehen beim Weiterspielen eines Videos 10 s statt 5 s.
+- Die Karte „Backup“ verweist zum Zurückspielen auf `./backuptool.sh`.
+
 ## [0.50.0] - 2026-09-30
 
 *Ein Weg für Dateien, Auswahl, Stelle im Video, Ordner bleiben offen.*

@@ -44,6 +44,11 @@
     "other": "{n} backups date from before the key change"
   },
   "card.backupsCount": "Backups ({length})",
+  "card.backupStore": "Files of all backups: {n} · {bytes}",
+  "card.backupVersion": "Version {version}",
+  "card.backupFiles": "files {n} · {bytes} · only here {only} · {onlyBytes}",
+  "card.backupNoList": "no list of files",
+  "card.beforeRestore": "before restoring",
   "card.backupsDeleted": {
     "one": "{n} backup deleted ({bytes} freed){extra}",
     "other": "{n} backups deleted ({bytes} freed){extra}"
@@ -52,7 +57,7 @@
     "one": "{n} backup ({bytes}) is deleted for good.",
     "other": "{n} backups ({bytes}) are deleted for good."
   },
-  "card.backupWhatHint": "**Backup:** the complete, encrypted copy of the database — including users and settings, which the export does not contain. It can only be restored into the same program version.",
+  "card.backupWhatHint": "**Backup:** the complete, encrypted copy of the database — including users and settings, which the export does not contain. It is restored on the server with ./backuptool.sh.",
   "card.backupWritten": "Backup created",
   "card.backupWrittenFile": "Backup created: {file} ({bytes})",
   "card.blocksHint": "The order of the blocks and their collapsed state apply to all {entryMany}.",
@@ -79,6 +84,8 @@
   "card.checkForeign": "Readable, but not a backup of this installation.",
   "card.checkKeyWrong": "Not readable with this key — the .env does not belong to this backup.",
   "card.checkRunning": "checking …",
+  "card.checkSchemaOk": "schema fits",
+  "card.checkSchemaDiffers": "schema differs: {differences}",
   "card.checkUntil": "As of",
   "card.checkUsers": "Users",
   "card.cleanupAfterBackup": "Clean up after every successful backup",
@@ -140,6 +147,16 @@
   "card.defaultValue": "(default: {defaultWord})",
   "card.delete": "Delete {entryWord}?",
   "card.deleteBackups": "Delete backups",
+  "card.deletePickedBackups": "Delete selected backups",
+  "card.pickBackup": "Select backup #{nr} of {at}",
+  "card.pickLocked": {
+    "one": "Backup #{nr} of {at} stays: it is the newest",
+    "other": "Backup #{nr} of {at} stays: it is one of the {n} newest"
+  },
+  "card.pickedPurgeHint": {
+    "one": "{n} backup ({bytes}) is deleted for good. The files only it contains free {files}.",
+    "other": "{n} backups ({bytes}) are deleted for good. The files only they contain free {files}."
+  },
   "card.deleteCategoryAsk": "Delete category?",
   "card.deleteCriterionAsk": "Delete criterion?",
   "card.deleted": "Deleted",
@@ -826,6 +843,7 @@
   "entry.dueHint": "Due date",
   "entry.dueSet": "Date",
   "entry.edit": "Edit",
+  "entry.editNamed": "Edit {name}",
   "entry.edited": "edited",
   "entry.empty": "(empty)",
   "entry.enteredByOn": "Entered by {author} on {created_at}",
@@ -850,6 +868,10 @@
   "entry.filesView": "Files as tiles or list",
   "entry.filesTiles": "Tiles",
   "entry.filesList": "List",
+  "entry.filesSort": "Sort files",
+  "entry.filesSortOldest": "Oldest first",
+  "entry.filesSortNewest": "Newest first",
+  "entry.filesSortName": "Name",
   "entry.folderDayName": "{dayOne} {day}",
   "entry.folderDayShow": "Show {dayOne} {day}",
   "entry.folderDelete": "Delete folder",
@@ -1350,6 +1372,7 @@
     "other": "The oldest is {n} days old."
   },
   "server.cleanupUnknown": "There is no such kind of cleanup.",
+  "server.cleanupSelection": "The selection names a backup that does not exist or has to stay. Nothing deleted.",
   "server.commentGone": "This comment no longer exists.",
   "server.confirmExpired": "This confirmation link is no longer valid. Please send the request again.",
   "server.convertRunning": "The conversion is already running.",
@@ -1513,6 +1536,7 @@
   "server.viewNameMissing": "A saved view needs a name.",
   "server.viewsTooBig": "The saved views are too large.",
   "server.viewUnknown": "There is no such view.",
+  "server.sortUnknown": "There is no such sort order.",
   "server.weightRange": "The weight must be a number between {min} and {max}.",
   "vocabulary.dayMany": "Test days",
   "vocabulary.dayOne": "Test day",

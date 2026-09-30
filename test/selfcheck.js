@@ -15,11 +15,11 @@ async function run() {
 
   const gpList = require('./counterproof').REGRESSIONS;
   // Mit jedem neuen Rueckbau in counterproof.js anheben.
-  check(`Es sind genau 1390 Rueckbauten`, gpList.length === 1390, `${gpList.length}`);
+  check(`Es sind genau 1431 Rueckbauten`, gpList.length === 1431, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* Jede Datei nur einmal lesen: ueber tausend Rueckbauten verteilen sich auf
-     32 Dateien, counterproof.js allein misst 437 kB. */
+     47 Dateien, counterproof.js allein misst 513 kB. */
   const gpFail = [];
   const gpText = new Map();
   const gpFileText = (file) => {
@@ -33,9 +33,9 @@ async function run() {
     const n = gpFileText(file).split(r.search).length - 1;
     if (n !== 1) gpFail.push(`${r.nr} (${r.file}): ${n} Treffer`);
   }
-  // Belegt das einmalige Lesen je Datei. Neue Zieldateien in counterproof.js erhoehen die 45.
-  check('Der Waechter liest hoechstens fuenfundvierzig Dateien',
-    gpText.size <= 45, `${gpText.size} Dateien fuer ${gpList.length} Rueckbauten`);
+  // Belegt das einmalige Lesen je Datei. Neue Zieldateien in counterproof.js erhoehen die 47.
+  check('Der Waechter liest hoechstens siebenundvierzig Dateien',
+    gpText.size <= 47, `${gpText.size} Dateien fuer ${gpList.length} Rueckbauten`);
   check('Jeder Suchtext kommt in seiner Datei genau einmal vor',
     gpFail.length === 0, gpFail.join(' · '));
   // Ein Ersatz gleich dem Suchtext baut nichts zurueck, und alles bliebe gruen.
@@ -49,6 +49,14 @@ async function run() {
   const gpWithoutExpected = gpList.filter(r => !r.expected || !r.name);
   check('Und jeder nennt Name und erwartete Gruppe',
     gpWithoutExpected.length === 0, gpWithoutExpected.map(r => r.nr).join(' '));
+  const gpDriver = fs.readFileSync(path.join(__dirname, 'testbench.js'), 'utf8');
+  const gpModules = [...(gpDriver.match(/const MODULE = \[([\s\S]*?)\];/) || ['', ''])[1]
+    .matchAll(/'(\w+)'/g)].map(m => `test/${m[1]}.js`);
+  const gpUnrun = benchFiles().filter(f => f.startsWith('test/') && !gpModules.includes(f)
+    && f !== 'test/frame.js' && f !== 'test/dom.js');
+  check('Der Treiber startet jedes Modul in test/',
+    gpModules.length >= 28 && gpUnrun.length === 0,
+    gpUnrun.join(' · ') || `${gpModules.length} Module`);
 
   /* Ein Rueckbau, der nicht uebersetzt, zeigt nur kaputten Code. `new vm.Script`
      uebersetzt ohne Ausfuehren; die Huelle erlaubt `return` wie ein Node-Modul,
@@ -341,7 +349,7 @@ async function run() {
     const COMMENT_ROWS = [
       ['testbench.js', 29],
       ['test/batchrun.js', 26],
-      ['test/dom.js', 170],
+      ['test/dom.js', 172],
       ['test/firstlogin.js', 12],
       ['test/frame.js', 121],
       ['test/keychange.js', 42],
@@ -354,11 +362,12 @@ async function run() {
       ['test/release_044.js', 9],
       ['test/release_045.js', 6],
       ['test/release_046.js', 6],
-      ['test/release_047.js', 13],
+      ['test/release_047.js', 14],
       ['test/release_048.js', 16],
       ['test/release_049.js', 13],
       ['test/release_050.js', 9],
-      ['test/roundtrip.js', 1311],
+      ['test/release_051.js', 9],
+      ['test/roundtrip.js', 1313],
       ['test/selfcheck.js', 85],
       ['test/source.js', 216],
       ['test/ui_entry.js', 261],
@@ -370,9 +379,9 @@ async function run() {
       ['test/ui_system.js', 190],
       ['test/ui_translator.js', 24],
       ['counterproof.js', 337],
-      ['server.js', 1015],
+      ['server.js', 993],
       ['auth.js', 149],
-      ['db.js', 58],
+      ['db.js', 56],
       ['mail.js', 17],
       ['keys.js', 14],
       ['attachments.js', 45],
@@ -383,15 +392,18 @@ async function run() {
       ['twofactor.js', 14],
       ['keytool.js', 20],
       ['docserver.js', 39],
-      ['public/app.js', 1150],
+      ['schema.js', 6],
+      ['backup.js', 44],
+      ['backuptool.js', 29],
+      ['public/app.js', 1157],
       ['public/theme.js', 2],
-      ['public/style.css', 521],
+      ['public/style.css', 522],
     ];
-    const COMMENT_TOTAL = { comment: 6932, code: 79594 };
+    const COMMENT_TOTAL = { comment: 7009, code: 81508 };
     // Ausgelieferte Dateien: Bloecke ueber drei Zeilen und Bloecke mit Betonung in Grossbuchstaben.
     const COMMENT_LIMITS = { longBlocks: 3, emphasis: 6 };
-    check('Der Waechter sieht alle siebenundvierzig Dateien',
-      crAll.each.length === 47 && COMMENT_ROWS.length === 47,
+    check('Der Waechter sieht alle einundfuenfzig Dateien',
+      crAll.each.length === 51 && COMMENT_ROWS.length === 51,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
     const crWrong = [];
     for (let i = 0; i < COMMENT_ROWS.length; i++) {
@@ -426,7 +438,7 @@ async function run() {
     const crShippedOver = crShipped.filter(r => r.comment / r.rows > 0.25)
       .map(r => `${r.file} ${(r.comment / r.rows * 100).toFixed(1)}%`);
     check('Und keine ausgelieferte JavaScript-Datei liegt ueber 25 Prozent',
-      crShipped.length === 15 && crShippedOver.length === 0,
+      crShipped.length === 18 && crShippedOver.length === 0,
       crShippedOver.join(' · ') || `${crShipped.length} Dateien`);
     const crBlocks = crTool.SHIPPED.flatMap(f => crTool.blocks(f));
     const crLong = crBlocks.filter(b => b.rows > 3).length;
@@ -499,7 +511,7 @@ async function run() {
   /* ---- Messung an den Dateien: nur Ausgabe, keine Pruefung ---- */
   const flFiles = ['public/app.js', 'server.js', 'auth.js', 'db.js', 'attachments.js',
                      'twofactor.js', 'usertool.js', 'keytool.js', 'mail.js', 'keys.js',
-                     'docserver.js', ...benchFiles(), 'counterproof.js'];
+                     'docserver.js', 'backup.js', 'backuptool.js', ...benchFiles(), 'counterproof.js'];
   const flStatus = new Map();
   console.log('');
   console.log('  ── Die laengsten Funktionen je Datei ──────────────────────');
@@ -540,21 +552,22 @@ async function run() {
   group('Das Skript auf dem Wirt ist ausfuehrbar');
 
   {
-    const hostScripts = ['keytool.sh'];
-    check('Der Lauf kennt das Skript auf dem Wirt',
+    const hostScripts = ['keytool.sh', 'backuptool.sh'];
+    check('Der Lauf kennt die Skripte auf dem Wirt',
       hostScripts.every(n => fs.existsSync(path.join(__dirname, n))),
       hostScripts.join(' · '));
     const withoutRight = hostScripts.filter(n => {
       try { return (fs.statSync(path.join(__dirname, n)).mode & 0o111) === 0; }
       catch { return true; }
     });
-    check('Es traegt das Ausfuehrungsrecht',
+    check('Sie tragen das Ausfuehrungsrecht',
       withoutRight.length === 0, `ohne Recht: ${withoutRight.join(' · ') || '—'}`);
     // Ohne chmod im Einspielweg der README kommt das Recht auf dem Host nicht an.
     const readme = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
-    check('Der Einspielweg in der README zieht das Recht nach',
-      /chmod \+x kriterion\/keytool\.sh/.test(readme),
-      'die Zeile "chmod +x kriterion/keytool.sh" fehlt');
+    const chmodRows = readme.split('\n').filter(l => l.startsWith('chmod +x kriterion/')).join(' ');
+    check('Der Einspielweg in der README zieht das Recht fuer beide nach',
+      hostScripts.every(n => chmodRows.split(' ').includes(`kriterion/${n}`)),
+      'eine Zeile "chmod +x kriterion/…sh" fehlt');
     check('Und er sagt, warum sie noetig ist',
       /python3 -m zipfile -e[\s\S]{0,200}?Ausführungsrecht/.test(readme),
       'der Grund steht nicht daneben');

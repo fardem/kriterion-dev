@@ -44,6 +44,11 @@
     "other": "{n} yedekleme anahtar değişiminden öncesine ait"
   },
   "card.backupsCount": "Yedeklemeler ({length})",
+  "card.backupStore": "Tüm yedeklemelerin dosyaları: {n} · {bytes}",
+  "card.backupVersion": "Sürüm {version}",
+  "card.backupFiles": "dosyalar {n} · {bytes} · yalnız burada {only} · {onlyBytes}",
+  "card.backupNoList": "dosya listesi yok",
+  "card.beforeRestore": "geri yüklemeden önce",
   "card.backupsDeleted": {
     "one": "{n} yedekleme silindi ({bytes} boşaldı){extra}",
     "other": "{n} yedekleme silindi ({bytes} boşaldı){extra}"
@@ -52,7 +57,7 @@
     "one": "{n} yedekleme ({bytes}) kalıcı olarak silinecek.",
     "other": "{n} yedekleme ({bytes}) kalıcı olarak silinecek."
   },
-  "card.backupWhatHint": "**Yedekleme:** veritabanının eksiksiz, şifreli kopyası — dışa aktarmanın içermediği kullanıcılar ve ayarlar dahil. Yalnızca aynı program sürümüne geri yüklenebilir.",
+  "card.backupWhatHint": "**Yedekleme:** veritabanının eksiksiz, şifreli kopyası — dışa aktarmanın içermediği kullanıcılar ve ayarlar dahil. Sunucuda ./backuptool.sh ile geri yüklenir.",
   "card.backupWritten": "Yedekleme yapıldı",
   "card.backupWrittenFile": "Yedekleme yapıldı: {file} ({bytes})",
   "card.blocksHint": "Blokların sırası ve açık mı kapalı mı olduğu her {entryOne} için geçerlidir.",
@@ -79,6 +84,8 @@
   "card.checkForeign": "Okunabilir, ama bu kurulumun yedeklemesi değil.",
   "card.checkKeyWrong": "Bu anahtarla okunamıyor — .env bu yedeklemeye ait değil.",
   "card.checkRunning": "denetleniyor …",
+  "card.checkSchemaOk": "şema uyuyor",
+  "card.checkSchemaDiffers": "şema farklı: {differences}",
   "card.checkUntil": "İçerik tarihi",
   "card.checkUsers": "Kullanıcılar",
   "card.cleanupAfterBackup": "Her başarılı yedeklemeden sonra temizle",
@@ -140,6 +147,16 @@
   "card.defaultValue": "(varsayılan: {defaultWord})",
   "card.delete": "{entryWord} silinsin mi?",
   "card.deleteBackups": "Yedeklemeleri sil",
+  "card.deletePickedBackups": "Seçili yedeklemeleri sil",
+  "card.pickBackup": "#{nr} yedeklemeyi seç ({at})",
+  "card.pickLocked": {
+    "one": "#{nr} yedekleme ({at}) kalır: en yenisidir",
+    "other": "#{nr} yedekleme ({at}) kalır: en yeni {n} taneden biri"
+  },
+  "card.pickedPurgeHint": {
+    "one": "{n} yedekleme ({bytes}) kalıcı olarak silinecek. Yalnız onda olan dosyalar {files} yer açar.",
+    "other": "{n} yedekleme ({bytes}) kalıcı olarak silinecek. Yalnız onlarda olan dosyalar {files} yer açar."
+  },
   "card.deleteCategoryAsk": "Kategori silinsin mi?",
   "card.deleteCriterionAsk": "Ölçüt silinsin mi?",
   "card.deleted": "Silindi",
@@ -826,6 +843,7 @@
   "entry.dueHint": "Son tarih",
   "entry.dueSet": "Tarih",
   "entry.edit": "Düzenle",
+  "entry.editNamed": "{name} düzenle",
   "entry.edited": "düzenlendi",
   "entry.empty": "(boş)",
   "entry.enteredByOn": "{created_at} tarihinde {author} girdi",
@@ -850,6 +868,10 @@
   "entry.filesView": "Dosyalar döşeme ya da liste",
   "entry.filesTiles": "Döşeme",
   "entry.filesList": "Liste",
+  "entry.filesSort": "Dosyaları sırala",
+  "entry.filesSortOldest": "Önce en eski",
+  "entry.filesSortNewest": "Önce en yeni",
+  "entry.filesSortName": "Ad",
   "entry.folderDayName": "{dayOne} {day}",
   "entry.folderDayShow": "{dayOne} {day} göster",
   "entry.folderDelete": "Klasörü sil",
@@ -1350,6 +1372,7 @@
     "other": "En eskisi {n} günlük."
   },
   "server.cleanupUnknown": "Böyle bir temizlik türü yok.",
+  "server.cleanupSelection": "Seçim, olmayan ya da kalması gereken bir yedeklemeyi içeriyor. Hiçbir şey silinmedi.",
   "server.commentGone": "Bu yorum artık yok.",
   "server.confirmExpired": "Bu onay bağlantısı artık geçerli değil. Başvuruyu bir daha gönder.",
   "server.convertRunning": "Dönüştürme zaten sürüyor.",
@@ -1513,6 +1536,7 @@
   "server.viewNameMissing": "Kayıtlı bir görünümün bir ada ihtiyacı var.",
   "server.viewsTooBig": "Kayıtlı görünümler fazla büyük.",
   "server.viewUnknown": "Böyle bir görünüm yok.",
+  "server.sortUnknown": "Böyle bir sıralama yok.",
   "server.weightRange": "Ağırlık, {min} ile {max} arasında bir sayı olmalı.",
   "vocabulary.dayMany": "Test günleri",
   "vocabulary.dayOne": "Test günü",

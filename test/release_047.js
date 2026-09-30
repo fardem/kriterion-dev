@@ -378,8 +378,9 @@ async function run() {
     await settle(w);
     const sections = [...w.document.querySelectorAll('#atts .afolder')].map(el => Number(el.dataset.folder));
     const firstGrid = w.document.querySelector('#atts > .agroup .agrid');
-    check('Oben die Dateien ohne Ordner, darunter die Ordner neueste oben; beim Oeffnen sind alle zu',
-      tilesIn(w, 0).join(' ') === 'f41 f42 f43 f44 add' && sections.join(' ') === '9 7 8' &&
+    // Ohne Wahl gilt „Älteste zuerst"; die Ordner stehen dann umgekehrt zur Folge des Servers.
+    check('Oben die Dateien ohne Ordner, darunter die Ordner, der aelteste oben; beim Oeffnen sind alle zu',
+      tilesIn(w, 0).join(' ') === 'f41 f42 f43 f44 add' && sections.join(' ') === '8 7 9' &&
       firstGrid?.compareDocumentPosition(sectionOf(w, 9)) === w.Node.DOCUMENT_POSITION_FOLLOWING &&
       sections.every(fid => headOf(w, fid)?.getAttribute('aria-expanded') === 'false' &&
         sectionOf(w, fid)?.querySelector('.afolder-body')?.hidden === true),

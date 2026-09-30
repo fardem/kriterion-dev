@@ -1338,7 +1338,8 @@ async function run() {
   {
     const shipped = ['public/app.js', 'public/style.css', 'public/index.html',
                           'server.js', 'auth.js', 'db.js', 'usertool.js', 'mail.js',
-                          'keys.js', 'keytool.js', 'twofactor.js'];
+                          'keys.js', 'keytool.js', 'twofactor.js', 'schema.js', 'backup.js',
+                          'backuptool.js'];
     // Je Datei die erlaubten Fundstellen; verglichen wird die ganze Liste.
     const ALLOWED = {};
     const found = {};

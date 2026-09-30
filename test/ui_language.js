@@ -56,7 +56,8 @@ async function run() {
     const withoutComment = (q) => q
       .replace(/(^|[^A-Za-z0-9_"'`])\/\*[\s\S]*?\*\//g, '$1 ')
       .replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
-    const spSources = ['public/app.js', 'server.js', 'auth.js', 'mail.js', 'docserver.js'];
+    const spSources = ['public/app.js', 'server.js', 'auth.js', 'mail.js', 'docserver.js', 'backup.js',
+                       'backuptool.js'];
     const called = new Set();
     for (const file of spSources) {
       const q = withoutComment(fs.readFileSync(path.join(__dirname, file), 'utf8'));
@@ -335,7 +336,7 @@ async function run() {
                           'logLine', 'logWarn', 'logFail',
                           'db\\.prepare', 'd\\.prepare'];
     const serverRest = [];
-    for (const file of ['server.js', 'auth.js', 'mail.js']) {
+    for (const file of ['server.js', 'auth.js', 'mail.js', 'backup.js']) {
       const raw = fs.readFileSync(path.join(__dirname, file), 'utf8');
       for (const piece of screenTextsFrom(serverCalls(raw, SERVER_QUIET)))
         if (restGerman(piece.text).length) serverRest.push(piece.text.trim());
@@ -366,7 +367,7 @@ async function run() {
     check('Restprobe server.js: kein fester deutscher Satz erreicht mehr den Bildschirm — 0.32.0',
       serverTooMany.length === 0,
       serverTooMany.slice(0, 6).map(t => JSON.stringify(t.slice(0, 50))).join(' · '));
-    check('Und jeder der benannten Reste steht wirklich in einer der drei Dateien',
+    check('Und jeder der benannten Reste steht wirklich in einer der vier Dateien',
       serverMissing.length === 0,
       serverMissing.slice(0, 6).map(t => JSON.stringify(t.slice(0, 50))).join(' · '));
     const SERVER_REST_GONE = [
@@ -389,7 +390,7 @@ async function run() {
 
     /* ---- 5d. Restprobe Containerprotokoll ---- */
     const CONSOLE_FILES = ['server.js', 'db.js', 'auth.js', 'keys.js',
-                           'batchrun.js', 'images.js', 'log.js'];
+                           'batchrun.js', 'images.js', 'log.js', 'schema.js', 'backup.js'];
     /* Befehlswoerter, keine Saetze; wie die Serverbefehle in REST_GERMAN_NAMED. */
     const CONSOLE_COMMAND_WORDS = ['rand'];
     /* Liest den ganzen Aufruf bis zur passenden Klammer; eine Meldung kann ueber

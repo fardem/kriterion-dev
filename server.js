@@ -22,6 +22,8 @@ const auth = require('./auth');
 const keys = require('./keys');
 const mail = require('./mail');
 const docserver = require('./docserver');
+const backup = require('./backup');
+const { schemaDifferences } = require('./schema');
 
 /* ---- Sprachdateien ---- */
 const LANGUAGE_DIR = path.join(__dirname, 'public', 'languages');
@@ -449,7 +451,7 @@ const putSetting = { run: (k, v) => {
 
 /* ---- Persoenliche Einstellungen ---- */
 const PERSONAL_KEYS = ['documentTheme', 'filesEditAll', 'filesView',
-                                'filters', 'font', 'blocks', 'linkRows', 'timeline', 'searchNames',
+                                'filesSort', 'filters', 'font', 'blocks', 'linkRows', 'timeline', 'searchNames',
                                 'bellSeen', 'views', 'strip', 'theme', 'language'];
 
 /* Schluessel, die nur der Eigentuemer schreibt. */
@@ -1690,7 +1692,9 @@ const PICK_SETTINGS = {
   documentTheme: { list: ['kriterion', 'light', 'dark'], cast: String, fallback: 'kriterion',
                    wrong: 'server.themeUnknown' },
   filesView:   { list: ['tiles', 'list'],  cast: String, fallback: 'tiles',
-                 wrong: 'server.viewUnknown' }
+                 wrong: 'server.viewUnknown' },
+  filesSort:   { list: ['oldest', 'newest', 'name'], cast: String, fallback: 'oldest',
+                 wrong: 'server.sortUnknown' }
 };
 // Vorgabe fuer die eigenen neuen Dateien; ohne eigene gilt die der Karte „Dokumente".
 const filesEditAllOf = (userId) =>
@@ -1753,6 +1757,7 @@ app.get('/api/settings', (req, res) => res.json({
   linkRows: pick(req.user.id, 'linkRows'),
   timeline: timelineOn(req.user.id),
   filesView: pick(req.user.id, 'filesView'),
+  filesSort: pick(req.user.id, 'filesSort'),
   // null ohne Document Server; dann fehlt der Kasten „Dokumente" im eigenen Bereich.
   documents: documentSettings(req.user.id),
   bellSeen: bellSeen(req.user.id),
@@ -1900,6 +1905,7 @@ app.put('/api/settings', (req, res) => {
       take('theme');
       take('documentTheme');
       take('filesView');
+      take('filesSort');
       if (req.body.filesEditAll !== undefined)
         putUserSetting(req.user.id, 'filesEditAll', JSON.stringify(!!req.body.filesEditAll));
       if (req.body.blocks !== undefined) {
@@ -1982,7 +1988,7 @@ app.put('/api/settings', (req, res) => {
                  language: languageOf(req.user.id),
                  blocks: blocks(req.user.id),
                  linkRows: pick(req.user.id, 'linkRows'), timeline: timelineOn(req.user.id),
-                 filesView: pick(req.user.id, 'filesView'),
+                 filesView: pick(req.user.id, 'filesView'), filesSort: pick(req.user.id, 'filesSort'),
                  search: searchTemplate(), searchProviders: searchProviders(),
                  searchNames: pick(req.user.id, 'searchNames'),
                  tagsFreeCreate: freeCreate('tagsFreeCreate'),
@@ -6677,61 +6683,16 @@ async function diskRun(start) {
 const BACKUP_DIR = String(auth.fromEnv('BACKUP_DIR') || '').trim();
 // Gemessen an einer verschluesselten Instanz: rund 10 ms je MB; angesetzt ist das Doppelte.
 const BACKUP_MS_PER_MB = 20;
-const BACKUP_PATTERN = /^kriterion-.+\.sqlite$/;
-/* Geloescht wird ein Backup nur, wenn es nicht unter den CLEANUP_KEEP juengsten
-   und aelter als CLEANUP_DAYS Tage ist. */
-const CLEANUP_KEEP = { fallback: 3, min: 1, max: 20 };
-const CLEANUP_DAYS = { fallback: 30, min: 7, max: 365 };
-const DAY_MS = 86400000;
-// Positivliste: jedes Segment beginnt mit Buchstabe oder Ziffer.
-const PLACE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9 ._-]*(\/[A-Za-z0-9][A-Za-z0-9 ._-]*)*$/;
-
-const liesIn = (inside, outside) => inside === outside || inside.startsWith(outside + path.sep);
+const { CLEANUP_KEEP, CLEANUP_DAYS, DAY_MS, COPY_DIR, backupList, ruleHit, checkRuleValue,
+        removeBackups, cleanBackupFiles, listCheck, copiesFreed } = backup;
 
 const APP_DIR = (() => {
   try { return fs.realpathSync(__dirname); } catch { return path.resolve(__dirname); }
 })();
 
 /* Bei jeder Anfrage gelesen: ein spaeter eingehaengtes Verzeichnis gilt ohne Neustart. */
-function backupState() {
-  /* reason ist ein Schluessel der Sprachdatei. */
-  if (!BACKUP_DIR)
-    return { input: false, reason: 'server.backupDirNotSet', values: {} };
-  let root;
-  try { root = fs.realpathSync(BACKUP_DIR); }
-  catch { return { input: false, reason: 'server.backupDirGone', values: { folder: BACKUP_DIR } }; }
-  try { if (!fs.statSync(root).isDirectory())
-    return { input: false, reason: 'server.backupDirNotDir', values: { folder: BACKUP_DIR } }; }
-  catch { return { input: false, reason: 'server.backupDirUnreadable', values: { folder: BACKUP_DIR } }; }
-  let data;
-  try { data = fs.realpathSync(DATA_DIR); } catch { data = path.resolve(DATA_DIR); }
-  // Ein Backup im Datenverzeichnis ist keines; beide Richtungen werden abgewiesen.
-  if (liesIn(root, data) || liesIn(data, root))
-    return { input: false, reason: 'server.backupInDataDir', values: {} };
-  return { input: true, root, inWorkDir: liesIn(root, APP_DIR) };
-}
-
-function checkPlace(raw) {
-  const situation = backupState();
-  if (!situation.input) return { error: situation.reason, values: situation.values };
-  const s = String(raw == null ? '' : raw).trim();
-  if (!s) return { place: '', filePath: situation.root };
-  if (s.length > 200) return { error: 'server.subDirTooLong', values: { cap: 200 } };
-  if (!PLACE_PATTERN.test(s))
-    return { error: 'server.subDirForm', values: {} };
-  // Sonst raeumte das Aufraeumen am uebergeordneten Ort die Backups darin weg.
-  if (s.split('/').includes(COPY_DIR)) return { error: 'server.subDirCopies', values: { folder: COPY_DIR } };
-  let real;
-  try { real = fs.realpathSync(path.resolve(situation.root, s)); }
-  catch { return { error: 'server.subDirGone', values: { folder: s } }; }
-  try { if (!fs.statSync(real).isDirectory())
-    return { error: 'server.subDirNotDir', values: { folder: s } }; }
-  catch { return { error: 'server.subDirUnreadable', values: { folder: s } }; }
-  // Am aufgeloesten Pfad pruefen: ein Symlink aus der Wurzel heraus saehe am String harmlos aus.
-  if (!liesIn(real, situation.root))
-    return { error: 'server.subDirOutside', values: { folder: s } };
-  return { place: s, filePath: real };
-}
+function backupState() { return backup.backupState(BACKUP_DIR, DATA_DIR, APP_DIR); }
+function checkPlace(raw) { return backup.checkPlace(backupState(), raw); }
 
 /* Backups vor keyChangedAt tragen den alten Schluessel. */
 function changeMark() {
@@ -6739,23 +6700,6 @@ function changeMark() {
   if (!raw) return null;
   const ms = Date.parse(String(raw).replace(' ', 'T') + 'Z');
   return Number.isFinite(ms) ? { at: raw, ms } : null;
-}
-
-/* Juengstes zuerst; null, wenn der Ort nicht lesbar ist. */
-function backupList(filePath) {
-  let names;
-  try { names = fs.readdirSync(filePath); }
-  catch { return null; }
-  const files = [];
-  for (const n of names) {
-    if (!BACKUP_PATTERN.test(n)) continue;
-    try {
-      const st = fs.lstatSync(path.join(filePath, n));
-      if (st.isFile()) files.push({ name: n, time: st.mtimeMs, bytes: st.size });
-    } catch { /* zwischen readdir und lstat verschwunden */ }
-  }
-  files.sort((a, b) => b.time - a.time);
-  return files;
 }
 
 function lastBackup(filePath) {
@@ -6781,22 +6725,6 @@ function lastBackup(filePath) {
 }
 
 /* ---- Alte Backups aufraeumen ---- */
-function ruleHit(files, keep, days, now, changeMs) {
-  const usable = files
-    .filter(d => changeMs == null || d.time >= changeMs)
-    .sort((a, b) => b.time - a.time);
-  const limit = now - days * DAY_MS;
-  // Die `keep` juengsten bleiben immer; von den uebrigen faellt, was aelter als `days` ist.
-  return usable.slice(keep).filter(d => d.time < limit);
-}
-
-function checkRuleValue(raw, range, key) {
-  const n = Number(raw);
-  if (!Number.isInteger(n) || n < range.min || n > range.max)
-    return { error: key, values: { min: range.min, max: range.max } };
-  return { value: n };
-}
-
 function cleanupStatus() {
   const b = checkRuleValue(getSetting('backupKeep', CLEANUP_KEEP.fallback),
                             CLEANUP_KEEP, 'server.ruleKeep');
@@ -6842,13 +6770,25 @@ function cleanupPreview(filePath, keep, days, locale) {
   /* `nr` ist der Index, den POST /api/backup/check in backupList() nachschlaegt. */
   const hitNames = new Set(matched.map(d => d.name));
   const oldMs = mark ? mark.ms : null;
+  // Gesperrt nach dem gespeicherten Wert, wie POST /api/backup/cleanup mit `selected`.
+  const locked = backup.lockedNames(files, cleanupStatus().keep, oldMs);
+  const lists = backup.listSummary(filePath, files);
   return {
     reachable: true,
-    files: files.map((d, i) => ({
-      ...cleanupRow(d, now), nr: i + 1,
-      affected: hitNames.has(d.name),
-      outdated: oldMs != null && d.time < oldMs
-    })),
+    files: files.map((d, i) => {
+      const list = lists.get(d.name);
+      return {
+        ...cleanupRow(d, now), nr: i + 1,
+        affected: hitNames.has(d.name),
+        outdated: oldMs != null && d.time < oldMs,
+        locked: locked.has(d.name),
+        version: list ? list.version : null,
+        before: list ? list.before : null,
+        files: list ? { count: list.count, bytes: list.bytes, onlyCount: list.onlyCount, onlyBytes: list.onlyBytes }
+                    : null
+      };
+    }),
+    store: backup.storeSize(filePath),
     matched: matched.map(d => cleanupRow(d, now)),
     bytes: matched.reduce((n, d) => n + d.bytes, 0),
     copyBytes: copiesFreed(filePath, matched.map(d => d.name)),
@@ -6862,26 +6802,6 @@ function cleanupPreview(filePath, keep, days, locale) {
 const logRemoved = (actor, number) => {
   for (let i = 0; i < number; i++) auth.log('backup.delete', { actor });
 };
-
-function removeBackups(folder, names) {
-  let removed = 0, bytes = 0;
-  const stayed = [];
-  for (const n of names) {
-    const short = path.basename(String(n));
-    if (short !== String(n) || !BACKUP_PATTERN.test(short)) { stayed.push(short); continue; }
-    const full = path.join(folder, short);
-    try {
-      const st = fs.lstatSync(full);
-      if (!st.isFile()) { stayed.push(short); continue; }
-      fs.unlinkSync(full);
-      removed++; bytes += st.size;
-    } catch (e) {
-      stayed.push(short);
-      logFail(`Backup ${short} not removed: ${e.message}`);
-    }
-  }
-  return { removed, bytes, stayed };
-}
 
 // ownerOnly: die Antwort nennt einen Pfad auf dem Host.
 app.get('/api/backup', ownerOnly, (req, res) => {
@@ -6917,7 +6837,10 @@ app.get('/api/backup', ownerOnly, (req, res) => {
   const target = checkPlace(place);
   if (target.error) return res.json({ ...off, ...here,
     error: t(localeOf(req), target.error, target.values) });
-  res.json({ ...base, ...here, filePath: target.filePath, ...lastBackup(target.filePath),
+  // `freed`: die Kopien, die nur die genannten Backups nennen; fuer die Rueckfrage der Auswahl.
+  const freed = typeof req.query.freed === 'string'
+    ? { freed: copiesFreed(target.filePath, req.query.freed.split('|').slice(0, 1000)) } : {};
+  res.json({ ...base, ...here, filePath: target.filePath, ...lastBackup(target.filePath), ...freed,
              cleanup: { ...rule, ...cleanupPreview(target.filePath, keep, days, localeOf(req)) } });
 });
 
@@ -6945,46 +6868,24 @@ app.post('/api/backup', ownerOnly, async (req, res, next) => {
   let held = true;
   const release = () => { if (held) { held = false; dropBackupLock(lock); SWEEP_HELD--; } };
   const answer = (status, body) => { release(); res.status(status).json(body); };
-  // Name mit Datum und Uhrzeit: ein Backup ueberschreibt nie das vorige.
-  const mark = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-  const file = path.join(target.filePath, `kriterion-${mark}.sqlite`);
-  /* Erst unter `.wird` schreiben, dann umbenennen: ein halbes Backup passt nie auf
-     BACKUP_PATTERN. */
-  const becoming = file + '.wird';
   try {
-    clearBackupRest(target.filePath);
-    if (fs.existsSync(file)) return answer(409, { error: t(localeOf(req), 'server.backupConcurrent')});
-    const short = backupSpaceShort(target.filePath);
-    if (short) return answer(507, { error: t(localeOf(req), 'server.backupNoSpace',
-      { needed: short.needed, free: short.free }) });
-    const t0 = Date.now();
-    db.prepare('VACUUM INTO ?').run(becoming);
-    // Die Liste aus dem Backup selbst: usertool.js kann waehrenddessen committen.
-    const rows = backupDiskList(becoming);
-    const missing = rows.filter(z => !copyPresent(target.filePath, z));
-    BACKUP_COPY = { running: missing.length > 0, done: 0, total: missing.length, bytesDone: 0,
-                    bytesTotal: missing.reduce((n, z) => n + z.length, 0), absent: 0, error: null };
-    if (missing.length) {
-      res.status(202).json({ ok: true, running: true, copy: BACKUP_COPY });
-      answered = true;
-      await copyDiskFiles(target.filePath, missing, BACKUP_COPY);
-    }
-    // Die Liste nur, wenn das Backup Dateien auf der Platte nennt; Klartext fuer das Zurueckspielen.
-    if (rows.length) fs.writeFileSync(file.replace(/\.sqlite$/, '.files'),
-      rows.map(z => `${z.name} ${z.length}${z.absent ? ` ${ABSENT_MARK}` : ''}\n`).join(''));
-    fs.renameSync(becoming, file);
-    const ms = Date.now() - t0;
-    let bytes = 0;
-    try { bytes = fs.statSync(file).size; } catch {}
-    logLine(`Backup written: ${path.basename(file)} ` +
-      `(${bytes} bytes, ${ms} ms, ${missing.length} file(s) copied).`);
+    const written = await backup.writeBackup(db, target.filePath, {
+      dbFile: DB_FILE, filesDir: FILES_DIR, keyHex, version: VERSION, hold: benchHold,
+      copying: (state) => {
+        BACKUP_COPY = state;
+        if (!state.running) return;
+        res.status(202).json({ ok: true, running: true, copy: BACKUP_COPY });
+        answered = true;
+      } });
+    if (written.error) return answer(written.status, { error: t(localeOf(req), written.error, written.values) });
+    logLine(`Backup written: ${written.name} ` +
+      `(${written.bytes} bytes, ${written.ms} ms, ${written.copied} file(s) copied).`);
     auth.log('backup', { actor: req.user.id });
     const cleaned = backupRuleCleanup(target.filePath, req.user.id);
-    BACKUP_COPY = { ...BACKUP_COPY, running: false, file: path.basename(file) };
-    if (!answered) answer(200, { ok: true, file: path.basename(file), filePath: target.filePath, bytes, ms,
-                                 ...lastBackup(target.filePath), cleaned, copy: BACKUP_COPY });
+    BACKUP_COPY = { ...BACKUP_COPY, running: false, file: written.name };
+    if (!answered) answer(200, { ok: true, file: written.name, filePath: target.filePath, bytes: written.bytes,
+                                 ms: written.ms, ...lastBackup(target.filePath), cleaned, copy: BACKUP_COPY });
   } catch (e) {
-    try { if (fs.existsSync(becoming)) fs.unlinkSync(becoming); } catch {}
     logFail('Backup failed:', e.message);
     BACKUP_COPY = { ...(BACKUP_COPY || {}), running: false, error: 'server.backupFailed' };
     // Fester Text: ein SQL-Fehler nennt Pfade und Tabellen, die gehoeren nur ins Protokoll.
@@ -7023,169 +6924,22 @@ function backupRuleCleanup(folder, actor) {
   return cleaned;
 }
 
-/* ---- Dateien am Ablageort ---- */
-const COPY_DIR = 'kriterion-files';
-const LIST_PATTERN = /^kriterion-.+\.files$/;
-const COPY_PATTERN = /^([0-9a-f]{32})(\.part)?$/;
-// Marke in `.files` fuer eine Datei, die beim Backup fehlte.
-const ABSENT_MARK = 'fehlt';
-const LOCK_STALE_MS = 24 * HOUR_MS;
+/* ---- Sperre ---- */
 let BACKUP_BUSY = false;
 // Stand der letzten Kopie fuer die Karte; null, solange in dieser Laufzeit keine lief.
 let BACKUP_COPY = null;
 
-/* Sperre im Speicher und als Lockfile fuer alle Instanzen am Ablageort; null, wenn
-   schon ein Backup laeuft. */
+/* Sperre im Speicher und als Lockfile (backup.takeLock); null, wenn schon ein Backup laeuft. */
 function takeBackupLock(folder) {
   if (BACKUP_BUSY) return null;
-  const dir = path.join(folder, COPY_DIR);
-  fs.mkdirSync(dir, { recursive: true });
-  const lock = path.join(dir, '.lock');
-  const note = `${os.hostname()} ${process.pid} ${new Date().toISOString()}\n`;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      fs.writeFileSync(lock, note, { flag: 'wx' });
-      BACKUP_BUSY = true;
-      return lock;
-    } catch (e) {
-      if (e.code !== 'EEXIST') throw e;
-      let at = Date.now();
-      try { at = fs.statSync(lock).mtimeMs; } catch {}
-      if (Date.now() - at < LOCK_STALE_MS) return null;
-      try { fs.unlinkSync(lock); } catch {}
-    }
-  }
-  return null;
+  const lock = backup.takeLock(folder);
+  if (lock) BACKUP_BUSY = true;
+  return lock;
 }
 
-// Ein leeres kriterion-files/ faellt mit der Sperre; es gab nichts zu kopieren.
 function dropBackupLock(lock) {
-  try { fs.unlinkSync(lock); } catch {}
-  try { fs.rmdirSync(path.dirname(lock)); } catch {}
+  backup.dropLock(lock);
   BACKUP_BUSY = false;
-}
-
-// Reste eines abgebrochenen Backups; nur unter der Sperre.
-function clearBackupRest(folder) {
-  for (const n of fs.readdirSync(folder))
-    if (/^kriterion-.+\.sqlite\.wird$/.test(n)) try { fs.unlinkSync(path.join(folder, n)); } catch {}
-  const dir = path.join(folder, COPY_DIR);
-  for (const n of fs.readdirSync(dir))
-    if (/^[0-9a-f]{32}\.part$/.test(n)) try { fs.unlinkSync(path.join(dir, n)); } catch {}
-}
-
-function backupDiskList(file) {
-  const probe = new Database(file, { readonly: true });
-  try {
-    probe.pragma("cipher='sqlcipher'");
-    probe.pragma(`key="x'${keyHex}'"`);
-    return probe.prepare('SELECT name, size, chunk FROM disk_files ORDER BY id').all()
-      .filter(z => DISK_NAME.test(z.name)).map(z => ({ name: z.name, length: encLen(z.size, z.chunk) }));
-  } finally { probe.close(); }
-}
-
-// Eine Kopie gleicher Laenge bleibt; eine Datei auf der Platte aendert sich nie.
-function copyPresent(folder, z) {
-  try { return fs.statSync(path.join(folder, COPY_DIR, z.name)).size === z.length; }
-  catch { return false; }
-}
-
-// Frei am Ablageort: die Datenbank mit Aufschlag und die dort fehlenden Dateien.
-function backupSpaceShort(folder) {
-  let free = null;
-  try { const z = fs.statfsSync(folder); free = z.bsize * z.bavail; } catch {}
-  if (free === null) return null;
-  let dbBytes = 0;
-  try { dbBytes = fs.statSync(DB_FILE).size; } catch {}
-  const missing = qDiskSizes.all().filter(z => DISK_NAME.test(z.name))
-    .map(z => ({ name: z.name, length: encLen(z.size, z.chunk) }))
-    .filter(z => !copyPresent(folder, z)).reduce((n, z) => n + z.length, 0);
-  const needed = Math.ceil(dbBytes * 1.1) + missing;
-  return free >= needed ? null : { needed: Math.ceil(needed / MB), free: Math.floor(free / MB) };
-}
-
-async function copyDiskFiles(folder, rows, state) {
-  const dir = path.join(folder, COPY_DIR);
-  for (const z of rows) {
-    const to = path.join(dir, z.name), part = to + '.part';
-    await benchHold();
-    if (!fs.existsSync(diskPath(z.name))) { z.absent = true; state.absent++; }
-    else {
-      await fs.promises.copyFile(diskPath(z.name), part);
-      const handle = await fs.promises.open(part, 'r+');
-      try { await handle.sync(); } finally { await handle.close(); }
-      await fs.promises.rename(part, to);
-    }
-    state.done++;
-    state.bytesDone += z.length;
-  }
-}
-
-/* Loescht Listen ohne Backup daneben und in kriterion-files/ jede Datei nach
-   COPY_PATTERN, die keine verbliebene Liste nennt. */
-function cleanBackupFiles(folder) {
-  const names = fs.readdirSync(folder);
-  const named = new Set();
-  let removed = 0, bytes = 0;
-  for (const n of names) {
-    if (!LIST_PATTERN.test(n)) continue;
-    if (!names.includes(n.replace(/\.files$/, '.sqlite'))) {
-      try { fs.unlinkSync(path.join(folder, n)); } catch {}
-      continue;
-    }
-    for (const row of fs.readFileSync(path.join(folder, n), 'utf8').split('\n'))
-      if (DISK_NAME.test(row.split(' ')[0])) named.add(row.split(' ')[0]);
-  }
-  const dir = path.join(folder, COPY_DIR);
-  let copies = [];
-  try { copies = fs.readdirSync(dir); } catch {}
-  for (const c of copies) {
-    const m = COPY_PATTERN.exec(c);
-    if (!m || (!m[2] && named.has(m[1]))) continue;
-    try {
-      const st = fs.lstatSync(path.join(dir, c));
-      if (!st.isFile()) continue;
-      fs.unlinkSync(path.join(dir, c));
-      removed++; bytes += st.size;
-    } catch {}
-  }
-  return { removed, bytes };
-}
-
-// „pruefen": die Liste des Backups gegen kriterion-files/; ohne Liste null.
-function listCheck(folder, backupName) {
-  let rows;
-  try { rows = fs.readFileSync(path.join(folder, backupName.replace(/\.sqlite$/, '.files')), 'utf8').split('\n'); }
-  catch { return null; }
-  const out = { listed: 0, present: 0, absent: 0 };
-  for (const row of rows) {
-    const [name, length, flag] = row.split(' ');
-    if (!DISK_NAME.test(name || '')) continue;
-    out.listed++;
-    if (flag === ABSENT_MARK) out.absent++;
-    else if (copyPresent(folder, { name, length: Number(length) })) out.present++;
-  }
-  return out;
-}
-
-// Die Kopien, die keine Liste der uebrigen Backups mehr nennt, wenn `leaving` faellt.
-function copiesFreed(folder, leaving) {
-  let names;
-  try { names = fs.readdirSync(folder); } catch { return 0; }
-  const gone = new Set(leaving.map(n => n.replace(/\.sqlite$/, '.files')));
-  const keptNames = new Set(), leftNames = new Set();
-  for (const n of names) {
-    if (!LIST_PATTERN.test(n) || !names.includes(n.replace(/\.files$/, '.sqlite'))) continue;
-    let rows = [];
-    try { rows = fs.readFileSync(path.join(folder, n), 'utf8').split('\n'); } catch {}
-    for (const row of rows) (gone.has(n) ? leftNames : keptNames).add(row.split(' ')[0]);
-  }
-  let bytes = 0;
-  for (const name of leftNames) {
-    if (!DISK_NAME.test(name) || keptNames.has(name)) continue;
-    try { bytes += fs.statSync(path.join(folder, COPY_DIR, name)).size; } catch {}
-  }
-  return bytes;
 }
 
 app.post('/api/backup/cleanup', ownerOnly,
@@ -7195,8 +6949,12 @@ app.post('/api/backup/cleanup', ownerOnly,
   const target = checkPlace(getSetting('backupPlace', ''));
   if (target.error) return res.status(400).json({ error: t(localeOf(req), target.error, target.values) });
   const kind = String(req.body?.kind || '');
-  if (kind !== 'rule' && kind !== 'outdated')
+  if (kind !== 'rule' && kind !== 'outdated' && kind !== 'selected')
     return res.status(400).json({ error: t(localeOf(req), 'server.cleanupUnknown')});
+  const names = kind === 'selected' ? req.body?.names : [];
+  if (!Array.isArray(names) || names.length > 1000 || !names.every(n => typeof n === 'string')
+      || (kind === 'selected' && !names.length))
+    return res.status(400).json({ error: t(localeOf(req), 'server.cleanupSelection')});
   const files = backupList(target.filePath);
   if (files === null)
     return res.status(400).json({ error: t(localeOf(req), 'server.backupDirUnreachable')});
@@ -7204,17 +6962,25 @@ app.post('/api/backup/cleanup', ownerOnly,
   if (!lock) return res.status(409).json({ error: t(localeOf(req), 'server.backupRunning')});
   // Sperre frei vor der Antwort, wie beim Backup.
   let out;
-  try { out = cleanupUnderLock(req, target, files, kind); }
+  try { out = cleanupUnderLock(req, target, files, kind, names); }
   finally { dropBackupLock(lock); }
   res.status(out[0]).json(out[1]);
 });
 
-function cleanupUnderLock(req, target, files, kind) {
+function cleanupUnderLock(req, target, files, kind, names) {
   const mark = changeMark();
   let matched;
   if (kind === 'outdated') {
     if (!mark) return [400, { error: t(localeOf(req), 'server.keyNeverChanged')}];
     matched = files.filter(d => d.time < mark.ms);
+  } else if (kind === 'selected') {
+    // Ein gesperrtes oder unbekanntes Backup in der Auswahl: nichts wird geloescht.
+    const known = new Map(files.map(d => [d.name, d]));
+    const locked = backup.lockedNames(files, cleanupStatus().keep, mark ? mark.ms : null);
+    const chosen = [...new Set(names)];
+    if (chosen.some(n => !known.has(n) || locked.has(n)))
+      return [400, { error: t(localeOf(req), 'server.cleanupSelection')}];
+    matched = chosen.map(n => known.get(n));
   } else {
     const b = checkRuleValue(getSetting('backupKeep', CLEANUP_KEEP.fallback),
                               CLEANUP_KEEP, 'server.ruleKeep');
@@ -7279,7 +7045,10 @@ app.post('/api/backup/check', ownerOnly, (req, res) => {
       userCount: one("SELECT COUNT(*) AS n FROM users WHERE status <> 'deleted'").n,
       contentUntil: one('SELECT MAX(updated_at) AS t FROM items').t || null
     };
+    const { differences } = schemaDifferences(probe);
+    out.schema = { ok: !differences.length, differences };
     probe.close();
+    out.version = (backup.readList(target.filePath, file.name) || {}).version || null;
     out.files = listCheck(target.filePath, file.name);
     return res.json(out);
   } catch {

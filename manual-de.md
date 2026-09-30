@@ -336,7 +336,7 @@ geht direkt dort.
   an dieser Stelle.
 - Videos spielen nicht von selbst und halten beim Blättern an.
 - **Stelle im Video:** Ein Video spielt dort weiter, wo man es zuletzt
-  angehalten oder geschlossen hat, je Account und auf jedem Gerät. Einige
+  angehalten oder geschlossen hat, je Account und auf jedem Gerät. 10
   Sekunden steht „ab 3:12“ mit „Von vorn“ darüber. Unter 10 Sekunden und im
   letzten Stück (5 %, mindestens 10 Sekunden) merkt sich Kriterion nichts; das
   Video beginnt dann von vorn. Das gilt auch für Videos unter „Dateien“ und in
@@ -368,7 +368,15 @@ unverändert.
   kleines Vorschaubild, Name, Art, Größe, Datum des Uploads und bei mehreren
   Accounts, wer hochgeladen hat; auf dem Telefon stehen Größe und Datum unter
   dem Namen. Klick, Menü, Vorschau und Tastatur sind in beiden Ansichten
-  gleich. Bis 2 GB je Datei (Grenze „Datei“), höchstens 100 je Eintrag.
+  gleich. In der Liste steht „Bearbeiten“ direkt in der Zeile einer Datei, die
+  man bearbeiten darf; auf dem Telefon nur im Menü. Bis 2 GB je Datei (Grenze
+  „Datei“), höchstens 100 je Eintrag.
+- **Sortieren:** die Auswahl neben „Kacheln“ und „Liste“ ordnet nach „Älteste
+  zuerst“ (Vorgabe), „Jüngste zuerst“ oder „Name“; die Wahl gilt für alle
+  Einträge und auf jedem Gerät. Das Alter ist das Datum des Uploads. „Name“
+  unterscheidet nicht nach Groß- und Kleinschreibung und stellt „2“ vor „10“.
+  Die Dateien ohne Ordner bleiben oben, jeder Ordner bleibt eine Gruppe; die
+  Ordner folgen derselben Wahl. Laufende Uploads stehen am Ende ihrer Gruppe.
   Hochgeladen wird mit der Kachel „+“, in der Liste „Dateien hochladen“, oder
   durch Ablegen von Dateien auf dem Block. Jede Datei steht sofort als Kachel da und
   geht einzeln hoch, die kleinste zuerst. Die Kachel zeigt „wartet“, den
@@ -378,7 +386,7 @@ unverändert.
   erneut.
 - **Ordner:** „Ordner hinzufügen“ im Kopf des Blocks legt einen an; der Name
   hat 1 bis 80 Zeichen, gleiche Namen sind erlaubt. Oben stehen die Dateien
-  ohne Ordner, darunter die Ordner, der neueste oben; jede Gruppe hat einen
+  ohne Ordner, darunter die Ordner in der Folge der Sortierung; jede Gruppe hat einen
   eigenen Rahmen, ein zugeklappter Ordner ist eine Leiste. Ein Klick auf den
   Kopf klappt einen Ordner auf oder zu; Kriterion merkt sich das je Account, auf
   jedem Gerät. Ein neuer Ordner steht offen. Ein Sprung zu einem Ordner, etwa
@@ -666,7 +674,8 @@ Vorher ein Backup anlegen.
 Nur für den Eigentümer-Admin. Legt ein vollständiges, verschlüsseltes Backup an. Die Karte
 zeigt Ort und Dauer, das letzte Backup und die Lage des Backup-Ordners: rot im
 Projektordner, grün außerhalb. Backups von vor einem Schlüsselwechsel sind rot
-markiert. Zurückspielen geht nur auf dem Server (README, „Backup").
+markiert. Zurückgespielt wird auf dem Server mit `./backuptool.sh` (README,
+„Backup zurückspielen").
 
 Dateien auf der Platte kopiert das Backup nach `kriterion-files/` im
 Backup-Ordner, jede nur einmal. Solange es kopiert, nennt die Karte Zahl und
@@ -676,10 +685,21 @@ anderen Installation, legt der Knopf kein zweites an und meldet das.
 
 ### Alte Backups
 
-Listet alle Backups mit Nummer, Datum, Alter und Größe. „prüfen" öffnet ein
-Backup probeweise und nennt Einträge, Fotos, Accounts, das jüngste Datum und
-wie viele der Dateien aus seiner Liste in `kriterion-files/` liegen; „Mit
-diesem Schlüssel nicht lesbar" heißt, es gehört zu einem anderen Schlüssel.
+Listet alle Backups mit Nummer, Datum, Alter und Größe. Die zweite Zeile nennt
+die Version, die das Backup geschrieben hat, Zahl und Größe seiner Dateien und
+wie viele davon nur in diesem Backup stehen; „vor dem Zurückspielen" markiert
+das Backup, das `backuptool.sh` vor dem Zurückspielen anlegt. Über der Liste
+stehen Zahl und Größe aller Dateien in `kriterion-files/`. „prüfen" öffnet ein
+Backup probeweise und nennt Einträge, Fotos, Accounts, das jüngste Datum, wie
+viele der Dateien aus seiner Liste in `kriterion-files/` liegen, die Version
+und ob das Schema zur installierten Version passt; „Mit diesem Schlüssel nicht
+lesbar" heißt, es gehört zu einem anderen Schlüssel.
+
+„Auswählen" im Kopf der Liste setzt ein Kästchen an jedes Backup. Gesperrt sind
+die jüngsten N, die zum aktuellen Schlüssel passen; es sind dieselben, die die
+Regel schützt. „Löschen" in der Leiste fragt nach, nennt die Größe der
+Datenbanken und der Dateien, die nur in diesen Backups stehen, und verlangt die
+zweite Bestätigung.
 
 Aufräumen löscht ein Backup nur, wenn beides zutrifft: es gehört nicht zu den
 jüngsten N (1 bis 20) **und** ist älter als X Tage (7 bis 365).

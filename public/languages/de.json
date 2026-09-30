@@ -44,6 +44,11 @@
     "other": "{n} Backups stammen von vor dem Schlüsselwechsel"
   },
   "card.backupsCount": "Backups ({length})",
+  "card.backupStore": "Dateien aller Backups: {n} · {bytes}",
+  "card.backupVersion": "Version {version}",
+  "card.backupFiles": "Dateien {n} · {bytes} · nur hier {only} · {onlyBytes}",
+  "card.backupNoList": "keine Liste der Dateien",
+  "card.beforeRestore": "vor dem Zurückspielen",
   "card.backupsDeleted": {
     "one": "{n} Backup gelöscht ({bytes} frei){extra}",
     "other": "{n} Backups gelöscht ({bytes} frei){extra}"
@@ -52,7 +57,7 @@
     "one": "{n} Backup ({bytes}) wird endgültig gelöscht.",
     "other": "{n} Backups ({bytes}) werden endgültig gelöscht."
   },
-  "card.backupWhatHint": "**Backup:** die vollständige, verschlüsselte Sicherung der Datenbank — auch mit Benutzern und Einstellungen, die der Export nicht enthält. Lässt sich nur in dieselbe Programmversion zurückspielen.",
+  "card.backupWhatHint": "**Backup:** die vollständige, verschlüsselte Sicherung der Datenbank — auch mit Benutzern und Einstellungen, die der Export nicht enthält. Zurückgespielt wird auf dem Server mit ./backuptool.sh.",
   "card.backupWritten": "Backup erstellt",
   "card.backupWrittenFile": "Backup erstellt: {file} ({bytes})",
   "card.blocksHint": "Reihenfolge und Auf-/Zuklappen der Blöcke gelten für alle {entryMany}.",
@@ -79,6 +84,8 @@
   "card.checkForeign": "Lesbar, aber kein Backup dieser Installation.",
   "card.checkKeyWrong": "Mit diesem Schlüssel nicht lesbar — die .env gehört nicht zu diesem Backup.",
   "card.checkRunning": "wird geprüft …",
+  "card.checkSchemaOk": "Schema passt",
+  "card.checkSchemaDiffers": "Schema weicht ab: {differences}",
   "card.checkUntil": "Stand von",
   "card.checkUsers": "Benutzer",
   "card.cleanupAfterBackup": "Nach erfolgreichem Backup aufräumen",
@@ -140,6 +147,16 @@
   "card.defaultValue": "(Vorgabe: {defaultWord})",
   "card.delete": "{entryWord} löschen?",
   "card.deleteBackups": "Backups löschen",
+  "card.deletePickedBackups": "Ausgewählte Backups löschen",
+  "card.pickBackup": "Backup #{nr} vom {at} auswählen",
+  "card.pickLocked": {
+    "one": "Backup #{nr} vom {at} bleibt: es ist das jüngste",
+    "other": "Backup #{nr} vom {at} bleibt: es gehört zu den {n} jüngsten"
+  },
+  "card.pickedPurgeHint": {
+    "one": "{n} Backup ({bytes}) wird endgültig gelöscht. Die Dateien, die nur in ihm stehen, geben {files} frei.",
+    "other": "{n} Backups ({bytes}) werden endgültig gelöscht. Die Dateien, die nur in ihnen stehen, geben {files} frei."
+  },
   "card.deleteCategoryAsk": "Kategorie löschen?",
   "card.deleteCriterionAsk": "Kriterium löschen?",
   "card.deleted": "Gelöscht",
@@ -826,6 +843,7 @@
   "entry.dueHint": "Fälligkeitsdatum",
   "entry.dueSet": "Datum",
   "entry.edit": "Bearbeiten",
+  "entry.editNamed": "{name} bearbeiten",
   "entry.edited": "bearbeitet",
   "entry.empty": "(leer)",
   "entry.enteredByOn": "Eingetragen von {author} am {created_at}",
@@ -850,6 +868,10 @@
   "entry.filesView": "Dateien als Kacheln oder Liste",
   "entry.filesTiles": "Kacheln",
   "entry.filesList": "Liste",
+  "entry.filesSort": "Dateien sortieren",
+  "entry.filesSortOldest": "Älteste zuerst",
+  "entry.filesSortNewest": "Jüngste zuerst",
+  "entry.filesSortName": "Name",
   "entry.folderDayName": "{dayOne} {day}",
   "entry.folderDayShow": "{dayOne} {day} anzeigen",
   "entry.folderDelete": "Ordner löschen",
@@ -1350,6 +1372,7 @@
     "other": "Das älteste ist {n} Tage alt."
   },
   "server.cleanupUnknown": "Diese Art des Aufräumens gibt es nicht.",
+  "server.cleanupSelection": "Die Auswahl nennt ein Backup, das es nicht gibt oder das bleiben muss. Nichts gelöscht.",
   "server.commentGone": "Diesen Kommentar gibt es nicht mehr.",
   "server.confirmExpired": "Dieser Bestätigungslink gilt nicht mehr. Stell die Anfrage bitte noch einmal.",
   "server.convertRunning": "Die Konvertierung läuft schon.",
@@ -1513,6 +1536,7 @@
   "server.viewNameMissing": "Eine gespeicherte Ansicht braucht einen Namen.",
   "server.viewsTooBig": "Die gespeicherten Ansichten sind zu umfangreich.",
   "server.viewUnknown": "Diese Ansicht gibt es nicht.",
+  "server.sortUnknown": "Diese Sortierung gibt es nicht.",
   "server.weightRange": "Das Gewicht muss eine Zahl zwischen {min} und {max} sein.",
   "vocabulary.dayMany": "Testtage",
   "vocabulary.dayOne": "Testtag",

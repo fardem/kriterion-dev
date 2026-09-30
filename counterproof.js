@@ -859,7 +859,7 @@ const REGRESSIONS = [
   /* ---- Der zweite Faktor: die Tabellen und die Oberflaeche ---- */
   {
     nr: '115', name: 'Der Index auf zweifaktor_codes wird nicht mehr angelegt',
-    file: 'db.js',
+    file: 'schema.js',
     search: 'CREATE INDEX IF NOT EXISTS idx_two_factor_codes_user ON two_factor_codes(user_id);',
     replacement: '',
     expected: 'Der zweite Faktor: die Tabellen legen sich selbst an'
@@ -1632,7 +1632,7 @@ const REGRESSIONS = [
   /* ---- Die drei Spalten und der Migrationsblock ---- */
   {
     nr: '224', name: 'Die drei Spalten stehen nicht mehr in der DDL',
-    file: 'db.js',
+    file: 'schema.js',
     search: "  rejected_at TEXT,\n  rejected_reason TEXT,",
     replacement: "",
     expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
@@ -3436,7 +3436,7 @@ const REGRESSIONS = [
   },
   {
     nr: '486', name: 'Der Index steht wieder vor seiner Migration',
-    file: 'db.js',
+    file: 'schema.js',
     search: "CREATE INDEX IF NOT EXISTS idx_photos_item ON photos(item_id, sort_order);",
     replacement: "CREATE INDEX IF NOT EXISTS idx_photos_item ON photos(item_id, sort_order);\n" +
             "CREATE INDEX IF NOT EXISTS idx_photos_kind ON photos(kind);",
@@ -3908,49 +3908,49 @@ const REGRESSIONS = [
   /* ---- Alte Sicherungen aufraeumen ---- */
   {
     nr: '544', name: 'Die Regel kennt nur das Alter -- der Boden faellt weg',
-    file: 'server.js',
+    file: 'backup.js',
     search: "  return usable.slice(keep).filter(d => d.time < limit);",
     replacement: "  return brauchbar.filter(d => d.zeit < grenze);",
     expected: 'Die Aufraeumregel an der Tafel'
   },
   {
     nr: '545', name: 'Die Regel kennt nur die Zahl -- die Schere faellt weg',
-    file: 'server.js',
+    file: 'backup.js',
     search: "  return usable.slice(keep).filter(d => d.time < limit);",
     replacement: "  return brauchbar.slice(behalten);",
     expected: 'Die Aufraeumregel an der Tafel'
   },
   {
     nr: '546', name: 'Die Musterpruefung faellt weg -- die fremde Datei faellt mit',
-    file: 'server.js',
+    file: 'backup.js',
     search: "const BACKUP_PATTERN = /^kriterion-.+\\.sqlite$/;",
     replacement: "const BACKUP_PATTERN = /./;",
     expected: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
     nr: '547', name: 'Die zweite Musterpruefung vor dem unlink faellt weg',
-    file: 'server.js',
+    file: 'backup.js',
     search: "    if (short !== String(n) || !BACKUP_PATTERN.test(short)) { stayed.push(short); continue; }",
     replacement: "    if (false) { stayed.push(kurz); continue; }",
     expected: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
     nr: '548', name: 'Die Liste folgt dem Symlink statt ihn zu sehen',
-    file: 'server.js',
+    file: 'backup.js',
     search: "      const st = fs.lstatSync(path.join(filePath, n));",
     replacement: "      const st = fs.statSync(path.join(pfad, n));",
     expected: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
     nr: '549', name: 'Das Entfernen folgt dem Symlink',
-    file: 'server.js',
+    file: 'backup.js',
     search: "      const st = fs.lstatSync(full);",
     replacement: "      const st = fs.statSync(voll);",
     expected: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
     nr: '550', name: 'Der Boden zaehlt auch die veralteten Kopien mit',
-    file: 'server.js',
+    file: 'backup.js',
     search: "    .filter(d => changeMs == null || d.time >= changeMs)",
     replacement: "    .filter(() => true)",
     expected: 'Die Aufraeumregel an der Tafel'
@@ -3958,8 +3958,8 @@ const REGRESSIONS = [
   {
     nr: '551', name: 'Nach der gescheiterten Sicherung wird doch aufgeraeumt',
     file: 'server.js',
-    search: "    if (fs.existsSync(file)) return answer(409, { error: t(localeOf(req), 'server.backupConcurrent')});",
-    replacement: "    if (fs.existsSync(datei)) {\n      const r = cleanupStatus();\n      if (r.an) removeBackups(ziel.pfad, ruleHit(backupList(ziel.pfad) || [],\n        r.behalten, r.tage, Date.now(), (changeMark() || {}).ms ?? null).map(d => d.name));\n      return answer(409, { error: t(localeOf(req), 'server.backupConcurrent')});\n    }",
+    search: "    if (written.error) return answer(written.status, { error: t(localeOf(req), written.error, written.values) });",
+    replacement: "    if (written.error) {\n      const r = cleanupStatus();\n      if (r.an) removeBackups(target.filePath, ruleHit(backupList(target.filePath) || [],\n        r.keep, r.days, Date.now(), (changeMark() || {}).ms ?? null).map(d => d.name));\n      return answer(written.status, { error: t(localeOf(req), written.error, written.values) });\n    }",
     expected: 'Alte Sicherungen aufraeumen: der Anschluss an die Sicherung'
   },
   {
@@ -3983,7 +3983,7 @@ const REGRESSIONS = [
   },
   {
     nr: '554', name: 'Die Grenzen der beiden Werte halten nicht mehr am Server',
-    file: 'server.js',
+    file: 'backup.js',
     search: "  if (!Number.isInteger(n) || n < range.min || n > range.max)",
     replacement: "  if (false)",
     expected: 'Alte Sicherungen aufraeumen: der echte Ordner'
@@ -4081,15 +4081,15 @@ const REGRESSIONS = [
   {
     nr: '566', name: 'Die Sicherungsliste bekommt keinen Deckel',
     file: 'public/style.css',
-    search: '#cleanup-list { flex: none; max-height: 13.98rem; }',
+    search: '#cleanup-list { flex: none; max-height: 19.58rem; }',
     replacement: '#cleanup-list { flex: none; }',
     expected: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
   {
     nr: '567', name: 'Die Karte listet die Sicherungen nicht mehr',
     file: 'public/app.js',
-    search: '           <div class="manage-list" id="cleanup-list">${all.map(row).join(\'\')}</div>`',
-    replacement: '           <div class="manage-list" id="cleanup-list"></div>`',
+    search: '           <div class="manage-list" id="cleanup-list">${all.map(row).join(\'\')}</div>\n',
+    replacement: '           <div class="manage-list" id="cleanup-list"></div>\n',
     expected: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
   {
@@ -4392,7 +4392,7 @@ const REGRESSIONS = [
   {
     nr: 'W14', name: 'Die Dateiliste des Sprachwaechters verliert die neuen Dateien',
     file: 'test/source.js',
-    search: "                          'images.js', 'batchrun.js', 'mail.js', 'docserver.js'];",
+    search: "                          'images.js', 'batchrun.js', 'mail.js', 'docserver.js',\n                          'schema.js', 'backup.js', 'backuptool.js'];",
     replacement: "                          ];",
     expected: 'Der Sprachwaechter'
   },
@@ -5037,7 +5037,7 @@ const REGRESSIONS = [
   },
   {
     nr: '718', name: 'Die Namenstabelle haengt nicht mehr an ihrer Grundzeile',
-    file: 'db.js',
+    file: 'schema.js',
     search: "CREATE TABLE IF NOT EXISTS criterion_names (\n  criterion_id INTEGER NOT NULL REFERENCES rating_criteria(id) ON DELETE CASCADE,",
     replacement: "CREATE TABLE IF NOT EXISTS criterion_names (\n  criterion_id INTEGER NOT NULL,",
     expected: 'Der Rueckfall der Namen — 0.24.3'
@@ -7242,8 +7242,8 @@ const REGRESSIONS = [
   {
     nr: '1056', name: 'Der Sprachwaechter verliert mail.js wieder',
     file: 'test/source.js',
-    search: "'images.js', 'batchrun.js', 'mail.js', 'docserver.js'];",
-    replacement: "'images.js', 'batchrun.js', 'docserver.js'];",
+    search: "'images.js', 'batchrun.js', 'mail.js', 'docserver.js',",
+    replacement: "'images.js', 'batchrun.js', 'docserver.js',",
     expected: 'Der Sprachwaechter'
   },
 
@@ -7679,7 +7679,7 @@ const REGRESSIONS = [
   {
     /* Die Zeile steht in einer Vorlage, und tools/segments.js haelt eine Vorlage fuer Text. */
     nr: '1115', name: 'Eine SQL-Zeile des Schemas nennt wieder eine Nummer',
-    file: 'db.js',
+    file: 'schema.js',
     search: "  -- ON DELETE SET NULL wie an jedem Traeger: ein entfernter",
     replacement: "  -- ON DELETE SET NULL wie an jedem Traeger (Stolper" + "stein 54): ein entfernter",
     expected: 'Kein Stolpersteinverweis mehr — 0.34.3'
@@ -7784,7 +7784,7 @@ const REGRESSIONS = [
   },
   {
     nr: '1129', name: 'Eine SQL-Kommentarzeile des Schemas nennt wieder ein Papier',
-    file: 'db.js',
+    file: 'schema.js',
     search: '-- Anhaenge am Eintrag. mime_type ist der vom Browser gemeldete Typ und dient',
     replacement: '-- Anhaenge am Eintrag (Konzept 4.6). mime_type ist der gemeldete Typ und dient',
     expected: 'Kein Papierverweis geht mit hinaus'
@@ -8111,7 +8111,7 @@ const REGRESSIONS = [
   /* ---- Die drei Indexe ---- */
   {
     nr: '1175', name: 'Der Index auf criterion_id faellt weg',
-    file: 'db.js',
+    file: 'schema.js',
     search: "CREATE INDEX IF NOT EXISTS idx_ratings_criterion ON ratings(criterion_id, value, item_id);",
     replacement: "",
     expected: 'Die drei Indexe und der Abfrageplaner'
@@ -8292,7 +8292,7 @@ const REGRESSIONS = [
   /* ---- Die Spaltenfolge ---- */
   {
     nr: '1199', name: 'Das Schema faellt auf die alte Folge zurueck',
-    file: 'db.js',
+    file: 'schema.js',
     search: "  filename TEXT NOT NULL DEFAULT 'image.jpg',\n  thumb BLOB,\n"
       + "  sort_order INTEGER NOT NULL DEFAULT 0,\n"
       + "  created_at TEXT NOT NULL DEFAULT (datetime('now')),\n"
@@ -9298,7 +9298,7 @@ const REGRESSIONS = [
   },
   {
     nr: '1345', name: "Testtag loeschen loescht den Ordner mit",
-    file: 'db.js',
+    file: 'schema.js',
     search: "  test_day_id INTEGER UNIQUE REFERENCES test_days(id) ON DELETE SET NULL",
     replacement: "  test_day_id INTEGER UNIQUE REFERENCES test_days(id) ON DELETE CASCADE",
     expected: "Platte: Ordner mit Testtag"
@@ -9536,28 +9536,28 @@ const REGRESSIONS = [
   },
   {
     nr: '1390', name: "Die Liste des Backups kommt aus der laufenden Datenbank",
-    file: 'server.js',
-    search: "    if (rows.length) fs.writeFileSync(file.replace(/\\.sqlite$/, '.files'),\n      rows.map(",
-    replacement: "    if (rows.length) fs.writeFileSync(file.replace(/\\.sqlite$/, '.files'),\n      qDiskSizes.all().map(z => ({ name: z.name, length: encLen(z.size, z.chunk) })).map(",
+    file: 'backup.js',
+    search: "    writeList(file, rows, version, before);",
+    replacement: "    writeList(file, db.prepare('SELECT name, size, chunk FROM disk_files ORDER BY id').all()\n      .map(z => ({ name: z.name, length: encLen(z.size, z.chunk) })), version, before);",
     expected: "Platte: Backup mit Dateien"
   },
   {
     nr: '1391', name: "Das Backup antwortet immer mit 202",
     file: 'server.js',
-    search: "    if (missing.length) {\n      res.status(202)",
-    replacement: "    if (true) {\n      res.status(202)",
+    search: "        if (!state.running) return;\n        res.status(202)",
+    replacement: "        if (false) return;\n        res.status(202)",
     expected: "Platte: Backup mit Dateien"
   },
   {
     nr: '1392', name: "Die Sperre des Backups gilt nur im Speicher",
-    file: 'server.js',
+    file: 'backup.js',
     search: "      fs.writeFileSync(lock, note, { flag: 'wx' });",
     replacement: "      fs.writeFileSync(lock, note);",
     expected: "Platte: Backup mit Dateien"
   },
   {
     nr: '1393', name: "Das Aufraeumen nach dem Backup loescht ohne Muster",
-    file: 'server.js',
+    file: 'backup.js',
     search: "    if (!m || (!m[2] && named.has(m[1]))) continue;",
     replacement: "    if (m && !m[2] && named.has(m[1])) continue;",
     expected: "Platte: Backup mit Dateien"
@@ -10206,6 +10206,293 @@ const REGRESSIONS = [
     search: "    check.hidden = !choosable.length;",
     replacement: "    check.hidden = true;",
     expected: "Auswahl unter „Dateien\" im Browser"
+  },
+  {
+    nr: '1487', name: "Die Liste nennt die Version nicht mehr",
+    file: 'backup.js',
+    search: "  const head = [`# version ${version}\\n`, ...(before ? [`# vor ${before}\\n`] : [])];",
+    replacement: "  const head = before ? [`# vor ${before}\\n`] : [];",
+    expected: "Backup: die Liste mit Version, auch ohne Dateien"
+  },
+  {
+    nr: '1488', name: "Ohne Dateien entsteht keine Liste",
+    file: 'backup.js',
+    search: "    writeList(file, rows, version, before);",
+    replacement: "    if (rows.length) writeList(file, rows, version, before);",
+    expected: "Backup: die Liste mit Version, auch ohne Dateien"
+  },
+  {
+    nr: '1489', name: "Das Alter kommt aus dem Namen statt aus der Aenderungszeit",
+    file: 'backup.js',
+    search: "      if (st.isFile()) files.push({ name: n, time: st.mtimeMs, bytes: st.size });",
+    replacement: "      if (st.isFile()) files.push({ name: n, time: Date.parse(n.slice(10, 20) + 'T' + n.slice(21, 29).replace(/-/g, ':') + 'Z') || st.mtimeMs, bytes: st.size });",
+    expected: "Backup: die Liste mit Version, auch ohne Dateien"
+  },
+  {
+    nr: '1490', name: "list nennt die Version nicht",
+    file: 'backuptool.js',
+    search: "      return [String(i + 1), localTime(d.time), (info.list && info.list.version) || '–', size(d.bytes),",
+    replacement: "      return [String(i + 1), localTime(d.time), '–', size(d.bytes),",
+    expected: "backuptool.js: list und show"
+  },
+  {
+    nr: '1491', name: "show vergleicht nicht mit dem laufenden Stand",
+    file: 'backuptool.js',
+    search: "    try { compare(info.probe, ctx.live.db, options.all); }",
+    replacement: "    try { }",
+    expected: "backuptool.js: list und show"
+  },
+  {
+    nr: '1492', name: "Ein falscher Aufruf endet mit 1 statt 2",
+    file: 'backuptool.js',
+    search: "    process.exit(e instanceof Misuse ? 2 : 1);",
+    replacement: "    process.exit(1);",
+    expected: "backuptool.js: list und show"
+  },
+  {
+    nr: '1493', name: "restore spielt bei laufendem Server zurueck",
+    file: 'backuptool.js',
+    search: "  if (inUse(key))",
+    replacement: "  if (false)",
+    expected: "backuptool.js: abgelehnt, ohne etwas zu aendern"
+  },
+  {
+    nr: '1494', name: "restore prueft die Kopien im Backup-Ordner nicht",
+    file: 'backuptool.js',
+    search: "    const missing = list.rows.filter(z => !z.absent && !backup.copyPresent(folder, z));",
+    replacement: "    const missing = [];",
+    expected: "backuptool.js: abgelehnt, ohne etwas zu aendern"
+  },
+  {
+    nr: '1495', name: "restore prueft das Schema nicht",
+    file: 'backuptool.js',
+    search: "  if (info.schema.differences.length)\n    problems.push(`Das Schema passt nicht zu Version",
+    replacement: "  if (false)\n    problems.push(`Das Schema passt nicht zu Version",
+    expected: "backuptool.js: abgelehnt, ohne etwas zu aendern"
+  },
+  {
+    nr: '1496', name: "restore uebergeht ein gehaltenes Lockfile",
+    file: 'backuptool.js',
+    search: "  const lock = backup.takeLock(folder);\n  if (!lock)",
+    replacement: "  const lock = backup.takeLock(folder) || path.join(folder, backup.COPY_DIR, '.lock');\n  if (!lock)",
+    expected: "backuptool.js: abgelehnt, ohne etwas zu aendern"
+  },
+  {
+    nr: '1497', name: "Eine mehrdeutige Auswahl nimmt das juengste Backup",
+    file: 'backuptool.js',
+    search: "  if (hits.length > 1) {",
+    replacement: "  if (hits.length > 1) hits = hits.slice(0, 1);\n  if (false) {",
+    expected: "backuptool.js: abgelehnt, ohne etwas zu aendern"
+  },
+  {
+    nr: '1498', name: "restore legt kein Backup davor an",
+    file: 'backuptool.js',
+    search: "    if (!verdict.same && ctx.live.db) {\n      out('', 'Backup des aktuellen Stands …');",
+    replacement: "    if (false) {\n      out('', 'Backup des aktuellen Stands …');",
+    expected: "backuptool.js: restore und der Rueckweg"
+  },
+  {
+    nr: '1499', name: "Das Backup davor traegt kein „# vor\"",
+    file: 'backuptool.js',
+    search: "        dbFile: DB_FILE, filesDir: FILES_DIR, keyHex: ctx.key, version: VERSION, before: chosen.d.name,",
+    replacement: "        dbFile: DB_FILE, filesDir: FILES_DIR, keyHex: ctx.key, version: VERSION, before: null,",
+    expected: "backuptool.js: restore und der Rueckweg"
+  },
+  {
+    nr: '1500', name: "restore loescht in data/files/ nichts",
+    file: 'backuptool.js',
+    search: "    if (named.has(n) && backup.copyPresent(folder, { name: n, length })) {",
+    replacement: "    if (false) {",
+    expected: "backuptool.js: restore und der Rueckweg"
+  },
+  {
+    nr: '1501', name: "restore loescht auch Dateien ohne Kopie und ohne Liste",
+    file: 'backuptool.js',
+    search: "    if (named.has(n) && backup.copyPresent(folder, { name: n, length })) {",
+    replacement: "    if (true) {",
+    expected: "backuptool.js: ohne und mit unlesbarer laufender Datenbank"
+  },
+  {
+    nr: '1502', name: "Eine unlesbare Datenbank wird ersetzt statt beiseitegelegt",
+    file: 'backuptool.js',
+    search: "      } else if (ctx.live.error) aside = setAside();",
+    replacement: "      }",
+    expected: "backuptool.js: ohne und mit unlesbarer laufender Datenbank"
+  },
+  {
+    nr: '1503', name: "Der zweite Aufruf legt ueber den zurueckgespielten Stand ein weiteres Backup",
+    file: 'backuptool.js',
+    search: "  verdict.same = sameBytes(DB_FILE, file);",
+    replacement: "  verdict.same = false;",
+    expected: "backuptool.js: Abbruch nach Schritt 3, 5 und 6; ein zweiter Aufruf fuehrt zu Ende"
+  },
+  {
+    nr: '1504', name: "Die Auswahl loescht auch gesperrte Backups",
+    file: 'server.js',
+    search: "    if (chosen.some(n => !known.has(n) || locked.has(n)))",
+    replacement: "    if (chosen.some(n => !known.has(n)))",
+    expected: "Alte Backups: mehrere auswaehlen und loeschen"
+  },
+  {
+    nr: '1505', name: "Ein unbekanntes Backup in der Auswahl haelt das Loeschen nicht an",
+    file: 'server.js',
+    search: "    if (chosen.some(n => !known.has(n) || locked.has(n)))",
+    replacement: "    if (false)",
+    expected: "Alte Backups: mehrere auswaehlen und loeschen"
+  },
+  {
+    nr: '1506', name: "Die Auswahl schreibt nichts ins Sicherheitsprotokoll",
+    file: 'server.js',
+    search: "    logRemoved(req.user.id, out2.removed);",
+    replacement: "    if (kind !== 'selected') logRemoved(req.user.id, out2.removed);",
+    expected: "Alte Backups: mehrere auswaehlen und loeschen"
+  },
+  {
+    nr: '1507', name: "Gesperrt ist jedes Backup statt der juengsten",
+    file: 'backup.js',
+    search: "    .sort((a, b) => b.time - a.time).slice(0, keep).map(d => d.name));",
+    replacement: "    .sort((a, b) => b.time - a.time).map(d => d.name));",
+    expected: "Alte Backups: mehrere auswaehlen und loeschen"
+  },
+  {
+    nr: '1508', name: "Die Karte zaehlt die Dateien nicht, die nur ein Backup nennt",
+    file: 'backup.js',
+    search: "      if (named.get(z.name) === 1) { sum.onlyCount++; sum.onlyBytes += z.length; }",
+    replacement: "",
+    expected: "Alte Backups: mehrere auswaehlen und loeschen"
+  },
+  {
+    nr: '1509', name: "Die Rueckfrage der Auswahl bekommt keine Groesse",
+    file: 'server.js',
+    search: "    ? { freed: copiesFreed(target.filePath, req.query.freed.split('|').slice(0, 1000)) } : {};",
+    replacement: "    ? { freed: 0 } : {};",
+    expected: "Alte Backups: mehrere auswaehlen und loeschen"
+  },
+  {
+    nr: '1510', name: "„pruefen\" nennt das Schema nicht",
+    file: 'server.js',
+    search: "    out.schema = { ok: !differences.length, differences };",
+    replacement: "",
+    expected: "Alte Backups: mehrere auswaehlen und loeschen"
+  },
+  {
+    nr: '1511', name: "filesSort nimmt jeden Wert an",
+    file: 'server.js',
+    search: "      take('filesSort');\n",
+    replacement: "      if (req.body.filesSort !== undefined) putUserSetting(req.user.id, 'filesSort', JSON.stringify(String(req.body.filesSort)));\n",
+    expected: "Dateien sortieren: die Einstellung"
+  },
+  {
+    nr: '1512', name: "filesSort fehlt unter den persoenlichen Schluesseln",
+    file: 'server.js',
+    search: "                                'filesSort', 'filters', 'font',",
+    replacement: "                                'filters', 'font',",
+    expected: "Dateien sortieren: die Einstellung"
+  },
+  {
+    nr: '1513', name: "Die Karte zeigt die zweite Zeile je Backup nicht",
+    file: 'public/app.js',
+    search: "        ${filesLine(z)}\n",
+    replacement: "\n",
+    expected: "Alte Backups: die Auswahl in der Oberflaeche"
+  },
+  {
+    nr: '1514', name: "Gesperrte Backups lassen sich auswaehlen",
+    file: 'public/app.js',
+    search: "        aria-label=\"${esc(label)}\"${z.locked ? ` disabled title=\"${esc(label)}\"` : ''}${",
+    replacement: "        aria-label=\"${esc(label)}\"${''}${",
+    expected: "Alte Backups: die Auswahl in der Oberflaeche"
+  },
+  {
+    nr: '1515', name: "„Alle auswählen\" nimmt auch die gesperrten",
+    file: 'public/app.js',
+    search: "    const pickable = all.filter(z => !z.locked);",
+    replacement: "    const pickable = all;",
+    expected: "Alte Backups: die Auswahl in der Oberflaeche"
+  },
+  {
+    nr: '1516', name: "Die Rueckfrage fragt den freien Platz nicht ab",
+    file: 'public/app.js',
+    search: "      try { freed = (await api('GET', `/api/backup?freed=${encodeURIComponent(names.join('|'))}`)).freed || 0; }",
+    replacement: "      try { freed = 0; }",
+    expected: "Alte Backups: die Auswahl in der Oberflaeche"
+  },
+  {
+    nr: '1517', name: "Die Auswahl loescht nach der Regel statt der Namen",
+    file: 'public/app.js',
+    search: "      try { r = await api('POST', '/api/backup/cleanup', { kind: 'selected', names }); }",
+    replacement: "      try { r = await api('POST', '/api/backup/cleanup', { kind: 'rule' }); }",
+    expected: "Alte Backups: die Auswahl in der Oberflaeche"
+  },
+  {
+    nr: '1518', name: "Der Hinweis beim Weiterspielen steht wieder 5 s",
+    file: 'public/app.js',
+    search: "const SPOT_HINT_MS = 10000;",
+    replacement: "const SPOT_HINT_MS = 5000;",
+    expected: "Hinweis beim Weiterspielen: 10 s"
+  },
+  {
+    nr: '1519', name: "„Jüngste zuerst\" sortiert die Dateien nicht",
+    file: 'public/app.js',
+    search: "    if (FILES_SORT === 'newest') return files.slice().sort((a, b) => byText(b.created_at, a.created_at) || b.id - a.id);\n",
+    replacement: "",
+    expected: "Dateien sortieren im Browser"
+  },
+  {
+    nr: '1520', name: "Name sortiert Zahlen nicht in natuerlicher Folge",
+    file: 'public/app.js',
+    search: "  const byName = (x, y) => x.localeCompare(y, LOCALE, { numeric: true, sensitivity: 'accent' });",
+    replacement: "  const byName = (x, y) => x.localeCompare(y, LOCALE);",
+    expected: "Dateien sortieren im Browser"
+  },
+  {
+    nr: '1521', name: "Die Ordner folgen der Sortierung nicht",
+    file: 'public/app.js',
+    search: "    sortedFolders(folders).forEach((f, at) => {",
+    replacement: "    folders.forEach((f, at) => {",
+    expected: "Dateien sortieren im Browser"
+  },
+  {
+    nr: '1522', name: "Die Sortierung wird nicht gespeichert",
+    file: 'public/app.js',
+    search: "    try { await api('PUT', '/api/settings', { filesSort: FILES_SORT }); }",
+    replacement: "    try { await Promise.resolve(); }",
+    expected: "Dateien sortieren im Browser"
+  },
+  {
+    nr: '1523', name: "Laufende Uploads stehen vor den Dateien ihrer Gruppe",
+    file: 'public/app.js',
+    search: "      ...sortedFiles(list.filter(a => groupOf(a) === key)).map(a => ['f' + a.id, li => fillFileTile(li, a, key, shown)]),\n      ...remote.filter(x => remoteGroup(x) === key).map(x => ['s' + x.id, li => fillRemoteTile(li, x)]),",
+    replacement: "      ...remote.filter(x => remoteGroup(x) === key).map(x => ['s' + x.id, li => fillRemoteTile(li, x)]),\n      ...sortedFiles(list.filter(a => groupOf(a) === key)).map(a => ['f' + a.id, li => fillFileTile(li, a, key, shown)]),",
+    expected: "Dateien sortieren im Browser"
+  },
+  {
+    nr: '1524', name: "„Bearbeiten\" steht auch ohne Recht zum Bearbeiten und am Telefon",
+    file: 'public/app.js',
+    search: "    edit.hidden = !!filesPicked || !(a.preview === 'office' && a.edit && !isNarrow());",
+    replacement: "    edit.hidden = !!filesPicked || a.preview !== 'office';",
+    expected: "Bearbeiten in der Listenzeile"
+  },
+  {
+    nr: '1525', name: "„Bearbeiten\" oeffnet die Ansicht statt des Editors",
+    file: 'public/app.js',
+    search: "    edit.onclick = () => { location.hash = fileAddress(id, a.id, true); };",
+    replacement: "    edit.onclick = () => { location.hash = fileAddress(id, a.id); };",
+    expected: "Bearbeiten in der Listenzeile"
+  },
+  {
+    nr: '1526', name: "Die Kacheln zeigen „Bearbeiten\"",
+    file: 'public/style.css',
+    search: ".aedit { display: none; }\n",
+    replacement: "",
+    expected: "Bearbeiten in der Listenzeile"
+  },
+  {
+    nr: '1527', name: "backuptool.sh spielt zurueck, ohne die Instanz anzuhalten",
+    file: 'backuptool.sh',
+    search: "    docker compose stop\n",
+    replacement: "",
+    expected: "Quelltext: backuptool.sh und backuptool.js"
   }
 
 ];

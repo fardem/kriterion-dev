@@ -3192,8 +3192,8 @@ async function run() {
   check('Die Karte „Backup" sagt, was das Backup ist — 0.22.0',
     /vollständige, verschlüsselte\s+Sicherung der Datenbank/.test(siCard(siEig)?.textContent || ''),
     siCard(siEig)?.textContent?.slice(0, 200));
-  check('Und sagt, dass sie nur in dieselbe Programmversion zurueckgeht — 0.22.0',
-    /nur in dieselbe Programmversion zurückspielen/.test(siCard(siEig)?.textContent || ''),
+  check('Und sagt, womit sie zurueckgeht: ./backuptool.sh auf dem Server',
+    /Zurückgespielt wird auf dem Server mit \.\/backuptool\.sh\./.test(siCard(siEig)?.textContent || ''),
     siCard(siEig)?.textContent?.slice(0, 400));
 
   /* Ohne den Schluessel aus der .env ist die Kopie wertlos; der Hinweis steht deshalb am Knopf. */
@@ -3392,10 +3392,10 @@ async function run() {
      noch Zusammenfassung und beide Knoepfe. */
   check('Die Liste traegt ihren eigenen Deckel von fuenf Zeilen',
     !!afEig.w.document.getElementById('cleanup-list') &&
-    /#cleanup-list \{ flex: none; max-height: 13\.98rem; \}/.test(afStyle),
+    /#cleanup-list \{ flex: none; max-height: 19\.58rem; \}/.test(afStyle),
     (afStyle.match(/#cleanup-list[^\n]*/) || ['(keine Regel)'])[0]);
   check('Und die Rechnung dahinter steht im Stilblatt',
-    /5 x 41,92( px)? \/ 15 = 13,973/.test(afStyle), 'die Rechnung fehlt');
+    /5 x 58,73( px)? \/ 15 = 19,578/.test(afStyle), 'die Rechnung fehlt');
 
   /* ---- Schalter und Felder ---- */
   check('Der Schalter steht auf aus',
