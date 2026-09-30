@@ -8,9 +8,9 @@ einmal als Englisch (Haupt-README), dann Deutsch und Türkisch; das Gleiche bitt
 auch mit dem Manual“. Vorgabe des Betreibers: Der Auftrag beantwortet jede
 Frage vor dem Bau, damit der Bau nach dem Start ohne Rückfrage durchläuft („so
 dass, wenn ich es starte, einfach der Auftrag durchläuft“). F1 bis F24 sind am
-30. September 2026 in sechs Fragetafeln beantwortet. **Noch nicht erteilt.**
-Gebaut wird nach dem Start durch den Betreiber, auf dem Branch, der in der
-Aufgabe genannt ist.
+30. September 2026 in sechs Fragetafeln beantwortet. **Erteilt am 30. September
+2026** („baue jetzt nach dem Auftrag 0.53.0, und wenn du fertig bist, öffne
+einen Request“), gebaut auf dem Branch, der in der Aufgabe genannt ist.
 
 Zeilennummern gelten für `4a79068` (0.52.0 mit dem Fahrplan zu 0.53.0).
 
