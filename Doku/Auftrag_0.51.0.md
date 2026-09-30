@@ -21,6 +21,7 @@ Zeilennummern gelten für `d430711` (0.50.0).
 | F5 | Wo wird zurückgespielt? | Skript auf dem Server · Knopf in der Oberfläche | **Skript auf dem Server**; Vorschlag des Betreibers in seiner Nachricht vom 30. September 2026 |
 | F6 | Mehrere Backups auswählen und zusammen löschen? | in 0.51.0 in „Alte Backups“ · nur im Skript · nein | **in 0.51.0 in „Alte Backups“** (Empfehlung) |
 | F7 | Dürfen ausgewählt auch die jüngsten Backups fallen, die „Mindestens behalten“ schützt? | die jüngsten x bleiben · nur das jüngste bleibt · alles wählbar | **die jüngsten x bleiben** (Empfehlung) |
+| F8 | Wie lange steht beim Weiterspielen eines Videos „ab 3:12“ mit „Von vorn“? | – | **10 s statt 5 s**; Vorgabe des Betreibers in seiner Nachricht vom 30. September 2026: „doppelt so lange“ |
 
 ---
 
@@ -38,6 +39,7 @@ Zeilennummern gelten für `d430711` (0.50.0).
   für Datenbank und Dateien. Das Alter kommt aus dem Namen.
 - In „Alte Backups“ lassen sich mehrere Backups auswählen und zusammen löschen.
   Die jüngsten x bleiben.
+- Beim Weiterspielen eines Videos steht „ab 3:12“ mit „Von vorn“ 10 s lang.
 
 ---
 
@@ -121,7 +123,7 @@ Ohne Befund geprüft:
 
 ### Vorgaben des Betreibers
 
-F1 bis F7 aus Abschnitt 0, alle vom 30. September 2026.
+F1 bis F8 aus Abschnitt 0, alle vom 30. September 2026.
 
 ### Entschieden in diesem Auftrag
 
@@ -149,6 +151,7 @@ F1 bis F7 aus Abschnitt 0, alle vom 30. September 2026.
 | Rückfrage | nennt die Zahl, die Größe der Datenbanken und die Größe der Dateien, die nur in diesen Backups stehen (`copiesFreed()`, `server.js:7172`) |
 | Hinweis in der Karte „Backup“ | `card.backupWhatHint` verweist auf `./backuptool.sh` statt auf „dieselbe Programmversion“ |
 | Kein Knopf | Zurückspielen nur auf dem Server (F5) |
+| Hinweis beim Weiterspielen | `SPOT_HINT_MS` von 5000 auf 10000 (`public/app.js:4421`). Es gilt für jedes Video mit gemerkter Stelle: großes Bild, Vollbild, „Dateien“, Kommentare |
 
 ---
 
@@ -295,12 +298,16 @@ Servers. Verhalten unverändert; der Prüfstand bleibt grün, bevor BA 3 beginnt
 
 ### BA 7 — Karte „Alte Backups“: Dateien je Backup, „prüfen“, Auswahl
 
-### BA 8 — Texte
+### BA 8 — Hinweis beim Weiterspielen
+
+`SPOT_HINT_MS` nach F8.
+
+### BA 9 — Texte
 
 Deutsch, Englisch, Türkisch; Englisch und Türkisch höchstens 15 % länger.
 Die Ausgaben des Skripts sind deutsch wie die von `keytool.js`.
 
-### BA 9 — Der Prüfstand
+### BA 10 — Der Prüfstand
 
 Neues Modul `test/release_051.js`, der Server und `backuptool.js` direkt mit
 `node`, ohne Docker:
@@ -322,19 +329,21 @@ Neues Modul `test/release_051.js`, der Server und `backuptool.js` direkt mit
 - Auswahl: gelöscht werden genau die gewählten Backups und die Kopien, die nur
   sie nennen; ein gesperrtes oder unbekanntes Backup in der Anfrage löscht
   nichts; ohne zweite Bestätigung 403; je Backup ein `backup.delete`
+- Hinweis beim Weiterspielen: nach 5 s steht er noch, nach 10 s ist er fort
 - Quelltext: `backuptool.sh` hält vor `restore` an und löscht `data` nie ohne
   Ausnahme für `files`, wie die Prüfung von `keytool.sh` (`test/source.js:2344`)
 
 Jede Zusage bekommt einen Rückbau in `counterproof.js`.
 
-### BA 10 — Dokumentation und Zahlen
+### BA 11 — Dokumentation und Zahlen
 
 - README, „Backup“ und „Backup zurückspielen“: `./backuptool.sh list`,
   `show`, `restore`, der Rückweg; die bisherige Schleife bleibt als Weg von
   Hand, wenn kein Image gebaut werden kann. „Update“ mit ZIP: auch
   `chmod +x kriterion/backuptool.sh`. Die Schleife zum Fingerprint nennt
   `backup.js` und `schema.js`.
-- Handbuch: „Backup“ und „Alte Backups“.
+- Handbuch: „Backup“ und „Alte Backups“; unter „Stelle im Video“ „10 Sekunden“
+  statt „Einige Sekunden“ (`manual-de.md:339-340`).
 - `CLAUDE.md`: die Liste der ausgelieferten Dateien und die Zahl der Module.
 - Modullisten in `test/source.js` (`LANGUAGE_SOURCES` und weitere) und
   `tools/publish.js` (`FINGERPRINT_MODULE`).
@@ -356,6 +365,8 @@ Jede Zusage bekommt einen Rückbau in `counterproof.js`.
 6. In „Alte Backups“ zwei alte Backups auswählen und löschen: Die Rückfrage
    nennt den Platz, `list` zeigt beide nicht mehr, die Kästchen der x
    jüngsten sind gesperrt.
+7. Ein Video bis 1:30 ansehen, schließen, wieder öffnen: „ab 1:30“ und
+   „Von vorn“ stehen 10 s.
 
 Die Schritte 4 und 5 an einer Kopie der Installation oder zu einer Zeit, in der
 niemand arbeitet: Zurückspielen nimmt alle Änderungen seit dem Backup zurück.
