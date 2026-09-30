@@ -2862,6 +2862,13 @@ chachen zu verbessern nicht dir sofftere Methode?“
 Machbarkeit besprochen und abgestimmt. ffmpeg lohnt sich nur, wenn es schnell
 geht.
 
+**Server:** Intel N100 (Angabe des Betreibers). Seine Grafik hat Quick Sync.
+In Hardware dekodiert sie H.264 nur mit 8 Bit und 4:2:0, HEVC auch mit 10 Bit
+und 4:2:2, dazu VP9 und AV1; sie kodiert H.264 und HEVC. XAVC HS der A6700
+(HEVC) geht damit in Hardware, XAVC S mit 4:2:2 und 10 Bit und XAVC S-I
+(H.264) nicht; die rechnet die CPU allein. Im Container braucht es `/dev/dri`,
+ffmpeg mit VA-API und den Intel-Mediatreiber.
+
 **Stand mit 0.51.0:** Es spielt der eingebaute Player des Browsers
 (`<video controls>`, `preload="metadata"`). Vor dem Start lädt er nur den Kopf
 der Datei. Danach lädt er voraus, auch in der Pause, bis zu einer Grenze, die
@@ -2900,8 +2907,8 @@ Weg 4 nötig ist.
 **Zu klären:** wie weit Chrome, Firefox und Safari tatsächlich vorladen
 (messen), welche Bitraten die Videos im Bestand haben und welche Verbindung die
 schlechteste ist, mit der abgespielt werden soll. Für Weg 4: wie lange der
-Server für ein echtes Video der A6700 braucht, nur mit der CPU und mit
-Hardware-Beschleunigung (etwa Intel Quick Sync, dafür `/dev/dri` im Container).
+N100 für ein echtes Video der A6700 braucht, mit Quick Sync und nur mit der
+CPU, und in welchem Format die Kamera aufnimmt.
 
 ## 58. „Der Papierkorb: der Rundlauf“ wartet nicht auf die Umlagerung
 
