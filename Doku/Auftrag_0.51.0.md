@@ -2,8 +2,8 @@
 
 **Aufgestellt am 30. September 2026.** Grundlage sind der Abschnitt 0.51.0 in
 `Doku/Fahrplan.md` und die Prüfung vom selben Tag (Abschnitt 2). Die Fragen
-aus Abschnitt 0 sind am 30. September 2026 beantwortet, F1 bis F4 in einer
-Fragetafel. Gebaut wird, wenn der Betreiber den Auftrag erteilt, auf dem
+aus Abschnitt 0 sind am 30. September 2026 beantwortet, F1 bis F4, F6 und F7
+in zwei Fragetafeln. Gebaut wird, wenn der Betreiber den Auftrag erteilt, auf dem
 Branch, der in der Aufgabe genannt ist.
 
 Zeilennummern gelten für `d430711` (0.50.0).
@@ -19,6 +19,8 @@ Zeilennummern gelten für `d430711` (0.50.0).
 | F3 | Wo ist zu sehen, welche Dateien zu welchem Backup gehören? | Skript und Karte „Alte Backups“ · nur im Skript · zusätzlich eine Klartextliste neben jedem Backup | **Skript und Karte** (Empfehlung) |
 | F4 | Einzelne Dateien aus einem Backup zurückholen? | eigene Runde danach · in 0.51.0 im Skript · nicht nötig | **eigene Runde danach** (Empfehlung); im Fahrplan als 0.52.0 |
 | F5 | Wo wird zurückgespielt? | Skript auf dem Server · Knopf in der Oberfläche | **Skript auf dem Server**; Vorschlag des Betreibers in seiner Nachricht vom 30. September 2026 |
+| F6 | Mehrere Backups auswählen und zusammen löschen? | in 0.51.0 in „Alte Backups“ · nur im Skript · nein | **in 0.51.0 in „Alte Backups“** (Empfehlung) |
+| F7 | Dürfen ausgewählt auch die jüngsten Backups fallen, die „Mindestens behalten“ schützt? | die jüngsten x bleiben · nur das jüngste bleibt · alles wählbar | **die jüngsten x bleiben** (Empfehlung) |
 
 ---
 
@@ -34,6 +36,8 @@ Zeilennummern gelten für `d430711` (0.50.0).
   nur zurück, was zum Schema der installierten Version passt.
 - Die Regel „mindestens x behalten, älter als y Tage löschen“ gilt wie bisher
   für Datenbank und Dateien. Das Alter kommt aus dem Namen.
+- In „Alte Backups“ lassen sich mehrere Backups auswählen und zusammen löschen.
+  Die jüngsten x bleiben.
 
 ---
 
@@ -117,7 +121,7 @@ Ohne Befund geprüft:
 
 ### Vorgaben des Betreibers
 
-F1 bis F5 aus Abschnitt 0, alle vom 30. September 2026.
+F1 bis F7 aus Abschnitt 0, alle vom 30. September 2026.
 
 ### Entschieden in diesem Auftrag
 
@@ -140,6 +144,9 @@ F1 bis F5 aus Abschnitt 0, alle vom 30. September 2026.
 | Löschen in `data/files/` | nur Namen nach `^[0-9a-f]{32}$`, die die gewählte Liste nicht nennt, deren Kopie gleicher Länge in `kriterion-files/` liegt und die eine verbliebene Liste nennt. Alle anderen bleiben; das Skript nennt ihre Zahl. `upload/` fasst es nicht an |
 | Aktueller Stand nicht lesbar | Lässt sich die laufende Datenbank nicht öffnen, entsteht kein Backup davor. Das Skript sagt das und fragt nach. Mit „ja“ benennt es sie mit `-wal` und `-shm` in `katalog.sqlite.vor-<Zeit>` um; in `data/files/` löscht es nur nach der Regel darüber |
 | Karte „Alte Backups“ | je Backup eine zweite Zeile „Dateien 98 · 9,8 GB · nur hier 1 · 1,0 MB“, dazu die Version und die Marke „vor dem Zurückspielen“. Über der Liste Zahl und Größe von `kriterion-files/`. „prüfen“ nennt zusätzlich Version und ob das Schema passt |
+| Auswahl in „Alte Backups“ | „Auswählen“ im Kopf der Liste, Kästchen je Backup, Leiste „2 ausgewählt · Ausgewählte löschen · Abbrechen“ wie unter „Dateien“. Gesperrt sind die x jüngsten Backups, die zum aktuellen Schlüssel passen; es sind dieselben, die die Regel schützt. Backups mit altem Schlüssel und Backups „vor dem Zurückspielen“ sind wählbar |
+| Löschen der Auswahl | `POST /api/backup/cleanup` mit `kind: 'selected'` und den Namen der Backups, hinter der zweiten Bestätigung wie `rule` und `outdated`. Nennt die Anfrage ein gesperrtes oder unbekanntes Backup, wird nichts gelöscht. Danach `cleanBackupFiles()`; je Backup ein Eintrag `backup.delete` im Sicherheitsprotokoll |
+| Rückfrage | nennt die Zahl, die Größe der Datenbanken und die Größe der Dateien, die nur in diesen Backups stehen (`copiesFreed()`, `server.js:7172`) |
 | Hinweis in der Karte „Backup“ | `card.backupWhatHint` verweist auf `./backuptool.sh` statt auf „dieselbe Programmversion“ |
 | Kein Knopf | Zurückspielen nur auf dem Server (F5) |
 
@@ -259,6 +266,10 @@ nennt den Stand · `2` falscher Aufruf.
 - `POST /api/backup/check` nennt `version` und `schema: { ok, differences }`.
 - `drawCleanup()` zeichnet die zweite Zeile, die Marke und die Größe von
   `kriterion-files/`; „prüfen“ zeigt Version und Schema.
+- `POST /api/backup/cleanup` nimmt `kind: 'selected'` mit `names`. Die Zahl
+  der schreibenden Routen bleibt 89.
+- `drawCleanup()` bekommt „Auswählen“, die Kästchen, die Leiste und die
+  Rückfrage; Tastatur und Screenreader wie bei der Auswahl unter „Dateien“.
 
 ---
 
@@ -282,7 +293,7 @@ Servers. Verhalten unverändert; der Prüfstand bleibt grün, bevor BA 3 beginnt
 
 ### BA 6 — `backuptool.sh`, `.dockerignore`
 
-### BA 7 — Karte „Alte Backups“ und „prüfen“
+### BA 7 — Karte „Alte Backups“: Dateien je Backup, „prüfen“, Auswahl
 
 ### BA 8 — Texte
 
@@ -308,6 +319,9 @@ Neues Modul `test/release_051.js`, der Server und `backuptool.js` direkt mit
 - nicht lesbare laufende Datenbank: umbenannt nach `.vor-<Zeit>`, keine Datei
   ohne Liste gelöscht
 - Abbruch nach Schritt 3, 5 und 6; ein zweiter Aufruf führt zu Ende
+- Auswahl: gelöscht werden genau die gewählten Backups und die Kopien, die nur
+  sie nennen; ein gesperrtes oder unbekanntes Backup in der Anfrage löscht
+  nichts; ohne zweite Bestätigung 403; je Backup ein `backup.delete`
 - Quelltext: `backuptool.sh` hält vor `restore` an und löscht `data` nie ohne
   Ausnahme für `files`, wie die Prüfung von `keytool.sh` (`test/source.js:2344`)
 
@@ -339,6 +353,9 @@ Jede Zusage bekommt einen Rückbau in `counterproof.js`.
 4. `restore` mit dem vorigen Backup: der Eintrag zeigt die gelöschte Datei,
    „Kennzahlen“ meldet keine Datei ohne Verweis.
 5. `restore` mit dem Backup davor: der Stand von vor Schritt 4.
+6. In „Alte Backups“ zwei alte Backups auswählen und löschen: Die Rückfrage
+   nennt den Platz, `list` zeigt beide nicht mehr, die Kästchen der x
+   jüngsten sind gesperrt.
 
 Die Schritte 4 und 5 an einer Kopie der Installation oder zu einer Zeit, in der
 niemand arbeitet: Zurückspielen nimmt alle Änderungen seit dem Backup zurück.
