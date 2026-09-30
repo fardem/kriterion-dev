@@ -325,7 +325,7 @@ function startFurtherServer(dataDirectory, extraEnv, portBase) {
   delete environment.AUTH_RESET;
   Object.assign(environment, extraEnv);
   const kindB = spawn(process.execPath, ['server.js'], { cwd: __dirname, env: environment });
-  const state = { base: portBase, port, kind: kindB, directory: dataDirectory };
+  const state = { base: portBase, port, kind: kindB, directory: dataDirectory, log: () => log };
   CASES.push(state);
   kindB.stdout.on('data', d => { log += d; });
   kindB.stderr.on('data', d => { log += d; });
@@ -838,6 +838,29 @@ async function nextSecond(limitMs = 1500) {
   await new Promise(r => setTimeout(r, SECOND_MARGIN));
 }
 
+function processState(pid) {
+  try { return fs.readFileSync(`/proc/${pid}/stat`, 'utf8').split(') ').pop().split(' ')[0]; }
+  catch { return ''; }
+}
+
+async function serversAtAbort() {
+  const all = [...(kind ? [{ base: MAIN_BASE, port: PORT, kind, log: () => output }] : []),
+               ...CASES.filter(l => l.log)];
+  const reaped = (l) => l.kind.exitCode !== null || l.kind.signalCode !== null;
+  await Promise.all(all.filter(l => !reaped(l) && processState(l.kind.pid) === 'Z')
+    .map(l => new Promise(done => l.kind.once('exit', done))));
+  const room = fs.statfsSync(os.tmpdir());
+  console.error(`  Speicher frei ${Math.round(os.freemem() / 1048576)} von ${Math.round(os.totalmem() / 1048576)} MB, ` +
+    `Platz in ${os.tmpdir()} ${Math.round(room.bavail * room.bsize / 1048576)} MB`);
+  for (const l of all) {
+    const now = processState(l.kind.pid);
+    const state = reaped(l) ? `beendet, Code ${l.kind.exitCode}, Signal ${l.kind.signalCode}`
+      : now ? `laeuft (${now})` : 'Zustand unbekannt';
+    console.error(`  Server Basis ${l.base}, Port ${l.port}, PID ${l.kind.pid}: ${state}`);
+    for (const z of l.log().split('\n').filter(Boolean).slice(-8)) console.error(`    ${z}`);
+  }
+}
+
 async function moduleRun(run, name) {
   let abort = '';
   try {
@@ -849,6 +872,7 @@ async function moduleRun(run, name) {
     abort = chain.join('  <-  ');
     console.error(`\nModul ${name} abgebrochen:`, abort);
     if (e && e.stack) console.error(e.stack.split('\n').slice(1, 4).join('\n'));
+    try { await serversAtAbort(); } catch {}
   }
   closeTime();
   const report = counters();
