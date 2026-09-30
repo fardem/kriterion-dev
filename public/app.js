@@ -1218,12 +1218,10 @@ function cloudLine(box) {
   const first = box.firstElementChild;
   return first ? first.offsetHeight || 0 : 0;
 }
-/* `offsetTop` der Zeilen: ein Kind mehr als eine halbe Zeile unter dem Beginn der vorigen
-   beginnt die naechste. Aus gerundeten Hoehen gerechnet, zaehlte ein Rest als Zeile. */
+// Ein Kind mehr als eine halbe Zeile unter der vorigen beginnt eine neue; gerundete Hoehen zaehlten Reste mit.
 function cloudTops(box) {
   const height = cloudLine(box);
   const tops = [];
-  // Eingeklappt misst die Zeile 0 (display: none).
   if (!height) return tops;
   for (const k of box.children)
     if (!tops.length || k.offsetTop - tops[tops.length - 1] > height / 2) tops.push(k.offsetTop);
@@ -4421,6 +4419,7 @@ function durationText(s) {
 /* ---- Stelle im Video ---- */
 const SPOT_EVERY_MS = 15000;
 const SPOT_HINT_MS = 5000;
+const SPOT_WAIT_MS = 1500;
 // Was dieser Browser gespeichert hat; gilt vor `position` aus einer aelteren Antwort.
 const VIDEO_SPOTS = new Map();
 const SPOT_SAVES = new Set();
@@ -4431,8 +4430,7 @@ const spotOf = (p) => {
   return VIDEO_SPOTS.has(key) ? VIDEO_SPOTS.get(key) : (p.position ?? null);
 };
 
-/* Setzt das Video beim ersten Abspielen an die gemerkte Stelle; speichert beim Anhalten,
-   alle SPOT_EVERY_MS und bei stop(). `box` nimmt den Hinweis „ab 3:12" auf. */
+// Beim ersten Abspielen an die gemerkte Stelle; gespeichert beim Anhalten, alle SPOT_EVERY_MS und bei stop().
 function watchSpot(player, p, box) {
   const kind = spotKind(p), key = kind + p.id;
   let started = false, sent = null, savedAt = 0, hint = null, hintTimer = 0;
@@ -4444,7 +4442,6 @@ function watchSpot(player, p, box) {
     savedAt = Date.now();
     VIDEO_SPOTS.set(key, seconds);
     const duration = Number.isFinite(player.duration) && player.duration > 0 ? player.duration : null;
-    // keepalive: auch beim Schliessen des Tabs.
     const done = fetch('/api/video-positions', {
       method: 'PUT', credentials: 'same-origin', keepalive: true,
       headers: { 'Content-Type': 'application/json', ...csrfHeader() },
@@ -4493,11 +4490,14 @@ function watchSpot(player, p, box) {
 }
 window.addEventListener('pagehide', () => SPOT_WATCHERS.forEach(w => w.save()));
 
-/* Vor dem Laden eines Eintrags: sonst kaeme die Stelle von vor dem letzten Speichern. */
+// Vor dem Laden eines Eintrags, hoechstens SPOT_WAIT_MS: sonst kaeme die Stelle von vor dem Speichern.
 async function spotsSettled() {
   SPOT_WATCHERS.forEach(w => w.stop());
-  await Promise.allSettled([...SPOT_SAVES]);
-  VIDEO_SPOTS.clear();
+  let timer = 0;
+  const waited = await Promise.race([Promise.allSettled([...SPOT_SAVES]).then(() => true),
+    new Promise(done => { timer = setTimeout(() => done(false), SPOT_WAIT_MS); })]);
+  clearTimeout(timer);
+  if (waited) VIDEO_SPOTS.clear();
 }
 
 // Nach dem Zoom stuende der Bildlauf auf 0/0, also links oben statt in der Mitte.
@@ -4968,7 +4968,6 @@ function markPick(el, picked) {
   el.setAttribute('aria-checked', String(picked));
   el.classList.toggle('picked', picked);
 }
-// Nacheinander; ein Fehler haelt die uebrigen nicht auf. Liefert die Fehlermeldungen.
 async function eachPicked(chosen, send) {
   const errors = [];
   for (const x of chosen) {
@@ -5005,7 +5004,6 @@ const extensionOf = (name) => (String(name).toLowerCase().match(/\.([a-z0-9]+)$/
 // Die groesste Datei unter „Dateien"; „Anhang" kann darueber liegen.
 const fileLimit = () => Math.max(UPLOAD_LIMITS.attachment, UPLOAD_LIMITS.file);
 
-// Nichts geht hoch, wenn eine Datei oder die Anzahl ueber einer Grenze liegt.
 function uploadRefusal(itemId, files, present) {
   if (present + uploadsOf(itemId).length + files.length > FILES_PER_ENTRY)
     return t('server.fileCap', { cap: FILES_PER_ENTRY });
@@ -5351,7 +5349,6 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   LIT_COMMENT = Number(commentWanted) || 0;
   let cropMode = false;   // Klick setzt dann den Fokuspunkt statt Vollbild zu oeffnen
   let viewerSpot = null;
-  // Nummern der gewaehlten Fotos und Videos; null ausserhalb der Auswahl.
   let photosPicked = null;
   let linksOpen = false;        // nur fuer diese Ansicht, nicht auf dem Server
 
@@ -7396,7 +7393,6 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   });
   const pickedFiles = () => (item.attachments || []).filter(a => filesPicked.has(a.id));
 
-  // Ohne `item = ...` je Antwort: gezeichnet wird einmal am Ende.
   async function deletePicked() {
     const chosen = pickedFiles();
     if (!await confirmBox(t('entry.pickDeleteAsk', { n: chosen.length }), t('entry.pickDeleteHint'))) return;
@@ -7407,7 +7403,6 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       t('entry.pickDeleteFailed', { n: errors.length, error: errors[0] }));
   }
 
-  // Ein Ziel, in dem schon alle gewaehlten stehen, fehlt.
   function pickTargets(chosen) {
     return [{ folderId: null, label: t('entry.noFolder') },
       ...(item.folders || []).filter(f => f.mine === true).map(f => ({ folderId: f.id, label: f.name }))]
@@ -7433,7 +7428,6 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       t('entry.pickMoveFailed', { n: errors.length, error: errors[0] }));
   }
 
-  // Ohne Fehler endet die Auswahl; sonst bleiben die uebrigen gewaehlt.
   function pickDone(errors, done, failed) {
     if (!errors.length) {
       filesPicked = null;
@@ -8430,8 +8424,7 @@ const fileAddress = (itemId, fileId, edit = false) =>
 let fileViewer = null;
 // Die zuletzt geoeffnete Datei; renderDetail() scrollt beim Zurueck zu ihrer Zeile.
 let fileReturn = null;
-/* Offene Ordner unter „Dateien"; beim Oeffnen eines Eintrags nach `open` vom Server, die
-   Rueckkehr aus der eigenen Ansicht behaelt auch die Spruenge. */
+// Offene Ordner unter „Dateien", beim Oeffnen nach `open` vom Server; die Rueckkehr behaelt auch Spruenge.
 let FOLDERS_OPEN = { itemId: 0, open: new Set() };
 function endFileViewer() {
   if (fileViewer) { try { fileViewer.destroyEditor(); } catch {} }

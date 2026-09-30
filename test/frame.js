@@ -391,8 +391,7 @@ const withCsrf = (cookieLine, headers = {}) => {
                : { ...headers, cookie: cookieLine };
 };
 
-/* Wie die Oberflaeche: je Datei POST .../uploads, dann die Stuecke. `files`: { name, content }.
-   Liefert Status und Rumpf der letzten Antwort, nach der letzten Datei den Eintrag. */
+// Wie die Oberflaeche: Beginn, dann die Stuecke; nach der letzten Datei steht der Eintrag in der Antwort.
 const UPLOAD_PIECE = 8 * 1024 * 1024;
 async function sendFiles(base, cookieLine, itemId, files, folderId = null) {
   let last = null;
@@ -495,7 +494,6 @@ const F_ROUTES = [
   ['PUT',    '/api/folders/:id',               'im Rumpf'],
   ['DELETE', '/api/folders/:id',               'im Rumpf'],
   ['PUT',    '/api/attachments/:id/folder',    'im Rumpf'],
-  // Beide schreiben nur den Zustand des eigenen Accounts.
   ['PUT',    '/api/folders/:id/open',          'offen'],
   ['PUT',    '/api/video-positions',           'offen'],
   ['PUT',    '/api/items/:id/photo-order',     'entryAuthorOnly'],

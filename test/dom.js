@@ -1148,7 +1148,6 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       }
       return give(example);
     }
-    // Beginn eines Uploads; die Stuecke gehen ueber XMLHttpRequest.
     if (/^\/api\/items\/\d+\/uploads$/.test(url) && opt.method === 'POST')
       return give({ id: 'a'.repeat(32), received: 0 }, 201);
     if (url.startsWith('/api/items/1')) return give(example);

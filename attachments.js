@@ -99,7 +99,6 @@ function setHeader(res, filename, { inline = false } = {}) {
 // Positivliste: eine unbekannte ISO-Marke wird heruntergeladen, nicht abgespielt.
 const ISO_BRANDS_MP4 = new Set(['isom', 'iso2', 'iso4', 'iso5', 'iso6',
   'mp41', 'mp42', 'mmp4', 'avc1', 'dash', 'cmfc', 'M4V ', 'M4VH', 'M4VP']);
-// Bytes des ftyp-Kastens, die gelesen werden; ueblich sind 24 bis 40.
 const FTYP_MAX = 256;
 
 function typeFromBytes(buf) {
@@ -111,14 +110,13 @@ function typeFromBytes(buf) {
   if (header === 'GIF87a' || header === 'GIF89a') return 'image/gif';
   if (b.slice(0, 4).toString('latin1') === 'RIFF' && b.slice(8, 12).toString('latin1') === 'WEBP')
     return 'image/webp';
-  // MP4-Familie: Laenge, dann 'ftyp', die Hauptmarke, vier Bytes Version, die kompatiblen Marken.
+  // MP4-Familie: Laenge, 'ftyp', Hauptmarke, Version, kompatible Marken; die Sony A6700 nennt `mp42` nur dort.
   if (b.slice(4, 8).toString('latin1') === 'ftyp') {
     const brand = b.slice(8, 12).toString('latin1');
     if (brand === 'avif' || brand === 'avis') return 'image/avif';
     if (ISO_BRANDS_MP4.has(brand)) return 'video/mp4';
     // Die QuickTime-Marke endet auf zwei Leerzeichen.
     if (brand === 'qt  ') return 'video/quicktime';
-    // Kameras schreiben eine eigene Hauptmarke, etwa Sony `XAVC`, und `mp42` unter die kompatiblen.
     const end = Math.min(b.readUInt32BE(0), b.length, FTYP_MAX);
     for (let at = 16; at + 4 <= end; at += 4)
       if (ISO_BRANDS_MP4.has(b.slice(at, at + 4).toString('latin1'))) return 'video/mp4';

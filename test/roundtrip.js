@@ -15336,7 +15336,6 @@ async function sendImport(object, mode, withoutShare = false) {
 
   const bin = await head(afterName['egal.bin'].id);
   check('Unbekanntes wird octet-stream', bin.h['content-type'] === 'application/octet-stream');
-  // Der Upload in Stuecken nennt keinen Typ; gespeichert wird der aus der Endung.
   check('Der Typ kommt aus der Endung, nie vom Hochladenden',
     afterName['egal.bin'].mime_type === 'application/octet-stream' &&
     bin.h['content-type'] === 'application/octet-stream', afterName['egal.bin'].mime_type);

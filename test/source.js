@@ -213,7 +213,6 @@ async function run() {
     fAttachmentsPathCore.includes('mayChange(req, a.user_id)') &&
     !fAttachmentsPathCore.includes('entryFree('),
     fAttachmentsPathCore ? 'mayChange(req, a.user_id) fehlt oder entryFree steht noch da' : '(kein Rumpf)');
-  // Die Zeile einer Datei entsteht am Ende des Uploads, nicht in einer Route.
   const fFinish = (fSource.match(/\nfunction finishUpload\(req, res, u\) \{[\s\S]*?\n\}/) || [''])[0];
   check('Das Ende des Uploads ist ueberhaupt da',
     fFinish.length > 0, 'finishUpload() fehlt im Quelltext');
@@ -1041,7 +1040,7 @@ async function run() {
         if (part.kind === CODE)
           for (const m of part.value.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) benchNames.add(m[0]);
     check('Der Waechter sieht wirklich den ganzen Pruefstand',
-      benchNames.size > 2000 && BENCH.length === 30,
+      benchNames.size > 2000 && BENCH.length === 31,
       `${benchNames.size} Bezeichner aus ${BENCH.length} Dateien`);
 
     /* Keine Benennungen, sondern Gegenstaende von Pruefungen: abgelegte
@@ -1078,8 +1077,8 @@ async function run() {
     const readShipped = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
     const stWord = 'Stolper' + 'stein';
     const stAll = [...BENCH, ...SHIPPED];
-    check('Der Waechter sieht alle sechsundvierzig Dateien',
-      stAll.length === 46, `${stAll.length} Dateien`);
+    check('Der Waechter sieht alle siebenundvierzig Dateien',
+      stAll.length === 47, `${stAll.length} Dateien`);
     /* Die SQL-Kommentare im SCHEMA von db.js stehen in einem Template-String,
        den segment() als Text liefert; hier zaehlen sie als Kommentar. */
     const stSqlRow = /^\s*--/;

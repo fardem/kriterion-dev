@@ -372,7 +372,8 @@ async function run() {
     npmPaths.length === 2 && npmPaths.every(x => !/[{}]/.test(x)), npmPaths.join(' · '));
   check('Die Pfade treffen Upload in Stuecken, Import, Hochladen und die Auslieferung, sonst nichts',
     npmRx.every(Boolean) && hits(`/api/uploads/${uploadId}`) && hits('/api/import') &&
-    hits('/api/items/12/attachments') && hits('/api/comments/3/images') && hits('/api/attachments/7/raw') &&
+    hits('/api/items/12/videos') && hits('/api/comments/3/images') && hits('/api/attachments/7/raw') &&
+    !hits('/api/items/12/attachments') &&
     !hits('/api/items/12') && !hits('/api/uploads/') && !hits('/api/attachments/7/raw/x'),
     npmPaths.join(' · '));
 

@@ -323,7 +323,7 @@ geht direkt dort.
 - Hinzufügen per Dateiauswahl, Strg+V oder Ablegen auf dem Feld.
 - Fotos bis 30 MB, Videos (MP4, WebM, MOV) bis 20 MB. Die Grenzen stellt der
   Eigentümer-Admin ein. Die Zahl der Fotos ist nicht begrenzt. Ist ein Video
-  zu groß, passt aber unter die Grenze „Anhang“, nennt die Meldung den Block
+  zu groß, passt aber unter die Grenze „Datei“, nennt die Meldung den Block
   „Dateien“: dort lässt es sich hochladen.
 - Das erste Element ist das Hauptbild. Reihenfolge durch Ziehen der
   Vorschaubilder.
@@ -335,6 +335,17 @@ geht direkt dort.
   gezeigten Fotos oder Videos. Die Adresse öffnet den Eintrag und das Vollbild
   an dieser Stelle.
 - Videos spielen nicht von selbst und halten beim Blättern an.
+- **Stelle im Video:** Ein Video spielt dort weiter, wo man es zuletzt
+  angehalten oder geschlossen hat, je Account und auf jedem Gerät. Einige
+  Sekunden steht „ab 3:12“ mit „Von vorn“ darüber. Unter 10 Sekunden und im
+  letzten Stück (5 %, mindestens 10 Sekunden) merkt sich Kriterion nichts; das
+  Video beginnt dann von vorn. Das gilt auch für Videos unter „Dateien“ und in
+  Kommentaren.
+- **Auswählen:** „Auswählen“ über der Bildleiste setzt ein Kästchen an jedes
+  Foto und Video; Klick oder Leertaste wählt. Die Leiste darunter nennt die
+  Zahl und bietet „Löschen“ mit einer Rückfrage, „Alle auswählen“ und
+  „Abbrechen“; Esc beendet die Auswahl. Nur für den Verfasser des Eintrags und
+  den Admin.
 - Ein Bild aus der Zwischenablage wird deutlich größer als die Originaldatei.
   Besser die Datei hochladen.
 
@@ -357,7 +368,7 @@ unverändert.
   kleines Vorschaubild, Name, Art, Größe, Datum des Uploads und bei mehreren
   Accounts, wer hochgeladen hat; auf dem Telefon stehen Größe und Datum unter
   dem Namen. Klick, Menü, Vorschau und Tastatur sind in beiden Ansichten
-  gleich. Bis 50 MB je Datei, höchstens 100 je Eintrag und 20 auf einmal.
+  gleich. Bis 2 GB je Datei (Grenze „Datei“), höchstens 100 je Eintrag.
   Hochgeladen wird mit der Kachel „+“, in der Liste „Dateien hochladen“, oder
   durch Ablegen von Dateien auf dem Block. Jede Datei steht sofort als Kachel da und
   geht einzeln hoch, die kleinste zuerst. Die Kachel zeigt „wartet“, den
@@ -368,8 +379,10 @@ unverändert.
 - **Ordner:** „Ordner hinzufügen“ im Kopf des Blocks legt einen an; der Name
   hat 1 bis 80 Zeichen, gleiche Namen sind erlaubt. Oben stehen die Dateien
   ohne Ordner, darunter die Ordner, der neueste oben; jede Gruppe hat einen
-  eigenen Rahmen, ein zugeklappter Ordner ist eine Leiste. Beim Öffnen eines
-  Eintrags sind alle Ordner zu; ein Klick auf den Kopf klappt einen auf. Der
+  eigenen Rahmen, ein zugeklappter Ordner ist eine Leiste. Ein Klick auf den
+  Kopf klappt einen Ordner auf oder zu; Kriterion merkt sich das je Account, auf
+  jedem Gerät. Ein neuer Ordner steht offen. Ein Sprung zu einem Ordner, etwa
+  von der Testtagzeile, öffnet ihn nur für diese Ansicht. Der
   Kopf nennt Zahl und Größe der Dateien, bei mehreren Accounts auch, wer den
   Ordner angelegt hat; zugeklappt zeigt er den Stand seiner Uploads. In einen
   eigenen Ordner lädt man über sein „+“ oder durch Ablegen auf ihm; in einen
@@ -378,30 +391,34 @@ unverändert.
   Vorschaubild und „Bearbeiten durch alle“. Das Menü ⋯ am Ordner bietet
   „Bearbeiten …“, „Link kopieren“ und „Ordner löschen“; die Dateien eines
   gelöschten Ordners stehen danach ohne Ordner. Wird ein Ordner gelöscht,
-  während Dateien in ihn hochgehen, zeigen die wartenden und die in einer
-  Anfrage ⚠ „Diesen Ordner gibt es nicht mehr.“ Ein Upload in Stücken läuft zu
-  Ende; die Datei steht danach ohne Ordner.
+  während Dateien in ihn hochgehen, zeigen die wartenden ⚠ „Diesen Ordner gibt
+  es nicht mehr.“ Ein Upload, der schon läuft, geht zu Ende; die Datei steht
+  danach ohne Ordner.
 - **Ordner mit Testtag:** Beim Anlegen und unter „Bearbeiten …“ bekommt ein
   eigener Ordner einen eigenen Testtag desselben Eintrags; ein Testtag hat
   höchstens einen Ordner. Die Testtagzeile zeigt dann 📁; ein Klick öffnet den
   Block und den Ordner. Der Kopf des Ordners zeigt das Datum mit ↑ und führt
   zur Testtagzeile zurück. Wird der Testtag gelöscht, bleibt der Ordner mit
   Namen und Dateien.
-- **Upload in Stücken:** In einen Ordner mit Testtag geht jede Datei in
-  Anfragen zu 8 MB hoch. Reißt die Verbindung ab, zeigt die Kachel
+- **Upload in Stücken:** Jede Datei geht in Anfragen zu 8 MB hoch. Reißt die Verbindung ab, zeigt die Kachel
   „unterbrochen“ mit dem Stand; es geht von selbst weiter, sobald die
   Verbindung steht. Nach dem Schließen des Tabs setzt „Fortsetzen“ im Menü mit
   derselben Datei fort. Ein unterbrochener Upload verfällt nach 24 Stunden.
   Jeder Account hat höchstens drei offene Uploads. Auf dem Telefon die Seite
   offen und den Bildschirm an lassen.
-- **Große Videos:** Über der Grenze „Anhang“ nimmt nur ein Ordner mit Testtag
-  Videos an (MP4, M4V, WebM, MOV), bis zur Grenze „Video am Testtag“. Kein
+- **Über „Anhang“:** Eine Datei über der Grenze „Anhang“ hat keine
+  Textvorschau und kein Vorschaubild und öffnet nicht im Document Server; man
+  lädt sie herunter. PDF, Bilder und Videos zeigt der Browser weiter. Kein
   Export enthält sie; sie stehen im Backup.
-- **Dateien auf der Platte:** Was in einem Ordner mit Testtag liegt, speichert
-  Kriterion einzeln verschlüsselt neben der Datenbank. Eine Datei, die man in
-  einen solchen Ordner verschiebt oder deren Ordner einen Testtag bekommt, geht
-  dorthin; zurück in die Datenbank geht keine. Fehlt eine Datei auf dem Server,
-  zeigt ihre Kachel ⚠.
+- **Dateien auf der Platte:** Jede Datei speichert Kriterion einzeln
+  verschlüsselt neben der Datenbank. Fehlt eine Datei auf dem Server, zeigt
+  ihre Kachel ⚠.
+- **Auswählen:** „Auswählen“ im Kopf des Blocks setzt ein Kästchen an jede
+  Datei, die man löschen darf; Klick oder Leertaste wählt. Das Kästchen im Kopf
+  eines Ordners wählt alle darin, „Alle auswählen“ in der Leiste alle. Die
+  Leiste nennt die Zahl und bietet „Löschen“ mit einer Rückfrage und, wenn
+  jede gewählte Datei eine eigene ist, „Verschieben nach …“. „Abbrechen“ oder
+  Esc beendet die Auswahl.
 - **Klick auf eine Datei:** Ein Bild oder Video öffnet das Vollbild; ← und →
   blättern durch Bilder und Videos derselben Gruppe, ohne Ordner oder im
   selben Ordner. PDF, Text, Markdown, CSV,
@@ -602,7 +619,7 @@ Backup und Sicherheitsprotokoll nur der Eigentümer-Admin.
 |---|---|
 | Titel | Titel vor der Anmeldung (für jeden sichtbar, zurückhaltend wählen) und Titel nach der Anmeldung |
 | Dokumente | Anzeige und Bearbeiten über einen Document Server ein- und ausschalten; „Bearbeiten durch alle“: Startwert, solange ein Account keinen eigenen gesetzt hat; die Karte prüft die Verbindung. Adressen und Secret stehen in der `.env`, siehe README |
-| Kennzahlen | Umfang des Bestands, Datenbankgröße, Dateien auf der Platte (davon große Videos und im Papierkorb), Uploads, freier Platz, Version, Fingerprint, Verschlüsselungsverfahren; für den Eigentümer-Admin der Schlüsselwert. Nur wenn es welche gibt: fehlende Dateien, Dateien, die auf das Löschen warten, und Dateien ohne Verweis. Diese löscht der Eigentümer-Admin mit „Löschen“, aber nur, wenn im Backup-Ordner eine Kopie gleicher Länge liegt |
+| Kennzahlen | Umfang des Bestands, Datenbankgröße, Dateien auf der Platte (davon über „Anhang“ und im Papierkorb), Uploads, freier Platz, Version, Fingerprint, Verschlüsselungsverfahren; für den Eigentümer-Admin der Schlüsselwert. Nur wenn es welche gibt: Dateien, die noch in der Datenbank auf die Umlagerung warten, fehlende Dateien, Dateien, die auf das Löschen warten, und Dateien ohne Verweis. Diese löscht der Eigentümer-Admin mit „Löschen“, aber nur, wenn im Backup-Ordner eine Kopie gleicher Länge liegt |
 | Kategorien, Tags | anlegen, umbenennen, löschen; ein Häkchen legt fest, ob jeder neue Namen am Eintrag anlegen darf |
 | Bewertung: Kriterien, Potenzial: Kriterien | anlegen, umbenennen, sortieren, gewichten (0,2 bis 2, Vorgabe 1) |
 | Suchmaschinen | sechs eingebaute und bis zu drei eigene (`%s` als Platzhalter); eine ist Standard |
@@ -621,11 +638,14 @@ Nur der Eigentümer-Admin ändert sie. Sie gelten ab dem nächsten Hochladen.
 | Video | 20 | 1 bis 100 |
 | Video im Kommentar | 20 | 1 bis 100 |
 | Anhang | 50 | 1 bis 100 |
-| Video am Testtag | 2048 | 1 bis 4096 |
+| Datei | 2048 | 1 bis 4096 |
 
-„Video am Testtag“ gilt für Videos über „Anhang“ in einem Ordner mit Testtag;
-liegt die Grenze nicht über „Anhang“, gibt es keine großen Videos. Steht ein
-Reverse Proxy davor, muss er „Anhang“ durchlassen (README).
+„Datei“ ist die Grenze je Datei unter „Dateien“. Bis „Anhang“ trägt der Export
+den Inhalt einer Datei, und sie hat Vorschau, Vorschaubild und Document Server;
+darüber gibt es sie nur zum Herunterladen, außer PDF, Bild und Video. Liegt
+„Anhang“ über „Datei“, gilt „Anhang“ als Grenze je Datei. Dateien gehen in
+Stücken zu 8 MB; die Grenzen für Fotos und Videos muss ein Reverse Proxy davor
+durchlassen (README).
 
 ### Bildformate
 
@@ -697,8 +717,8 @@ Passwortabfrage.
 Die Exportdatei enthält nur Einträge mit Verfassernamen. Mit dem Häkchen für
 Dateien trägt sie auch die Ordner mit ihrem Testtag und das Vorschaubild jedes
 Videos unter „Dateien“; aus einer älteren Exportdatei kommen die Dateien ohne
-Ordner. Große Videos enthält kein Export; die Karte nennt sie vorher. Der
-Import legt die Dateien eines Ordners mit Testtag wieder auf die Platte.
+Ordner. Dateien über „Anhang“ enthält kein Export; die Karte nennt sie
+vorher. Der Import legt jede Datei auf die Platte.
 Nicht darin:
 Benutzer, Passwörter, Sitzungen, zweiter Faktor, Mailzugang, Titel,
 Vokabular, Suchmaschinen, Einstellungen, Sicherheitsprotokoll, Papierkorb.

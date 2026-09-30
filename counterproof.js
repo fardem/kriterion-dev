@@ -10013,8 +10013,8 @@ const REGRESSIONS = [
   {
     nr: '1459', name: "Der Pfad fuer NPMplus traegt wieder {32}",
     file: 'README.md',
-    search: "  `^/api/(import|uploads/[0-9a-f]+|(items|comments)/[0-9]+/(photos|videos|attachments|comments|images))$`",
-    replacement: "  `^/api/(import|uploads/[0-9a-f]{32}|(items|comments)/[0-9]+/(photos|videos|attachments|comments|images))$`",
+    search: "  `^/api/(import|uploads/[0-9a-f]+|(items|comments)/[0-9]+/(photos|videos|comments|images))$`",
+    replacement: "  `^/api/(import|uploads/[0-9a-f]{32}|(items|comments)/[0-9]+/(photos|videos|comments|images))$`",
     expected: "Reverse Proxy: die Pfade fuer NPMplus in der README"
   },
   /* ---- 0.50.0: ein Weg fuer Dateien, Umlagerung, Videostelle, Ordnerzustand, Auswahl ---- */

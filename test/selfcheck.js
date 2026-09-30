@@ -389,8 +389,8 @@ async function run() {
     const COMMENT_TOTAL = { comment: 6921, code: 78666 };
     // Ausgelieferte Dateien: Bloecke ueber drei Zeilen und Bloecke mit Betonung in Grossbuchstaben.
     const COMMENT_LIMITS = { longBlocks: 3, emphasis: 6 };
-    check('Der Waechter sieht alle sechsundvierzig Dateien',
-      crAll.each.length === 46 && COMMENT_ROWS.length === 46,
+    check('Der Waechter sieht alle siebenundvierzig Dateien',
+      crAll.each.length === 47 && COMMENT_ROWS.length === 47,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
     const crWrong = [];
     for (let i = 0; i < COMMENT_ROWS.length; i++) {

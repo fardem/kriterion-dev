@@ -398,7 +398,6 @@ async function run() {
     const m = buildDom(JSDOM, { hash: '#/item/1', uploadLimits: { attachment: 1, file: 1 } });
     const w = m.w;
     const second = { ...m.example, id: 2, title: 'Zweiter', attachments: [] };
-    // Der Beginn geht ueber fetch, die Stuecke ueber XMLHttpRequest.
     const begun = [];
     let offline = 0, lastId = 0;
     const inner = w.fetch;
