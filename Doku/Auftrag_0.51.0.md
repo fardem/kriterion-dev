@@ -1,9 +1,9 @@
-# Auftrag 0.51.0 — „Backup: Stände sichtbar, Zurückspielen mit Skript“
+# Auftrag 0.51.0 — „Backup: Stände sichtbar, Zurückspielen mit Skript; Dateien sortieren“
 
 **Aufgestellt am 30. September 2026.** Grundlage sind der Abschnitt 0.51.0 in
 `Doku/Fahrplan.md` und die Prüfung vom selben Tag (Abschnitt 2). Die Fragen
-aus Abschnitt 0 sind am 30. September 2026 beantwortet, F1 bis F4, F6 und F7
-in zwei Fragetafeln. Gebaut wird, wenn der Betreiber den Auftrag erteilt, auf dem
+aus Abschnitt 0 sind am 30. September 2026 beantwortet: F1 bis F4, F6, F7 und
+F10 bis F12 in drei Fragetafeln, F5, F8 und F9 in Nachrichten des Betreibers. Gebaut wird, wenn der Betreiber den Auftrag erteilt, auf dem
 Branch, der in der Aufgabe genannt ist.
 
 Zeilennummern gelten für `d430711` (0.50.0).
@@ -22,6 +22,10 @@ Zeilennummern gelten für `d430711` (0.50.0).
 | F6 | Mehrere Backups auswählen und zusammen löschen? | in 0.51.0 in „Alte Backups“ · nur im Skript · nein | **in 0.51.0 in „Alte Backups“** (Empfehlung) |
 | F7 | Dürfen ausgewählt auch die jüngsten Backups fallen, die „Mindestens behalten“ schützt? | die jüngsten x bleiben · nur das jüngste bleibt · alles wählbar | **die jüngsten x bleiben** (Empfehlung) |
 | F8 | Wie lange steht beim Weiterspielen eines Videos „ab 3:12“ mit „Von vorn“? | – | **10 s statt 5 s**; Vorgabe des Betreibers in seiner Nachricht vom 30. September 2026: „doppelt so lange“ |
+| F9 | Sortieren unter „Dateien“ | – | **„Älteste zuerst“, „Jüngste zuerst“, „Name“; die Gruppen bleiben erhalten**; Vorgabe des Betreibers in seiner Nachricht vom 30. September 2026 |
+| F10 | Folgen die Ordner der Sortierung? | Ordner sortieren mit · nur die Dateien in jeder Gruppe | **Ordner sortieren mit** (Empfehlung) |
+| F11 | Was steht in der Listenzeile direkt, neben dem Menü „…“? | Bearbeiten · Herunterladen · Öffnen · Löschen, auch mehrere | **Bearbeiten** |
+| F12 | Bleibt der Eintrag zusätzlich im Menü „…“? | Menü bleibt vollständig · in der Liste herausnehmen | **Menü bleibt vollständig** (Empfehlung) |
 
 ---
 
@@ -40,6 +44,10 @@ Zeilennummern gelten für `d430711` (0.50.0).
 - In „Alte Backups“ lassen sich mehrere Backups auswählen und zusammen löschen.
   Die jüngsten x bleiben.
 - Beim Weiterspielen eines Videos steht „ab 3:12“ mit „Von vorn“ 10 s lang.
+- Unter „Dateien“ lässt sich nach Alter und Name sortieren. Dateien ohne Ordner
+  stehen oben, jeder Ordner bleibt eine Gruppe.
+- In der Listenansicht steht „Bearbeiten“ direkt in der Zeile jeder Datei, die
+  der Account im Document Server bearbeiten darf.
 
 ---
 
@@ -123,7 +131,7 @@ Ohne Befund geprüft:
 
 ### Vorgaben des Betreibers
 
-F1 bis F8 aus Abschnitt 0, alle vom 30. September 2026.
+F1 bis F12 aus Abschnitt 0, alle vom 30. September 2026.
 
 ### Entschieden in diesem Auftrag
 
@@ -152,6 +160,14 @@ F1 bis F8 aus Abschnitt 0, alle vom 30. September 2026.
 | Hinweis in der Karte „Backup“ | `card.backupWhatHint` verweist auf `./backuptool.sh` statt auf „dieselbe Programmversion“ |
 | Kein Knopf | Zurückspielen nur auf dem Server (F5) |
 | Hinweis beim Weiterspielen | `SPOT_HINT_MS` von 5000 auf 10000 (`public/app.js:4421`). Es gilt für jedes Video mit gemerkter Stelle: großes Bild, Vollbild, „Dateien“, Kommentare |
+| Sortieren: Bedienung | eine Auswahl neben „Kacheln \| Liste“ im Kopf von „Dateien“ mit „Älteste zuerst“, „Jüngste zuerst“, „Name“. Sie gilt für Kacheln und Liste |
+| Sortieren: Speicher | je Account am Server und für alle Einträge, wie `filesView`: neuer Schlüssel `filesSort` in `PERSONAL_KEYS` (`server.js:451`) und in der Liste der erlaubten Werte (`server.js:1692`), `oldest`, `newest`, `name`, Vorgabe `oldest`. Ein anderer Wert wird mit 400 abgewiesen |
+| Sortieren: Vorgabe | „Älteste zuerst“ ist die heutige Reihenfolge (`ORDER BY a.sort_order, a.id`, `server.js:2387`). Wer nichts umstellt, sieht keinen Unterschied |
+| Sortieren: Datum | das des Uploads (`attachments.created_at`), wie in der Spalte der Liste. Ein Speichern über den Document Server ändert es nicht |
+| Sortieren: Name | ohne Unterschied von Groß- und Kleinschreibung, Zahlen in natürlicher Folge („2“ vor „10“), nach der Sprache der Oberfläche (`localeCompare` mit `numeric`) |
+| Sortieren: Ordner | Dateien ohne Ordner bleiben oben. Die Ordner folgen der Sortierung (F10): „Jüngste zuerst“ ist die heutige Folge des Servers (Testtag oder Anlage, `server.js:2388-2390`), „Älteste zuerst“ die umgekehrte, „Name“ nach dem Ordnernamen. Laufende Uploads stehen am Ende ihrer Gruppe. Sortiert wird im Browser in `drawAtts()` (`public/app.js:7235`); der Server bleibt bei seiner Folge |
+| Bearbeiten in der Zeile | nur in der Listenansicht, nur am Rechner, nur unter derselben Bedingung wie im Menü: `a.preview === 'office' && a.edit && !isNarrow()` (`public/app.js:7356`). Der Knopf „Bearbeiten“ öffnet `fileAddress(id, a.id, true)` wie der Menüeintrag. Die Kacheln bleiben, wie sie sind |
+| Menü „…“ | bleibt vollständig (F12) |
 
 ---
 
@@ -273,6 +289,10 @@ nennt den Stand · `2` falscher Aufruf.
   der schreibenden Routen bleibt 89.
 - `drawCleanup()` bekommt „Auswählen“, die Kästchen, die Leiste und die
   Rückfrage; Tastatur und Screenreader wie bei der Auswahl unter „Dateien“.
+- `PUT /api/settings` nimmt `filesSort`; `GET /api/settings` nennt es.
+- `drawAtts()` sortiert Dateien und Ordner nach `filesSort`; der Kopf von
+  „Dateien“ bekommt die Auswahl.
+- `fillFileTile()` setzt in der Listenansicht den Knopf „Bearbeiten“.
 
 ---
 
@@ -302,12 +322,19 @@ Servers. Verhalten unverändert; der Prüfstand bleibt grün, bevor BA 3 beginnt
 
 `SPOT_HINT_MS` nach F8.
 
-### BA 9 — Texte
+### BA 9 — Sortieren unter „Dateien“
+
+Einstellung `filesSort`, Auswahl im Kopf, Sortierung in `drawAtts()` nach
+Abschnitt 3.
+
+### BA 10 — Bearbeiten in der Listenzeile
+
+### BA 11 — Texte
 
 Deutsch, Englisch, Türkisch; Englisch und Türkisch höchstens 15 % länger.
 Die Ausgaben des Skripts sind deutsch wie die von `keytool.js`.
 
-### BA 10 — Der Prüfstand
+### BA 12 — Der Prüfstand
 
 Neues Modul `test/release_051.js`, der Server und `backuptool.js` direkt mit
 `node`, ohne Docker:
@@ -330,12 +357,17 @@ Neues Modul `test/release_051.js`, der Server und `backuptool.js` direkt mit
   sie nennen; ein gesperrtes oder unbekanntes Backup in der Anfrage löscht
   nichts; ohne zweite Bestätigung 403; je Backup ein `backup.delete`
 - Hinweis beim Weiterspielen: nach 5 s steht er noch, nach 10 s ist er fort
+- Sortieren in Kacheln und Liste: die drei Folgen, Dateien ohne Ordner oben,
+  Ordner nach F10, laufende Uploads am Ende, „2“ vor „10“; `filesSort` wird
+  gespeichert, ein fremder Wert abgewiesen, ohne Wert gilt `oldest`
+- „Bearbeiten“ in der Zeile: nur in der Liste, nur mit Recht zum Bearbeiten,
+  nicht am Telefon; der Klick öffnet den Editor; das Menü ist unverändert
 - Quelltext: `backuptool.sh` hält vor `restore` an und löscht `data` nie ohne
   Ausnahme für `files`, wie die Prüfung von `keytool.sh` (`test/source.js:2344`)
 
 Jede Zusage bekommt einen Rückbau in `counterproof.js`.
 
-### BA 11 — Dokumentation und Zahlen
+### BA 13 — Dokumentation und Zahlen
 
 - README, „Backup“ und „Backup zurückspielen“: `./backuptool.sh list`,
   `show`, `restore`, der Rückweg; die bisherige Schleife bleibt als Weg von
@@ -343,7 +375,8 @@ Jede Zusage bekommt einen Rückbau in `counterproof.js`.
   `chmod +x kriterion/backuptool.sh`. Die Schleife zum Fingerprint nennt
   `backup.js` und `schema.js`.
 - Handbuch: „Backup“ und „Alte Backups“; unter „Stelle im Video“ „10 Sekunden“
-  statt „Einige Sekunden“ (`manual-de.md:339-340`).
+  statt „Einige Sekunden“ (`manual-de.md:339-340`); unter „Dateien“ das
+  Sortieren und „Bearbeiten“ in der Liste.
 - `CLAUDE.md`: die Liste der ausgelieferten Dateien und die Zahl der Module.
 - Modullisten in `test/source.js` (`LANGUAGE_SOURCES` und weitere) und
   `tools/publish.js` (`FINGERPRINT_MODULE`).
@@ -367,6 +400,9 @@ Jede Zusage bekommt einen Rückbau in `counterproof.js`.
    jüngsten sind gesperrt.
 7. Ein Video bis 1:30 ansehen, schließen, wieder öffnen: „ab 1:30“ und
    „Von vorn“ stehen 10 s.
+8. Unter „Dateien“ „Name“ wählen, die Seite neu laden, an einem anderen Gerät
+   öffnen: überall nach Name, Dateien ohne Ordner oben, die Ordner nach Name.
+9. In der Liste eine `.docx` mit „Bearbeiten“ öffnen, speichern, schließen.
 
 Die Schritte 4 und 5 an einer Kopie der Installation oder zu einer Zeit, in der
 niemand arbeitet: Zurückspielen nimmt alle Änderungen seit dem Backup zurück.
@@ -383,6 +419,9 @@ niemand arbeitet: Zurückspielen nimmt alle Änderungen seit dem Backup zurück.
 | Knopf „Zurückspielen“ in der Oberfläche | F5 |
 | Ortszeit im Namen | Sommerzeit machte Namen doppelt oder die Reihenfolge falsch; Skript und Karte zeigen Ortszeit |
 | Einzeln gelöschte Dateien in den Papierkorb | kein Teil des Backups; Frage für 0.52.0 |
+| Sortieren der Bildleiste | F9 nennt „Dateien“ |
+| Sortieren nach der letzten Bearbeitung | kein Zeitpunkt gespeichert; bräuchte eine Spalte an `attachments` und damit ein geändertes Schema |
+| Herunterladen, Öffnen, Löschen in der Zeile | F11 |
 
 ---
 
@@ -390,7 +429,8 @@ niemand arbeitet: Zurückspielen nimmt alle Änderungen seit dem Backup zurück.
 
 1. `npm test` läuft vor jedem Push vollständig durch. Das Ergebnis wird
    genannt.
-2. Kein neues Schema. Der Backup-Ordner wird nicht umgebaut.
+2. Kein neues Schema. Der Backup-Ordner wird nicht umgebaut. Die neue
+   Einstellung `filesSort` liegt in `user_settings`.
 3. Die Kommentarregel gilt, auch für `backuptool.sh`.
 4. Kein Pull Request, wenn keiner verlangt wurde.
 5. Kommt eine Frage auf, die hier nicht beantwortet ist, wird sie als
