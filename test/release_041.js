@@ -716,10 +716,10 @@ async function run() {
   {
     const limits = (await call('GET', '/api/settings')).content;
     check('GET /api/settings nennt die sechs Grenzen und ihre Obergrenzen',
-      equal(limits.uploadLimits, { photo: 30, commentImage: 20, video: 20, commentVideo: 20, attachment: 50, dayVideo: 2048 }) &&
+      equal(limits.uploadLimits, { photo: 30, commentImage: 20, video: 20, commentVideo: 20, attachment: 50, file: 2048 }) &&
       limits.uploadLimitRanges?.photo?.max === 50 && limits.uploadLimitRanges?.commentImage?.max === 50 &&
       limits.uploadLimitRanges?.video?.max === 100 && limits.uploadLimitRanges?.commentVideo?.max === 100 &&
-      limits.uploadLimitRanges?.attachment?.max === 100 && limits.uploadLimitRanges?.dayVideo?.max === 4096,
+      limits.uploadLimitRanges?.attachment?.max === 100 && limits.uploadLimitRanges?.file?.max === 4096,
       JSON.stringify([limits.uploadLimits, limits.uploadLimitRanges]));
     const zero = await call('PUT', '/api/settings', { uploadLimits: { video: 0 } });
     const over = await call('PUT', '/api/settings', { uploadLimits: { video: 101 } });
@@ -750,7 +750,7 @@ async function run() {
     const stored = JSON.parse(d.prepare("SELECT value FROM settings WHERE key = 'uploadLimits'").get()?.value || '{}');
     d.close();
     check('Gespeichert in settings unter uploadLimits', equal(stored,
-      { photo: 30, commentImage: 20, video: 20, commentVideo: 20, attachment: 50, dayVideo: 2048 }), JSON.stringify(stored));
+      { photo: 30, commentImage: 20, video: 20, commentVideo: 20, attachment: 50, file: 2048 }), JSON.stringify(stored));
     const serverCode = readText('server.js');
     check('uploadLimits steht in OWNER_KEYS',
       /const OWNER_KEYS = \[[^\]]*'uploadLimits'[^\]]*\]/.test(serverCode), 'fehlt');
@@ -765,22 +765,17 @@ async function run() {
     const B = H.startFurtherServer(eDir, { KRITERION_EXCHANGE_MAX: '2800000' }, 7340);
     await B.ready;
     await B.call('POST', '/api/setup', { user: 'eigen', password: 'eigen-langes-wort-41' });
-    const sendB = async (url, files) => {
-      const fd = new FormData();
-      for (const f of files) fd.append(f.field, new Blob([f.content], { type: f.type }), f.name);
-      const a = await fetch(B.base + url, { method: 'POST', body: fd, headers: withCsrf(B.cookieValue()) });
-      return { status: a.status, content: await a.json().catch(() => null) };
-    };
-    const file = (n) => ({ field: 'files', name: 'daten.bin', type: 'application/octet-stream', content: crypto.randomBytes(n) });
+    const sendB = (itemId, files) => H.sendFiles(B.base, B.cookieValue(), itemId, files);
+    const file = (n) => ({ name: 'daten.bin', content: crypto.randomBytes(n) });
     const eItem = (await B.call('POST', '/api/items', { title: 'Voll' })).content.id;
-    const first = await sendB(`/api/items/${eItem}/attachments`, [file(1536 * 1024)]);
+    const first = await sendB(eItem, [file(1536 * 1024)]);
     check('Unter der Grenze je Eintrag geht ein Anhang durch', first.status === 201, `${first.status} ${first.content?.error}`);
-    const second = await sendB(`/api/items/${eItem}/attachments`, [file(1024 * 1024)]);
+    const second = await sendB(eItem, [file(1024 * 1024)]);
     check('Ein Hochladen darueber wird abgesagt und nennt die Grenze in MB',
       second.status === 413 && /Höchstens 2 MB je Eintrag/.test(second.content?.error || ''),
       `${second.status} ${second.content?.error}`);
     const cItem = (await B.call('POST', '/api/items', { title: 'Mit Kommentarvideo' })).content.id;
-    await sendB(`/api/items/${cItem}/attachments`, [file(1536 * 1024)]);
+    await sendB(cItem, [file(1536 * 1024)]);
     const fd = new FormData();
     fd.append('text', 'Zu viel');
     for (const f of videoFiles(mp4(1024 * 1024))) fd.append(f.field, new Blob([f.content], { type: f.type }), f.name);

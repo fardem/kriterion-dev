@@ -33,8 +33,8 @@ async function run() {
     fUnknown.length === 0 && fGone.length === 0,
     `ohne Entscheidung: ${fUnknown.join(' · ') || '—'} · verschwunden: ${fGone.join(' · ') || '—'}`);
   // Die feste Zahl macht jede neue Route in F_ROUTES sichtbar.
-  check('Und es sind jetzt genau 88 schreibende Routen',
-    F_ROUTES.length === 88 && fFound.length === 88,
+  check('Und es sind jetzt genau 89 schreibende Routen',
+    F_ROUTES.length === 89 && fFound.length === 89,
     `${F_ROUTES.length} erwartet, ${fFound.length} gefunden`);
   /* Gelesen werden die geladenen Listen aus auth.js, nicht ihr Quelltext;
      ein Textvergleich schluege auch bei Kommentaren an. */
@@ -213,14 +213,14 @@ async function run() {
     fAttachmentsPathCore.includes('mayChange(req, a.user_id)') &&
     !fAttachmentsPathCore.includes('entryFree('),
     fAttachmentsPathCore ? 'mayChange(req, a.user_id) fehlt oder entryFree steht noch da' : '(kein Rumpf)');
-  const fAttachmentsFreshRoute = fFound.find(r => r.key === 'POST /api/items/:id/attachments');
-  const fAttachmentsFreshCore = fAttachmentsFreshRoute ? fAttachmentsFreshRoute.core : '';
-  check('Die Anlegeroute fuer Dateien ist ueberhaupt da',
-    fAttachmentsFreshCore.length > 0, 'die Route fehlt im Quelltext');
-  check('Sie schreibt den Verfasser in die neue Zeile',
-    fAttachmentsFreshCore.includes('data, sort_order, user_id') &&
-    fAttachmentsFreshCore.includes('req.user.id'),
-    fAttachmentsFreshCore ? 'die Spalte user_id fehlt im INSERT' : '(kein Rumpf)');
+  // Die Zeile einer Datei entsteht am Ende des Uploads, nicht in einer Route.
+  const fFinish = (fSource.match(/\nfunction finishUpload\(req, res, u\) \{[\s\S]*?\n\}/) || [''])[0];
+  check('Das Ende des Uploads ist ueberhaupt da',
+    fFinish.length > 0, 'finishUpload() fehlt im Quelltext');
+  check('Es schreibt den Beginnenden des Uploads als Verfasser in die neue Zeile',
+    /addDiskAttachment\(\)\.run\([\s\S]*?, u\.user_id\)\.lastInsertRowid/.test(fFinish) &&
+    /const addDiskAttachment = lateStatement\(`INSERT INTO attachments \([^)]*sort_order, user_id\)/.test(fSource),
+    fFinish ? 'u.user_id fehlt im Aufruf oder user_id im INSERT' : '(kein Rumpf)');
 
   /* Der Vermerk „vom Admin entfernt" stimmt nur, solange diese Pruefung im
      Rumpf steht. */
@@ -1611,7 +1611,7 @@ async function run() {
         : part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('/'));
     // Auf leeren Mengen waeren die Pruefungen darunter immer gruen.
     check('Der Waechter sieht beide Seiten',
-      rrRoutes.length === 123 && rrBrowser.length > 100000,
+      rrRoutes.length === 124 && rrBrowser.length > 100000,
       `${rrRoutes.length} Routen, ${rrBrowser.length} Zeichen im Browser`);
     /* Die Verwaltungstafel baut diese Adressen aus ihrem Feld `url`; eine
        Suche, die das faende, faende jede Adresse. */
@@ -1842,8 +1842,8 @@ async function run() {
       }
       if (has) ssCode++;
     }
-    check('Und es stehen genau 1901 Regelzeilen da',
-      ssCode === 1901, `${ssCode} Zeilen`);
+    check('Und es stehen genau 1944 Regelzeilen da',
+      ssCode === 1944, `${ssCode} Zeilen`);
     // Laenger als drei Zeilen darf nur eine Tabelle gemessener Werte sein.
     const ssLines = ssBlocks.map(b => b.split('\n').length);
     const ssOver = ssLines.filter(n => n > 3).length;
@@ -1907,9 +1907,9 @@ async function run() {
     /* Jede Hochladeroute reicht ihre Grenzen an den Fehler-Handler weiter,
        sonst steht dort die englische Meldung von multer. */
     const fgLive = (fgServer.match(/cappedLive\(/g) || []).length;
-    check('Und alle acht Hochladerouten reichen ihre Grenzen weiter',
-      fgLive === 8 && /capped\(importUpload\.single\('file'\)/.test(fgServer),
-      `${fgLive} Stellen mit cappedLive (sieben Routen und der Helfer selbst), dazu der Import`);
+    check('Und alle sieben Hochladerouten reichen ihre Grenzen weiter',
+      fgLive === 7 && /capped\(importUpload\.single\('file'\)/.test(fgServer),
+      `${fgLive} Stellen mit cappedLive (sechs Routen und der Helfer selbst), dazu der Import`);
     check('Der Fehler-Handler kennt LIMIT_FILE_SIZE und LIMIT_UNEXPECTED_FILE',
       /err\.code === 'LIMIT_FILE_SIZE'/.test(fgServer)
       && /err\.code === 'LIMIT_UNEXPECTED_FILE'/.test(fgServer)
@@ -1970,8 +1970,8 @@ async function run() {
     // Feste Zahl: auf einer leeren Menge waere die Pruefung darueber immer gruen.
     const zpCount = zpFiles.reduce((n, f) =>
       n + (zpRead(f).match(/\blog(?:Line|Warn|Fail)\(/g) || []).length, 0);
-    check('Und es sind 73 Protokollzeilen in den sechs Dateien',
-      zpCount === 73, `${zpCount} Zeilen`);
+    check('Und es sind 74 Protokollzeilen in den sechs Dateien',
+      zpCount === 74, `${zpCount} Zeilen`);
     // Ohne TZ laeuft der Container auf UTC, und der Versatz waere immer +00:00.
     const zpCompose = fs.readFileSync(
       path.join(__dirname, 'docker-compose.example.yml'), 'utf8');
@@ -2053,7 +2053,7 @@ async function run() {
     /* Helfer mit festem Markup */
     'BRAND_LINE', 'MARK', 'subhead', 'sparkline', 'serverBox', 'countCell',
     'many', 'inventoryText', 'tileNumber', 'entryNav', 'linkOrigin',
-    'deliveryRow',
+    'deliveryRow', 'pickBarHtml',
     /* Variablen, die kurz vor der Zuweisung gebaut werden */
     'badgeRow', 'cardMarkup', 'findingRow', 'testLine', 'groupRows', 'testRow',
     'bottom', 'weightField', 'fallbackMark', 'situation', 'stateBox',
@@ -2229,7 +2229,7 @@ async function run() {
   const hAll = assignments(hSource);
   // Feste Zahl: ueber null Zuweisungen waere die Pruefung immer gruen.
   check('Der Waechter sieht alle Zuweisungen an innerHTML',
-    hAll.length === 188, `${hAll.length} Zuweisungen`);
+    hAll.length === 192, `${hAll.length} Zuweisungen`);
   const hNaked = [];
   const hUsed = new Set();
   for (const one of hAll)
@@ -2302,7 +2302,6 @@ async function run() {
     .map(x => x.slice(0, 120)).sort();
   const DATA_ROWS = [
     'INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    'INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
     'INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id) VALUES (?, ?, ?, ?, x\'\', ?, ?)',
     'INSERT INTO trash_bytes (trash_id, part, data) SELECT ?, ?, data FROM attachments WHERE id = ?',
     'INSERT OR REPLACE INTO attachment_previous (attachment_id, session_key, filename, mime_type, size, data) SELECT id, ?, f',
@@ -2331,7 +2330,7 @@ async function run() {
   const dLess = DATA_ROWS.filter((x, i) => DATA_ROWS.indexOf(x) === i &&
     DATA_ROWS.filter(y => y === x).length > dDataRows.filter(y => y === x).length);
   check('Jede Anweisung, die die Spalte data von Dateien liest oder schreibt, steht in der Liste — und keine mehr',
-    dMore.length === 0 && dLess.length === 0 && DATA_ROWS.length === 23,
+    dMore.length === 0 && dLess.length === 0 && DATA_ROWS.length === 22,
     `neu: ${dMore.join(' · ')} · fehlt: ${dLess.join(' · ')}`);
   check('batchrun.js liest keine Dateien', !/\battachments\b/.test(fs.readFileSync(path.join(__dirname, 'batchrun.js'), 'utf8')),
     'batchrun.js nennt attachments');

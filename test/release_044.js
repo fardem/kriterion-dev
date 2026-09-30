@@ -38,10 +38,9 @@ async function run() {
   Buffer.from([0, 0, 0, 0x20]).copy(mp4, 0);
   Buffer.from('ftypisom', 'latin1').copy(mp4, 4);
   // kaputt.png traegt die Endung eines Bildes, aber keine Bilddaten.
-  const upFiles = await send(`/api/items/${item}/attachments`,
+  const upFiles = await H.sendFiles(B.base, B.cookieValue(), item,
     ['bericht.docx', 'bild.png', 'doku.pdf', 'archiv.zip', 'kaputt.png'].map(name =>
-      ({ field: 'files', name, content: name === 'bild.png' ? bigPicture
-        : Buffer.from(name + crypto.randomBytes(8).toString('hex')) })));
+      ({ name, content: name === 'bild.png' ? bigPicture : Buffer.from(name + crypto.randomBytes(8).toString('hex')) })));
   const upPhoto = await send(`/api/items/${item}/photos`,
     [{ field: 'photos', name: 'foto.png', type: 'image/png', content: picture }]);
   const upVideo = await send(`/api/items/${item}/videos`,
@@ -122,11 +121,14 @@ async function run() {
       { headers: signedIn ? withCsrf(B.cookieValue()) : {} });
     return { status: a.status, headers: a.headers, bytes: Buffer.from(await a.arrayBuffer()) };
   };
-  const stored = tileRow(fileId['bild.png']), broken = tileRow(fileId['kaputt.png']);
-  check('Beim Hochladen entsteht die Kachel, bei einer unlesbaren Bilddatei eine leere Zeile',
-    stored?.thumb?.length > 0 && broken !== null && broken.thumb === null && tileRow(fileId['doku.pdf']) === null,
-    `${stored?.thumb?.length} ${JSON.stringify(broken)} ${JSON.stringify(tileRow(fileId['doku.pdf']))}`);
+  const before = tileRow(fileId['bild.png']);
   const tile = await tileOf(fileId['bild.png']);
+  await tileOf(fileId['kaputt.png']);
+  const stored = tileRow(fileId['bild.png']), broken = tileRow(fileId['kaputt.png']);
+  check('Beim ersten Abruf entsteht die Kachel, bei einer unlesbaren Bilddatei eine leere Zeile',
+    before === null && stored?.thumb?.length > 0 && broken !== null && broken.thumb === null &&
+    tileRow(fileId['doku.pdf']) === null,
+    `${JSON.stringify(before)} ${stored?.thumb?.length} ${JSON.stringify(broken)} ${JSON.stringify(tileRow(fileId['doku.pdf']))}`);
   let tileMeta = null;
   try { tileMeta = await sharp(tile.bytes).metadata(); } catch { tileMeta = null; }
   check('Sie ist wie die Fotokachel: WebP, 512 × 512 aus der Mitte',

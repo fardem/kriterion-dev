@@ -4501,9 +4501,9 @@ const POSITION_END_SHARE = 0.05;
 const POSITION_COLUMN = { file: 'attachment_id', photo: 'photo_id', comment: 'comment_video_id' };
 const POSITION_GONE = { file: 'server.fileGone', photo: 'server.photoGone', comment: 'server.videoGone' };
 const qVideoTarget = {
-  file: db.prepare('SELECT filename FROM attachments WHERE id = ?'),
-  photo: db.prepare("SELECT 1 FROM photos WHERE id = ? AND kind = 'video'"),
-  comment: db.prepare('SELECT 1 FROM comment_videos WHERE id = ?')
+  file: lateStatement('SELECT filename FROM attachments WHERE id = ?'),
+  photo: lateStatement("SELECT 1 FROM photos WHERE id = ? AND kind = 'video'"),
+  comment: lateStatement('SELECT 1 FROM comment_videos WHERE id = ?')
 };
 const putPosition = {}, dropPosition = {};
 for (const [kind, column] of Object.entries(POSITION_COLUMN)) {
@@ -4520,7 +4520,7 @@ app.put('/api/video-positions', (req, res) => {
   if (!POSITION_COLUMN[b.kind] || !Number.isSafeInteger(id) || !Number.isFinite(seconds) || seconds < 0 ||
       (duration !== null && !(Number.isFinite(duration) && duration > 0)))
     return res.status(400).json({ error: t(localeOf(req), 'server.bodyInvalid')});
-  const target = qVideoTarget[b.kind].get(id);
+  const target = qVideoTarget[b.kind]().get(id);
   if (!target || (b.kind === 'file' && !isVideoFile(target.filename)))
     return res.status(404).json({ error: t(localeOf(req), POSITION_GONE[b.kind])});
   const seen = duration !== null && seconds >= duration - Math.max(POSITION_MIN_S, duration * POSITION_END_SHARE);
@@ -4549,8 +4549,6 @@ const relocateNeed = (ids) => ids.reduce((n, id) => {
   return r ? n + encLen(r.size) + (r.before == null ? 0 : encLen(r.before)) : n;
 }, 0);
 
-const qRelocateCount = db.prepare(`SELECT COUNT(*) AS n FROM attachments a
-  WHERE NOT EXISTS (SELECT 1 FROM disk_files d WHERE d.attachment_id = a.id)`);
 let RELOCATING = false;
 async function relocate(ids) {
   if (RELOCATING) return;
@@ -5138,7 +5136,7 @@ app.get('/api/stats', adminOnly, (req, res) => {
       f.count += g.n; f.bytes += g.o;
     }
   }
-  // Nur Dateien in der Datenbank; die auf der Platte stehen in `disk`.
+  // Dateien, die noch auf die Umlagerung warten; die auf der Platte stehen in `disk`.
   const an = db.prepare(`SELECT COUNT(*) AS n, COALESCE(SUM(size),0) AS o FROM attachments a
     WHERE NOT EXISTS (SELECT 1 FROM disk_files d WHERE d.attachment_id = a.id)`).get();
   /* Papierkorb getrennt: sonst wirkt die Datenbank nach dem Aufraeumen groesser. */
@@ -5218,7 +5216,6 @@ function diskStats() {
   return {
     count: d.n, bytes: d.o, largeCount: d.ln, largeBytes: d.lo, trashCount: d.tn, trashBytes: d.tbytes,
     uploadCount: u.n, uploadBytes: u.o, missing: DISK_MISSING.size, gone: qGoneCount.get().n,
-    pending: qRelocateCount.get().n,
     unknownCount: unknown.length, unknownBytes: unknown.reduce((n, f) => n + f.size, 0),
     copiedCount: copied.length, copiedBytes: copied.reduce((n, f) => n + f.size, 0),
     free: diskFree()

@@ -1229,7 +1229,9 @@ function cloudTops(box) {
     if (!tops.length || k.offsetTop - tops[tops.length - 1] > height / 2) tops.push(k.offsetTop);
   return tops;
 }
-const cloudRows = (box) => cloudTops(box).length;
+function cloudRows(box) {
+  return cloudTops(box).length;
+}
 // Begrenzt die Wolke auf `rows` Zeilen; true, wenn dabei etwas abgeschnitten wird.
 function limitCloud(box, rows) {
   const tops = rows ? cloudTops(box) : [];
@@ -5914,9 +5916,10 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       return drawThumbs();
     }
     const chosen = item.photos.filter(p => photosPicked.has(p.id));
-    const videos = chosen.filter(isVideo).length;
-    const ask = videos === chosen.length ? 'entry.pickVideosAsk' : videos ? 'entry.pickMediaAsk' : 'entry.pickPhotosAsk';
-    if (!await confirmBox(t(ask, { n: chosen.length }), t('entry.pickDeleteHint'))) return;
+    const videos = chosen.filter(isVideo).length, n = chosen.length;
+    const ask = videos === n ? t('entry.pickVideosAsk', { n }) : videos ? t('entry.pickMediaAsk', { n })
+      : t('entry.pickPhotosAsk', { n });
+    if (!await confirmBox(ask, t('entry.pickDeleteHint'))) return;
     let errors;
     try {
       errors = await eachPicked(chosen, p => api('DELETE', `/api/photos/${Number(p.id)}`));
@@ -7400,7 +7403,8 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     let errors;
     try { errors = await eachPicked(chosen, async a => { item = await api('DELETE', `/api/attachments/${Number(a.id)}`); }); }
     catch { return; }
-    pickDone(errors, t('entry.pickDeleted', { n: chosen.length }), 'entry.pickDeleteFailed');
+    pickDone(errors, t('entry.pickDeleted', { n: chosen.length }),
+      t('entry.pickDeleteFailed', { n: errors.length, error: errors[0] }));
   }
 
   // Ein Ziel, in dem schon alle gewaehlten stehen, fehlt.
@@ -7425,15 +7429,16 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       });
     } catch { return; }
     if (to.folderId) FOLDERS_OPEN.open.add(to.folderId);
-    pickDone(errors, to.folderId ? t('entry.movedTo', { name: to.label }) : t('entry.movedLoose'), 'entry.pickMoveFailed');
+    pickDone(errors, to.folderId ? t('entry.movedTo', { name: to.label }) : t('entry.movedLoose'),
+      t('entry.pickMoveFailed', { n: errors.length, error: errors[0] }));
   }
 
   // Ohne Fehler endet die Auswahl; sonst bleiben die uebrigen gewaehlt.
-  function pickDone(errors, done, failKey) {
+  function pickDone(errors, done, failed) {
     if (!errors.length) {
       filesPicked = null;
       toast(done);
-    } else toast(t(failKey, { n: errors.length, error: errors[0] }), true);
+    } else toast(failed, true);
     drawAtts();
     (filesPicked ? filePickBar.querySelector('[data-pick="cancel"]') : document.getElementById('apick-start'))?.focus();
   }
@@ -10831,7 +10836,7 @@ function cardStats(fetched) {
         <div class="kv"><span class="k">${tH('dialog.comments')}</span><span class="v">${stats.commentCount}</span></div>
         <div class="kv"><span class="k">${tH('dialog.links')}</span><span class="v">${stats.linkCount}</span></div>
         <div class="kv"><span class="k">${esc(V.dayMany)}</span><span class="v">${stats.testDayCount}</span></div>
-          <div class="kv"><span class="k">${tH('dialog.files')}</span><span class="v">${stats.attachmentCount} · ${fmtBytes(stats.attachmentBytes)}</span></div>
+        ${stats.attachmentCount ? `<div class="kv"><span class="k">${tH('card.diskPending')}</span><span class="v">${stats.attachmentCount} · ${fmtBytes(stats.attachmentBytes)}</span></div>` : ''}
         ${diskRows(stats.disk)}
         ${/* Papierkorb als eigene Zeile: sonst wirkt die Datenbank nach dem Aufraeumen
              groesser als vorher. */''}
@@ -10874,15 +10879,14 @@ function cardStats(fetched) {
       </div>`;
 }
 
-/* Dateien auf der Platte; „noch in der Datenbank", „fehlen", „warten auf Loeschen" und
-   „ohne Verweis" nur, wenn es welche gibt. */
+/* Dateien auf der Platte; „fehlen", „warten auf Loeschen" und „ohne Verweis" nur,
+   wenn es welche gibt. */
 function diskRows(d) {
   if (!d) return '';
   const row = (label, value) => `<div class="kv"><span class="k">${label}</span><span class="v">${value}</span></div>`;
   const without = d.unknownCount - d.copiedCount;
   return [
     row(tH('card.diskFiles'), `${d.count} · ${fmtBytes(d.bytes)}`),
-    d.pending ? row(tH('card.diskPending'), String(d.pending)) : '',
     d.largeCount ? row(tH('card.diskLarge'), `${d.largeCount} · ${fmtBytes(d.largeBytes)}`) : '',
     d.trashCount ? row(tH('card.diskTrash'), `${d.trashCount} · ${fmtBytes(d.trashBytes)}`) : '',
     row(tH('card.diskUploads'), `${d.uploadCount} · ${fmtBytes(d.uploadBytes)}`),

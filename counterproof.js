@@ -3900,8 +3900,8 @@ const REGRESSIONS = [
   {
     nr: '543', name: 'Der Bilderstreifen zeichnet ueberhaupt keine Kacheln mehr',
     file: 'public/app.js',
-    search: "    box.innerHTML = '';\n    item.photos.forEach((p, i) => {",
-    replacement: "    box.innerHTML = '';\n    [].forEach((p, i) => {",
+    search: "    drawPhotoPick();\n    item.photos.forEach((p, i) => {",
+    replacement: "    drawPhotoPick();\n    [].forEach((p, i) => {",
     expected: 'Die Ansicht kann fort sein — 0.19.6'
   },
 
@@ -6533,25 +6533,25 @@ const REGRESSIONS = [
     expected: "Die zugeklappte Tagzeile fuellt ihre Hoehe \u2014 0.30.3"
   },
   {
-    nr: "947", name: "Der Reihenzaehler rechnet ohne den Abstand",
-    file: "public/app.js",
-    search: "  return Math.round((box.scrollHeight + CLOUD_GAP) / (height + CLOUD_GAP));",
-    replacement: "  return Math.round(box.scrollHeight / height);",
+    nr: '947', name: "Der Zeilenzaehler nimmt jede Marke als eigene Zeile",
+    file: 'public/app.js',
+    search: "    if (!tops.length || k.offsetTop - tops[tops.length - 1] > height / 2) tops.push(k.offsetTop);",
+    replacement: "    tops.push(k.offsetTop);",
     expected: "Die zugeklappte Tagzeile fuellt ihre Hoehe \u2014 0.30.3"
   },
   {
-    nr: "948", name: "Der Reihenzaehler misst wieder selbst",
-    file: "public/app.js",
-    search: "function cloudRows(box) {\n  const height = cloudLine(box);",
-    replacement: "function cloudRows(box) {\n  const first = box.firstElementChild;\n  const height = first ? first.offsetHeight || 0 : 0;",
+    nr: '948', name: "Der Zeilenzaehler misst wieder selbst",
+    file: 'public/app.js',
+    search: "function cloudTops(box) {\n  const height = cloudLine(box);",
+    replacement: "function cloudTops(box) {\n  const first = box.firstElementChild;\n  const height = first ? first.offsetHeight || 0 : 0;",
     expected: "Die zugeklappte Tagzeile fuellt ihre Hoehe \u2014 0.30.3"
   },
   {
-    nr: "949", name: "Der Reihenzaehler sieht nur, was nicht abgeschnitten ist",
-    file: "public/app.js",
-    search: "  return Math.round((box.scrollHeight + CLOUD_GAP)",
-    replacement: "  return Math.round((box.clientHeight + CLOUD_GAP)",
-    expected: "Die zugeklappte Tagzeile fuellt ihre Hoehe \u2014 0.30.3"
+    nr: '949', name: "Eine Rundung beginnt wieder eine neue Zeile",
+    file: 'public/app.js',
+    search: "k.offsetTop - tops[tops.length - 1] > height / 2",
+    replacement: "k.offsetTop - tops[tops.length - 1] > 0",
+    expected: "Tagwolken"
   },
   {
     nr: "950", name: "Die dritte Rasterzeile gilt wieder ohne Bedingung",
@@ -8493,8 +8493,8 @@ const REGRESSIONS = [
   {
     nr: '1226', name: 'detail() liefert office auch fuer PDF, Bild und Text',
     file: 'server.js',
-    search: "    preview: officeOn && docserver.officeType(a2.filename)\n",
-    replacement: "    preview: officeOn\n",
+    search: "        : officeOn && docserver.officeType(a2.filename) ? 'office' : kind,",
+    replacement: "        : officeOn ? 'office' : kind,",
     expected: 'Document Server: Abruf und Konfiguration'
   },
   {
@@ -8696,8 +8696,8 @@ const REGRESSIONS = [
   {
     nr: '1255', name: 'Das Hochladen uebergeht die eigene Vorgabe',
     file: 'server.js',
-    search: "    const editAll = asked === undefined ? filesEditAllOf(req.user.id) : asked === '1';",
-    replacement: "    const editAll = asked === '1';",
+    search: "    if (filesEditAllOf(u.user_id) && docserver.editFormat(u.filename)) putEditAll.run(fresh, 1);",
+    replacement: "    if (getSetting('documentEditAll', false) === true && docserver.editFormat(u.filename)) putEditAll.run(fresh, 1);",
     expected: 'Bearbeiten: Haken und Rechte'
   },
   {
@@ -8925,13 +8925,6 @@ const REGRESSIONS = [
     expected: 'Verweise auf Dateien: Marken im Browser'
   },
   {
-    nr: '1288', name: 'Das Hochladen legt keine Kachel an',
-    file: 'server.js',
-    search: "      if (tile !== undefined) putFileTile.run(added.lastInsertRowid, tile);\n",
-    replacement: "",
-    expected: 'Verweise auf Dateien: die Kachel einer Bilddatei'
-  },
-  {
     nr: '1289', name: 'Der erste Abruf legt die Kachel nicht ab',
     file: 'server.js',
     search: "    if (current) putFileTile.run(id, row.thumb);\n",
@@ -9081,9 +9074,9 @@ const REGRESSIONS = [
   {
     nr: '1313', name: 'Der Server zaehlt je Eintrag bis 20',
     file: 'server.js',
-    search: "    if (da + fresh > FILES_PER_ENTRY)",
-    replacement: "    if (da + fresh > FILES_PER_REQUEST)",
-    expected: 'Dateien in Kacheln: 100 je Eintrag, 20 je Anfrage'
+    search: "  if (fileSlots(itemId) >= FILES_PER_ENTRY)",
+    replacement: "  if (fileSlots(itemId) >= 20)",
+    expected: "Dateien in Kacheln: 100 je Eintrag"
   },
   {
     nr: '1314', name: 'Die Warteschlange endet mit der Ansicht des Eintrags',
@@ -9149,9 +9142,9 @@ const REGRESSIONS = [
     expected: "Videos unter Dateien: Standbild beim Hochladen, von Hand und nachgeholt"
   },
   {
-    nr: '1323', name: "Die Bildleiste nennt „Dateien“ ohne Blick auf die Grenze „Anhang“",
+    nr: '1323', name: "Die Bildleiste nennt „Dateien“ ohne Blick auf die Grenze „Datei“",
     file: 'public/app.js',
-    search: "        + (overLimit([bigVideo], 'attachment') && (UPLOAD_LIMITS.dayVideo <= UPLOAD_LIMITS.attachment\n             || overLimit([bigVideo], 'dayVideo')) ? '' : ' ' + t('entry.videoToFiles')));",
+    search: "        + (bigVideo.size > fileLimit() * 1048576 ? '' : ' ' + t('entry.videoToFiles')));",
     replacement: "        + ' ' + t('entry.videoToFiles'));",
     expected: "Videos unter Dateien: Adresse, Marke und Bildleiste"
   },
@@ -9193,8 +9186,8 @@ const REGRESSIONS = [
   {
     nr: '1329', name: "Verschieben legt die Datei neu an",
     file: 'server.js',
-    search: "      putFileFolder.run(a.id, f.id);\n    }\n    touch.run(a.item_id);",
-    replacement: "      const copy = db.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)\n        SELECT item_id, filename, mime_type, size, data, sort_order, user_id FROM attachments WHERE id = ?`)\n        .run(a.id).lastInsertRowid;\n      db.prepare('DELETE FROM attachments WHERE id = ?').run(a.id);\n      putFileFolder.run(copy, f.id);\n    }\n    touch.run(a.item_id);",
+    search: "    putFileFolder.run(a.id, f.id);\n  }\n  touch.run(a.item_id);",
+    replacement: "    const copy = db.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)\n      SELECT item_id, filename, mime_type, size, data, sort_order, user_id FROM attachments WHERE id = ?`)\n      .run(a.id).lastInsertRowid;\n    db.prepare('DELETE FROM attachments WHERE id = ?').run(a.id);\n    putFileFolder.run(copy, f.id);\n  }\n  touch.run(a.item_id);",
     expected: "Ordner: Schema und Routen"
   },
   {
@@ -9214,8 +9207,8 @@ const REGRESSIONS = [
   {
     nr: '1332', name: "Umbenennen darf auch der Admin",
     file: 'server.js',
-    search: "    if (!selfOnly(req, f.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});\n    const b = req.body || {};",
-    replacement: "    if (!mayChange(req, f.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});\n    const b = req.body || {};",
+    search: "  if (!selfOnly(req, f.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});\n  const b = req.body || {};",
+    replacement: "  if (!mayChange(req, f.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});\n  const b = req.body || {};",
     expected: "Ordner: Schema und Routen"
   },
   {
@@ -9284,8 +9277,8 @@ const REGRESSIONS = [
   {
     nr: '1342', name: "Eine 403 ohne Text zeigt beim Hochladen wieder nur den Statuscode",
     file: 'public/app.js',
-    search: "    uploadFail(u, data?.error || proxyAnswer(xhr.status) || t('error.serverStatus', { status: xhr.status }));",
-    replacement: "    uploadFail(u, data?.error || t('error.serverStatus', { status: xhr.status }));",
+    search: "    : data?.error || proxyAnswer(xhr.status) || t('error.serverStatus', { status: xhr.status }));",
+    replacement: "    : data?.error || t('error.serverStatus', { status: xhr.status }));",
     expected: "Ordner: Loeschdialoge und die Meldung bei 403"
   },
   /* ---- Dateien auf der Platte ---- */
@@ -9318,67 +9311,11 @@ const REGRESSIONS = [
     expected: "Platte: Ordner mit Testtag"
   },
   {
-    nr: '1347', name: "Der Browser waehlt den Weg nach der Groesse",
+    nr: '1347', name: "Der Beginn eines Uploads nennt den Ordner nicht",
     file: 'public/app.js',
-    search: "    queueUploads(id, files, folderId, day);",
-    replacement: "    queueUploads(id, files, folderId, files.some(f => f.size > UPLOAD_LIMITS.attachment * 1048576));",
-    expected: "Platte: der Browser waehlt den Weg nach dem Ordner"
-  },
-  {
-    nr: '1348', name: "Der Upload in einer Anfrage geht in einen Ordner mit Testtag",
-    file: 'server.js',
-    search: "    if (target && target.test_day_id != null)\n      return res.status(409).json({ error: t(localeOf(req), 'server.folderHasDay'),",
-    replacement: "    if (false)\n      return res.status(409).json({ error: t(localeOf(req), 'server.folderHasDay'),",
-    expected: "Platte: Upload in Stuecken, Weg und Ordner"
-  },
-  {
-    nr: '1349', name: "Ein grosses Video beginnt ohne Ordner mit Testtag",
-    file: 'server.js',
-    search: "  if (!target || target.test_day_id == null)\n    return large ? res.status(413)",
-    replacement: "  if (!large && (!target || target.test_day_id == null))\n    return large ? res.status(413)",
-    expected: "Platte: Upload in Stuecken, Weg und Ordner"
-  },
-  {
-    nr: '1350', name: "Eine Datei bis „Anhang“ beginnt ohne Ordner mit Testtag",
-    file: 'server.js',
-    search: "  if (!target || target.test_day_id == null)\n    return large ? res.status(413)",
-    replacement: "  if (large && (!target || target.test_day_id == null))\n    return large ? res.status(413)",
-    expected: "Platte: Upload in Stuecken, Weg und Ordner"
-  },
-  {
-    nr: '1351', name: "Die Endung eines grossen Videos wird nicht geprueft",
-    file: 'server.js',
-    search: "  if (large && !attachments.VIDEO_TYPES[attachments.extension(filename)])",
-    replacement: "  if (false)",
-    expected: "Platte: grosse Videos, Endung und erste Bytes"
-  },
-  {
-    nr: '1352', name: "Die ersten Bytes eines grossen Videos werden nicht geprueft",
-    file: 'server.js',
-    search: "    if (u.n === 0 && u.large === 1 && !VIDEO_MIMES.includes(attachments.typeFromBytes(body.subarray(0, 12)))) {",
-    replacement: "    if (false) {",
-    expected: "Platte: grosse Videos, Endung und erste Bytes"
-  },
-  {
-    nr: '1353', name: "Die ersten Bytes werden erst nach dem Verschluesseln geprueft",
-    file: 'server.js',
-    search: "    if (u.n === 0 && u.large === 1 && !VIDEO_MIMES.includes(attachments.typeFromBytes(body.subarray(0, 12)))) {\n      dropUpload.run(u.id);\n      return res.status(415).json({ error: t(locale, 'server.videoOnly', { mb: uploadLimits().attachment }) });\n    }\n    await benchHold();\n    await attachments.sealInto(diskPath(u.name, true),\n      { name: u.name, size: u.size, chunk: CHUNK, key: u.file_key }, u.n / CHUNK, body);\n",
-    replacement: "    await benchHold();\n    await attachments.sealInto(diskPath(u.name, true),\n      { name: u.name, size: u.size, chunk: CHUNK, key: u.file_key }, u.n / CHUNK, body);\n    if (u.n === 0 && u.large === 1 && !VIDEO_MIMES.includes(attachments.typeFromBytes(body.subarray(0, 12)))) {\n      dropUpload.run(u.id);\n      return res.status(415).json({ error: t(locale, 'server.videoOnly', { mb: uploadLimits().attachment }) });\n    }\n",
-    expected: "Platte: grosse Videos, Endung und erste Bytes"
-  },
-  {
-    nr: '1354', name: "Nach falschen ersten Bytes bleibt der Upload stehen",
-    file: 'server.js',
-    search: "      dropUpload.run(u.id);\n      return res.status(415)",
-    replacement: "      return res.status(415)",
-    expected: "Platte: grosse Videos, Endung und erste Bytes"
-  },
-  {
-    nr: '1355', name: "Jedes Video wird an den ersten Bytes geprueft",
-    file: 'server.js',
-    search: "    if (u.n === 0 && u.large === 1 && !VIDEO_MIMES",
-    replacement: "    if (u.n === 0 && attachments.previewKind(u.filename) === 'video' && !VIDEO_MIMES",
-    expected: "Platte: grosse Videos, Endung und erste Bytes"
+    search: "      { filename: u.name, size: u.size, modified: u.file.lastModified, folderId: u.folderId || null });",
+    replacement: "      { filename: u.name, size: u.size, modified: u.file.lastModified, folderId: null });",
+    expected: "Ordner: Hochladen und Ablegen"
   },
   {
     nr: '1356', name: "Ein erneutes Stueck wird verschluesselt",
@@ -9479,20 +9416,6 @@ const REGRESSIONS = [
     expected: "Platte: Ranges und HEAD"
   },
   {
-    nr: '1370', name: "Das Zuweisen eines Testtags lagert nicht um",
-    file: 'server.js',
-    search: "    if (moving.length) await relocate(qDbFilesIn.all(f.id).map(z => z.id));\n",
-    replacement: "",
-    expected: "Platte: Umlagerung"
-  },
-  {
-    nr: '1371', name: "Das Verschieben in einen Ordner mit Testtag lagert nicht um",
-    file: 'server.js',
-    search: "    if (moving) await relocate([a.id]);\n",
-    replacement: "",
-    expected: "Platte: Umlagerung"
-  },
-  {
     nr: '1372', name: "Die Umlagerung leert data nicht",
     file: 'server.js',
     search: "      emptyFile.run(id);\n      if (before) emptyPrevious.run(id);",
@@ -9507,13 +9430,6 @@ const REGRESSIONS = [
     expected: "Platte: Umlagerung"
   },
   {
-    nr: '1374', name: "Die Umlagerung prueft den Platz nicht",
-    file: 'server.js',
-    search: "      const short = moving ? spaceShort(relocateNeed([a.id])) : null;\n      if (short) return refuseSpace(req, res, short);",
-    replacement: "      const short = moving ? spaceShort(relocateNeed([a.id])) : null;",
-    expected: "Platte: Umlagerung"
-  },
-  {
     nr: '1375', name: "Der Lauf holt die Umlagerung nicht nach",
     file: 'server.js',
     search: "  if (!DATABASE_INCOMPLETE) await relocate(qRelocatePending.all().map(z => z.id));\n",
@@ -9523,8 +9439,8 @@ const REGRESSIONS = [
   {
     nr: '1376', name: "Das Verschieben aus dem Ordner holt die Datei in die Datenbank zurueck",
     file: 'server.js',
-    search: "    if (wanted === null) dropFileFolder.run(a.id);",
-    replacement: "    if (wanted === null) { dropFileFolder.run(a.id); db.prepare('DELETE FROM disk_files WHERE attachment_id = ?').run(a.id); }",
+    search: "  if (wanted === null) dropFileFolder.run(a.id);",
+    replacement: "  if (wanted === null) { dropFileFolder.run(a.id); db.prepare('DELETE FROM disk_files WHERE attachment_id = ?').run(a.id); }",
     expected: "Platte: kein Weg zurueck"
   },
   {
@@ -9747,7 +9663,7 @@ const REGRESSIONS = [
   {
     nr: '1408', name: "Der Import legt alles in die Datenbank",
     file: 'server.js',
-    search: "      if (buf && folder !== null && folderDays.kept.has(folder)) {",
+    search: "      if (buf) {",
     replacement: "      if (false) {",
     expected: "Platte: Export und Import"
   },
@@ -9861,13 +9777,6 @@ const REGRESSIONS = [
     file: 'attachments.js',
     search: "  const spans = rows.map((l, i) =>",
     replacement: "  const spans = [].map((l, i) =>",
-    expected: "Dateien: Vorschaubild einer Textdatei"
-  },
-  {
-    nr: '1425', name: "Text wartet beim Upload in einer Anfrage auf die Warteschlange",
-    file: 'server.js',
-    search: "      else if (docTileKind(x.name) === 'text') x.tile = await textTile(x.f.buffer);\n",
-    replacement: "",
     expected: "Dateien: Vorschaubild einer Textdatei"
   },
   {
@@ -10108,6 +10017,197 @@ const REGRESSIONS = [
     replacement: "  `^/api/(import|uploads/[0-9a-f]{32}|(items|comments)/[0-9]+/(photos|videos|attachments|comments|images))$`",
     expected: "Reverse Proxy: die Pfade fuer NPMplus in der README"
   },
+  /* ---- 0.50.0: ein Weg fuer Dateien, Umlagerung, Videostelle, Ordnerzustand, Auswahl ---- */
+  {
+    nr: '1460', name: "Die Umlagerung nach dem Start faellt weg",
+    file: 'server.js',
+    search: "  if (!DATABASE_INCOMPLETE) await relocate(qRelocatePending.all().map(z => z.id));\n",
+    replacement: "",
+    expected: "Umlagerung: der Bestand der Datenbank geht nach dem Start auf die Platte"
+  },
+  {
+    nr: '1461', name: "Die vorige Fassung bleibt bei der Umlagerung zurueck",
+    file: 'server.js',
+    search: "                 ...(before ? [{ data: before.data, current: null, previous: id }] : [])]",
+    replacement: "                 ...([])]",
+    expected: "Umlagerung: der Bestand der Datenbank geht nach dem Start auf die Platte"
+  },
+  {
+    nr: '1462', name: "Der Start prueft den Platz fuer die Umlagerung nicht",
+    file: 'server.js',
+    search: "  if (free === null || free >= need + DB_SPARE) return;",
+    replacement: "  return;",
+    expected: "Umlagerung: zu wenig Platz verweigert den Start"
+  },
+  {
+    nr: '1463', name: "„Kennzahlen\" zaehlt auch die Dateien auf der Platte als wartend",
+    file: 'server.js',
+    search: "  const an = db.prepare(`SELECT COUNT(*) AS n, COALESCE(SUM(size),0) AS o FROM attachments a\n    WHERE NOT EXISTS (SELECT 1 FROM disk_files d WHERE d.attachment_id = a.id)`).get();",
+    replacement: "  const an = db.prepare(`SELECT COUNT(*) AS n, COALESCE(SUM(size),0) AS o FROM attachments a`).get();",
+    expected: "Umlagerung: der Bestand der Datenbank geht nach dem Start auf die Platte"
+  },
+  {
+    nr: '1464', name: "Ueber „Anhang\" ist ein Upload nicht large",
+    file: 'server.js',
+    search: "  const large = size > limits.attachment * MB;",
+    replacement: "  const large = false;",
+    expected: "Platte: Upload in Stuecken, Weg und Ordner"
+  },
+  {
+    nr: '1465', name: "Die Grenze „Datei\" gilt beim Beginn nicht",
+    file: 'server.js',
+    search: "  if (size > most * MB) return res.status(413)",
+    replacement: "  if (false) return res.status(413)",
+    expected: "Platte: Upload in Stuecken, Weg und Ordner"
+  },
+  {
+    nr: '1466', name: "In einen fremden Ordner beginnt ein Upload",
+    file: 'server.js',
+    search: "  if (target && (target.item_id !== itemId || !selfOnly(req, target.user_id)))",
+    replacement: "  if (target && target.item_id !== itemId)",
+    expected: "Ordner: Schema und Routen"
+  },
+  {
+    nr: '1467', name: "Die kompatiblen Marken im ftyp-Kasten zaehlen nicht",
+    file: 'attachments.js',
+    search: "    for (let at = 16; at + 4 <= end; at += 4)",
+    replacement: "    for (let at = 16; at < 0; at += 4)",
+    expected: "Ein Weg fuer Dateien: Grenze „Datei\" und Erkennung"
+  },
+  {
+    nr: '1468', name: "Eine grosse Datei bekommt die Textvorschau",
+    file: 'server.js',
+    search: "  if (kind !== 'text' && kind !== 'docx') return res.status(400).json({ error: t(localeOf(req), 'server.noTextPreview')});\n  if (largeFile(a.id)) return res.status(400).json({ error: t(localeOf(req), 'server.largeDownloadOnly')});\n",
+    replacement: "  if (kind !== 'text' && kind !== 'docx') return res.status(400).json({ error: t(localeOf(req), 'server.noTextPreview')});\n",
+    expected: "Grosse Dokumente: nur zum Herunterladen"
+  },
+  {
+    nr: '1469', name: "Der Document Server oeffnet eine grosse Datei",
+    file: 'server.js',
+    search: "      return res.status(409).json({ error: t(localeOf(req), 'server.docOff')});\n    if (largeFile(a.id)) return res.status(400).json({ error: t(localeOf(req), 'server.largeDownloadOnly')});\n",
+    replacement: "      return res.status(409).json({ error: t(localeOf(req), 'server.docOff')});\n",
+    expected: "Grosse Dokumente: nur zum Herunterladen"
+  },
+  {
+    nr: '1470', name: "Ueber „Anhang\" behaelt jede Datei ihre Vorschau",
+    file: 'server.js',
+    search: "      preview: large ? (['image', 'video', 'pdf'].includes(kind) ? kind : 'keine')",
+    replacement: "      preview: large ? kind",
+    expected: "Grosse Dokumente: nur zum Herunterladen"
+  },
+  {
+    nr: '1471', name: "Die Stelle wird auch unter 10 s gemerkt",
+    file: 'server.js',
+    search: "  const kept = seconds >= POSITION_MIN_S && !seen;",
+    replacement: "  const kept = !seen;",
+    expected: "Stelle im Video: Regeln am Server"
+  },
+  {
+    nr: '1472', name: "Das Ende eines Videos zaehlt nicht als gesehen",
+    file: 'server.js',
+    search: "  const seen = duration !== null && seconds >= duration - Math.max(POSITION_MIN_S, duration * POSITION_END_SHARE);",
+    replacement: "  const seen = false;",
+    expected: "Stelle im Video: Regeln am Server"
+  },
+  {
+    nr: '1473', name: "Eine Datei ohne Video nimmt eine Stelle an",
+    file: 'server.js',
+    search: "  if (!target || (b.kind === 'file' && !isVideoFile(target.filename)))",
+    replacement: "  if (!target)",
+    expected: "Stelle im Video: Regeln am Server"
+  },
+  {
+    nr: '1474', name: "detail() nennt die Stellen der anderen Accounts",
+    file: 'server.js',
+    search: "  FROM video_positions WHERE user_id = ? AND (attachment_id IN",
+    replacement: "  FROM video_positions WHERE user_id IS NOT ? AND (attachment_id IN",
+    expected: "Stelle im Video: Regeln am Server"
+  },
+  {
+    nr: '1475', name: "Ein neuer Ordner steht fuer seinen Verfasser nicht offen",
+    file: 'server.js',
+    search: "  putFolderOpen.run(req.user.id, made);\n",
+    replacement: "",
+    expected: "Ordner: offen oder zu je Account"
+  },
+  {
+    nr: '1476', name: "Der Zustand eines Ordners gilt fuer alle Accounts",
+    file: 'server.js',
+    search: "  WHERE o.user_id = ? AND f.item_id = ?`);",
+    replacement: "  WHERE ? IS NOT NULL AND f.item_id = ?`);",
+    expected: "Ordner: offen oder zu je Account"
+  },
+  {
+    nr: '1477', name: "Der Browser merkt sich den Klick auf den Ordnerkopf nicht",
+    file: 'public/app.js',
+    search: "    api('PUT', `/api/folders/${Number(folderId)}/open`, { open })",
+    replacement: "    Promise.resolve()",
+    expected: "Ordnerzustand im Browser"
+  },
+  {
+    nr: '1478', name: "Beim Oeffnen eines Eintrags sind wieder alle Ordner zu",
+    file: 'public/app.js',
+    search: "    FOLDERS_OPEN = { itemId: Number(id), open: new Set((item.folders || []).filter(f => f.open).map(f => f.id)) };",
+    replacement: "    FOLDERS_OPEN = { itemId: Number(id), open: new Set() };",
+    expected: "Ordnerzustand im Browser"
+  },
+  {
+    nr: '1479', name: "Das Video springt nicht an die gemerkte Stelle",
+    file: 'public/app.js',
+    search: "    player.currentTime = at;\n",
+    replacement: "",
+    expected: "Stelle im Video im Browser"
+  },
+  {
+    nr: '1480', name: "Der Hinweis „ab 3:12\" fehlt",
+    file: 'public/app.js',
+    search: "    box.appendChild(hint);\n",
+    replacement: "",
+    expected: "Stelle im Video im Browser"
+  },
+  {
+    nr: '1481', name: "Beim Anhalten wird die Stelle nicht gespeichert",
+    file: 'public/app.js',
+    search: "  const onPause = () => { save(); if (!player.isConnected) watcher.stop(); };",
+    replacement: "  const onPause = () => { if (!player.isConnected) watcher.stop(); };",
+    expected: "Stelle im Video im Browser"
+  },
+  {
+    nr: '1482', name: "Die Stelle geht ohne keepalive",
+    file: 'public/app.js',
+    search: "      method: 'PUT', credentials: 'same-origin', keepalive: true,",
+    replacement: "      method: 'PUT', credentials: 'same-origin',",
+    expected: "Stelle im Video im Browser"
+  },
+  {
+    nr: '1483', name: "Die Auswahl laesst Dateien ohne Recht zum Loeschen waehlen",
+    file: 'public/app.js',
+    search: "    pickState(li, filesPicked && mayDeleteFile(a) ? filesPicked.has(a.id) : null);",
+    replacement: "    pickState(li, filesPicked ? filesPicked.has(a.id) : null);",
+    expected: "Auswahl unter „Dateien\" im Browser"
+  },
+  {
+    nr: '1484', name: "Die Auswahl loescht ohne Rueckfrage",
+    file: 'public/app.js',
+    search: "    if (!await confirmBox(t('entry.pickDeleteAsk', { n: chosen.length }), t('entry.pickDeleteHint'))) return;\n",
+    replacement: "",
+    expected: "Auswahl unter „Dateien\" im Browser"
+  },
+  {
+    nr: '1485', name: "Die Bildleiste bietet die Auswahl ohne Recht zum Loeschen an",
+    file: 'public/app.js',
+    search: "      !!photosPicked || !item.photos.length || !mayDeletePhotos();",
+    replacement: "      !!photosPicked || !item.photos.length;",
+    expected: "Auswahl in der Bildleiste im Browser"
+  },
+  {
+    nr: '1486', name: "Das Kaestchen im Ordnerkopf fehlt in der Auswahl",
+    file: 'public/app.js',
+    search: "    check.hidden = !choosable.length;",
+    replacement: "    check.hidden = true;",
+    expected: "Auswahl unter „Dateien\" im Browser"
+  }
+
 ];
 
 /* ---- Spuren und Versatz ---- */

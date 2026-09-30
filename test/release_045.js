@@ -15,61 +15,45 @@ async function run() {
     String(DE[key]).replace(/\{(\w+)\}/g, (m, k) => (k in values ? String(values[k]) : m));
   const ENTRY_ONE = DE['vocabulary.entryOne'];
 
-  group('Dateien in Kacheln: 100 je Eintrag, 20 je Anfrage');
+  group('Dateien in Kacheln: 100 je Eintrag');
   {
     // Die Basis teilt sich das Modul mit release_041 bis release_044; die Module laufen nacheinander.
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-kacheln-'));
     const B = H.startFurtherServer(dir, {}, 7340);
     await B.ready;
     await B.call('POST', '/api/setup', { user: 'eigen', password: 'eigen-langes-wort-45' });
-    const send = async (itemId, count, from = 0) => {
-      const fd = new FormData();
-      for (let i = 0; i < count; i++) fd.append('files', new Blob([`Datei ${from + i}`]), `datei-${from + i}.txt`);
-      const a = await fetch(`${B.base}/api/items/${itemId}/attachments`,
-        { method: 'POST', body: fd, headers: withCsrf(B.cookieValue()) });
-      return { status: a.status, content: await a.json().catch(() => null) };
-    };
+    const send = (itemId, count, from = 0) => H.sendFiles(B.base, B.cookieValue(), itemId,
+      Array.from({ length: count }, (_, i) => ({ name: `datei-${from + i}.txt`, content: `Datei ${from + i}` })));
     const countOf = async (itemId) => (await B.call('GET', `/api/items/${itemId}`)).content?.attachments?.length;
     const item = (await B.call('POST', '/api/items', { title: 'Hundert Dateien' })).content.id;
-    const rounds = [];
-    for (let k = 0; k < 5; k++) rounds.push((await send(item, 20, k * 20)).status);
+    const hundredSent = await send(item, 100);
     const hundred = await countOf(item);
-    check('Fuenf Anfragen zu je 20 Dateien bringen einen Eintrag auf 100',
-      equal(rounds, [201, 201, 201, 201, 201]) && hundred === 100, `${rounds.join(' ')} · ${hundred}`);
+    check('Hundert Dateien nacheinander bringen einen Eintrag auf 100',
+      hundredSent.status === 201 && hundred === 100, `${hundredSent.status} · ${hundred}`);
     const oneMore = await send(item, 1, 100);
-    check('Die 101. Datei weist der Server mit server.fileCap ab',
+    check('Die 101. Datei weist der Server beim Beginn mit server.fileCap ab',
       oneMore.status === 400 && oneMore.content?.error === deText('server.fileCap', { cap: 100, entryOne: ENTRY_ONE }) &&
       await countOf(item) === 100, `${oneMore.status} ${oneMore.content?.error}`);
-    const other = (await B.call('POST', '/api/items', { title: 'Zu viele auf einmal' })).content.id;
-    const many = await send(other, 21);
-    const afterMany = await countOf(other);
-    check('21 Dateien in einer Anfrage weist er ab, und keine davon ist angelegt',
-      many.status === 400 && many.content?.error === deText('server.uploadCap', { cap: 20 }) && afterMany === 0,
-      `${many.status} ${many.content?.error} · ${afterMany}`);
-    const twenty = await send(other, 20);
-    check('20 in einer Anfrage nimmt er an', twenty.status === 201 && twenty.content?.attachments?.length === 20,
-      `${twenty.status} ${twenty.content?.attachments?.length}`);
     await B.stop();
     fs.rmSync(dir, { recursive: true, force: true });
 
     const server = read('server.js'), app = read('public/app.js');
     const numberOf = (text, name) => Number((text.match(new RegExp(`^const ${name} = (\\d+);$`, 'm')) || [])[1]);
-    check('Beide Grenzen haben Namen, in server.js und public/app.js mit denselben Zahlen',
-      numberOf(server, 'FILES_PER_REQUEST') === 20 && numberOf(server, 'FILES_PER_ENTRY') === 100 &&
-      numberOf(app, 'FILES_PER_REQUEST') === 20 && numberOf(app, 'FILES_PER_ENTRY') === 100 &&
-      !/ATTACHMENT_COUNT/.test(server + app),
-      ['FILES_PER_REQUEST', 'FILES_PER_ENTRY'].map(n => `${n} ${numberOf(server, n)}/${numberOf(app, n)}`).join(' · '));
-    const route = server.slice(server.indexOf("app.post('/api/items/:id/attachments',"));
+    check('Die Grenze je Eintrag hat einen Namen, in server.js und public/app.js mit derselben Zahl',
+      numberOf(server, 'FILES_PER_ENTRY') === 100 && numberOf(app, 'FILES_PER_ENTRY') === 100 &&
+      !/ATTACHMENT_COUNT|FILES_PER_REQUEST/.test(server + app),
+      `FILES_PER_ENTRY ${numberOf(server, 'FILES_PER_ENTRY')}/${numberOf(app, 'FILES_PER_ENTRY')}`);
+    const route = server.slice(server.indexOf("app.post('/api/items/:id/uploads',"));
     // fileSlots() zaehlt die Dateien des Eintrags und seine offenen Uploads.
-    const counted = route.slice(route.indexOf('fileSlots(req.params.id)'), route.indexOf('into.run('));
-    check('Die Route zaehlt je Anfrage und je Eintrag, ohne await zwischen Zaehlen und Schreiben',
-      /\.array\('files', FILES_PER_REQUEST\)/.test(route) && /da \+ fresh > FILES_PER_ENTRY/.test(route) &&
-      /\{ cap: FILES_PER_ENTRY \}/.test(route) && counted.length > 0 && !/await/.test(counted) &&
+    const counted = route.slice(route.indexOf('fileSlots(itemId)'), route.indexOf('addUpload.run('));
+    check('Der Beginn zaehlt je Eintrag, ohne await zwischen Zaehlen und Schreiben',
+      /fileSlots\(itemId\) >= FILES_PER_ENTRY/.test(route) && /\{ cap: FILES_PER_ENTRY \}/.test(route) &&
+      counted.length > 0 && !/await/.test(counted) &&
       /function fileSlots\(itemId\) \{\n  return db\.prepare\('SELECT COUNT\(\*\) n FROM attachments/.test(server),
       counted.slice(0, 120) || '(keine Zaehlung gefunden)');
     const hints = ['de', 'en', 'tr'].map(c => JSON.parse(read(`public/languages/${c}.json`))['entry.fileLimitHint']);
-    check('entry.fileLimitHint traegt beide Zahlen als Platzhalter, in drei Sprachen',
-      hints.every(h => /\{mb\}/.test(h) && /\{cap\}/.test(h) && !/\d/.test(h)), hints.join(' · '));
+    check('entry.fileLimitHint traegt Grenze und Zahl als Platzhalter, in drei Sprachen',
+      hints.every(h => /\{size\}/.test(h) && /\{cap\}/.test(h) && !/\d/.test(h)), hints.join(' · '));
     check('Das Handbuch nennt dieselbe Zahl je Eintrag',
       read('manual-de.md').replace(/\s+/g, ' ').includes(`höchstens ${numberOf(server, 'FILES_PER_ENTRY')} je Eintrag`),
       'der Satz fehlt');
@@ -208,10 +192,10 @@ async function run() {
       read('public/style.css').includes('@media (pointer: coarse), (pointer: none) { .adrop-hint { display: none; } }'),
       'Regel fehlt');
     const plus = tileOf(e.w, 'add');
-    check('„+" nennt die Grenze „Anhang"',
-      plus?.querySelector('.ameta')?.textContent === deText('entry.fileAddLimit', { mb: 50 }) &&
+    check('„+" nennt die Grenze „Datei"',
+      plus?.querySelector('.ameta')?.textContent === deText('entry.fileAddLimit', { size: '2 GB' }) &&
       plus?.querySelector('.aface')?.getAttribute('aria-label') ===
-        `${DE['entry.fileAdd']}, ${deText('entry.fileLimitHint', { mb: 50, cap: 100 })}`,
+        `${DE['entry.fileAdd']}, ${deText('entry.fileLimitHint', { size: '2 GB', cap: 100 })}`,
       plus?.querySelector('.aface')?.getAttribute('aria-label'));
     let picked = 0;
     e.w.document.getElementById('afile').click = () => { picked++; };
@@ -411,11 +395,22 @@ async function run() {
 
   group('Dateien in Kacheln: die Warteschlange');
   {
-    const m = buildDom(JSDOM, { hash: '#/item/1', uploadLimits: { attachment: 1 } });
+    const m = buildDom(JSDOM, { hash: '#/item/1', uploadLimits: { attachment: 1, file: 1 } });
     const w = m.w;
     const second = { ...m.example, id: 2, title: 'Zweiter', attachments: [] };
+    // Der Beginn geht ueber fetch, die Stuecke ueber XMLHttpRequest.
+    const begun = [];
+    let offline = 0, lastId = 0;
     const inner = w.fetch;
-    w.fetch = (url, opt) => (url === '/api/items/2' ? reply(second) : inner(url, opt));
+    w.fetch = (url, opt) => {
+      if (url === '/api/items/2') return reply(second);
+      if (/^\/api\/items\/\d+\/uploads$/.test(url) && opt?.method === 'POST') {
+        if (offline > 0) { offline--; return Promise.reject(new TypeError('offline')); }
+        begun.push(JSON.parse(opt.body));
+        return reply({ id: String(++lastId).padStart(32, '0'), received: 0 }, 201);
+      }
+      return inner(url, opt);
+    };
     const xhrs = [];
     w.XMLHttpRequest = class {
       constructor() { this.upload = {}; this.headers = {}; xhrs.push(this); }
@@ -435,31 +430,30 @@ async function run() {
     const file = (name, bytes) => new w.File(['x'.repeat(bytes)], name);
     const uploads = () => tiles(w).filter(t => /^u/.test(t.dataset.key));
     const corner = (t) => t?.querySelector('.astate')?.textContent;
+    const puts = (n) => until(w, () => xhrs.length >= n, 2000, `${n} Stuecke`).catch(() => {});
 
-    pick(Array.from({ length: 21 }, (_, i) => file(`d${i}.txt`, 1)));
-    check('Mehr als 20 Dateien in einer Auswahl: nichts geht hoch, der Browser nennt die Grenze',
-      xhrs.length === 0 && uploads().length === 0 &&
-      w.document.querySelector('.toast')?.textContent === deText('server.uploadCap', { cap: 20 }),
-      w.document.querySelector('.toast')?.textContent);
     pick([file('klein.txt', 1), file('gross.bin', 1100000)]);
-    check('Eine Datei ueber der Grenze „Anhang": nichts geht hoch, genannt werden Datei und Grenze',
-      xhrs.length === 0 && uploads().length === 0 &&
+    check('Eine Datei ueber der Grenze „Datei": nichts geht hoch, genannt werden Datei und Grenze',
+      begun.length === 0 && uploads().length === 0 &&
       w.document.querySelector('.toast')?.textContent === deText('entry.tooBig', { name: 'gross.bin', mb: 1 }),
       w.document.querySelector('.toast')?.textContent);
     check('Ueber 100 je Eintrag sagt der Browser ebenso vorher ab',
       w.eval('uploadRefusal')(1, [{ size: 1 }, { size: 1 }], 99) === deText('server.fileCap', { cap: 100, entryOne: ENTRY_ONE }) &&
       w.eval('uploadRefusal')(1, [{ size: 1 }], 99) === '', 'keine Absage');
 
-    pick([file('drei.txt', 300), file('eins.txt', 1), file('zwei.txt', 50)]);
+    pick([file('drei.txt', 300), file('eins.txt', 4), file('zwei.txt', 50)]);
+    await puts(1);
     check('Jede Datei steht sofort als Kachel da, die kleinste zuerst; nur sie geht hoch',
       equal(uploads().map(t => t.querySelector('.aname')?.textContent), ['eins.txt', 'zwei.txt', 'drei.txt']) &&
-      xhrs.length === 1 && corner(uploads()[1]) === DE['entry.fileWaiting'] && corner(uploads()[2]) === DE['entry.fileWaiting'],
+      begun.length === 1 && xhrs.length === 1 &&
+      corner(uploads()[1]) === DE['entry.fileWaiting'] && corner(uploads()[2]) === DE['entry.fileWaiting'],
       uploads().map(t => `${t.querySelector('.aname')?.textContent}:${corner(t)}`).join(' '));
     const first = xhrs[0];
-    check('Je Datei eine Anfrage an POST /api/items/:id/attachments, mit dem CSRF-Wert',
-      first?.method === 'POST' && first?.url === '/api/items/1/attachments' && first?.body?.getAll('files').length === 1 &&
-      first?.body?.get('files')?.name === 'eins.txt' && first?.headers['x-csrf-token'] === 'pruefwert',
-      `${first?.method} ${first?.url} ${JSON.stringify(first?.headers)}`);
+    check('Je Datei ein Beginn an POST /api/items/:id/uploads, dann die Stuecke mit Offset und CSRF-Wert',
+      begun[0]?.filename === 'eins.txt' && begun[0]?.size === 4 && begun[0]?.folderId === null &&
+      first?.method === 'PUT' && first?.url === `/api/uploads/${'1'.padStart(32, '0')}` &&
+      first?.headers['Upload-Offset'] === '0' && first?.headers['x-csrf-token'] === 'pruefwert' && first?.body?.size === 4,
+      `${JSON.stringify(begun[0])} ${first?.method} ${first?.url} ${JSON.stringify(first?.headers)}`);
     first?.upload.onprogress?.({ lengthComputable: true, loaded: 1, total: 4 });
     check('Die Kachel zeigt den Fortschritt als Ring mit Prozent',
       corner(uploads()[0]) === '25 %' && uploads()[0]?.querySelector('.astate')?.classList.contains('run') &&
@@ -481,9 +475,10 @@ async function run() {
       sort_order: 9, preview: 'text', created_at: '2026-09-28 10:00:00', mine: true, author: null });
     m.example.attachments.push(done('eins.txt'));
     first?.answer(201, m.example);
+    await puts(2);
     check('Die Warteschlange laeuft weiter, wenn ein anderer Eintrag gezeichnet ist',
-      !first?.aborted && xhrs.length === 2 && xhrs[1]?.body?.get('files')?.name === 'drei.txt' &&
-      tiles(w).every(t => !/^u/.test(t.dataset.key)), `${xhrs.length} Anfragen`);
+      !first?.aborted && xhrs.length === 2 && begun[1]?.filename === 'drei.txt' &&
+      tiles(w).every(t => !/^u/.test(t.dataset.key)), `${xhrs.length} Stuecke, ${begun.length} Beginne`);
     w.location.hash = '#/item/1';
     await settle(w, 7, 'die Rueckkehr');
     check('Zurueck im Eintrag zeigt die Kachel den Stand',
@@ -499,33 +494,40 @@ async function run() {
       !after.defaultPrevented && uploads().length === 0, w.document.querySelector('.toast')?.textContent);
 
     pick([file('kaputt.txt', 5), file('heil.txt', 9)]);
+    await puts(3);
     xhrs[2]?.answer(400, { error: 'Zu gross fuer den Server.' });
+    await puts(4);
     const failed = uploads()[0];
     check('Eine fehlgeschlagene Datei zeigt ⚠ und den Grund; die uebrigen gehen weiter',
       corner(failed) === '⚠' && failed?.querySelector('.ameta')?.textContent === 'Zu gross fuer den Server.' &&
-      xhrs.length === 4 && xhrs[3]?.body?.get('files')?.name === 'heil.txt', `${corner(failed)} · ${xhrs.length}`);
+      xhrs.length === 4 && begun[3]?.filename === 'heil.txt', `${corner(failed)} · ${xhrs.length}`);
     xhrs[3]?.answer(201, m.example);
     moreOf(w, failed?.dataset.key)?.click();
     const failWords = menuWords(w);
     menuItems(w)[0]?.click();
-    check('Danach bietet das Menue „Erneut versuchen" und „Entfernen"; erneut geht sie noch einmal hoch',
+    check('Danach bietet das Menue „Erneut versuchen" und „Entfernen"; erneut geht dasselbe Stueck noch einmal hoch',
       equal(failWords, [DE['entry.uploadRetry'], DE['entry.remove']]) && xhrs.length === 5 &&
-      xhrs[4]?.body?.get('files')?.name === 'kaputt.txt', failWords.join(' / '));
+      xhrs[4]?.url === xhrs[2]?.url && begun.length === 4, failWords.join(' / '));
+    xhrs[4]?.answer(201, m.example);
+
+    // Ohne Verbindung scheitert schon der Beginn; ohne Nummer beim Server bleibt nur ⚠.
     const delays = [];
     const plain = w.setTimeout;
     w.setTimeout = (fn, ms, ...rest) => {
       if ([2000, 5000, 15000].includes(ms)) { delays.push(ms); fn(); return 0; }
       return plain(fn, ms, ...rest);
     };
-    for (let k = 4; k < 8; k++) xhrs[k]?.onerror?.();
+    offline = 4;
+    pick([file('weg.txt', 3)]);
+    await until(w, () => corner(uploads()[0]) === '⚠', 2000, 'das Aufgeben').catch(() => {});
     w.setTimeout = plain;
-    const offline = uploads()[0];
+    const lost = uploads()[0];
     check('Ohne Verbindung: Wiederholung nach 2, 5 und 15 s, dann ⚠',
-      equal(delays, [2000, 5000, 15000]) && xhrs.length === 8 && corner(offline) === '⚠' &&
-      offline?.querySelector('.ameta')?.textContent === DE['entry.uploadOffline'], `${delays.join(' ')} · ${xhrs.length}`);
-    moreOf(w, offline?.dataset.key)?.click();
+      equal(delays, [2000, 5000, 15000]) && offline === 0 && corner(lost) === '⚠' &&
+      lost?.querySelector('.ameta')?.textContent === DE['entry.uploadOffline'], `${delays.join(' ')} · ${offline}`);
+    moreOf(w, lost?.dataset.key)?.click();
     menuItems(w)[1]?.click();
-    check('„Entfernen" nimmt die Kachel weg', uploads().length === 0 && xhrs.length === 8, `${uploads().length}`);
+    check('„Entfernen" nimmt die Kachel weg', uploads().length === 0 && xhrs.length === 5, `${uploads().length}`);
 
     const block = w.document.querySelector('.block[data-block="dateien"]');
     const drag = (type, types, files = []) => {
@@ -538,11 +540,12 @@ async function run() {
     const fileDrag = drag('dragenter', ['Files']);
     const marked = block.classList.contains('over');
     const drop = drag('drop', ['Files'], [file('abgelegt.txt', 3)]);
+    await puts(6);
     check('Dateien lassen sich auf den ganzen Block ziehen; anderes laesst er durch',
       !textDrag.defaultPrevented && fileDrag.defaultPrevented && marked && drop.defaultPrevented &&
-      !block.classList.contains('over') && xhrs.length === 9 && xhrs[8]?.body?.get('files')?.name === 'abgelegt.txt',
+      !block.classList.contains('over') && xhrs.length === 6 && begun[begun.length - 1]?.filename === 'abgelegt.txt',
       `${textDrag.defaultPrevented} ${fileDrag.defaultPrevented} ${marked} ${xhrs.length}`);
-    xhrs[8]?.answer(201, m.example);
+    xhrs[5]?.answer(201, m.example);
     w.close();
 
     const app = read('public/app.js');
