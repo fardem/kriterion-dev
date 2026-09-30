@@ -184,7 +184,7 @@ sagt der Fahrplan.
 | **54** | „Dateien“ wie im Windows-Explorer gestalten; welche Teile gemeint sind, ist offen | mittel | groß | zusammen mit 53 und 55 |
 | **55** | „Bearbeiten“ und „Link“ am Desktop in der Zeile statt nur im Menü „…“ | mittel | klein | zusammen mit 53 und 54 |
 | **56** | Angaben zu Videos wie in MediaInfo: Codec, Auflösung, Bildrate, Bitrate, Ton; ohne ffmpeg über `mediainfo.js` möglich | mittel | mittel | Machbarkeit zuerst besprechen (Vorgabe) |
-| **57** | Vorpuffern im Player bei schlechter Verbindung; eine schnell abspielbare Fassung für das Telefon mit ffmpeg, nur wenn es schnell geht | offen | offen | Machbarkeit zuerst besprechen, Umwandeln auf dem Server messen (Vorgabe) |
+| **57** | Vorpuffern im Player bei schlechter Verbindung; eine schnell abspielbare Fassung für das Telefon mit ffmpeg, nur wenn es schnell geht | offen | offen | zuerst Puffern und Cache, dann messen; Machbarkeit zuerst besprechen (Vorgabe) |
 | **58** | „Der Papierkorb: der Rundlauf“ wartet nicht auf die Umlagerung beim Start und wird dann rot | hoch | klein | beheben |
 | **59** | `test/ui_export.js` bricht unter drei Spuren mit „other side closed“ ab; Ursache nicht untersucht | mittel | offen | untersuchen |
 | ~~Protokoll 0.38.2~~ | ~~Die Strichstärke des Löschkreuzes bleibt 1.8, dieselbe wie am Stift und am Zitatzeichen~~ | — | — | **ABGELEHNT am 21. September 2026** |
@@ -2855,7 +2855,8 @@ vorpuffern?“ und „alos der player?“
 
 Nachtrag: „ffmpeg lohnt sich nur wenn es schnell geht“ und „andfere frage
 wäre ob wir für mibil mit ffmpeg egal welche format das hat ein schnelles
-abspiellbare konvertierung durchführen lassen.“
+abspiellbare konvertierung durchführen lassen.“ und „Wäre das puffern und
+chachen zu verbessern nicht dir sofftere Methode?“
 
 **Vorgabe des Betreibers:** wie bei Punkt 56; vor einer Umsetzung wird die
 Machbarkeit besprochen und abgestimmt. ffmpeg lohnt sich nur, wenn es schnell
@@ -2866,24 +2867,39 @@ geht.
 der Datei. Danach lädt er voraus, auch in der Pause, bis zu einer Grenze, die
 der Browser selbst festlegt; gemessen ist sie nicht. Der Server liefert Bereiche
 (HTTP 206) und entschlüsselt nur die nötigen Stücke zu 1 MiB; Springen lädt
-nicht von vorn. Es gibt eine Qualität, die Originaldatei. Ist die Verbindung
-dauerhaft langsamer als die Bitrate des Videos, stockt es.
+nicht von vorn. Die Dateien kommen mit `Cache-Control: private, max-age=3600`
+und ohne `ETag`; nach einer Stunde lädt der Browser sie neu. Es gibt eine
+Qualität, die Originaldatei. Ist die Verbindung dauerhaft langsamer als die
+Bitrate des Videos, stockt es.
 
 **Wege:**
 
 1. `preload="auto"` beim Öffnen einer Datei: lädt vor dem Start, kostet
    Datenvolumen auch ohne Abspielen.
-2. „Ganz laden“ per Knopf: nur für kleinere Dateien; Videos mit mehreren GB
+2. Länger cachen: braucht eine Kennung je Fassung (`ETag`), weil eine
+   bearbeitete Office-Datei unter derselben Adresse neuen Inhalt bekommt.
+   Was im Cache liegt, liegt unverschlüsselt auf dem Gerät; wie lange, ist
+   eine Entscheidung zur Sicherheit.
+3. „Ganz laden“ per Knopf: nur für kleinere Dateien; Videos mit mehreren GB
    passen nicht in den Speicher des Browsers.
-3. Eine zweite, kleinere Fassung für das Telefon: ffmpeg wandelt jedes Format,
+4. Eine zweite, kleinere Fassung für das Telefon: ffmpeg wandelt jedes Format,
    auch HEVC der A6700, nach H.264 und AAC in MP4 mit dem `moov`-Kasten vorn
    (`-movflags +faststart`), etwa 720p mit 5 Mbit/s, rund 37 MB je Minute.
    Umgewandelt wird im Hintergrund nach dem Upload, wie bei den Vorschaubildern.
    Braucht ffmpeg im Image, Rechenzeit je Video und Platz für die zweite Fassung.
 
+**Grenze von Puffer und Cache:** Ist die Verbindung dauerhaft langsamer als die
+Bitrate, wird aus Stocken Warten. Ein Video von 10 Minuten mit 100 Mbit/s hat
+7,5 GB; über 20 Mbit/s dauert das Laden 50 Minuten, ohne Stocken abspielen geht
+erst nach 40 Minuten. Dann hilft nur Weg 4.
+
+**Vorschlag zur Reihenfolge:** zuerst Weg 1 und 2 als die sanftere Methode,
+dann messen (Bitrate aus Punkt 56, Verbindung), erst danach entscheiden, ob
+Weg 4 nötig ist.
+
 **Zu klären:** wie weit Chrome, Firefox und Safari tatsächlich vorladen
 (messen), welche Bitraten die Videos im Bestand haben und welche Verbindung die
-schlechteste ist, mit der abgespielt werden soll. Für Weg 3: wie lange der
+schlechteste ist, mit der abgespielt werden soll. Für Weg 4: wie lange der
 Server für ein echtes Video der A6700 braucht, nur mit der CPU und mit
 Hardware-Beschleunigung (etwa Intel Quick Sync, dafür `/dev/dri` im Container).
 
