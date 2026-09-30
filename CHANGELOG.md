@@ -34,7 +34,7 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Ein Weg für Dateien, Auswahl, Stelle im Video, Ordner bleiben offen.*
 
-Fingerprint `FINGERPRINT` — davor `210a7f57`.
+Fingerprint `2b87077f` — davor `210a7f57`.
 
 > **Beim ersten Start legt Kriterion jede Datei, die noch in der Datenbank
 > liegt, unter `data/files/` ab**, im Hintergrund, eine nach der anderen.

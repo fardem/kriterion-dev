@@ -1,6 +1,6 @@
 # Änderungsprotokoll 0.50.0 — „Alle Dateien auf der Platte, Auswahl, Videos merken sich die Stelle“
 
-**Gebaut am 30. September 2026 auf 0.49.0. Fingerprint `FINGERPRINT`, davor
+**Gebaut am 30. September 2026 auf 0.49.0. Fingerprint `2b87077f`, davor
 `210a7f57`.**
 
 Nach `Doku/Auftrag_0.50.0.md` und dem Eintrag 0.50.0 im Fahrplan. Schema: ja,
@@ -58,10 +58,10 @@ Gemessen am fertigen Stand gegen 0.49.0.
 | Schlüssel je Sprachdatei | 1.327 | **1.341** |
 | Regelzeilen des Stilblatts | 1.901 | **1.944** |
 | Protokollzeilen in den sechs Dateien | 73 | **74** |
-| Kommentarzeilen | 6.921 in 46 Dateien | **KOMMENTARE in 47** |
+| Kommentarzeilen | 6.921 in 46 Dateien | **6.931 in 47** |
 | Dateien des Prüfstands samt `counterproof.js` | 30 | **31** |
 | Rückbauten | 1.376 | **1.390** |
-| Prüfungen im Prüfstand | 7.806 | **PRUEFUNGEN** |
+| Prüfungen im Prüfstand | 7.806 | **7.848** |
 
 ---
 
@@ -211,7 +211,10 @@ Gegenprobe), 1348 bis 1355 (Ordner mit Testtag als einziger Weg, Endung und
 erste Bytes großer Videos), 1370, 1371 und 1374 (Umlagerung beim Verschieben
 und Zuweisen), 1425 (Textvorschaubild im Upload in einer Anfrage).
 
-GEGENPROBE
+Gefahren mit `counterproof.js`, drei Spuren, auf `ba8411b`: 543, 947, 948 und
+949 **rot**, jeder in seiner erwarteten Gruppe. Der Lauf ist danach für den
+vollständigen `npm test` vor dem Push angehalten worden; die übrigen 37 folgen
+auf dem gepushten Stand.
 
 ---
 
