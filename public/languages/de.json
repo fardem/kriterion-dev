@@ -461,6 +461,7 @@
   "card.ofAtMost": "{used} von höchstens {cap}",
   "card.off": "aus",
   "card.oldBackupDeleted": "Altes Backup gelöscht",
+  "card.backupFileFetched": "Datei aus Backup zurückgeholt",
   "card.oldBackups": "Alte Backups",
   "card.oldBackupsFreed": {
     "one": "{n} altes Backup gelöscht, {bytes} frei",
@@ -670,8 +671,9 @@
   "card.titleBeforeLogin": "Titel vor der Anmeldung",
   "card.titleSaved": "Titel gespeichert",
   "card.trash": "Papierkorb",
-  "card.trashKeepsHint": "Gelöschte {entryMany} bleiben hier **{trashDays} Tage** und lassen sich wiederherstellen; danach werden sie endgültig gelöscht.",
+  "card.trashKeepsHint": "Gelöschte {entryMany} und Dateien bleiben hier **{trashDays} Tage** und lassen sich wiederherstellen; danach werden sie endgültig gelöscht.",
   "card.trashOwnerHint": "Wiederherstellen und endgültig löschen kann nur der Eigentümer-Admin.",
+  "card.trashEntryGone": "{entryOne} fehlt",
   "card.tryAnyway": "Trotzdem versuchen",
   "card.turnOn": "Einschalten",
   "card.turnSignupOff": "Registrierung ausschalten",
@@ -854,7 +856,7 @@
     "one": "{n} Datei · {filesize}",
     "other": "{n} Dateien · {filesize}"
   },
-  "entry.fileDeleteHint": "„{filename}“ wird endgültig gelöscht.",
+  "entry.fileDeleteHint": "„{filename}“ liegt danach {trashDays} Tage im Papierkorb.",
   "entry.fileDropHint": "Hierher ziehen oder mit + hochladen.",
   "entry.fileFailed": "fehlgeschlagen",
   "entry.fileFull": "{n} von {cap}",
@@ -866,6 +868,26 @@
     "other": "{n} Dateien angehängt"
   },
   "entry.folderAdd": "Ordner hinzufügen",
+  "entry.deletedOpen": "Gelöschte Dateien …",
+  "entry.deletedTitle": "Gelöschte Dateien",
+  "entry.deletedReading": "Backups werden gelesen …",
+  "entry.deletedFetch": "Zurückholen",
+  "entry.deletedNone": "Keine gelöschten Dateien gefunden.",
+  "entry.deletedInTrash": {
+    "one": "Papierkorb, noch {n} Tag",
+    "other": "Papierkorb, noch {n} Tage"
+  },
+  "entry.deletedInBackup": "Backup vom {at}",
+  "entry.deletedOlder": "ältere Fassung",
+  "entry.deletedCopyMissing": "fehlt im Backup-Ordner",
+  "entry.deletedUnreadable": {
+    "one": "{n} Backup nicht lesbar",
+    "other": "{n} Backups nicht lesbar"
+  },
+  "entry.deletedFetched": {
+    "one": "{n} Datei zurückgeholt",
+    "other": "{n} Dateien zurückgeholt"
+  },
   "entry.filesView": "Dateien als Kacheln oder Liste",
   "entry.filesTiles": "Kacheln",
   "entry.filesList": "Liste",
@@ -879,7 +901,7 @@
   "entry.filesGroup": "Dateien gruppieren",
   "entry.filesGroupNone": "Nicht gruppiert",
   "entry.filesGroupType": "Nach Typ gruppiert",
-  "entry.colKind": "Art",
+  "entry.colKind": "Typ",
   "entry.colFrom": "Hochgeladen von",
   "entry.kindVideo": "Video",
   "entry.kindImage": "Bild",
@@ -894,9 +916,10 @@
   "entry.mediaReading": "Wird gelesen …",
   "entry.mediaNone": "Keine Angaben gefunden.",
   "entry.mediaGeneral": "Allgemein",
-  "entry.mediaAudio": "Ton",
-  "entry.mediaAudioTrack": "Ton, Spur {n} von {count}",
-  "entry.mediaAudioTracks": "Tonspuren",
+  "entry.mediaAudio": "Audio",
+  "entry.mediaAudioTrack": "Audio, Spur {n} von {count}",
+  "entry.mediaAudioTracks": "Audiospuren",
+  "entry.mediaContainer": "Container",
   "entry.mediaFormat": "Format",
   "entry.mediaCodec": "Codec",
   "entry.mediaProfile": "Profil",
@@ -1016,6 +1039,7 @@
     "other": "{n} nicht gelöscht: {error}"
   },
   "entry.pickDeleteHint": "Die Auswahl wird endgültig gelöscht.",
+  "entry.pickTrashHint": "Die Auswahl liegt danach {trashDays} Tage im Papierkorb.",
   "entry.pickDeleted": {
     "one": "1 gelöscht.",
     "other": "{n} gelöscht."
@@ -1392,7 +1416,7 @@
   "server.accountGone": "Deinen Account gibt es nicht mehr.",
   "server.accountLocked": "Dein Account ist gesperrt. Ein Admin kann ihn entsperren.",
   "server.backupConcurrent": "Gerade läuft schon ein Backup. Bitte kurz warten und erneut versuchen.",
-  "server.backupCopyMissing": "Die Kopie im Backup-Ordner fehlt.",
+  "server.backupCopyMissing": "Die Datei fehlt im Backup-Ordner.",
   "server.backupDirGone": "Den Backup-Ordner {folder} gibt es nicht. Er wird nicht angelegt; bitte auf dem Server einhängen.",
   "server.backupDirNotDir": "{folder} ist kein Verzeichnis.",
   "server.backupDirNotSet": "Kein Backup-Ordner eingerichtet. Ordner in der docker-compose.yml einhängen und BACKUP_DIR setzen.",

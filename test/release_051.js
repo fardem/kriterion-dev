@@ -66,6 +66,12 @@ async function run() {
     d.pragma('busy_timeout = 4000');
     try { return fn(d); } finally { d.close(); }
   };
+  const deleteForGood = async (who, id) => {
+    const r = await as(who, 'DELETE', `/api/attachments/${id}`);
+    const row = inDb(d => d.prepare("SELECT id FROM trash WHERE json_extract(content, '$.file.id') = ?").get(Number(id)));
+    if (row) await as('owner', 'DELETE', `/api/trash/${row.id}`);
+    return r;
+  };
   const diskOf = (filename) => inDb(d => d.prepare(`SELECT d.name FROM disk_files d
     JOIN attachments a ON a.id = d.attachment_id WHERE a.filename = ?`).get(filename)?.name);
   // Name mit Sekunde: ein zweites Backup in derselben Sekunde scheitert mit 409.
@@ -108,7 +114,7 @@ async function run() {
   for (const n of ['A', 'B', 'C']) N[n] = diskOf(n + '.txt');
   const first = await backupNow();
   const bId = (await as('owner', 'GET', `/api/items/${item}`)).content?.attachments?.find(a => a.filename === 'B.txt')?.id;
-  const bDropped = await as('owner', 'DELETE', `/api/attachments/${bId}`);
+  const bDropped = await deleteForGood('owner', bId);
   await upload('owner', item, [{ name: 'D.txt', content: content.D }]);
   N.D = diskOf('D.txt');
   await as('owner', 'POST', '/api/items', { title: 'Lampe L1' });
@@ -312,7 +318,7 @@ async function run() {
     const nameE = diskOf('E.txt');
     const x2 = await backupNow();
     const eId = (await as('owner', 'GET', `/api/items/${item}`)).content?.attachments?.find(a => a.filename === 'E.txt')?.id;
-    await as('owner', 'DELETE', `/api/attachments/${eId}`);
+    await deleteForGood('owner', eId);
     const x3 = await backupNow();
     const card = (await as('owner', 'GET', '/api/backup')).content?.cleanup || {};
     check('Gesperrt sind die juengsten „Mindestens behalten", die anderen waehlbar; oben Zahl und Groesse der Kopien',
@@ -478,11 +484,11 @@ async function run() {
       .map(el => el.querySelector('.afolder-name')?.textContent);
     const box = w.document.getElementById('asort');
     const dir = w.document.getElementById('asort-dir');
-    check('Die Auswahl steht neben „Kacheln | Liste" mit Name, Datum, Größe; ohne Wahl Datum, alt → neu',
+    check('Die Auswahl steht neben „Kacheln | Liste" mit Name, Datum, Größe und Typ; ohne Wahl Datum, alt → neu',
       box?.closest('.ahead-acts')?.querySelector('.aview') !== null && box?.value === 'date' &&
       dir?.textContent === DE['list.dirOldNew'] &&
       equal([...(box?.options || [])].map(o => o.textContent),
-        [DE['entry.filesSortName'], DE['entry.filesSortDate'], DE['entry.filesSortSize']]) &&
+        [DE['entry.filesSortName'], DE['entry.filesSortDate'], DE['entry.filesSortSize'], DE['entry.colKind']]) &&
       box?.getAttribute('aria-label') === DE['entry.filesSort'], `${box?.value} ${dir?.textContent}`);
     check('Datum, alt → neu: die Folge des Servers; die Ordner in umgekehrter Folge des Servers',
       equal(loose(), ['notiz.txt', 'foto.png', 'doku.pdf', 'archiv.zip', 'b10.txt', 'b2.txt']) &&

@@ -1,7 +1,9 @@
 # Kriterion — Handbuch
 
+[English](manual.md) · Deutsch · [Türkçe](manual-tr.md)
+
 Die Bedienung von Kriterion. Installation, Schlüssel, Backup und Update stehen
-in der [README](README.md).
+in der [README](README-de.md).
 
 ---
 
@@ -375,22 +377,23 @@ unverändert.
   Accounts, wer hochgeladen hat; auf dem Telefon stehen Größe und Datum unter
   dem Namen. Die Art ist Video, Bild, PDF, Word, Excel, PowerPoint, Text,
   Archiv oder Sonstige; bei einem Video stehen dort Codec und Länge, etwa
-  „HEVC · 3:12“. Klick, Menü, Vorschau und Tastatur sind in beiden Ansichten
+  „H.265 · 3:12“. Klick, Menü, Vorschau und Tastatur sind in beiden Ansichten
   gleich. Bis 2 GB je Datei (Grenze „Datei“), höchstens 100 je Eintrag.
 - **Liste am Rechner:** Über der Liste steht eine Kopfzeile. Ein Klick auf
-  „Name“, „Größe“ oder „Datum“ sortiert danach, ein zweiter kehrt die Richtung
+  „Name“, „Typ“, „Größe“ oder „Datum“ sortiert danach, ein zweiter kehrt die Richtung
   um; ▲ oder ▼ steht an der sortierten Spalte. Am Ende jeder Zeile stehen ✎
   (Bearbeiten, nur an einer Datei, die man bearbeiten darf) und 🔗 (Link auf
   die Datei kopieren); auf dem Telefon beides nur im Menü.
 - **Sortieren:** die Auswahl neben „Kacheln“ und „Liste“ ordnet nach „Name“,
-  „Datum“ oder „Größe“. Der Knopf daneben kehrt die Richtung um: „A → Z“ und
-  „Z → A“, „alt → neu“ und „neu → alt“, „klein → groß“ und „groß → klein“.
+  „Datum“, „Größe“ oder „Typ“. Der Knopf daneben kehrt die Richtung um: „A → Z“
+  und „Z → A“, „alt → neu“ und „neu → alt“, „klein → groß“ und „groß → klein“.
   Nach dem Wechsel gilt „A → Z“, „alt → neu“ oder „groß → klein“; Vorgabe ist
-  „Datum“ mit „alt → neu“. Die Wahl gilt für alle Einträge und auf jedem
+  „Datum“ mit „alt → neu“. „Typ“ ordnet die Arten wie „Nach Typ gruppiert“ und
+  in jeder Art nach Name; „Z → A“ kehrt beides um. Die Wahl gilt für alle Einträge und auf jedem
   Gerät. Das Datum ist das des Uploads. „Name“ unterscheidet nicht nach Groß-
   und Kleinschreibung und stellt „2“ vor „10“. Die Dateien ohne Ordner bleiben
   oben, jeder Ordner bleibt eine Gruppe; die Ordner folgen derselben Wahl, nach
-  Größe mit der Summe ihrer Dateien. Laufende Uploads stehen am Ende ihrer
+  Größe mit der Summe ihrer Dateien, nach „Typ“ nach Name. Laufende Uploads stehen am Ende ihrer
   Gruppe.
 - **Gruppieren:** „Nach Typ gruppiert“ in der zweiten Auswahl setzt je Art eine
   Zwischenzeile mit der Zahl, etwa „PDF · 3“. Die Arten stehen nach Name,
@@ -487,12 +490,15 @@ unverändert.
   einer Kachel, die noch hochgeht, steht „Abbrechen“, nach einem Fehler
   „Erneut versuchen“ und „Entfernen“.
 - **Erweiterte Infos:** „Erweiterte Infos“ im Menü ⋯ eines Bildes oder Videos
-  zeigt, was in der Datei steht. Allgemein: Format, Dateigröße, Dauer,
-  Gesamtbitrate, Aufnahmedatum und die Zahl der Tonspuren. Video: Codec,
-  Profil, Auflösung, Bildrate, Bitrate, Bittiefe, Farbunterabtastung und HDR.
-  Je Tonspur: Codec, Kanäle, Abtastrate, Bitrate und Sprache. Bild: Format,
-  Auflösung, Bittiefe, Farbraum und Farbunterabtastung. Was die Datei nicht
-  angibt, fehlt.
+  und ⓘ im Vollbild zeigen, was in der Datei steht. ⓘ steht auch im Vollbild
+  der Fotos und Videos des Eintrags. Allgemein: bei Videos der Container, sonst
+  das Format, dazu Dateigröße, Dauer, Gesamtbitrate, Aufnahmedatum und die Zahl
+  der Audiospuren. Video: Codec, Profil, Auflösung, Bildrate, Bitrate,
+  Bittiefe, Farbunterabtastung und HDR. H.264 und H.265 tragen den Namen von
+  MediaInfo in Klammern, etwa „H.265 (HEVC)“; in der Liste und am Vorschaubild
+  steht kurz „H.265“. Je Audiospur: Codec, Kanäle, Abtastrate, Bitrate und
+  Sprache. Bild: Format, Auflösung, Bittiefe, Farbraum und
+  Farbunterabtastung. Was die Datei nicht angibt, fehlt.
 - **Tastatur:** Tab erreicht jede Kachel und ihr ⋯. Umschalt+F10 öffnet das
   Menü, ↑ und ↓ wählen, Enter führt aus, Esc schließt.
 - **Link kopieren:** kopiert die Adresse der Datei. Die Adresse eines Bildes
@@ -559,9 +565,21 @@ das nur für diese Ansicht; ein Klick auf die Kopfzeile klappt ihn wieder zu.
 ### Löschen und Papierkorb
 
 Jedes Löschen fragt nach. Beim Eintrag nennt die Rückfrage, was daran hängt.
-Gelöschte Einträge liegen 30 Tage im Papierkorb; zurückholen kann sie der
-Eigentümer-Admin (Einstellungen › Bestand, Karte „Papierkorb"). Ordner sowie
-Vorschaubild und Dauer eines Videos kommen mit zurück.
+Gelöschte Einträge und einzeln gelöschte Dateien unter „Dateien“ liegen 30
+Tage im Papierkorb; zurückholen kann sie der Eigentümer-Admin (Einstellungen ›
+Bestand, Karte „Papierkorb"). Ordner sowie Vorschaubild und Dauer eines Videos
+kommen mit zurück. Fotos und Videos des Eintrags und Bilder in Kommentaren
+werden sofort gelöscht.
+
+**Gelöschte Dateien …** steht für den Eigentümer-Admin im Kopf von „Dateien“.
+Der Dialog nennt die gelöschten Dateien des Eintrags aus dem Papierkorb und
+aus jedem Backup, das sich lesen lässt, mit Herkunft und Ordner.
+„Zurückholen“ legt die gewählten Dateien wieder in den Eintrag, mit Verfasser
+und Datum von vorher. Fehlt ihr Ordner, entsteht er neu mit demselben Namen.
+Hat der Document Server eine Datei seit dem Backup gespeichert, kommt die
+Fassung aus dem Backup als eigene Datei dazu, mit „(Backup TT.MM.JJJJ)“ im
+Namen. Eine Datei, deren Kopie im Backup-Ordner fehlt, steht ohne Kästchen
+da.
 
 ### Eintrag exportieren
 
@@ -748,8 +766,9 @@ jüngsten N (1 bis 20) **und** ist älter als X Tage (7 bis 365).
 ### Papierkorb
 
 Der Admin sieht, der Eigentümer-Admin handelt. Die Karte listet die Löschungen der
-letzten 30 Tage. „Zurückholen" legt den Eintrag mit allen Inhalten neu an,
-„Endgültig entfernen" löscht ihn. Nicht zurück kommen Favoriten anderer.
+letzten 30 Tage, Einträge und Dateien. Eine Datei steht mit Eintrag und Ordner
+vor ihrem Namen. „Wiederherstellen" legt den Eintrag mit allen Inhalten neu an
+oder die Datei zurück in ihren Eintrag, „Endgültig löschen" löscht. Nicht zurück kommen Favoriten anderer.
 Einträge, die beim Löschen eines Benutzers oder durch einen ersetzenden Import
 wegfallen, landen nicht im Papierkorb.
 

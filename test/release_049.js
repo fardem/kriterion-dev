@@ -363,7 +363,7 @@ async function run() {
     runtime.slice(0, 300));
 
   group('Reverse Proxy: die Pfade fuer NPMplus in der README');
-  const readme = read('README.md');
+  const readme = read('README-de.md');
   const npmPaths = [...readme.matchAll(/`(\^\/api\/[^`]+)`/g)].map(x => x[1]);
   const npmRx = npmPaths.map(x => { try { return new RegExp(x); } catch { return null; } });
   const uploadId = crypto.randomBytes(16).toString('hex');

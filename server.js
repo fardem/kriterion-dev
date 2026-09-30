@@ -1693,7 +1693,7 @@ const PICK_SETTINGS = {
                    wrong: 'server.themeUnknown' },
   filesView:   { list: ['tiles', 'list'],  cast: String, fallback: 'tiles',
                  wrong: 'server.viewUnknown' },
-  filesSort:   { list: ['name_asc', 'name_desc', 'date_asc', 'date_desc', 'size_asc', 'size_desc'],
+  filesSort:   { list: ['name_asc', 'name_desc', 'date_asc', 'date_desc', 'size_asc', 'size_desc', 'type_asc', 'type_desc'],
                  cast: String, fallback: 'date_asc', wrong: 'server.sortUnknown',
                  alias: { oldest: 'date_asc', newest: 'date_desc', name: 'name_asc' } },
   filesGroup:  { list: ['none', 'type'],  cast: String, fallback: 'none',
@@ -3615,13 +3615,13 @@ app.post('/api/items/:id/photos', entryAuthorOnly,
       ready.push({ mime: start.mime, data: start.data, thumb: v.thumb, medium: v.medium });
     }
     const into = db.prepare('INSERT INTO photos (item_id, mime_type, data, thumb, medium, sort_order) VALUES (?, ?, ?, ?, ?, ?)');
-    db.transaction(() => {
+    const added = db.transaction(() => {
       let pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM photos WHERE item_id = ?')
         .get(req.params.id).m + 1;
-      for (const p of ready)
-        into.run(req.params.id, p.mime, p.data, p.thumb, p.medium, pos++);
+      return ready.map(p => into.run(req.params.id, p.mime, p.data, p.thumb, p.medium, pos++).lastInsertRowid);
     })();
     touch.run(req.params.id);
+    photoMediaSoon(added);
     res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
   } catch (e) { next(e); }
 });
@@ -3672,10 +3672,11 @@ app.post('/api/items/:id/videos', entryAuthorOnly,
         return res.status(400).json({ error: t(localeOf(req), 'server.stillNoPreview')});
       const pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM photos WHERE item_id = ?')
         .get(req.params.id).m + 1;
-      db.prepare(`INSERT INTO photos (item_id, mime_type, data, thumb, medium, sort_order, kind, duration)
+      const added = db.prepare(`INSERT INTO photos (item_id, mime_type, data, thumb, medium, sort_order, kind, duration)
                   VALUES (?, ?, ?, ?, ?, ?, 'video', ?)`)
-        .run(req.params.id, video.mimetype, video.buffer, v.thumb, v.medium, pos, duration);
+        .run(req.params.id, video.mimetype, video.buffer, v.thumb, v.medium, pos, duration).lastInsertRowid;
       touch.run(req.params.id);
+      photoMediaSoon([added]);
       res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
     } catch (e) { next(e); }
   });
@@ -4055,16 +4056,60 @@ async function makeMedia(id) {
   return facts;
 }
 
+/* ---- Erweiterte Infos zu Fotos und Videos des Eintrags ---- */
+const qPhotoMedia = db.prepare('SELECT info FROM photo_media WHERE photo_id = ?');
+const putPhotoMedia = db.prepare('INSERT OR REPLACE INTO photo_media (photo_id, info) VALUES (?, ?)');
+const qPhotoMediaSource = db.prepare(`SELECT p.id, length(p.data) AS size, (m.photo_id IS NOT NULL) AS has_media
+  FROM photos p LEFT JOIN photo_media m ON m.photo_id = p.id WHERE p.id = ?`);
+const qPhotoMediaMissing = db.prepare(`SELECT p.id FROM photos p LEFT JOIN photo_media m ON m.photo_id = p.id
+  WHERE m.photo_id IS NULL ORDER BY p.id DESC`);
+const qPhotoPart = db.prepare('SELECT substr(data, ?, ?) AS part FROM photos WHERE id = ?');
+const PHOTO_MEDIA_WAITING = new Set();
+const PHOTO_MEDIA_FAILED = new Set();
+
+// Wie makeMedia(); die Bytes stehen in photos.data und werden stueckweise gelesen.
+async function makePhotoMedia(id) {
+  const p = qPhotoMediaSource.get(id);
+  if (!p) return null;
+  if (p.has_media) return JSON.parse(qPhotoMedia.get(id).info);
+  let facts;
+  try {
+    facts = await attachments.mediaFacts(p.size, (length, offset) => {
+      const bytes = qPhotoPart.get(offset + 1, length, id)?.part;
+      if (!bytes || bytes.length < Math.min(length, p.size - offset)) throw unreadable('gone');
+      return bytes;
+    });
+  } catch (e) {
+    if (!e.damaged) throw e;
+    PHOTO_MEDIA_FAILED.add(id);
+    return undefined;
+  }
+  if (!qPhotoMediaSource.get(id)) return null;
+  putPhotoMedia.run(id, JSON.stringify(facts));
+  PHOTO_MEDIA_FAILED.delete(id);
+  return facts;
+}
+
+// Dateien zuerst; die Fotos folgen, wenn keine Datei mehr wartet.
 function startMedia() {
-  if (mediaRunning || !MEDIA_WAITING.size) return;
+  if (mediaRunning || (!MEDIA_WAITING.size && !PHOTO_MEDIA_WAITING.size)) return;
   mediaRunning = (async () => {
-    while (MEDIA_WAITING.size) {
-      const id = MEDIA_WAITING.values().next().value;
-      MEDIA_WAITING.delete(id);
-      await inMediaTurn(() => makeMedia(id));
+    while (MEDIA_WAITING.size || PHOTO_MEDIA_WAITING.size) {
+      const files = MEDIA_WAITING.size > 0, waiting = files ? MEDIA_WAITING : PHOTO_MEDIA_WAITING;
+      const id = waiting.values().next().value;
+      waiting.delete(id);
+      await inMediaTurn(() => (files ? makeMedia(id) : makePhotoMedia(id)));
     }
   })().catch(e => logFail(`Media info: ${e.message}`))
     .finally(() => { mediaRunning = null; startMedia(); });
+}
+
+// Mit `ids` diese Fotos; ohne alle Fotos und Videos ohne Zeile in photo_media.
+function photoMediaSoon(ids) {
+  if (DATABASE_INCOMPLETE) return;
+  if (ids) for (const id of ids) PHOTO_MEDIA_WAITING.add(Number(id));
+  else for (const r of qPhotoMediaMissing.all()) if (!PHOTO_MEDIA_FAILED.has(r.id)) PHOTO_MEDIA_WAITING.add(r.id);
+  startMedia();
 }
 
 // Mit `ids` vorn in die Reihe; ohne alle Bilder und Videos ohne Zeile in attachment_media.
@@ -4077,11 +4122,13 @@ function mediaSoon(ids) {
   } else {
     for (const r of qMediaMissing.all())
       if (attachments.mediaKind(r.filename) && !MEDIA_FAILED.has(r.id)) MEDIA_WAITING.add(r.id);
+    photoMediaSoon();
   }
   startMedia();
 }
 function mediaAgain() {
   MEDIA_FAILED.clear();
+  PHOTO_MEDIA_FAILED.clear();
   mediaSoon();
 }
 
@@ -4273,6 +4320,19 @@ app.get('/api/attachments/:id/info', async (req, res, next) => {
     MEDIA_WAITING.delete(a.id);
     const facts = await inMediaTurn(() => makeMedia(a.id));
     if (facts === null) return res.status(404).json({ error: t(localeOf(req), 'server.fileGone') });
+    if (facts === undefined) return res.status(500).json({ error: t(localeOf(req), 'server.mediaUnreadable') });
+    res.json(facts);
+  } catch (e) { next(e); }
+});
+
+// Rechte wie /api/photos/:id/raw. Fehlt die Zeile noch, liest der Server sofort.
+app.get('/api/photos/:id/info', async (req, res, next) => {
+  try {
+    const p = qPhotoMediaSource.get(req.params.id);
+    if (!p) return res.status(404).json({ error: t(localeOf(req), 'server.photoGone') });
+    PHOTO_MEDIA_WAITING.delete(p.id);
+    const facts = await inMediaTurn(() => makePhotoMedia(p.id));
+    if (facts === null) return res.status(404).json({ error: t(localeOf(req), 'server.photoGone') });
     if (facts === undefined) return res.status(500).json({ error: t(localeOf(req), 'server.mediaUnreadable') });
     res.json(facts);
   } catch (e) { next(e); }
@@ -6518,7 +6578,7 @@ async function importEntries(payload, userId, mode2, bytesSource, trashId, writt
   if (stats.attachments) {
     docTilesSoon();
     mediaSoon();
-  }
+  } else if (stats.photos || stats.videos) photoMediaSoon();
   return { ok: true, mode: mode2, ...stats,
            authorAssigned: assigned, authorUnknown: unknown,
            weightsDropped: dropped, videosWithoutFile, videosUnreadable, newIds,
@@ -6639,7 +6699,7 @@ const diskIntoTrash = db.prepare(`UPDATE disk_files SET trash_id = ?
 /* ---- Dateien im Papierkorb ---- */
 /* Eine einzeln geloeschte Datei ist eine Zeile in trash mit `content.kind = 'file'`; ihr Inhalt
    bleibt ueber disk_files.trash_id auf der Platte. */
-const qFileForTrash = db.prepare(`SELECT a.id, a.item_id, a.filename, a.mime_type, a.size, a.created_at,
+const qFileForTrash = lateStatement(`SELECT a.id, a.item_id, a.filename, a.mime_type, a.size, a.created_at,
     a.user_id, u.username AS user_name, length(a.data) AS inline, i.created_at AS item_created, i.title AS item_title,
     f.id AS folder_id, f.name AS folder_name, f.created_at AS folder_created, f.test_day_id AS folder_day,
     f.user_id AS folder_user, fu.username AS folder_user_name,
@@ -6656,7 +6716,7 @@ const person = (id, name) => (id == null ? null : { id, name: name ?? null });
 
 // In der Transaktion des Loeschens, vor dem DELETE: sonst verloere die Datei ihren letzten Besitzer.
 function fileIntoTrash(id, actor) {
-  const a = qFileForTrash.get(id);
+  const a = qFileForTrash().get(id);
   if (!a) return null;
   const file = { id: a.id, filename: a.filename, mime_type: a.mime_type, size: a.size, created_at: a.created_at,
     author: person(a.user_id, a.user_name), editAll: a.edit_all === 1, saves: a.saves || 0,
@@ -6756,7 +6816,7 @@ const qTrash = db.prepare(`SELECT p.id, p.title, p.deleted_at, p.deleted_by,
 const trashDaysOpen = (deletedAt) => Math.max(0, TRASH_DAYS - Math.floor(
   (Date.now() - Date.parse(deletedAt.replace(' ', 'T') + 'Z')) / 86400000));
 
-/* Ein Eintrag nennt Verfasser, Anlage und Zahl der Dateien; eine Datei ihren Eintrag,
+/* Ein Eintrag nennt Verfasser, Datum und Zahl der Dateien; eine Datei ihren Eintrag,
    Ordner, Verfasser und Groesse. */
 function trashRowKind(z, card) {
   if (z.kind !== 'file') return { kind: 'entry', createdBy: z.created_by ? authorByName(card, z.created_by) : null,
@@ -7379,7 +7439,7 @@ function deletedFiles(it) {
         seen.add(r.version);
         const missing = r.disk ? !backup.copyPresent(target.filePath, { name: r.disk, length: encLen(r.disk_size, r.chunk) })
                                : !r.inline;
-        out.backups.push({ backup: d.name, at: d.time, file: r.version, size: r.size, older: offer.older, missing,
+        out.backups.push({ backup: d.name, at: sqlTime(d.time), file: r.version, size: r.size, older: offer.older, missing,
           filename: offer.older ? olderName(r.filename, d.time) : r.filename, folder: r.folder_name ?? null });
       }
     } catch { out.unreadable++; }
@@ -7442,7 +7502,7 @@ async function fileFromBackup(it, d, folder, probe, r, made) {
     });
     if (id == null) throw refusal(409, 'server.backupFileThere');
     moveIntoPlace(f.name);
-    // Lag die Datei noch unter files/, weil die Loeschliste sie noch nicht geraeumt hatte.
+    // Liegt die Datei noch unter files/, hat die Loeschliste sie noch nicht geraeumt.
     fs.rmSync(diskPath(f.name, true), { force: true });
     return { id, itemId: it.id, inline: false, filename };
   } catch (e) {
@@ -7512,7 +7572,7 @@ app.post('/api/items/:id/deleted-files', ownerOnly, async (req, res, next) => {
       } finally { dropBackupLock(lock); }
     }
     fileBackQueued(done);
-    res.json({ ...detail(it.id, req.user.id, locale), fetched: done.length, refused });
+    res.json({ ...detail(it.id, req.user.id, localeOf(req)), fetched: done.length, refused });
   } catch (e) { next(e); }
 });
 

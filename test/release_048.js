@@ -130,6 +130,12 @@ async function run() {
   const dataLength = (attachmentId) => inDb(d => d.prepare('SELECT length(data) AS n FROM attachments WHERE id = ?')
     .get(attachmentId)?.n);
   const goneNames = () => inDb(d => d.prepare('SELECT name FROM disk_files_gone').all().map(z => z.name));
+  const deleteForGood = async (who, id) => {
+    const r = await as(who, 'DELETE', `/api/attachments/${id}`);
+    const row = inDb(d => d.prepare("SELECT id FROM trash WHERE json_extract(content, '$.file.id') = ?").get(Number(id)));
+    if (row) await as('owner', 'DELETE', `/api/trash/${row.id}`);
+    return r;
+  };
   const namesIn = (where) => { try { return fs.readdirSync(where).filter(n => HEX.test(n)); } catch { return []; } };
   const onDisk = (name) => !!name && fs.existsSync(path.join(filesDir, name));
   // Ein Rueckbau kann eine Datei fehlen lassen; dann wird die Pruefung rot, nicht das Modul.
@@ -267,7 +273,7 @@ async function run() {
     !uploadRow(wrongStart.content?.id) && sizeIn(uploadDir, wrongName) === -1 && !!diskRow(wrongFile?.id),
     `${wrongStart.status} ${wrongPut.status} ${movPut.status} ${sizeIn(uploadDir, wrongName)}`);
   for (const name of ['falsch.mp4', 'alt.mov'])
-    await as('uploader', 'DELETE', `/api/attachments/${byName(await entry(item))[name]?.id}`);
+    await deleteForGood('uploader', byName(await entry(item))[name]?.id);
   const shortVideo = await sendFile('uploader', item, 'kurz.mp4', payload(600000), north.id);
   check('Ein Video bis „Anhang" geht ohne diese Pruefung',
     shortVideo.last.status === 201 && !!byName(shortVideo.last.content)['kurz.mp4'], String(shortVideo.last.status));
@@ -596,7 +602,7 @@ async function run() {
   await start({ run: 400 });
   const shortId = byName(shortVideo.last.content)['kurz.mp4']?.id;
   const shortName = diskRow(shortId)?.name;
-  const shortGone = await as('uploader', 'DELETE', `/api/attachments/${shortId}`);
+  const shortGone = await deleteForGood('uploader', shortId);
   await wait(1500);
   check('Eine unbekannte Datei uebersteht Start, Laeufe und das Loeschen nach der Liste',
     shortGone.status === 200 && !onDisk(shortName) && onDisk(stray), `${shortGone.status} ${onDisk(shortName)} ${onDisk(stray)}`);
@@ -627,7 +633,7 @@ async function run() {
   await start({ hold: 400 });
   const pdfName = diskRow(pdfFile.id)?.name;
   const firstBackup = await as('owner', 'POST', '/api/backup');
-  const pdfDropped = await as('uploader', 'DELETE', `/api/attachments/${pdfFile.id}`);
+  const pdfDropped = await deleteForGood('uploader', pdfFile.id);
   await wait(300);
   const pdfDuringCopy = onDisk(pdfName);
   const backupDone = () => until2(async () => (await as('owner', 'GET', '/api/backup')).content?.copy?.running === false, 60000);
@@ -655,7 +661,7 @@ async function run() {
       backupRows.map(z => [z.name, encLen(z.size)])) && copyOk,
     `${listRows.length} Zeilen, ${backupRows.length} im Backup, Kopien ${copyOk}`);
   // Eine fehlende Datei laesst sich nie kopieren; ohne sie hat das naechste Backup keinen Kopierbedarf.
-  await as('uploader', 'DELETE', `/api/attachments/${headId}`);
+  await deleteForGood('uploader', headId);
   await wait(1100);
   const secondBackup = await as('owner', 'POST', '/api/backup');
   check('Ohne Kopierbedarf antwortet das Backup mit 200',
@@ -761,7 +767,7 @@ async function run() {
   holder.prepare('BEGIN').run();
   holder.prepare('SELECT COUNT(*) AS n FROM disk_files').get();
   const heldName = diskRow(writing.id)?.name;
-  const heldDelete = await as('uploader', 'DELETE', `/api/attachments/${writing.id}`);
+  const heldDelete = await deleteForGood('uploader', writing.id);
   await wait(300);
   const heldBack = onDisk(heldName) && goneNames().includes(heldName);
   holder.prepare('COMMIT').run();

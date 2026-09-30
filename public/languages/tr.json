@@ -461,6 +461,7 @@
   "card.ofAtMost": "en çok {cap} üzerinden {used}",
   "card.off": "kapalı",
   "card.oldBackupDeleted": "Eski yedekleme silindi",
+  "card.backupFileFetched": "Dosya yedeklemeden geri alındı",
   "card.oldBackups": "Eski yedeklemeler",
   "card.oldBackupsFreed": {
     "one": "{n} eski yedekleme silindi, {bytes} boşaldı",
@@ -670,8 +671,9 @@
   "card.titleBeforeLogin": "Giriş öncesi başlık",
   "card.titleSaved": "Başlık kaydedildi",
   "card.trash": "Çöp kutusu",
-  "card.trashKeepsHint": "Silinen {entryMany} burada **{trashDays} gün** kalır ve geri yüklenebilir; ondan sonra kalıcı olarak silinir.",
+  "card.trashKeepsHint": "Silinen {entryMany} ve dosyalar burada **{trashDays} gün** kalır ve geri yüklenebilir; ondan sonra kalıcı olarak silinir.",
   "card.trashOwnerHint": "Geri yüklemeyi ve kalıcı silmeyi yalnızca sahip yönetici yapabilir.",
+  "card.trashEntryGone": "{entryOne} yok",
   "card.tryAnyway": "Yine de dene",
   "card.turnOn": "Aç",
   "card.turnSignupOff": "Kayıt olmayı kapat",
@@ -854,7 +856,7 @@
     "one": "{n} dosya · {filesize}",
     "other": "{n} dosya · {filesize}"
   },
-  "entry.fileDeleteHint": "“{filename}” kalıcı olarak siliniyor.",
+  "entry.fileDeleteHint": "“{filename}” ardından {trashDays} gün çöp kutusunda kalır.",
   "entry.fileDropHint": "Buraya sürükle ya da + ile yükle.",
   "entry.fileFailed": "başarısız",
   "entry.fileFull": "{n} / {cap}",
@@ -866,6 +868,26 @@
     "other": "{n} dosya eklendi"
   },
   "entry.folderAdd": "Klasör ekle",
+  "entry.deletedOpen": "Silinen dosyalar …",
+  "entry.deletedTitle": "Silinen dosyalar",
+  "entry.deletedReading": "Yedeklemeler okunuyor …",
+  "entry.deletedFetch": "Geri al",
+  "entry.deletedNone": "Silinmiş dosya bulunamadı.",
+  "entry.deletedInTrash": {
+    "one": "Çöp kutusu, {n} gün kaldı",
+    "other": "Çöp kutusu, {n} gün kaldı"
+  },
+  "entry.deletedInBackup": "{at} tarihli yedekleme",
+  "entry.deletedOlder": "eski sürüm",
+  "entry.deletedCopyMissing": "yedekleme klasöründe yok",
+  "entry.deletedUnreadable": {
+    "one": "{n} yedekleme okunamıyor",
+    "other": "{n} yedekleme okunamıyor"
+  },
+  "entry.deletedFetched": {
+    "one": "{n} dosya geri alındı",
+    "other": "{n} dosya geri alındı"
+  },
   "entry.filesView": "Dosyalar döşeme ya da liste",
   "entry.filesTiles": "Döşeme",
   "entry.filesList": "Liste",
@@ -897,6 +919,7 @@
   "entry.mediaAudio": "Ses",
   "entry.mediaAudioTrack": "Ses, parça {n}/{count}",
   "entry.mediaAudioTracks": "Ses parçaları",
+  "entry.mediaContainer": "Kapsayıcı",
   "entry.mediaFormat": "Biçim",
   "entry.mediaCodec": "Codec",
   "entry.mediaProfile": "Profil",
@@ -1016,6 +1039,7 @@
     "other": "{n} silinemedi: {error}"
   },
   "entry.pickDeleteHint": "Seçilenler kalıcı olarak siliniyor.",
+  "entry.pickTrashHint": "Seçilenler ardından {trashDays} gün çöp kutusunda kalır.",
   "entry.pickDeleted": {
     "one": "1 silindi.",
     "other": "{n} silindi."
@@ -1392,7 +1416,7 @@
   "server.accountGone": "Hesabın artık yok.",
   "server.accountLocked": "Hesabın kilitli. Bir yönetici kilidi açabilir.",
   "server.backupConcurrent": "Şu anda zaten bir yedekleme çalışıyor. Biraz bekle ve yeniden dene.",
-  "server.backupCopyMissing": "Yedekleme klasöründeki kopya eksik.",
+  "server.backupCopyMissing": "Dosya yedekleme klasöründe yok.",
   "server.backupDirGone": "{folder} yedekleme klasörü yok. Kendiliğinden oluşturulmaz; onu sunucuda bağla.",
   "server.backupDirNotDir": "{folder} bir dizin değil.",
   "server.backupDirNotSet": "Yedekleme klasörü ayarlanmamış. Klasörü docker-compose.yml içinde bağla ve BACKUP_DIR ayarla.",

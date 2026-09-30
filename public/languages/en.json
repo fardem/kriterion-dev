@@ -461,6 +461,7 @@
   "card.ofAtMost": "{used} of at most {cap}",
   "card.off": "off",
   "card.oldBackupDeleted": "Old backup deleted",
+  "card.backupFileFetched": "File fetched from backup",
   "card.oldBackups": "Old backups",
   "card.oldBackupsFreed": {
     "one": "{n} old backup deleted, {bytes} freed",
@@ -670,8 +671,9 @@
   "card.titleBeforeLogin": "Title before signing in",
   "card.titleSaved": "Title saved",
   "card.trash": "Trash",
-  "card.trashKeepsHint": "Deleted {entryMany} stay here **{trashDays} days** and can be restored; after that they are deleted for good.",
+  "card.trashKeepsHint": "Deleted {entryMany} and files stay here **{trashDays} days** and can be restored; after that they are deleted for good.",
   "card.trashOwnerHint": "Only the owner admin can restore and delete for good.",
+  "card.trashEntryGone": "{entryOne} missing",
   "card.tryAnyway": "Try anyway",
   "card.turnOn": "Switch on",
   "card.turnSignupOff": "Switch registration off",
@@ -854,7 +856,7 @@
     "one": "{n} file · {filesize}",
     "other": "{n} files · {filesize}"
   },
-  "entry.fileDeleteHint": "“{filename}” is deleted for good.",
+  "entry.fileDeleteHint": "“{filename}” then stays in the trash for {trashDays} days.",
   "entry.fileDropHint": "Drag here or upload with +.",
   "entry.fileFailed": "failed",
   "entry.fileFull": "{n} of {cap}",
@@ -866,6 +868,26 @@
     "other": "{n} files attached"
   },
   "entry.folderAdd": "Add folder",
+  "entry.deletedOpen": "Deleted files …",
+  "entry.deletedTitle": "Deleted files",
+  "entry.deletedReading": "Reading backups …",
+  "entry.deletedFetch": "Fetch back",
+  "entry.deletedNone": "No deleted files found.",
+  "entry.deletedInTrash": {
+    "one": "Trash, {n} day left",
+    "other": "Trash, {n} days left"
+  },
+  "entry.deletedInBackup": "Backup of {at}",
+  "entry.deletedOlder": "older version",
+  "entry.deletedCopyMissing": "missing from the backup folder",
+  "entry.deletedUnreadable": {
+    "one": "{n} backup not readable",
+    "other": "{n} backups not readable"
+  },
+  "entry.deletedFetched": {
+    "one": "{n} file fetched back",
+    "other": "{n} files fetched back"
+  },
   "entry.filesView": "Files as tiles or list",
   "entry.filesTiles": "Tiles",
   "entry.filesList": "List",
@@ -897,6 +919,7 @@
   "entry.mediaAudio": "Audio",
   "entry.mediaAudioTrack": "Audio, track {n} of {count}",
   "entry.mediaAudioTracks": "Audio tracks",
+  "entry.mediaContainer": "Container",
   "entry.mediaFormat": "Format",
   "entry.mediaCodec": "Codec",
   "entry.mediaProfile": "Profile",
@@ -1016,6 +1039,7 @@
     "other": "{n} not deleted: {error}"
   },
   "entry.pickDeleteHint": "The selection is deleted for good.",
+  "entry.pickTrashHint": "The selection then stays in the trash for {trashDays} days.",
   "entry.pickDeleted": {
     "one": "1 deleted.",
     "other": "{n} deleted."
@@ -1392,7 +1416,7 @@
   "server.accountGone": "Your account no longer exists.",
   "server.accountLocked": "Your account is locked. An admin can unlock it.",
   "server.backupConcurrent": "A backup is already running. Please wait a moment and try again.",
-  "server.backupCopyMissing": "The copy in the backup folder is missing.",
+  "server.backupCopyMissing": "The file is missing from the backup folder.",
   "server.backupDirGone": "The backup folder {folder} does not exist. It is not created; please mount it on the server.",
   "server.backupDirNotDir": "{folder} is not a directory.",
   "server.backupDirNotSet": "No backup folder is set up. Mount the folder in docker-compose.yml and set BACKUP_DIR.",

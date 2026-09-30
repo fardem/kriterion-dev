@@ -15,11 +15,11 @@ async function run() {
 
   const gpList = require('./counterproof').REGRESSIONS;
   // Mit jedem neuen Rueckbau in counterproof.js anheben.
-  check(`Es sind genau 1482 Rueckbauten`, gpList.length === 1482, `${gpList.length}`);
+  check(`Es sind genau 1520 Rueckbauten`, gpList.length === 1520, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* Jede Datei nur einmal lesen: ueber tausend Rueckbauten verteilen sich auf
-     47 Dateien, counterproof.js allein misst 513 kB. */
+     50 Dateien, counterproof.js allein misst 540 kB. */
   const gpFail = [];
   const gpText = new Map();
   const gpFileText = (file) => {
@@ -33,9 +33,9 @@ async function run() {
     const n = gpFileText(file).split(r.search).length - 1;
     if (n !== 1) gpFail.push(`${r.nr} (${r.file}): ${n} Treffer`);
   }
-  // Belegt das einmalige Lesen je Datei. Neue Zieldateien in counterproof.js erhoehen die 47.
-  check('Der Waechter liest hoechstens siebenundvierzig Dateien',
-    gpText.size <= 47, `${gpText.size} Dateien fuer ${gpList.length} Rueckbauten`);
+  // Belegt das einmalige Lesen je Datei. Neue Zieldateien in counterproof.js erhoehen die 50.
+  check('Der Waechter liest hoechstens fuenfzig Dateien',
+    gpText.size <= 50, `${gpText.size} Dateien fuer ${gpList.length} Rueckbauten`);
   check('Jeder Suchtext kommt in seiner Datei genau einmal vor',
     gpFail.length === 0, gpFail.join(' · '));
   // Ein Ersatz gleich dem Suchtext baut nichts zurueck, und alles bliebe gruen.
@@ -368,6 +368,7 @@ async function run() {
       ['test/release_050.js', 9],
       ['test/release_051.js', 9],
       ['test/release_052.js', 8],
+      ['test/release_053.js', 12],
       ['test/roundtrip.js', 1313],
       ['test/selfcheck.js', 85],
       ['test/source.js', 216],
@@ -380,7 +381,7 @@ async function run() {
       ['test/ui_system.js', 190],
       ['test/ui_translator.js', 24],
       ['counterproof.js', 337],
-      ['server.js', 1003],
+      ['server.js', 1036],
       ['auth.js', 149],
       ['db.js', 56],
       ['mail.js', 17],
@@ -394,17 +395,17 @@ async function run() {
       ['keytool.js', 20],
       ['docserver.js', 39],
       ['schema.js', 6],
-      ['backup.js', 44],
+      ['backup.js', 48],
       ['backuptool.js', 29],
-      ['public/app.js', 1164],
+      ['public/app.js', 1171],
       ['public/theme.js', 2],
       ['public/style.css', 524],
     ];
-    const COMMENT_TOTAL = { comment: 7040, code: 82908 };
+    const COMMENT_TOTAL = { comment: 7096, code: 84362 };
     // Ausgelieferte Dateien: Bloecke ueber drei Zeilen und Bloecke mit Betonung in Grossbuchstaben.
     const COMMENT_LIMITS = { longBlocks: 3, emphasis: 6 };
-    check('Der Waechter sieht alle zweiundfuenfzig Dateien',
-      crAll.each.length === 52 && COMMENT_ROWS.length === 52,
+    check('Der Waechter sieht alle dreiundfuenfzig Dateien',
+      crAll.each.length === 53 && COMMENT_ROWS.length === 53,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
     const crWrong = [];
     for (let i = 0; i < COMMENT_ROWS.length; i++) {
@@ -564,7 +565,7 @@ async function run() {
     check('Sie tragen das Ausfuehrungsrecht',
       withoutRight.length === 0, `ohne Recht: ${withoutRight.join(' · ') || '—'}`);
     // Ohne chmod im Einspielweg der README kommt das Recht auf dem Host nicht an.
-    const readme = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
+    const readme = fs.readFileSync(path.join(__dirname, 'README-de.md'), 'utf8');
     const chmodRows = readme.split('\n').filter(l => l.startsWith('chmod +x kriterion/')).join(' ');
     check('Der Einspielweg in der README zieht das Recht fuer beide nach',
       hostScripts.every(n => chmodRows.split(' ').includes(`kriterion/${n}`)),
@@ -586,7 +587,7 @@ async function run() {
     ];
     // SEARCH_OPTIONAL fehlt im veroeffentlichten Stand und wird nur gelesen, wenn es da ist.
     const SEARCH_OPTIONAL = 'Doku/Aenderungsprotokoll_0.19.0.md';
-    const searchAlways = ['server.js', 'public/app.js', 'counterproof.js', 'README.md',
+    const searchAlways = ['server.js', 'public/app.js', 'counterproof.js', 'README-de.md',
                         'CHANGELOG.md'];
     const searched = [...searchAlways,
       ...(fs.existsSync(path.join(__dirname, ...SEARCH_OPTIONAL.split('/')))
@@ -673,7 +674,7 @@ async function run() {
   group('Die Anleitung liegt in zwei Dateien — 0.34.2');
   {
     const guideRead = n => fs.readFileSync(path.join(__dirname, n), 'utf8');
-    const readme = guideRead('README.md');
+    const readme = guideRead('README-de.md');
     const handbook = guideRead('manual-de.md');
     // Erst das Vorhandensein: ueber zwei leeren Dateien waere jede Verneinung darunter wahr.
     check('Beide Dateien tragen wirklich etwas',
@@ -694,7 +695,7 @@ async function run() {
     check('Die README nennt das Handbuch beim Namen',
       /manual-de\.md/.test(readme), 'der Verweis auf manual-de.md fehlt');
     check('Und das Handbuch die README',
-      /README\.md/.test(handbook), 'der Verweis auf README.md fehlt');
+      /README-de\.md/.test(handbook), 'der Verweis auf README-de.md fehlt');
 
     // Namentlich, damit ein zurueckgewanderter Abschnitt auffaellt.
     const BENCH_ONLY = ['Anmeldung', 'Benutzer und Rollen', 'Übersicht', 'Eintrag',
@@ -729,7 +730,7 @@ async function run() {
       }
       return { heads, marks };
     };
-    for (const [name, text] of [['README.md', readme], ['manual-de.md', handbook]]) {
+    for (const [name, text] of [['README-de.md', readme], ['manual-de.md', handbook]]) {
       const { heads, marks } = guideParts(text);
       // Erst das Vorhandensein: ohne Sprungmarken waere jede Verneinung darunter wahr.
       check(`${name} traegt ein Inhaltsverzeichnis`,
@@ -767,7 +768,7 @@ async function run() {
     check('package.json traegt dieselbe Lizenz', pkg.license === 'MIT',
       JSON.stringify(pkg.license));
 
-    const rd = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
+    const rd = fs.readFileSync(path.join(__dirname, 'README-de.md'), 'utf8');
     check('Die README traegt das Abzeichen',
       /!\[Lizenz\]\(https:\/\/img\.shields\.io\/badge\/Lizenz-MIT-/.test(rd),
       'das Abzeichen fehlt');

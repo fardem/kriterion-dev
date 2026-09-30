@@ -782,7 +782,7 @@ const LOG_GROUPS = {
           'user.delete', 'user.self', 'link.new', 'link.use',
           'request.approve', 'request.reject'],
   twofactor: ['twofactor.on', 'twofactor.off', 'twofactor.reset'],
-  inventory: ['export', 'import', 'backup', 'backup.delete', 'key']
+  inventory: ['export', 'import', 'backup', 'backup.delete', 'backup.fetch', 'key']
 };
 
 const LOG_COLUMNS =

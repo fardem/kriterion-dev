@@ -255,6 +255,7 @@ const ICON_BOX_SOME = char('<rect x="4" y="4" width="16" height="16" rx="3"/><pa
 const ICON_RESTORE = char('<path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-4"/>');
 /* Kreis statt Kreuz: die eigenen Sterne werden zurueckgesetzt, nicht geloescht. */
 const ICON_RESET = char('<path d="M4.5 12a7.5 7.5 0 1 0 2.6-5.7"/><path d="M4 4v5h5"/>');
+const ICON_INFO = char('<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><path d="M12 7.7v.1"/>');
 const ICON_LINK = char('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.5 1.5"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.5-1.5"/>');
 const ICON_KEY = char('<circle cx="8" cy="15.5" r="4"/><path d="M11 12.5L20 3.5"/><path d="M17 6.5l2.5 2.5"/><path d="M14.5 9l2 2"/>');
 const ICON_LOCK = char('<circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/>');
@@ -1307,7 +1308,8 @@ let FILES_VIEW = 'tiles';
 const FILES_SORTS = {
   name: { word: 'entry.filesSortName', up: 'list.dirAZ', down: 'list.dirZA', start: true },
   date: { word: 'entry.filesSortDate', up: 'list.dirOldNew', down: 'list.dirNewOld', start: true },
-  size: { word: 'entry.filesSortSize', up: 'entry.dirSmallLarge', down: 'entry.dirLargeSmall', start: false }
+  size: { word: 'entry.filesSortSize', up: 'entry.dirSmallLarge', down: 'entry.dirLargeSmall', start: false },
+  type: { word: 'entry.colKind', up: 'list.dirAZ', down: 'list.dirZA', start: true }
 };
 let FILES_SORT = { key: 'date', asc: true };
 let FILES_GROUP = 'none';
@@ -2788,7 +2790,7 @@ async function loadSettings() {
   if (SETTINGS.linkRows) LINK_ROWS = SETTINGS.linkRows;
   if (SETTINGS.timeline !== undefined) TIMELINE_ON = SETTINGS.timeline !== false;
   if (SETTINGS.filesView === 'tiles' || SETTINGS.filesView === 'list') FILES_VIEW = SETTINGS.filesView;
-  const sortSet = /^(name|date|size)_(asc|desc)$/.exec(SETTINGS.filesSort || '');
+  const sortSet = /^(name|date|size|type)_(asc|desc)$/.exec(SETTINGS.filesSort || '');
   if (sortSet) FILES_SORT = { key: sortSet[1], asc: sortSet[2] === 'asc' };
   if (SETTINGS.filesGroup === 'none' || SETTINGS.filesGroup === 'type') FILES_GROUP = SETTINGS.filesGroup;
   if (SETTINGS.documents !== undefined) DOC_SETTINGS = SETTINGS.documents;
@@ -4524,7 +4526,7 @@ const WHOLE_BYTES = () => (isNarrow() ? 500 : 2048) * 1024 * 1024;
 /* Ohne `remove` kein Papierkorb, ohne `linkOf` kein Link kopieren; `inside` liefert den Abspieler
    der Seite fuer die Uebergabe eines laufenden Videos. `removable(p)` und `still.may(p)` blenden
    Papierkorb und Standbildknopf je Bild aus; `shown(p)` meldet das Bild, beim Schliessen null. */
-function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removable, shown, still } = {}) {
+function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removable, shown, still, info } = {}) {
   if (!photos.length) return;
   lightboxOpen = true;
   let i = startIdx, zoomed = false;
@@ -4537,6 +4539,7 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
       <div class="lb-tools">
         <span class="lb-loaded" hidden></span>
         <span class="lb-count"></span>
+        ${info ? `<button class="lb-btn info" title="${esc(t('entry.mediaInfo'))}" aria-label="${esc(t('entry.mediaInfo'))}">${ICON_INFO}</button>` : ''}
         ${linkOf ? `<button class="lb-btn copy" title="${esc(t('entry.copyLink'))}">${ICON_LINK}</button>` : ''}
         <a class="lb-btn download" download title="${esc(t('entry.download'))}">↓</a>
         <button class="lb-btn zoom" title="${esc(t('list.zoomFull'))}">⊕</button>
@@ -4746,6 +4749,8 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
     lb.remove();
   };
   function onKey(e) {
+    // Ein Dialog ueber dem Vollbild bekommt die Tasten; Esc schliesst dann nur ihn.
+    if (document.querySelector('.backdrop')) return;
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); }
     // Hat das Video den Fokus, spult es, statt zu blaettern.
     else if (document.activeElement === player) { if (seekVideo(e)) e.stopPropagation(); }
@@ -4755,6 +4760,8 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
   document.addEventListener('keydown', onKey, true);
 
   lb.querySelector('.close').onclick = close;
+  const infoButton = lb.querySelector('.info');
+  if (infoButton) infoButton.onclick = () => info(photos[i], infoButton);
   lb.querySelector('.zoom').onclick = () => setZoom(!zoomed);
   // Ohne show(): das laufende Video bliebe sonst nicht an seiner Stelle.
   lb.querySelector('.still')?.addEventListener('click', async () => {
@@ -4928,7 +4935,15 @@ function kindOf(a) {
 function kindText(a) {
   const kind = kindOf(a);
   if (kind !== 'video') return t(KIND_WORDS[kind]);
-  return [a.codec || t(KIND_WORDS.video), durationText(a.duration)].filter(Boolean).join(' · ');
+  return [codecName(a.codec) || t(KIND_WORDS.video), durationText(a.duration)].filter(Boolean).join(' · ');
+}
+/* Namen der Videocodecs wie in den Datenblaettern der Kameras; die Datenbank behaelt den
+   Wortlaut von MediaInfo. `long`: mit dem Namen von MediaInfo in Klammern. */
+const CODEC_NAMES = { AVC: 'H.264', HEVC: 'H.265' };
+function codecName(format, long = false) {
+  const name = CODEC_NAMES[format];
+  if (!name) return format || '';
+  return long ? `${name} (${format})` : name;
 }
 /* Zeichen der zweiten Zeile; bei 96 px Kachelbreite passen rund 14. */
 const FILE_NAME_TAIL = 10;
@@ -4953,11 +4968,11 @@ function mediaInfoHtml(f) {
   const bits = (n) => (n ? t('entry.mediaBits', { n }) : '');
   const recorded = /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d/.exec(g.recorded || '');
   const html = [
-    mediaGroup(t('entry.mediaGeneral'), [['entry.mediaFormat', g.format],
+    mediaGroup(t('entry.mediaGeneral'), [[video.length ? 'entry.mediaContainer' : 'entry.mediaFormat', g.format],
       ['entry.mediaFileSize', g.size ? fmtBytes(g.size) : ''], ['entry.mediaDuration', durationText(g.duration)],
       ['entry.mediaTotalRate', bitRateText(g.bitRate)], ['entry.mediaRecorded', recorded ? fmtDate(recorded[0]) : g.recorded],
       ['entry.mediaAudioTracks', video.length ? String(audio.length) : '']]),
-    ...video.map(v => mediaGroup(t('entry.kindVideo'), [['entry.mediaCodec', v.format], ['entry.mediaProfile', v.profile],
+    ...video.map(v => mediaGroup(t('entry.kindVideo'), [['entry.mediaCodec', codecName(v.format, true)], ['entry.mediaProfile', v.profile],
       ['entry.mediaResolution', area(v.width, v.height)],
       ['entry.mediaFrameRate', v.frameRate ? t('entry.mediaFps', { n: number(v.frameRate, 0, 3) }) : ''],
       ['entry.mediaBitRate', bitRateText(v.bitRate)], ['entry.mediaBitDepth', bits(v.bitDepth)],
@@ -5601,11 +5616,12 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
           <button type="button" class="aview-btn" data-view="tiles" aria-pressed="false">${tH('entry.filesTiles')}</button>
           <button type="button" class="aview-btn" data-view="list" aria-pressed="false">${tH('entry.filesList')}</button></span>
         <button class="link-btn" id="apick-start" hidden>${tH('entry.pick')}</button>
-        <button class="link-btn" id="afolder-new">${tH('entry.folderAdd')}</button></span></div>
+        <button class="link-btn" id="afolder-new">${tH('entry.folderAdd')}</button>${OWNER
+          ? `<button class="link-btn" id="adeleted">${tH('entry.deletedOpen')}</button>` : ''}</span></div>
       ${/* Die Vorschau wird nie verschoben: ein iframe laedt dabei neu. Jede Gruppe hat ihre eigene. */''}
       <div id="atts">
         <div class="acols" role="group" aria-label="${esc(t('entry.filesSort'))}"><span class="acols-face"><span></span>
-          <button type="button" class="acol" data-sort="name"></button><span class="acol">${tH('entry.colKind')}</span>
+          <button type="button" class="acol" data-sort="name"></button><button type="button" class="acol" data-sort="type"></button>
           <button type="button" class="acol acol-size" data-sort="size"></button>
           <button type="button" class="acol" data-sort="date"></button><span class="acol acol-from">${tH('entry.colFrom')}</span></span>
           <span class="acols-rest"></span></div>
@@ -5721,10 +5737,10 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     if (showsVideo) viewerSpot = watchSpot(innerPlayer(), ps[idx], v);
     if (image) image.onclick = () => {
       if (!cropMode)
-        openLightbox([...item.photos], idx, item.title, deletePhoto, innerPlayer, photoLink);
+        openLightbox([...item.photos], idx, item.title, deletePhoto, innerPlayer, photoLink, { info: photoInfo });
     };
     v.querySelector('.vfull')?.addEventListener('click',
-      () => openLightbox([...item.photos], idx, item.title, deletePhoto, innerPlayer, photoLink));
+      () => openLightbox([...item.photos], idx, item.title, deletePhoto, innerPlayer, photoLink, { info: photoInfo }));
     v.querySelector('.vfocus').onclick = () => {
       cropMode = !cropMode;
       drawViewer();
@@ -5955,7 +5971,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     idx = at;
     drawViewer(); markThumb();
     openLightbox([...item.photos], idx, item.title, deletePhoto,
-                 () => document.querySelector('#viewer video'), photoLink);
+                 () => document.querySelector('#viewer video'), photoLink, { info: photoInfo });
     return true;
   }
   PHOTO_SHOW = { itemId: Number(id), show: showPhoto, showFile };
@@ -7187,8 +7203,8 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     fillTile(li, { name: a.filename, size: filesize(a.size), kind, meta: from, duration: length,
       picture: a.preview === 'image' || (video && a.still) || a.thumb ? fileTileSource(a) : coming,
       video: video || /^video\//.test(a.mime_type || ''), badge: a.thumb ? kind : '',
-      date: fmtDateOnly(a.created_at), from, kindCell: kindText(a), codec: video ? a.codec || '' : '',
-      label: [a.filename, kind, video ? a.codec : '', length, filesize(a.size), from].filter(Boolean).join(', '),
+      date: fmtDateOnly(a.created_at), from, kindCell: kindText(a), codec: video ? codecName(a.codec) : '',
+      label: [a.filename, kind, video ? codecName(a.codec) : '', length, filesize(a.size), from].filter(Boolean).join(', '),
       open: openPreview === a.id || lightboxFile === a.id });
     if (video && !a.still && a.mine === true && shown) catchUpStill(id, a);
     if (readable && !isNarrow()) {
@@ -7395,7 +7411,8 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   const FILE_ORDER = {
     name: (a, b) => byName(a.filename, b.filename),
     date: (a, b) => byText(a.created_at, b.created_at) || a.sort_order - b.sort_order,
-    size: (a, b) => a.size - b.size
+    size: (a, b) => a.size - b.size,
+    type: (a, b) => kindOrder(kindOf(a), kindOf(b)) || byName(a.filename, b.filename)
   };
   function sortedFiles(files) {
     const sign = FILES_SORT.asc ? 1 : -1;
@@ -7410,7 +7427,8 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     const { key, asc } = FILES_SORT;
     if (key === 'date') return asc ? folders.slice().reverse() : folders;
     const sum = (f) => (item.attachments || []).filter(a => groupOf(a) === f.id).reduce((s, a) => s + a.size, 0);
-    const by = key === 'name' ? (x, y) => byName(x.name, y.name) : (x, y) => sum(x) - sum(y);
+    // Ordner haben keinen Typ; bei „Typ“ stehen sie nach Name.
+    const by = key === 'name' || key === 'type' ? (x, y) => byName(x.name, y.name) : (x, y) => sum(x) - sum(y);
     return folders.slice().sort((x, y) => (asc ? 1 : -1) * (by(x, y) || x.id - y.id));
   }
   function newKindHead(key) {
@@ -7545,18 +7563,23 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   }
 
   // Beim ersten Aufruf liest der Server die Datei; bis dahin steht „wird gelesen“ im Dialog.
-  async function showMediaInfo(a, li) {
+  async function showMediaInfo(url, name, back) {
     const { bd, done } = openModal(`<div class="modal minfo"><h2>${tH('entry.mediaInfo')}</h2>
       <p class="minfo-name"></p><div class="minfo-body" aria-live="polite"><p>${tH('entry.mediaReading')}</p></div>
       <div class="modal-acts"><button class="btn btn-accent" data-yes>${tH('list.close')}</button></div></div>`,
-      () => { if (li.isConnected) li.querySelector('.amore')?.focus(); }, null);
-    bd.querySelector('.minfo-name').textContent = a.filename;
+      () => { if (back && back.isConnected) back.focus(); }, null);
+    bd.querySelector('.minfo-name').textContent = name;
     bd.querySelector('[data-yes]').onclick = () => done(null);
     bd.querySelector('[data-yes]').focus();
     const body = bd.querySelector('.minfo-body');
-    try { body.innerHTML = mediaInfoHtml(await api('GET', `/api/attachments/${Number(a.id)}/info`)); }
+    try { body.innerHTML = mediaInfoHtml(await api('GET', url)); }
     catch (e) { body.innerHTML = `<p>${esc(e.message)}</p>`; }
   }
+  const fileInfo = (a, back) => showMediaInfo(`/api/attachments/${Number(a.id)}/info`, a.filename, back);
+  // Fotos haben keinen Dateinamen; der Dialog nennt Art und Stelle wie der Zaehler im Vollbild.
+  const photoInfo = (p, back) => showMediaInfo(`/api/photos/${Number(p.id)}/info`,
+    `${t(p.kind === 'video' ? 'entry.kindVideo' : 'entry.kindImage')} ${item.photos.findIndex(x => x.id === p.id) + 1} / ${
+      item.photos.length}`, back);
 
   /* Nur was der Server annimmt; die eigene Nummer kennt der Browser nicht, daher `mine`. */
   function fileMenu(a, li) {
@@ -7570,7 +7593,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     pass.push({ label: t('entry.download'), href: `/api/attachments/${Number(a.id)}/raw` });
     pass.push({ label: t('entry.copyFileLink'), run: () => copyText(fileLink(a), t('card.linkCopied')) });
     if (a.preview === 'image' || a.preview === 'video')
-      pass.push({ label: t('entry.mediaInfo'), own: true, run: () => showMediaInfo(a, li) });
+      pass.push({ label: t('entry.mediaInfo'), own: true, run: () => fileInfo(a, li.querySelector('.amore')) });
     const targets = moveTargets(a);
     if (a.mine === true && targets.length)
       sort.push({ label: t('entry.moveTo'), own: true, run: () => moveMenu(a, li, targets) });
@@ -7613,7 +7636,8 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
 
   async function deletePicked() {
     const chosen = pickedFiles();
-    if (!await confirmBox(t('entry.pickDeleteAsk', { n: chosen.length }), t('entry.pickDeleteHint'))) return;
+    if (!await confirmBox(t('entry.pickDeleteAsk', { n: chosen.length }),
+      t('entry.pickTrashHint', { trashDays: TRASH_DAYS }))) return;
     let errors;
     try { errors = await eachPicked(chosen, async a => { item = await api('DELETE', `/api/attachments/${Number(a.id)}`); }); }
     catch { return; }
@@ -7834,7 +7858,8 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   }
 
   async function deleteFile(a) {
-    if (!await confirmBox(t('entry.deleteFileAsk'), t('entry.fileDeleteHint', { filename: a.filename }))) return false;
+    if (!await confirmBox(t('entry.deleteFileAsk'),
+      t('entry.fileDeleteHint', { filename: a.filename, trashDays: TRASH_DAYS }))) return false;
     try { item = await api('DELETE', `/api/attachments/${a.id}`); drawAtts(); return true; }
     catch (e) { toast(e.message, true); return false; }
   }
@@ -7874,7 +7899,8 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       removable: mayDeleteFile,
       shown: (a) => { lightboxFile = a ? a.id : 0; drawAtts(); },
       // Wie PUT .../still: nur wer die Datei hochgeladen hat.
-      still: { may: (a) => a.mine === true && isVideo(a), save: saveStill }
+      still: { may: (a) => a.mine === true && isVideo(a), save: saveStill },
+      info: fileInfo
     });
     return true;
   }
@@ -8032,6 +8058,61 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     addFiles([...(e.dataTransfer.files || [])], Number(dropFolder(e)?.dataset.folder) || 0);
   });
   document.getElementById('afolder-new').onclick = newFolder;
+  const deletedOpener = document.getElementById('adeleted');
+  if (deletedOpener) deletedOpener.onclick = showDeletedFiles;
+
+  /* ---- Geloeschte Dateien: Papierkorb und Backups ---- */
+  // Nur fuer den Eigentuemer-Admin; der Server oeffnet dafuer jedes Backup.
+  function showDeletedFiles() {
+    const { bd, done } = openModal(`<div class="modal adeleted"><h2>${tH('entry.deletedTitle')}</h2>
+      <p class="minfo-name"></p><div class="adeleted-body" aria-live="polite"><p>${tH('entry.deletedReading')}</p></div>
+      <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('list.close')}</button>
+      <button class="btn btn-accent" data-yes disabled>${tH('entry.deletedFetch')}</button></div></div>`,
+      () => { if (deletedOpener.isConnected) deletedOpener.focus(); }, null);
+    bd.querySelector('.minfo-name').textContent = item.title;
+    bd.querySelector('[data-no]').onclick = () => done(null);
+    bd.querySelector('[data-no]').focus();
+    const body = bd.querySelector('.adeleted-body'), go = bd.querySelector('[data-yes]');
+    const origin = (f) => (f.trash ? t('entry.deletedInTrash', { n: f.daysOpen }) : t('entry.deletedInBackup', { at: fmtDate(f.at) }));
+    async function load() {
+      let d;
+      try { d = await api('GET', `/api/items/${id}/deleted-files`); }
+      catch (e) { body.innerHTML = `<p>${esc(e.message)}</p>`; return; }
+      if (!bd.isConnected) return;
+      const rows = [...d.trash, ...d.backups];
+      body.innerHTML = rows.length ? `<ul class="adeleted-list">${rows.map(f => `<li><label>
+          <input type="checkbox" class="adeleted-pick"${f.missing ? ' disabled' : ''}>
+          <span class="adeleted-name"></span><span class="hint adeleted-meta"></span></label></li>`).join('')}</ul>`
+        : `<p>${tH('entry.deletedNone')}</p>`;
+      body.querySelectorAll('.adeleted-list li').forEach((li, n) => {
+        const f = rows[n];
+        li.querySelector('.adeleted-name').textContent = f.filename;
+        li.querySelector('.adeleted-meta').textContent = [f.folder, fmtBytes(f.size), origin(f),
+          f.older ? t('entry.deletedOlder') : '', f.missing ? t('entry.deletedCopyMissing') : ''].filter(Boolean).join(' · ');
+      });
+      if (d.unreadable) body.insertAdjacentHTML('beforeend',
+        `<p class="hint hint-sm">${tH('entry.deletedUnreadable', { n: d.unreadable })}</p>`);
+      const boxes = [...body.querySelectorAll('.adeleted-pick')];
+      const sync = () => { go.disabled = !boxes.some(b => b.checked); };
+      boxes.forEach(b => { b.onchange = sync; });
+      sync();
+      go.onclick = async () => {
+        const chosen = rows.filter((f, n) => boxes[n].checked);
+        go.disabled = true;
+        try {
+          const r = await api('POST', `/api/items/${id}/deleted-files`, {
+            trash: chosen.filter(f => f.trash).map(f => f.trash),
+            backup: chosen.filter(f => !f.trash).map(f => ({ name: f.backup, file: f.file })) });
+          item = r;
+          drawAtts();
+          if (r.fetched) toast(t('entry.deletedFetched', { n: r.fetched }));
+          if (r.refused && r.refused.length) toast(r.refused.map(x => `${x.filename}: ${x.reason}`).join(' · '), true);
+          load();
+        } catch (e) { toast(e.message, true); sync(); }
+      };
+    }
+    load();
+  }
 
   /* ---- Kacheln oder Liste ---- */
   const viewButtons = [...fileBlock.querySelectorAll('.aview-btn')];
@@ -10192,13 +10273,16 @@ function setUpTrashOut(fetched) {
       row.className = 'mrow trash';
       row.dataset.pkid = z.id;
       const open = Number(z.daysOpen);
+      const file = z.kind === 'file';
       const meta = [
         t('card.deletedByOn', { deletedAt: fmtDate(z.deleted_at), deletedBy: authorName(z.deletedBy) }),
         t('card.daysLeft', { n: open }),
-        fmtBytes(z.bytes)
-      ];
+        fmtBytes(file ? z.size : z.bytes),
+        file && !z.entryThere ? t('card.trashEntryGone') : ''
+      ].filter(Boolean);
+      const name = file ? [z.entry, z.folder, z.title].filter(Boolean).join(' › ') : z.title;
       // Knoepfe nur fuer den Eigentuemer; der Server verweigert es allen anderen.
-      row.innerHTML = `<span class="mname">${esc(z.title)}</span>
+      row.innerHTML = `<span class="mname">${esc(name)}</span>
         ${OWNER ? `<button class="mact trash-back" title="${esc(t('card.restore'))}">${ICON_RESTORE} ${tH('card.restore')}</button>
         <button class="mact rm trash-remove" title="${esc(t('card.deleteForGood'))}">${ICON_X}</button>` : ''}
         <span class="trash-meta">${esc(meta.join(' · '))}</span>`;
@@ -10693,6 +10777,7 @@ function setUpLogOut(fetched) {
     'backup': 'card.backupWritten',
     // Eine Zeile je entferntem Backup, deshalb der Singular.
     'backup.delete': 'card.oldBackupDeleted',
+    'backup.fetch': 'card.backupFileFetched',
     // Ohne Ziel und Merkmal; der Handelnde ist leer, weil der Schluessel auf dem
     // Host gewechselt wird.
     'key': 'card.keyChanged'
