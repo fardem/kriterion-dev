@@ -166,8 +166,9 @@
   "card.diskFiles": "Diskteki dosyalar",
   "card.diskFree": "boş alan",
   "card.diskGone": "silinmeyi bekliyor",
-  "card.diskLarge": "bunların büyük videoları",
+  "card.diskLarge": "“Ek” sınırını aşanlar",
   "card.diskMissing": "eksik",
+  "card.diskPending": "hâlâ veritabanında",
   "card.diskTrash": "bunların çöp kutusundakileri",
   "card.diskUncopied": {
     "one": "Bunların {n} tanesi yedekleme klasöründe yok; silinmez.",
@@ -215,8 +216,8 @@
   "card.exportHint": "Dışa aktarma, bütün veriyi şifresiz olarak bir dosyaya yazar — bütün fotoğraflar, ekler ve yazar adlarıyla birlikte.",
   "card.exportInParts": "Parçalar hâlinde dışa aktar",
   "card.exportLargeHint": {
-    "one": "Dahil değil: {n} büyük video ({bytes}). Onu yedekleme saklar.",
-    "other": "Dahil değil: {n} büyük video ({bytes}). Onları yedekleme saklar."
+    "one": "Dahil değil: “Ek” sınırını aşan {n} dosya ({bytes}). Onu yedekleme saklar.",
+    "other": "Dahil değil: “Ek” sınırını aşan {n} dosya ({bytes}). Onları yedekleme saklar."
   },
   "card.exportOnlyEntries": "Dışa aktarma ve içe aktarma yalnızca {entryMany} içerir — kullanıcıları ve Kriterion ayarlarını içermez.",
   "card.exportOversizeHint": "**Fotoğraflarla dışa aktarma: yaklaşık {withPhotos}** — bu bir süre alabilir ve ilerleme göstergesi yoktur ({rest}).",
@@ -320,9 +321,10 @@
   "card.light": "Açık",
   "card.likeDevice": "Otomatik",
   "card.limitAttachment": "Ek",
+  "card.limitAttachmentHint": "Buraya kadar dışa aktarımda içerikle, önizleme ve Document Server ile; üstü yalnızca indirilir, PDF, resim ve video hariç.",
   "card.limitCommentImage": "Yorumdaki resim",
   "card.limitCommentVideo": "Yorumdaki video",
-  "card.limitDayVideo": "{dayOne} videosu",
+  "card.limitFile": "Dosya",
   "card.limitPhoto": "Fotoğraf",
   "card.limitRange": "{min} ile {max} MB arası",
   "card.limitVideo": "Video",
@@ -330,8 +332,8 @@
   "card.linkCreated": "Bağlantı oluşturuldu",
   "card.inviteLinkFor": "“{name}” için davet bağlantısı — yalnızca bir kez gösterilir.",
   "card.replaceLargeHint": {
-    "one": "{n} büyük video ({bytes}) da silinir; hiçbir dışa aktarma onu içermez.",
-    "other": "{n} büyük video ({bytes}) da silinir; hiçbir dışa aktarma onları içermez."
+    "one": "“Ek” sınırını aşan {n} dosya ({bytes}) da silinir; hiçbir dışa aktarma onu içermez.",
+    "other": "“Ek” sınırını aşan {n} dosya ({bytes}) da silinir; hiçbir dışa aktarma onları içermez."
   },
   "card.resetLinkFor": "“{name}” için sıfırlama bağlantısı — yalnızca bir kez gösterilir.",
   "card.linkHolderHint": "Bağlantıya sahip olan parolayı belirleyebilir: **{days} gün** geçerli, **bir kez** kullanılabilir, açıldıktan sonra **{minutes} dakika** süre. Yalnızca doğru kişiye ver.",
@@ -798,14 +800,12 @@
   "entry.criterion": "Ölçüt",
   "entry.cropHint": "Dışarıda sürüklemek yeni bir kırpma belirler; çerçevenin içinde sürükleyerek taşı, köşe ve kenardan boyutu değiştir",
   "entry.cropZoom": "Kırpmanın yakınlaştırması",
-  "entry.dayAddLimit": "{mb} MB’a kadar · video {video}",
   "entry.dayDeleteFolder": "“{name}” klasörü dosyalarıyla birlikte korunur.",
   "entry.dayDeleteHint": "{day} tarihi siliniyor.",
   "entry.dayFolderOpen": {
     "one": "Klasörü aç, 1 dosya",
     "other": "Klasörü aç, {n} dosya"
   },
-  "entry.dayLimitHint": "dosya başına {mb} MB, videolar {video}, en çok {cap} dosya",
   "entry.daysSummary": "{n} {dayWord} · ⌀ {average} · son {latest}",
   "entry.delete": "sil",
   "entry.deleteCommentAsk": "Yorum silinsin mi?",
@@ -830,7 +830,7 @@
   "entry.empty": "(boş)",
   "entry.enteredByOn": "{created_at} tarihinde {author} girdi",
   "entry.fileAdd": "Dosya yükle",
-  "entry.fileAddLimit": "{mb} MB'a kadar",
+  "entry.fileAddLimit": "en fazla {size}",
   "entry.fileCount": {
     "one": "{n} dosya · {filesize}",
     "other": "{n} dosya · {filesize}"
@@ -839,7 +839,7 @@
   "entry.fileDropHint": "Buraya sürükle ya da + ile yükle.",
   "entry.fileFailed": "başarısız",
   "entry.fileFull": "{n} / {cap}",
-  "entry.fileLimitHint": "dosya başına {mb} MB'a kadar, en çok {cap} dosya",
+  "entry.fileLimitHint": "dosya başına en fazla {size}, en çok {cap} dosya",
   "entry.fileMenu": "{name} menüsü",
   "entry.fileWaiting": "bekliyor",
   "entry.filesAttached": {
@@ -934,6 +934,44 @@
   "entry.orderSaved": "Sıra kaydedildi",
   "entry.pdfHint": "Çerçeve boş kalırsa tarayıcı PDF'yi burada gösteremiyordur.",
   "entry.photoOrderHint": "İlk fotoğraf ana resimdir — sırayı sürükleyerek değiştir. Videolar {mb} MB'a kadar (MP4, WebM, MOV).",
+  "entry.pick": "Seç",
+  "entry.pickAll": "Tümünü seç",
+  "entry.pickBar": "Seçim",
+  "entry.pickDeleteAsk": {
+    "one": "1 dosya silinsin mi?",
+    "other": "{n} dosya silinsin mi?"
+  },
+  "entry.pickDeleteFailed": {
+    "one": "1 silinemedi: {error}",
+    "other": "{n} silinemedi: {error}"
+  },
+  "entry.pickDeleteHint": "Seçilenler kalıcı olarak siliniyor.",
+  "entry.pickDeleted": {
+    "one": "1 silindi.",
+    "other": "{n} silindi."
+  },
+  "entry.pickFolder": "“{name}” içindekilerin tümünü seç",
+  "entry.pickMediaAsk": {
+    "one": "1 fotoğraf veya video silinsin mi?",
+    "other": "{n} fotoğraf ve video silinsin mi?"
+  },
+  "entry.pickMoveFailed": {
+    "one": "1 taşınamadı: {error}",
+    "other": "{n} taşınamadı: {error}"
+  },
+  "entry.pickNone": "Hiçbirini seçme",
+  "entry.pickPhotosAsk": {
+    "one": "1 fotoğraf silinsin mi?",
+    "other": "{n} fotoğraf silinsin mi?"
+  },
+  "entry.pickVideosAsk": {
+    "one": "1 video silinsin mi?",
+    "other": "{n} video silinsin mi?"
+  },
+  "entry.picked": {
+    "one": "1 seçili",
+    "other": "{n} seçili"
+  },
   "entry.pickDate": "Bir tarih seç",
   "entry.pinHint": "Sabitle — sonra en üstte durur",
   "entry.previewTruncated": "Önizleme kısaltıldı — dosyanın tamamını ↓ ile indir.",
@@ -1010,9 +1048,11 @@
   "entry.uploading": "yükleniyor …",
   "entry.uploadRunsAt": "sürüyor, en son {time}",
   "entry.uploadStop": "Yüklemeyi iptal et",
+  "entry.videoFrom": "Devam: {time}",
   "entry.videoNoImage": "Bu videonun resmi yok",
   "entry.videoNoThumb": "Bu videodan küçük resim oluşturulamadı.",
-  "entry.videoToFiles": "Daha uzun videolar “Dosyalar” bölümünde {dayOne} bağlı bir klasöre yüklenir.",
+  "entry.videoRestart": "Baştan",
+  "entry.videoToFiles": "Uzun videolar “Dosyalar” altına yüklenir.",
   "entry.videoUnplayable": "Tarayıcı bu videoyu oynatamıyor",
   "entry.weight": "Ağırlık",
   "entry.weighted": "ağırlıklı",
@@ -1296,7 +1336,6 @@
     "one": "Yedekleme anahtar değişiminden daha eski.",
     "other": "{n} yedeklemenin hepsi anahtar değişiminden daha eski."
   },
-  "server.bigVideoFolder": "Büyük videolar yalnızca {dayOne} bağlı bir klasöre.",
   "server.bodyAborted": "İstek yarıda kesildi.",
   "server.bodyInvalid": "İstek okunamadı.",
   "server.bodyTooLarge": "İstek çok büyük.",
@@ -1347,13 +1386,12 @@
   "server.docOff": "Document Server üzerinden gösterim kapalı.",
   "server.editDenied": "Bu dosyayı yalnızca yükleyen düzenleyebilir.",
   "server.fileMissing": "Bu dosya sunucuda eksik.",
+  "server.largeDownloadOnly": "“Ek” sınırının üzerinde bu dosya yalnızca indirilebilir.",
   "server.folderDayForeign": "Yalnızca kendi klasörün kendi {dayOne} ile bağlanır.",
   "server.folderDayTaken": "Her {dayOne} için en çok bir klasör olur; zaten bir tane var.",
   "server.folderForeign": "Bu klasöre yalnızca onu oluşturan kişi dosya koyabilir.",
   "server.folderGone": "Bu klasör artık yok.",
-  "server.folderHasDay": "{dayOne} bağlı bir klasöre dosyalar parça parça yüklenir.",
   "server.folderName": "Klasör adı 1 ile {max} karakter arasında olmalıdır.",
-  "server.folderNoDay": "Bu klasörün {dayOne} yok; dosya tek istekte yüklenir.",
   "server.noPrevious": "Bu dosyanın önceki sürümü yok.",
   "server.docReady": "Bağlandı. Document Server dosyaları {address} adresinden alıyor.",
   "server.docSecretRejected": "Document Server secret değerini reddediyor. DOCUMENT_SERVER_SECRET ile JWT_SECRET aynı olmalı.",
@@ -1455,6 +1493,7 @@
   "server.uploadBusy": "Bu yükleme için zaten bir istek sürüyor.",
   "server.uploadCap": "Yükleme başına en çok {cap} dosya.",
   "server.uploadGone": "Bu yükleme artık yok.",
+  "server.videoGone": "Bu video artık yok.",
   "server.uploadInvalid": "Dosyanın adı, boyutu veya değiştirilme zamanı eksik.",
   "server.uploadLength": "İstek uzunluğunu belirtmiyor.",
   "server.uploadLimitRange": "“{what}”, {min} ile {max} MB arasında bir tam sayı olmalı.",
@@ -1467,7 +1506,6 @@
   "server.userUnknown": "Böyle bir kullanıcı yok.",
   "server.videoNeedsStill": "Yalnızca kapak resmi olan videoya izin verilir.",
   "server.videoOne": "İstek başına kapak resmiyle birlikte bir video.",
-  "server.videoOnly": "“Ek” sınırının üstünde Kriterion yalnızca ilk baytlarından tanınan videoları kabul eder. Sıradan dosya olarak {mb} MB’a kadar yüklenir.",
   "server.videosOnly": "Yalnızca MP4, WebM ve MOV videoları alınır.",
   "server.videoStill": "Video ve kapak resmi bir aradadır.",
   "server.viewCap": "En çok {cap} kayıtlı görünüm.",

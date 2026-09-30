@@ -94,14 +94,7 @@ async function run() {
       body: body ? JSON.stringify(body) : undefined });
     return { status: a.status, content: await a.json().catch(() => null) };
   };
-  const upload = async (who, itemId, files, folderId) => {
-    const fd = new FormData();
-    if (folderId !== undefined) fd.append('folderId', String(folderId));
-    for (const f of files) fd.append('files', new Blob([f.content]), f.name);
-    const a = await fetch(`${B.base}/api/items/${itemId}/attachments`,
-      { method: 'POST', body: fd, headers: withCsrf(people[who]) });
-    return { status: a.status, content: await a.json().catch(() => null) };
-  };
+  const upload = (who, itemId, files, folderId = null) => H.sendFiles(B.base, people[who], itemId, files, folderId);
   const begin = (who, itemId, filename, size, folderId, modified = 1000) =>
     as(who, 'POST', `/api/items/${itemId}/uploads`, { filename, size, modified, folderId });
   const putPiece = async (who, id, buf, offset, headers = {}) => {
@@ -233,31 +226,31 @@ async function run() {
   const pdfSent = await sendFile('uploader', item, 'plan.pdf', pdf, north.id);
   const pdfFile = byName(pdfSent.last.content)['plan.pdf'];
   const pdfBack = await rawOf('uploader', pdfFile?.id);
-  check('Jede Datei in einen Ordner mit Testtag geht in Stuecken, auch ein PDF; data bleibt leer',
+  check('Jede Datei geht in Stuecken, auch ein PDF; data bleibt leer',
     pdfSent.begin.status === 201 && pdfSent.last.status === 201 && pdfFile?.folder === north.id &&
     !!diskRow(pdfFile?.id) && dataLength(pdfFile?.id) === 0 && pdfBack.buf.equals(pdf),
     `${pdfSent.begin.status} ${pdfSent.last.status} ${pdfFile?.folder} ${dataLength(pdfFile?.id)}`);
-  const single = await upload('uploader', item, [{ name: 'direkt.txt', content: text('direkt') }], north.id);
-  check('Der Upload in einer Anfrage in einen Ordner mit Testtag ergibt 409 mit dem Stand des Eintrags',
-    single.status === 409 && single.content?.error === deText('server.folderHasDay', DAY) &&
-    Array.isArray(single.content?.item?.attachments) && !byName(await entry(item))['direkt.txt'],
-    `${single.status} ${single.content?.error}`);
-  const bigLoose = await begin('uploader', item, 'lang.mp4', 2 * MB, undefined);
-  const bigNoDay = await begin('uploader', item, 'lang.mp4', 2 * MB, loose);
-  check('Ein grosses Video ohne Ordner mit Testtag ergibt 413',
-    bigLoose.status === 413 && bigNoDay.status === 413 &&
-    bigNoDay.content?.error === deText('server.bigVideoFolder', DAY), `${bigLoose.status} ${bigNoDay.status}`);
-  const smallLoose = await begin('uploader', item, 'klein.txt', 500, undefined);
-  const smallNoDay = await begin('uploader', item, 'klein.txt', 500, loose);
-  check('Der Beginn einer Datei bis „Anhang" ohne Ordner mit Testtag ergibt 409',
-    smallLoose.status === 409 && smallNoDay.status === 409 &&
-    smallNoDay.content?.error === deText('server.folderNoDay', DAY) && Array.isArray(smallNoDay.content?.item?.folders),
-    `${smallLoose.status} ${smallNoDay.status}`);
+  const single = await fetch(`${B.base}/api/items/${item}/attachments`, { method: 'POST', headers: withCsrf(people.uploader) });
+  check('Eine Route fuer den Upload in einer Anfrage gibt es nicht mehr', single.status === 404, String(single.status));
+  const bigLoose = await begin('uploader', item, 'lang.mp4', 2 * MB, null);
+  const bigNoDay = await begin('uploader', item, 'lang.bin', 2 * MB, loose);
+  const smallLoose = await begin('uploader', item, 'klein.txt', 500, null);
+  check('Jede Datei beginnt ohne Ordner und in einem Ordner ohne Testtag, auch ueber „Anhang"; nur diese sind large',
+    [bigLoose, bigNoDay, smallLoose].every(x => x.status === 201) &&
+    inDb(d => d.prepare('SELECT filename, large FROM uploads WHERE user_id = (SELECT id FROM users WHERE username = ?) ' +
+      'ORDER BY filename').all(NAMES.uploader)).map(z => `${z.filename}:${z.large}`).join(' ') === 'klein.txt:0 lang.bin:1 lang.mp4:1',
+    `${bigLoose.status} ${bigNoDay.status} ${smallLoose.status}`);
+  for (const x of [bigLoose, bigNoDay, smallLoose]) await as('uploader', 'DELETE', `/api/uploads/${x.content?.id}`);
+  const most = Math.max(1, 2048);
+  const overFile = await begin('uploader', item, 'zu-gross.bin', (most + 1) * MB, null);
+  check('Ueber der Grenze „Datei" ergibt der Beginn 413 und nennt sie',
+    overFile.status === 413 && overFile.content?.error === deText('server.uploadSize', { mb: most }),
+    `${overFile.status} ${overFile.content?.error}`);
 
   group('Platte: grosse Videos, Endung und erste Bytes');
   const avi = await begin('uploader', item, 'film.avi', 2 * MB, north.id);
-  check('Der Beginn eines grossen Videos mit einer Endung ausserhalb von VIDEO_TYPES ergibt 415',
-    avi.status === 415 && avi.content?.error === deText('server.videoOnly', { mb: 1 }), `${avi.status} ${avi.content?.error}`);
+  check('Ueber „Anhang" beginnt auch eine Endung ausserhalb von VIDEO_TYPES', avi.status === 201, `${avi.status} ${avi.content?.error}`);
+  await as('uploader', 'DELETE', `/api/uploads/${avi.content?.id}`);
   const uploadRow = (id) => inDb(d => d.prepare('SELECT name, received FROM uploads WHERE id = ?').get(id));
   const sizeIn = (where, name) => { try { return fs.statSync(path.join(where, name)).size; } catch { return -1; } };
   const wrongStart = await begin('uploader', item, 'falsch.mp4', 2 * MB, north.id);
@@ -268,10 +261,13 @@ async function run() {
     Buffer.from([0, 0, 0, 0x10]), Buffer.from('mdat', 'latin1')]);
   const movStart = await begin('uploader', item, 'alt.mov', 2 * MB, north.id);
   const movPut = await putPiece('uploader', movStart.content?.id, payload(2 * MB, oldMov), 0);
-  check('Sind die ersten 12 Bytes kein Video, auch bei einem aelteren MOV ohne ftyp: 415, der Upload ist geloescht, nichts verschluesselt',
-    wrongStart.status === 201 && wrongPut.status === 415 && movStart.status === 201 && movPut.status === 415 &&
-    !uploadRow(wrongStart.content?.id) && !uploadRow(movStart.content?.id) && sizeIn(uploadDir, wrongName) <= 0,
+  const wrongFile = byName(wrongPut.content)['falsch.mp4'];
+  check('Die ersten Bytes entscheiden nichts: ohne Videokopf und als aelteres MOV ohne ftyp kommt die Datei an',
+    wrongStart.status === 201 && wrongPut.status === 201 && movStart.status === 201 && movPut.status === 201 &&
+    !uploadRow(wrongStart.content?.id) && sizeIn(uploadDir, wrongName) === -1 && !!diskRow(wrongFile?.id),
     `${wrongStart.status} ${wrongPut.status} ${movPut.status} ${sizeIn(uploadDir, wrongName)}`);
+  for (const name of ['falsch.mp4', 'alt.mov'])
+    await as('uploader', 'DELETE', `/api/attachments/${byName(await entry(item))[name]?.id}`);
   const shortVideo = await sendFile('uploader', item, 'kurz.mp4', payload(600000), north.id);
   check('Ein Video bis „Anhang" geht ohne diese Pruefung',
     shortVideo.last.status === 201 && !!byName(shortVideo.last.content)['kurz.mp4'], String(shortVideo.last.status));
@@ -445,70 +441,42 @@ async function run() {
   const report = byName(firstUp.content)['bericht.docx'], memo = byName(firstUp.content)['notiz.txt'];
   const saved1 = await callback(report, 'v1.docx', v1);
   const holdFolder = await newFolder('uploader', moveItem, 'Umlagern');
-  await as('uploader', 'PUT', `/api/attachments/${report.id}/folder`, { folderId: holdFolder });
-  const stillInDb = dataLength(report.id) > 0 && !diskRow(report.id);
+  const moveIn = await as('uploader', 'PUT', `/api/attachments/${report.id}/folder`, { folderId: holdFolder });
+  const reportName = diskRow(report.id)?.name;
   const assigned = await as('uploader', 'PUT', `/api/folders/${holdFolder}`, { testDay: moveDay });
   const afterAssign = (await rawOf('uploader', report.id)).buf;
   const swap1 = await as('uploader', 'POST', `/api/attachments/${report.id}/previous`);
   const afterSwap1 = (await rawOf('uploader', report.id)).buf;
   const swap2 = await as('uploader', 'POST', `/api/attachments/${report.id}/previous`);
-  check('Zuweisen lagert um, samt voriger Fassung: data leer, die Dateien auf der Platte byte-gleich',
-    saved1.json?.error === 0 && stillInDb && assigned.status === 200 && dataLength(report.id) === 0 &&
-    previousData(report.id) === 0 && !!diskRow(report.id) && previousRow(report.id).length === 1 &&
+  check('Verschieben und Zuweisen aendern nur den Ordner: Datei und vorige Fassung liegen schon auf der Platte',
+    saved1.json?.error === 0 && moveIn.status === 200 && assigned.status === 200 && dataLength(report.id) === 0 &&
+    (previousData(report.id) ?? 0) === 0 && diskRow(report.id)?.name === reportName && previousRow(report.id).length === 1 &&
     afterAssign.equals(v1) && swap1.status === 200 && afterSwap1.equals(original) && swap2.status === 200 &&
     (await rawOf('uploader', report.id)).buf.equals(v1),
-    `${JSON.stringify(saved1.json)} ${stillInDb} ${assigned.status} ${dataLength(report.id)} ${previousData(report.id)} ` +
+    `${JSON.stringify(saved1.json)} ${moveIn.status} ${assigned.status} ${dataLength(report.id)} ${previousData(report.id)} ` +
     `${previousRow(report.id).length} ${afterAssign.equals(v1)} ${swap1.status} ${afterSwap1.equals(original)}`);
   const dayFolder2 = await newFolder('uploader', moveItem, 'Mit Tag', moveDay2);
   const memoMove = await as('uploader', 'PUT', `/api/attachments/${memo.id}/folder`, { folderId: dayFolder2 });
-  check('Verschieben in einen Ordner mit Testtag lagert um',
+  const plan1 = doc(31000);
+  const plan = byName((await upload('uploader', moveItem, [{ name: 'plan.docx', content: doc(30000) }], dayFolder2))
+    .content)['plan.docx'];
+  const savedPlan = await callback(plan, 'plan1.docx', plan1);
+  check('In einen Ordner mit Testtag verschoben und hochgeladen, und der Document Server speichert dort',
     memoMove.status === 200 && dataLength(memo.id) === 0 && !!diskRow(memo.id) &&
-    (await rawOf('uploader', memo.id)).buf.equals(text('Notiz')), `${memoMove.status} ${dataLength(memo.id)}`);
-
-  await start({ hold: 1500 });
-  const plan0 = doc(30000), plan1 = doc(31000);
-  const plan = byName((await upload('uploader', moveItem, [{ name: 'plan.docx', content: plan0 }])).content)['plan.docx'];
-  const moving = as('uploader', 'PUT', `/api/attachments/${plan.id}/folder`, { folderId: dayFolder2 });
-  await wait(600);
-  const saved2 = await callback(plan, 'plan1.docx', plan1);
-  const movedPlan = await moving;
-  check('Speichert der Document Server waehrend der Umlagerung, steht seine Fassung auf der Platte',
-    saved2.json?.error === 0 && movedPlan.status === 200 && dataLength(plan.id) === 0 && !!diskRow(plan.id) &&
-    (await rawOf('uploader', plan.id)).buf.equals(plan1), `${JSON.stringify(saved2.json)} ${movedPlan.status} ${dataLength(plan.id)}`);
+    (await rawOf('uploader', memo.id)).buf.equals(text('Notiz')) && savedPlan.json?.error === 0 &&
+    (await rawOf('uploader', plan.id)).buf.equals(plan1), `${memoMove.status} ${JSON.stringify(savedPlan.json)}`);
 
   await start({ free: 1024 });
-  const tight = byName((await upload('uploader', moveItem, [{ name: 'eng.txt', content: text('eng') }])).content)['eng.txt'];
-  const tightMove = await as('uploader', 'PUT', `/api/attachments/${tight.id}/folder`, { folderId: dayFolder2 });
+  const tightBegin = await begin('uploader', moveItem, 'eng.txt', 5000, null);
   const tightFolder = await newFolder('uploader', moveItem, 'Eng');
-  await as('uploader', 'PUT', `/api/attachments/${tight.id}/folder`, { folderId: tightFolder });
+  const tightMove = await as('uploader', 'PUT', `/api/attachments/${memo.id}/folder`, { folderId: tightFolder });
   const tightDay = await dayOf('uploader', moveItem, '2026-09-12');
   const tightAssign = await as('uploader', 'PUT', `/api/folders/${tightFolder}`, { testDay: tightDay });
-  const tightEntry = await entry(moveItem, 'uploader');
-  check('Zu wenig Platz: 507 beim Verschieben und beim Zuweisen, und nichts ist geaendert',
-    tightMove.status === 507 && tightAssign.status === 507 && byName(tightEntry)['eng.txt']?.folder === tightFolder &&
-    folderNamed(tightEntry, 'Eng')?.testDay === null && dataLength(tight.id) > 0 && !diskRow(tight.id),
-    `${tightMove.status} ${tightAssign.status} ${byName(tightEntry)['eng.txt']?.folder} ${folderNamed(tightEntry, 'Eng')?.testDay}`);
-
-  await start({ hold: 4000 });
-  const crashFolder = await newFolder('uploader', moveItem, 'Absturz');
-  const crashFile = byName((await upload('uploader', moveItem, [{ name: 'absturz.txt', content: text('Absturz') }],
-    crashFolder)).content)['absturz.txt'];
-  const crashDay = await dayOf('uploader', moveItem, '2026-09-13');
-  const beforeCrash = namesIn(uploadDir);
-  const crashing = as('uploader', 'PUT', `/api/folders/${crashFolder}`, { testDay: crashDay }).catch(() => null);
-  await until2(() => namesIn(uploadDir).some(n => !beforeCrash.includes(n)), 3000);
-  await wait(300);
-  process.kill(B.pid, 'SIGKILL');
-  await B.stop();
-  await crashing;
-  const leftover = namesIn(uploadDir).filter(n => !beforeCrash.includes(n));
-  const crashInDb = dataLength(crashFile.id) > 0 && !diskRow(crashFile.id);
+  check('Zu wenig Platz: 507 beim Beginn eines Uploads; Verschieben und Zuweisen brauchen keinen',
+    tightBegin.status === 507 && tightMove.status === 200 && tightAssign.status === 200,
+    `${tightBegin.status} ${tightMove.status} ${tightAssign.status}`);
+  await as('uploader', 'PUT', `/api/attachments/${memo.id}/folder`, { folderId: dayFolder2 });
   await start();
-  const relocated = await until2(() => !!diskRow(crashFile.id), 5000);
-  check('Absturz vor dem Commit: die Datei bleibt in der Datenbank; der naechste Lauf raeumt upload/ und lagert um',
-    leftover.length === 1 && crashInDb && relocated && !fs.existsSync(path.join(uploadDir, leftover[0] || '-')) &&
-    dataLength(crashFile.id) === 0 && (await rawOf('uploader', crashFile.id)).buf.equals(text('Absturz')),
-    `${leftover.length} ${crashInDb} ${relocated} ${dataLength(crashFile.id)}`);
 
   group('Platte: kein Weg zurueck');
   const released = await as('uploader', 'PUT', `/api/folders/${holdFolder}`, { testDay: null });
@@ -595,7 +563,7 @@ async function run() {
   const refusals = [];
   for (const [sql, values] of [
     ['DELETE FROM disk_files WHERE attachment_id = ?', [memo.id]],
-    ['UPDATE disk_files SET attachment_id = ? WHERE attachment_id = ?', [tight.id, memo.id]],
+    ['UPDATE disk_files SET attachment_id = ? WHERE attachment_id = ?', [report.id, memo.id]],
     ['UPDATE disk_files SET attachment_id = NULL, previous_of = ? WHERE attachment_id = ?', [otherFile, memo.id]]
   ]) {
     probe.prepare('BEGIN').run();
@@ -844,12 +812,13 @@ async function run() {
   const back = await importJson({ ...exported2, items: [{ ...px, title: 'Platte zurueck' }] });
   const backEntry = await findEntry('Platte zurueck');
   const bf = byName(backEntry);
-  check('Der Import legt die Dateien eines Ordners mit Testtag auf die Platte, die anderen in die Datenbank',
+  check('Der Import legt jede Datei mit Inhalt auf die Platte, mit und ohne Ordner',
     back.status === 200 && folderNamed(backEntry, 'Nordhang')?.testDay != null &&
     bf['neu.txt']?.folder === folderNamed(backEntry, 'Nordhang')?.id && !!diskRow(bf['neu.txt']?.id) &&
     dataLength(bf['neu.txt']?.id) === 0 && (await rawOf('owner', bf['neu.txt']?.id)).buf.equals(text('neu')) &&
-    !diskRow(bf['bleibt.txt']?.id) && (await rawOf('owner', bf['bleibt.txt']?.id)).buf.equals(text('bleibt')) &&
-    !diskRow(bf['lose.txt']?.id) && !bf['spur.mp4'] && (back.content?.filesWithoutContent || []).includes('spur.mp4'),
+    !!diskRow(bf['bleibt.txt']?.id) && (await rawOf('owner', bf['bleibt.txt']?.id)).buf.equals(text('bleibt')) &&
+    !!diskRow(bf['lose.txt']?.id) && dataLength(bf['lose.txt']?.id) === 0 &&
+    !bf['spur.mp4'] && (back.content?.filesWithoutContent || []).includes('spur.mp4'),
     `${back.status} ${back.content?.error || ''} ${!!diskRow(bf['neu.txt']?.id)} ${!!diskRow(bf['bleibt.txt']?.id)}`);
   const planTotal = async () => ((await as('owner', 'GET', '/api/export/plan?files=1')).content?.parts || [])
     .reduce((n, p) => n + p.bytes, 0);
@@ -1011,7 +980,7 @@ async function run() {
     w.close();
   }
 
-  group('Platte: der Browser waehlt den Weg nach dem Ordner');
+  group('Platte: der Browser laedt jede Datei in Stuecken');
   {
     const m = buildDom(JSDOM, { hash: '#/item/1', settings: { isAdmin: false, isOwner: false, userCount: 1 },
       folders: [folder(7, 'Nordhang', { testDay: 3 }), folder(8, 'Ohne Tag')] });
@@ -1077,9 +1046,9 @@ async function run() {
       configurable: true });
     input.onchange({ target: input });
     await until(w, () => xhrs.length > 0, 1000, 'die Anfrage').catch(() => {});
-    check('In einen Ordner ohne Testtag geht dieselbe Datei in einer Anfrage',
-      begun.length === 0 && xhrs[0]?.method === 'POST' && xhrs[0]?.url === '/api/items/1/attachments' &&
-      xhrs[0]?.body?.get?.('folderId') === '8', `${begun.length} ${xhrs[0]?.method} ${xhrs[0]?.url}`);
+    check('In einen Ordner ohne Testtag geht dieselbe Datei ebenso in Stuecken',
+      begun.length === 1 && JSON.parse(begun[0]).folderId === 8 && xhrs[0]?.method === 'PUT' &&
+      /^\/api\/uploads\/[0-9a-f]{32}$/.test(xhrs[0]?.url || ''), `${begun.length} ${xhrs[0]?.method} ${xhrs[0]?.url}`);
     w.close();
   }
 }

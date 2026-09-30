@@ -96,13 +96,7 @@ async function run() {
       try { content = await a.json(); } catch {}
       return { status: a.status, content };
     };
-    const send = async (url, files, fields = {}) => {
-      const fd = new FormData();
-      for (const [k, v] of Object.entries(fields)) fd.append(k, v);
-      for (const f of files) fd.append('files', new Blob([f.content]), f.name);
-      const a = await fetch(B.base + url, { method: 'POST', body: fd, headers: withCsrf(cookie) });
-      return { status: a.status, content: await a.json().catch(() => null) };
-    };
+    const send = (itemId, files) => H.sendFiles(B.base, cookie, itemId, files);
     const raw = async (id) =>
       Buffer.from(await (await fetch(`${B.base}/api/attachments/${id}/raw`, { headers: withCsrf(cookie) })).arrayBuffer());
     return { call, send, raw };
@@ -126,10 +120,13 @@ async function run() {
   const item = (await B.call('POST', '/api/items', { title: 'Bearbeiten' })).content.id;
   const originals = { 'bericht.docx': bytes('bericht'), 'tabelle.xlsx': bytes('tabelle'),
     'alt.doc': bytes('alt'), 'doku.pdf': bytes('pdf') };
-  const one = await uploader.send(`/api/items/${item}/attachments`,
+  const one = await uploader.send(item,
     [{ name: 'bericht.docx', content: originals['bericht.docx'] }]);
-  const many = await uploader.send(`/api/items/${item}/attachments`,
-    ['tabelle.xlsx', 'alt.doc', 'doku.pdf'].map(name => ({ name, content: originals[name] })), { editAll: '1' });
+  // Der Haken beim Hochladen kommt aus dem Startwert der Karte; zweit hat keine eigene Vorgabe.
+  await owner.call('PUT', '/api/settings', { documentEditAll: true });
+  const many = await uploader.send(item,
+    ['tabelle.xlsx', 'alt.doc', 'doku.pdf'].map(name => ({ name, content: originals[name] })));
+  await owner.call('PUT', '/api/settings', { documentEditAll: false });
   check('Der Aufbau steht: vier Dateien von zweit, drei mit Haken hochgeladen',
     one.status === 201 && many.status === 201 && many.content?.attachments?.length === 4,
     `${one.status} ${many.status}`);
@@ -152,13 +149,13 @@ async function run() {
   await owner.call('PUT', '/api/settings', { documentEditAll: true });
   const startOn = await mine();
   const cardState = (await owner.call('GET', '/api/document-server')).content;
-  const byStart = byName((await uploader.send(`/api/items/${item}/attachments`,
+  const byStart = byName((await uploader.send(item,
     [{ name: 'start.docx', content: bytes('start') }])).content)['start.docx'];
   check('Ohne eigene Vorgabe gilt der Startwert der Karte, auch beim Hochladen ohne Feld',
     equal(startOff, { theme: 'kriterion', editAll: false }) && startOn?.editAll === true &&
     cardState?.editAll === true && byStart?.editAll === true, JSON.stringify({ startOff, startOn, e: byStart?.editAll }));
   const ownOff = await uploader.call('PUT', '/api/settings', { filesEditAll: false, documentTheme: 'dark' });
-  const byOwn = byName((await uploader.send(`/api/items/${item}/attachments`,
+  const byOwn = byName((await uploader.send(item,
     [{ name: 'eigen.docx', content: bytes('eigen') }])).content)['eigen.docx'];
   const badTheme = await uploader.call('PUT', '/api/settings', { documentTheme: 'grau' });
   check('Die eigene Vorgabe geht vor den Startwert; das Thema kennt nur drei Werte',
@@ -324,7 +321,7 @@ async function run() {
   check('Wiederhergestellt heisst sie wieder alt.doc',
     !!docRow && Buffer.compare(await uploader.raw(idDoc), originals['alt.doc']) === 0, JSON.stringify(docRow));
 
-  const gone = await uploader.send(`/api/items/${item}/attachments`, [{ name: 'weg.docx', content: bytes('weg') }]);
+  const gone = await uploader.send(item, [{ name: 'weg.docx', content: bytes('weg') }]);
   const goneRow = byName(gone.content)['weg.docx'];
   await uploader.call('DELETE', `/api/attachments/${goneRow.id}`);
   edited('weg.docx', 'zu spaet');
@@ -518,7 +515,7 @@ async function run() {
     const toggled = [], pAsked = [];
     const pInner = pw.fetch;
     pw.fetch = (url, opt) => {
-      if (url === '/api/items/1/attachments') { form = opt.body; return reply({ id: 1, attachments: [] }, 201); }
+      if (url === '/api/items/1/uploads') { form = JSON.parse(opt.body); return reply({ id: 'a'.repeat(32), received: 0 }, 201); }
       if (url === '/api/attachments/45/editing') {
         toggled.push(JSON.parse(opt.body));
         return pInner('/api/items/1', {});
@@ -550,10 +547,11 @@ async function run() {
     const input = pw.document.getElementById('afile');
     Object.defineProperty(input, 'files', { value: [new pw.File(['x'], 'neu.docx')], configurable: true });
     input.onchange({ target: input });
+    await until(pw, () => !!form, 2000, 'den Beginn des Uploads').catch(() => {});
     check('Beim Hochladen steht kein Haken, und es geht kein editAll mit',
-      !!addTile && !addTile.querySelector('input[type=checkbox]') && !!form && form.get('editAll') === null &&
-      form.get('files')?.name === 'neu.docx',
-      `${addTile?.querySelector('input[type=checkbox]') ? 'Haken da' : ''} ${form?.get?.('editAll')}`);
+      !!addTile && !addTile.querySelector('input[type=checkbox]') && !!form && !('editAll' in form) &&
+      form.filename === 'neu.docx',
+      `${addTile?.querySelector('input[type=checkbox]') ? 'Haken da' : ''} ${JSON.stringify(form)}`);
     pw.DocsAPI = { DocEditor: function () { this.destroyEditor = () => {}; } };
     pw.document.documentElement.dataset.theme = 'light';
     pw.history.replaceState(null, '', '#/item/1/file/45');

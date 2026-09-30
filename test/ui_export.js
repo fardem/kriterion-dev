@@ -56,10 +56,7 @@ async function run() {
       await fetch(`${tlA.base}/api/items/${it.id}/comments`,
         { method: 'POST', headers: H.withCsrf(tlA.cookieValue()), body: fk });
     }
-    const fa = new FormData();
-    fa.append('files', new Blob([tlAttachment], { type: 'text/plain' }), `gross-${i}.txt`);
-    await fetch(`${tlA.base}/api/items/${it.id}/attachments`,
-      { method: 'POST', headers: H.withCsrf(tlA.cookieValue()), body: fa });
+    await H.sendFiles(tlA.base, tlA.cookieValue(), it.id, [{ name: `gross-${i}.txt`, content: tlAttachment }]);
   }
 
   /* --- Der Plan --- */
@@ -275,10 +272,7 @@ async function run() {
     const tzAttachment = Buffer.alloc(420 * 1024, 'y');
     for (let i = 1; i <= 4; i++) {
       const it = (await tzS.call('POST', '/api/items', { title: `Faktorstueck ${i}` })).content;
-      const fa = new FormData();
-      fa.append('files', new Blob([tzAttachment], { type: 'text/plain' }), `gross-${i}.txt`);
-      await fetch(`${tzS.base}/api/items/${it.id}/attachments`,
-        { method: 'POST', headers: H.withCsrf(tzS.cookieValue()), body: fa });
+      await H.sendFiles(tzS.base, tzS.cookieValue(), it.id, [{ name: `gross-${i}.txt`, content: tzAttachment }]);
     }
     const tzToggle = 'photos=1&files=1&videos=1';
     const tzPlan = (await tzS.call('GET', `/api/export/plan?${tzToggle}&target=1048576`)).content;

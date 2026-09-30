@@ -391,6 +391,34 @@ const withCsrf = (cookieLine, headers = {}) => {
                : { ...headers, cookie: cookieLine };
 };
 
+// Wie die Oberflaeche: Beginn, dann die Stuecke; nach der letzten Datei steht der Eintrag in der Antwort.
+const UPLOAD_PIECE = 8 * 1024 * 1024;
+async function sendFiles(base, cookieLine, itemId, files, folderId = null) {
+  let last = null;
+  for (const f of files) {
+    const content = Buffer.isBuffer(f.content) ? f.content : Buffer.from(f.content, 'utf8');
+    const begin = await fetch(`${base}/api/items/${itemId}/uploads`, {
+      method: 'POST', headers: withCsrf(cookieLine, { 'content-type': 'application/json' }),
+      body: JSON.stringify({ filename: f.name, size: content.length, modified: f.modified ?? 1, folderId })
+    });
+    last = { status: begin.status, content: await begin.json().catch(() => null) };
+    if (!begin.ok) return last;
+    const id = last.content.id;
+    let at = last.content.received;
+    do {
+      const piece = content.subarray(at, at + UPLOAD_PIECE);
+      const r = await fetch(`${base}/api/uploads/${id}`, {
+        method: 'PUT', body: piece,
+        headers: withCsrf(cookieLine, { 'content-type': 'application/octet-stream', 'upload-offset': String(at) })
+      });
+      last = { status: r.status, content: await r.json().catch(() => null) };
+      if (!r.ok) return last;
+      at += piece.length;
+    } while (at < content.length);
+  }
+  return last;
+}
+
 /* Schreibende Routen; hier, weil die Pruefung ueber den Quelltext und die ueber die
    laufende Instanz sie lesen. */
 const F_ROUTES = [
@@ -452,9 +480,7 @@ const F_ROUTES = [
   // Eigene Route: den fileFilter der Fotoroute auf ^image\/ zu lockern schwaechte den Fotoweg.
   ['POST',   '/api/items/:id/videos',          'entryAuthorOnly'],
   ['PUT',    '/api/photos/:id/focus',          'im Rumpf'],
-  // Hochladen darf jeder; in einen Ordner nur, wer ihn angelegt hat.
-  ['POST',   '/api/items/:id/attachments',     'im Rumpf'],
-  // In Stuecken nur in einen eigenen Ordner mit Testtag; fortsetzen, wer begonnen hat, abbrechen dazu der Admin.
+  // Hochladen darf jeder, in einen Ordner nur, wer ihn angelegt hat; fortsetzen, wer begonnen hat.
   ['POST',   '/api/items/:id/uploads',         'im Rumpf'],
   ['PUT',    '/api/uploads/:id',               'im Rumpf'],
   ['DELETE', '/api/uploads/:id',               'im Rumpf'],
@@ -468,6 +494,8 @@ const F_ROUTES = [
   ['PUT',    '/api/folders/:id',               'im Rumpf'],
   ['DELETE', '/api/folders/:id',               'im Rumpf'],
   ['PUT',    '/api/attachments/:id/folder',    'im Rumpf'],
+  ['PUT',    '/api/folders/:id/open',          'offen'],
+  ['PUT',    '/api/video-positions',           'offen'],
   ['PUT',    '/api/items/:id/photo-order',     'entryAuthorOnly'],
   ['DELETE', '/api/photos/:id',                'im Rumpf'],
   // Offen wie Kommentar und Testtag: ein Link erscheint nur dort, wo man ihn hinsetzt.
@@ -867,7 +895,7 @@ return {
   SMTP_CASES,
   smtpEmpfaenger, READY_TRIES, READY_STEP, readyFailure, startFurtherServer,
   call, names, confirmNeeded, includingShare, callF, shareMain,
-  csrfFor, withCsrf, jar, F_ROUTES, writingRoutes, F_READ_ROUTES, readingRoutes,
+  csrfFor, withCsrf, jar, sendFiles, F_ROUTES, writingRoutes, F_READ_ROUTES, readingRoutes,
   leftovers, sweepLeftovers, parentOf, ourOwn, benchFiles,
   /* was sich waehrend des Laufs aendert und deshalb nicht zerlegt werden darf */
   get cookie() { return cookie; },

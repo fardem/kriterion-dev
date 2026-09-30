@@ -46,13 +46,7 @@ async function run() {
       body: body ? JSON.stringify(body) : undefined });
     return { status: a.status, content: await a.json().catch(() => null) };
   };
-  const upload = async (who, itemId, files) => {
-    const fd = new FormData();
-    for (const f of files) fd.append('files', new Blob([f.content]), f.name);
-    const a = await fetch(`${B.base}/api/items/${itemId}/attachments`,
-      { method: 'POST', body: fd, headers: withCsrf(people[who]()) });
-    return { status: a.status, content: await a.json().catch(() => null) };
-  };
+  const upload = (who, itemId, files) => H.sendFiles(B.base, people[who](), itemId, files);
   const putStill = async (who, fileId, image, duration) => {
     const fd = new FormData();
     if (image) fd.append('still', new Blob([image], { type: 'image/jpeg' }), 'still.jpg');
@@ -348,6 +342,7 @@ async function run() {
       configurable: true });
     input.onchange({ target: input });
     const upTile = () => [...w.document.querySelectorAll('#atts .atile')].find(t => /^u/.test(t.dataset.key));
+    await until(w, () => xhrs.length === 1, 1000, 'das erste Stueck').catch(() => {});
     const begun = calls.length === 1 && calls[0].from === 'neu.mp4' && calls[0].share === 0.1 && xhrs.length === 1;
     calls[0]?.ok(made(w));
     await until(w, () => upTile()?.querySelector('.apic img'), 1000, 'das Standbild am Upload').catch(() => {});
@@ -447,7 +442,7 @@ async function run() {
     press(uw.document.body, 'Escape');
     uw.close();
 
-    const b = buildDom(JSDOM, { hash: '#/item/1', uploadLimits: { video: 1, attachment: 2, dayVideo: 3 } });
+    const b = buildDom(JSDOM, { hash: '#/item/1', uploadLimits: { video: 1, attachment: 2, file: 3 } });
     const bw = b.w;
     await settle(bw, 5);
     const drop = (name, mb) => bw.document.getElementById('file')?.onchange({ target: {
@@ -456,8 +451,8 @@ async function run() {
     const middle = bw.document.querySelector('.toast')?.textContent;
     drop('riesig.mp4', 4);
     const huge = bw.document.querySelector('.toast')?.textContent;
-    check('Die Bildleiste nennt „Dateien" nur fuer ein Video, das unter „Anhang" oder „Video am Testtag" passt',
-      middle === `${deText('entry.tooBig', { name: 'mittel.mp4', mb: 1 })} ${deText('entry.videoToFiles', { dayOne: 'Testtag' })}` &&
+    check('Die Bildleiste nennt „Dateien" nur fuer ein Video, das unter der Grenze „Datei" passt',
+      middle === `${deText('entry.tooBig', { name: 'mittel.mp4', mb: 1 })} ${DE['entry.videoToFiles']}` &&
       huge === deText('entry.tooBig', { name: 'riesig.mp4', mb: 1 }), `${middle} · ${huge}`);
     bw.close();
   }

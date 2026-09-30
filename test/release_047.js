@@ -49,14 +49,7 @@ async function run() {
       body: body ? JSON.stringify(body) : undefined });
     return { status: a.status, content: await a.json().catch(() => null) };
   };
-  const upload = async (who, itemId, files, folderId) => {
-    const fd = new FormData();
-    if (folderId !== undefined) fd.append('folderId', String(folderId));
-    for (const f of files) fd.append('files', new Blob([f.content]), f.name);
-    const a = await fetch(`${B.base}/api/items/${itemId}/attachments`,
-      { method: 'POST', body: fd, headers: withCsrf(people[who]()) });
-    return { status: a.status, content: await a.json().catch(() => null) };
-  };
+  const upload = (who, itemId, files, folderId = null) => H.sendFiles(B.base, people[who](), itemId, files, folderId);
   const putStill = async (who, fileId, image, duration) => {
     const fd = new FormData();
     fd.append('still', new Blob([image], { type: 'image/jpeg' }), 'still.jpg');
@@ -529,6 +522,19 @@ async function run() {
     const w = m.w;
     const xhrs = [];
     fakeXhr(w, xhrs);
+    // Der Beginn geht ueber fetch; `answers` haelt Antworten fuer die naechsten Beginne, auch spaete.
+    const begun = [], answers = [];
+    const innerFetch = w.fetch;
+    w.fetch = (url, opt) => {
+      if (/^\/api\/items\/\d+\/uploads$/.test(String(url)) && opt?.method === 'POST') {
+        begun.push(JSON.parse(opt.body));
+        const next = answers.shift();
+        if (next) return next;
+        return reply({ id: String(begun.length).padStart(32, '0'), received: 0 }, 201);
+      }
+      return innerFetch(url, opt);
+    };
+    const gone = () => reply({ error: DE['server.folderGone'] }, 404);
     await settle(w);
     const input = w.document.getElementById('afile');
     const choose = (name) => {
@@ -536,21 +542,25 @@ async function run() {
         configurable: true });
       input.onchange({ target: input });
     };
+    const begins = (n) => until(w, () => begun.length >= n && openRequests(w) === 0, 1000, `${n} Beginne`).catch(() => {});
     headOf(w, 7)?.click();
     input.click = () => {};
     faceOf(w, 'add-f7')?.click();
     choose('in-den-ordner.txt');
+    await begins(1);
     const upTile = () => [...(sectionOf(w, 7)?.querySelectorAll('.atile') || [])].find(t => /^u/.test(t.dataset.key));
-    check('„+" eines eigenen Ordners laedt in ihn: folderId im Formular, die Kachel steht im Ordner',
-      xhrs.length === 1 && xhrs[0].body?.get('folderId') === '7' && !!upTile(), `${xhrs[0]?.body?.get('folderId')}`);
+    check('„+" eines eigenen Ordners laedt in ihn: folderId beim Beginn, die Kachel steht im Ordner',
+      begun.length === 1 && begun[0].folderId === 7 && xhrs.length === 1 && !!upTile(), JSON.stringify(begun[0]));
     xhrs[0]?.answer(201, { ...m.example, attachments: [...m.example.attachments,
       file(60, 'in-den-ordner.txt', 'text', { folder: 7 })] });
     await until(w, (x) => !!x.document.querySelector('#atts .afolder[data-folder="7"] [data-key="f60"]') && openRequests(x) === 0,
       2000, 'die neue Datei').catch(() => {});
     faceOf(w, 'add')?.click();
     choose('ohne-ordner.txt');
-    check('„+" der Dateien ohne Ordner schickt kein folderId', xhrs.length === 2 && xhrs[1].body?.get('folderId') === null,
-      `${xhrs[1]?.body?.get('folderId')}`);
+    await begins(2);
+    check('„+" der Dateien ohne Ordner beginnt ohne folderId', begun.length === 2 && begun[1].folderId === null,
+      JSON.stringify(begun[1]));
+    await until(w, () => xhrs.length === 2, 1000, 'das Stueck').catch(() => {});
     xhrs[1]?.answer(201, m.example);
 
     const drop = (target, name) => {
@@ -563,38 +573,43 @@ async function run() {
     headOf(w, 9)?.click();
     headOf(w, 9)?.click();
     const onHead = drop(headOf(w, 9), 'auf-den-kopf.txt');
+    await begins(3);
     check('Ablegen auf dem Kopf eines eigenen Ordners laedt in ihn; er klappt auf',
-      onHead.defaultPrevented && xhrs.length === 3 && xhrs[2].body?.get('folderId') === '9' &&
-      headOf(w, 9)?.getAttribute('aria-expanded') === 'true', `${xhrs[2]?.body?.get('folderId')}`);
+      onHead.defaultPrevented && begun.length === 3 && begun[2].folderId === 9 &&
+      headOf(w, 9)?.getAttribute('aria-expanded') === 'true', JSON.stringify(begun[2]));
+    await until(w, () => xhrs.length === 3, 1000, 'das Stueck').catch(() => {});
     xhrs[2]?.answer(201, m.example);
     const onForeign = drop(sectionOf(w, 8)?.querySelector('.afolder-head'), 'fremd.txt');
     check('Ablegen auf einem fremden Ordner: Toast mit Grund, nichts geht hoch',
-      onForeign.defaultPrevented && xhrs.length === 3 &&
+      onForeign.defaultPrevented && begun.length === 3 &&
       w.document.querySelector('.toast')?.textContent === DE['entry.folderDropForeign'],
-      `${xhrs.length} ${w.document.querySelector('.toast')?.textContent}`);
+      `${begun.length} ${w.document.querySelector('.toast')?.textContent}`);
 
     faceOf(w, 'add-f7')?.click();
-    // Die kleinste geht zuerst: erste laeuft, zweite folgt, dritte wartet.
+    // Die kleinste geht zuerst: erste scheitert, zweite laeuft bis nach dem Loeschen des Ordners, dritte wartet.
+    let second = null;
+    answers.push(gone(), new Promise(r => { second = r; }));
     Object.defineProperty(input, 'files', { value: [new w.File(['a'], 'erste.txt', { type: 'text/plain' }),
       new w.File(['bb'], 'zweite.txt', { type: 'text/plain' }), new w.File(['ccc'], 'dritte.txt', { type: 'text/plain' })],
       configurable: true });
     input.onchange({ target: input });
-    xhrs[3]?.answer(404, { error: DE['server.folderGone'] });
+    await until(w, () => begun.length === 5, 1000, 'den zweiten Beginn').catch(() => {});
     const failedTile = [...(sectionOf(w, 7)?.querySelectorAll('.atile.failed') || [])][0];
     failedTile?.querySelector('.amore')?.click();
     const failedMenu = menuLabels(w);
     press(w.document.querySelector('.fmenu-list'), 'Escape');
     m.example.folders = m.example.folders.filter(f => f.id !== 7);
     w.eval('UPLOAD_VIEW.took(' + JSON.stringify(m.example) + ')');
-    xhrs[4]?.answer(404, { error: DE['server.folderGone'] });
+    second?.(await gone());
+    await until(w, (x) => x.document.querySelectorAll('#atts > .agroup .atile.failed').length === 3, 1000, 'drei ⚠').catch(() => {});
     const orphan = [...w.document.querySelectorAll('#atts > .agroup .atile.failed')];
     orphan.find(t => t.textContent.includes('dritte'))?.querySelector('.amore')?.click();
     const orphanMenu = menuLabels(w);
     check('Ist der Ordner weg: ⚠ „Diesen Ordner gibt es nicht mehr.", im Menue nur „Entfernen"; eine wartende Datei geht nicht mehr hoch',
       failedMenu.join('|') === DE['entry.remove'] && orphanMenu.join('|') === DE['entry.remove'] &&
-      xhrs.length === 5 && orphan.length === 3 &&
+      begun.length === 5 && xhrs.length === 3 && orphan.length === 3 &&
       orphan.every(t => t.querySelector('.ameta')?.textContent === DE['server.folderGone']),
-      `${failedMenu.join('|')} ${orphanMenu.join('|')} ${xhrs.length} ${orphan.map(t => t.querySelector('.ameta')?.textContent).join(' / ')}`);
+      `${failedMenu.join('|')} ${orphanMenu.join('|')} ${begun.length} ${orphan.map(t => t.querySelector('.ameta')?.textContent).join(' / ')}`);
     press(w.document.querySelector('.fmenu-list'), 'Escape');
     w.close();
   }
@@ -693,6 +708,7 @@ async function run() {
     Object.defineProperty(input, 'files', { value: [new w.File(['z'.repeat(400)], 'gross.mp4', { type: 'text/plain' })],
       configurable: true });
     input.onchange({ target: input });
+    await until(w, () => xhrs.length === 1, 1000, 'das erste Stueck').catch(() => {});
     xhrs[0]?.answer(403, '<html><body>403 Forbidden</body></html>');
     await until(w, (x) => !!x.document.querySelector('#atts .atile.failed'), 1000, 'die Kachel mit ⚠').catch(() => {});
     const failed = w.document.querySelector('#atts .atile.failed');

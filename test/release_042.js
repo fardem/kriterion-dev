@@ -81,12 +81,7 @@ async function run() {
     const B = H.startFurtherServer(dir, env, PORT_BASE_042);
     await B.ready;
     await B.call('POST', '/api/setup', { user: 'eigen', password: 'eigen-langes-wort-42' });
-    const send = async (url, files) => {
-      const fd = new FormData();
-      for (const f of files) fd.append('files', new Blob([f.content]), f.name);
-      const a = await fetch(B.base + url, { method: 'POST', body: fd, headers: withCsrf(B.cookieValue()) });
-      return { status: a.status, content: await a.json().catch(() => null) };
-    };
+    const send = (itemId, files) => H.sendFiles(B.base, B.cookieValue(), itemId, files);
     return { B, send, dir };
   }
   const OFFICE_NAMES = ['bericht.docx', 'alt.doc', 'text.odt', 'brief.rtf', 'tabelle.xlsx',
@@ -132,7 +127,7 @@ async function run() {
     INTERNAL_ADDRESS: FETCH_BASE });
   fake.target = A.B.base;
   const aItem = (await A.B.call('POST', '/api/items', { title: 'Dokumente' })).content.id;
-  const uploaded = await A.send(`/api/items/${aItem}/attachments`, files);
+  const uploaded = await A.send(aItem, files);
   const byName = (d) => Object.fromEntries((d?.attachments || []).map(a => [a.filename, a]));
   check('Der Aufbau steht: dreizehn Dateien am Eintrag',
     uploaded.status === 201 && uploaded.content.attachments.length === 13, String(uploaded.status));
@@ -226,7 +221,7 @@ async function run() {
   check('Chat und Kommentare sind im Betrachter aus',
     cfg.document?.permissions?.chat === false && cfg.editorConfig?.customization?.comments === false,
     JSON.stringify([cfg.document?.permissions, cfg.editorConfig?.customization]));
-  const umlaut = await A.send(`/api/items/${aItem}/attachments`,
+  const umlaut = await A.send(aItem,
     [{ name: 'Ömer Anmeldung.docx', content: Buffer.from('Umlaut') }]);
   const umlautNames = (umlaut.content?.attachments || []).map(x => x.filename);
   check('Ein Dateiname mit Umlaut kommt beim Hochladen unveraendert an',
@@ -236,7 +231,7 @@ async function run() {
     check('Jedes Hochladen geht ueber upload() mit defParamCharset utf8',
       (serverCode.match(/multer\(\{/g) || []).length === 1 &&
       /multer\(\{ defParamCharset: 'utf8', \.\.\.options \}\)/.test(serverCode) &&
-      (serverCode.match(/(?<![A-Za-z])upload\(\{/g) || []).length === 7, 'multer ohne upload()');
+      (serverCode.match(/(?<![A-Za-z])upload\(\{/g) || []).length === 6, 'multer ohne upload()');
   }
 
   group('Document Server: die Pruefung der Karte');
@@ -295,7 +290,7 @@ async function run() {
     await B.B.call('PUT', '/api/settings', { documentServer: true });
     const bState = (await B.B.call('GET', '/api/document-server')).content;
     const bItem = (await B.B.call('POST', '/api/items', { title: 'Ohne Secret' })).content.id;
-    const bRows = byName((await B.send(`/api/items/${bItem}/attachments`, files.slice(0, 1))).content);
+    const bRows = byName((await B.send(bItem, files.slice(0, 1))).content);
     const bCheck = (await B.B.call('POST', '/api/document-server/check')).content;
     check('Ohne Secret: server.docNoSecret, und .docx bleibt bei der Textvorschau',
       bState?.setup === 'server.docNoSecret' && bCheck?.key === 'server.docNoSecret' &&
@@ -323,9 +318,7 @@ async function run() {
     check('Die CSP ist dieselbe wie ohne Document Server',
       cspMain.includes("script-src 'self'; frame-src 'self';"), cspMain);
     const mItem = (await call('POST', '/api/items', { title: 'Ohne Document Server' })).content.id;
-    const fd = new FormData();
-    fd.append('files', new Blob([docxBytes]), 'bericht.docx');
-    await fetch(BASE + `/api/items/${mItem}/attachments`, { method: 'POST', body: fd, headers: withCsrf(H.cookie) });
+    await H.sendFiles(BASE, H.cookie, mItem, [{ name: 'bericht.docx', content: docxBytes }]);
     await call('PUT', '/api/settings', { documentServer: true });
     const mRows = byName((await call('GET', `/api/items/${mItem}`)).content);
     await call('PUT', '/api/settings', { documentServer: false });

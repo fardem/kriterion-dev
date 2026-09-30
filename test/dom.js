@@ -277,11 +277,11 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
   ];
   // Grenzen beim Hochladen in MB, mit der Spanne des Servers.
   const uploadLimitsMock = { photo: 30, commentImage: 20, video: 20, commentVideo: 20, attachment: 50,
-    dayVideo: 2048, ...(uploadLimits || {}) };
+    file: 2048, ...(uploadLimits || {}) };
   const UPLOAD_RANGES_MOCK = { photo: { min: 1, max: 50, fallback: 30 },
     commentImage: { min: 1, max: 50, fallback: 20 }, video: { min: 1, max: 100, fallback: 20 },
     commentVideo: { min: 1, max: 100, fallback: 20 }, attachment: { min: 1, max: 100, fallback: 50 },
-    dayVideo: { min: 1, max: 4096, fallback: 2048 } };
+    file: { min: 1, max: 4096, fallback: 2048 } };
   const backup = backupStatus || {
     configured: true, root: '/backup', place: 'taeglich', filePath: '/backup/taeglich',
     // Vorgabe ist die empfohlene Lage ausserhalb des Arbeitsordners.
@@ -1148,6 +1148,8 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       }
       return give(example);
     }
+    if (/^\/api\/items\/\d+\/uploads$/.test(url) && opt.method === 'POST')
+      return give({ id: 'a'.repeat(32), received: 0 }, 201);
     if (url.startsWith('/api/items/1')) return give(example);
     // Endpunkte, die den ganzen Eintrag zurueckgeben.
     if (/^\/api\/comments\/\d+/.test(url) || /^\/api\/comment-images\/\d+$/.test(url) ||

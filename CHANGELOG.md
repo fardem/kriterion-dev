@@ -30,6 +30,57 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.50.0] - 2026-09-30
+
+*Ein Weg für Dateien, Auswahl, Stelle im Video, Ordner bleiben offen.*
+
+Fingerprint `2b87077f` — davor `210a7f57`.
+
+> **Beim ersten Start legt Kriterion jede Datei, die noch in der Datenbank
+> liegt, unter `data/files/` ab**, im Hintergrund, eine nach der anderen.
+> Reicht der freie Platz nicht für diese Dateien und 1 GB Reserve, startet
+> Kriterion nicht; das Protokoll nennt Bedarf und freien Platz (README,
+> „Update“).
+>
+> **Der Backup-Ordner braucht danach Platz für alle Dateien:** `kriterion-files/`
+> enthält jede Datei unter „Dateien“.
+>
+> **„Video am Testtag“ heißt jetzt „Datei“ und gilt für jede Datei, Vorgabe
+> 2048 MB.** Ein eingestellter Wert wird nicht übernommen; unter „Grenzen beim
+> Hochladen“ neu einstellen.
+>
+> **`POST /api/items/:id/attachments` gibt es nicht mehr.** Eigene Skripte
+> laden in Stücken hoch (README, „Eigene Skripte an der Schnittstelle“). Hinter
+> NPMplus steht `attachments` nicht mehr im Pfad der Location für Uploads.
+
+### Hinzugefügt
+
+- **Auswählen** unter „Dateien“ und in der Bildleiste: mehrere Kacheln auf
+  einmal löschen, unter „Dateien“ auch verschieben.
+- **Stelle im Video:** Videos spielen je Account dort weiter, wo man aufgehört
+  hat; „Von vorn“ steht einige Sekunden darüber.
+- **Ordner bleiben offen oder zu**, je Account und auf jedem Gerät.
+- „Kennzahlen“ nennt die Dateien, die noch auf die Umlagerung warten.
+
+### Geändert
+
+- Jede Datei unter „Dateien“ liegt verschlüsselt auf der Platte und geht in
+  Stücken hoch, bis zur Grenze „Datei“, mit und ohne Ordner.
+- Über „Anhang“ gibt es Office- und Textdateien nur zum Herunterladen; PDF,
+  Bilder und Videos zeigt der Browser weiter.
+- Videos mit eigener Marke der Kamera, etwa Sony XAVC HS, gelten als MP4.
+- Import und Papierkorb legen jede Datei auf die Platte.
+- Das Vorschaubild einer Bilddatei entsteht beim ersten Abruf, das einer
+  Textdatei kurz nach dem Upload.
+
+### Entfernt
+
+- `POST /api/items/:id/attachments` und die Grenze von 20 Dateien je Auswahl.
+
+### Behoben
+
+- Am Testtag steht „mehr“ nur, wenn Tags verborgen sind.
+
 ## [0.49.0] - 2026-09-29
 
 *Dateien: Liste, Vorschaubilder für Dokumente, Ordner eingefasst.*

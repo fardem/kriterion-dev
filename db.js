@@ -363,6 +363,31 @@ CREATE TABLE IF NOT EXISTS attachment_folders (
 );
 CREATE INDEX IF NOT EXISTS idx_attachment_folders_folder ON attachment_folders(folder_id);
 
+-- Offene Ordner je Account; ohne Zeile ist der Ordner zu.
+CREATE TABLE IF NOT EXISTS folder_open (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  folder_id INTEGER NOT NULL REFERENCES folders(id) ON DELETE CASCADE,
+  PRIMARY KEY (user_id, folder_id)
+);
+CREATE INDEX IF NOT EXISTS idx_folder_open_folder ON folder_open(folder_id);
+
+-- Zuletzt abgespielte Stelle je Account in Sekunden; genau eines der drei Ziele.
+CREATE TABLE IF NOT EXISTS video_positions (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  attachment_id INTEGER REFERENCES attachments(id) ON DELETE CASCADE,
+  photo_id INTEGER REFERENCES photos(id) ON DELETE CASCADE,
+  comment_video_id INTEGER REFERENCES comment_videos(id) ON DELETE CASCADE,
+  seconds REAL NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  CHECK ((attachment_id IS NOT NULL) + (photo_id IS NOT NULL) + (comment_video_id IS NOT NULL) = 1)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_video_positions_file
+  ON video_positions(attachment_id, user_id) WHERE attachment_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_video_positions_photo
+  ON video_positions(photo_id, user_id) WHERE photo_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_video_positions_comment
+  ON video_positions(comment_video_id, user_id) WHERE comment_video_id IS NOT NULL;
+
 -- Offener Upload in Stuecken; file_key lesen nur qUploadFile und qDiskFile in server.js.
 CREATE TABLE IF NOT EXISTS uploads (
   id TEXT PRIMARY KEY,

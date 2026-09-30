@@ -166,8 +166,9 @@
   "card.diskFiles": "Files on disk",
   "card.diskFree": "free space",
   "card.diskGone": "waiting to be deleted",
-  "card.diskLarge": "of which large videos",
+  "card.diskLarge": "of which above “Attachment”",
   "card.diskMissing": "missing",
+  "card.diskPending": "still in the database",
   "card.diskTrash": "of which in the trash",
   "card.diskUncopied": {
     "one": "{n} of them is missing from the backup folder and is not deleted.",
@@ -215,8 +216,8 @@
   "card.exportHint": "The export writes the whole inventory unencrypted into a file — with all photos, attachments and author names.",
   "card.exportInParts": "Export in parts",
   "card.exportLargeHint": {
-    "one": "Not included: {n} large video ({bytes}). The backup keeps it.",
-    "other": "Not included: {n} large videos ({bytes}). The backup keeps them."
+    "one": "Not included: {n} file above “Attachment” ({bytes}). The backup keeps it.",
+    "other": "Not included: {n} files above “Attachment” ({bytes}). The backup keeps them."
   },
   "card.exportOnlyEntries": "Export and import contain only the {entryMany} — no users and no settings of Kriterion.",
   "card.exportOversizeHint": "**Export with photos: around {withPhotos}** — this can take a while, and there is no progress display ({rest}).",
@@ -320,9 +321,10 @@
   "card.light": "Light",
   "card.likeDevice": "Auto",
   "card.limitAttachment": "Attachment",
+  "card.limitAttachmentHint": "Up to here with content in the export, with preview and Document Server; above only for download, except PDF, image and video.",
   "card.limitCommentImage": "Image in a comment",
   "card.limitCommentVideo": "Video in a comment",
-  "card.limitDayVideo": "Video on the {dayOne}",
+  "card.limitFile": "File",
   "card.limitPhoto": "Photo",
   "card.limitRange": "{min} to {max} MB",
   "card.limitVideo": "Video",
@@ -330,8 +332,8 @@
   "card.linkCreated": "Link created",
   "card.inviteLinkFor": "Invitation link for “{name}” — it is shown only once.",
   "card.replaceLargeHint": {
-    "one": "This also deletes {n} large video ({bytes}); no export contains it.",
-    "other": "This also deletes {n} large videos ({bytes}); no export contains them."
+    "one": "This also deletes {n} file above “Attachment” ({bytes}); no export contains it.",
+    "other": "This also deletes {n} files above “Attachment” ({bytes}); no export contains them."
   },
   "card.resetLinkFor": "Reset link for “{name}” — it is shown only once.",
   "card.linkHolderHint": "Anyone with the link can set the password: valid for **{days} days**, usable **once**, **{minutes} minutes** after opening. Pass it on only to the right person.",
@@ -798,14 +800,12 @@
   "entry.criterion": "Criterion",
   "entry.cropHint": "Dragging outside sets a new crop; drag inside the frame to move it, drag a corner or an edge to resize",
   "entry.cropZoom": "Zoom of the crop",
-  "entry.dayAddLimit": "up to {mb} MB · video {video}",
   "entry.dayDeleteFolder": "The folder “{name}” is kept with its files.",
   "entry.dayDeleteHint": "The date {day} is deleted.",
   "entry.dayFolderOpen": {
     "one": "Open folder, 1 file",
     "other": "Open folder, {n} files"
   },
-  "entry.dayLimitHint": "up to {mb} MB per file, videos up to {video}, at most {cap} files",
   "entry.daysSummary": "{n} {dayWord} · ⌀ {average} · last {latest}",
   "entry.delete": "delete",
   "entry.deleteCommentAsk": "Delete comment?",
@@ -830,7 +830,7 @@
   "entry.empty": "(empty)",
   "entry.enteredByOn": "Entered by {author} on {created_at}",
   "entry.fileAdd": "Upload files",
-  "entry.fileAddLimit": "up to {mb} MB",
+  "entry.fileAddLimit": "up to {size}",
   "entry.fileCount": {
     "one": "{n} file · {filesize}",
     "other": "{n} files · {filesize}"
@@ -839,7 +839,7 @@
   "entry.fileDropHint": "Drag here or upload with +.",
   "entry.fileFailed": "failed",
   "entry.fileFull": "{n} of {cap}",
-  "entry.fileLimitHint": "up to {mb} MB per file, at most {cap} files",
+  "entry.fileLimitHint": "up to {size} per file, at most {cap} files",
   "entry.fileMenu": "Menu for {name}",
   "entry.fileWaiting": "waiting",
   "entry.filesAttached": {
@@ -934,6 +934,44 @@
   "entry.orderSaved": "Order saved",
   "entry.pdfHint": "If the frame stays empty, the browser cannot display the PDF here.",
   "entry.photoOrderHint": "The first photo is the main image — reorder by dragging. Videos up to {mb} MB (MP4, WebM, MOV).",
+  "entry.pick": "Select",
+  "entry.pickAll": "Select all",
+  "entry.pickBar": "Selection",
+  "entry.pickDeleteAsk": {
+    "one": "Delete 1 file?",
+    "other": "Delete {n} files?"
+  },
+  "entry.pickDeleteFailed": {
+    "one": "1 not deleted: {error}",
+    "other": "{n} not deleted: {error}"
+  },
+  "entry.pickDeleteHint": "The selection is deleted for good.",
+  "entry.pickDeleted": {
+    "one": "1 deleted.",
+    "other": "{n} deleted."
+  },
+  "entry.pickFolder": "Select all in “{name}”",
+  "entry.pickMediaAsk": {
+    "one": "Delete 1 photo or video?",
+    "other": "Delete {n} photos and videos?"
+  },
+  "entry.pickMoveFailed": {
+    "one": "1 not moved: {error}",
+    "other": "{n} not moved: {error}"
+  },
+  "entry.pickNone": "Select none",
+  "entry.pickPhotosAsk": {
+    "one": "Delete 1 photo?",
+    "other": "Delete {n} photos?"
+  },
+  "entry.pickVideosAsk": {
+    "one": "Delete 1 video?",
+    "other": "Delete {n} videos?"
+  },
+  "entry.picked": {
+    "one": "1 selected",
+    "other": "{n} selected"
+  },
   "entry.pickDate": "Please choose a date",
   "entry.pinHint": "Pin it — then it stays at the top",
   "entry.previewTruncated": "Preview shortened — download the whole file with ↓.",
@@ -1010,9 +1048,11 @@
   "entry.uploading": "is being uploaded …",
   "entry.uploadRunsAt": "running, last {time}",
   "entry.uploadStop": "Cancel upload",
+  "entry.videoFrom": "from {time}",
   "entry.videoNoImage": "This video has no image",
   "entry.videoNoThumb": "No thumbnail could be created from this video.",
-  "entry.videoToFiles": "Longer videos belong under “Files” in a folder with a {dayOne}.",
+  "entry.videoRestart": "From the start",
+  "entry.videoToFiles": "Longer videos belong under “Files”.",
   "entry.videoUnplayable": "The browser cannot play this video",
   "entry.weight": "Weight",
   "entry.weighted": "weighted",
@@ -1296,7 +1336,6 @@
     "one": "The backup is older than the key change.",
     "other": "All {n} backups are older than the key change."
   },
-  "server.bigVideoFolder": "Large videos only in a folder with a {dayOne}.",
   "server.bodyAborted": "The request was aborted.",
   "server.bodyInvalid": "The request could not be read.",
   "server.bodyTooLarge": "The request is too large.",
@@ -1347,13 +1386,12 @@
   "server.docOff": "Viewing via the document server is off.",
   "server.editDenied": "Only the uploader can edit this file.",
   "server.fileMissing": "This file is missing on the server.",
+  "server.largeDownloadOnly": "Above the “Attachment” limit this file can only be downloaded.",
   "server.folderDayForeign": "You can only link your own folder to your own {dayOne}.",
   "server.folderDayTaken": "At most one folder per {dayOne}; there already is one.",
   "server.folderForeign": "Only the person who created this folder can put files in it.",
   "server.folderGone": "This folder no longer exists.",
-  "server.folderHasDay": "Files go into a folder with a {dayOne} in pieces.",
   "server.folderName": "A folder name has 1 to {max} characters.",
-  "server.folderNoDay": "This folder has no {dayOne}; the file is uploaded in one request.",
   "server.noPrevious": "There is no previous version of this file.",
   "server.docReady": "Connected. The document server fetches files from {address}.",
   "server.docSecretRejected": "The document server rejects the secret. DOCUMENT_SERVER_SECRET and JWT_SECRET must be identical.",
@@ -1455,6 +1493,7 @@
   "server.uploadBusy": "A request for this upload is already running.",
   "server.uploadCap": "At most {cap} files per upload.",
   "server.uploadGone": "This upload no longer exists.",
+  "server.videoGone": "This video no longer exists.",
   "server.uploadInvalid": "The file’s name, size or modification time is missing.",
   "server.uploadLength": "The request does not state its length.",
   "server.uploadLimitRange": "“{what}” must be a whole number from {min} to {max} MB.",
@@ -1467,7 +1506,6 @@
   "server.userUnknown": "There is no such user.",
   "server.videoNeedsStill": "Only a video with a video thumbnail is allowed.",
   "server.videoOne": "One video per request, together with its video thumbnail.",
-  "server.videoOnly": "Above the “Attachment” limit Kriterion only accepts videos, recognised by their first bytes. As an ordinary file it can be uploaded up to {mb} MB.",
   "server.videosOnly": "Only MP4, WebM and MOV videos are allowed.",
   "server.videoStill": "Video and video thumbnail belong together.",
   "server.viewCap": "At most {cap} saved views.",

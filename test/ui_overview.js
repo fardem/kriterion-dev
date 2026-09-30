@@ -1694,15 +1694,18 @@ async function run() {
     equal(ww.sortCloud(pool, new Set([1])).map(t => t.name),
            ['Selten', 'Oft', 'Mittel', 'Nurtesttag']));
 
-  // jsdom rechnet keine Geometrie; die Hoehen sind gesetzt.
+  // jsdom rechnet keine Geometrie; Hoehe und Lage der Marken sind gesetzt, 6 px Abstand.
   const cloudBox = ww.document.createElement('div');
-  const cloudChild = ww.document.createElement('span');
-  cloudBox.appendChild(cloudChild);
   ww.document.body.appendChild(cloudBox);
-  Object.defineProperty(cloudChild, 'offsetHeight', { get: () => 26 });
-  Object.defineProperty(cloudBox, 'clientHeight', { get: () => parseInt(cloudBox.style.maxHeight) || 0 });
-  let inhaltshoehe2 = 90;
-  Object.defineProperty(cloudBox, 'scrollHeight', { get: () => inhaltshoehe2 });
+  const placeCloud = (tops) => {
+    cloudBox.replaceChildren(...tops.map(top => {
+      const pill = ww.document.createElement('span');
+      Object.defineProperty(pill, 'offsetHeight', { get: () => 26 });
+      Object.defineProperty(pill, 'offsetTop', { get: () => top });
+      return pill;
+    }));
+  };
+  placeCloud([0, 0, 32, 32, 64, 96]);
   check('Eine Zeile ist so hoch wie eine Marke', (ww.limitCloud(cloudBox, 1), cloudBox.style.maxHeight === '26px'),
     cloudBox.style.maxHeight);
   check('Drei Zeilen zählen die Lücken mit', (ww.limitCloud(cloudBox, 3), cloudBox.style.maxHeight === '90px'),
@@ -1712,7 +1715,10 @@ async function run() {
     (ww.limitCloud(cloudBox, 1),
      cloudBox.style.maxHeight !== '' && cloudBox.style.overflow === 'hidden'),
     JSON.stringify([cloudBox.style.maxHeight, cloudBox.style.overflow]));
-  inhaltshoehe2 = 20;
+  placeCloud([0, 1, 0]);
+  check('Eine Marke, die nur um eine Rundung tiefer steht, beginnt keine zweite Zeile',
+    ww.limitCloud(cloudBox, 1) === false && ww.cloudRows(cloudBox) === 1, String(ww.cloudRows(cloudBox)));
+  placeCloud([0, 0, 32]);
   check('Passt alles hinein, meldet nichts', ww.limitCloud(cloudBox, 3) === false);
   check('Null Zeilen heben die Begrenzung auf',
     (ww.limitCloud(cloudBox, 0), cloudBox.style.maxHeight === ''));

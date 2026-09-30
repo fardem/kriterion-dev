@@ -15,7 +15,7 @@ async function run() {
 
   const gpList = require('./counterproof').REGRESSIONS;
   // Mit jedem neuen Rueckbau in counterproof.js anheben.
-  check(`Es sind genau 1376 Rueckbauten`, gpList.length === 1376, `${gpList.length}`);
+  check(`Es sind genau 1390 Rueckbauten`, gpList.length === 1390, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* Jede Datei nur einmal lesen: ueber tausend Rueckbauten verteilen sich auf
@@ -346,17 +346,18 @@ async function run() {
       ['test/frame.js', 121],
       ['test/keychange.js', 42],
       ['test/release_029.js', 14],
-      ['test/release_030.js', 94],
+      ['test/release_030.js', 93],
       ['test/release_031.js', 88],
       ['test/release_041.js', 25],
       ['test/release_042.js', 10],
-      ['test/release_043.js', 13],
+      ['test/release_043.js', 14],
       ['test/release_044.js', 9],
-      ['test/release_045.js', 5],
+      ['test/release_045.js', 6],
       ['test/release_046.js', 6],
-      ['test/release_047.js', 12],
+      ['test/release_047.js', 13],
       ['test/release_048.js', 16],
-      ['test/release_049.js', 12],
+      ['test/release_049.js', 13],
+      ['test/release_050.js', 9],
       ['test/roundtrip.js', 1311],
       ['test/selfcheck.js', 85],
       ['test/source.js', 216],
@@ -368,8 +369,8 @@ async function run() {
       ['test/ui_style.js', 168],
       ['test/ui_system.js', 190],
       ['test/ui_translator.js', 24],
-      ['counterproof.js', 336],
-      ['server.js', 1018],
+      ['counterproof.js', 337],
+      ['server.js', 1015],
       ['auth.js', 149],
       ['db.js', 58],
       ['mail.js', 17],
@@ -386,11 +387,11 @@ async function run() {
       ['public/theme.js', 2],
       ['public/style.css', 521],
     ];
-    const COMMENT_TOTAL = { comment: 6921, code: 78666 };
+    const COMMENT_TOTAL = { comment: 6931, code: 79594 };
     // Ausgelieferte Dateien: Bloecke ueber drei Zeilen und Bloecke mit Betonung in Grossbuchstaben.
     const COMMENT_LIMITS = { longBlocks: 3, emphasis: 6 };
-    check('Der Waechter sieht alle sechsundvierzig Dateien',
-      crAll.each.length === 46 && COMMENT_ROWS.length === 46,
+    check('Der Waechter sieht alle siebenundvierzig Dateien',
+      crAll.each.length === 47 && COMMENT_ROWS.length === 47,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
     const crWrong = [];
     for (let i = 0; i < COMMENT_ROWS.length; i++) {

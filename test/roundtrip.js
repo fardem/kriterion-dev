@@ -130,8 +130,7 @@ async function sendComment(itemId, fields, images = []) {
   return sendMultipart(`/api/items/${itemId}/comments`, 'images', images, fields);
 }
 
-const sendFiles = (itemId, files) =>
-  sendMultipart(`/api/items/${itemId}/attachments`, 'files', files);
+const sendFiles = (itemId, files) => H.sendFiles(BASE, H.cookie, itemId, files);
 
 // Von Hand, ohne weitere Bibliothek. Buffer nicht ueber Strings fuehren,
 // sonst zerfaellt jedes Byte ueber 127.
@@ -331,8 +330,8 @@ async function sendImport(object, mode, withoutShare = false) {
   /* Parameter wie :id durch eine Zahl ersetzen, sonst passt der Pfad auf keine Route. */
   const csAddress = (filePath) => filePath.replace(/:[A-Za-z]+/g, '7');
   const csGuarded = H.F_ROUTES.filter(([m, p]) => !csFree.has(`${m} ${p}`));
-  check('Achtzig der achtundachtzig Routen stehen hinter dem Schutz',
-    csGuarded.length === 80 && H.F_ROUTES.length === 88,
+  check('Einundachtzig der neunundachtzig Routen stehen hinter dem Schutz',
+    csGuarded.length === 81 && H.F_ROUTES.length === 89,
     `${csGuarded.length} von ${H.F_ROUTES.length}`);
   const csThrough = [];
   for (const [method, filePath] of csGuarded) {
@@ -2688,7 +2687,7 @@ async function sendImport(object, mode, withoutShare = false) {
     .map(m => m[1]).filter(a => a !== 'id, userId, locale');
   const withoutUser = calls.filter(a => !/,\s*req\.user\.id\s*,\s*localeOf\(req\s*$/.test(a));
   check('Keine Aufrufstelle von detail() ohne Benutzer und ohne Sprache',
-    calls.length === 37 && withoutUser.length === 0,
+    calls.length === 34 && withoutUser.length === 0,
     `${calls.length} Aufrufe, unvollstaendig: ${JSON.stringify(withoutUser)}`);
   check('detail() klemmt einen fehlenden Benutzer ab, statt still false zu liefern',
     /function detail\(id, userId, locale\) \{\s*\n\s*if \(userId == null\) throw/.test(source),
@@ -4052,10 +4051,10 @@ async function sendImport(object, mode, withoutShare = false) {
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
       .all().map(z => z.name).sort();
     tzDb.close();
-    check('Die Datenbank traegt genau neununddreissig Tabellen',
-      tzTables.length === 39 && tzTables.includes('comment_videos') && tzTables.includes('attachment_stills') &&
+    check('Die Datenbank traegt genau einundvierzig Tabellen',
+      tzTables.length === 41 && tzTables.includes('comment_videos') && tzTables.includes('attachment_stills') &&
       tzTables.includes('folders') && tzTables.includes('attachment_folders') &&
-      ['uploads', 'disk_files', 'disk_files_gone'].every(n => tzTables.includes(n)),
+      ['uploads', 'disk_files', 'disk_files_gone', 'video_positions', 'folder_open'].every(n => tzTables.includes(n)),
       `${tzTables.length}: ${tzTables.join(' ')}`);
     /* login_attempts: in einer Map setzte jeder Neustart die Zaehler auf null. */
     check('Und die neue heisst login_attempts',
@@ -5641,19 +5640,22 @@ async function sendImport(object, mode, withoutShare = false) {
   const pkBytesRows = pkRows('SELECT part, length(data) AS n FROM trash_bytes ' +
     'WHERE trash_id = ? ORDER BY part', pkRow.id ?? -1);
   check('Die Bytes liegen daneben, eine Zeile je Blob',
-    pkBytesRows.length === 6, JSON.stringify(pkBytesRows));
+    pkBytesRows.length === 4, JSON.stringify(pkBytesRows));
   check('Ihre Nummern sind lueckenlos ab null',
-    equal(pkBytesRows.map(z => z.part), [0, 1, 2, 3, 4, 5]), JSON.stringify(pkBytesRows.map(z => z.part)));
+    equal(pkBytesRows.map(z => z.part), [0, 1, 2, 3]), JSON.stringify(pkBytesRows.map(z => z.part)));
+  // Die Umlagerung beim Start hat beide Dateien auf die Platte gelegt.
+  check('Die Dateien liegen auf der Platte und gehoeren zum Papierkorb',
+    pkRows('SELECT id FROM disk_files WHERE trash_id = ?', pkRow.id ?? -1).length === 2,
+    JSON.stringify(pkRows('SELECT name, attachment_id, trash_id FROM disk_files')));
   /* Kopiert wird innerhalb von SQLite; eine falsche Kopie fiele sonst erst beim
      Zurueckholen auf. */
   const pkBytesHex = pkRows('SELECT hex(data) AS h FROM trash_bytes WHERE trash_id = ? ' +
     'ORDER BY part', pkRow.id ?? -1).map(z => z.h);
   const pkExpectHex = [
     ...pkBeforeCommentImages.map(z => z.h),
-    ...pkBeforeBytes.flatMap(z => z.kind === 'video' ? [z.h, pkBeforeStill[0]?.h] : [z.h]),
-    ...pkBeforeFiles.map(z => z.h)];
-  check('Der Waechter hat ueberhaupt sechs Traegerwerte vor sich',
-    pkExpectHex.length === 6 && pkExpectHex.every(h => typeof h === 'string' && h.length > 0),
+    ...pkBeforeBytes.flatMap(z => z.kind === 'video' ? [z.h, pkBeforeStill[0]?.h] : [z.h])];
+  check('Der Waechter hat ueberhaupt vier Traegerwerte vor sich',
+    pkExpectHex.length === 4 && pkExpectHex.every(h => typeof h === 'string' && h.length > 0),
     JSON.stringify(pkExpectHex.map(h => (h || '').length)));
   check('Und trash_bytes traegt Byte fuer Byte dieselben',
     equal(pkBytesHex, pkExpectHex),
@@ -7332,23 +7334,8 @@ async function sendImport(object, mode, withoutShare = false) {
     try { content = await a.json(); } catch {}
     return { status: a.status, content };
   };
-  /* Echter Multipart-Upload gegen diesen Server mit diesem Cookie. */
-  const fUpload = async (cookieValue, itemId, name, content) => {
-    const limit = '----pruefungf' + crypto.randomBytes(6).toString('hex');
-    const parts = [
-      Buffer.from(`--${limit}\r\nContent-Disposition: form-data; name="files"; filename="${name}"\r\n` +
-                  `Content-Type: text/plain\r\n\r\n`, 'utf8'),
-      Buffer.from(content, 'utf8'),
-      Buffer.from(`\r\n--${limit}--\r\n`, 'utf8')
-    ];
-    const a = await fetch(F.base + `/api/items/${itemId}/attachments`, {
-      method: 'POST',
-      headers: { ...H.withCsrf(`kriterion_session=${cookieValue}`),
-                 'content-type': `multipart/form-data; boundary=${limit}` },
-      body: Buffer.concat(parts)
-    });
-    return { status: a.status, content: await a.json().catch(() => null) };
-  };
+  const fUpload = (cookieValue, itemId, name, content) =>
+    H.sendFiles(F.base, `kriterion_session=${cookieValue}`, itemId, [{ name, content }]);
   const fDatabase = () => open(path.join(fDir, 'katalog.sqlite'));
   const fRows = (sql, ...values) => {
     const d = fDatabase();
@@ -15349,9 +15336,9 @@ async function sendImport(object, mode, withoutShare = false) {
 
   const bin = await head(afterName['egal.bin'].id);
   check('Unbekanntes wird octet-stream', bin.h['content-type'] === 'application/octet-stream');
-  check('Der gemeldete Typ des Hochladenden wird nie ausgeliefert',
-    afterName['egal.bin'].mime_type === 'application/x-msdownload' &&
-    bin.h['content-type'] === 'application/octet-stream');
+  check('Der Typ kommt aus der Endung, nie vom Hochladenden',
+    afterName['egal.bin'].mime_type === 'application/octet-stream' &&
+    bin.h['content-type'] === 'application/octet-stream', afterName['egal.bin'].mime_type);
 
   // Ueber Multipart kommt so ein Name nicht an, der Header endet am
   // Zeilenumbruch; deshalb ueber den Import.
@@ -16091,9 +16078,9 @@ async function sendImport(object, mode, withoutShare = false) {
   const statusA = (await call('GET', '/api/items')).content.find(i => i.id === at.id);
   check('Übersicht zählt die Dateien', statusA.attachmentCount === 9, `${statusA.attachmentCount}`);
   const statA = (await call('GET', '/api/stats')).content;
-  check('Kennzahlen nennen Zahl und Größe',
-    statA.attachmentCount === 9 && statA.attachmentBytes > 0,
-    `${statA.attachmentCount} / ${statA.attachmentBytes}`);
+  check('Kennzahlen nennen Zahl und Größe auf der Platte; in der Datenbank wartet keine',
+    statA.disk?.count >= 9 && statA.disk?.bytes > 0 && statA.attachmentCount === 0,
+    `${statA.disk?.count} / ${statA.disk?.bytes} · ${statA.attachmentCount}`);
 
   const outWithout = await callF('GET', '/api/export?photos=0');
   check('Export lässt Dateien ohne Schalter weg',

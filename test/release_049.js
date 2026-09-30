@@ -105,13 +105,7 @@ async function run() {
       body: body ? JSON.stringify(body) : undefined });
     return { status: a.status, content: await a.json().catch(() => null) };
   };
-  const upload = async (who, itemId, files) => {
-    const fd = new FormData();
-    for (const f of files) fd.append('files', new Blob([f.content]), f.name);
-    const a = await fetch(`${B.base}/api/items/${itemId}/attachments`,
-      { method: 'POST', body: fd, headers: withCsrf(people[who]) });
-    return { status: a.status, content: await a.json().catch(() => null) };
-  };
+  const upload = (who, itemId, files) => H.sendFiles(B.base, people[who], itemId, files);
   const tileOf = async (who, a) => {
     const r = await fetch(`${B.base}/api/attachments/${a.id}/raw?size=thumb&v=${a.thumb}`, { headers: withCsrf(people[who]) });
     return { status: r.status, type: r.headers.get('content-type'), bytes: Buffer.from(await r.arrayBuffer()) };
@@ -164,10 +158,12 @@ async function run() {
   const first = await upload('uploader', item, [{ name: 'notiz.md', content: memoText },
     { name: 'werte.csv', content: 'datum;wert\n2026-09-01;4\n' }, { name: 'archiv.zip', content: 'PK\u0003\u0004' },
     { name: 'leer.txt', content: '' }]);
-  const firstFiles = byName(first.content);
+  // Jede Datei liegt auf der Platte; das Vorschaubild entsteht nach dem Upload.
+  const readyText = await tileReady(item, 'notiz.md', 5000) && await tileReady(item, 'werte.csv', 5000);
+  const firstFiles = byName(await entry(item));
   const memo = firstFiles['notiz.md'];
-  check('Text und CSV haben ihr Vorschaubild schon in der Antwort auf den Upload',
-    first.status === 201 && memo?.thumb > 0 && memo?.thumbSoon === false && firstFiles['werte.csv']?.thumb > 0 &&
+  check('Text und CSV bekommen ihr Vorschaubild gleich nach dem Upload',
+    first.status === 201 && readyText && memo?.thumb > 0 && memo?.thumbSoon === false && firstFiles['werte.csv']?.thumb > 0 &&
     tileRow(memo?.id)?.thumb?.length === memo?.thumb,
     `${first.status} ${memo?.thumb} ${memo?.thumbSoon} ${firstFiles['werte.csv']?.thumb}`);
   const memoTile = await tileOf('stranger', memo || {});
@@ -376,7 +372,8 @@ async function run() {
     npmPaths.length === 2 && npmPaths.every(x => !/[{}]/.test(x)), npmPaths.join(' · '));
   check('Die Pfade treffen Upload in Stuecken, Import, Hochladen und die Auslieferung, sonst nichts',
     npmRx.every(Boolean) && hits(`/api/uploads/${uploadId}`) && hits('/api/import') &&
-    hits('/api/items/12/attachments') && hits('/api/comments/3/images') && hits('/api/attachments/7/raw') &&
+    hits('/api/items/12/videos') && hits('/api/comments/3/images') && hits('/api/attachments/7/raw') &&
+    !hits('/api/items/12/attachments') &&
     !hits('/api/items/12') && !hits('/api/uploads/') && !hits('/api/attachments/7/raw/x'),
     npmPaths.join(' · '));
 
@@ -419,7 +416,7 @@ async function run() {
     check('„+“ ist in der Liste die Zeile „Dateien hochladen“ mit der Grenze',
       add?.querySelector('.aname')?.textContent === DE['entry.fileAdd'] &&
       add?.querySelector('.anote')?.textContent === add?.querySelector('.ameta')?.textContent &&
-      /MB/.test(add?.querySelector('.anote')?.textContent || ''), add?.querySelector('.anote')?.textContent);
+      /\d (MB|GB)$/.test(add?.querySelector('.anote')?.textContent || ''), add?.querySelector('.anote')?.textContent);
     w.close();
   }
   {

@@ -52,10 +52,14 @@ annehmen.
   Verfasser entfernt hat.
 - `comment_images`, `comment_videos`: Bilder und Videos in Kommentaren, Videos
   mit Standbild und Dauer.
-- `attachments`: angehängte Dateien mit Bytes und Verfasser.
+- `attachments`: angehängte Dateien mit Verfasser. Der Inhalt liegt unter
+  `data/files/` (`disk_files`); `data` ist `x''`. Dateien aus früheren
+  Fassungen mit Inhalt in `data` legt `relocate()` nach dem Start dorthin;
+  vor `listen` prüft `relocationRoom()` den Platz und beendet den Start mit
+  Code 1, wenn er für diese Dateien und `DB_SPARE` nicht reicht.
 - `attachment_thumbs`: Kachel einer Bild- oder Videodatei, 512 × 512 WebP wie
-  bei Fotos. Entsteht beim Hochladen einer Bilddatei oder beim ersten Abruf
-  von `?size=thumb`, bei einem Video aus dem Standbild; `thumb` ist `NULL`,
+  bei Fotos. Entsteht beim ersten Abruf von `?size=thumb`, bei einem Video aus
+  dem Standbild; `thumb` ist `NULL`,
   wenn `sharp` die Datei nicht lesen kann. Nicht im Export. Dazu das
   Vorschaubild eines Dokuments: Text als SVG über `sharp`, Office und PDF als
   PNG der ersten Seite vom Document Server (`docserver.firstPage()`). Es
@@ -63,7 +67,8 @@ annehmen.
   Hochladen, nach dem Speichern aus dem Editor und dem Tausch mit der vorigen
   Fassung, nach Import und Papierkorb, nach dem Start, stündlich und beim
   Einschalten des Document Servers. `NULL` steht nur, wenn der Document Server
-  mit `-3`, `-5`, `-9` oder `-10` absagt.
+  mit `-3`, `-5`, `-9` oder `-10` absagt. Über „Anhang“ (`large`) gibt es kein
+  Vorschaubild eines Dokuments.
 - `attachment_stills`: Standbild und Dauer eines Videos unter „Dateien“, im
   Browser erzeugt, 1600 px WebP. Setzen darf nur, wer die Datei hochgeladen
   hat (`PUT /api/attachments/:id/still`). Im Papierkorb und im Export.
@@ -73,6 +78,13 @@ annehmen.
   Testtag desselben Eintrags, je Testtag höchstens ein Ordner (`UNIQUE`); wird
   der Testtag gelöscht, bleibt der Ordner (`ON DELETE SET NULL`). Im Export
   steht `testDay` als Stelle im Feld `testDays`.
+- `folder_open`: je Account und Ordner eine Zeile, wenn der Ordner offen steht;
+  ohne Zeile ist er zu. Das Anlegen eines Ordners legt die Zeile für den
+  Verfasser an. Nicht im Export.
+- `video_positions`: die gemerkte Stelle je Account und Video in Sekunden, mit
+  genau einer von `attachment_id`, `photo_id` und `comment_video_id` (je ein
+  Teilindex `UNIQUE`). Unter 10 s und im letzten Stück (5 %, mindestens 10 s)
+  löscht `PUT /api/video-positions` die Zeile. Nicht im Export.
 - `attachment_folders`: je Datei höchstens ein Ordner; ohne Zeile steht sie
   ohne Ordner. Im Export steht je Datei `folder` als Stelle im Feld `folders`
   des Eintrags.
@@ -80,7 +92,7 @@ annehmen.
   Schlüssel (`file_key`), angenommenen Bytes (`received`) und letzter Anfrage
   (`touched_at`). Verfällt nach 24 h ohne Anfrage, nach 15 min ohne erste.
 - `disk_files`: je Datei auf der Platte eine Zeile mit Name aus 32 Hexzeichen,
-  Klartextgröße, Stückgröße (1 MiB), `large` für Videos über „Anhang“ und
+  Klartextgröße, Stückgröße (1 MiB), `large` für Dateien über „Anhang“ und
   `file_key`. Besitzer ist genau einer von `attachment_id` (aktuelle Fassung),
   `previous_of` (vorige Fassung) und `trash_id` (Papierkorb). `attachments.data`
   und `attachment_previous.data` sind dann `x''`.
@@ -104,8 +116,7 @@ stehen die Kopien unter `kriterion-files/`, dazu je Backup eine Liste
   und das Verfahren der Bildablage (`imageStore`).
 - `user_settings`: vierzehn persönliche Schlüssel je Benutzer (`PERSONAL_KEYS`),
   darunter Filter, Ansichten, Bezugspunkt der Glocke, Farbschema,
-  Schriftgröße, Blockanordnung und Kacheln oder Liste (`filesView`). *Hier
-  stand „zehn“; gezählt am Stand 0.49.0 sind es vierzehn.*
+  Schriftgröße, Blockanordnung und Kacheln oder Liste (`filesView`).
 - `users`: scrypt-Hash, Rolle (`user` < `admin` < `owner`), Adresse, Status,
   letzte Anmeldung. Gelöschte Benutzer bleiben als Zeile mit
   `status = deleted` und dem Namen `deleted-<id>`.
