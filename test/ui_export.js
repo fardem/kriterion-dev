@@ -194,6 +194,9 @@ async function run() {
 
   /* --- Ein Eintrag, der in keinen Teil passt --- */
   {
+    // Erst nach dem VACUUM des ersten Starts schreiben: ueber 400 MB haelt es den Server Sekunden an.
+    await until(null, () => tlA.log().includes('Automatic storage reclaim set up.'), 60000,
+      'das VACUUM nach dem Start von tlA', 50);
     const d = open(path.join(tlDir, 'katalog.sqlite'));
     d.pragma('busy_timeout = 4000');
     const it = d.prepare("INSERT INTO items (title, description, user_id) VALUES ('Der Riese', '', 1)").run();
