@@ -230,8 +230,24 @@ und nur das Modul der erwarteten Gruppe laufen lässt: 1487 bis 1527 an
 **rot**. Zwei wurden erst im zweiten Anlauf rot: 1496 riss den Lauf ab, weil das
 Aufräumen der Prüfung das Lockfile ohne `force` löschte; 1515 griff nicht, weil
 `drawCleanup()` gesperrte Namen ein zweites Mal aus der Auswahl nimmt, und
-setzt jetzt an `pickable` an. Der Lauf mit `counterproof.js` über den ganzen
-Prüfstand steht aus.
+setzt jetzt an `pickable` an.
+
+Gefahren mit `counterproof.js`, drei Spuren, jeder Rückbau mit dem ganzen
+Prüfstand: alle 67 neuen, neu gefassten und umgelenkten. **67 rot, 0 stumm**,
+je Rückbau 1 bis 72 rote Prüfungen. Darunter ist 566, den der Treiber oben
+nicht gefahren hat. Der erste Lauf ab 12:25 UTC endete nach 53 Rückbauten,
+weil der Container neu gestartet wurde; 1514 bis 1527 liefen danach in einem
+zweiten. Die ersten neun Kopien kamen aus `420d779`, alle weiteren aus
+`1c78394`, der nur `Doku/Fehler_und_Ideen.md` ändert. Für die 53 des ersten
+Laufs steht nur die Zahl der roten Prüfungen im Log, weil `counterproof.js` die
+Namen erst am Ende schreibt. Im zweiten Lauf ist jeder in seiner erwarteten
+Gruppe rot.
+
+Zweimal waren Prüfungen rot, die der Rückbau nicht berührt: Bei 1518 brach
+`test/ui_export.js` mit „other side closed“ ab, bei 1522 war „Der Papierkorb:
+der Rundlauf“ in `test/roundtrip.js` rot. Beide stehen in
+`Doku/Fehler_und_Ideen.md`, der Papierkorb als Punkt 58, `ui_export` als
+Punkt 59.
 
 ---
 

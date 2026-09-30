@@ -174,12 +174,19 @@ sagt der Fahrplan.
 > `BEHIND_PROXY`, ein Download für jedes Bild und jedes Video und kurze Videos
 > in Kommentaren.
 
+> **Am 30. September 2026 sind fünf Punkte fortgezogen.** 53, 55, 56, 58 und 59
+> stehen mit ihrer Ausarbeitung im Fahrplan unter 0.52.0, dazu von 54 die
+> Kopfzeile und von 57 das Laden des ganzen Videos. Neu ist 60.
+
 ### Was ohne Nummer offen ist
 
 | steht in | worum es geht | Nutzen | Aufwand | Vorschlag |
 |---|---|---|---|---|
 | **42**, Fahrplan | Der Kommentaranteil von `public/style.css` liegt bei 40 Prozent — 1.215 von 3.029 Zeilen; offen ist, ob die gemessenen Zahlen in ein eigenes Papier wandern | niedrig | — | Entscheidung des Betreibers |
 | **20** | Nach einem Umbenennen holt die Oberfläche vier Antworten statt drei; die vierte ist die größte der Installation | niedrig | klein | liegen lassen |
+| **54** | „Dateien“ wie im Windows-Explorer: Auswahl mit Strg und Umschalt, Doppelklick zum Öffnen; die Kopfzeile ist in 0.52.0 | niedrig | mittel | liegen lassen |
+| **57** | Eine schnell abspielbare Fassung für das Telefon mit ffmpeg, nur wenn es schnell geht; erst messen | offen | offen | Messverfahren, dann Machbarkeit besprechen (Vorgabe) |
+| **60** | Dateien umbenennen; der Betreiber hat es am 30. September 2026 auf später gelegt | mittel | klein | eigene Runde |
 | ~~Protokoll 0.38.2~~ | ~~Die Strichstärke des Löschkreuzes bleibt 1.8, dieselbe wie am Stift und am Zitatzeichen~~ | — | — | **ABGELEHNT am 21. September 2026** |
 | ~~Protokoll 0.38.2~~ | ~~Der Trefferausschnitt zeigt bei einem Treffer im Ziel eines Links den Rohtext samt seiner Marken~~ | — | — | **RUHT seit dem 21. September 2026** |
 | ~~Protokoll 0.38.3~~ | ~~Der Halt nach einem Sprung ist eine Frist von 1600 Millisekunden und keine Messung~~ | — | — | **RUHT seit dem 21. September 2026** |
@@ -199,6 +206,7 @@ sagt der Fahrplan.
 | ~~**0.43.0**~~ | ~~Dokumente über den Document Server bearbeiten; wer bearbeitet, legt der Hochladende je Datei fest~~ — **GEBAUT am 27. September 2026** | **ja** |
 | ~~**0.44.0**~~ | ~~Verweise auf Dateien und Fotos in Kommentar und Beschreibung~~ — **GEBAUT am 27. September 2026** | **ja** |
 | **0.45.0 bis 0.48.0** | Dateien, Ordner und Testtage: Kacheln, Videos unter „Dateien", Ordner, Dateien der Testtage verschlüsselt auf der Platte. Beschlossen am 28. September 2026, `Doku/Konzept_Dateien_und_Ordner.md`. **0.45.0, die Kacheln, GEBAUT am 28. September 2026** | **ja** |
+| **0.52.0** | Dateien: Gruppieren, Sortieren mit Richtung, Kopfzeile, Zeile und Menü „…“; Erweiterte Infos zu Bildern und Videos; Video ganz laden; der Papierkorb-Test und `ui_export`. Punkte 53, 55, 56, 58 und 59, von 54 und 57 je ein Teil. Auftrag erteilt am 30. September 2026 | **ja** |
 
 ### Sprache
 
@@ -2745,3 +2753,58 @@ genauso.
 **Der Weg:** `.env.*` in beide Listen, mit `!.env.example` in der
 `.gitignore`. 0.41.0 ändert daran nichts, weil der Auftrag kein Verhalten
 außerhalb seiner Bauabschnitte ändert.
+
+## 54. „Dateien“ wie im Windows-Explorer: Auswahl mit Strg und Umschalt, Doppelklick
+
+**Art: Wunsch** *(Betreiber)* **· Herkunft: Abnahme von 0.51.0, 30. September
+2026 · Einschätzung: mittel · Fahrplan: offen**
+
+Die Kopfzeile, die sortiert, ist mit 0.52.0 fortgezogen (U3 in
+`Doku/Auftrag_0.52.0.md`); die Ausarbeitung steht im Fahrplan unter 0.52.0.
+Offen sind die Teile, die am 30. September 2026 nicht gewählt wurden: mehrere
+Dateien mit Strg-Klick und Umschalt-Klick auswählen, ohne vorher „Auswählen“ zu
+drücken, und ein einfacher Klick markiert, ein Doppelklick öffnet. Das Menü
+„…“ öffnet sich schon mit der rechten Maustaste und mit Umschalt+F10.
+
+## 57. Eine schnell abspielbare Fassung für das Telefon
+
+**Art: Wunsch** *(Betreiber)* **· Herkunft: Abnahme von 0.51.0, 30. September
+2026 · Einschätzung: offen · Fahrplan: offen**
+
+Vom Punkt „Vorpuffern im Player“ ist das Laden des ganzen Videos mit 0.52.0
+fortgezogen; die ganze Ausarbeitung steht im Fahrplan unter 0.52.0. Der Cache
+bleibt, wie er ist (Vorgabe des Betreibers vom 30. September 2026). Offen ist
+die zweite, kleinere Fassung für das Telefon.
+
+**Vorgabe des Betreibers:** Vor einer Umsetzung wird die Machbarkeit
+besprochen und abgestimmt. ffmpeg lohnt sich nur, wenn es schnell geht.
+
+**Server:** Intel N100 (Angabe des Betreibers). Seine Grafik hat Quick Sync.
+In Hardware dekodiert sie H.264 nur mit 8 Bit und 4:2:0, HEVC auch mit 10 Bit
+und 4:2:2, dazu VP9 und AV1; sie kodiert H.264 und HEVC. XAVC HS der A6700
+(HEVC) geht damit in Hardware, XAVC S mit 4:2:2 und 10 Bit und XAVC S-I
+(H.264) nicht; die rechnet die CPU allein. Im Container braucht es `/dev/dri`,
+ffmpeg mit VA-API und den Intel-Mediatreiber.
+
+**Der Weg:** ffmpeg wandelt jedes Format nach H.264 und AAC in MP4 mit dem
+`moov`-Kasten vorn (`-movflags +faststart`), etwa 1080p30 mit 5 Mbit/s, rund
+2,3 GB je Stunde. Umgewandelt wird im Hintergrund nach dem Upload, wie bei den
+Vorschaubildern. Braucht ffmpeg im Image, Rechenzeit je Video und Platz für die
+zweite Fassung.
+
+**Zu klären:** wie lange der N100 für ein echtes Video der A6700 braucht, mit
+Quick Sync und nur mit der CPU, und in welchem Format die Kamera aufnimmt. Das
+Messverfahren steht in `Doku/Messverfahren_Umwandlung.md`.
+
+## 60. Dateien umbenennen
+
+**Art: Wunsch** *(Prüfung von Zeile und Menü)* **· Herkunft: Auftrag 0.52.0,
+30. September 2026 · Einschätzung: klein · Fahrplan: offen**
+
+Ordner lassen sich umbenennen („Bearbeiten …“), Dateien nicht. In der Prüfung
+von Zeile und Menü zu 0.52.0 (Abschnitt 2.2 des Auftrags, Befund 9) fiel das
+auf; der Betreiber hat es am 30. September 2026 auf später gelegt (F7).
+
+**Der Weg:** nur eigene Dateien, die Endung bleibt; eine neue Route und ein
+Eintrag im Sicherheitsprotokoll. Offen ist, was mit einer Datei geschieht, die
+gerade im Document Server bearbeitet wird.
