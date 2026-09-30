@@ -384,16 +384,16 @@ const photoUpload = (bytes) => upload({
 });
 
 /* Grenzen beim Hochladen in MB. Die ersten fuenf Obergrenzen sind fest: jede
-   solche Datei liegt ganz im Arbeitsspeicher und geht als ein Blob in SQLite. */
+   solche Datei liegt einmal ganz im Arbeitsspeicher. */
 const MB = 1048576;
 const UPLOAD_LIMITS = {
   photo: { fallback: 30, min: 1, max: 50, label: 'card.limitPhoto' },
   commentImage: { fallback: 20, min: 1, max: 50, label: 'card.limitCommentImage' },
   video: { fallback: 20, min: 1, max: 100, label: 'card.limitVideo' },
   commentVideo: { fallback: 20, min: 1, max: 100, label: 'card.limitCommentVideo' },
+  // Bis hier mit Inhalt im Export, mit Vorschau und Document Server.
   attachment: { fallback: 50, min: 1, max: 100, label: 'card.limitAttachment' },
-  // Geht in Stuecken auf die Platte; liegt sie nicht ueber „Anhang", gibt es keine grossen Videos.
-  dayVideo: { fallback: 2048, min: 1, max: 4096, label: 'card.limitDayVideo' }
+  file: { fallback: 2048, min: 1, max: 4096, label: 'card.limitFile' }
 };
 // Der gespeicherte Stand; was fehlt oder ausserhalb der Spanne liegt, ist die Vorgabe.
 function uploadLimits() {
@@ -828,6 +828,7 @@ app.get('/api/document-server/attachments/:id', (req, res) => {
   if (!a || docTileKind(a.filename) !== 'office') return res.status(404).end();
   let bytes;
   try { bytes = fileBytes(a.id, a.data); } catch (e) { if (e.damaged) return res.status(404).end(); throw e; }
+  if (!bytes) return res.status(404).end();
   attachments.setHeader(res, a.filename);
   res.set('Cache-Control', 'no-store');
   res.send(bytes);
@@ -2377,7 +2378,7 @@ app.delete('/api/items/:id/tags/:tagId', entryAuthorOnly, (req, res) => {
 const qAttachments = lateStatement(`SELECT a.id, a.filename, a.mime_type, a.size, a.sort_order,
     a.created_at, a.user_id, COALESCE(e.edit_all, 0) AS edit_all,
     (p.attachment_id IS NOT NULL) AS has_previous, s.duration, length(s.still) AS still,
-    f.folder_id AS folder, d.name AS stored, (t.attachment_id IS NOT NULL) AS has_tile, length(t.thumb) AS tile
+    f.folder_id AS folder, d.name AS stored, d.large, (t.attachment_id IS NOT NULL) AS has_tile, length(t.thumb) AS tile
   FROM attachments a
   LEFT JOIN attachment_editing e ON e.attachment_id = a.id
   LEFT JOIN attachment_thumbs t ON t.attachment_id = a.id
@@ -2471,6 +2472,15 @@ const qCommentVideosOfItem = db.prepare(
   `SELECT v.comment_id, v.id, v.filename, v.duration, v.sort_order FROM comment_videos v
      JOIN comments c ON c.id = v.comment_id
     WHERE c.item_id = ? ORDER BY v.comment_id, v.sort_order, v.id`);
+
+/* Die gemerkten Stellen eines Accounts in den Videos eines Eintrags, eine Abfrage je Eintrag. */
+const qVideoPositions = db.prepare(`SELECT attachment_id, photo_id, comment_video_id, seconds
+  FROM video_positions WHERE user_id = ? AND (attachment_id IN (SELECT id FROM attachments WHERE item_id = ?)
+    OR photo_id IN (SELECT id FROM photos WHERE item_id = ?)
+    OR comment_video_id IN (SELECT v.id FROM comment_videos v JOIN comments c ON c.id = v.comment_id
+                            WHERE c.item_id = ?))`);
+const qOpenFolders = db.prepare(`SELECT o.folder_id FROM folder_open o JOIN folders f ON f.id = o.folder_id
+  WHERE o.user_id = ? AND f.item_id = ?`);
 
 /* Gegenrichtung zu authorFrom(); `deleted-<id>` ist ein geloeschter Zugang. */
 function authorByName(card, name) {
@@ -2701,15 +2711,18 @@ function detail(id, userId, locale) {
   it.attachments = qAttachments().all(id).map(a2 => {
     // Wie mayEditFile(), ohne weitere Abfrage je Datei.
     const rights = a2.edit_all === 1 || (a2.user_id != null && a2.user_id === userId);
-    const tileKind = docTileKind(a2.filename);
+    const kind = attachments.previewKind(a2.filename);
+    // Ueber „Anhang" zeigt der Browser Bild, Video und PDF selbst; alles andere nur zum Herunterladen.
+    const large = a2.large === 1;
+    const tileKind = large ? null : docTileKind(a2.filename);
     return {
       id: a2.id, filename: a2.filename, mime_type: a2.mime_type, size: a2.size,
       sort_order: a2.sort_order, created_at: a2.created_at,
-      preview: officeOn && docserver.officeType(a2.filename)
-        ? 'office' : attachments.previewKind(a2.filename),
+      preview: large ? (['image', 'video', 'pdf'].includes(kind) ? kind : 'keine')
+        : officeOn && docserver.officeType(a2.filename) ? 'office' : kind,
       mine: a2.user_id === userId, author: authorFrom(card, a2.user_id),
       editAll: a2.edit_all === 1,
-      edit: officeOn && rights && !!docserver.editFormat(a2.filename),
+      edit: officeOn && rights && !large && !!docserver.editFormat(a2.filename),
       // Nur doc, xls, ppt: das Format nach dem Speichern, fuer die Rueckfrage im Browser.
       convertTo: docserver.needsConversion(a2.filename) ? docserver.editFormat(a2.filename) : null,
       restore: rights && a2.has_previous === 1,
@@ -2721,8 +2734,9 @@ function detail(id, userId, locale) {
                                                   && !TILES_FAILED.has(a2.id) } : {})
     };
   });
+  const openFolders = new Set(qOpenFolders.all(userId, id).map(z => z.folder_id));
   it.folders = qFolders().all(id).map(f => ({
-    id: f.id, name: f.name, created_at: f.created_at, testDay: f.test_day_id,
+    id: f.id, name: f.name, created_at: f.created_at, testDay: f.test_day_id, open: openFolders.has(f.id),
     mine: f.user_id === userId, author: authorFrom(card, f.user_id)
   }));
   const touchedBefore = sqlTime(nowMs() - UPLOAD_ACTIVE_MS);
@@ -2744,6 +2758,11 @@ function detail(id, userId, locale) {
   const folderOfDay = new Map(it.folders.filter(f => f.testDay != null).map(f => [f.testDay, f.id]));
   for (const d of it.testDays) d.folder = folderOfDay.get(d.id) ?? null;
   it.comments = qComments(id, userId, card);
+  const spot = new Map(qVideoPositions.all(userId, id, id, id).map(z => [z.attachment_id != null
+    ? 'f' + z.attachment_id : z.photo_id != null ? 'p' + z.photo_id : 'c' + z.comment_video_id, z.seconds]));
+  for (const p of it.photos) if (p.kind === 'video') p.position = spot.get('p' + p.id) ?? null;
+  for (const a of it.attachments) if (a.preview === 'video') a.position = spot.get('f' + a.id) ?? null;
+  for (const c of it.comments) for (const v of c.videos) v.position = spot.get('c' + v.id) ?? null;
   // Die eigenen Bewertungen.
   it.ratings = named(db.prepare(`
     SELECT c.id AS criterion_id, c.name, c.weight, c.phase, COALESCE(r.value, 0) AS value
@@ -3746,10 +3765,8 @@ app.put('/api/photos/:id/focus', (req, res) => {
 /* ---- Anhaenge ---- */
 /* Keine Pruefung beim Hochladen; die Sicherheit liegt bei der Auslieferung
    (attachments.setHeader). */
-/* Je Anfrage und je Eintrag; beide auch in public/app.js. */
-const FILES_PER_REQUEST = 20;
+/* Je Eintrag, auch in public/app.js. */
 const FILES_PER_ENTRY = 100;
-const attachmentUpload = (bytes) => upload({ storage: multer.memoryStorage(), limits: { fileSize: bytes } });
 
 /* ---- Dateien auf der Platte ---- */
 const FILES_DIR = path.join(DATA_DIR, 'files');
@@ -3767,7 +3784,6 @@ const freshName = () => crypto.randomBytes(16).toString('hex');
 const DISK_WRITING = new Set();
 // Beim Start ohne Datei der richtigen Laenge gefunden; die Kachel zeigt ⚠.
 const DISK_MISSING = new Set();
-const VIDEO_MIMES = Object.values(attachments.VIDEO_TYPES);
 
 /* Nur der Pruefstand setzt `clock` (Sekunden vor), `free` (MB frei), `statfail`, `run`
    (ms zwischen zwei Laeufen) und `hold` (ms Halt vor dem Schreiben unter upload/ und je
@@ -3808,6 +3824,7 @@ const refuseSpace = (req, res, s) => {
 
 // Neben qUploadFile die einzige Anweisung, die file_key liest.
 const qDiskFile = db.prepare('SELECT id, name, size, chunk, large, file_key FROM disk_files WHERE attachment_id = ?');
+const largeFile = (attachmentId) => qDiskFile.get(attachmentId)?.large === 1;
 const diskFileOf = (attachmentId) => {
   const r = qDiskFile.get(attachmentId);
   return r ? { id: r.id, name: r.name, size: r.size, chunk: r.chunk, large: r.large, key: r.file_key } : null;
@@ -3858,12 +3875,12 @@ const refuseFolderName = (req, res) =>
 const addFolder = db.prepare('INSERT INTO folders (item_id, name, user_id, test_day_id) VALUES (?, ?, ?, ?)');
 const renameFolder = db.prepare('UPDATE folders SET name = ?, test_day_id = ? WHERE id = ?');
 const dropFolder = db.prepare('DELETE FROM folders WHERE id = ?');
+const putFolderOpen = db.prepare('INSERT OR IGNORE INTO folder_open (user_id, folder_id) VALUES (?, ?)');
+const dropFolderOpen = db.prepare('DELETE FROM folder_open WHERE user_id = ? AND folder_id = ?');
 const putFileFolder = db.prepare(
   'INSERT OR REPLACE INTO attachment_folders (attachment_id, folder_id) VALUES (?, ?)');
 const dropFileFolder = db.prepare('DELETE FROM attachment_folders WHERE attachment_id = ?');
 
-/* Hochladen darf jeder, wie bei Links: die Datei erscheint nur an diesem
-   Eintrag. In einen Ordner nur, wer ihn angelegt hat. */
 /* ---- Kachel einer Bilddatei ---- */
 const qFileTile = db.prepare('SELECT thumb FROM attachment_thumbs WHERE attachment_id = ?');
 const putFileTile = db.prepare('INSERT OR REPLACE INTO attachment_thumbs (attachment_id, thumb) VALUES (?, ?)');
@@ -3898,6 +3915,7 @@ const tileExpected = (id, kind) =>
 
 // undefined: spaeter noch einmal; null: kein Bild moeglich.
 async function docTileOf(a, kind) {
+  if (largeFile(a.id)) return null;
   if (kind === 'text') {
     let bytes;
     try { bytes = fileBytes(a.id, qTileHead.get(attachments.TEXT_TILE_BYTES, a.id).head); }
@@ -3953,58 +3971,6 @@ function docTilesAgain() {
   docTilesSoon();
 }
 
-app.post('/api/items/:id/attachments',
-         cappedLive(bytes => attachmentUpload(bytes).array('files', FILES_PER_REQUEST),
-                    () => ({ count: FILES_PER_REQUEST, bytes: limitBytes('attachment'), key: 'server.uploadCap' })),
-         async (req, res, next) => {
-  try {
-    // Nur der Name, nie ein Pfad: "../../etwas" bleibt ein Dateiname.
-    const files = (req.files || []).map(f =>
-      ({ f, name: path.basename(String(f.originalname || 'datei')).slice(0, 200) || 'datei' }));
-    // Vor den Pruefungen rechnen: zwischen Pruefung und Schreiben liegt so kein await.
-    for (const x of files) {
-      if (attachments.previewKind(x.name) === 'image') x.tile = await fileTile(x.f.buffer);
-      else if (docTileKind(x.name) === 'text') x.tile = await textTile(x.f.buffer);
-    }
-    if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
-      return res.status(404).json({ error: t(localeOf(req), 'server.entryUnknown')});
-    // Im Formular, also erst nach multer lesbar.
-    const wanted = (req.body || {}).folderId;
-    const target = wanted === undefined || wanted === '' ? null : folderRow(wanted);
-    if (wanted !== undefined && wanted !== '' && !target)
-      return res.status(404).json({ error: t(localeOf(req), 'server.folderGone')});
-    if (target && (target.item_id !== Number(req.params.id) || !selfOnly(req, target.user_id)))
-      return res.status(403).json({ error: t(localeOf(req), 'server.folderForeign')});
-    // Mit dem Stand des Eintrags: der Browser waehlt dann den Upload in Stuecken.
-    if (target && target.test_day_id != null)
-      return res.status(409).json({ error: t(localeOf(req), 'server.folderHasDay'),
-                                    item: detail(req.params.id, req.user.id, localeOf(req)) });
-    if (entryTooLarge(req.params.id, req.files)) return refuseEntryFull(req, res);
-    const da = fileSlots(req.params.id);
-    const fresh = (req.files || []).length;
-    if (da + fresh > FILES_PER_ENTRY)
-      return res.status(400).json({ error: t(localeOf(req), 'server.fileCap', { cap: FILES_PER_ENTRY })});
-    let pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM attachments WHERE item_id = ?')
-      .get(req.params.id).m + 1;
-    const into = db.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
-                            VALUES (?, ?, ?, ?, ?, ?, ?)`);
-    const asked = (req.body || {}).editAll;
-    const editAll = asked === undefined ? filesEditAllOf(req.user.id) : asked === '1';
-    const pages = [];
-    for (const { f, name, tile } of files) {
-      const added = into.run(req.params.id, name, String(f.mimetype || '').slice(0, 120), f.buffer.length,
-                             f.buffer, pos++, req.user.id);
-      if (editAll && docserver.editFormat(name)) putEditAll.run(added.lastInsertRowid, 1);
-      if (tile !== undefined) putFileTile.run(added.lastInsertRowid, tile);
-      else if (docTileKind(name)) pages.push(added.lastInsertRowid);
-      if (target) putFileFolder.run(added.lastInsertRowid, target.id);
-    }
-    touch.run(req.params.id);
-    docTilesSoon(pages);
-    res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
-  } catch (e) { next(e); }
-});
-
 /* ---- Upload in Stuecken ---- */
 // Klartext je Anfrage; das letzte Stueck ist kuerzer.
 const UPLOAD_PIECE = 8 * MB;
@@ -4038,8 +4004,8 @@ function fileSlots(itemId) {
 
 const freshUploadFile = (name) => fs.writeFileSync(diskPath(name, true), '', { flag: 'wx', mode: 0o600 });
 
-/* Beginnt oder setzt fort, nur in einen eigenen Ordner mit Testtag. Synchron bis zum
-   INSERT: ein zweiter Beginn kommt nicht dazwischen. */
+/* Beginnt oder setzt fort. Ohne Ordner darf jeder hochladen wie bei Links, in einen Ordner
+   nur, wer ihn angelegt hat. Synchron bis zum INSERT: ein zweiter Beginn kommt nicht dazwischen. */
 app.post('/api/items/:id/uploads', (req, res) => {
   const b = req.body || {};
   const itemId = Number(req.params.id);
@@ -4063,13 +4029,8 @@ app.post('/api/items/:id/uploads', (req, res) => {
     return res.status(403).json({ error: t(locale, 'server.folderForeign')});
   const limits = uploadLimits();
   const large = size > limits.attachment * MB;
-  if (!target || target.test_day_id == null)
-    return large ? res.status(413).json({ error: t(locale, 'server.bigVideoFolder') })
-      : res.status(409).json({ error: t(locale, 'server.folderNoDay'), item: detail(itemId, req.user.id, localeOf(req)) });
-  if (large && !attachments.VIDEO_TYPES[attachments.extension(filename)])
-    return res.status(415).json({ error: t(locale, 'server.videoOnly', { mb: limits.attachment }) });
-  if (large && (limits.dayVideo <= limits.attachment || size > limits.dayVideo * MB))
-    return res.status(413).json({ error: t(locale, 'server.uploadSize', { mb: Math.max(limits.attachment, limits.dayVideo) }) });
+  const most = Math.max(limits.attachment, limits.file);
+  if (size > most * MB) return res.status(413).json({ error: t(locale, 'server.uploadSize', { mb: most }) });
   if (!large && entryTooLarge(itemId, [{ size }])) return refuseEntryFull(req, res);
   if (fileSlots(itemId) >= FILES_PER_ENTRY)
     return res.status(400).json({ error: t(locale, 'server.fileCap', { cap: FILES_PER_ENTRY })});
@@ -4081,7 +4042,7 @@ app.post('/api/items/:id/uploads', (req, res) => {
   if (short) return refuseSpace(req, res, short);
   const id = crypto.randomBytes(16).toString('hex'), name = freshName();
   freshUploadFile(name);
-  addUpload.run(id, itemId, req.user.id, target.id, filename, size, modified, large ? 1 : 0, name,
+  addUpload.run(id, itemId, req.user.id, target ? target.id : null, filename, size, modified, large ? 1 : 0, name,
                 sqlTime(nowMs()), crypto.randomBytes(32));
   res.status(201).json({ id, received: 0 });
 });
@@ -4092,11 +4053,6 @@ app.put('/api/uploads/:id', uploadTurn, uploadBody, async (req, res, next) => {
   try {
     const body = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
     if (body.length !== u.piece) return res.status(400).json({ error: t(locale, 'server.uploadPiece') });
-    // Vor dem Verschluesseln: ein grosses Video muss an den ersten Bytes eines sein.
-    if (u.n === 0 && u.large === 1 && !VIDEO_MIMES.includes(attachments.typeFromBytes(body.subarray(0, 12)))) {
-      dropUpload.run(u.id);
-      return res.status(415).json({ error: t(locale, 'server.videoOnly', { mb: uploadLimits().attachment }) });
-    }
     await benchHold();
     await attachments.sealInto(diskPath(u.name, true),
       { name: u.name, size: u.size, chunk: CHUNK, key: u.file_key }, u.n / CHUNK, body);
@@ -4326,6 +4282,7 @@ app.get('/api/attachments/:id/preview', (req, res) => {
   if (!a) return res.status(404).json({ error: t(localeOf(req), 'server.fileGone')});
   const kind = attachments.previewKind(a.filename);
   if (kind !== 'text' && kind !== 'docx') return res.status(400).json({ error: t(localeOf(req), 'server.noTextPreview')});
+  if (largeFile(a.id)) return res.status(400).json({ error: t(localeOf(req), 'server.largeDownloadOnly')});
   let bytes;
   try { bytes = fileBytes(a.id, a.data); }
   catch (e) { if (e.damaged) return res.status(404).json({ error: t(localeOf(req), 'server.fileMissing')}); throw e; }
@@ -4347,6 +4304,7 @@ app.get('/api/attachments/:id/office', async (req, res, next) => {
     if (!a) return res.status(404).json({ error: t(localeOf(req), 'server.fileGone')});
     if (!documentServerOn() || !docserver.officeType(a.filename))
       return res.status(409).json({ error: t(localeOf(req), 'server.docOff')});
+    if (largeFile(a.id)) return res.status(400).json({ error: t(localeOf(req), 'server.largeDownloadOnly')});
     const mobile = req.query.mobile === '1';
     const lang = localeOf(req);
     const user = { id: req.user.id, name: req.user.username };
@@ -4478,31 +4436,35 @@ app.post('/api/items/:id/folders', (req, res) => {
     return res.status(404).json({ error: t(localeOf(req), 'server.entryUnknown')});
   const day = folderDay(req, res, (req.body || {}).testDay, req.params.id, null);
   if (!day) return;
-  addFolder.run(req.params.id, name, req.user.id, day.keep ? null : day.value);
+  const made = addFolder.run(req.params.id, name, req.user.id, day.keep ? null : day.value).lastInsertRowid;
+  putFolderOpen.run(req.user.id, made);
   touch.run(req.params.id);
   res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
 });
 
-// Nur wer ihn angelegt hat, auch kein Admin. Ein neuer Testtag lagert die Dateien um.
-app.put('/api/folders/:id', async (req, res, next) => {
-  try {
-    const f = folderRow(req.params.id);
-    if (!f) return res.status(404).json({ error: t(localeOf(req), 'server.folderGone')});
-    if (!selfOnly(req, f.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
-    const b = req.body || {};
-    const name = b.name === undefined ? f.name : folderName(b.name);
-    if (name === null) return refuseFolderName(req, res);
-    const day = folderDay(req, res, b.testDay, f.item_id, f.id);
-    if (!day) return;
-    const testDay = day.keep ? f.test_day_id : day.value;
-    const moving = testDay != null && f.test_day_id == null ? qDbFilesIn.all(f.id).map(z => z.id) : [];
-    const short = moving.length ? spaceShort(relocateNeed(moving)) : null;
-    if (short) return refuseSpace(req, res, short);
-    renameFolder.run(name, testDay, f.id);
-    touch.run(f.item_id);
-    if (moving.length) await relocate(qDbFilesIn.all(f.id).map(z => z.id));
-    res.json(detail(f.item_id, req.user.id, localeOf(req)));
-  } catch (e) { next(e); }
+// Nur wer ihn angelegt hat, auch kein Admin.
+app.put('/api/folders/:id', (req, res) => {
+  const f = folderRow(req.params.id);
+  if (!f) return res.status(404).json({ error: t(localeOf(req), 'server.folderGone')});
+  if (!selfOnly(req, f.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
+  const b = req.body || {};
+  const name = b.name === undefined ? f.name : folderName(b.name);
+  if (name === null) return refuseFolderName(req, res);
+  const day = folderDay(req, res, b.testDay, f.item_id, f.id);
+  if (!day) return;
+  renameFolder.run(name, day.keep ? f.test_day_id : day.value, f.id);
+  touch.run(f.item_id);
+  res.json(detail(f.item_id, req.user.id, localeOf(req)));
+});
+
+// Offen oder zu merkt sich jeder Account selbst, auch an fremden Ordnern.
+app.put('/api/folders/:id/open', (req, res) => {
+  const f = folderRow(req.params.id);
+  if (!f) return res.status(404).json({ error: t(localeOf(req), 'server.folderGone')});
+  const open = (req.body || {}).open;
+  if (typeof open !== 'boolean') return res.status(400).json({ error: t(localeOf(req), 'server.bodyInvalid')});
+  (open ? putFolderOpen : dropFolderOpen).run(req.user.id, f.id);
+  res.status(204).end();
 });
 
 // Die Dateien darin bleiben und stehen danach ohne Ordner.
@@ -4517,43 +4479,65 @@ app.delete('/api/folders/:id', (req, res) => {
 
 /* Datei und Ziel gehoeren dem, der verschiebt, und haengen am selben Eintrag.
    sort_order bleibt: die Datei steht im Ziel nach der Zeit ihres Uploads. */
-app.put('/api/attachments/:id/folder', async (req, res, next) => {
-  try {
-    const a = db.prepare('SELECT id, item_id, user_id FROM attachments WHERE id = ?').get(req.params.id);
-    if (!a) return res.status(404).json({ error: t(localeOf(req), 'server.fileGone')});
-    if (!selfOnly(req, a.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
-    const wanted = (req.body || {}).folderId;
-    let moving = false;
-    if (wanted === null) dropFileFolder.run(a.id);
-    else {
-      const f = folderRow(wanted);
-      if (!f) return res.status(404).json({ error: t(localeOf(req), 'server.folderGone')});
-      if (f.item_id !== a.item_id || !selfOnly(req, f.user_id))
-        return res.status(403).json({ error: t(localeOf(req), 'server.folderForeign')});
-      moving = f.test_day_id != null && !qDiskName.get(a.id);
-      const short = moving ? spaceShort(relocateNeed([a.id])) : null;
-      if (short) return refuseSpace(req, res, short);
-      putFileFolder.run(a.id, f.id);
-    }
-    touch.run(a.item_id);
-    if (moving) await relocate([a.id]);
-    res.json(detail(a.item_id, req.user.id, localeOf(req)));
-  } catch (e) { next(e); }
+app.put('/api/attachments/:id/folder', (req, res) => {
+  const a = db.prepare('SELECT id, item_id, user_id FROM attachments WHERE id = ?').get(req.params.id);
+  if (!a) return res.status(404).json({ error: t(localeOf(req), 'server.fileGone')});
+  if (!selfOnly(req, a.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
+  const wanted = (req.body || {}).folderId;
+  if (wanted === null) dropFileFolder.run(a.id);
+  else {
+    const f = folderRow(wanted);
+    if (!f) return res.status(404).json({ error: t(localeOf(req), 'server.folderGone')});
+    if (f.item_id !== a.item_id || !selfOnly(req, f.user_id))
+      return res.status(403).json({ error: t(localeOf(req), 'server.folderForeign')});
+    putFileFolder.run(a.id, f.id);
+  }
+  touch.run(a.item_id);
+  res.json(detail(a.item_id, req.user.id, localeOf(req)));
+});
+
+/* ---- Stelle im Video ---- */
+// Unter 10 s und im letzten Stueck (5 %, mindestens 10 s) merkt sich Kriterion nichts.
+const POSITION_MIN_S = 10;
+const POSITION_END_SHARE = 0.05;
+const POSITION_COLUMN = { file: 'attachment_id', photo: 'photo_id', comment: 'comment_video_id' };
+const POSITION_GONE = { file: 'server.fileGone', photo: 'server.photoGone', comment: 'server.videoGone' };
+const qVideoTarget = {
+  file: db.prepare('SELECT filename FROM attachments WHERE id = ?'),
+  photo: db.prepare("SELECT 1 FROM photos WHERE id = ? AND kind = 'video'"),
+  comment: db.prepare('SELECT 1 FROM comment_videos WHERE id = ?')
+};
+const putPosition = {}, dropPosition = {};
+for (const [kind, column] of Object.entries(POSITION_COLUMN)) {
+  putPosition[kind] = db.prepare(`INSERT INTO video_positions (user_id, ${column}, seconds) VALUES (?, ?, ?)
+    ON CONFLICT(${column}, user_id) WHERE ${column} IS NOT NULL
+    DO UPDATE SET seconds = excluded.seconds, updated_at = datetime('now')`);
+  dropPosition[kind] = db.prepare(`DELETE FROM video_positions WHERE user_id = ? AND ${column} = ?`);
+}
+
+app.put('/api/video-positions', (req, res) => {
+  const b = req.body || {};
+  const id = Number(b.id), seconds = Number(b.seconds);
+  const duration = b.duration == null ? null : Number(b.duration);
+  if (!POSITION_COLUMN[b.kind] || !Number.isSafeInteger(id) || !Number.isFinite(seconds) || seconds < 0 ||
+      (duration !== null && !(Number.isFinite(duration) && duration > 0)))
+    return res.status(400).json({ error: t(localeOf(req), 'server.bodyInvalid')});
+  const target = qVideoTarget[b.kind].get(id);
+  if (!target || (b.kind === 'file' && !isVideoFile(target.filename)))
+    return res.status(404).json({ error: t(localeOf(req), POSITION_GONE[b.kind])});
+  const seen = duration !== null && seconds >= duration - Math.max(POSITION_MIN_S, duration * POSITION_END_SHARE);
+  const kept = seconds >= POSITION_MIN_S && !seen;
+  if (kept) putPosition[b.kind].run(req.user.id, id, seconds);
+  else dropPosition[b.kind].run(req.user.id, id);
+  res.json({ position: kept ? seconds : null });
 });
 
 /* ---- Umlagerung ---- */
-/* Eine Datei geht aus der Datenbank auf die Platte, wenn sie in einen Ordner mit
-   Testtag kommt; zurueck geht keine. */
-const qDbFilesIn = db.prepare(`SELECT a.id FROM attachments a
-  JOIN attachment_folders af ON af.attachment_id = a.id
-  WHERE af.folder_id = ? AND NOT EXISTS (SELECT 1 FROM disk_files d WHERE d.attachment_id = a.id)`);
+/* Jede Datei in der Datenbank geht mit ihrer vorigen Fassung auf die Platte; zurueck geht keine. */
 const qRelocatePending = db.prepare(`SELECT a.id FROM attachments a
-  JOIN attachment_folders af ON af.attachment_id = a.id JOIN folders f ON f.id = af.folder_id
-  WHERE f.test_day_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM disk_files d WHERE d.attachment_id = a.id)`);
+  WHERE NOT EXISTS (SELECT 1 FROM disk_files d WHERE d.attachment_id = a.id)`);
 const qRelocateNeed = db.prepare(`SELECT a.size, p.size AS before FROM attachments a
   LEFT JOIN attachment_previous p ON p.attachment_id = a.id WHERE a.id = ?`);
-const qInDayFolder = db.prepare(`SELECT 1 FROM attachment_folders af JOIN folders f ON f.id = af.folder_id
-  WHERE af.attachment_id = ? AND f.test_day_id IS NOT NULL`);
 const qFileThere = db.prepare('SELECT 1 FROM attachments WHERE id = ?');
 const qRelocateData = db.prepare('SELECT data FROM attachments WHERE id = ?');
 const qPreviousData = db.prepare('SELECT data FROM attachment_previous WHERE attachment_id = ?');
@@ -4567,16 +4551,36 @@ const relocateNeed = (ids) => ids.reduce((n, id) => {
   return r ? n + encLen(r.size) + (r.before == null ? 0 : encLen(r.before)) : n;
 }, 0);
 
+const qRelocateCount = db.prepare(`SELECT COUNT(*) AS n FROM attachments a
+  WHERE NOT EXISTS (SELECT 1 FROM disk_files d WHERE d.attachment_id = a.id)`);
+let RELOCATING = false;
 async function relocate(ids) {
-  for (const id of ids) await relocateOne(id, true);
+  if (RELOCATING) return;
+  RELOCATING = true;
+  try { for (const id of ids) await relocateOne(id, true); }
+  finally { RELOCATING = false; }
   if (ids.length) reclaim();
+}
+
+// Passt der Bestand der Datenbank nicht auf die Platte, startet Kriterion nicht.
+function relocationRoom() {
+  if (DATABASE_INCOMPLETE) return;
+  const ids = qRelocatePending.all().map(z => z.id);
+  if (!ids.length) return;
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true, mode: 0o700 });
+  const need = relocateNeed(ids), free = diskFree();
+  if (free === null || free >= need + DB_SPARE) return;
+  logFail(`Not enough space to move ${ids.length} file(s) from the database to ${FILES_DIR}: ` +
+    `${Math.ceil(need / MB)} MB for the files and ${DB_SPARE / MB} MB reserve needed, ` +
+    `${Math.floor(free / MB)} MB free. Kriterion does not start.`);
+  process.exit(1);
 }
 
 /* Liest Inhalt und `saves` ohne await dazwischen; hat der Document Server inzwischen
    gespeichert, gilt die Datei einmal neu. */
 async function relocateOne(id, again) {
   const row = qRelocateData.get(id);
-  if (!row || qDiskName.get(id) || !qInDayFolder.get(id)) return;
+  if (!row || qDiskName.get(id)) return;
   const saves = editingOf(id).saves;
   const before = qPreviousData.get(id);
   const parts = [{ data: row.data, current: id, previous: null },
@@ -4587,7 +4591,7 @@ async function relocateOne(id, again) {
     for (const p of parts) await attachments.sealInto(diskPath(p.f.name, true), p.f, 0, p.data, { fresh: true });
     await benchHold();
     const outcome = commitFull(() => {
-      if (!qFileThere.get(id) || qDiskName.get(id) || !qInDayFolder.get(id)) return 'skip';
+      if (!qFileThere.get(id) || qDiskName.get(id)) return 'skip';
       if (editingOf(id).saves !== saves) return 'changed';
       for (const p of parts) addDiskFile.run(p.f.name, p.f.size, CHUNK, p.f.key, p.current, p.previous);
       emptyFile.run(id);
@@ -5216,6 +5220,7 @@ function diskStats() {
   return {
     count: d.n, bytes: d.o, largeCount: d.ln, largeBytes: d.lo, trashCount: d.tn, trashBytes: d.tbytes,
     uploadCount: u.n, uploadBytes: u.o, missing: DISK_MISSING.size, gone: qGoneCount.get().n,
+    pending: qRelocateCount.get().n,
     unknownCount: unknown.length, unknownBytes: unknown.reduce((n, f) => n + f.size, 0),
     copiedCount: copied.length, copiedBytes: copied.reduce((n, f) => n + f.size, 0),
     free: diskFree()
@@ -6042,7 +6047,7 @@ async function importPrepare(payload, bytesSource, userId, written) {
       if (!buf && !stored) { filesWithoutContent.push(name); continue; }
       const folder = Number.isSafeInteger(a2.folder) ? a2.folder : null;
       let disk = null;
-      if (buf && folder !== null && folderDays.kept.has(folder)) {
+      if (buf) {
         disk = { name: freshName(), key: crypto.randomBytes(32), chunk: CHUNK, size: buf.length };
         written.push(disk.name);
         DISK_WRITING.add(disk.name);
@@ -7436,6 +7441,7 @@ for (const signal of ['SIGTERM', 'SIGINT']) {
 
 // Die Verzeichnisse entstehen synchron im ersten Schritt, vor der ersten Anfrage.
 const diskRunLogged = (start) => diskRun(start).catch(e => logFail(`Disk run: ${e.message}`));
+relocationRoom();
 diskRunLogged(true);
 setInterval(() => {
   diskRunLogged(false);
