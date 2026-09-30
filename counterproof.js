@@ -8948,14 +8948,14 @@ const REGRESSIONS = [
   {
     nr: '1291', name: 'Jede Datei bekommt beim Abruf eine Kachel',
     file: 'server.js',
-    search: "  if (kind !== 'image' && kind !== 'video') return res.status(404).end();",
-    replacement: "  if (!a) return res.status(404).end();",
+    search: "  const picture = kind === 'image' || kind === 'video';\n  if (!picture && !(a && docTileKind(a.filename))) return res.status(404).end();",
+    replacement: "  const picture = !!a;\n  if (!a) return res.status(404).end();",
     expected: 'Verweise auf Dateien: die Kachel einer Bilddatei'
   },
   {
     nr: '1292', name: 'Marke und Dateizeile laden wieder die ganze Datei',
     file: 'public/app.js',
-    search: "const fileTileSource = (a) => `/api/attachments/${Number(a.id)}/raw?size=thumb${a.still ? `&v=${Number(a.still)}` : ''}`;",
+    search: "const fileTileSource = (a) => `/api/attachments/${Number(a.id)}/raw?size=thumb${a.still || a.thumb\n  ? `&v=${Number(a.still || a.thumb)}` : ''}`;",
     replacement: "const fileTileSource = (a) => `/api/attachments/${Number(a.id)}/raw?inline=1`;",
     expected: 'Verweise auf Dateien: Marken im Browser'
   },
@@ -8969,7 +8969,7 @@ const REGRESSIONS = [
   {
     nr: '1294', name: 'Die Kachel einer Bilddatei zeigt nur die Endung',
     file: 'public/app.js',
-    search: "      picture: a.preview === 'image' || (video && a.still) ? fileTileSource(a) : coming,",
+    search: "      picture: a.preview === 'image' || (video && a.still) || a.thumb ? fileTileSource(a) : coming,",
     replacement: "      picture: coming,",
     expected: 'Verweise auf Dateien: Adresse des Fotos und Link kopieren'
   },
@@ -9053,8 +9053,8 @@ const REGRESSIONS = [
   {
     nr: '1309', name: 'Das Neuzeichnen beendet den Betrachter',
     file: 'public/app.js',
-    search: "    if (!attsBox.isConnected) return;\n",
-    replacement: "    if (!attsBox.isConnected) return;\n    endOfficeViewer();\n",
+    search: "    // Nach einem await kann die Ansicht schon gewechselt haben.\n    if (!attsBox.isConnected) return;\n",
+    replacement: "    // Nach einem await kann die Ansicht schon gewechselt haben.\n    if (!attsBox.isConnected) return;\n    endOfficeViewer();\n",
     expected: 'Dateien in Kacheln: der Betrachter uebersteht das Neuzeichnen'
   },
   {
@@ -9102,8 +9102,8 @@ const REGRESSIONS = [
   {
     nr: '1316', name: "Ein Video ohne Standbild bekommt ein Bild ohne Quelle",
     file: 'public/app.js',
-    search: "      picture: a.preview === 'image' || (video && a.still) ? fileTileSource(a) : coming,",
-    replacement: "      picture: a.preview === 'image' || video ? fileTileSource(a) : coming,",
+    search: "      picture: a.preview === 'image' || (video && a.still) || a.thumb ? fileTileSource(a) : coming,",
+    replacement: "      picture: a.preview === 'image' || video || a.thumb ? fileTileSource(a) : coming,",
     expected: "Videos unter Dateien: Kachel, Vollbild und Tasten"
   },
   {
@@ -9768,8 +9768,8 @@ const REGRESSIONS = [
   {
     nr: '1411', name: "Der Upload in einen geloeschten Ordner geht verloren",
     file: 'server.js',
-    search: "function finishUpload(req, res, u) {\n  commitFull(() => {",
-    replacement: "function finishUpload(req, res, u) {\n  if (u.folder_id == null) { dropUpload.run(u.id); return res.status(404).json({ error: t(localeOf(req), 'server.folderGone') }); }\n  commitFull(() => {",
+    search: "function finishUpload(req, res, u) {\n  const added = commitFull(() => {",
+    replacement: "function finishUpload(req, res, u) {\n  if (u.folder_id == null) { dropUpload.run(u.id); return res.status(404).json({ error: t(localeOf(req), 'server.folderGone') }); }\n  const added = commitFull(() => {",
     expected: "Platte: Upload in einen geloeschten Ordner"
   },
   {
@@ -9820,6 +9820,293 @@ const REGRESSIONS = [
     search: "const qDiskFile = db.prepare('SELECT id, name, size, chunk, large, file_key FROM disk_files WHERE attachment_id = ?');",
     replacement: "const qDiskFile = db.prepare('SELECT * FROM disk_files WHERE attachment_id = ?');",
     expected: "Dateien auf der Platte im Quelltext"
+  },
+  {
+    nr: '1419', name: "filesView fehlt unter den persoenlichen Schluesseln",
+    file: 'server.js',
+    search: "const PERSONAL_KEYS = ['documentTheme', 'filesEditAll', 'filesView',",
+    replacement: "const PERSONAL_KEYS = ['documentTheme', 'filesEditAll',",
+    expected: "Dateien: die Einstellung Kacheln oder Liste"
+  },
+  {
+    nr: '1420', name: "filesView nimmt jeden Wert an",
+    file: 'server.js',
+    search: "      take('filesView');\n",
+    replacement: "      if (req.body.filesView !== undefined) putUserSetting(req.user.id, 'filesView', JSON.stringify(String(req.body.filesView)));\n",
+    expected: "Dateien: die Einstellung Kacheln oder Liste"
+  },
+  {
+    nr: '1421', name: "Ohne eigene Wahl gilt die Liste",
+    file: 'server.js',
+    search: "  filesView:   { list: ['tiles', 'list'],  cast: String, fallback: 'tiles',",
+    replacement: "  filesView:   { list: ['tiles', 'list'],  cast: String, fallback: 'list',",
+    expected: "Dateien: die Einstellung Kacheln oder Liste"
+  },
+  {
+    nr: '1422', name: "Das SVG aus Text maskiert nichts",
+    file: 'attachments.js',
+    search: "const xmlText = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');",
+    replacement: "const xmlText = (s) => s;",
+    expected: "Dateien: Vorschaubild einer Textdatei"
+  },
+  {
+    nr: '1423', name: "Steuerzeichen bleiben im SVG",
+    file: 'attachments.js',
+    search: "const XML_UNFIT = /[\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f\\u007f-\\u009f\\ufffe\\uffff]/g;",
+    replacement: "const XML_UNFIT = /(?!)/g;",
+    expected: "Dateien: Vorschaubild einer Textdatei"
+  },
+  {
+    nr: '1424', name: "Das SVG aus Text zeigt keine Zeile",
+    file: 'attachments.js',
+    search: "  const spans = rows.map((l, i) =>",
+    replacement: "  const spans = [].map((l, i) =>",
+    expected: "Dateien: Vorschaubild einer Textdatei"
+  },
+  {
+    nr: '1425', name: "Text wartet beim Upload in einer Anfrage auf die Warteschlange",
+    file: 'server.js',
+    search: "      else if (docTileKind(x.name) === 'text') x.tile = await textTile(x.f.buffer);\n",
+    replacement: "",
+    expected: "Dateien: Vorschaubild einer Textdatei"
+  },
+  {
+    nr: '1426', name: "Der Upload in Stuecken stellt nichts in die Warteschlange",
+    file: 'server.js',
+    search: "  if (docTileKind(u.filename)) docTilesSoon([added]);\n",
+    replacement: "",
+    expected: "Dateien: Vorschaubild einer Textdatei im Ordner mit Testtag"
+  },
+  {
+    nr: '1427', name: "Ein PDF bekommt kein Vorschaubild",
+    file: 'server.js',
+    search: "  return kind === 'pdf' || docserver.officeType(filename) ? 'office' : null;",
+    replacement: "  return docserver.officeType(filename) ? 'office' : null;",
+    expected: "Dateien: Vorschaubild ueber den Document Server"
+  },
+  {
+    nr: '1428', name: "Die Abrufroute liefert kein PDF",
+    file: 'server.js',
+    search: "  if (!a || docTileKind(a.filename) !== 'office') return res.status(404).end();",
+    replacement: "  if (!a || !docserver.officeType(a.filename)) return res.status(404).end();",
+    expected: "Dateien: Vorschaubild ueber den Document Server"
+  },
+  {
+    nr: '1429', name: "Die Abrufroute liefert jede Datei",
+    file: 'server.js',
+    search: "  if (!a || docTileKind(a.filename) !== 'office') return res.status(404).end();",
+    replacement: "  if (!a) return res.status(404).end();",
+    expected: "Dateien: Vorschaubild ueber den Document Server"
+  },
+  {
+    nr: '1430', name: "Die Umwandlung verlangt keine erste Seite",
+    file: 'docserver.js',
+    search: "      url: fileUrl(attachment.id), thumbnail: { aspect: 1, first: true, width: 512, height: 724 }\n",
+    replacement: "      url: fileUrl(attachment.id)\n",
+    expected: "Dateien: Vorschaubild ueber den Document Server"
+  },
+  {
+    nr: '1431', name: "Der Schluessel des Vorschaubilds kennt keine Speicherung",
+    file: 'docserver.js',
+    search: "      key: 'tile-' + documentKey(attachment, `v${saves}`), title: attachment.filename,",
+    replacement: "      key: 'tile-' + documentKey(attachment, 'v0'), title: attachment.filename,",
+    expected: "Dateien: ein neuer Stand bekommt ein neues Vorschaubild"
+  },
+  {
+    nr: '1432', name: "-3 gilt als voruebergehend",
+    file: 'docserver.js',
+    search: "const PAGE_REFUSED = new Set([-3, -5, -9, -10]);",
+    replacement: "const PAGE_REFUSED = new Set([-5, -9, -10]);",
+    expected: "Dateien: Fehler des Document Servers"
+  },
+  {
+    nr: '1433', name: "Jede Antwort ohne Bild gilt als Absage",
+    file: 'docserver.js',
+    search: "  if (j.endConvert !== true || !j.fileUrl) return {};",
+    replacement: "  if (j.endConvert !== true || !j.fileUrl) return { refused: true };",
+    expected: "Dateien: Fehler des Document Servers"
+  },
+  {
+    nr: '1434', name: "Das Vorschaubild eines Dokuments entsteht beim Abruf",
+    file: 'server.js',
+    search: "  if (!row && picture) {",
+    replacement: "  if (!row) {",
+    expected: "Dateien: Fehler des Document Servers"
+  },
+  {
+    nr: '1435', name: "Ein Fehlschlag steht weiter aus",
+    file: 'server.js',
+    search: "\n                                                  && !TILES_FAILED.has(a2.id) } : {})",
+    replacement: "\n                                                  } : {})",
+    expected: "Dateien: Fehler des Document Servers"
+  },
+  {
+    nr: '1436', name: "Ohne Document Server steht ein Vorschaubild aus",
+    file: 'server.js',
+    search: "thumbSoon: !a2.has_tile && (tileKind === 'text' || officeOn)",
+    replacement: "thumbSoon: !a2.has_tile && (tileKind === 'text' || true)",
+    expected: "Dateien: Nachholen beim Start, stuendlich und beim Einschalten"
+  },
+  {
+    nr: '1437', name: "Beim Start wird nichts nachgeholt",
+    file: 'server.js',
+    search: "  // Erst hier: der Document Server holt die Datei bei diesem Server ab.\n  docTilesSoon();\n",
+    replacement: "",
+    expected: "Dateien: Nachholen beim Start, stuendlich und beim Einschalten"
+  },
+  {
+    nr: '1438', name: "Der wiederkehrende Lauf holt nichts nach",
+    file: 'server.js',
+    search: "  diskRunLogged(false);\n  docTilesAgain();\n",
+    replacement: "  diskRunLogged(false);\n",
+    expected: "Dateien: Nachholen beim Start, stuendlich und beim Einschalten"
+  },
+  {
+    nr: '1439', name: "Das Einschalten des Document Servers holt nichts nach",
+    file: 'server.js',
+    search: "  if (req.body.documentServer === true) docTilesAgain();\n",
+    replacement: "",
+    expected: "Dateien: Nachholen beim Start, stuendlich und beim Einschalten"
+  },
+  {
+    nr: '1440', name: "Das Einschalten versucht nicht, was ohne Antwort blieb",
+    file: 'server.js',
+    search: "  if (req.body.documentServer === true) docTilesAgain();\n",
+    replacement: "  if (req.body.documentServer === true) docTilesSoon();\n",
+    expected: "Dateien: Nachholen beim Start, stuendlich und beim Einschalten"
+  },
+  {
+    nr: '1441', name: "Speichern aus dem Editor behaelt das alte Vorschaubild",
+    file: 'server.js',
+    search: "    dropFileTile.run(id);\n",
+    replacement: "",
+    expected: "Dateien: ein neuer Stand bekommt ein neues Vorschaubild"
+  },
+  {
+    nr: '1442', name: "Die vorige Fassung behaelt das Vorschaubild",
+    file: 'server.js',
+    search: "  dropFileTile.run(a.id);\n",
+    replacement: "",
+    expected: "Dateien: ein neuer Stand bekommt ein neues Vorschaubild"
+  },
+  {
+    nr: '1443', name: "Import und Papierkorb holen kein Vorschaubild nach",
+    file: 'server.js',
+    search: "  if (stats.attachments) docTilesSoon();\n",
+    replacement: "",
+    expected: "Dateien: ein neuer Stand bekommt ein neues Vorschaubild"
+  },
+  {
+    nr: '1444', name: "Ein Bild vom Stand vor dem Speichern wird gespeichert",
+    file: 'server.js',
+    search: "  if (!now || now.has_tile || now.saves !== a.saves || now.size !== a.size || now.filename !== a.filename) return;",
+    replacement: "  if (!now || now.has_tile) return;",
+    expected: "Dateien: ein neuer Stand bekommt ein neues Vorschaubild"
+  },
+  {
+    nr: '1445', name: "Die Gruppe ist keine Karte",
+    file: 'public/style.css',
+    search: ".agroup { padding: 2px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); }",
+    replacement: ".agroup { padding: 2px 10px; }",
+    expected: "Dateien: Stilblatt, Dockerfile und Quelltext"
+  },
+  {
+    nr: '1446', name: "Der offene Ordner rueckt wieder ein",
+    file: 'public/style.css',
+    search: ".afolder-body { padding: 0 6px 2px; }",
+    replacement: ".afolder-body { padding-left: 18px; }",
+    expected: "Dateien: Stilblatt, Dockerfile und Quelltext"
+  },
+  {
+    nr: '1447', name: "Das Image hat keine Schrift",
+    file: 'Dockerfile',
+    search: "# Schrift fuer das Vorschaubild von Textdateien; ohne sie zeichnet sharp nur Kaesten.\nRUN apt-get update \\\n && apt-get install -y --no-install-recommends fonts-dejavu-core \\\n && rm -rf /var/lib/apt/lists/*\n",
+    replacement: "",
+    expected: "Dateien: Stilblatt, Dockerfile und Quelltext"
+  },
+  {
+    nr: '1448', name: "Die gespeicherte Wahl wird nicht gelesen",
+    file: 'public/app.js',
+    search: "  if (SETTINGS.filesView === 'tiles' || SETTINGS.filesView === 'list') FILES_VIEW = SETTINGS.filesView;\n",
+    replacement: "",
+    expected: "Dateien: Kacheln oder Liste im Browser"
+  },
+  {
+    nr: '1449', name: "Der Umschalter setzt die Klasse nicht",
+    file: 'public/app.js',
+    search: "    fileBlock.classList.toggle('alist', FILES_VIEW === 'list');\n",
+    replacement: "",
+    expected: "Dateien: Kacheln oder Liste im Browser"
+  },
+  {
+    nr: '1450', name: "Der Umschalter speichert nicht",
+    file: 'public/app.js',
+    search: "    try { await api('PUT', '/api/settings', { filesView: FILES_VIEW }); }\n",
+    replacement: "    try { await Promise.resolve(); }\n",
+    expected: "Dateien: Kacheln oder Liste im Browser"
+  },
+  {
+    nr: '1451', name: "Die Spalte Von steht immer",
+    file: 'public/app.js',
+    search: "    fileBlock.classList.toggle('afrom-on', multipleUsers());\n",
+    replacement: "    fileBlock.classList.toggle('afrom-on', true);\n",
+    expected: "Dateien: Kacheln oder Liste im Browser"
+  },
+  {
+    nr: '1452', name: "Die Spalte Datum bleibt leer",
+    file: 'public/app.js',
+    search: "    li.querySelector('.adate').textContent = date;\n",
+    replacement: "",
+    expected: "Dateien: Kacheln oder Liste im Browser"
+  },
+  {
+    nr: '1453', name: "„+“ hat in der Liste keinen Namen",
+    file: 'public/app.js',
+    search: "    li.querySelector('.aname').textContent = t('entry.fileAdd');\n",
+    replacement: "",
+    expected: "Dateien: Kacheln oder Liste im Browser"
+  },
+  {
+    nr: '1454', name: "Ein Dokument mit Vorschaubild zeigt die Endung",
+    file: 'public/app.js',
+    search: "      picture: a.preview === 'image' || (video && a.still) || a.thumb ? fileTileSource(a) : coming,",
+    replacement: "      picture: a.preview === 'image' || (video && a.still) ? fileTileSource(a) : coming,",
+    expected: "Dateien: Vorschaubild und Nachladen im Browser"
+  },
+  {
+    nr: '1455', name: "Das Vorschaubild eines Dokuments hat kein v=",
+    file: 'public/app.js',
+    search: "const fileTileSource = (a) => `/api/attachments/${Number(a.id)}/raw?size=thumb${a.still || a.thumb\n  ? `&v=${Number(a.still || a.thumb)}` : ''}`;",
+    replacement: "const fileTileSource = (a) => `/api/attachments/${Number(a.id)}/raw?size=thumb${a.still\n  ? `&v=${Number(a.still)}` : ''}`;",
+    expected: "Dateien: Vorschaubild und Nachladen im Browser"
+  },
+  {
+    nr: '1456', name: "Ueber dem Vorschaubild steht keine Endung",
+    file: 'public/app.js',
+    search: "badge: a.thumb ? kind : '',",
+    replacement: "badge: '',",
+    expected: "Dateien: Vorschaubild und Nachladen im Browser"
+  },
+  {
+    nr: '1457', name: "Der Browser fragt nicht nach",
+    file: 'public/app.js',
+    search: "    setUpBlocksOut(item);\n    awaitTiles();\n",
+    replacement: "    setUpBlocksOut(item);\n",
+    expected: "Dateien: Vorschaubild und Nachladen im Browser"
+  },
+  {
+    nr: '1458', name: "Der Browser fragt auch nach dem Verlassen nach",
+    file: 'public/app.js',
+    search: "      tileTries++;\n      if (!attsBox.isConnected) return;\n",
+    replacement: "      tileTries++;\n",
+    expected: "Dateien: Vorschaubild und Nachladen im Browser"
+  },
+  {
+    nr: '1459', name: "Der Pfad fuer NPMplus traegt wieder {32}",
+    file: 'README.md',
+    search: "  `^/api/(import|uploads/[0-9a-f]+|(items|comments)/[0-9]+/(photos|videos|attachments|comments|images))$`",
+    replacement: "  `^/api/(import|uploads/[0-9a-f]{32}|(items|comments)/[0-9]+/(photos|videos|attachments|comments|images))$`",
+    expected: "Reverse Proxy: die Pfade fuer NPMplus in der README"
   },
 ];
 

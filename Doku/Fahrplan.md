@@ -1,6 +1,8 @@
 # Fahrplan
 
-**Der Plan von 0.41.0 bis 0.49.0 · Stand 29. September 2026, 0.47.1 gebaut**
+**Der Plan von 0.41.0 bis 0.51.0 · Stand 29. September 2026, 0.49.0 gebaut**
+
+*Hier stand bis 0.48.0 „0.47.1 gebaut“; 0.48.0 hat die Zeile nicht nachgeführt.*
 
 *Hier stand vorher „von 0.26.0 bis 1.0 · Stand 9. September 2026": beides ist
 überholt — es wird kein 1.0.0 geben, und seither sind dreizehn Runden gebaut.*
@@ -204,7 +206,9 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.47.0**~~ | ~~**Ordner**~~ | **GEBAUT am 29. September 2026** auf 0.46.0 — Änderungsprotokoll 0.47.0, nach `Doku/Auftrag_0.47.0.md`. Ordner unter „Dateien": „Ordner hinzufügen" im Kopf des Blocks, oben die Dateien ohne Ordner, darunter die Ordner neueste oben, beim Öffnen eines Eintrags alle zu; „+" und Ablegen in eigene Ordner; „Verschieben nach …" als zweite Ebene im Menü (C1), die Datei behält ihre Stelle (C3); ein gelöschter Ordner lässt seine Dateien ohne Ordner stehen, ein Upload in ihn endet mit ⚠ (C2). Neue Tabellen `folders` und `attachment_folders`, vier neue Routen. Export mit Format 21 samt Ordnern, Vorschaubild und Dauer; Import und Papierkorb stellen beides her. ✕ in der eigenen Ansicht einer Datei, beim Ansehen wie beim Bearbeiten (C4); eine 403 ohne Text meldet den Reverse Proxy. Die Fragetafel ist vor dem Bau beantwortet worden. **MINOR** *(1.245 → 1.259 Rückbauten, Prüfstand 7.642 → 7.687). Fingerprint `636c7c11` (davor `643e8f9e`)* | **ja** | 20 → 21 |
 | ~~**0.47.1**~~ | ~~**Abhängigkeiten ohne bekannte Lücke**~~ | **GEBAUT am 29. September 2026** auf 0.47.0 — Änderungsprotokoll 0.47.1. *Fragetafel vom 29. September 2026:* `nodemailer` 9.1.1 → 10.0.12, `multer` 2.3.0 → 2.4.0, `undici` 8.10.0 → 8.11.2 nur im Prüfstand; `npm audit` meldet danach keine Lücke. nodemailer 10 verlangt Node 20, das Image bringt Node 22. **PATCH** *(1.259 Rückbauten, Prüfstand 7.687). Fingerprint `a49b4154` (davor `636c7c11`)* | nein | — |
 | ~~**0.48.0**~~ | ~~**Testtage und Dateien auf der Platte**~~ | **GEBAUT am 29. September 2026** auf 0.47.1 — Änderungsprotokoll 0.48.0, nach `Doku/Auftrag_0.48.0.md`. Ein Ordner bekommt einen eigenen Testtag desselben Eintrags, je Testtag einer; 📁 in der Testtagzeile springt zum Ordner, „↑ Datum“ zurück, jeder Ordner hat eine Adresse und „Link kopieren“. Was in einem Ordner mit Testtag liegt, steht einzeln verschlüsselt (AES-256-GCM je MiB) unter `data/files/`; Upload in Stücken zu 8 MiB, fortsetzbar; große Videos bis „Video am Testtag“ (2048 MB); Umlagerung beim Verschieben und Zuweisen, nie zurück; Löschliste mit drei Triggern; Backup mit Kopien unter `kriterion-files/`, Liste und Lockfile; „Kennzahlen“ mit Dateien auf der Platte; Export ohne große Videos. Neue Tabellen `uploads`, `disk_files`, `disk_files_gone`, vier neue Routen. D1 a) und D2 a) vor dem Bau beantwortet. **MINOR** *(1.259 → 1.335 Rückbauten, Prüfstand 7.687 → 7.765). Fingerprint `e480ecfc` (davor `a49b4154`)* | **ja** | 21 → 22 |
-| **0.49.0** | **Dateien: Liste, Vorschaubilder für Dokumente, Ordner eingefasst** | Umschalter im Kopf des Blocks „Dateien“: „Kacheln“, der Stand seit 0.45.0, und „Liste“ wie die Detailansicht im Windows-Explorer. Dokumente bekommen ein Vorschaubild der ersten Seite, die Endung steht darüber. Jeder Ordner ist sichtbar eingefasst, auch zugeklappt; Vorbild ist Homarr. Offene Fragen im Abschnitt 0.49.0 | nein | — |
+| ~~**0.49.0**~~ | ~~**Dateien: Liste, Vorschaubilder für Dokumente, Ordner eingefasst**~~ | **GEBAUT am 29. September 2026** auf 0.48.0 — Änderungsprotokoll 0.49.0, nach `Doku/Auftrag_0.49.0.md`. „Kacheln“ und „Liste“ im Kopf des Blocks „Dateien“, je Account (`filesView`), ohne Wahl die Kacheln; die Liste mit festen Spalten, am Telefon zweizeilig, ohne Kopfzeile und ohne Sortieren. Vorschaubilder: Text, Markdown, CSV und Log über `sharp` und SVG, das Image bekommt `fonts-dejavu-core`; Office und PDF mit der ersten Seite vom Document Server, in einer Warteschlange nach dem Upload, beim Start, stündlich und beim Einschalten; abgelegt in `attachment_thumbs`, nicht im Export; der Browser fragt nach 3, 6, 12 und 24 s nach. Jede Gruppe ist eine Karte, auch die Dateien ohne Ordner. Dazu ein Befund des Betreibers: der Pfad der Upload-Location für NPMplus in der README kommt ohne `{32}` aus, sonst geht der Host offline. Fragetafeln E1 bis E14 vor dem Bau beantwortet. **MINOR** *(1.335 → 1.376 Rückbauten, Prüfstand 7.765 → 7.806). Fingerprint `210a7f57` (davor `e480ecfc`)* | nein | — |
+| **0.50.0** | **Alle Dateien auf der Platte, Auswahl, Videos merken sich die Stelle** | Wünsche und Befunde des Betreibers vom 29. September 2026, in Fragetafeln beantwortet (Abschnitt 0.50.0). Alles unter „Dateien“ liegt verschlüsselt auf der Platte, der Bestand wird nach dem Start umgelagert; eine Grenze „Datei“ für jede Datei, Upload nur in Stücken; Kamera-Videos mit eigener Marke (Sony `XAVC`) gelten als Video; Auswahl mehrerer Kacheln zum Löschen und Verschieben; Videos spielen an der gemerkten Stelle weiter; Ordner bleiben offen oder zu; „mehr“ an Testtagen ohne Tags | **ja** | — |
+| **0.51.0** | **Backup der Dateien: Stände sichtbar, Aufbewahrung** | Wunsch des Betreibers vom 29. September 2026. Im Backup-Ordner ist nicht zu sehen, welche Dateien zu welchem Backup gehören. **Vor dem Bau wird das Konzept mit dem Betreiber abgestimmt** (Abschnitt 0.51.0) | offen | — |
 | ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. Die zwei offenen Punkte des Eintrags stehen in der Zeile darunter | — | — |
 | ~~*ohne Nummer*~~ | ~~**Vorgabewerte und Tastaturbedienung beim Sortieren**~~ | **VORLÄUFIG GESTRICHEN am 21. September 2026:** der Inhalt ist nirgends beschrieben — weder hier noch im Sammelblatt noch im Projektstand steht, welche Vorgabewerte gemeint sind und was die Tastatur beim Sortieren tun soll. *Die Zeile kommt zurück, sobald der Betreiber sagt, was gemeint war.* | — | — |
 | ~~*ohne Nummer*~~ | ~~**Die Doppelung in der README auflösen**~~ | **GEBAUT mit 0.38.0 am 19. September 2026.** *Befund aus BA 6 der 0.37.0: zwei Abschnitte der README trugen dieselben drei Sachverhalte — dass eine fehlende Spalte nicht nachgerüstet wird, dass der Kasten jede fehlende Spalte samt altem Namen nennt, und dass die Instanz startet, aber jede Seite scheitert, die eine der Spalten liest.* **Jetzt verweist jeder der beiden auf den anderen:** `README.md`:348 nach unten, `README.md`:464 nach oben. *0.38.5 hat die README danach noch einmal gegliedert.* | nein | — |
@@ -3377,6 +3381,10 @@ Anhang A.
 
 ## 0.49.0 — „Dateien: Liste, Vorschaubilder für Dokumente, Ordner eingefasst“
 
+**Gebaut am 29. September 2026** auf 0.48.0, Fingerprint `210a7f57`;
+Änderungsprotokoll 0.49.0, nach `Doku/Auftrag_0.49.0.md`. Die offenen Fragen
+unten sind dort als E1 bis E14 beantwortet.
+
 **Aufgenommen am 29. September 2026.** Drei Wünsche des Betreibers zum Block
 „Dateien“, am selben Tag, zum Teil mit Bildschirmfotos. Gebaut wird nach
 0.48.0.
@@ -3463,6 +3471,70 @@ eingefasst werden; die Farben in allen Themen, hell und dunkel.
 Prüfstands und `counterproof.js`. Schema: nach den Antworten zur Wahl der
 Ansicht und zum Ort der Vorschaubilder voraussichtlich nein. Das
 Austauschformat bleibt, außer die Vorschaubilder gehen mit in den Export.
+
+---
+
+## 0.50.0 — „Alle Dateien auf der Platte, Auswahl, Videos merken sich die Stelle“
+
+**Aufgenommen am 29. September 2026.** Wünsche und Befunde des Betreibers
+während des Baus von 0.49.0; alle Fragen sind in Fragetafeln beantwortet. Der
+Auftrag `Doku/Auftrag_0.50.0.md` führt sie als F1 bis F23. Die Nummer war
+zuerst 0.49.1; 0.50.0, weil neue Funktionen dazukommen (Vorgabe des
+Betreibers).
+
+| Bereich | Vorgabe |
+|---|---|
+| Anlass | Videos der Sony A6700 (XAVC HS, `.MP4`) werden abgewiesen: die Marke im `ftyp`-Kasten ist `XAVC`, die Liste in `attachments.js` kennt sie nicht; `mp42` und `iso2` stehen nur unter den kompatiblen Marken |
+| Speicher | Alles unter „Dateien“ liegt verschlüsselt auf der Platte wie heute die Dateien in Ordnern mit Testtag. Der Bestand wird nach dem Start im Hintergrund umgelagert, mit der vorigen Fassung. Reicht der Platz nicht, startet Kriterion nicht und nennt den fehlenden Platz |
+| Grenzen | Jede Datei, mit und ohne Ordner, bis zur Grenze „Datei“ (2 GB); Upload nur in Stücken, `POST /api/items/:id/attachments` entfällt. „Anhang“ bleibt die Schwelle für Export mit Inhalt, Vorschau und Document Server |
+| Erkennung | Ein Video gilt auch an einer kompatiblen Marke im `ftyp`-Kasten als MP4; nötig für Bildleiste und Kommentare |
+| Große Dokumente | über „Anhang“: PDF zeigt der Browser, Word, Excel und Text nur herunterladen |
+| Videos | die zuletzt abgespielte Stelle je Account am Server, für alle Videos; es geht automatisch weiter, mit „Von vorn“; unter 10 s und in den letzten 5 % oder 10 s wird nichts gemerkt |
+| Auswahl | „Auswählen“ im Kopf von „Dateien“ und der Bildleiste; Löschen und Verschieben; ohne Recht nicht wählbar; „Alle auswählen“ je Gruppe |
+| Ordner | offen oder zu bleibt je Account am Server; ein Sprung öffnet nur für die Ansicht; ein neuer Ordner steht offen |
+| Befund | „mehr“ und „weniger“ an einem Testtag ohne Tags: `limitCloud()` vergleicht gerundete Höhen mit 1 px Spielraum; die zweite Zeile wird künftig an `offsetTop` erkannt |
+
+---
+
+## 0.51.0 — „Backup der Dateien: Stände sichtbar, Aufbewahrung“
+
+**Aufgenommen am 29. September 2026.** Wunsch des Betreibers. **Gebaut wird
+erst, wenn das Konzept mit ihm abgestimmt ist.** Mit 0.50.0 liegen alle
+Dateien auf der Platte, und jedes Backup betrifft alle.
+
+### Der Stand seit 0.48.0
+
+| Teil | Stand |
+|---|---|
+| Datenbank | `kriterion-<Zeitpunkt>.sqlite` im Backup-Ordner |
+| Liste | `kriterion-<Zeitpunkt>.files` daneben: interner Name (32 Hexzeichen) und Länge jeder Datei dieses Stands, „fehlt“ bei einer fehlenden |
+| Dateien | gemeinsam in `kriterion-files/`, verschlüsselt, unter dem internen Namen; ein Backup kopiert nur, was dort fehlt |
+| Aufräumen | „Alte Backups“: mindestens x behalten, älter als y Tage löschen; danach jede Datei in `kriterion-files/`, die keine verbliebene Liste nennt |
+
+Ein Backup heute und eines in einem Monat, dazwischen gelöschte Dateien: beide
+Stände sind vollständig, weil die Liste des ersten die gelöschten Dateien
+nennt. **Zu sehen ist das nicht:** Die Namen sagen nichts, und die Liste nennt
+nur sie.
+
+### Wünsche des Betreibers
+
+- Sehen, welche Dateien zu welchem Backup gehören.
+- Eine Ordnung im Backup-Ordner, etwa ein Ordner je Backup mit dem Datum.
+- Inkrementell, wenn technisch machbar.
+- Aufräumen nach „älter als x, mindestens y behalten“ auch für die Dateien.
+
+### Fragen für das Konzept
+
+- Ein Ordner je Backup mit Hardlinks auf eine gemeinsame Ablage: jede Datei nur
+  einmal auf der Platte, jeder Stand als eigener Ordner. Geht nur, wenn der
+  Backup-Ordner Hardlinks kann (nicht bei jeder Netzfreigabe).
+- Eine lesbare Liste je Backup mit Eintrag, Ordner, Dateiname, Größe und Datum.
+  Die Namen stünden dann unverschlüsselt im Backup-Ordner; die Datenbank
+  selbst ist verschlüsselt.
+- Wie ein einzelner Stand zurückgespielt wird, ohne die anderen anzufassen.
+- Was „inkrementell“ bei verschlüsselten Dateien heißt: heute schon „nur
+  kopieren, was fehlt“; einen Unterschied innerhalb einer Datei gibt es nicht,
+  weil jede Speicherung eine neue Datei schreibt.
 
 ---
 

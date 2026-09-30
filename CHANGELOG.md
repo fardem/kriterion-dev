@@ -30,6 +30,46 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.49.0] - 2026-09-29
+
+*Dateien: Liste, Vorschaubilder für Dokumente, Ordner eingefasst.*
+
+Fingerprint `210a7f57` — davor `e480ecfc`.
+
+> **Mit eingeschaltetem Document Server holt er jede Office-Datei und jedes PDF
+> einmal für das Vorschaubild ab.** Sie liegen danach unverschlüsselt in seinem
+> Zwischenspeicher, auch wenn niemand sie angesehen hat (README).
+>
+> **Nach dem Update entstehen die Vorschaubilder aller vorhandenen Dokumente im
+> Hintergrund**, eines nach dem anderen.
+>
+> **Hinter NPMplus:** Im Pfad der Location für Uploads steht
+> `uploads/[0-9a-f]+` statt `uploads/[0-9a-f]{32}` (README). Mit den
+> geschweiften Klammern ist die Konfiguration von nginx ungültig, und der Host
+> geht offline.
+
+### Hinzugefügt
+
+- **„Kacheln“ und „Liste“** im Kopf des Blocks „Dateien“; die Wahl gilt je
+  Account, ohne Wahl die Kacheln.
+- **Liste:** eine Zeile je Datei mit Name, Art, Größe, Datum des Uploads und
+  Verfasser; auf dem Telefon zweizeilig.
+- **Vorschaubild für Dokumente:** Text, Markdown, CSV und Log mit ihren ersten
+  Zeilen; Office-Dateien und PDF mit der ersten Seite, wenn ein Document
+  Server eingeschaltet ist. Die Endung steht darüber.
+
+### Geändert
+
+- Jede Gruppe im Block „Dateien“ steht in einem Rahmen; ein zugeklappter
+  Ordner ist eine Leiste.
+- Der Document Server holt auch PDF ab, nur für das Vorschaubild.
+- Das Image enthält die Schrift `fonts-dejavu-core`.
+
+### Behoben
+
+- README: Der Pfad der Location für Uploads in NPMplus kommt ohne geschweifte
+  Klammern aus; mit `{32}` ging der Host offline.
+
 ## [0.48.0] - 2026-09-29
 
 *Ordner mit Testtag, Dateien auf der Platte, Upload in Stücken.*

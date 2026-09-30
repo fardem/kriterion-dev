@@ -2725,9 +2725,9 @@ async function sendImport(object, mode, withoutShare = false) {
       .map(s => s.trim().replace(/^'|'$/g, '')).filter(Boolean).sort();
   };
   const dListSrv = listOut(srvSource, 'PERSONAL_KEYS');
-  const dExpected = ['bellSeen', 'blocks', 'documentTheme', 'filesEditAll', 'filters', 'font', 'language',
-                 'linkRows', 'searchNames', 'strip', 'theme', 'timeline', 'views'];
-  check('server.js kennt genau die dreizehn persoenlichen Schluessel — 0.24.3',
+  const dExpected = ['bellSeen', 'blocks', 'documentTheme', 'filesEditAll', 'filesView', 'filters', 'font',
+                 'language', 'linkRows', 'searchNames', 'strip', 'theme', 'timeline', 'views'];
+  check('server.js kennt genau die vierzehn persoenlichen Schluessel — 0.24.3',
     equal(dListSrv, dExpected), JSON.stringify(dListSrv));
   check('Und `zuletztGesehen` steht in keiner Zeile Code mehr',
     !/zuletztGesehen/.test(srvSource.replace(/\/\*[\s\S]*?\*\//g, '')
@@ -2797,7 +2797,7 @@ async function sendImport(object, mode, withoutShare = false) {
   };
 
   await dCall('cookie-d-eins', 'PUT', '/api/settings',
-    { font: 120, linkRows: 12, timeline: false, searchNames: 4, strip: 100, language: 'de' });
+    { font: 120, linkRows: 12, timeline: false, searchNames: 4, strip: 100, language: 'de', filesView: 'list' });
   await dCall('cookie-d-zwei', 'PUT', '/api/settings',
     { font: 80, linkRows: 3, searchNames: 1 });
   await dCall('cookie-d-eins', 'PUT', '/api/settings', { filters: { tested: 'yes' } });
@@ -2920,7 +2920,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const dMissing = dExpected.filter(k => !personalDa(k, 1));
   check('Kein persoenlicher Schluessel landet in der globalen Tabelle',
     dWrongGlobal.length === 0, `global gefunden: ${JSON.stringify(dWrongGlobal)}`);
-  check('Alle dreizehn stehen beim Benutzer, der sie gesetzt hat — 0.24.3',
+  check('Alle vierzehn stehen beim Benutzer, der sie gesetzt hat — 0.24.3',
     dMissing.length === 0, `fehlt bei Benutzer 1: ${JSON.stringify(dMissing)}`);
   check('Der Suchvorrat bleibt in der globalen Tabelle',
     globalDa('searchOn') && !personalDa('searchOn', 1),

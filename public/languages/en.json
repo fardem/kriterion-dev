@@ -847,6 +847,9 @@
     "other": "{n} files attached"
   },
   "entry.folderAdd": "Add folder",
+  "entry.filesView": "Files as tiles or list",
+  "entry.filesTiles": "Tiles",
+  "entry.filesList": "List",
   "entry.folderDayName": "{dayOne} {day}",
   "entry.folderDayShow": "Show {dayOne} {day}",
   "entry.folderDelete": "Delete folder",

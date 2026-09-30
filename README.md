@@ -16,8 +16,8 @@ keine externen Schriftarten, kein CDN. Die Datenbank ist als Ganzes
 verschlüsselt (SQLCipher, AES-256); Fotos und Videos liegen darin. Dateien in
 einem Ordner mit Testtag liegen einzeln verschlüsselt (AES-256-GCM) unter
 `data/files/`, ihre Schlüssel in der Datenbank. Mit einem
-[Document Server](#document-server) liegt jede dort angesehene Datei zusätzlich
-unverschlüsselt in dessen Zwischenspeicher.
+[Document Server](#document-server) liegt jede Office-Datei und jedes PDF
+zusätzlich unverschlüsselt in dessen Zwischenspeicher.
 
 Gebaut mit Node.js, Express, SQLCipher (`better-sqlite3-multiple-ciphers`),
 `sharp` und `nodemailer`. Das Frontend kommt ohne Framework aus.
@@ -51,7 +51,7 @@ Diese Datei beschreibt Installation und Betrieb. Die Bedienung steht im
 | | |
 |---|---|
 | Einträge | Titel, Beschreibung, Kategorie, Tags, Fotos, Kurzvideos, Dateien, Links |
-| Dateien | in Ordnern; ein Ordner mit Testtag nimmt Videos bis 2 GB, hochgeladen in Stücken, fortsetzbar |
+| Dateien | als Kacheln oder Liste, mit Vorschaubild auch für Text, Office und PDF; in Ordnern; ein Ordner mit Testtag nimmt Videos bis 2 GB, hochgeladen in Stücken, fortsetzbar |
 | Bewerten | eigene Kriterien mit 1 bis 5 Sternen, je Kriterium ein Gewicht, daraus ein gewichteter Schnitt |
 | Kommentare | Notiz, Bericht oder Aufgabe mit Fälligkeitsdatum, dazu Bilder und Videos |
 | Testtage | datierte Einträge mit Note und Tags |
@@ -421,9 +421,11 @@ Der Start meldet die Lage im Protokoll: `Behind proxy: on` oder `off`.
 - Die WAF von CrowdSec (AppSec) liest nach Vorgabe höchstens 10 MB einer
   Anfrage und weist größere mit 403 ab. In NPMplus unter „Custom Locations“
   eine Location mit `~` und dem Pfad
-  `^/api/(import|uploads/[0-9a-f]{32}|(items|comments)/[0-9]+/(photos|videos|attachments|comments|images))$`
+  `^/api/(import|uploads/[0-9a-f]+|(items|comments)/[0-9]+/(photos|videos|attachments|comments|images))$`
   anlegen, Ziel wie beim Host, und dort „Disable Crowdsec Appsec“ und „Disable
-  Request Buffering“ einschalten.
+  Request Buffering“ einschalten. Im Pfad keine geschweiften Klammern: NPMplus
+  schreibt ihn ohne Anführungszeichen, nginx liest `{` als Beginn eines Blocks,
+  und der Host geht offline.
 - Eine zweite Location mit `~` und dem Pfad `^/api/attachments/[0-9]+/raw$`,
   Ziel wie beim Host, bekommt „Disable Response Buffering“; AppSec bleibt dort
   an. Sonst legt nginx Dateien und Videos als Klartext in Zwischendateien ab.
@@ -437,7 +439,8 @@ Für CrowdSec oder fail2ban antwortet `POST /api/login` unterscheidbar: 401
 
 Mit Euro-Office oder OnlyOffice zeigt und bearbeitet Kriterion diese Dateien:
 `docx`, `doc`, `odt`, `rtf`, `xlsx`, `xls`, `ods`, `pptx`, `ppt`, `odp`. Bilder,
-PDF und Text zeigt Kriterion weiter selbst an. Wer bearbeiten darf, steht im
+PDF und Text zeigt Kriterion weiter selbst an. Für diese Dateien und für PDF
+rechnet der Document Server das Vorschaubild der ersten Seite. Wer bearbeiten darf, steht im
 Handbuch unter „Tags, Dateien, Links“. Einrichten des Document Servers
 selbst: [Dokumentation von Euro-Office](https://github.com/Euro-Office/documentation).
 
@@ -470,9 +473,10 @@ INTERNAL_ADDRESS=http://kriterion:3000
   und nennt die gespeicherte Fassung; Kriterion holt sie über
   `DOCUMENT_SERVER_INTERNAL_ADDRESS`. Weitere Einstellungen braucht es nicht.
 
-**Jede angesehene Datei liegt unverschlüsselt im Zwischenspeicher des Document
-Servers**, bis er ihn leert. Die Verschlüsselung der Datenbank gilt für diese
-Kopie nicht.
+**Jede Office-Datei und jedes PDF liegt unverschlüsselt im Zwischenspeicher des
+Document Servers**, bis er ihn leert, auch ohne dass jemand sie ansieht: Für das
+Vorschaubild holt er jede dieser Dateien einmal ab. Die Verschlüsselung der
+Datenbank gilt für diese Kopie nicht.
 
 ## Befehle auf dem Server
 

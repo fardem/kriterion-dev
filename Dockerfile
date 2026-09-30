@@ -16,6 +16,10 @@ COPY . .
 # ---- Laufzeit: ohne Uebersetzungswerkzeuge ----
 FROM node:22-bookworm-slim
 WORKDIR /app
+# Schrift fuer das Vorschaubild von Textdateien; ohne sie zeichnet sharp nur Kaesten.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends fonts-dejavu-core \
+ && rm -rf /var/lib/apt/lists/*
 ENV NODE_ENV=production PORT=3000 DATA_DIR=/app/data
 COPY --from=builder /app /app
 RUN mkdir -p /app/data

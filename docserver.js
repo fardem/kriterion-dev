@@ -245,6 +245,28 @@ async function convertForEdit(attachment, revision) {
   return url ? { url, format } : null;
 }
 
+/* ---- Vorschaubild ---- */
+// Fehlercodes von /converter, bei denen ein neuer Versuch mit derselben Datei nicht hilft.
+const PAGE_REFUSED = new Set([-3, -5, -9, -10]);
+
+/* Erste Seite als PNG. `refused`: der Document Server kann die Datei nicht umwandeln;
+   ohne `data` und ohne `refused` war er nicht erreichbar. */
+async function firstPage(attachment, saves, maxBytes) {
+  let answer;
+  try {
+    answer = await converter({
+      async: false, filetype: extension(attachment.filename), outputtype: 'png',
+      key: 'tile-' + documentKey(attachment, `v${saves}`), title: attachment.filename,
+      url: fileUrl(attachment.id), thumbnail: { aspect: 1, first: true, width: 512, height: 724 }
+    });
+  } catch { return {}; }
+  const j = answer.json || {};
+  if (PAGE_REFUSED.has(j.error)) return { refused: true };
+  if (j.endConvert !== true || !j.fileUrl) return {};
+  const got = await download(j.fileUrl, maxBytes);
+  return got.ok ? { data: got.data } : {};
+}
+
 /* Das Token steht im Rumpf (`token`) oder im Header. Im Header liegt der Rumpf
    unter `payload`, wie beim Abruf. */
 function readCallback(req) {
@@ -343,5 +365,5 @@ module.exports = {
   OFFICE_TYPES, officeType, editFormat, needsConversion, setupProblem, scriptOrigin,
   apiScript, state, internalBase, fetchBase, signWith, verifyWith, checkFetch,
   recordTestFetch, documentKey, editorKey, viewerConfig, editorConfig, check, logStart,
-  convertForEdit, readCallback, editorKeyKnown, internalUrl, download, savedAs, LEEWAY_S
+  convertForEdit, firstPage, readCallback, editorKeyKnown, internalUrl, download, savedAs, LEEWAY_S
 };

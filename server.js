@@ -448,7 +448,7 @@ const putSetting = { run: (k, v) => {
 } };
 
 /* ---- Persoenliche Einstellungen ---- */
-const PERSONAL_KEYS = ['documentTheme', 'filesEditAll',
+const PERSONAL_KEYS = ['documentTheme', 'filesEditAll', 'filesView',
                                 'filters', 'font', 'blocks', 'linkRows', 'timeline', 'searchNames',
                                 'bellSeen', 'views', 'strip', 'theme', 'language'];
 
@@ -824,7 +824,8 @@ app.get('/api/document-server/attachments/:id', (req, res) => {
   if (!result.ok) return result.reason === 'setup' ? res.status(404).end() : refuseFetch(req, res, result);
   if (!documentServerOn()) return res.status(404).end();
   const a = db.prepare('SELECT id, filename, data FROM attachments WHERE id = ?').get(req.params.id);
-  if (!a || !docserver.officeType(a.filename)) return res.status(404).end();
+  // PDF nur fuer das Vorschaubild.
+  if (!a || docTileKind(a.filename) !== 'office') return res.status(404).end();
   let bytes;
   try { bytes = fileBytes(a.id, a.data); } catch (e) { if (e.damaged) return res.status(404).end(); throw e; }
   attachments.setHeader(res, a.filename);
@@ -899,6 +900,7 @@ function saveEditedIn(id, key, data, filetype, sessionEnds, disk) {
     }
     const current = docserver.editorKey(a, editingOf(id).revision) === key;
     countSave.run(id, sessionEnds && current ? 1 : 0);
+    dropFileTile.run(id);
     touch.run(a.item_id);
     return { ok: true };
   });
@@ -953,6 +955,7 @@ app.post('/api/document-server/callback/:id', async (req, res, next) => {
       return res.json({ error: 1 });
     }
     logLine(`Document server: file ${id} saved (status ${status}).`);
+    docTilesSoon([id]);
     res.json({ error: 0 });
   } catch (e) { next(e); }
 });
@@ -1684,7 +1687,9 @@ const PICK_SETTINGS = {
                  wrong: 'server.stripUnknown' },
   // Darstellung im Document Server; kriterion folgt hell und dunkel von Kriterion.
   documentTheme: { list: ['kriterion', 'light', 'dark'], cast: String, fallback: 'kriterion',
-                   wrong: 'server.themeUnknown' }
+                   wrong: 'server.themeUnknown' },
+  filesView:   { list: ['tiles', 'list'],  cast: String, fallback: 'tiles',
+                 wrong: 'server.viewUnknown' }
 };
 // Vorgabe fuer die eigenen neuen Dateien; ohne eigene gilt die der Karte „Dokumente".
 const filesEditAllOf = (userId) =>
@@ -1746,6 +1751,7 @@ app.get('/api/settings', (req, res) => res.json({
   blocks: blocks(req.user.id),
   linkRows: pick(req.user.id, 'linkRows'),
   timeline: timelineOn(req.user.id),
+  filesView: pick(req.user.id, 'filesView'),
   // null ohne Document Server; dann fehlt der Kasten „Dokumente" im eigenen Bereich.
   documents: documentSettings(req.user.id),
   bellSeen: bellSeen(req.user.id),
@@ -1894,6 +1900,7 @@ app.put('/api/settings', (req, res) => {
       /* Die Stufen prueft der Server, nicht nur die Oberflaeche. */
       take('theme');
       take('documentTheme');
+      take('filesView');
       if (req.body.filesEditAll !== undefined)
         putUserSetting(req.user.id, 'filesEditAll', JSON.stringify(!!req.body.filesEditAll));
       if (req.body.blocks !== undefined) {
@@ -1976,6 +1983,7 @@ app.put('/api/settings', (req, res) => {
                  language: languageOf(req.user.id),
                  blocks: blocks(req.user.id),
                  linkRows: pick(req.user.id, 'linkRows'), timeline: timelineOn(req.user.id),
+                 filesView: pick(req.user.id, 'filesView'),
                  search: searchTemplate(), searchProviders: searchProviders(),
                  searchNames: pick(req.user.id, 'searchNames'),
                  tagsFreeCreate: freeCreate('tagsFreeCreate'),
@@ -1996,6 +2004,7 @@ app.put('/api/settings', (req, res) => {
       return res.status(e.status).json({ error: errorText(req, e) });
     throw e;
   }
+  if (req.body.documentServer === true) docTilesAgain();
   res.json(answer);
 });
 
@@ -2368,9 +2377,10 @@ app.delete('/api/items/:id/tags/:tagId', entryAuthorOnly, (req, res) => {
 const qAttachments = lateStatement(`SELECT a.id, a.filename, a.mime_type, a.size, a.sort_order,
     a.created_at, a.user_id, COALESCE(e.edit_all, 0) AS edit_all,
     (p.attachment_id IS NOT NULL) AS has_previous, s.duration, length(s.still) AS still,
-    f.folder_id AS folder, d.name AS stored
+    f.folder_id AS folder, d.name AS stored, (t.attachment_id IS NOT NULL) AS has_tile, length(t.thumb) AS tile
   FROM attachments a
   LEFT JOIN attachment_editing e ON e.attachment_id = a.id
+  LEFT JOIN attachment_thumbs t ON t.attachment_id = a.id
   LEFT JOIN attachment_previous p ON p.attachment_id = a.id
   LEFT JOIN attachment_stills s ON s.attachment_id = a.id
   LEFT JOIN attachment_folders f ON f.attachment_id = a.id
@@ -2691,6 +2701,7 @@ function detail(id, userId, locale) {
   it.attachments = qAttachments().all(id).map(a2 => {
     // Wie mayEditFile(), ohne weitere Abfrage je Datei.
     const rights = a2.edit_all === 1 || (a2.user_id != null && a2.user_id === userId);
+    const tileKind = docTileKind(a2.filename);
     return {
       id: a2.id, filename: a2.filename, mime_type: a2.mime_type, size: a2.size,
       sort_order: a2.sort_order, created_at: a2.created_at,
@@ -2704,7 +2715,10 @@ function detail(id, userId, locale) {
       restore: rights && a2.has_previous === 1,
       // `still` ist die Laenge des Standbilds; der Browser haengt sie als `v=` an.
       duration: a2.duration, still: a2.still, folder: a2.folder,
-      missing: a2.stored != null && DISK_MISSING.has(a2.stored)
+      missing: a2.stored != null && DISK_MISSING.has(a2.stored),
+      // Nur Dokumente: `thumb` ist die Laenge des Vorschaubilds wie `still`.
+      ...(tileKind ? { thumb: a2.tile, thumbSoon: !a2.has_tile && (tileKind === 'text' || officeOn)
+                                                  && !TILES_FAILED.has(a2.id) } : {})
     };
   });
   it.folders = qFolders().all(id).map(f => ({
@@ -3855,6 +3869,89 @@ const qFileTile = db.prepare('SELECT thumb FROM attachment_thumbs WHERE attachme
 const putFileTile = db.prepare('INSERT OR REPLACE INTO attachment_thumbs (attachment_id, thumb) VALUES (?, ?)');
 // null, wenn sharp die Datei nicht lesen kann; die Zeile haelt auch das fest.
 const fileTile = async (bytes) => (await makeVariants(bytes, DEFAULT_CROP, ['thumb'])).thumb;
+const dropFileTile = db.prepare('DELETE FROM attachment_thumbs WHERE attachment_id = ?');
+
+/* ---- Vorschaubild eines Dokuments ---- */
+// 'text' rechnet sharp, 'office' der Document Server; null: kein Vorschaubild.
+const docTileKind = (filename) => {
+  const kind = attachments.previewKind(filename);
+  if (kind === 'text') return 'text';
+  return kind === 'pdf' || docserver.officeType(filename) ? 'office' : null;
+};
+const textTile = (bytes) => fileTile(Buffer.from(attachments.textTileSvg(bytes)));
+// Groesser wird die erste Seite bei 512 x 724 Pixeln nicht.
+const PAGE_BYTES = 20 * MB;
+const qTileSource = lateStatement(`SELECT a.id, a.filename, a.size, a.created_at,
+    COALESCE(e.saves, 0) AS saves, (t.attachment_id IS NOT NULL) AS has_tile
+  FROM attachments a LEFT JOIN attachment_editing e ON e.attachment_id = a.id
+  LEFT JOIN attachment_thumbs t ON t.attachment_id = a.id WHERE a.id = ?`);
+const qTileHead = db.prepare('SELECT substr(data, 1, ?) AS head FROM attachments WHERE id = ?');
+const qTilesMissing = db.prepare(`SELECT a.id, a.filename FROM attachments a
+  LEFT JOIN attachment_thumbs t ON t.attachment_id = a.id WHERE t.attachment_id IS NULL ORDER BY a.id DESC`);
+const TILES_WAITING = new Set();
+// Ohne Antwort des Document Servers oder ohne Datei auf der Platte; der naechste Lauf versucht es wieder.
+const TILES_FAILED = new Set();
+let tilesRunning = null;
+
+const tileExpected = (id, kind) =>
+  kind === 'text' || (kind === 'office' && documentServerOn()) ? !TILES_FAILED.has(id) : false;
+
+// undefined: spaeter noch einmal; null: kein Bild moeglich.
+async function docTileOf(a, kind) {
+  if (kind === 'text') {
+    let bytes;
+    try { bytes = fileBytes(a.id, qTileHead.get(attachments.TEXT_TILE_BYTES, a.id).head); }
+    catch (e) { if (e.damaged) return undefined; throw e; }
+    return bytes ? textTile(bytes) : null;
+  }
+  if (!documentServerOn()) return undefined;
+  const page = await docserver.firstPage(a, a.saves, PAGE_BYTES);
+  if (page.refused) return null;
+  return page.data ? fileTile(page.data) : undefined;
+}
+
+async function makeDocTile(id) {
+  const a = qTileSource().get(id);
+  const kind = a && !a.has_tile ? docTileKind(a.filename) : null;
+  if (!kind) return;
+  const tile = await docTileOf(a, kind);
+  if (tile === undefined) { TILES_FAILED.add(id); return; }
+  // Waehrend des Umwandelns kann die Datei geloescht oder neu gespeichert worden sein.
+  const now = qTileSource().get(id);
+  if (!now || now.has_tile || now.saves !== a.saves || now.size !== a.size || now.filename !== a.filename) return;
+  putFileTile.run(id, tile);
+  TILES_FAILED.delete(id);
+}
+
+function startTiles() {
+  if (tilesRunning || !TILES_WAITING.size) return;
+  tilesRunning = (async () => {
+    while (TILES_WAITING.size) {
+      const id = TILES_WAITING.values().next().value;
+      TILES_WAITING.delete(id);
+      await makeDocTile(id);
+    }
+  })().catch(e => logFail(`Document tiles: ${e.message}`))
+    .finally(() => { tilesRunning = null; startTiles(); });
+}
+
+// Mit `ids` vorn in die Reihe; ohne alle Dokumente ohne Zeile in attachment_thumbs.
+function docTilesSoon(ids) {
+  if (DATABASE_INCOMPLETE) return;
+  if (ids) {
+    const rest = [...TILES_WAITING];
+    TILES_WAITING.clear();
+    for (const id of [...ids, ...rest]) TILES_WAITING.add(Number(id));
+  } else {
+    for (const r of qTilesMissing.all())
+      if (tileExpected(r.id, docTileKind(r.filename))) TILES_WAITING.add(r.id);
+  }
+  startTiles();
+}
+function docTilesAgain() {
+  TILES_FAILED.clear();
+  docTilesSoon();
+}
 
 app.post('/api/items/:id/attachments',
          cappedLive(bytes => attachmentUpload(bytes).array('files', FILES_PER_REQUEST),
@@ -3865,8 +3962,10 @@ app.post('/api/items/:id/attachments',
     const files = (req.files || []).map(f =>
       ({ f, name: path.basename(String(f.originalname || 'datei')).slice(0, 200) || 'datei' }));
     // Vor den Pruefungen rechnen: zwischen Pruefung und Schreiben liegt so kein await.
-    for (const x of files)
+    for (const x of files) {
       if (attachments.previewKind(x.name) === 'image') x.tile = await fileTile(x.f.buffer);
+      else if (docTileKind(x.name) === 'text') x.tile = await textTile(x.f.buffer);
+    }
     if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
       return res.status(404).json({ error: t(localeOf(req), 'server.entryUnknown')});
     // Im Formular, also erst nach multer lesbar.
@@ -3891,14 +3990,17 @@ app.post('/api/items/:id/attachments',
                             VALUES (?, ?, ?, ?, ?, ?, ?)`);
     const asked = (req.body || {}).editAll;
     const editAll = asked === undefined ? filesEditAllOf(req.user.id) : asked === '1';
+    const pages = [];
     for (const { f, name, tile } of files) {
       const added = into.run(req.params.id, name, String(f.mimetype || '').slice(0, 120), f.buffer.length,
                              f.buffer, pos++, req.user.id);
       if (editAll && docserver.editFormat(name)) putEditAll.run(added.lastInsertRowid, 1);
       if (tile !== undefined) putFileTile.run(added.lastInsertRowid, tile);
+      else if (docTileKind(name)) pages.push(added.lastInsertRowid);
       if (target) putFileFolder.run(added.lastInsertRowid, target.id);
     }
     touch.run(req.params.id);
+    docTilesSoon(pages);
     res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
   } catch (e) { next(e); }
 });
@@ -4051,18 +4153,20 @@ function uploadBody(req, res, next) {
 
 // Ist der Ordner inzwischen geloescht, steht die Datei ohne Ordner.
 function finishUpload(req, res, u) {
-  commitFull(() => {
+  const added = commitFull(() => {
     const pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM attachments WHERE item_id = ?')
       .get(u.item_id).m + 1;
-    const added = addDiskAttachment().run(u.item_id, u.filename, attachments.outType(u.filename), u.size,
+    const fresh = addDiskAttachment().run(u.item_id, u.filename, attachments.outType(u.filename), u.size,
                                         pos, u.user_id).lastInsertRowid;
-    addDiskFromUpload.run(CHUNK, added, u.id);
-    if (u.folder_id != null) putFileFolder.run(added, u.folder_id);
-    if (filesEditAllOf(u.user_id) && docserver.editFormat(u.filename)) putEditAll.run(added, 1);
+    addDiskFromUpload.run(CHUNK, fresh, u.id);
+    if (u.folder_id != null) putFileFolder.run(fresh, u.folder_id);
+    if (filesEditAllOf(u.user_id) && docserver.editFormat(u.filename)) putEditAll.run(fresh, 1);
     dropUpload.run(u.id);
     touch.run(u.item_id);
+    return fresh;
   });
   moveIntoPlace(u.name);
+  if (docTileKind(u.filename)) docTilesSoon([added]);
   res.status(201).json(detail(u.item_id, req.user.id, localeOf(req)));
 }
 
@@ -4148,9 +4252,11 @@ const qStillSize = db.prepare('SELECT length(still) AS n FROM attachment_stills 
 async function sendFileTile(id, res) {
   const a = db.prepare('SELECT filename FROM attachments WHERE id = ?').get(id);
   const kind = a ? attachments.previewKind(a.filename) : '';
-  if (kind !== 'image' && kind !== 'video') return res.status(404).end();
+  const picture = kind === 'image' || kind === 'video';
+  if (!picture && !(a && docTileKind(a.filename))) return res.status(404).end();
   let row = qFileTile.get(id);
-  if (!row) {
+  // Das Vorschaubild eines Dokuments entsteht nur in der Warteschlange.
+  if (!row && picture) {
     let bytes = kind === 'video' ? qStill.get(id)?.still
       : db.prepare('SELECT data FROM attachments WHERE id = ?').get(id)?.data;
     if (kind === 'image' && bytes) {
@@ -4163,7 +4269,7 @@ async function sendFileTile(id, res) {
       : !!db.prepare('SELECT 1 FROM attachments WHERE id = ?').get(id);
     if (current) putFileTile.run(id, row.thumb);
   }
-  if (!row.thumb) return res.status(404).end();
+  if (!row?.thumb) return res.status(404).end();
   attachments.setImageHeader(res, row.thumb, { name: `file-${Number(id)}`, maxAge: 604800 });
   res.send(row.thumb);
 }
@@ -4183,7 +4289,6 @@ const qStillFile = lateStatement('SELECT item_id, user_id, filename FROM attachm
 const putStill = db.prepare(`INSERT INTO attachment_stills (attachment_id, duration, still) VALUES (?, ?, ?)
   ON CONFLICT(attachment_id) DO UPDATE SET still = excluded.still,
     duration = COALESCE(excluded.duration, attachment_stills.duration)`);
-const dropFileTile = db.prepare('DELETE FROM attachment_thumbs WHERE attachment_id = ?');
 const stillUpload = (bytes) => upload({ storage: multer.memoryStorage(), limits: { fileSize: bytes } });
 
 // Nur wer hochgeladen hat, auch kein Admin; vor multer, damit ein fremdes Bild nicht erst eingelesen wird.
@@ -4296,6 +4401,8 @@ app.post('/api/attachments/:id/previous', (req, res) => {
     return true;
   })();
   if (!swapped) return res.status(409).json({ error: t(localeOf(req), 'server.noPrevious')});
+  dropFileTile.run(a.id);
+  docTilesSoon([a.id]);
   res.json(detail(a.item_id, req.user.id, localeOf(req)));
 });
 
@@ -6275,6 +6382,7 @@ async function importEntries(payload, userId, mode2, bytesSource, trashId, writt
   if (filesWithoutContent.length)
     logLine(`Import: ${filesWithoutContent.length} file(s) without content skipped: ` +
                 filesWithoutContent.join(', '));
+  if (stats.attachments) docTilesSoon();
   return { ok: true, mode: mode2, ...stats,
            authorAssigned: assigned, authorUnknown: unknown,
            weightsDropped: dropped, videosWithoutFile, videosUnreadable, newIds,
@@ -7329,9 +7437,14 @@ for (const signal of ['SIGTERM', 'SIGINT']) {
 // Die Verzeichnisse entstehen synchron im ersten Schritt, vor der ersten Anfrage.
 const diskRunLogged = (start) => diskRun(start).catch(e => logFail(`Disk run: ${e.message}`));
 diskRunLogged(true);
-setInterval(() => diskRunLogged(false), BENCH.run || HOUR_MS).unref();
+setInterval(() => {
+  diskRunLogged(false);
+  docTilesAgain();
+}, BENCH.run || HOUR_MS).unref();
 
 app.listen(PORT, () => {
+  // Erst hier: der Document Server holt die Datei bei diesem Server ab.
+  docTilesSoon();
   // auth.getUser() ohne Anfrage: beim Start gibt es keinen angemeldeten Account.
   const u = auth.getUser();
   logLine(`Running on port ${PORT} -- ` +

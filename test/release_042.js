@@ -53,6 +53,8 @@ async function run() {
       for await (const c of req) body += c;
       const asked = jwtPayload(fake.secret, JSON.parse(body).token);
       if (!asked) return reply({ error: -8 });
+      // Vorschaubilder lehnt dieser Mock ab; sonst ueberschriebe ihr Abruf fake.fetched der Probe.
+      if (String(asked.key || '').startsWith('tile-')) return reply({ error: -3 });
       if (fake.error) return reply({ error: fake.error });
       // target null: der Document Server erreicht Kriterion nicht.
       if (!fake.target) return reply({ error: -4 });
@@ -200,7 +202,7 @@ async function run() {
     equal(refused, [403, 403, 403]), refused.join(' '));
   const pdfFetch = await fetchFile(rows['doku.pdf'].id,
     bearer(SECRET, FETCH_BASE + fetchPath(rows['doku.pdf'].id)));
-  check('Ein PDF liefert die Abrufroute nicht', pdfFetch.status === 404, String(pdfFetch.status));
+  check('Ein PDF liefert die Abrufroute fuer das Vorschaubild', pdfFetch.status === 200, String(pdfFetch.status));
 
   await A.B.call('PUT', '/api/settings', { documentServer: false });
   const off = await fetchFile(docx.id, bearer(SECRET, FETCH_BASE + fetchPath(docx.id)));

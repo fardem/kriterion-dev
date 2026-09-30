@@ -45,11 +45,14 @@ async function run() {
       for await (const c of req) body += c;
       const asked = jwtPayload(SECRET, JSON.parse(body).token);
       if (!asked) return reply({ error: -8 });
+      // Vorschaubilder lehnt dieser Mock ab; sonst holte er im Hintergrund, auch waehrend ein Server endet.
+      if (String(asked.key || '').startsWith('tile-')) return reply({ error: -3 });
       fake.converted.push(asked);
       if (fake.convertError) return reply({ error: fake.convertError });
       const headers = { authorization: 'Bearer ' + jwt(SECRET, { payload: { url: asked.url }, exp: nowS() + 300 }) };
-      const r = await fetch(fake.target + new URL(asked.url).pathname, { headers });
-      if (!r.ok) return reply({ error: -4 });
+      let r = null;
+      try { r = await fetch(fake.target + new URL(asked.url).pathname, { headers }); } catch { r = null; }
+      if (!r || !r.ok) return reply({ error: -4 });
       fake.files.set('/cache/converted.docx', Buffer.from(await r.arrayBuffer()));
       return reply({ endConvert: true, percent: 100, fileUrl: PUBLIC_DS + '/cache/converted.docx?md5=x' });
     }

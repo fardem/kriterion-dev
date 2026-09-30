@@ -350,10 +350,16 @@ unverändert.
 
 - **Tags:** Klick in der Tagwolke vergibt oder entfernt. Testtage können eigene
   Tags tragen.
-- **Dateien:** stehen als Kacheln im Block „Dateien“: Vorschaubild oder
-  Endung, darunter Name und Größe. Bis 50 MB je Datei, höchstens 100 je
-  Eintrag und 20 auf einmal. Hochgeladen wird mit der Kachel „+“ oder durch
-  Ablegen von Dateien auf dem Block. Jede Datei steht sofort als Kachel da und
+- **Dateien:** stehen im Block „Dateien“ als Kacheln oder als Liste.
+  Umgeschaltet wird im Kopf des Blocks mit „Kacheln“ und „Liste“; die Wahl
+  gilt für alle Einträge und auf jedem Gerät. Die Kachel zeigt Vorschaubild
+  oder Endung, darunter Name und Größe. Die Liste zeigt je Datei eine Zeile:
+  kleines Vorschaubild, Name, Art, Größe, Datum des Uploads und bei mehreren
+  Accounts, wer hochgeladen hat; auf dem Telefon stehen Größe und Datum unter
+  dem Namen. Klick, Menü, Vorschau und Tastatur sind in beiden Ansichten
+  gleich. Bis 50 MB je Datei, höchstens 100 je Eintrag und 20 auf einmal.
+  Hochgeladen wird mit der Kachel „+“, in der Liste „Dateien hochladen“, oder
+  durch Ablegen von Dateien auf dem Block. Jede Datei steht sofort als Kachel da und
   geht einzeln hoch, die kleinste zuerst. Die Kachel zeigt „wartet“, den
   Fortschritt in Prozent oder ⚠ mit dem Grund. Ein Upload läuft weiter, wenn
   man einen anderen Eintrag öffnet; beim Schließen des Tabs fragt der Browser
@@ -361,7 +367,8 @@ unverändert.
   erneut.
 - **Ordner:** „Ordner hinzufügen“ im Kopf des Blocks legt einen an; der Name
   hat 1 bis 80 Zeichen, gleiche Namen sind erlaubt. Oben stehen die Dateien
-  ohne Ordner, darunter die Ordner, der neueste oben. Beim Öffnen eines
+  ohne Ordner, darunter die Ordner, der neueste oben; jede Gruppe hat einen
+  eigenen Rahmen, ein zugeklappter Ordner ist eine Leiste. Beim Öffnen eines
   Eintrags sind alle Ordner zu; ein Klick auf den Kopf klappt einen auf. Der
   Kopf nennt Zahl und Größe der Dateien, bei mehreren Accounts auch, wer den
   Ordner angelegt hat; zugeklappt zeigt er den Stand seiner Uploads. In einen
@@ -412,6 +419,13 @@ unverändert.
   im Menü ⋯ oder im Vollbild nimmt das gezeigte Bild; das darf nur, wer das
   Video hochgeladen hat. Kann der Browser ein Video nicht abspielen, etwa
   HEVC in Firefox, stehen dort ein Satz und „Herunterladen“.
+- **Vorschaubild eines Dokuments:** Text, Markdown, CSV und Log zeigen auf der
+  Kachel ihre ersten Zeilen. Word-, Excel- und PowerPoint-Dateien, ihre
+  OpenDocument-Gegenstücke und PDF zeigen die erste Seite, wenn der Admin
+  einen Document Server eingeschaltet hat. Das Bild erscheint wenige Sekunden
+  nach dem Hochladen und nach jedem Speichern im Editor neu. Die Endung steht
+  darüber. Kann der Document Server eine Datei nicht umwandeln, bleibt die
+  Endung.
 - **Vorschau:** höchstens eine im Block, unter den Kacheln ihrer Gruppe; ein
   Klick auf eine andere Kachel wechselt sie, ein Klick auf dieselbe schließt
   sie, ebenso das Zuklappen ihres Ordners. Im Kopf öffnet ⤢ die

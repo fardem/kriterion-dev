@@ -809,7 +809,7 @@ async function run() {
     return from < 0 ? '' : serverSource.slice(from, serverSource.indexOf('\n}\n', from));
   };
   check('Der Abschluss eines Uploads committet mit synchronous = FULL',
-    /^ {2}commitFull\(\(\) => \{/m.test(bodyOf('finishUpload')) && /db\.pragma\('synchronous = FULL'\)/.test(bodyOf('commitFull')),
+    /^ {2}const added = commitFull\(\(\) => \{/m.test(bodyOf('finishUpload')) && /db\.pragma\('synchronous = FULL'\)/.test(bodyOf('commitFull')),
     bodyOf('commitFull').slice(0, 200));
 
   group('Platte: verfallene Uploads');
