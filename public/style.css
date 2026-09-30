@@ -702,6 +702,17 @@ mark {
   font-family: var(--mono); font-size: .6rem; font-weight: 700;
   letter-spacing: .09em; text-transform: uppercase; padding: 3px 8px; border-radius: 5px;
 }
+.vspot {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px; white-space: nowrap;
+  background: rgba(var(--photo-rgb), .84); color: var(--on-photo);
+  font-size: .8rem; padding: 4px 5px 4px 12px; border-radius: 999px;
+}
+.vspot button {
+  padding: 3px 10px; border-radius: 999px; font-size: .78rem; color: inherit;
+  background: transparent; border: 1px solid rgba(var(--edge-on-dark-rgb), .3);
+}
+.vspot button:hover { background: var(--accent); border-color: var(--accent-edge); color: var(--on-accent); }
 
 /* auto-fill statt auto-fit: auto-fit klappt leere Spalten zusammen und streckt wenige Kacheln. */
 .thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--tile-min), 1fr)); gap: 7px; margin: 10px 0; }
@@ -1810,6 +1821,40 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
   clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
 .afolder-body { padding: 0 6px 2px; }
+/* ---- Auswahl ---- */
+.acheck { display: none; }
+.picking .acheck {
+  position: absolute; top: 5px; left: 5px; width: 26px; height: 26px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center; pointer-events: none;
+  background: rgba(var(--photo-rgb), .78); color: var(--on-photo);
+}
+.picking .acheck .icon { width: 20px; height: 20px; }
+.picking .picked .acheck { background: var(--accent); color: var(--on-accent); }
+.picking .picked .apic, .thumbs.picking .thumb.picked { border-color: var(--accent); }
+.picking .aadd, .picking .amore, .picking .afolder-more, .picking .abadge,
+.thumbs.picking .del, .thumbs.picking .play-badge { display: none; }
+.picking .atile:not(.pickable) { opacity: .45; }
+.picking .atile:not(.pickable) .aface { cursor: default; }
+.alist.picking .acheck { top: 50%; left: 9px; transform: translateY(-50%); }
+.afolder-check {
+  flex-shrink: 0; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+  border: 0; border-radius: 6px; background: none; color: var(--text-2); cursor: pointer;
+}
+.afolder-check .icon { width: 20px; height: 20px; }
+.afolder-check[aria-checked="true"], .afolder-check[aria-checked="mixed"] { color: var(--accent-text); }
+.afolder-check:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+/* Unten am Fenster, solange der Block zu sehen ist. */
+.apick {
+  position: sticky; bottom: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px;
+  margin-top: 10px; padding: 8px 12px; padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
+}
+.apick-n { font-family: var(--mono); font-size: .8rem; font-weight: 600; margin-right: auto; }
+.apick .link-btn:disabled { opacity: .45; cursor: default; }
+.apick .apick-del:not(:disabled):hover { color: var(--red); }
+.pick-row { display: flex; justify-content: flex-end; margin-top: 6px; }
+.thumbs.picking .thumb { cursor: pointer; }
+.thumbs.picking .thumb:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* ---- Kacheln oder Liste ---- */
 .ahead-acts { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
 .aview { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }

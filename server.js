@@ -1773,9 +1773,7 @@ app.get('/api/settings', (req, res) => res.json({
   trashDays: TRASH_DAYS,
   // Jeder braucht die Grenzen beim Hochladen: der Browser prueft vorher.
   uploadLimits: uploadLimits(),
-  uploadLimitRanges: uploadLimitRanges(),
-  // Nur diese Endungen gehen ueber die Grenze „Anhang".
-  videoTypes: Object.keys(attachments.VIDEO_TYPES)
+  uploadLimitRanges: uploadLimitRanges()
 }));
 function uploadLimitRanges() {
   return Object.fromEntries(Object.entries(UPLOAD_LIMITS)

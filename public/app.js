@@ -61,10 +61,8 @@ const SESSION_GONE = 'kriterion:session-gone';
    weil die Route auch ohne Browser erreichbar ist. */
 const PHOTO_COUNT = 40;
 /* Die Grenzen beim Hochladen in MB; die Werte kommen aus GET /api/settings. */
-let UPLOAD_LIMITS = { photo: 30, commentImage: 20, video: 20, commentVideo: 20, attachment: 50, dayVideo: 2048 };
+let UPLOAD_LIMITS = { photo: 30, commentImage: 20, video: 20, commentVideo: 20, attachment: 50, file: 2048 };
 let UPLOAD_LIMIT_RANGES = {};
-// Endungen, die ueber die Grenze „Anhang" duerfen; aus GET /api/settings.
-let VIDEO_EXTENSIONS = ['mp4', 'm4v', 'webm', 'mov'];
 // Die erste Datei ueber der Grenze ihrer Art, oder null.
 const overLimit = (files, kind) => files.find(f => f.size > UPLOAD_LIMITS[kind] * 1048576) || null;
 const tooBigText = (file, kind) => t('entry.tooBig', { name: file.name, mb: UPLOAD_LIMITS[kind] });
@@ -253,6 +251,7 @@ const ICON_QUOTE = char('<path d="M9 7v5a5 5 0 0 1-4 5"/><path d="M19 7v5a5 5 0 
 const ICON_CHECK = char('<path d="M5 12.5l4.5 4.5L19 7"/>', 2.1);
 const ICON_BOX = char('<rect x="4" y="4" width="16" height="16" rx="3"/>');
 const ICON_BOX_CHECK = char('<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12.5l3 3 5-6"/>');
+const ICON_BOX_SOME = char('<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12h8"/>');
 const ICON_RESTORE = char('<path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-4"/>');
 /* Kreis statt Kreuz: die eigenen Sterne werden zurueckgesetzt, nicht geloescht. */
 const ICON_RESET = char('<path d="M4.5 12a7.5 7.5 0 1 0 2.6-5.7"/><path d="M4 4v5h5"/>');
@@ -1219,23 +1218,25 @@ function cloudLine(box) {
   const first = box.firstElementChild;
   return first ? first.offsetHeight || 0 : 0;
 }
-/* Zeilen der ungekuerzten Wolke. */
-function cloudRows(box) {
+/* `offsetTop` der Zeilen: ein Kind mehr als eine halbe Zeile unter dem Beginn der vorigen
+   beginnt die naechste. Aus gerundeten Hoehen gerechnet, zaehlte ein Rest als Zeile. */
+function cloudTops(box) {
   const height = cloudLine(box);
-  if (!height) return 0;
-  return Math.round((box.scrollHeight + CLOUD_GAP) / (height + CLOUD_GAP));
+  const tops = [];
+  // Eingeklappt misst die Zeile 0 (display: none).
+  if (!height) return tops;
+  for (const k of box.children)
+    if (!tops.length || k.offsetTop - tops[tops.length - 1] > height / 2) tops.push(k.offsetTop);
+  return tops;
 }
+const cloudRows = (box) => cloudTops(box).length;
 // Begrenzt die Wolke auf `rows` Zeilen; true, wenn dabei etwas abgeschnitten wird.
 function limitCloud(box, rows) {
-  if (!rows) { box.style.maxHeight = ''; box.style.overflow = ''; return false; }
-  if (!box.firstElementChild) return false;
-  const height = cloudLine(box);
-  // Eingeklappt misst die Zeile 0 (display: none); eine daraus berechnete
-  // maxHeight bliebe nach dem Aufklappen stehen.
-  if (!height) { box.style.maxHeight = ''; box.style.overflow = ''; return false; }
-  box.style.maxHeight = (rows * height + (rows - 1) * CLOUD_GAP) + 'px';
+  const tops = rows ? cloudTops(box) : [];
+  if (tops.length <= rows) { box.style.maxHeight = ''; box.style.overflow = ''; return false; }
+  box.style.maxHeight = (tops[rows] - tops[0] - CLOUD_GAP) + 'px';
   box.style.overflow = 'hidden';
-  return box.scrollHeight > box.clientHeight + 1;
+  return true;
 }
 
 // Nur im Speicher: der Aufklappzustand betrifft die Sitzung, nicht den Bestand.
@@ -2815,7 +2816,6 @@ async function loadSettings() {
   if (SETTINGS.trashDays) TRASH_DAYS = SETTINGS.trashDays;
   if (SETTINGS.uploadLimits) UPLOAD_LIMITS = { ...UPLOAD_LIMITS, ...SETTINGS.uploadLimits };
   if (SETTINGS.uploadLimitRanges) UPLOAD_LIMIT_RANGES = SETTINGS.uploadLimitRanges;
-  if (Array.isArray(SETTINGS.videoTypes)) VIDEO_EXTENSIONS = SETTINGS.videoTypes;
   TWO_FACTOR = SETTINGS.twoFactor === true;
   applyFont();
   applyTiles();
@@ -4416,6 +4416,88 @@ function durationText(s) {
   return `${Math.floor(n / 60)}:${String(Math.floor(n % 60)).padStart(2, '0')}`;
 }
 
+/* ---- Stelle im Video ---- */
+const SPOT_EVERY_MS = 15000;
+const SPOT_HINT_MS = 5000;
+// Was dieser Browser gespeichert hat; gilt vor `position` aus einer aelteren Antwort.
+const VIDEO_SPOTS = new Map();
+const SPOT_SAVES = new Set();
+const SPOT_WATCHERS = new Set();
+const spotKind = (p) => (p.source === 'file' ? 'file' : p.source === 'commentVideo' ? 'comment' : 'photo');
+const spotOf = (p) => {
+  const key = spotKind(p) + p.id;
+  return VIDEO_SPOTS.has(key) ? VIDEO_SPOTS.get(key) : (p.position ?? null);
+};
+
+/* Setzt das Video beim ersten Abspielen an die gemerkte Stelle; speichert beim Anhalten,
+   alle SPOT_EVERY_MS und bei stop(). `box` nimmt den Hinweis „ab 3:12" auf. */
+function watchSpot(player, p, box) {
+  const kind = spotKind(p), key = kind + p.id;
+  let started = false, sent = null, savedAt = 0, hint = null, hintTimer = 0;
+  const dropHint = () => { clearTimeout(hintTimer); hint?.remove(); hint = null; };
+  function save() {
+    // Ohne Quelle steht currentTime auf 0; das ist keine Stelle.
+    if (!started || player.readyState === 0 || player.currentTime === sent) return;
+    const seconds = sent = player.currentTime;
+    savedAt = Date.now();
+    VIDEO_SPOTS.set(key, seconds);
+    const duration = Number.isFinite(player.duration) && player.duration > 0 ? player.duration : null;
+    // keepalive: auch beim Schliessen des Tabs.
+    const done = fetch('/api/video-positions', {
+      method: 'PUT', credentials: 'same-origin', keepalive: true,
+      headers: { 'Content-Type': 'application/json', ...csrfHeader() },
+      body: JSON.stringify({ kind, id: Number(p.id), seconds, duration })
+    }).then(r => (r.ok ? r.json() : null))
+      .then(d => { if (d && VIDEO_SPOTS.get(key) === seconds) VIDEO_SPOTS.set(key, d.position); })
+      .catch(() => {})
+      .finally(() => SPOT_SAVES.delete(done));
+    SPOT_SAVES.add(done);
+  }
+  const onPlay = () => {
+    if (started) return;
+    started = true;
+    savedAt = Date.now();
+    const at = spotOf(p);
+    if (!(at > 0) || player.currentTime >= 1) return;
+    player.currentTime = at;
+    hint = document.createElement('div');
+    hint.className = 'vspot';
+    hint.setAttribute('role', 'status');
+    hint.innerHTML = `<span>${tH('entry.videoFrom', { time: durationText(at) })}</span>
+      <button type="button">${tH('entry.videoRestart')}</button>`;
+    hint.querySelector('button').onclick = () => { player.currentTime = 0; dropHint(); };
+    box.appendChild(hint);
+    hintTimer = setTimeout(dropHint, SPOT_HINT_MS);
+  };
+  const onTime = () => { if (!player.paused && Date.now() - savedAt >= SPOT_EVERY_MS) save(); };
+  // Ein aus der Seite entferntes Video haelt der Browser selbst an.
+  const onPause = () => { save(); if (!player.isConnected) watcher.stop(); };
+  const watcher = {
+    save,
+    stop() {
+      save();
+      dropHint();
+      player.removeEventListener('play', onPlay);
+      player.removeEventListener('timeupdate', onTime);
+      player.removeEventListener('pause', onPause);
+      SPOT_WATCHERS.delete(watcher);
+    }
+  };
+  player.addEventListener('play', onPlay);
+  player.addEventListener('timeupdate', onTime);
+  player.addEventListener('pause', onPause);
+  SPOT_WATCHERS.add(watcher);
+  return watcher;
+}
+window.addEventListener('pagehide', () => SPOT_WATCHERS.forEach(w => w.save()));
+
+/* Vor dem Laden eines Eintrags: sonst kaeme die Stelle von vor dem letzten Speichern. */
+async function spotsSettled() {
+  SPOT_WATCHERS.forEach(w => w.stop());
+  await Promise.allSettled([...SPOT_SAVES]);
+  VIDEO_SPOTS.clear();
+}
+
 // Nach dem Zoom stuende der Bildlauf auf 0/0, also links oben statt in der Mitte.
 function centerStage(stage) {
   if (!stage) return;
@@ -4461,6 +4543,7 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
   const player = lb.querySelector('.lb-video');
   const note = lb.querySelector('.lb-unplayable');
   const strip = lb.querySelector('.lb-strip');
+  let spot = null;
 
   /* Ein laufendes Video der Seite spielt im Vollbild an derselben Stelle weiter. */
   const inner = () => (typeof inside === 'function' ? inside() : null) || null;
@@ -4514,6 +4597,8 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
     if (i >= photos.length) i = 0;
     zoomed = false;
     stage.classList.remove('zoomed');
+    spot?.stop();
+    spot = null;
     hold();
     const video = isVideo(photos[i]);
     // Ohne Uebergabe kein automatisches Abspielen.
@@ -4524,6 +4609,7 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
       const poster = imageSource(photos[i], 'medium');
       if (poster) player.poster = poster; else player.removeAttribute('poster');
       player.src = playSource(photos[i]);
+      spot = watchSpot(player, photos[i], stage);
       /* Die uebernommene Stelle gilt nur beim Oeffnen. */
       if (handover && handover.open && player.getAttribute('src') === handover.source) {
         handover.open = false;
@@ -4583,6 +4669,7 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
   player.addEventListener('loadedmetadata', () => { if (!player.videoWidth) unplayable(); });
 
   const close = () => {
+    spot?.stop();
     hold();
     restore();
     shown?.(null);
@@ -4858,10 +4945,39 @@ function closeFileMenu(focusAnchor = false) {
   if (focusAnchor && m.anchor.isConnected) m.anchor.focus();
 }
 
+/* ---- Auswahl mehrerer Kacheln ---- */
+function pickBarHtml(barId) {
+  return `<div class="apick" id="${barId}" role="toolbar" aria-label="${esc(t('entry.pickBar'))}" hidden>
+    <span class="apick-n" aria-live="polite"></span>
+    <button type="button" class="link-btn" data-pick="move" aria-haspopup="menu" aria-expanded="false" hidden>${tH('entry.moveTo')}</button>
+    <button type="button" class="link-btn apick-del" data-pick="delete">${tH('dialog.delete')}</button>
+    <button type="button" class="link-btn" data-pick="all"></button>
+    <button type="button" class="link-btn" data-pick="cancel">${tH('dialog.cancel')}</button></div>`;
+}
+function drawPickBar(bar, picked, choosable, movable = false) {
+  bar.querySelector('.apick-n').textContent = t('entry.picked', { n: picked });
+  bar.querySelector('[data-pick="delete"]').disabled = !picked;
+  bar.querySelector('[data-pick="move"]').hidden = !movable;
+  bar.querySelector('[data-pick="all"]').textContent =
+    t(picked && picked === choosable ? 'entry.pickNone' : 'entry.pickAll');
+}
+function markPick(el, picked) {
+  el.setAttribute('role', 'checkbox');
+  el.setAttribute('aria-checked', String(picked));
+  el.classList.toggle('picked', picked);
+}
+// Nacheinander; ein Fehler haelt die uebrigen nicht auf. Liefert die Fehlermeldungen.
+async function eachPicked(chosen, send) {
+  const errors = [];
+  for (const x of chosen) {
+    try { await send(x); }
+    catch (e) { if (e.message === SESSION_GONE) throw e; errors.push(e.message); }
+  }
+  return errors;
+}
+
 /* ---- Warteschlange der Dateien ---- */
-/* Je Auswahl und je Eintrag, gleich `FILES_PER_REQUEST` und `FILES_PER_ENTRY` in
-   server.js. Der Server prueft selbst. */
-const FILES_PER_REQUEST = 20;
+// Je Eintrag, gleich `FILES_PER_ENTRY` in server.js. Der Server prueft selbst.
 const FILES_PER_ENTRY = 100;
 // Zeichen im Namen eines Ordners, gleich FOLDER_NAME_MAX in server.js.
 const FOLDER_NAME_MAX = 80;
@@ -4884,28 +5000,22 @@ const uploadChanged = (u) => {
 };
 const extensionOf = (name) => (String(name).toLowerCase().match(/\.([a-z0-9]+)$/) || [])[1] || '';
 
-/* Nichts geht hoch, wenn eine Datei oder die Anzahl ueber einer Grenze liegt. Ueber
-   „Anhang" nur Videos, und nur in einen Ordner mit {dayOne}. */
-function uploadRefusal(itemId, files, present, dayFolder = false) {
-  if (files.length > FILES_PER_REQUEST) return t('server.uploadCap', { cap: FILES_PER_REQUEST });
+// Die groesste Datei unter „Dateien"; „Anhang" kann darueber liegen.
+const fileLimit = () => Math.max(UPLOAD_LIMITS.attachment, UPLOAD_LIMITS.file);
+
+// Nichts geht hoch, wenn eine Datei oder die Anzahl ueber einer Grenze liegt.
+function uploadRefusal(itemId, files, present) {
   if (present + uploadsOf(itemId).length + files.length > FILES_PER_ENTRY)
     return t('server.fileCap', { cap: FILES_PER_ENTRY });
-  const bigVideos = UPLOAD_LIMITS.dayVideo > UPLOAD_LIMITS.attachment;
-  for (const f of files) {
-    if (f.size <= UPLOAD_LIMITS.attachment * 1048576) continue;
-    if (!bigVideos || !VIDEO_EXTENSIONS.includes(extensionOf(f.name))) return tooBigText(f, 'attachment');
-    if (!dayFolder) return t('server.bigVideoFolder');
-    if (f.size > UPLOAD_LIMITS.dayVideo * 1048576) return tooBigText(f, 'dayVideo');
-  }
-  return '';
+  const big = files.find(f => f.size > fileLimit() * 1048576);
+  return big ? t('entry.tooBig', { name: big.name, mb: fileLimit() }) : '';
 }
 
-/* Die kleinste zuerst; in dieser Reihenfolge stehen auch die Kacheln. `folderId` 0: ohne
-   Ordner. `chunked`: in einen Ordner mit {dayOne} geht jede Datei in Stuecken. */
-function queueUploads(itemId, files, folderId = 0, chunked = false) {
+// Die kleinste zuerst; in dieser Reihenfolge stehen auch die Kacheln. `folderId` 0: ohne Ordner.
+function queueUploads(itemId, files, folderId = 0) {
   for (const file of [...files].sort((a, b) => a.size - b.size))
     UPLOADS.push({ no: ++UPLOAD_NO, itemId: Number(itemId), folderId: Number(folderId) || 0,
-                   file, name: file.name, size: file.size, chunked: !!chunked, uploadId: '', received: 0,
+                   file, name: file.name, size: file.size, uploadId: '', received: 0,
                    state: 'waiting', sent: 0, error: '', xhr: null, tries: 0, clock: 0 });
   if (UPLOAD_VIEW?.itemId === Number(itemId)) UPLOAD_VIEW.redraw();
   uploadNext();
@@ -4921,28 +5031,11 @@ function uploadNext() {
   UPLOADS_DONE = 0;
 }
 
-// XMLHttpRequest statt fetch(): nur er meldet den Fortschritt beim Senden.
 function uploadSend(u) {
   u.state = 'running';
   u.sent = u.size ? u.received / u.size : 0;
   if (u.still === undefined) u.still = /^video\//.test(u.file.type || '') ? uploadStill(u) : null;
-  if (u.chunked) return u.uploadId ? chunkPut(u) : chunkBegin(u);
-  const xhr = new XMLHttpRequest();
-  u.xhr = xhr;
-  xhr.open('POST', `/api/items/${u.itemId}/attachments`);
-  for (const [name, value] of Object.entries(csrfHeader())) xhr.setRequestHeader(name, value);
-  xhr.upload.onprogress = (e) => {
-    if (u.xhr !== xhr || !e.lengthComputable) return;
-    u.sent = e.loaded / e.total;
-    uploadChanged(u);
-  };
-  xhr.onload = () => { if (u.xhr === xhr) uploadAnswer(u, xhr); };
-  xhr.onerror = () => { if (u.xhr === xhr) uploadLost(u); };
-  const form = new FormData();
-  if (u.folderId) form.append('folderId', String(u.folderId));
-  form.append('files', u.file, u.name);
-  xhr.send(form);
-  uploadChanged(u);
+  return u.uploadId ? chunkPut(u) : chunkBegin(u);
 }
 
 function uploadsEnded(u) {
@@ -4950,49 +5043,18 @@ function uploadsEnded(u) {
   showLogin();
 }
 
-function uploadAnswer(u, xhr) {
-  u.xhr = null;
-  let data = null;
-  try { data = JSON.parse(xhr.responseText); } catch {}
-  if (xhr.status === 401) return uploadsEnded(u);
-  if (xhr.status >= 200 && xhr.status < 300 && data) {
-    uploadDone(u, data);
-  } else if (xhr.status === 409 && data?.item && uploadReroute(u, data.item)) {
-    return uploadNext();
-  } else {
-    // 404: Eintrag oder Ordner gibt es nicht mehr; ein neuer Versuch aendert daran nichts.
-    u.final = xhr.status === 404;
-    uploadFail(u, data?.error || proxyAnswer(xhr.status) || t('error.serverStatus', { status: xhr.status }));
-    toast(`${u.name}: ${u.error}`, true);
-  }
-  uploadNext();
-}
-
 function uploadDone(u, data) {
   UPLOADS.splice(UPLOADS.indexOf(u), 1);
   UPLOADS_DONE++;
-  if (u.chunked) uploadSay(u, 'done');
+  uploadSay(u, 'done');
   stillAfterUpload(u, data);
   if (UPLOAD_VIEW?.itemId === u.itemId) UPLOAD_VIEW.took(data);
-}
-
-/* Hat der Verfasser die Zuweisung des Ordners geaendert, nennt der Server den neuen
-   Stand; der Weg wird einmal neu gewaehlt. */
-function uploadReroute(u, fresh) {
-  if (UPLOAD_VIEW?.itemId === u.itemId) UPLOAD_VIEW.took(fresh);
-  if (u.rerouted) return false;
-  u.rerouted = true;
-  const folder = (fresh.folders || []).find(f => f.id === u.folderId);
-  u.chunked = folder?.testDay != null;
-  u.state = 'waiting';
-  uploadChanged(u);
-  return true;
 }
 
 function uploadFail(u, why) {
   u.state = 'failed';
   u.error = why;
-  if (u.chunked) uploadSay(u, 'fail');
+  uploadSay(u, 'fail');
   uploadChanged(u);
 }
 
@@ -5005,8 +5067,8 @@ function uploadLost(u) {
     uploadChanged(u);
     return;
   }
-  // In Stuecken bleibt der Upload auf dem Server; ein Klick oder das Netz setzt fort.
-  if (u.chunked && u.uploadId) {
+  // Der Upload bleibt auf dem Server; ein Klick oder das Netz setzt fort.
+  if (u.uploadId) {
     u.state = 'paused';
     uploadChanged(u);
   } else {
@@ -5025,7 +5087,6 @@ async function chunkBegin(u) {
   } catch (e) {
     if (e.message === SESSION_GONE) return uploadsEnded(u);
     if (e.status === undefined) return uploadLost(u);
-    if (e.status === 409 && e.data?.item && uploadReroute(u, e.data.item)) return uploadNext();
     u.final = e.status === 404;
     uploadFail(u, e.message);
     toast(`${u.name}: ${u.error}`, true);
@@ -5089,7 +5150,7 @@ function chunkAnswer(u, xhr) {
 
 // Mit Rueckfrage, sobald Bytes auf dem Server liegen.
 async function uploadCancel(u, asked = false) {
-  if (!asked && u.chunked && u.received > 0 &&
+  if (!asked && u.received > 0 &&
       !await confirmBox(t('entry.uploadCancelAsk'), t('entry.uploadCancelHint', { name: u.name }), t('entry.uploadStop'))) return;
   const xhr = u.xhr;
   u.xhr = null;
@@ -5132,7 +5193,7 @@ document.addEventListener('visibilitychange', uploadsWake);
 /* ---- Kopfleiste, Ansage, Bildschirm ---- */
 // „↑ 23 %" ueber jeder anderen Ansicht; ein Klick fuehrt zum Eintrag zurueck.
 function drawUploadBar() {
-  const u = UPLOADS.find(v => v.chunked && v.state === 'running');
+  const u = UPLOADS.find(v => v.state === 'running');
   let bar = document.getElementById('upload-bar');
   if (!u || UPLOAD_VIEW?.itemId === u.itemId) { if (bar) bar.hidden = true; return; }
   if (!bar) {
@@ -5148,7 +5209,7 @@ function drawUploadBar() {
   bar.setAttribute('aria-label', t('entry.uploadBar', { name: u.name, percent }));
 }
 
-// Meldet Beginn, je 25 %, Ende und Fehler eines Uploads in Stuecken.
+// Meldet Beginn, je 25 %, Ende und Fehler eines Uploads.
 function uploadSay(u, kind = '') {
   let live = document.getElementById('upload-live');
   if (!live) {
@@ -5167,10 +5228,10 @@ function uploadSay(u, kind = '') {
     : t('entry.uploadAt', { name: u.name, percent: quarter * 25 });
 }
 
-// Mit HTTPS haelt der Browser den Bildschirm an, solange ein Upload in Stuecken laeuft.
+// Mit HTTPS haelt der Browser den Bildschirm an, solange ein Upload laeuft.
 let WAKE_LOCK = null;
 function keepAwake() {
-  const want = UPLOADS.some(u => u.chunked && (u.state === 'running' || u.state === 'waiting'));
+  const want = UPLOADS.some(u => u.state === 'running' || u.state === 'waiting');
   if (want && !WAKE_LOCK && navigator.wakeLock?.request) {
     WAKE_LOCK = navigator.wakeLock.request('screen').catch(() => null);
   } else if (!want && WAKE_LOCK) {
@@ -5267,6 +5328,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">${tH('list.loading')}</p></div>`;
   let item, cats, allTags;
   try {
+    await spotsSettled();
     [item, cats, allTags] = await Promise.all([
       api('GET', `/api/items/${id}`), api('GET', '/api/product-categories'), api('GET', '/api/tags')
     ]);
@@ -5279,12 +5341,16 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   }
   let idx = 0;
   const returning = fileReturn && fileReturn.itemId === Number(id);
-  if (!returning || FOLDERS_OPEN.itemId !== Number(id)) FOLDERS_OPEN = { itemId: Number(id), open: new Set() };
+  if (!returning || FOLDERS_OPEN.itemId !== Number(id))
+    FOLDERS_OPEN = { itemId: Number(id), open: new Set((item.folders || []).filter(f => f.open).map(f => f.id)) };
   const cameFrom = returning && (item.attachments || []).find(a => a.id === fileReturn.fileId);
   if (cameFrom && cameFrom.folder != null) FOLDERS_OPEN.open.add(cameFrom.folder);
   /* Hervorgehobener Kommentar, bleibt ueber Neuzeichnungen erhalten. */
   LIT_COMMENT = Number(commentWanted) || 0;
   let cropMode = false;   // Klick setzt dann den Fokuspunkt statt Vollbild zu oeffnen
+  let viewerSpot = null;
+  // Nummern der gewaehlten Fotos und Videos; null ausserhalb der Auswahl.
+  let photosPicked = null;
   let linksOpen = false;        // nur fuer diese Ansicht, nicht auf dem Server
 
   app.innerHTML = `<div class="shell">
@@ -5292,7 +5358,9 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     <div class="detail">
       <div>
         <div class="viewer" id="viewer"></div>
+        <div class="pick-row" hidden><button class="link-btn" id="ppick-start">${tH('entry.pick')}</button></div>
         <div class="thumbs" id="thumbs"></div>
+        ${pickBarHtml('ppick')}
         ${/* Eigener span: uploadFiles() tauscht nur den Text, nicht das input. */''}
         <label class="drop" id="drop"><input type="file" id="file" accept="image/*,video/*" multiple><span
           id="drop-text">${tH('entry.addMediaHint')}</span></label>
@@ -5395,6 +5463,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
         <span class="ahead-acts"><span class="aview" role="group" aria-label="${esc(t('entry.filesView'))}">
           <button type="button" class="aview-btn" data-view="tiles" aria-pressed="false">${tH('entry.filesTiles')}</button>
           <button type="button" class="aview-btn" data-view="list" aria-pressed="false">${tH('entry.filesList')}</button></span>
+        <button class="link-btn" id="apick-start" hidden>${tH('entry.pick')}</button>
         <button class="link-btn" id="afolder-new">${tH('entry.folderAdd')}</button></span></div>
       ${/* Die Vorschau wird nie verschoben: ein iframe laedt dabei neu. Jede Gruppe hat ihre eigene. */''}
       <div id="atts">
@@ -5407,6 +5476,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
         <div class="afolders"></div>
       </div>
       <p class="hint hint-sm" id="aawake" hidden>${tH('entry.uploadKeepAwake')}</p>
+      ${pickBarHtml('apick')}
       <input type="file" id="afile" multiple hidden>
     </div>
 
@@ -5470,6 +5540,8 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     v.onpointerdown = v.onpointermove = v.onpointerup =
       v.onpointerleave = v.onpointercancel = null;
     v.classList.remove('focus-mode', ...HANDLE_CLASSES);
+    viewerSpot?.stop();
+    viewerSpot = null;
     // Vor dem Ersetzen anhalten, sonst spielt der Ton kurz weiter.
     v.querySelector('video')?.pause();
     const ps = item.photos;
@@ -5504,6 +5576,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
         <span class="vcount">${Number(idx + 1)} / ${Number(ps.length)}</span>` : ''}`;
     const image = v.querySelector('img');
     const innerPlayer = () => v.querySelector('video');
+    if (showsVideo) viewerSpot = watchSpot(innerPlayer(), ps[idx], v);
     if (image) image.onclick = () => {
       if (!cropMode)
         openLightbox([...item.photos], idx, item.title, deletePhoto, innerPlayer, photoLink);
@@ -5750,6 +5823,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     // Nach einem await kann die Ansicht schon gewechselt haben.
     if (!box) return;
     box.innerHTML = '';
+    drawPhotoPick();
     item.photos.forEach((p, i) => {
       const tile = document.createElement('div');
       tile.className = 'thumb' + (i === idx ? ' current' : '') + (isVideo(p) ? ' is-video' : '');
@@ -5760,6 +5834,11 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
         (isVideo(p) ? `<span class="play-badge">▶</span>` : '') +
         (length ? `<span class="duration">${esc(length)}</span>` : '') +
         `<span class="num">${Number(i + 1)}</span><span class="del" title="${esc(t(isVideo(p) ? 'entry.deleteVideo' : 'entry.deletePhoto'))}">${ICON_X}</span>`;
+      if (photosPicked) {
+        pickThumb(tile, p, `${word} ${i + 1}`);
+        box.appendChild(tile);
+        return;
+      }
       tile.querySelector('.del').onclick = async (e) => {
         e.stopPropagation();
         if (!await confirmBox(t('entry.deleteWordAsk', { word: word }), t('entry.deleteHint', { word: word }))) return;
@@ -5788,6 +5867,71 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     });
   }
 
+  /* ---- Auswahl in der Bildleiste ---- */
+  // Wie DELETE /api/photos/:id: Verfasser des Eintrags und Admin.
+  const mayDeletePhotos = () => item.mine === true || ADMIN;
+  const photoPickBar = document.getElementById('ppick');
+  function photoPicking(on) {
+    photosPicked = on ? new Set() : null;
+    drawThumbs();
+    (on ? photoPickBar.querySelector('[data-pick="cancel"]') : document.getElementById('ppick-start'))?.focus();
+  }
+  function drawPhotoPick() {
+    if (photosPicked) for (const x of [...photosPicked])
+      if (!item.photos.some(p => p.id === x)) photosPicked.delete(x);
+    document.getElementById('thumbs').classList.toggle('picking', !!photosPicked);
+    document.getElementById('ppick-start').parentElement.hidden =
+      !!photosPicked || !item.photos.length || !mayDeletePhotos();
+    photoPickBar.hidden = !photosPicked;
+    if (photosPicked) drawPickBar(photoPickBar, photosPicked.size, item.photos.length);
+  }
+  // Kein Neuzeichnen je Klick: der Fokus bliebe sonst nicht auf der Kachel.
+  function pickThumb(tile, p, label) {
+    tile.tabIndex = 0;
+    tile.setAttribute('aria-label', label);
+    tile.insertAdjacentHTML('beforeend', '<span class="acheck" aria-hidden="true"></span>');
+    const mark = () => {
+      markPick(tile, photosPicked.has(p.id));
+      tile.querySelector('.acheck').innerHTML = photosPicked.has(p.id) ? ICON_BOX_CHECK : ICON_BOX;
+    };
+    mark();
+    const flip = () => {
+      if (photosPicked.has(p.id)) photosPicked.delete(p.id); else photosPicked.add(p.id);
+      mark();
+      drawPhotoPick();
+    };
+    tile.onclick = flip;
+    tile.onkeydown = (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flip(); } };
+  }
+  document.getElementById('ppick-start').onclick = () => photoPicking(true);
+  photoPickBar.onclick = async (e) => {
+    const b = e.target.closest('[data-pick]');
+    if (!b || b.disabled || !photosPicked) return;
+    if (b.dataset.pick === 'cancel') return photoPicking(false);
+    if (b.dataset.pick === 'all') {
+      const all = photosPicked.size < item.photos.length;
+      photosPicked = new Set(all ? item.photos.map(p => p.id) : []);
+      return drawThumbs();
+    }
+    const chosen = item.photos.filter(p => photosPicked.has(p.id));
+    const videos = chosen.filter(isVideo).length;
+    const ask = videos === chosen.length ? 'entry.pickVideosAsk' : videos ? 'entry.pickMediaAsk' : 'entry.pickPhotosAsk';
+    if (!await confirmBox(t(ask, { n: chosen.length }), t('entry.pickDeleteHint'))) return;
+    let errors;
+    try {
+      errors = await eachPicked(chosen, p => api('DELETE', `/api/photos/${Number(p.id)}`));
+      item = await api('GET', `/api/items/${id}`);
+    } catch (err) { if (err.message !== SESSION_GONE) toast(err.message, true); return; }
+    if (errors.length) toast(t('entry.pickDeleteFailed', { n: errors.length, error: errors[0] }), true);
+    else { photosPicked = null; toast(t('entry.pickDeleted', { n: chosen.length })); }
+    if (idx >= item.photos.length) idx = Math.max(0, item.photos.length - 1);
+    drawViewer(); drawThumbs();
+    (photosPicked ? photoPickBar.querySelector('[data-pick="cancel"]') : document.getElementById('ppick-start'))?.focus();
+  };
+  document.getElementById('thumbs').parentElement.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && photosPicked) { e.preventDefault(); photoPicking(false); }
+  });
+
   // Videos einzeln: jedes hat ein eigenes Standbild, und die Felder `video`
   // und `stillFrame` tragen nur ein Paar.
   async function uploadFiles(files) {
@@ -5801,10 +5945,9 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     try {
       const bigPhoto = overLimit(images, 'photo'), bigVideo = overLimit(videos, 'video');
       if (bigPhoto) throw new Error(tooBigText(bigPhoto, 'photo'));
-      // Den Weg unter „Dateien" nennt der Satz nur, wenn das Video dort unter „Anhang" oder „Video am {dayOne}" passt.
+      // Den Weg unter „Dateien" nennt der Satz nur, wenn das Video dort passt.
       if (bigVideo) throw new Error(tooBigText(bigVideo, 'video')
-        + (overLimit([bigVideo], 'attachment') && (UPLOAD_LIMITS.dayVideo <= UPLOAD_LIMITS.attachment
-             || overLimit([bigVideo], 'dayVideo')) ? '' : ' ' + t('entry.videoToFiles')));
+        + (bigVideo.size > fileLimit() * 1048576 ? '' : ' ' + t('entry.videoToFiles')));
       if (images.length) {
         /* In Buendeln von PHOTO_COUNT: darueber bricht multer die ganze Anfrage ab.
            Keine Obergrenze je Eintrag. */
@@ -6772,6 +6915,9 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   const folderBox = attsBox.querySelector('.afolders');
   // Nummer der Datei in der Vorschau, 0 ohne; hoechstens eine im Block.
   let openPreview = 0;
+  // Nummern der gewaehlten Dateien; null ausserhalb der Auswahl.
+  let filesPicked = null;
+  const filePickBar = document.getElementById('apick');
   let previewRun = 0;
   let officeViewer = null;
   // Die Vorschau haengt unter dem Raster der Gruppe ihrer Datei.
@@ -6803,7 +6949,6 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   const groupOf = (a) => (a.folder != null && folderOf(a.folder) ? a.folder : 0);
   const jobGroup = (u) => (u.folderId && folderOf(u.folderId) ? u.folderId : 0);
   const remoteGroup = (x) => (x.folder && folderOf(x.folder) ? x.folder : 0);
-  const dayFolder = (key) => !!key && folderOf(key)?.testDay != null;
   const groupBox = (key) => (key ? folderBox.querySelector(`.afolder[data-folder="${Number(key)}"]`) : looseGroup);
   const previewIdOf = (key) => (key ? `apreview-${Number(key)}` : 'apreview');
 
@@ -6816,7 +6961,8 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     // Die Spalten der Liste stehen in jeder Kachel; die Ansicht zeigt nur ihre.
     li.innerHTML = `<button type="button" class="aface"><span class="apic"></span>`
       + `<span class="aname"></span><span class="ameta"></span><span class="akind"></span><span class="asize"></span>`
-      + `<span class="adate"></span><span class="afrom"></span><span class="anote"></span></button>`
+      + `<span class="adate"></span><span class="afrom"></span><span class="anote"></span>`
+      + `<span class="acheck" aria-hidden="true"></span></button>`
       + (adds ? '' : `<button type="button" class="amore" aria-haspopup="menu" aria-expanded="false">⋯</button>`);
     const face = li.querySelector('.aface');
     face.onclick = () => tileAction(li);
@@ -6908,6 +7054,25 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     const more = li.querySelector('.amore');
     more.setAttribute('aria-label', t('entry.fileMenu', { name: a.filename }));
     more.title = t('entry.fileMenu', { name: a.filename });
+    pickState(li, filesPicked && mayDeleteFile(a) ? filesPicked.has(a.id) : null);
+  }
+
+  // `picked` null: nicht waehlbar oder keine Auswahl.
+  function pickState(li, picked) {
+    const face = li.querySelector('.aface');
+    li.classList.toggle('pickable', picked !== null);
+    if (picked === null) {
+      li.classList.remove('picked');
+      face.removeAttribute('role');
+      face.removeAttribute('aria-checked');
+      if (filesPicked) face.setAttribute('aria-disabled', 'true');
+      else face.removeAttribute('aria-disabled');
+      return;
+    }
+    markPick(face, picked);
+    face.removeAttribute('aria-disabled');
+    for (const name of ['aria-expanded', 'aria-controls', 'aria-haspopup']) face.removeAttribute(name);
+    li.querySelector('.acheck').innerHTML = picked ? ICON_BOX_CHECK : ICON_BOX;
   }
 
   function fillUploadTile(li, u) {
@@ -6927,6 +7092,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       label: [u.name, kind, filesize(u.size), state].filter(Boolean).join(', '), corner });
     li.classList.toggle('busy', !failed);
     li.classList.toggle('failed', failed);
+    pickState(li, null);
     li.title = u.error || '';
     li.querySelector('.aface').setAttribute('aria-haspopup', 'menu');
     const more = li.querySelector('.amore');
@@ -6934,24 +7100,18 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     more.title = t('entry.fileMenu', { name: u.name });
   }
 
-  // Im Ordner mit {dayOne} nennt „+" beide Grenzen.
-  function fillAddTile(li, taken, day) {
+  function fillAddTile(li, taken) {
     const full = taken >= FILES_PER_ENTRY;
     li.classList.toggle('full', full);
     const face = li.querySelector('.aface');
     face.setAttribute('aria-disabled', String(full));
-    const video = day && UPLOAD_LIMITS.dayVideo > UPLOAD_LIMITS.attachment ? fmtMb(UPLOAD_LIMITS.dayVideo) : '';
-    const limit = video
-      ? t('entry.dayLimitHint', { mb: UPLOAD_LIMITS.attachment, video, cap: FILES_PER_ENTRY })
-      : t('entry.fileLimitHint', { mb: UPLOAD_LIMITS.attachment, cap: FILES_PER_ENTRY });
+    const limit = t('entry.fileLimitHint', { size: fmtMb(fileLimit()), cap: FILES_PER_ENTRY });
     const count = t('entry.fileFull', { n: taken, cap: FILES_PER_ENTRY });
     face.setAttribute('aria-label', full ? `${t('entry.fileAdd')}, ${count}` : `${t('entry.fileAdd')}, ${limit}`);
     face.title = full ? count : limit;
     const pic = li.querySelector('.apic');
     if (!pic.firstChild) pic.innerHTML = '<span class="aplus" aria-hidden="true">+</span>';
-    const note = full ? count : video
-      ? t('entry.dayAddLimit', { mb: UPLOAD_LIMITS.attachment, video })
-      : t('entry.fileAddLimit', { mb: UPLOAD_LIMITS.attachment });
+    const note = full ? count : t('entry.fileAddLimit', { size: fmtMb(fileLimit()) });
     li.querySelector('.ameta').textContent = note;
     // Der Name steht nur in der Liste.
     li.querySelector('.aname').textContent = t('entry.fileAdd');
@@ -6983,13 +7143,15 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     more.hidden = !acts;
     more.setAttribute('aria-label', t('entry.fileMenu', { name: x.filename }));
     more.title = t('entry.fileMenu', { name: x.filename });
+    pickState(li, null);
   }
 
   function newFolderGroup(folderId) {
     const el = document.createElement('section');
     el.className = 'agroup afolder';
     el.dataset.folder = folderId;
-    el.innerHTML = `<div class="afolder-head"><button type="button" class="afolder-face" aria-controls="afolder-${Number(folderId)}">`
+    el.innerHTML = `<div class="afolder-head"><button type="button" class="afolder-check" role="checkbox" hidden></button>`
+      + `<button type="button" class="afolder-face" aria-controls="afolder-${Number(folderId)}">`
       + `<span class="afolder-caret" aria-hidden="true"></span><span class="afolder-icon" aria-hidden="true">📁</span>`
       + `<span class="afolder-name"></span><span class="afolder-meta"></span></button>`
       + `<button type="button" class="link-btn afolder-day" hidden></button>`
@@ -6998,6 +7160,10 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       + `<div class="apreview" id="${esc(previewIdOf(folderId))}" role="region" hidden></div></div>`;
     const face = el.querySelector('.afolder-face');
     face.onclick = () => toggleFolder(folderId);
+    el.querySelector('.afolder-check').onclick = () => {
+      const choosable = (item.attachments || []).filter(a => groupOf(a) === folderId && mayDeleteFile(a));
+      togglePicked(choosable.map(a => a.id), !choosable.every(a => filesPicked.has(a.id)));
+    };
     face.addEventListener('keydown', (e) => {
       if (!e.shiftKey || e.key !== 'F10') return;
       e.preventDefault();
@@ -7048,6 +7214,16 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       dayLink.onclick = () => jumpToDay(day.id);
     }
     el.querySelector('.afolder-body').hidden = !open;
+    const check = el.querySelector('.afolder-check');
+    const choosable = filesPicked ? files.filter(mayDeleteFile) : [];
+    check.hidden = !choosable.length;
+    if (choosable.length) {
+      const n = choosable.filter(a => filesPicked.has(a.id)).length;
+      const all = n === choosable.length;
+      check.setAttribute('aria-checked', all ? 'true' : n ? 'mixed' : 'false');
+      check.innerHTML = all ? ICON_BOX_CHECK : n ? ICON_BOX_SOME : ICON_BOX;
+      check.setAttribute('aria-label', t('entry.pickFolder', { name: f.name }));
+    }
     const more = el.querySelector('.afolder-more');
     more.hidden = !folderMenuItems(f).length;
     more.setAttribute('aria-label', t('entry.fileMenu', { name: f.name }));
@@ -7071,6 +7247,16 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       u.error = t('server.folderGone');
       u.final = true;
     }
+    if (filesPicked) for (const x of [...filesPicked])
+      if (!list.some(a => a.id === x && mayDeleteFile(a))) filesPicked.delete(x);
+    attsBox.classList.toggle('picking', !!filesPicked);
+    document.getElementById('apick-start').hidden = !!filesPicked || !list.some(mayDeleteFile);
+    filePickBar.hidden = !filesPicked;
+    if (filesPicked) {
+      const chosen = list.filter(a => filesPicked.has(a.id));
+      drawPickBar(filePickBar, chosen.length, list.filter(mayDeleteFile).length,
+        chosen.length > 0 && chosen.every(a => a.mine === true) && pickTargets(chosen).length > 0);
+    }
     const shownFile = openPreview ? list.find(a => a.id === openPreview) : null;
     if (openPreview && (!shownFile || groupBox(groupOf(shownFile))?.querySelector('.apreview') !== previewBox
         || (groupOf(shownFile) && !FOLDERS_OPEN.open.has(groupOf(shownFile))))) dropPreview();
@@ -7084,7 +7270,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       ...list.filter(a => groupOf(a) === key).map(a => ['f' + a.id, li => fillFileTile(li, a, key, shown)]),
       ...remote.filter(x => remoteGroup(x) === key).map(x => ['s' + x.id, li => fillRemoteTile(li, x)]),
       ...jobs.filter(u => jobGroup(u) === key).map(u => ['u' + u.no, li => fillUploadTile(li, u)]),
-      ...(adds ? [[key ? `add-f${key}` : 'add', li => fillAddTile(li, taken, dayFolder(key))]] : [])];
+      ...(adds ? [[key ? `add-f${key}` : 'add', li => fillAddTile(li, taken)]] : [])];
     const place = (grid, want) => want.forEach(([key, fill], at) => {
       const li = old.get(key) || newTile(key);
       old.delete(key);
@@ -7106,7 +7292,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     for (const el of oldGroups.values()) el.remove();
     // Am Telefon stoppt der Browser Anfragen bei gesperrtem Bildschirm.
     document.getElementById('aawake').hidden =
-      !(isNarrow() && jobs.some(u => u.chunked && (u.state === 'running' || u.state === 'waiting')));
+      !(isNarrow() && jobs.some(u => u.state === 'running' || u.state === 'waiting'));
     setUpBlocksOut(item);
     awaitTiles();
   }
@@ -7133,6 +7319,11 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
 
   function tileAction(li) {
     const key = li.dataset.key;
+    if (filesPicked) {
+      const a = fileOf(key);
+      if (a && mayDeleteFile(a)) togglePicked([a.id], !filesPicked.has(a.id));
+      return;
+    }
     if (key.startsWith('add')) return pickFiles(addTarget(key));
     const x = remoteOf(key);
     if (x) return x.mine && !x.active ? resumePick(x) : x.mine || ADMIN ? tileMenu(li) : undefined;
@@ -7148,6 +7339,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   }
 
   function tileMenu(li) {
+    if (filesPicked) return;
     const a = fileOf(li.dataset.key), u = uploadOf(li.dataset.key), x = remoteOf(li.dataset.key);
     if (a) fileMenu(a, li);
     else if (u) uploadMenu(u, li);
@@ -7175,6 +7367,75 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     if (mayDeleteFile(a)) items.push({ label: t('entry.deleteFile'), danger: true, own: true,
       run: () => deleteFromMenu(a, li) });
     openFileMenu(li.querySelector('.amore'), li, a.filename, uploadedLine(a), items);
+  }
+
+  /* ---- Auswahl ---- */
+  function filePicking(on) {
+    filesPicked = on ? new Set() : null;
+    closeFileMenu();
+    drawAtts();
+    (on ? filePickBar.querySelector('[data-pick="cancel"]') : document.getElementById('apick-start'))?.focus();
+  }
+  function togglePicked(ids, on) {
+    for (const x of ids) { if (on) filesPicked.add(x); else filesPicked.delete(x); }
+    drawAtts();
+  }
+  document.getElementById('apick-start').onclick = () => filePicking(true);
+  filePickBar.onclick = (e) => {
+    const b = e.target.closest('[data-pick]');
+    if (!b || b.disabled || !filesPicked) return;
+    const all = (item.attachments || []).filter(mayDeleteFile).map(a => a.id);
+    ({ cancel: () => filePicking(false), delete: deletePicked, move: () => moveMenuPicked(b),
+       all: () => togglePicked(all, filesPicked.size < all.length) })[b.dataset.pick]();
+  };
+  attsBox.closest('.block').addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && filesPicked && !FILE_MENU) { e.preventDefault(); filePicking(false); }
+  });
+  const pickedFiles = () => (item.attachments || []).filter(a => filesPicked.has(a.id));
+
+  // Ohne `item = ...` je Antwort: gezeichnet wird einmal am Ende.
+  async function deletePicked() {
+    const chosen = pickedFiles();
+    if (!await confirmBox(t('entry.pickDeleteAsk', { n: chosen.length }), t('entry.pickDeleteHint'))) return;
+    let errors;
+    try { errors = await eachPicked(chosen, async a => { item = await api('DELETE', `/api/attachments/${Number(a.id)}`); }); }
+    catch { return; }
+    pickDone(errors, t('entry.pickDeleted', { n: chosen.length }), 'entry.pickDeleteFailed');
+  }
+
+  // Ein Ziel, in dem schon alle gewaehlten stehen, fehlt.
+  function pickTargets(chosen) {
+    return [{ folderId: null, label: t('entry.noFolder') },
+      ...(item.folders || []).filter(f => f.mine === true).map(f => ({ folderId: f.id, label: f.name }))]
+      .filter(to => chosen.some(a => groupOf(a) !== (to.folderId || 0)));
+  }
+
+  function moveMenuPicked(anchor) {
+    const chosen = pickedFiles();
+    openFileMenu(anchor, filePickBar, t('entry.moveTo'), t('entry.picked', { n: chosen.length }),
+      pickTargets(chosen).map(to => ({ label: to.label, run: () => movePicked(chosen, to) })));
+  }
+
+  async function movePicked(chosen, to) {
+    const moving = chosen.filter(a => groupOf(a) !== (to.folderId || 0));
+    let errors;
+    try {
+      errors = await eachPicked(moving, async a => {
+        item = await api('PUT', `/api/attachments/${Number(a.id)}/folder`, { folderId: to.folderId });
+      });
+    } catch { return; }
+    if (to.folderId) FOLDERS_OPEN.open.add(to.folderId);
+    pickDone(errors, to.folderId ? t('entry.movedTo', { name: to.label }) : t('entry.movedLoose'), 'entry.pickMoveFailed');
+  }
+
+  // Ohne Fehler endet die Auswahl; sonst bleiben die uebrigen gewaehlt.
+  function pickDone(errors, done, failKey) {
+    if (!errors.length) {
+      filesPicked = null;
+      toast(done);
+    } else toast(t(failKey, { n: errors.length, error: errors[0] }), true);
+    drawAtts();
+    (filesPicked ? filePickBar.querySelector('[data-pick="cancel"]') : document.getElementById('apick-start'))?.focus();
   }
 
   /* ---- Verschieben ---- */
@@ -7208,10 +7469,14 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   }
 
   /* ---- Ordner ---- */
+  // Nur der Klick auf den Ordnerkopf wird gemerkt, kein Sprung.
   function toggleFolder(folderId) {
-    if (FOLDERS_OPEN.open.has(folderId)) FOLDERS_OPEN.open.delete(folderId);
-    else FOLDERS_OPEN.open.add(folderId);
+    const open = !FOLDERS_OPEN.open.has(folderId);
+    if (open) FOLDERS_OPEN.open.add(folderId);
+    else FOLDERS_OPEN.open.delete(folderId);
     drawAtts();
+    api('PUT', `/api/folders/${Number(folderId)}/open`, { open })
+      .catch(e => { if (e.message !== SESSION_GONE) toast(e.message, true); });
   }
 
   // Wie die Routen: bearbeiten nur der Verfasser, loeschen er und der Admin.
@@ -7231,8 +7496,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     if (items.length) openFileMenu(el.querySelector('.afolder-more'), el, f.name, '', items);
   }
 
-  /* „Name" und {dayOne}: ein eigener Testtag dieses Eintrags ohne Ordner. Bis zur Antwort
-     des Servers bleibt der Dialog offen, weil das Zuweisen umlagert. */
+  // „Name" und {dayOne}: ein eigener Testtag dieses Eintrags ohne Ordner.
   function folderDialog(title, f, send) {
     const current = f ? f.testDay : null;
     const days = (item.testDays || []).filter(d => d.mine === true && (d.folder == null || d.id === current));
@@ -7496,15 +7760,13 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     pickResume = x;
     fileInput.click();
   }
-  // In einen Ordner mit {dayOne} geht jede Datei in Stuecken, sonst in einer Anfrage.
   function addFiles(files, folderId) {
     if (!files.length) return;
     if (folderId && folderOf(folderId)?.mine !== true) return toast(t('entry.folderDropForeign'), true);
-    const day = dayFolder(folderId);
-    const refusal = uploadRefusal(id, files, (item.attachments || []).length + remoteUploads().length, day);
+    const refusal = uploadRefusal(id, files, (item.attachments || []).length + remoteUploads().length);
     if (refusal) return toast(refusal, true);
     if (folderId) FOLDERS_OPEN.open.add(folderId);
-    queueUploads(id, files, folderId, day);
+    queueUploads(id, files, folderId);
   }
   fileInput.onchange = (e) => {
     const files = [...e.target.files];
@@ -7516,7 +7778,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     if (!file) return;
     if (file.name !== x.filename || file.size !== x.size || file.lastModified !== x.modified)
       return toast(t('entry.uploadOtherFile'), true);
-    queueUploads(id, [file], remoteGroup(x), true);
+    queueUploads(id, [file], remoteGroup(x));
   };
 
   // Nur Dateien; ohne preventDefault oeffnete der Browser eine abgelegte Datei im Tab.
@@ -7679,7 +7941,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       const imgBox = el.querySelector('.cmt-imgs');
       const media = [...(c.images || []).map(x => ({ id: x.id, source: 'comment' })),
         ...(c.videos || []).map(x => ({ id: x.id, source: 'commentVideo', kind: 'video',
-                                         duration: x.duration }))];
+                                         duration: x.duration, position: x.position }))];
       media.forEach((m, i) => {
         const video = isVideo(m);
         const length = video ? durationText(m.duration) : '';
@@ -8163,8 +8425,8 @@ const fileAddress = (itemId, fileId, edit = false) =>
 let fileViewer = null;
 // Die zuletzt geoeffnete Datei; renderDetail() scrollt beim Zurueck zu ihrer Zeile.
 let fileReturn = null;
-/* Offene Ordner unter „Dateien"; beim Oeffnen eines Eintrags alle zu, die Rueckkehr
-   aus der eigenen Ansicht behaelt sie. BLOCKS speichert sie nicht. */
+/* Offene Ordner unter „Dateien"; beim Oeffnen eines Eintrags nach `open` vom Server, die
+   Rueckkehr aus der eigenen Ansicht behaelt auch die Spruenge. */
 let FOLDERS_OPEN = { itemId: 0, open: new Set() };
 function endFileViewer() {
   if (fileViewer) { try { fileViewer.destroyEditor(); } catch {} }
@@ -10612,14 +10874,15 @@ function cardStats(fetched) {
       </div>`;
 }
 
-/* Dateien auf der Platte; „fehlen", „warten auf Loeschen" und „ohne Verweis" nur,
-   wenn es welche gibt. */
+/* Dateien auf der Platte; „noch in der Datenbank", „fehlen", „warten auf Loeschen" und
+   „ohne Verweis" nur, wenn es welche gibt. */
 function diskRows(d) {
   if (!d) return '';
   const row = (label, value) => `<div class="kv"><span class="k">${label}</span><span class="v">${value}</span></div>`;
   const without = d.unknownCount - d.copiedCount;
   return [
     row(tH('card.diskFiles'), `${d.count} · ${fmtBytes(d.bytes)}`),
+    d.pending ? row(tH('card.diskPending'), String(d.pending)) : '',
     d.largeCount ? row(tH('card.diskLarge'), `${d.largeCount} · ${fmtBytes(d.largeBytes)}`) : '',
     d.trashCount ? row(tH('card.diskTrash'), `${d.trashCount} · ${fmtBytes(d.trashBytes)}`) : '',
     row(tH('card.diskUploads'), `${d.uploadCount} · ${fmtBytes(d.uploadBytes)}`),
@@ -10708,7 +10971,7 @@ function cardImageStore(fetched) {
 /* ---- Karte „Grenzen beim Hochladen" — Abschnitt „Datenbank" ---- */
 const LIMIT_KINDS = [['photo', 'card.limitPhoto'], ['commentImage', 'card.limitCommentImage'],
   ['video', 'card.limitVideo'], ['commentVideo', 'card.limitCommentVideo'],
-  ['attachment', 'card.limitAttachment'], ['dayVideo', 'card.limitDayVideo']];
+  ['attachment', 'card.limitAttachment'], ['file', 'card.limitFile']];
 function cardLimits() {
   return `<div class="sys-card">
         <h3>${tH('card.uploadLimits')}</h3>
@@ -10716,6 +10979,7 @@ function cardLimits() {
         ${LIMIT_KINDS.map(([kind, label]) => {
           const g = UPLOAD_LIMIT_RANGES[kind] || {};
           return `<div class="field"><label for="limit-${kind}">${tH(label)}</label>
+          ${kind === 'attachment' ? `<p class="desc" style="margin:0 0 4px">${tH('card.limitAttachmentHint')}</p>` : ''}
           <p class="desc" style="margin:0 0 6px">${tH('card.limitRange', { min: g.min, max: g.max })}</p>
           <input class="input" id="limit-${kind}" type="number" inputmode="numeric" data-limit="${kind}"
             min="${Number(g.min)}" max="${Number(g.max)}" step="1" value="${Number(UPLOAD_LIMITS[kind])}"${

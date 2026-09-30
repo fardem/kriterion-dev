@@ -166,8 +166,9 @@
   "card.diskFiles": "Dateien auf der Platte",
   "card.diskFree": "freier Platz",
   "card.diskGone": "warten auf Löschen",
-  "card.diskLarge": "davon große Videos",
+  "card.diskLarge": "davon über „Anhang“",
   "card.diskMissing": "fehlen",
+  "card.diskPending": "noch in der Datenbank",
   "card.diskTrash": "davon im Papierkorb",
   "card.diskUncopied": {
     "one": "{n} davon fehlt im Backup-Ordner und wird nicht gelöscht.",
@@ -215,8 +216,8 @@
   "card.exportHint": "Der Export schreibt den gesamten Bestand unverschlüsselt in eine Datei — mit allen Fotos, Anhängen und Verfassernamen.",
   "card.exportInParts": "In Teilen exportieren",
   "card.exportLargeHint": {
-    "one": "Nicht enthalten: {n} großes Video ({bytes}). Das Backup enthält es.",
-    "other": "Nicht enthalten: {n} große Videos ({bytes}). Das Backup enthält sie."
+    "one": "Nicht enthalten: {n} Datei über „Anhang“ ({bytes}). Das Backup enthält sie.",
+    "other": "Nicht enthalten: {n} Dateien über „Anhang“ ({bytes}). Das Backup enthält sie."
   },
   "card.exportOnlyEntries": "Export und Import enthalten nur die {entryMany} — keine Benutzer und keine Einstellungen von Kriterion.",
   "card.exportOversizeHint": "**Export mit Fotos: rund {withPhotos}** — das kann dauern, und eine Fortschrittsanzeige gibt es nicht ({rest}).",
@@ -320,6 +321,7 @@
   "card.light": "Hell",
   "card.likeDevice": "Auto",
   "card.limitAttachment": "Anhang",
+  "card.limitAttachmentHint": "Bis hierher mit Inhalt im Export, mit Vorschau und Document Server; darüber nur zum Herunterladen, außer PDF, Bild und Video.",
   "card.limitCommentImage": "Bild im Kommentar",
   "card.limitCommentVideo": "Video im Kommentar",
   "card.limitFile": "Datei",
@@ -330,8 +332,8 @@
   "card.linkCreated": "Link erzeugt",
   "card.inviteLinkFor": "Einladungslink für „{name}“ — wird nur einmal angezeigt.",
   "card.replaceLargeHint": {
-    "one": "Dabei wird auch {n} großes Video ({bytes}) gelöscht; kein Export enthält es.",
-    "other": "Dabei werden auch {n} große Videos ({bytes}) gelöscht; kein Export enthält sie."
+    "one": "Dabei wird auch {n} Datei über „Anhang“ ({bytes}) gelöscht; kein Export enthält sie.",
+    "other": "Dabei werden auch {n} Dateien über „Anhang“ ({bytes}) gelöscht; kein Export enthält sie."
   },
   "card.resetLinkFor": "Link zum Zurücksetzen für „{name}“ — wird nur einmal angezeigt.",
   "card.linkHolderHint": "Wer den Link hat, kann das Passwort setzen: **{days} Tage** gültig, **einmal** nutzbar, nach dem Öffnen **{minutes} Minuten** Zeit. Nur an die richtige Person weitergeben.",
@@ -798,14 +800,12 @@
   "entry.criterion": "Kriterium",
   "entry.cropHint": "Außerhalb ziehen legt einen neuen Ausschnitt fest; im Rahmen schieben, an Ecke und Kante die Größe ändern",
   "entry.cropZoom": "Zoom des Bildausschnitts",
-  "entry.dayAddLimit": "bis {mb} MB · Video {video}",
   "entry.dayDeleteFolder": "Der Ordner „{name}“ bleibt mit seinen Dateien erhalten.",
   "entry.dayDeleteHint": "Das Datum {day} wird gelöscht.",
   "entry.dayFolderOpen": {
     "one": "Ordner öffnen, 1 Datei",
     "other": "Ordner öffnen, {n} Dateien"
   },
-  "entry.dayLimitHint": "bis {mb} MB je Datei, Videos bis {video}, höchstens {cap} Dateien",
   "entry.daysSummary": "{n} {dayWord} · ⌀ {average} · zuletzt {latest}",
   "entry.delete": "löschen",
   "entry.deleteCommentAsk": "Kommentar löschen?",
@@ -830,7 +830,7 @@
   "entry.empty": "(leer)",
   "entry.enteredByOn": "Eingetragen von {author} am {created_at}",
   "entry.fileAdd": "Dateien hochladen",
-  "entry.fileAddLimit": "bis {mb} MB",
+  "entry.fileAddLimit": "bis {size}",
   "entry.fileCount": {
     "one": "{n} Datei · {filesize}",
     "other": "{n} Dateien · {filesize}"
@@ -839,7 +839,7 @@
   "entry.fileDropHint": "Hierher ziehen oder mit + hochladen.",
   "entry.fileFailed": "fehlgeschlagen",
   "entry.fileFull": "{n} von {cap}",
-  "entry.fileLimitHint": "bis {mb} MB je Datei, höchstens {cap} Dateien",
+  "entry.fileLimitHint": "bis {size} je Datei, höchstens {cap} Dateien",
   "entry.fileMenu": "Menü zu {name}",
   "entry.fileWaiting": "wartet",
   "entry.filesAttached": {
@@ -934,6 +934,44 @@
   "entry.orderSaved": "Reihenfolge gespeichert",
   "entry.pdfHint": "Bleibt das Fenster leer, kann der Browser das PDF hier nicht anzeigen.",
   "entry.photoOrderHint": "Das erste Foto ist das Hauptbild — Reihenfolge per Ziehen. Videos bis {mb} MB (MP4, WebM, MOV).",
+  "entry.pick": "Auswählen",
+  "entry.pickAll": "Alle auswählen",
+  "entry.pickBar": "Auswahl",
+  "entry.pickDeleteAsk": {
+    "one": "1 Datei löschen?",
+    "other": "{n} Dateien löschen?"
+  },
+  "entry.pickDeleteFailed": {
+    "one": "1 nicht gelöscht: {error}",
+    "other": "{n} nicht gelöscht: {error}"
+  },
+  "entry.pickDeleteHint": "Die Auswahl wird endgültig gelöscht.",
+  "entry.pickDeleted": {
+    "one": "1 gelöscht.",
+    "other": "{n} gelöscht."
+  },
+  "entry.pickFolder": "Alle in „{name}“ auswählen",
+  "entry.pickMediaAsk": {
+    "one": "1 Foto oder Video löschen?",
+    "other": "{n} Fotos und Videos löschen?"
+  },
+  "entry.pickMoveFailed": {
+    "one": "1 nicht verschoben: {error}",
+    "other": "{n} nicht verschoben: {error}"
+  },
+  "entry.pickNone": "Keine auswählen",
+  "entry.pickPhotosAsk": {
+    "one": "1 Foto löschen?",
+    "other": "{n} Fotos löschen?"
+  },
+  "entry.pickVideosAsk": {
+    "one": "1 Video löschen?",
+    "other": "{n} Videos löschen?"
+  },
+  "entry.picked": {
+    "one": "1 ausgewählt",
+    "other": "{n} ausgewählt"
+  },
   "entry.pickDate": "Bitte ein Datum wählen",
   "entry.pinHint": "Anpinnen — steht dann ganz oben",
   "entry.previewTruncated": "Vorschau gekürzt — die ganze Datei mit ↓ herunterladen.",
@@ -1010,9 +1048,11 @@
   "entry.uploading": "wird hochgeladen …",
   "entry.uploadRunsAt": "läuft, zuletzt {time}",
   "entry.uploadStop": "Upload abbrechen",
+  "entry.videoFrom": "ab {time}",
   "entry.videoNoImage": "Dieses Video hat kein Bild",
   "entry.videoNoThumb": "Aus diesem Video konnte kein Vorschaubild erzeugt werden.",
-  "entry.videoToFiles": "Längere Videos gehören unter „Dateien“ in einen Ordner mit {dayOne}.",
+  "entry.videoRestart": "Von vorn",
+  "entry.videoToFiles": "Längere Videos gehören unter „Dateien“.",
   "entry.videoUnplayable": "Dieses Video kann der Browser nicht abspielen",
   "entry.weight": "Gewicht",
   "entry.weighted": "gewichtet",
@@ -1296,7 +1336,6 @@
     "one": "Das Backup ist älter als der Schlüsselwechsel.",
     "other": "Alle {n} Backups sind älter als der Schlüsselwechsel."
   },
-  "server.bigVideoFolder": "Große Videos nur in einem Ordner mit {dayOne}.",
   "server.bodyAborted": "Die Anfrage wurde abgebrochen.",
   "server.bodyInvalid": "Die Anfrage ließ sich nicht lesen.",
   "server.bodyTooLarge": "Die Anfrage ist zu groß.",
