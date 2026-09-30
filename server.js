@@ -451,7 +451,7 @@ const putSetting = { run: (k, v) => {
 
 /* ---- Persoenliche Einstellungen ---- */
 const PERSONAL_KEYS = ['documentTheme', 'filesEditAll', 'filesView',
-                                'filesSort', 'filters', 'font', 'blocks', 'linkRows', 'timeline', 'searchNames',
+                                'filesSort', 'filesGroup', 'filters', 'font', 'blocks', 'linkRows', 'timeline', 'searchNames',
                                 'bellSeen', 'views', 'strip', 'theme', 'language'];
 
 /* Schluessel, die nur der Eigentuemer schreibt. */
@@ -1693,8 +1693,11 @@ const PICK_SETTINGS = {
                    wrong: 'server.themeUnknown' },
   filesView:   { list: ['tiles', 'list'],  cast: String, fallback: 'tiles',
                  wrong: 'server.viewUnknown' },
-  filesSort:   { list: ['oldest', 'newest', 'name'], cast: String, fallback: 'oldest',
-                 wrong: 'server.sortUnknown' }
+  filesSort:   { list: ['name_asc', 'name_desc', 'date_asc', 'date_desc', 'size_asc', 'size_desc'],
+                 cast: String, fallback: 'date_asc', wrong: 'server.sortUnknown',
+                 alias: { oldest: 'date_asc', newest: 'date_desc', name: 'name_asc' } },
+  filesGroup:  { list: ['none', 'type'],  cast: String, fallback: 'none',
+                 wrong: 'server.groupUnknown' }
 };
 // Vorgabe fuer die eigenen neuen Dateien; ohne eigene gilt die der Karte „Dokumente".
 const filesEditAllOf = (userId) =>
@@ -1704,7 +1707,8 @@ const documentSettings = (userId) => documentServerOn()
 /* Was nicht in der Liste steht, faellt auf die Vorgabe zurueck. */
 const pick = (userId, key) => {
   const a = PICK_SETTINGS[key];
-  const v = a.cast(getUserSetting(userId, key, a.fallback));
+  const raw = a.cast(getUserSetting(userId, key, a.fallback));
+  const v = a.alias?.[raw] ?? raw;
   return a.list.includes(v) ? v : a.fallback;
 };
 const languageOf = (userId) => {
@@ -1758,6 +1762,7 @@ app.get('/api/settings', (req, res) => res.json({
   timeline: timelineOn(req.user.id),
   filesView: pick(req.user.id, 'filesView'),
   filesSort: pick(req.user.id, 'filesSort'),
+  filesGroup: pick(req.user.id, 'filesGroup'),
   // null ohne Document Server; dann fehlt der Kasten „Dokumente" im eigenen Bereich.
   documents: documentSettings(req.user.id),
   bellSeen: bellSeen(req.user.id),
@@ -1906,6 +1911,7 @@ app.put('/api/settings', (req, res) => {
       take('documentTheme');
       take('filesView');
       take('filesSort');
+      take('filesGroup');
       if (req.body.filesEditAll !== undefined)
         putUserSetting(req.user.id, 'filesEditAll', JSON.stringify(!!req.body.filesEditAll));
       if (req.body.blocks !== undefined) {
@@ -1989,6 +1995,7 @@ app.put('/api/settings', (req, res) => {
                  blocks: blocks(req.user.id),
                  linkRows: pick(req.user.id, 'linkRows'), timeline: timelineOn(req.user.id),
                  filesView: pick(req.user.id, 'filesView'), filesSort: pick(req.user.id, 'filesSort'),
+                 filesGroup: pick(req.user.id, 'filesGroup'),
                  search: searchTemplate(), searchProviders: searchProviders(),
                  searchNames: pick(req.user.id, 'searchNames'),
                  tagsFreeCreate: freeCreate('tagsFreeCreate'),
@@ -2382,7 +2389,8 @@ app.delete('/api/items/:id/tags/:tagId', entryAuthorOnly, (req, res) => {
 const qAttachments = lateStatement(`SELECT a.id, a.filename, a.mime_type, a.size, a.sort_order,
     a.created_at, a.user_id, COALESCE(e.edit_all, 0) AS edit_all,
     (p.attachment_id IS NOT NULL) AS has_previous, s.duration, length(s.still) AS still,
-    f.folder_id AS folder, d.name AS stored, d.large, (t.attachment_id IS NOT NULL) AS has_tile, length(t.thumb) AS tile
+    f.folder_id AS folder, d.name AS stored, d.large, (t.attachment_id IS NOT NULL) AS has_tile, length(t.thumb) AS tile,
+    (m.attachment_id IS NOT NULL) AS has_media, json_extract(m.info, '$.video[0].format') AS codec
   FROM attachments a
   LEFT JOIN attachment_editing e ON e.attachment_id = a.id
   LEFT JOIN attachment_thumbs t ON t.attachment_id = a.id
@@ -2390,6 +2398,7 @@ const qAttachments = lateStatement(`SELECT a.id, a.filename, a.mime_type, a.size
   LEFT JOIN attachment_stills s ON s.attachment_id = a.id
   LEFT JOIN attachment_folders f ON f.attachment_id = a.id
   LEFT JOIN disk_files d ON d.attachment_id = a.id
+  LEFT JOIN attachment_media m ON m.attachment_id = a.id
   WHERE a.item_id = ? ORDER BY a.sort_order, a.id`);
 const qFolders = lateStatement(`SELECT f.id, f.name, f.created_at, f.user_id, f.test_day_id
   FROM folders f LEFT JOIN test_days td ON td.id = f.test_day_id WHERE f.item_id = ?
@@ -2735,7 +2744,9 @@ function detail(id, userId, locale) {
       missing: a2.stored != null && DISK_MISSING.has(a2.stored),
       // Nur Dokumente: `thumb` ist die Laenge des Vorschaubilds wie `still`.
       ...(tileKind ? { thumb: a2.tile, thumbSoon: !a2.has_tile && (tileKind === 'text' || officeOn)
-                                                  && !TILES_FAILED.has(a2.id) } : {})
+                                                  && !TILES_FAILED.has(a2.id) } : {}),
+      // Der Codec am Vorschaubild; `infoSoon`, solange die Warteschlange ihn noch liest.
+      ...(kind === 'video' ? { codec: a2.codec, infoSoon: !a2.has_media && !MEDIA_FAILED.has(a2.id) } : {})
     };
   });
   const openFolders = new Set(qOpenFolders.all(userId, id).map(z => z.folder_id));
@@ -3975,6 +3986,105 @@ function docTilesAgain() {
   docTilesSoon();
 }
 
+/* ---- Erweiterte Infos zu Bildern und Videos ---- */
+const qMedia = db.prepare('SELECT info FROM attachment_media WHERE attachment_id = ?');
+const putMedia = db.prepare('INSERT OR REPLACE INTO attachment_media (attachment_id, info) VALUES (?, ?)');
+const qMediaSource = db.prepare(`SELECT a.id, a.filename, a.size, (m.attachment_id IS NOT NULL) AS has_media
+  FROM attachments a LEFT JOIN attachment_media m ON m.attachment_id = a.id WHERE a.id = ?`);
+const qMediaMissing = db.prepare(`SELECT a.id, a.filename FROM attachments a
+  LEFT JOIN attachment_media m ON m.attachment_id = a.id WHERE m.attachment_id IS NULL ORDER BY a.id DESC`);
+const qMediaPart = db.prepare('SELECT substr(data, ?, ?) AS part FROM attachments WHERE id = ?');
+const MEDIA_WAITING = new Set();
+// Ohne lesbare Datei; der stuendliche Lauf versucht es wieder.
+const MEDIA_FAILED = new Set();
+let mediaRunning = null;
+// Eine Analyse zugleich, aus der Warteschlange wie aus GET /info.
+let mediaTurn = Promise.resolve();
+const inMediaTurn = (work) => (mediaTurn = mediaTurn.then(work, work));
+const unreadable = (why) => Object.assign(new Error(`media file unreadable: ${why}`), { damaged: true });
+
+// Stueckweise wie sendDiskFile(); das zuletzt entschluesselte Stueck bleibt fuer den naechsten Abruf.
+async function readMediaOf(a) {
+  const f = diskFileOf(a.id);
+  if (!f) return attachments.mediaFacts(a.size, (length, offset) => {
+    const bytes = qMediaPart.get(offset + 1, length, a.id)?.part;
+    // Die Umlagerung leert `data` waehrend des Lesens.
+    if (!bytes || bytes.length < Math.min(length, a.size - offset)) throw unreadable('moved');
+    return bytes;
+  });
+  let handle;
+  try { handle = await fs.promises.open(diskPath(f.name), 'r'); }
+  catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+    DISK_MISSING.add(f.name);
+    throw unreadable('missing');
+  }
+  let at = -1, plain = null;
+  try {
+    return await attachments.mediaFacts(f.size, async (length, offset) => {
+      const end = Math.min(f.size, offset + length), parts = [];
+      for (let i = Math.floor(offset / f.chunk); i * f.chunk < end; i++) {
+        if (i !== at) { plain = await attachments.readChunk(handle, f, i); at = i; }
+        parts.push(plain.subarray(Math.max(0, offset - i * f.chunk), end - i * f.chunk));
+      }
+      return Buffer.concat(parts);
+    });
+  } catch (e) {
+    if (e.damaged) DISK_MISSING.add(f.name);
+    throw e;
+  } finally { await handle.close(); }
+}
+
+// null: keine Datei dieser Art; undefined: spaeter noch einmal.
+async function makeMedia(id) {
+  const a = qMediaSource.get(id);
+  if (!a || !attachments.mediaKind(a.filename)) return null;
+  if (a.has_media) return JSON.parse(qMedia.get(id).info);
+  let facts;
+  try { facts = await readMediaOf(a); }
+  catch (e) {
+    if (!e.damaged) throw e;
+    MEDIA_FAILED.add(id);
+    return undefined;
+  }
+  // Waehrend des Lesens kann die Datei geloescht und die Nummer neu vergeben worden sein.
+  const now = qMediaSource.get(id);
+  if (!now || now.filename !== a.filename || now.size !== a.size) return null;
+  putMedia.run(id, JSON.stringify(facts));
+  MEDIA_FAILED.delete(id);
+  return facts;
+}
+
+function startMedia() {
+  if (mediaRunning || !MEDIA_WAITING.size) return;
+  mediaRunning = (async () => {
+    while (MEDIA_WAITING.size) {
+      const id = MEDIA_WAITING.values().next().value;
+      MEDIA_WAITING.delete(id);
+      await inMediaTurn(() => makeMedia(id));
+    }
+  })().catch(e => logFail(`Media info: ${e.message}`))
+    .finally(() => { mediaRunning = null; startMedia(); });
+}
+
+// Mit `ids` vorn in die Reihe; ohne alle Bilder und Videos ohne Zeile in attachment_media.
+function mediaSoon(ids) {
+  if (DATABASE_INCOMPLETE) return;
+  if (ids) {
+    const rest = [...MEDIA_WAITING];
+    MEDIA_WAITING.clear();
+    for (const id of [...ids, ...rest]) MEDIA_WAITING.add(Number(id));
+  } else {
+    for (const r of qMediaMissing.all())
+      if (attachments.mediaKind(r.filename) && !MEDIA_FAILED.has(r.id)) MEDIA_WAITING.add(r.id);
+  }
+  startMedia();
+}
+function mediaAgain() {
+  MEDIA_FAILED.clear();
+  mediaSoon();
+}
+
 /* ---- Upload in Stuecken ---- */
 // Klartext je Anfrage; das letzte Stueck ist kuerzer.
 const UPLOAD_PIECE = 8 * MB;
@@ -4127,6 +4237,7 @@ function finishUpload(req, res, u) {
   });
   moveIntoPlace(u.name);
   if (docTileKind(u.filename)) docTilesSoon([added]);
+  if (attachments.mediaKind(u.filename)) mediaSoon([added]);
   res.status(201).json(detail(u.item_id, req.user.id, localeOf(req)));
 }
 
@@ -4151,6 +4262,19 @@ app.get('/api/attachments/:id/raw', async (req, res, next) => {
     if (!a) return res.status(404).end();
     attachments.setHeader(res, a.filename, { inline: req.query.inline === '1' });
     sendRanged(req, res, a.data);
+  } catch (e) { next(e); }
+});
+
+// Rechte wie /raw. Fehlt die Zeile noch, liest der Server sofort.
+app.get('/api/attachments/:id/info', async (req, res, next) => {
+  try {
+    const a = qMediaSource.get(req.params.id);
+    if (!a || !attachments.mediaKind(a.filename)) return res.status(404).json({ error: t(localeOf(req), 'server.fileGone') });
+    MEDIA_WAITING.delete(a.id);
+    const facts = await inMediaTurn(() => makeMedia(a.id));
+    if (facts === null) return res.status(404).json({ error: t(localeOf(req), 'server.fileGone') });
+    if (facts === undefined) return res.status(500).json({ error: t(localeOf(req), 'server.mediaUnreadable') });
+    res.json(facts);
   } catch (e) { next(e); }
 });
 
@@ -6388,7 +6512,10 @@ async function importEntries(payload, userId, mode2, bytesSource, trashId, writt
   if (filesWithoutContent.length)
     logLine(`Import: ${filesWithoutContent.length} file(s) without content skipped: ` +
                 filesWithoutContent.join(', '));
-  if (stats.attachments) docTilesSoon();
+  if (stats.attachments) {
+    docTilesSoon();
+    mediaSoon();
+  }
   return { ok: true, mode: mode2, ...stats,
            authorAssigned: assigned, authorUnknown: unknown,
            weightsDropped: dropped, videosWithoutFile, videosUnreadable, newIds,
@@ -7210,11 +7337,13 @@ diskRunLogged(true);
 setInterval(() => {
   diskRunLogged(false);
   docTilesAgain();
+  mediaAgain();
 }, BENCH.run || HOUR_MS).unref();
 
 app.listen(PORT, () => {
   // Erst hier: der Document Server holt die Datei bei diesem Server ab.
   docTilesSoon();
+  mediaSoon();
   // auth.getUser() ohne Anfrage: beim Start gibt es keinen angemeldeten Account.
   const u = auth.getUser();
   logLine(`Running on port ${PORT} -- ` +

@@ -276,11 +276,11 @@ async function run() {
     const foreign = menuOf(w, 'f41'), own = menuOf(w, 'f43');
     check('An einer fremden Datei fehlt „Datei loeschen", an der eigenen steht es',
       !foreign.includes(DE['entry.deleteFile']) && own.includes(DE['entry.deleteFile']) &&
-      equal(foreign, [DE['entry.openFile'], DE['entry.copyFileLink'], DE['entry.download']]),
+      equal(foreign, [DE['entry.openFile'], DE['entry.download'], DE['entry.copyFileLink']]),
       `${foreign.join(' / ')} || ${own.join(' / ')}`);
     moreOf(w, 'f45')?.click();
     const ownOffice = menuItems(w).map(e => `${e.getAttribute('role')}:${e.textContent}`);
-    const check45 = menuItems(w)[0];
+    const check45 = menuItems(w).find(e => e.getAttribute('role') === 'menuitemcheckbox');
     press(w.document.activeElement, 'Escape');
     const foreignOffice = menuOf(w, 'f46');
     check('„Bearbeiten durch alle" steht nur an der eigenen Office-Datei, als Haken',
@@ -288,10 +288,11 @@ async function run() {
       !foreignOffice.some(x => x.endsWith(DE['entry.editAll'])) &&
       !menuOf(w, 'f43').some(x => x.endsWith(DE['entry.editAll'])), ownOffice.join(' / '));
     check('Bearbeiten und die vorige Fassung stehen nur mit Recht da',
-      equal(ownOffice, ['menuitemcheckbox:' + DE['entry.editAll'], 'menuitem:' + DE['entry.edit'],
-        'menuitem:' + DE['entry.openFile'], 'menuitem:' + DE['entry.copyFileLink'], 'menuitem:' + DE['entry.download'],
-        'menuitem:' + DE['entry.restorePrevious'], 'menuitem:' + DE['entry.deleteFile']]) &&
-      equal(foreignOffice, [DE['entry.edit'], DE['entry.openFile'], DE['entry.copyFileLink'], DE['entry.download']]),
+      equal(ownOffice, ['menuitem:' + DE['entry.openFile'], 'menuitem:' + DE['entry.edit'],
+        'menuitem:' + DE['entry.download'], 'menuitem:' + DE['entry.copyFileLink'],
+        'menuitem:' + DE['entry.restorePrevious'], 'menuitemcheckbox:' + DE['entry.editAll'],
+        'menuitem:' + DE['entry.deleteFile']]) &&
+      equal(foreignOffice, [DE['entry.openFile'], DE['entry.edit'], DE['entry.download'], DE['entry.copyFileLink']]),
       foreignOffice.join(' / '));
     moreOf(w, 'f41')?.click();
     check('Der Kopf nennt Name und, ab zwei Accounts, wer wann hochgeladen hat',

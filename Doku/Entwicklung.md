@@ -25,7 +25,7 @@ Aufbau, Datenmodell, Sicherheit der Auslieferung und Prüfstand. Betrieb steht i
 | `public/` | `index.html`, `app.js`, `style.css`, `theme.js`, drei Sprachdateien |
 | `test/`, `testbench.js`, `counterproof.js` | Prüfstand und Gegenproben |
 
-Das Frontend kommt ohne Framework und ohne Build aus. Fünf
+Das Frontend kommt ohne Framework und ohne Build aus. Sechs
 Laufzeitabhängigkeiten, festgelegt über `package-lock.json`.
 
 ## Datenmodell
@@ -75,6 +75,12 @@ annehmen.
 - `attachment_stills`: Standbild und Dauer eines Videos unter „Dateien“, im
   Browser erzeugt, 1600 px WebP. Setzen darf nur, wer die Datei hochgeladen
   hat (`PUT /api/attachments/:id/still`). Im Papierkorb und im Export.
+- `attachment_media`: die Erweiterten Infos zu einem Bild oder Video als JSON
+  (`general`, `video`, `audio`, `image`), gelesen mit `mediainfo.js` in der
+  Warteschlange `mediaSoon()`: nach dem Upload, nach Import und Papierkorb, beim
+  Start und stündlich für die Dateien aus `MEDIA_FAILED`. Fehlt die Zeile, liest
+  `GET /api/attachments/:id/info` sofort. `inMediaTurn()` lässt immer nur eine
+  Analyse laufen. Nicht im Export und nicht im Papierkorb.
 - `folders`: Ordner unter „Dateien“ mit Name (1 bis 80 Zeichen), Verfasser und
   Zeitpunkt; `AUTOINCREMENT`, damit ein Upload auf einen gelöschten Ordner nie
   in einem neuen mit derselben Nummer landet. `test_day_id`: ein eigener

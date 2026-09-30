@@ -20,6 +20,16 @@ const attachments = require('./attachments');
 const sharp = require('sharp');
 const { segment, CODE, TEXT, COMMENT, REGEX } = require('./tools/segments.js');
 
+// Ruhende Verbindungen schliesst der Server nach 5 s (keepAliveTimeout); war der Socket zu, einmal neu.
+const plainFetch = globalThis.fetch;
+globalThis.fetch = async (...args) => {
+  try { return await plainFetch(...args); }
+  catch (e) {
+    if (e?.cause?.code !== 'UND_ERR_SOCKET') throw e;
+    return plainFetch(...args);
+  }
+};
+
 /* Die Fristen, mit denen die Server unter dem Pruefschalter rechnen. */
 const MAIL_TIMES = require('./mail');
 
@@ -606,6 +616,8 @@ const F_READ_ROUTES = [
     'Der Textauszug derselben Datei; er wird gelesen und nie als Datei ausgeliefert.'],
   ['/api/attachments/:id/office',  'angemeldet',
     'Die signierte Konfiguration des Betrachters; wer die Datei laden darf, darf sie auch ansehen.'],
+  ['/api/attachments/:id/info',    'angemeldet',
+    'Die Erweiterten Infos zu einem Bild oder Video; sie stehen in der Datei, die jeder Angemeldete laden darf.'],
   ['/api/document-server',         'adminOnly',
     'Adressen und Zustand des Document Servers fuer die Karte; das Secret steht nicht darin.'],
   ['/api/items/:id/votes',         'adminOnly',

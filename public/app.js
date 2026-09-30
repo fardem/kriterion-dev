@@ -1303,9 +1303,14 @@ function authorName(v) {
 let LINK_ROWS = 5;          // sichtbare Zeilen, bevor aufgeklappt wird
 let TIMELINE_ON = true;
 let FILES_VIEW = 'tiles';
-// Dieselben Werte wie filesSort in PICK_SETTINGS (server.js).
-const FILES_SORTS = { oldest: 'entry.filesSortOldest', newest: 'entry.filesSortNewest', name: 'entry.filesSortName' };
-let FILES_SORT = 'oldest';
+// Wie filesSort und filesGroup in PICK_SETTINGS (server.js); `start`: Richtung nach dem Wechsel.
+const FILES_SORTS = {
+  name: { word: 'entry.filesSortName', up: 'list.dirAZ', down: 'list.dirZA', start: true },
+  date: { word: 'entry.filesSortDate', up: 'list.dirOldNew', down: 'list.dirNewOld', start: true },
+  size: { word: 'entry.filesSortSize', up: 'entry.dirSmallLarge', down: 'entry.dirLargeSmall', start: false }
+};
+let FILES_SORT = { key: 'date', asc: true };
+let FILES_GROUP = 'none';
 // { theme, editAll } aus GET /api/settings; null ohne Document Server.
 let DOC_SETTINGS = null;
 const LINK_ROW_LEVELS = [3, 5, 8, 12];
@@ -2783,7 +2788,9 @@ async function loadSettings() {
   if (SETTINGS.linkRows) LINK_ROWS = SETTINGS.linkRows;
   if (SETTINGS.timeline !== undefined) TIMELINE_ON = SETTINGS.timeline !== false;
   if (SETTINGS.filesView === 'tiles' || SETTINGS.filesView === 'list') FILES_VIEW = SETTINGS.filesView;
-  if (FILES_SORTS[SETTINGS.filesSort]) FILES_SORT = SETTINGS.filesSort;
+  const sortSet = /^(name|date|size)_(asc|desc)$/.exec(SETTINGS.filesSort || '');
+  if (sortSet) FILES_SORT = { key: sortSet[1], asc: sortSet[2] === 'asc' };
+  if (SETTINGS.filesGroup === 'none' || SETTINGS.filesGroup === 'type') FILES_GROUP = SETTINGS.filesGroup;
   if (SETTINGS.documents !== undefined) DOC_SETTINGS = SETTINGS.documents;
   if (Array.isArray(SETTINGS.views)) VIEWS = SETTINGS.views;
   if (SETTINGS.viewsCap) VIEWS_CAP = SETTINGS.viewsCap;
@@ -4511,6 +4518,9 @@ function centerStage(stage) {
   stage.scrollTop = Math.max(0, (stage.scrollHeight - stage.clientHeight) / 2);
 }
 
+// Der Blob liegt im Speicher des Browsers; bei 100 Mbit/s 40 s Video am Telefon, 2 min 40 s am Rechner.
+const WHOLE_BYTES = () => (isNarrow() ? 500 : 2048) * 1024 * 1024;
+
 /* Ohne `remove` kein Papierkorb, ohne `linkOf` kein Link kopieren; `inside` liefert den Abspieler
    der Seite fuer die Uebergabe eines laufenden Videos. `removable(p)` und `still.may(p)` blenden
    Papierkorb und Standbildknopf je Bild aus; `shown(p)` meldet das Bild, beim Schliessen null. */
@@ -4525,6 +4535,7 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
     <div class="lb-top">
       <span class="lb-title">${esc(title || '')}</span>
       <div class="lb-tools">
+        <span class="lb-loaded" hidden></span>
         <span class="lb-count"></span>
         ${linkOf ? `<button class="lb-btn copy" title="${esc(t('entry.copyLink'))}">${ICON_LINK}</button>` : ''}
         <a class="lb-btn download" download title="${esc(t('entry.download'))}">↓</a>
@@ -4549,7 +4560,55 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
   const player = lb.querySelector('.lb-video');
   const note = lb.querySelector('.lb-unplayable');
   const strip = lb.querySelector('.lb-strip');
+  const loaded = lb.querySelector('.lb-loaded');
   let spot = null;
+
+  // Video ganz laden. `url`: der fertige Blob; `source`: die Adresse, die er ersetzt.
+  let whole = null;
+  const shownSource = () => (whole?.url && player.getAttribute('src') === whole.url ? whole.source : player.getAttribute('src'));
+  function dropWhole() {
+    if (!whole) return;
+    whole.stop.abort();
+    if (whole.url) URL.revokeObjectURL(whole.url);
+    whole = null;
+    loaded.hidden = true;
+  }
+  async function loadWhole() {
+    const p = photos[i], source = player.getAttribute('src'), limit = WHOLE_BYTES();
+    if (whole || !source || navigator.connection?.saveData || p.size > limit) return;
+    const mine = whole = { source, stop: new AbortController(), url: null };
+    try {
+      const r = await fetch(source, { credentials: 'same-origin', cache: 'no-store', signal: mine.stop.signal });
+      const total = Number(r.headers.get('Content-Length'));
+      if (!r.ok || !r.body || !(total > 0) || total > limit) throw new Error('not whole');
+      const [keep, count] = r.body.tee();
+      const blob = new Response(keep, { headers: { 'Content-Type': r.headers.get('Content-Type') || '' } }).blob();
+      const reader = count.getReader();
+      for (let got = 0, shown = -1; ;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        got += value.length;
+        if (Math.floor(got * 100 / total) === shown) continue;
+        shown = Math.floor(got * 100 / total);
+        loaded.textContent = t('entry.videoLoaded', { n: shown });
+        loaded.hidden = false;
+      }
+      const ready = await blob;
+      // Chromium ohne Profil haelt knapp 2 GB; darueber meldet der Blob seine Groesse, liest aber nicht.
+      if (ready.size !== total) throw new Error('not whole');
+      await ready.slice(total - 1).arrayBuffer();
+      if (whole !== mine || player.getAttribute('src') !== source) return;
+      mine.url = URL.createObjectURL(ready);
+      const at = player.currentTime, playing = !player.paused;
+      player.src = mine.url;
+      player.currentTime = at;
+      if (playing) player.play()?.catch?.(() => {});
+      loaded.hidden = true;
+    } catch {
+      if (whole === mine) dropWhole();
+    }
+  }
+  player.addEventListener('play', loadWhole);
 
   /* Ein laufendes Video der Seite spielt im Vollbild an derselben Stelle weiter. */
   const inner = () => (typeof inside === 'function' ? inside() : null) || null;
@@ -4568,7 +4627,7 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
   /* Beim Blaettern und Schliessen anhalten; die Stelle merkt sich `handover`. */
   const hold = () => {
     if (!player.hidden || player.src) {
-      if (handover && player.getAttribute('src') === handover.source) {
+      if (handover && shownSource() === handover.source) {
         handover.position = player.currentTime || 0;
         handover.wasPlaying = !player.paused;
       }
@@ -4576,6 +4635,7 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
       player.removeAttribute('src');
       player.load();
     }
+    dropWhole();
   };
 
   /* Beim Schliessen Quelle und Stelle an den Abspieler der Seite zurueckgeben. */
@@ -4664,6 +4724,7 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
 
   function unplayable() {
     if (player.hidden || !player.getAttribute('src')) return;
+    dropWhole();
     player.hidden = true;
     note.hidden = false;
     const link = note.querySelector('a');
@@ -4850,8 +4911,68 @@ function sparkline(days) {
 // Diese Arten klappen die Vorschau unter der Gruppe auf; Bilder zeigt das Vollbild.
 const FILE_READABLE = ['pdf', 'text', 'docx', 'office'];
 const fileKind = (name) => ((/\.([^.\s/\\]{1,5})$/.exec(name || '') || [])[1] || '').toUpperCase();
+// Die Text-Endungen wie TEXT_EXTENSIONS in attachments.js.
+const KIND_OF_EXTENSION = { pdf: 'pdf', doc: 'word', docx: 'word', odt: 'word', rtf: 'word',
+  xls: 'excel', xlsx: 'excel', ods: 'excel', ppt: 'powerpoint', pptx: 'powerpoint', odp: 'powerpoint',
+  txt: 'text', md: 'text', markdown: 'text', csv: 'text', tsv: 'text', log: 'text', ini: 'text', conf: 'text',
+  zip: 'archive', rar: 'archive', '7z': 'archive', tar: 'archive', gz: 'archive', tgz: 'archive', bz2: 'archive', xz: 'archive' };
+const KIND_WORDS = { video: 'entry.kindVideo', image: 'entry.kindImage', pdf: 'entry.kindPdf', word: 'entry.kindWord',
+  excel: 'entry.kindExcel', powerpoint: 'entry.kindPowerpoint', text: 'entry.kindText', archive: 'entry.kindArchive',
+  other: 'entry.kindOther' };
+function kindOf(a) {
+  if (a.preview === 'video' || /^video\//.test(a.mime_type || '')) return 'video';
+  if (a.preview === 'image' || /^image\//.test(a.mime_type || '')) return 'image';
+  const ending = ((/\.([^.\s/\\]+)$/.exec(a.filename || '') || [])[1] || '').toLowerCase();
+  return KIND_OF_EXTENSION[ending] || 'other';
+}
+function kindText(a) {
+  const kind = kindOf(a);
+  if (kind !== 'video') return t(KIND_WORDS[kind]);
+  return [a.codec || t(KIND_WORDS.video), durationText(a.duration)].filter(Boolean).join(' · ');
+}
 /* Zeichen der zweiten Zeile; bei 96 px Kachelbreite passen rund 14. */
 const FILE_NAME_TAIL = 10;
+
+/* ---- Erweiterte Infos ---- */
+function bitRateText(bps) {
+  if (!bps) return '';
+  return bps >= 1e6 ? t('entry.mediaMbits', { n: number(bps / 1e6, 0, 1) }) : t('entry.mediaKbits', { n: number(bps / 1e3) });
+}
+function languageName(code) {
+  if (!code) return '';
+  try { return new Intl.DisplayNames([LOCALE], { type: 'language' }).of(code) || code; } catch { return code; }
+}
+function mediaGroup(head, rows) {
+  const shown = rows.filter(([, v]) => v !== '' && v !== null && v !== undefined);
+  return shown.length ? `<h3 class="minfo-head">${esc(head)}</h3>` + shown.map(([k, v]) =>
+    `<div class="kv"><span class="k">${tH(k)}</span><span class="v">${esc(v)}</span></div>`).join('') : '';
+}
+function mediaInfoHtml(f) {
+  const g = f.general || {}, video = f.video || [], audio = f.audio || [];
+  const area = (w, h) => (w && h ? `${w} × ${h}` : '');
+  const bits = (n) => (n ? t('entry.mediaBits', { n }) : '');
+  const recorded = /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d/.exec(g.recorded || '');
+  const html = [
+    mediaGroup(t('entry.mediaGeneral'), [['entry.mediaFormat', g.format],
+      ['entry.mediaFileSize', g.size ? fmtBytes(g.size) : ''], ['entry.mediaDuration', durationText(g.duration)],
+      ['entry.mediaTotalRate', bitRateText(g.bitRate)], ['entry.mediaRecorded', recorded ? fmtDate(recorded[0]) : g.recorded],
+      ['entry.mediaAudioTracks', video.length ? String(audio.length) : '']]),
+    ...video.map(v => mediaGroup(t('entry.kindVideo'), [['entry.mediaCodec', v.format], ['entry.mediaProfile', v.profile],
+      ['entry.mediaResolution', area(v.width, v.height)],
+      ['entry.mediaFrameRate', v.frameRate ? t('entry.mediaFps', { n: number(v.frameRate, 0, 3) }) : ''],
+      ['entry.mediaBitRate', bitRateText(v.bitRate)], ['entry.mediaBitDepth', bits(v.bitDepth)],
+      ['entry.mediaChroma', v.chroma], ['entry.mediaHdr', v.hdr]])),
+    ...audio.map((s, at) => mediaGroup(audio.length > 1
+      ? t('entry.mediaAudioTrack', { n: at + 1, count: audio.length }) : t('entry.mediaAudio'), [
+      ['entry.mediaCodec', s.format], ['entry.mediaChannels', s.channels ? String(s.channels) : ''],
+      ['entry.mediaSamplingRate', s.samplingRate ? t('entry.mediaKhz', { n: number(s.samplingRate / 1000, 0, 1) }) : ''],
+      ['entry.mediaBitRate', bitRateText(s.bitRate)], ['entry.mediaLanguage', languageName(s.language)]])),
+    ...(f.image || []).map(i => mediaGroup(t('entry.kindImage'), [['entry.mediaFormat', i.format],
+      ['entry.mediaResolution', area(i.width, i.height)], ['entry.mediaBitDepth', bits(i.bitDepth)],
+      ['entry.mediaColorSpace', i.colorSpace], ['entry.mediaChroma', i.chroma]]))
+  ].join('');
+  return html || `<p>${tH('entry.mediaNone')}</p>`;
+}
 
 /* Zwei Zeilen, in der Mitte gekuerzt: die zweite traegt das Ende samt Endung.
    Ein kurzer Name bricht nur um. */
@@ -4889,6 +5010,13 @@ function openFileMenu(anchor, tile, head, sub, items) {
   const list = box.querySelector('.fmenu-list');
   list.setAttribute('aria-label', head);
   for (const it of items) {
+    if (it.line) {
+      const line = document.createElement('div');
+      line.className = 'fmenu-line';
+      line.setAttribute('role', 'separator');
+      list.appendChild(line);
+      continue;
+    }
     const el = document.createElement(it.href ? 'a' : 'button');
     el.className = 'fmenu-item' + (it.danger ? ' danger' : '');
     el.tabIndex = -1;
@@ -5463,8 +5591,12 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
 
     <div class="block block-wide" data-block="dateien">
       <div class="block-head"><span class="label">${tH('dialog.files')}</span><span class="hint" id="acount"></span>
-        <span class="ahead-acts"><select class="select asort" id="asort" aria-label="${esc(t('entry.filesSort'))}">${
-            Object.entries(FILES_SORTS).map(([v, key]) => `<option value="${esc(v)}">${tH(key)}</option>`).join('')}</select>
+        <span class="ahead-acts"><span class="asort-box"><select class="select asort" id="asort" aria-label="${esc(t('entry.filesSort'))}">${
+            Object.entries(FILES_SORTS).map(([v, s]) => `<option value="${esc(v)}">${tH(s.word)}</option>`).join('')}</select>
+          <button type="button" class="btn btn-sm sort-dir asort-dir" id="asort-dir"></button></span>
+          <select class="select asort agroup-pick" id="agroup-pick" aria-label="${esc(t('entry.filesGroup'))}">
+            <option value="none">${tH('entry.filesGroupNone')}</option>
+            <option value="type">${tH('entry.filesGroupType')}</option></select>
           <span class="aview" role="group" aria-label="${esc(t('entry.filesView'))}">
           <button type="button" class="aview-btn" data-view="tiles" aria-pressed="false">${tH('entry.filesTiles')}</button>
           <button type="button" class="aview-btn" data-view="list" aria-pressed="false">${tH('entry.filesList')}</button></span>
@@ -5472,6 +5604,11 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
         <button class="link-btn" id="afolder-new">${tH('entry.folderAdd')}</button></span></div>
       ${/* Die Vorschau wird nie verschoben: ein iframe laedt dabei neu. Jede Gruppe hat ihre eigene. */''}
       <div id="atts">
+        <div class="acols" role="group" aria-label="${esc(t('entry.filesSort'))}"><span class="acols-face"><span></span>
+          <button type="button" class="acol" data-sort="name"></button><span class="acol">${tH('entry.colKind')}</span>
+          <button type="button" class="acol acol-size" data-sort="size"></button>
+          <button type="button" class="acol" data-sort="date"></button><span class="acol acol-from">${tH('entry.colFrom')}</span></span>
+          <span class="acols-rest"></span></div>
         <div class="agroup">
           <p class="aempty" hidden><span class="hint">${tH('entry.noFilesYet')}</span>
             <span class="hint adrop-hint">${tH('entry.fileDropHint')}</span></p>
@@ -6969,7 +7106,8 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       + `<span class="aname"></span><span class="ameta"></span><span class="akind"></span><span class="asize"></span>`
       + `<span class="adate"></span><span class="afrom"></span><span class="anote"></span>`
       + `<span class="acheck" aria-hidden="true"></span></button>`
-      + (adds ? '' : `<button type="button" class="abtn aedit" hidden>${tH('entry.edit')}</button>`
+      + (adds ? '' : `<span class="aacts"><button type="button" class="aact aedit" hidden>${ICON_PEN}</button>`
+        + `<button type="button" class="aact alink" hidden>${ICON_LINK}</button></span>`
         + `<button type="button" class="amore" aria-haspopup="menu" aria-expanded="false">⋯</button>`);
     const face = li.querySelector('.aface');
     face.onclick = () => tileAction(li);
@@ -6992,7 +7130,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   // Die Bildflaeche nur neu, wenn sich ihre Art aendert; ein neues img laedt die Kachel neu.
   // `badge`: die Endung ueber dem Vorschaubild eines Dokuments; `note`: der Zustand in der Liste.
   function fillTile(li, { name, size, kind, picture, video, duration, meta, label, corner, open,
-                          badge = '', date = '', from = '', note = '' }) {
+                          badge = '', date = '', from = '', note = '', kindCell = kind, codec = '' }) {
     const face = li.querySelector('.aface');
     face.setAttribute('aria-label', label);
     li.classList.toggle('open', !!open);
@@ -7001,13 +7139,14 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     const src = picture && pic.dataset.broken !== picture ? picture : '';
     // Die Zustandsecke eines Uploads steht an der Stelle der Dauer.
     const shown = corner ? '' : duration;
-    const want = `${src}|${kind}|${video ? 1 : 0}|${shown}|${badge}`;
+    const want = `${src}|${kind}|${video ? 1 : 0}|${shown}|${badge}|${codec}`;
     if (pic.dataset.shows !== want) {
       pic.dataset.shows = want;
       pic.innerHTML = (src ? `<img class="athumb${badge ? ' adoc' : ''}" src="${esc(src)}" alt="" loading="lazy">`
         : `<span class="aext">${esc(kind)}</span>`)
         + `${src && badge ? `<span class="abadge">${esc(badge)}</span>` : ''}`
-        + `${video ? '<span class="play-badge">▶</span>' : ''}${shown ? `<span class="duration">${esc(shown)}</span>` : ''}`;
+        + `${video ? '<span class="play-badge">▶</span>' : ''}${shown ? `<span class="duration">${esc(shown)}</span>` : ''}`
+        + `${codec ? `<span class="acodec">${esc(codec)}</span>` : ''}`;
       const img = pic.querySelector('img');
       if (img) img.onerror = () => { pic.dataset.broken = src; pic.dataset.shows = `|${kind}|${video ? 1 : 0}|${shown}`;
         pic.innerHTML = `<span class="aext">${esc(kind)}</span>${video ? '<span class="play-badge">▶</span>' : ''}`
@@ -7027,7 +7166,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       nameBox.replaceChildren(...nameLines(name));
     }
     li.querySelector('.ameta').textContent = [size, meta].filter(Boolean).join(' · ');
-    li.querySelector('.akind').textContent = kind;
+    li.querySelector('.akind').textContent = kindCell;
     li.querySelector('.asize').textContent = size;
     li.querySelector('.adate').textContent = date;
     li.querySelector('.afrom').textContent = from;
@@ -7048,8 +7187,8 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     fillTile(li, { name: a.filename, size: filesize(a.size), kind, meta: from, duration: length,
       picture: a.preview === 'image' || (video && a.still) || a.thumb ? fileTileSource(a) : coming,
       video: video || /^video\//.test(a.mime_type || ''), badge: a.thumb ? kind : '',
-      date: fmtDateOnly(a.created_at), from,
-      label: [a.filename, kind, length, filesize(a.size), from].filter(Boolean).join(', '),
+      date: fmtDateOnly(a.created_at), from, kindCell: kindText(a), codec: video ? a.codec || '' : '',
+      label: [a.filename, kind, video ? a.codec : '', length, filesize(a.size), from].filter(Boolean).join(', '),
       open: openPreview === a.id || lightboxFile === a.id });
     if (video && !a.still && a.mine === true && shown) catchUpStill(id, a);
     if (readable && !isNarrow()) {
@@ -7061,11 +7200,17 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     const more = li.querySelector('.amore');
     more.setAttribute('aria-label', t('entry.fileMenu', { name: a.filename }));
     more.title = t('entry.fileMenu', { name: a.filename });
-    // Dieselbe Bedingung wie „Bearbeiten" in fileMenu(); die Kacheln blenden den Knopf aus.
+    // Dieselbe Bedingung wie „Bearbeiten" in fileMenu(); die Kacheln blenden die Spalte aus.
     const edit = li.querySelector('.aedit');
     edit.hidden = !!filesPicked || !(a.preview === 'office' && a.edit && !isNarrow());
+    edit.title = t('entry.edit');
     edit.setAttribute('aria-label', t('entry.editNamed', { name: a.filename }));
     edit.onclick = () => { location.hash = fileAddress(id, a.id, true); };
+    const link = li.querySelector('.alink');
+    link.hidden = !!filesPicked;
+    link.title = t('entry.copyFileLink');
+    link.setAttribute('aria-label', t('entry.linkNamed', { name: a.filename }));
+    link.onclick = () => copyText(fileLink(a), t('card.linkCopied'));
     pickState(li, filesPicked && mayDeleteFile(a) ? filesPicked.has(a.id) : null);
   }
 
@@ -7243,20 +7388,36 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     el.querySelector('.agrid').setAttribute('aria-label', f.name);
   }
 
-  /* ---- Sortieren ---- */
+  /* ---- Sortieren und Gruppieren ---- */
   const byName = (x, y) => x.localeCompare(y, LOCALE, { numeric: true, sensitivity: 'accent' });
   const byText = (x, y) => (x > y) - (x < y);
-  // „Älteste zuerst" ist die Folge des Servers: sort_order, dann id.
+  // Bei gleichem Datum gilt die Folge des Servers: sort_order, dann id.
+  const FILE_ORDER = {
+    name: (a, b) => byName(a.filename, b.filename),
+    date: (a, b) => byText(a.created_at, b.created_at) || a.sort_order - b.sort_order,
+    size: (a, b) => a.size - b.size
+  };
   function sortedFiles(files) {
-    if (FILES_SORT === 'newest') return files.slice().sort((a, b) => byText(b.created_at, a.created_at) || b.id - a.id);
-    if (FILES_SORT === 'name') return files.slice().sort((a, b) => byName(a.filename, b.filename) || a.id - b.id);
-    return files;
+    const sign = FILES_SORT.asc ? 1 : -1;
+    return files.slice().sort((a, b) => sign * (FILE_ORDER[FILES_SORT.key](a, b) || a.id - b.id));
   }
-  // Die Ordner kommen vom Server als „Jüngste zuerst" (Testtag oder Erstelldatum).
+  // „Nach Typ": die Arten nach Name, „Sonstige" zuletzt; sort() ist stabil, in jeder Art bleibt die Sortierung.
+  const kindOrder = (x, y) => (x === 'other') - (y === 'other') || byName(t(KIND_WORDS[x]), t(KIND_WORDS[y]));
+  const shownFiles = (files) => (FILES_GROUP === 'type'
+    ? sortedFiles(files).sort((a, b) => kindOrder(kindOf(a), kindOf(b))) : sortedFiles(files));
+  // Die Ordner kommen vom Server neueste zuerst (Testtag oder Erstelldatum); nach Größe zählt die Summe ihrer Dateien.
   function sortedFolders(folders) {
-    if (FILES_SORT === 'oldest') return folders.slice().reverse();
-    if (FILES_SORT === 'name') return folders.slice().sort((a, b) => byName(a.name, b.name) || a.id - b.id);
-    return folders;
+    const { key, asc } = FILES_SORT;
+    if (key === 'date') return asc ? folders.slice().reverse() : folders;
+    const sum = (f) => (item.attachments || []).filter(a => groupOf(a) === f.id).reduce((s, a) => s + a.size, 0);
+    const by = key === 'name' ? (x, y) => byName(x.name, y.name) : (x, y) => sum(x) - sum(y);
+    return folders.slice().sort((x, y) => (asc ? 1 : -1) * (by(x, y) || x.id - y.id));
+  }
+  function newKindHead(key) {
+    const li = document.createElement('li');
+    li.className = 'akindhead';
+    li.dataset.key = key;
+    return li;
   }
 
   /* Aktualisiert die Kacheln nach Nummer, auch ueber Gruppen hinweg; die Vorschau bleibt stehen. */
@@ -7292,15 +7453,24 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       ? t('entry.fileCount', { n: list.length,
           filesize: filesize(list.reduce((s2, a) => s2 + a.size, 0)) }) : '';
     looseGroup.querySelector('.aempty').hidden = list.length + jobs.length + remote.length > 0;
-    const old = new Map([...attsBox.querySelectorAll('.atile')].map(li => [li.dataset.key, li]));
+    const old = new Map([...attsBox.querySelectorAll('.atile, .akindhead')].map(li => [li.dataset.key, li]));
     const taken = list.length + jobs.length + remote.length;
+    const fileEntries = (key, shown) => {
+      const files = shownFiles(list.filter(a => groupOf(a) === key));
+      const count = (k) => files.filter(a => kindOf(a) === k).length;
+      return files.flatMap((a, at) => {
+        const row = ['f' + a.id, li => fillFileTile(li, a, key, shown)], k = kindOf(a);
+        if (FILES_GROUP !== 'type' || (at && kindOf(files[at - 1]) === k)) return [row];
+        return [[`k${key}-${k}`, li => { li.textContent = `${t(KIND_WORDS[k])} · ${count(k)}`; }], row];
+      });
+    };
     const tilesOf = (key, shown, adds) => [
-      ...sortedFiles(list.filter(a => groupOf(a) === key)).map(a => ['f' + a.id, li => fillFileTile(li, a, key, shown)]),
+      ...fileEntries(key, shown),
       ...remote.filter(x => remoteGroup(x) === key).map(x => ['s' + x.id, li => fillRemoteTile(li, x)]),
       ...jobs.filter(u => jobGroup(u) === key).map(u => ['u' + u.no, li => fillUploadTile(li, u)]),
       ...(adds ? [[key ? `add-f${key}` : 'add', li => fillAddTile(li, taken)]] : [])];
     const place = (grid, want) => want.forEach(([key, fill], at) => {
-      const li = old.get(key) || newTile(key);
+      const li = old.get(key) || (key.startsWith('k') ? newKindHead(key) : newTile(key));
       old.delete(key);
       fill(li);
       if (grid.children[at] !== li) grid.insertBefore(li, grid.children[at] || null);
@@ -7325,12 +7495,12 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     awaitTiles();
   }
 
-  /* Vorschaubilder von Dokumenten entstehen auf dem Server nach dem Upload; nachgefragt wird
-     nach TILE_WAITS, fuer jede neue Menge wartender Dateien von vorn. */
+  /* Vorschaubilder von Dokumenten und der Codec eines Videos entstehen auf dem Server nach dem
+     Upload; nachgefragt wird nach TILE_WAITS, fuer jede neue Menge wartender Dateien von vorn. */
   const TILE_WAITS = [3000, 6000, 12000, 24000];
   let tileTimer = null, tileTries = 0, tileWaiting = '';
   function awaitTiles() {
-    const waiting = (item.attachments || []).filter(a => a.thumbSoon).map(a => a.id).join(',');
+    const waiting = (item.attachments || []).filter(a => a.thumbSoon || a.infoSoon).map(a => a.id).join(',');
     if (waiting !== tileWaiting) { tileWaiting = waiting; tileTries = 0; }
     if (!waiting || tileTimer || tileTries >= TILE_WAITS.length) return;
     tileTimer = setTimeout(async () => {
@@ -7374,26 +7544,46 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     else if (x) remoteMenu(x, li);
   }
 
+  // Beim ersten Aufruf liest der Server die Datei; bis dahin steht „wird gelesen“ im Dialog.
+  async function showMediaInfo(a, li) {
+    const { bd, done } = openModal(`<div class="modal minfo"><h2>${tH('entry.mediaInfo')}</h2>
+      <p class="minfo-name"></p><div class="minfo-body" aria-live="polite"><p>${tH('entry.mediaReading')}</p></div>
+      <div class="modal-acts"><button class="btn btn-accent" data-yes>${tH('list.close')}</button></div></div>`,
+      () => { if (li.isConnected) li.querySelector('.amore')?.focus(); }, null);
+    bd.querySelector('.minfo-name').textContent = a.filename;
+    bd.querySelector('[data-yes]').onclick = () => done(null);
+    bd.querySelector('[data-yes]').focus();
+    const body = bd.querySelector('.minfo-body');
+    try { body.innerHTML = mediaInfoHtml(await api('GET', `/api/attachments/${Number(a.id)}/info`)); }
+    catch (e) { body.innerHTML = `<p>${esc(e.message)}</p>`; }
+  }
+
   /* Nur was der Server annimmt; die eigene Nummer kennt der Browser nicht, daher `mine`. */
   function fileMenu(a, li) {
-    const items = [];
-    if (a.mine && a.edit) items.push({ label: t('entry.editAll'), checked: a.editAll === true, run: async () => {
+    const [open, pass, sort, keep, drop] = [[], [], [], [], []];
+    if (a.preview === 'image' || a.preview === 'video')
+      open.push({ label: t('entry.openFile'), run: () => showFile(a.id) });
+    else if (FILE_READABLE.includes(a.preview))
+      open.push({ label: t('entry.openFile'), run: () => { location.hash = fileAddress(id, a.id); } });
+    if (a.preview === 'office' && a.edit && !isNarrow())
+      open.push({ label: t('entry.edit'), run: () => { location.hash = fileAddress(id, a.id, true); } });
+    pass.push({ label: t('entry.download'), href: `/api/attachments/${Number(a.id)}/raw` });
+    pass.push({ label: t('entry.copyFileLink'), run: () => copyText(fileLink(a), t('card.linkCopied')) });
+    if (a.preview === 'image' || a.preview === 'video')
+      pass.push({ label: t('entry.mediaInfo'), own: true, run: () => showMediaInfo(a, li) });
+    const targets = moveTargets(a);
+    if (a.mine === true && targets.length)
+      sort.push({ label: t('entry.moveTo'), own: true, run: () => moveMenu(a, li, targets) });
+    if (a.mine && a.preview === 'video') sort.push({ label: t('entry.chooseStill'), run: () => showFile(a.id) });
+    if (a.restore) keep.push({ label: t('entry.restorePrevious'), run: () => restorePrevious(a) });
+    if (a.mine && a.edit) keep.push({ label: t('entry.editAll'), checked: a.editAll === true, run: async () => {
       try { item = await api('PUT', `/api/attachments/${a.id}/editing`, { editAll: !a.editAll }); drawAtts(); }
       catch (e) { toast(e.message, true); }
     } });
-    if (a.preview === 'office' && a.edit && !isNarrow())
-      items.push({ label: t('entry.edit'), run: () => { location.hash = fileAddress(id, a.id, true); } });
-    if (FILE_READABLE.includes(a.preview))
-      items.push({ label: t('entry.openFile'), run: () => { location.hash = fileAddress(id, a.id); } });
-    if (a.mine && a.preview === 'video') items.push({ label: t('entry.setStill'), run: () => showFile(a.id) });
-    items.push({ label: t('entry.copyFileLink'), run: () => copyText(fileLink(a), t('card.linkCopied')) });
-    items.push({ label: t('entry.download'), href: `/api/attachments/${Number(a.id)}/raw` });
-    if (a.restore) items.push({ label: t('entry.restorePrevious'), run: () => restorePrevious(a) });
-    const targets = moveTargets(a);
-    if (a.mine === true && targets.length)
-      items.push({ label: t('entry.moveTo'), own: true, run: () => moveMenu(a, li, targets) });
-    if (mayDeleteFile(a)) items.push({ label: t('entry.deleteFile'), danger: true, own: true,
+    if (mayDeleteFile(a)) drop.push({ label: t('entry.deleteFile'), danger: true, own: true,
       run: () => deleteFromMenu(a, li) });
+    const items = [open, pass, sort, keep, drop].filter(g => g.length)
+      .flatMap((g, at) => at ? [{ line: true }, ...g] : g);
     openFileMenu(li.querySelector('.amore'), li, a.filename, uploadedLine(a), items);
   }
 
@@ -7674,7 +7864,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     const target = (item.attachments || []).find(a => a.id === Number(fileId));
     if (!target) return false;
     const key = groupOf(target);
-    const pictures = sortedFiles((item.attachments || [])
+    const pictures = shownFiles((item.attachments || [])
       .filter(a => (a.preview === 'image' || a.preview === 'video') && groupOf(a) === key))
       .map(a => ({ ...a, source: 'file', kind: a.preview === 'video' ? 'video' : 'image' }));
     const at = pictures.findIndex(a => a.id === Number(fileId));
@@ -7860,13 +8050,44 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   };
   showFilesView();
   const sortBox = document.getElementById('asort');
-  sortBox.value = FILES_SORT;
-  sortBox.onchange = async () => {
-    FILES_SORT = sortBox.value;
+  const sortDir = document.getElementById('asort-dir');
+  const groupPick = document.getElementById('agroup-pick');
+  const colButtons = [...fileBlock.querySelectorAll('.acol[data-sort]')];
+  function drawSortControls() {
+    const s = FILES_SORTS[FILES_SORT.key];
+    const way = t(FILES_SORT.asc ? s.up : s.down);
+    sortBox.value = FILES_SORT.key;
+    sortDir.textContent = way;
+    sortDir.title = t('list.sortFlip');
+    groupPick.value = FILES_GROUP;
+    for (const b of colButtons) {
+      const on = b.dataset.sort === FILES_SORT.key;
+      const word = t(FILES_SORTS[b.dataset.sort].word);
+      b.textContent = on ? `${word} ${FILES_SORT.asc ? '▲' : '▼'}` : word;
+      b.setAttribute('aria-pressed', String(on));
+      b.setAttribute('aria-label', on ? `${word}, ${way}` : t('entry.sortByColumn', { name: word }));
+      b.title = on ? t('list.sortFlip') : t('entry.sortByColumn', { name: word });
+    }
+  }
+  async function takeFilesSort(key, asc) {
+    FILES_SORT = { key, asc };
+    drawSortControls();
     drawAtts();
-    try { await api('PUT', '/api/settings', { filesSort: FILES_SORT }); }
+    try { await api('PUT', '/api/settings', { filesSort: `${key}_${asc ? 'asc' : 'desc'}` }); }
+    catch (e) { toast(e.message, true); }
+  }
+  sortBox.onchange = () => takeFilesSort(sortBox.value, FILES_SORTS[sortBox.value].start);
+  sortDir.onclick = () => takeFilesSort(FILES_SORT.key, !FILES_SORT.asc);
+  for (const b of colButtons) b.onclick = () => (b.dataset.sort === FILES_SORT.key
+    ? takeFilesSort(FILES_SORT.key, !FILES_SORT.asc)
+    : takeFilesSort(b.dataset.sort, FILES_SORTS[b.dataset.sort].start));
+  groupPick.onchange = async () => {
+    FILES_GROUP = groupPick.value;
+    drawAtts();
+    try { await api('PUT', '/api/settings', { filesGroup: FILES_GROUP }); }
     catch (e) { toast(e.message, true); }
   };
+  drawSortControls();
 
   UPLOAD_VIEW = { itemId: Number(id), redraw: drawAtts, took: (fresh) => { item = fresh; drawAtts(); } };
 

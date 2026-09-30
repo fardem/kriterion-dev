@@ -341,6 +341,12 @@ geht direkt dort.
   letzten Stück (5 %, mindestens 10 Sekunden) merkt sich Kriterion nichts; das
   Video beginnt dann von vorn. Das gilt auch für Videos unter „Dateien“ und in
   Kommentaren.
+- **Video ganz laden:** Spielt ein Video im Vollbild, lädt der Browser die ganze
+  Datei, am Rechner bis 2 GB, am Telefon bis 500 MB. Oben steht „geladen 45 %“.
+  Danach stockt das Video nicht mehr, und Springen braucht kein Laden. Größere
+  Videos und Videos bei eingeschaltetem Datensparen lädt der Browser wie bisher
+  stückweise. Nach dem Schließen bleibt nichts auf dem Gerät. Das gilt auch für
+  Videos unter „Dateien“ und in Kommentaren.
 - **Auswählen:** „Auswählen“ über der Bildleiste setzt ein Kästchen an jedes
   Foto und Video; Klick oder Leertaste wählt. Die Leiste darunter nennt die
   Zahl und bietet „Löschen“ mit einer Rückfrage, „Alle auswählen“ und
@@ -367,16 +373,30 @@ unverändert.
   oder Endung, darunter Name und Größe. Die Liste zeigt je Datei eine Zeile:
   kleines Vorschaubild, Name, Art, Größe, Datum des Uploads und bei mehreren
   Accounts, wer hochgeladen hat; auf dem Telefon stehen Größe und Datum unter
-  dem Namen. Klick, Menü, Vorschau und Tastatur sind in beiden Ansichten
-  gleich. In der Liste steht „Bearbeiten“ direkt in der Zeile einer Datei, die
-  man bearbeiten darf; auf dem Telefon nur im Menü. Bis 2 GB je Datei (Grenze
-  „Datei“), höchstens 100 je Eintrag.
-- **Sortieren:** die Auswahl neben „Kacheln“ und „Liste“ ordnet nach „Älteste
-  zuerst“ (Vorgabe), „Jüngste zuerst“ oder „Name“; die Wahl gilt für alle
-  Einträge und auf jedem Gerät. Das Alter ist das Datum des Uploads. „Name“
-  unterscheidet nicht nach Groß- und Kleinschreibung und stellt „2“ vor „10“.
-  Die Dateien ohne Ordner bleiben oben, jeder Ordner bleibt eine Gruppe; die
-  Ordner folgen derselben Wahl. Laufende Uploads stehen am Ende ihrer Gruppe.
+  dem Namen. Die Art ist Video, Bild, PDF, Word, Excel, PowerPoint, Text,
+  Archiv oder Sonstige; bei einem Video stehen dort Codec und Länge, etwa
+  „HEVC · 3:12“. Klick, Menü, Vorschau und Tastatur sind in beiden Ansichten
+  gleich. Bis 2 GB je Datei (Grenze „Datei“), höchstens 100 je Eintrag.
+- **Liste am Rechner:** Über der Liste steht eine Kopfzeile. Ein Klick auf
+  „Name“, „Größe“ oder „Datum“ sortiert danach, ein zweiter kehrt die Richtung
+  um; ▲ oder ▼ steht an der sortierten Spalte. Am Ende jeder Zeile stehen ✎
+  (Bearbeiten, nur an einer Datei, die man bearbeiten darf) und 🔗 (Link auf
+  die Datei kopieren); auf dem Telefon beides nur im Menü.
+- **Sortieren:** die Auswahl neben „Kacheln“ und „Liste“ ordnet nach „Name“,
+  „Datum“ oder „Größe“. Der Knopf daneben kehrt die Richtung um: „A → Z“ und
+  „Z → A“, „alt → neu“ und „neu → alt“, „klein → groß“ und „groß → klein“.
+  Nach dem Wechsel gilt „A → Z“, „alt → neu“ oder „groß → klein“; Vorgabe ist
+  „Datum“ mit „alt → neu“. Die Wahl gilt für alle Einträge und auf jedem
+  Gerät. Das Datum ist das des Uploads. „Name“ unterscheidet nicht nach Groß-
+  und Kleinschreibung und stellt „2“ vor „10“. Die Dateien ohne Ordner bleiben
+  oben, jeder Ordner bleibt eine Gruppe; die Ordner folgen derselben Wahl, nach
+  Größe mit der Summe ihrer Dateien. Laufende Uploads stehen am Ende ihrer
+  Gruppe.
+- **Gruppieren:** „Nach Typ gruppiert“ in der zweiten Auswahl setzt je Art eine
+  Zwischenzeile mit der Zahl, etwa „PDF · 3“. Die Arten stehen nach Name,
+  „Sonstige“ zuletzt; in jeder Art gilt die Sortierung. Jeder Ordner bekommt
+  eigene Typgruppen. Das Vollbild blättert in derselben Folge. Die Wahl gilt
+  wie die Sortierung für alle Einträge und auf jedem Gerät.
   Hochgeladen wird mit der Kachel „+“, in der Liste „Dateien hochladen“, oder
   durch Ablegen von Dateien auf dem Block. Jede Datei steht sofort als Kachel da und
   geht einzeln hoch, die kleinste zuerst. Die Kachel zeigt „wartet“, den
@@ -429,7 +449,7 @@ unverändert.
   Esc beendet die Auswahl.
 - **Klick auf eine Datei:** Ein Bild oder Video öffnet das Vollbild; ← und →
   blättern durch Bilder und Videos derselben Gruppe, ohne Ordner oder im
-  selben Ordner. PDF, Text, Markdown, CSV,
+  selben Ordner, in der Folge der Anzeige. PDF, Text, Markdown, CSV,
   Log und `.docx` zeigen die Vorschau unter den Kacheln, auf dem Telefon die
   eigene Ansicht. Hat der Admin einen Document Server eingeschaltet, gilt das
   auch für Word-, Excel- und PowerPoint-Dateien und ihre
@@ -437,12 +457,14 @@ unverändert.
   Server die Datei anzeigt. Jede andere Datei öffnet ihr Menü. Ein Klick lädt
   nie herunter.
 - **Videos:** MP4, M4V, WebM und MOV spielen im Vollbild, auch auf dem
-  iPhone. Die Kachel zeigt ein Vorschaubild, ▶ und die Dauer. Das
-  Vorschaubild entsteht beim Hochladen im Browser, bei 10 % der Länge. Fehlt
-  es, etwa nach einem Import, erzeugt es der Browser dessen, der das Video
-  hochgeladen hat, beim Öffnen des Eintrags. „Dieses Bild als Vorschaubild“
-  im Menü ⋯ oder im Vollbild nimmt das gezeigte Bild; das darf nur, wer das
-  Video hochgeladen hat. Kann der Browser ein Video nicht abspielen, etwa
+  iPhone. Die Kachel zeigt ein Vorschaubild, ▶, die Dauer und links unten den
+  Codec, etwa „HEVC“. Den Codec liest Kriterion nach dem Upload; bei Videos von
+  vor dem Update beim nächsten Start. Das Vorschaubild entsteht beim Hochladen
+  im Browser, bei 10 % der Länge. Fehlt es, etwa nach einem Import, erzeugt es
+  der Browser dessen, der das Video hochgeladen hat, beim Öffnen des Eintrags.
+  „Vorschaubild wählen …“ im Menü ⋯ öffnet das Vollbild; dort nimmt „Dieses
+  Bild als Vorschaubild“ das gezeigte Bild. Das darf nur, wer das Video
+  hochgeladen hat. Kann der Browser ein Video nicht abspielen, etwa
   HEVC in Firefox, stehen dort ein Satz und „Herunterladen“.
 - **Vorschaubild eines Dokuments:** Text, Markdown, CSV und Log zeigen auf der
   Kachel ihre ersten Zeilen. Word-, Excel- und PowerPoint-Dateien, ihre
@@ -456,13 +478,21 @@ unverändert.
   sie, ebenso das Zuklappen ihres Ordners. Im Kopf öffnet ⤢ die
   eigene Ansicht, ↓ lädt herunter, × oder Esc schließt. Kann Kriterion eine
   Bilddatei nicht als Bild lesen, steht auf der Kachel die Endung.
-- **Menü ⋯:** steht an jeder Kachel und bietet nur an, was man darf:
-  „Bearbeiten durch alle“, „Bearbeiten“, „Öffnen“, „Dieses Bild als
-  Vorschaubild“, „Link auf diese Datei kopieren“, „Herunterladen“, „Vorige
-  Fassung wiederherstellen“, „Verschieben nach …“ und „Datei löschen“. Oben steht der Name, bei
+- **Menü ⋯:** steht an jeder Kachel und bietet nur an, was man darf, in fünf
+  Gruppen, getrennt durch Linien: „Öffnen“ und „Bearbeiten“; „Herunterladen“,
+  „Link auf diese Datei kopieren“ und „Erweiterte Infos“; „Verschieben nach …“
+  und „Vorschaubild wählen …“; „Vorige Fassung wiederherstellen“ und
+  „Bearbeiten durch alle“; „Datei löschen“. Oben steht der Name, bei
   mehreren Accounts auch, wer die Datei wann hochgeladen hat. Auf dem Telefon öffnet das Menü am unteren Rand. An
   einer Kachel, die noch hochgeht, steht „Abbrechen“, nach einem Fehler
   „Erneut versuchen“ und „Entfernen“.
+- **Erweiterte Infos:** „Erweiterte Infos“ im Menü ⋯ eines Bildes oder Videos
+  zeigt, was in der Datei steht. Allgemein: Format, Dateigröße, Dauer,
+  Gesamtbitrate, Aufnahmedatum und die Zahl der Tonspuren. Video: Codec,
+  Profil, Auflösung, Bildrate, Bitrate, Bittiefe, Farbunterabtastung und HDR.
+  Je Tonspur: Codec, Kanäle, Abtastrate, Bitrate und Sprache. Bild: Format,
+  Auflösung, Bittiefe, Farbraum und Farbunterabtastung. Was die Datei nicht
+  angibt, fehlt.
 - **Tastatur:** Tab erreicht jede Kachel und ihr ⋯. Umschalt+F10 öffnet das
   Menü, ↑ und ↓ wählen, Enter führt aus, Esc schließt.
 - **Link kopieren:** kopiert die Adresse der Datei. Die Adresse eines Bildes

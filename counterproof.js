@@ -8535,8 +8535,8 @@ const REGRESSIONS = [
   {
     nr: '1232', name: 'Das Menue verliert Oeffnen',
     file: 'public/app.js',
-    search: "    if (FILE_READABLE.includes(a.preview))\n      items.push({ label: t('entry.openFile')",
-    replacement: "    if (false)\n      items.push({ label: t('entry.openFile')",
+    search: "    else if (FILE_READABLE.includes(a.preview))\n      open.push({ label: t('entry.openFile')",
+    replacement: "    else if (false)\n      open.push({ label: t('entry.openFile')",
     expected: 'Document Server: die eigene Ansicht'
   },
   {
@@ -8745,8 +8745,8 @@ const REGRESSIONS = [
   {
     nr: '1262', name: 'Bearbeiten steht im Menue jeder Buerodatei',
     file: 'public/app.js',
-    search: "    if (a.preview === 'office' && a.edit && !isNarrow())\n      items.push({ label: t('entry.edit')",
-    replacement: "    if (a.preview === 'office')\n      items.push({ label: t('entry.edit')",
+    search: "    if (a.preview === 'office' && a.edit && !isNarrow())\n      open.push({ label: t('entry.edit')",
+    replacement: "    if (a.preview === 'office')\n      open.push({ label: t('entry.edit')",
     expected: 'Bearbeiten: im Browser'
   },
   {
@@ -8787,8 +8787,8 @@ const REGRESSIONS = [
   {
     nr: '1268', name: 'Bearbeiten durch alle steht an jeder bearbeitbaren Datei',
     file: 'public/app.js',
-    search: "    if (a.mine && a.edit) items.push({ label: t('entry.editAll')",
-    replacement: "    if (a.edit) items.push({ label: t('entry.editAll')",
+    search: "    if (a.mine && a.edit) keep.push({ label: t('entry.editAll')",
+    replacement: "    if (a.edit) keep.push({ label: t('entry.editAll')",
     expected: 'Bearbeiten: im Browser'
   },
   {
@@ -9053,8 +9053,8 @@ const REGRESSIONS = [
   {
     nr: '1310', name: 'Das Menue bietet Datei loeschen ohne Pruefung der Rechte an',
     file: 'public/app.js',
-    search: "    if (mayDeleteFile(a)) items.push({ label: t('entry.deleteFile'), danger: true, own: true,",
-    replacement: "    if (true) items.push({ label: t('entry.deleteFile'), danger: true, own: true,",
+    search: "    if (mayDeleteFile(a)) drop.push({ label: t('entry.deleteFile'), danger: true, own: true,",
+    replacement: "    if (true) drop.push({ label: t('entry.deleteFile'), danger: true, own: true,",
     expected: 'Dateien in Kacheln: das Menue zeigt nur Erlaubtes'
   },
   {
@@ -9901,8 +9901,8 @@ const REGRESSIONS = [
   {
     nr: '1443', name: "Import und Papierkorb holen kein Vorschaubild nach",
     file: 'server.js',
-    search: "  if (stats.attachments) docTilesSoon();\n",
-    replacement: "",
+    search: "  if (stats.attachments) {\n    docTilesSoon();\n",
+    replacement: "  if (stats.attachments) {\n",
     expected: "Dateien: ein neuer Stand bekommt ein neues Vorschaubild"
   },
   {
@@ -10154,8 +10154,8 @@ const REGRESSIONS = [
   {
     nr: '1479', name: "Das Video springt nicht an die gemerkte Stelle",
     file: 'public/app.js',
-    search: "    player.currentTime = at;\n",
-    replacement: "",
+    search: "    if (!(at > 0) || player.currentTime >= 1) return;\n    player.currentTime = at;\n",
+    replacement: "    if (!(at > 0) || player.currentTime >= 1) return;\n",
     expected: "Stelle im Video im Browser"
   },
   {
@@ -10385,8 +10385,8 @@ const REGRESSIONS = [
   {
     nr: '1512', name: "filesSort fehlt unter den persoenlichen Schluesseln",
     file: 'server.js',
-    search: "                                'filesSort', 'filters', 'font',",
-    replacement: "                                'filters', 'font',",
+    search: "                                'filesSort', 'filesGroup', 'filters', 'font',",
+    replacement: "                                'filesGroup', 'filters', 'font',",
     expected: "Dateien sortieren: die Einstellung"
   },
   {
@@ -10432,10 +10432,10 @@ const REGRESSIONS = [
     expected: "Hinweis beim Weiterspielen: 10 s"
   },
   {
-    nr: '1519', name: "„Jüngste zuerst\" sortiert die Dateien nicht",
+    nr: '1519', name: "Die Richtung kehrt die Folge der Dateien nicht um",
     file: 'public/app.js',
-    search: "    if (FILES_SORT === 'newest') return files.slice().sort((a, b) => byText(b.created_at, a.created_at) || b.id - a.id);\n",
-    replacement: "",
+    search: "    const sign = FILES_SORT.asc ? 1 : -1;\n",
+    replacement: "    const sign = 1;\n",
     expected: "Dateien sortieren im Browser"
   },
   {
@@ -10455,15 +10455,15 @@ const REGRESSIONS = [
   {
     nr: '1522', name: "Die Sortierung wird nicht gespeichert",
     file: 'public/app.js',
-    search: "    try { await api('PUT', '/api/settings', { filesSort: FILES_SORT }); }",
+    search: "    try { await api('PUT', '/api/settings', { filesSort: `${key}_${asc ? 'asc' : 'desc'}` }); }",
     replacement: "    try { await Promise.resolve(); }",
     expected: "Dateien sortieren im Browser"
   },
   {
     nr: '1523', name: "Laufende Uploads stehen vor den Dateien ihrer Gruppe",
     file: 'public/app.js',
-    search: "      ...sortedFiles(list.filter(a => groupOf(a) === key)).map(a => ['f' + a.id, li => fillFileTile(li, a, key, shown)]),\n      ...remote.filter(x => remoteGroup(x) === key).map(x => ['s' + x.id, li => fillRemoteTile(li, x)]),",
-    replacement: "      ...remote.filter(x => remoteGroup(x) === key).map(x => ['s' + x.id, li => fillRemoteTile(li, x)]),\n      ...sortedFiles(list.filter(a => groupOf(a) === key)).map(a => ['f' + a.id, li => fillFileTile(li, a, key, shown)]),",
+    search: "      ...fileEntries(key, shown),\n      ...remote.filter(x => remoteGroup(x) === key).map(x => ['s' + x.id, li => fillRemoteTile(li, x)]),",
+    replacement: "      ...remote.filter(x => remoteGroup(x) === key).map(x => ['s' + x.id, li => fillRemoteTile(li, x)]),\n      ...fileEntries(key, shown),",
     expected: "Dateien sortieren im Browser"
   },
   {
@@ -10483,7 +10483,7 @@ const REGRESSIONS = [
   {
     nr: '1526', name: "Die Kacheln zeigen „Bearbeiten\"",
     file: 'public/style.css',
-    search: ".aedit { display: none; }\n",
+    search: ".aacts { display: none; }\n",
     replacement: "",
     expected: "Bearbeiten in der Listenzeile"
   },
@@ -10493,6 +10493,363 @@ const REGRESSIONS = [
     search: "    docker compose stop\n",
     replacement: "",
     expected: "Quelltext: backuptool.sh und backuptool.js"
+  },
+  {
+    nr: '1528', name: "Alte Werte ohne Richtung gelten nicht mehr",
+    file: 'server.js',
+    search: "  const v = a.alias?.[raw] ?? raw;\n",
+    replacement: "  const v = raw;\n",
+    expected: "Dateien sortieren und gruppieren: die Einstellungen"
+  },
+  {
+    nr: '1529', name: "filesGroup nimmt jeden Wert an",
+    file: 'server.js',
+    search: "      take('filesGroup');\n",
+    replacement: "      if (req.body.filesGroup !== undefined) putUserSetting(req.user.id, 'filesGroup', JSON.stringify(String(req.body.filesGroup)));\n",
+    expected: "Dateien sortieren und gruppieren: die Einstellungen"
+  },
+  {
+    nr: '1530', name: "Nach dem Upload liest niemand die Angaben",
+    file: 'server.js',
+    search: "  if (attachments.mediaKind(u.filename)) mediaSoon([added]);\n",
+    replacement: "",
+    expected: "Erweiterte Infos: Warteschlange nach dem Upload und Route"
+  },
+  {
+    nr: '1531', name: "Die Liste nennt den Codec nicht",
+    file: 'server.js',
+    search: "      ...(kind === 'video' ? { codec: a2.codec, infoSoon:",
+    replacement: "      ...(kind === 'video' ? { codec: null, infoSoon:",
+    expected: "Erweiterte Infos: Warteschlange nach dem Upload und Route"
+  },
+  {
+    nr: '1532', name: "Erweiterte Infos auch fuer Textdateien",
+    file: 'attachments.js',
+    search: "const mediaKind = (filename) => (['image', 'video'].includes(previewKind(filename)) ? previewKind(filename) : null);",
+    replacement: "const mediaKind = (filename) => previewKind(filename);",
+    expected: "Erweiterte Infos: Warteschlange nach dem Upload und Route"
+  },
+  {
+    nr: '1533', name: "Nur die erste Tonspur kommt an",
+    file: 'attachments.js',
+    search: "    audio: of('Audio').map(tr => ({",
+    replacement: "    audio: of('Audio').slice(0, 1).map(tr => ({",
+    expected: "Erweiterte Infos: Warteschlange nach dem Upload und Route"
+  },
+  {
+    nr: '1534', name: "Beim Start liest niemand nach",
+    file: 'server.js',
+    search: "  // Erst hier: der Document Server holt die Datei bei diesem Server ab.\n  docTilesSoon();\n  mediaSoon();\n",
+    replacement: "  // Erst hier: der Document Server holt die Datei bei diesem Server ab.\n  docTilesSoon();\n",
+    expected: "Erweiterte Infos: sofort, beim Start, ohne Datei und mit der Datei geloescht"
+  },
+  {
+    nr: '1535', name: "GET /info liest nicht sofort",
+    file: 'server.js',
+    search: "    const facts = await inMediaTurn(() => makeMedia(a.id));",
+    replacement: "    const facts = qMedia.get(a.id) ? JSON.parse(qMedia.get(a.id).info) : undefined;",
+    expected: "Erweiterte Infos: sofort, beim Start, ohne Datei und mit der Datei geloescht"
+  },
+  {
+    nr: '1536', name: "Die Zeile faellt nicht mit der Datei",
+    file: 'schema.js',
+    search: "CREATE TABLE IF NOT EXISTS attachment_media (\n  attachment_id INTEGER PRIMARY KEY REFERENCES attachments(id) ON DELETE CASCADE,",
+    replacement: "CREATE TABLE IF NOT EXISTS attachment_media (\n  attachment_id INTEGER PRIMARY KEY,",
+    expected: "Erweiterte Infos: sofort, beim Start, ohne Datei und mit der Datei geloescht"
+  },
+  {
+    nr: '1537', name: "Ohne lesbare Datei fragt der Browser ohne Ende nach",
+    file: 'server.js',
+    search: "    if (!e.damaged) throw e;\n    MEDIA_FAILED.add(id);\n    return undefined;",
+    replacement: "    if (!e.damaged) throw e;\n    return undefined;",
+    expected: "Erweiterte Infos: sofort, beim Start, ohne Datei und mit der Datei geloescht"
+  },
+  {
+    nr: '1538', name: "GET /info liest neben der Warteschlange",
+    file: 'server.js',
+    search: "    const facts = await inMediaTurn(() => makeMedia(a.id));",
+    replacement: "    const facts = await makeMedia(a.id);",
+    expected: "Erweiterte Infos: Quelltext"
+  },
+  {
+    nr: '1539', name: "Die Instanz von MediaInfo bleibt offen",
+    file: 'attachments.js',
+    search: "  finally { mi.close(); }\n",
+    replacement: "  finally { mi.reset(); }\n",
+    expected: "Erweiterte Infos: Quelltext"
+  },
+  {
+    nr: '1540', name: "Groesse beginnt mit klein nach gross",
+    file: 'public/app.js',
+    search: "up: 'entry.dirSmallLarge', down: 'entry.dirLargeSmall', start: false }",
+    replacement: "up: 'entry.dirSmallLarge', down: 'entry.dirLargeSmall', start: true }",
+    expected: "Sortieren mit Richtung"
+  },
+  {
+    nr: '1541', name: "Die Ordner zaehlen nach Groesse ihre Nummer",
+    file: 'public/app.js',
+    search: "    const by = key === 'name' ? (x, y) => byName(x.name, y.name) : (x, y) => sum(x) - sum(y);",
+    replacement: "    const by = key === 'name' ? (x, y) => byName(x.name, y.name) : (x, y) => x.id - y.id;",
+    expected: "Sortieren mit Richtung"
+  },
+  {
+    nr: '1542', name: "Die gespeicherte Richtung gilt nach dem Laden nicht",
+    file: 'public/app.js',
+    search: "  if (sortSet) FILES_SORT = { key: sortSet[1], asc: sortSet[2] === 'asc' };",
+    replacement: "  if (sortSet) FILES_SORT = { key: sortSet[1], asc: true };",
+    expected: "Sortieren mit Richtung"
+  },
+  {
+    nr: '1543', name: "Der zweite Klick in der Kopfzeile kehrt nicht um",
+    file: 'public/app.js',
+    search: "    ? takeFilesSort(FILES_SORT.key, !FILES_SORT.asc)\n    : takeFilesSort(b.dataset.sort",
+    replacement: "    ? takeFilesSort(FILES_SORT.key, FILES_SORT.asc)\n    : takeFilesSort(b.dataset.sort",
+    expected: "Kopfzeile der Liste"
+  },
+  {
+    nr: '1544', name: "Die Kopfzeile zeigt die sortierte Spalte nicht an",
+    file: 'public/app.js',
+    search: "      b.setAttribute('aria-pressed', String(on));",
+    replacement: "      b.setAttribute('aria-pressed', 'false');",
+    expected: "Kopfzeile der Liste"
+  },
+  {
+    nr: '1545', name: "Die Kopfzeile steht auch ueber den Kacheln",
+    file: 'public/style.css',
+    search: "\n.acols { display: none; }\n",
+    replacement: "\n",
+    expected: "Kopfzeile der Liste"
+  },
+  {
+    nr: '1546', name: "Nach Typ zeigt keine Zwischenzeilen",
+    file: 'public/app.js',
+    search: "        if (FILES_GROUP !== 'type' || (at && kindOf(files[at - 1]) === k)) return [row];",
+    replacement: "        if (true) return [row];",
+    expected: "Nach Typ gruppiert"
+  },
+  {
+    nr: '1547', name: "Sonstige steht nicht zuletzt",
+    file: 'public/app.js',
+    search: "  const kindOrder = (x, y) => (x === 'other') - (y === 'other') || byName(",
+    replacement: "  const kindOrder = (x, y) => byName(",
+    expected: "Nach Typ gruppiert"
+  },
+  {
+    nr: '1548', name: "Das Vollbild blaettert nach der Sortierung statt nach der Anzeige",
+    file: 'public/app.js',
+    search: "    const pictures = shownFiles((item.attachments || [])",
+    replacement: "    const pictures = sortedFiles((item.attachments || [])",
+    expected: "Nach Typ gruppiert"
+  },
+  {
+    nr: '1549', name: "Die Gruppierung wird nicht gespeichert",
+    file: 'public/app.js',
+    search: "    try { await api('PUT', '/api/settings', { filesGroup: FILES_GROUP }); }",
+    replacement: "    try { await Promise.resolve(); }",
+    expected: "Nach Typ gruppiert"
+  },
+  {
+    nr: '1550', name: "Art zeigt wieder die Endung",
+    file: 'public/app.js',
+    search: "kindCell: kindText(a), codec:",
+    replacement: "kindCell: kind, codec:",
+    expected: "Zeile: Art, Bearbeiten und Link"
+  },
+  {
+    nr: '1551', name: "Link fehlt in der Zeile",
+    file: 'public/app.js',
+    search: "    link.hidden = !!filesPicked;",
+    replacement: "    link.hidden = true;",
+    expected: "Zeile: Art, Bearbeiten und Link"
+  },
+  {
+    nr: '1552', name: "Link kopiert die Adresse der Seite",
+    file: 'public/app.js',
+    search: "    link.onclick = () => copyText(fileLink(a), t('card.linkCopied'));",
+    replacement: "    link.onclick = () => copyText(location.href, t('card.linkCopied'));",
+    expected: "Zeile: Art, Bearbeiten und Link"
+  },
+  {
+    nr: '1553', name: "Bearbeiten und Link haben keine feste Zelle",
+    file: 'public/style.css',
+    search: ".aedit { grid-column: 1; }\n",
+    replacement: "",
+    expected: "Zeile: Art, Bearbeiten und Link"
+  },
+  {
+    nr: '1554', name: "Link steht auch waehrend der Auswahl",
+    file: 'public/app.js',
+    search: "    link.hidden = !!filesPicked;",
+    replacement: "    link.hidden = false;",
+    expected: "Zeile: Art, Bearbeiten und Link"
+  },
+  {
+    nr: '1555', name: "Das Menue hat keine Trennlinien",
+    file: 'public/app.js',
+    search: "      .flatMap((g, at) => at ? [{ line: true }, ...g] : g);",
+    replacement: "      .flatMap(g => g);",
+    expected: "Menü „…\" in fünf Gruppen"
+  },
+  {
+    nr: '1556', name: "Oeffnen fehlt bei Bildern und Videos",
+    file: 'public/app.js',
+    search: "    if (a.preview === 'image' || a.preview === 'video')\n      open.push(",
+    replacement: "    if (false)\n      open.push(",
+    expected: "Menü „…\" in fünf Gruppen"
+  },
+  {
+    nr: '1557', name: "Erweiterte Infos stehen an jeder Datei",
+    file: 'public/app.js',
+    search: "    if (a.preview === 'image' || a.preview === 'video')\n      pass.push(",
+    replacement: "    if (true)\n      pass.push(",
+    expected: "Menü „…\" in fünf Gruppen"
+  },
+  {
+    nr: '1558', name: "Das Menue sagt wieder „Dieses Bild als Vorschaubild\"",
+    file: 'public/app.js',
+    search: "sort.push({ label: t('entry.chooseStill')",
+    replacement: "sort.push({ label: t('entry.setStill')",
+    expected: "Menü „…\" in fünf Gruppen"
+  },
+  {
+    nr: '1559', name: "Die Trennlinie ist ein Menueeintrag",
+    file: 'public/app.js',
+    search: "      line.setAttribute('role', 'separator');",
+    replacement: "      line.setAttribute('role', 'menuitem');",
+    expected: "Menü „…\" in fünf Gruppen"
+  },
+  {
+    nr: '1560', name: "Der Codec fehlt am Vorschaubild",
+    file: 'public/app.js',
+    search: "codec: video ? a.codec || '' : '',",
+    replacement: "codec: '',",
+    expected: "Erweiterte Infos: Dialog und Codec am Vorschaubild"
+  },
+  {
+    nr: '1561', name: "Die Liste zeigt den Codec am kleinen Bild",
+    file: 'public/style.css',
+    search: ".alist .apic .play-badge,\n.alist .apic .acodec { display: none; }",
+    replacement: ".alist .apic .play-badge { display: none; }",
+    expected: "Erweiterte Infos: Dialog und Codec am Vorschaubild"
+  },
+  {
+    nr: '1562', name: "Der Dialog steht leer, bis die Angaben kommen",
+    file: 'public/app.js',
+    search: "<div class=\"minfo-body\" aria-live=\"polite\"><p>${tH('entry.mediaReading')}</p></div>",
+    replacement: "<div class=\"minfo-body\" aria-live=\"polite\"></div>",
+    expected: "Erweiterte Infos: Dialog und Codec am Vorschaubild"
+  },
+  {
+    nr: '1563', name: "Die Tonspuren tragen keine Nummer",
+    file: 'public/app.js',
+    search: "    ...audio.map((s, at) => mediaGroup(audio.length > 1\n",
+    replacement: "    ...audio.map((s, at) => mediaGroup(false\n",
+    expected: "Erweiterte Infos: Dialog und Codec am Vorschaubild"
+  },
+  {
+    nr: '1564', name: "Nach dem Dialog steht der Fokus nirgends",
+    file: 'public/app.js',
+    search: "      () => { if (li.isConnected) li.querySelector('.amore')?.focus(); }, null);",
+    replacement: "      () => {}, null);",
+    expected: "Erweiterte Infos: Dialog und Codec am Vorschaubild"
+  },
+  {
+    nr: '1565', name: "Zeilen ohne Wert stehen im Dialog",
+    file: 'public/app.js',
+    search: "  const shown = rows.filter(([, v]) => v !== '' && v !== null && v !== undefined);",
+    replacement: "  const shown = rows;",
+    expected: "Erweiterte Infos: Dialog und Codec am Vorschaubild"
+  },
+  {
+    nr: '1566', name: "Die Zahl der Tonspuren fehlt",
+    file: 'public/app.js',
+    search: "      ['entry.mediaAudioTracks', video.length ? String(audio.length) : '']]),",
+    replacement: "      ['entry.mediaAudioTracks', '']]),",
+    expected: "Erweiterte Infos: Dialog und Codec am Vorschaubild"
+  },
+  {
+    nr: '1567', name: "Bitraten unter 1 Mbit/s stehen in Mbit/s",
+    file: 'public/app.js',
+    search: "  return bps >= 1e6 ? t('entry.mediaMbits'",
+    replacement: "  return bps >= 1e3 ? t('entry.mediaMbits'",
+    expected: "Erweiterte Infos: Dialog und Codec am Vorschaubild"
+  },
+  {
+    nr: '1568', name: "Das Video laedt nie ganz",
+    file: 'public/app.js',
+    search: "  player.addEventListener('play', loadWhole);",
+    replacement: "  player.addEventListener('loadstart', loadWhole);",
+    expected: "Video ganz laden"
+  },
+  {
+    nr: '1569', name: "Der ganze Abruf geht durch den Cache",
+    file: 'public/app.js',
+    search: "{ credentials: 'same-origin', cache: 'no-store', signal: mine.stop.signal }",
+    replacement: "{ credentials: 'same-origin', signal: mine.stop.signal }",
+    expected: "Video ganz laden"
+  },
+  {
+    nr: '1570', name: "Beim Laden steht keine Anzeige",
+    file: 'public/app.js',
+    search: "        loaded.textContent = t('entry.videoLoaded', { n: shown });\n        loaded.hidden = false;\n",
+    replacement: "        loaded.textContent = t('entry.videoLoaded', { n: shown });\n",
+    expected: "Video ganz laden"
+  },
+  {
+    nr: '1571', name: "Nach dem Wechsel beginnt das Video von vorn",
+    file: 'public/app.js',
+    search: "      player.src = mine.url;\n      player.currentTime = at;\n",
+    replacement: "      player.src = mine.url;\n      player.currentTime = 0;\n",
+    expected: "Video ganz laden"
+  },
+  {
+    nr: '1572', name: "Der Blob bleibt nach dem Schliessen",
+    file: 'public/app.js',
+    search: "    if (whole.url) URL.revokeObjectURL(whole.url);\n",
+    replacement: "",
+    expected: "Video ganz laden"
+  },
+  {
+    nr: '1573', name: "Schliessen bricht den Abruf nicht ab",
+    file: 'public/app.js',
+    search: "    whole.stop.abort();\n    if (whole.url)",
+    replacement: "    if (whole.url)",
+    expected: "Video ganz laden"
+  },
+  {
+    nr: '1574', name: "Am Telefon gilt die Grenze des Rechners",
+    file: 'public/app.js',
+    search: "const WHOLE_BYTES = () => (isNarrow() ? 500 : 2048) * 1024 * 1024;",
+    replacement: "const WHOLE_BYTES = () => 2048 * 1024 * 1024;",
+    expected: "Video ganz laden"
+  },
+  {
+    nr: '1575', name: "Datensparen laedt trotzdem ganz",
+    file: 'public/app.js',
+    search: "    if (whole || !source || navigator.connection?.saveData || p.size > limit) return;",
+    replacement: "    if (whole || !source || p.size > limit) return;",
+    expected: "Video ganz laden"
+  },
+  {
+    nr: '1576', name: "Content-Length zaehlt nicht",
+    file: 'public/app.js',
+    search: "      if (!r.ok || !r.body || !(total > 0) || total > limit) throw new Error('not whole');",
+    replacement: "      if (!r.ok || !r.body || !(total > 0)) throw new Error('not whole');",
+    expected: "Video ganz laden"
+  },
+  {
+    nr: '1577', name: "Ein kurzer Blob ersetzt die Quelle",
+    file: 'public/app.js',
+    search: "      if (ready.size !== total) throw new Error('not whole');\n",
+    replacement: "",
+    expected: "Video ganz laden"
+  },
+  {
+    nr: '1578', name: "Jedes Abspielen holt die Datei neu",
+    file: 'public/app.js',
+    search: "    if (whole || !source || navigator.connection?.saveData",
+    replacement: "    if (!source || navigator.connection?.saveData",
+    expected: "Video ganz laden"
   }
 
 ];

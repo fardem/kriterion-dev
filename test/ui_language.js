@@ -242,8 +242,8 @@ async function run() {
       'noopener,noreferrer', 'docker-compose.yml',
       // Endungen des gespeicherten Sortierwerts
       '_asc', '_desc',
-      // Name eines HTTP-Headers
-      'Accept-Language',
+      // Namen von HTTP-Headern
+      'Accept-Language', 'Content-Length',
       // Vorsatz der Vokabelschluessel
       'vocabulary.',
       // Serverbefehle, in jeder Sprache gleich
@@ -267,7 +267,7 @@ async function run() {
     const missing = REST_EXPECTED.filter(t => !rest.includes(t));
     check('Restprobe: weniger als siebzig lesbare Texte in app.js',
       rest.length < 70, `${rest.length} verschiedene, ${restPlaces.length} Stellen`);
-    check('Und es sind genau die zweiundsechzig benannten',
+    check('Und es sind genau die dreiundsechzig benannten',
       tooMany.length === 0 && missing.length === 0,
       `zu viel: ${tooMany.slice(0, 8).map(t => JSON.stringify(t.slice(0, 40))).join(' · ')} · fehlt: ${missing.slice(0, 8).map(t => JSON.stringify(t.slice(0, 40))).join(' · ')}`);
     check('Und der Filter laesst einen deutschen Satz stehen',

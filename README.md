@@ -20,7 +20,7 @@ unter „Dateien“ liegt einzeln verschlüsselt (AES-256-GCM) unter
 zusätzlich unverschlüsselt in dessen Zwischenspeicher.
 
 Gebaut mit Node.js, Express, SQLCipher (`better-sqlite3-multiple-ciphers`),
-`sharp` und `nodemailer`. Das Frontend kommt ohne Framework aus.
+`sharp`, `nodemailer` und `mediainfo.js`. Das Frontend kommt ohne Framework aus.
 
 Diese Datei beschreibt Installation und Betrieb. Die Bedienung steht im
 [Handbuch](manual-de.md).
@@ -51,7 +51,7 @@ Diese Datei beschreibt Installation und Betrieb. Die Bedienung steht im
 | | |
 |---|---|
 | Einträge | Titel, Beschreibung, Kategorie, Tags, Fotos, Kurzvideos, Dateien, Links |
-| Dateien | bis 2 GB je Datei, hochgeladen in Stücken, fortsetzbar; als Kacheln oder Liste, nach Alter oder Name sortiert, mit Vorschaubild auch für Text, Office und PDF; in Ordnern; mehrere auf einmal löschen oder verschieben; Videos spielen an der zuletzt gesehenen Stelle weiter |
+| Dateien | bis 2 GB je Datei, hochgeladen in Stücken, fortsetzbar; als Kacheln oder Liste, nach Name, Datum oder Größe sortiert, nach Typ gruppiert, mit Vorschaubild auch für Text, Office und PDF; in Ordnern; mehrere auf einmal löschen oder verschieben; Erweiterte Infos zu Bildern und Videos wie in MediaInfo; Videos spielen an der zuletzt gesehenen Stelle weiter und laden beim Abspielen ganz |
 | Bewerten | eigene Kriterien mit 1 bis 5 Sternen, je Kriterium ein Gewicht, daraus ein gewichteter Schnitt |
 | Kommentare | Notiz, Bericht oder Aufgabe mit Fälligkeitsdatum, dazu Bilder und Videos |
 | Testtage | datierte Einträge mit Note und Tags |
@@ -574,6 +574,11 @@ Danach je 8 MB ein `PUT /api/uploads/<id>` mit `content-type:
 application/octet-stream` und `upload-offset: <received>`; die Antwort auf das
 letzte Stück ist der Eintrag.
 
+`GET /api/attachments/<id>/info` liefert die Erweiterten Infos zu einem Bild
+oder Video als JSON mit `general`, `video`, `audio` und `image`. Der Server
+liest sie mit `mediainfo.js` und legt sie in der Tabelle `attachment_media` ab;
+im JSON-Export stehen sie nicht.
+
 ## Wie dieser Code entstanden ist
 
 Geschrieben mit [Claude Code](https://claude.com/claude-code), August bis
@@ -590,8 +595,8 @@ Urheberrechtsvermerk gehen mit. Keine Garantie, keine Haftung.
 
 ### Die Lizenzen der Abhängigkeiten
 
-Gemessen an den 157 Paketen, die `npm install` anlegt: 124 MIT, 8 ISC,
-6 Apache-2.0, 4 BSD-3-Clause, 3 MIT-0, 2 BSD-2-Clause, 2 LGPL-3.0-or-later,
+Gemessen an den 172 Paketen, die `npm install` anlegt: 136 MIT, 12 ISC,
+6 Apache-2.0, 4 BSD-3-Clause, 3 MIT-0, 3 BSD-2-Clause, 2 LGPL-3.0-or-later,
 der Rest CC0, 0BSD, BlueOak und Pakete mit einem Wahlrecht.
 
 **Die zwei LGPL-Pakete sind `@img/sharp-libvips-linux-x64` und

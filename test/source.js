@@ -103,9 +103,9 @@ async function run() {
   check('Der Pruefstand kennt jede lesende Route',
     fReadUnknown.length === 0 && fReadGone.length === 0,
     `ohne Eintrag: ${fReadUnknown.join(' · ') || '—'} · verschwunden: ${fReadGone.join(' · ') || '—'}`);
-  // Die 35 ergibt auch ein Zaehlen der GET-Routen am Zeilenanfang von server.js.
-  check('Und es sind genau 35 lesende Routen',
-    F_READ_ROUTES.length === 35 && fRead.length === 35,
+  // Die 36 ergibt auch ein Zaehlen der GET-Routen am Zeilenanfang von server.js.
+  check('Und es sind genau 36 lesende Routen',
+    F_READ_ROUTES.length === 36 && fRead.length === 36,
     `${F_READ_ROUTES.length} erwartet, ${fRead.length} gefunden`);
   check('Und jede Zeile des Verzeichnisses sagt, warum sie dort sitzt',
     F_READ_ROUTES.every(([, , why]) => typeof why === 'string' && why.trim().length > 30),
@@ -1047,7 +1047,7 @@ async function run() {
         if (part.kind === CODE)
           for (const m of part.value.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) benchNames.add(m[0]);
     check('Der Waechter sieht wirklich den ganzen Pruefstand',
-      benchNames.size > 2000 && BENCH.length === 32,
+      benchNames.size > 2000 && BENCH.length === 33,
       `${benchNames.size} Bezeichner aus ${BENCH.length} Dateien`);
 
     /* Keine Benennungen, sondern Gegenstaende von Pruefungen: abgelegte
@@ -1085,8 +1085,8 @@ async function run() {
     const readShipped = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
     const stWord = 'Stolper' + 'stein';
     const stAll = [...BENCH, ...SHIPPED];
-    check('Der Waechter sieht alle einundfuenfzig Dateien',
-      stAll.length === 51, `${stAll.length} Dateien`);
+    check('Der Waechter sieht alle zweiundfuenfzig Dateien',
+      stAll.length === 52, `${stAll.length} Dateien`);
     /* Die SQL-Kommentare im SCHEMA von schema.js stehen in einem Template-String,
        den segment() als Text liefert; hier zaehlen sie als Kommentar. */
     const stSqlRow = /^\s*--/;
@@ -1618,7 +1618,7 @@ async function run() {
         : part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('/'));
     // Auf leeren Mengen waeren die Pruefungen darunter immer gruen.
     check('Der Waechter sieht beide Seiten',
-      rrRoutes.length === 124 && rrBrowser.length > 100000,
+      rrRoutes.length === 125 && rrBrowser.length > 100000,
       `${rrRoutes.length} Routen, ${rrBrowser.length} Zeichen im Browser`);
     /* Die Verwaltungstafel baut diese Adressen aus ihrem Feld `url`; eine
        Suche, die das faende, faende jede Adresse. */
@@ -1849,8 +1849,8 @@ async function run() {
       }
       if (has) ssCode++;
     }
-    check('Und es stehen genau 1955 Regelzeilen da',
-      ssCode === 1955, `${ssCode} Zeilen`);
+    check('Und es stehen genau 1994 Regelzeilen da',
+      ssCode === 1994, `${ssCode} Zeilen`);
     // Laenger als drei Zeilen darf nur eine Tabelle gemessener Werte sein.
     const ssLines = ssBlocks.map(b => b.split('\n').length);
     const ssOver = ssLines.filter(n => n > 3).length;
@@ -1977,8 +1977,8 @@ async function run() {
     // Feste Zahl: auf einer leeren Menge waere die Pruefung darueber immer gruen.
     const zpCount = zpFiles.reduce((n, f) =>
       n + (zpRead(f).match(/\blog(?:Line|Warn|Fail)\(/g) || []).length, 0);
-    check('Und es sind 74 Protokollzeilen in den sieben Dateien',
-      zpCount === 74, `${zpCount} Zeilen`);
+    check('Und es sind 75 Protokollzeilen in den sieben Dateien',
+      zpCount === 75, `${zpCount} Zeilen`);
     // Ohne TZ laeuft der Container auf UTC, und der Versatz waere immer +00:00.
     const zpCompose = fs.readFileSync(
       path.join(__dirname, 'docker-compose.example.yml'), 'utf8');
@@ -2237,7 +2237,7 @@ async function run() {
   const hAll = assignments(hSource);
   // Feste Zahl: ueber null Zuweisungen waere die Pruefung immer gruen.
   check('Der Waechter sieht alle Zuweisungen an innerHTML',
-    hAll.length === 192, `${hAll.length} Zuweisungen`);
+    hAll.length === 194, `${hAll.length} Zuweisungen`);
   const hNaked = [];
   const hUsed = new Set();
   for (const one of hAll)
@@ -2325,6 +2325,7 @@ async function run() {
     'SELECT i.id, COALESCE((SELECT SUM(length(p.data)) FROM photos p WHERE p.item_id = i.id AND p.kind != \'video\'), 0) AS pho',
     'SELECT id, filename, data FROM attachments WHERE id = ?',
     'SELECT substr(data, 1, ?) AS head FROM attachments WHERE id = ?',
+    'SELECT substr(data, ?, ?) AS part FROM attachments WHERE id = ?',
     'UPDATE attachment_previous SET data = x\'\' WHERE attachment_id = ?',
     'UPDATE attachment_previous SET session_key = \'\', filename = ?, mime_type = ?, size = ?, data = ?, saved_at = datetime(\'n',
     'UPDATE attachment_previous SET session_key = \'\', filename = ?, mime_type = ?, size = ?, data = x\'\', saved_at = datetime(',
@@ -2338,7 +2339,7 @@ async function run() {
   const dLess = DATA_ROWS.filter((x, i) => DATA_ROWS.indexOf(x) === i &&
     DATA_ROWS.filter(y => y === x).length > dDataRows.filter(y => y === x).length);
   check('Jede Anweisung, die die Spalte data von Dateien liest oder schreibt, steht in der Liste — und keine mehr',
-    dMore.length === 0 && dLess.length === 0 && DATA_ROWS.length === 22,
+    dMore.length === 0 && dLess.length === 0 && DATA_ROWS.length === 23,
     `neu: ${dMore.join(' · ')} · fehlt: ${dLess.join(' · ')}`);
   check('batchrun.js liest keine Dateien', !/\battachments\b/.test(fs.readFileSync(path.join(__dirname, 'batchrun.js'), 'utf8')),
     'batchrun.js nennt attachments');

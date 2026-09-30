@@ -1720,7 +1720,7 @@ async function sendImport(object, mode, withoutShare = false) {
       /app\.get\('\/api\/manifest\.json'/.test(serverCode)
       && !/app\.(post|put|delete)\('\/api\/manifest\.json'/.test(serverCode));
     check('Und die Zahl der lesenden Routen steht',
-      (serverCode.match(/^app\.get\('/gm) || []).length === 35,
+      (serverCode.match(/^app\.get\('/gm) || []).length === 36,
       String((serverCode.match(/^app\.get\('/gm) || []).length));
 
     // Die Pruefungen danach rechnen mit dem alten Titel.
@@ -2724,9 +2724,9 @@ async function sendImport(object, mode, withoutShare = false) {
       .map(s => s.trim().replace(/^'|'$/g, '')).filter(Boolean).sort();
   };
   const dListSrv = listOut(srvSource, 'PERSONAL_KEYS');
-  const dExpected = ['bellSeen', 'blocks', 'documentTheme', 'filesEditAll', 'filesSort', 'filesView', 'filters',
-                 'font', 'language', 'linkRows', 'searchNames', 'strip', 'theme', 'timeline', 'views'];
-  check('server.js kennt genau die fuenfzehn persoenlichen Schluessel — 0.24.3',
+  const dExpected = ['bellSeen', 'blocks', 'documentTheme', 'filesEditAll', 'filesGroup', 'filesSort', 'filesView',
+                 'filters', 'font', 'language', 'linkRows', 'searchNames', 'strip', 'theme', 'timeline', 'views'];
+  check('server.js kennt genau die sechzehn persoenlichen Schluessel — 0.24.3',
     equal(dListSrv, dExpected), JSON.stringify(dListSrv));
   check('Und `zuletztGesehen` steht in keiner Zeile Code mehr',
     !/zuletztGesehen/.test(srvSource.replace(/\/\*[\s\S]*?\*\//g, '')
@@ -2797,7 +2797,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
   await dCall('cookie-d-eins', 'PUT', '/api/settings',
     { font: 120, linkRows: 12, timeline: false, searchNames: 4, strip: 100, language: 'de', filesView: 'list',
-      filesSort: 'name' });
+      filesSort: 'name_asc', filesGroup: 'type' });
   await dCall('cookie-d-zwei', 'PUT', '/api/settings',
     { font: 80, linkRows: 3, searchNames: 1 });
   await dCall('cookie-d-eins', 'PUT', '/api/settings', { filters: { tested: 'yes' } });
@@ -2920,7 +2920,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const dMissing = dExpected.filter(k => !personalDa(k, 1));
   check('Kein persoenlicher Schluessel landet in der globalen Tabelle',
     dWrongGlobal.length === 0, `global gefunden: ${JSON.stringify(dWrongGlobal)}`);
-  check('Alle fuenfzehn stehen beim Benutzer, der sie gesetzt hat — 0.24.3',
+  check('Alle sechzehn stehen beim Benutzer, der sie gesetzt hat — 0.24.3',
     dMissing.length === 0, `fehlt bei Benutzer 1: ${JSON.stringify(dMissing)}`);
   check('Der Suchvorrat bleibt in der globalen Tabelle',
     globalDa('searchOn') && !personalDa('searchOn', 1),
@@ -3747,9 +3747,9 @@ async function sendImport(object, mode, withoutShare = false) {
     /* Fest eingetragen: aus der Lockfile gelesen, koennte die Pruefung nicht scheitern. */
     const BP_RANGES = {
       'better-sqlite3-multiple-ciphers': '^11.5.0',
-      express: '^4.21.0', multer: '^2.0.1', nodemailer: '^10.0.12', sharp: '^0.35.3'
+      express: '^4.21.0', 'mediainfo.js': '^0.3.8', multer: '^2.0.1', nodemailer: '^10.0.12', sharp: '^0.35.3'
     };
-    check('Beipackprobe: package.json nennt die fuenf Bereiche',
+    check('Beipackprobe: package.json nennt die sechs Bereiche',
       equal(bpPackage.dependencies, BP_RANGES), JSON.stringify(bpPackage.dependencies));
     check('Und die eine Entwicklungsabhaengigkeit steht unveraendert daneben',
       equal(bpPackage.devDependencies, { jsdom: '^30.0.1' }),
@@ -4052,8 +4052,9 @@ async function sendImport(object, mode, withoutShare = false) {
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
       .all().map(z => z.name).sort();
     tzDb.close();
-    check('Die Datenbank traegt genau einundvierzig Tabellen',
-      tzTables.length === 41 && tzTables.includes('comment_videos') && tzTables.includes('attachment_stills') &&
+    check('Die Datenbank traegt genau zweiundvierzig Tabellen',
+      tzTables.length === 42 && tzTables.includes('comment_videos') && tzTables.includes('attachment_stills') &&
+      tzTables.includes('attachment_media') &&
       tzTables.includes('folders') && tzTables.includes('attachment_folders') &&
       ['uploads', 'disk_files', 'disk_files_gone', 'video_positions', 'folder_open'].every(n => tzTables.includes(n)),
       `${tzTables.length}: ${tzTables.join(' ')}`);
@@ -5588,6 +5589,13 @@ async function sendImport(object, mode, withoutShare = false) {
     (await pkCall('cookie-pk-carla', 'GET', '/api/settings')).content?.isAdmin === false);
   check('Die Frist steht in den Einstellungen und nicht nur in der Karte',
     pkRoles.content?.trashDays === 30, JSON.stringify(pkRoles.content?.trashDays));
+
+  const pkPending = () => pkRows('SELECT a.id FROM attachments a WHERE NOT EXISTS ' +
+    '(SELECT 1 FROM disk_files d WHERE d.attachment_id = a.id)').length;
+  const pkSince = Date.now(), pkNap = (ms) => new Promise(r => setTimeout(r, ms));
+  while (pkPending() && Date.now() - pkSince < 10000) await pkNap(100);
+  const pkMoved = pkPending() === 0;
+  check('Die Umlagerung beim Start ist fertig, bevor geloescht wird', pkMoved, 'nach 10 s noch Dateien in der Datenbank');
 
   /* Ausgangsstand fuer den Vergleich. `|| {}`: ohne Eintrag werden die Pruefungen
      rot, statt dass der Lauf abreisst. */
