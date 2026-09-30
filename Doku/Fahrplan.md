@@ -210,7 +210,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.50.0**~~ | ~~**Alle Dateien auf der Platte, Auswahl, Videos merken sich die Stelle**~~ | **GEBAUT am 30. September 2026** auf 0.49.0 — Änderungsprotokoll 0.50.0, nach `Doku/Auftrag_0.50.0.md`. Jede Datei unter „Dateien“ liegt verschlüsselt auf der Platte und geht in Stücken hoch, bis zur Grenze „Datei“ (Vorgabe 2048 MB, `dayVideo` wird nicht übernommen); `POST /api/items/:id/attachments` entfällt. Der Bestand wird nach dem Start umgelagert; reicht der Platz für Dateien und 1 GB Reserve nicht, startet Kriterion nicht. Über „Anhang“ nur zum Herunterladen, außer PDF, Bild und Video. Kompatible Marken im `ftyp`-Kasten zählen (Sony XAVC HS). Stelle im Video je Account (`video_positions`), Ordnerzustand je Account (`folder_open`), „Auswählen“ unter „Dateien“ und in der Bildleiste; `limitCloud()` nach `offsetTop`. Fragetafeln F1 bis F23 vor dem Bau beantwortet. **MINOR** *(1.376 → 1.390 Rückbauten, Prüfstand 7.806 → 7.848). Fingerprint `2b87077f` (davor `210a7f57`)* | **ja** | — |
 | ~~**0.51.0**~~ | ~~**Backup: Stände sichtbar, Zurückspielen mit Skript; Dateien sortieren**~~ | **GEBAUT am 30. September 2026** auf 0.50.0 — Änderungsprotokoll 0.51.0, nach `Doku/Auftrag_0.51.0.md`. `./backuptool.sh list`, `show`, `check` und `restore`; `restore` prüft bei laufender Instanz, hält an, legt ein Backup davor an (`# vor` in der Liste) und spielt zurück, danach enthält `data/files/` genau die Dateien des gewählten Stands; ein zweiter Aufruf führt einen Abbruch zu Ende. Jede Liste beginnt mit `# version`, auch ohne Dateien; das Alter bleibt die Änderungszeit (F13). „Alte Backups“ mit Version, Dateien und „nur hier“ je Backup, „Auswählen“ und Löschen mehrerer, die jüngsten nach „Mindestens behalten“ gesperrt; „prüfen“ nennt Version und Schema. Neue Module `schema.js`, `backup.js`, `backuptool.js`. „ab 3:12“ steht 10 s; „Dateien“ sortiert nach „Älteste zuerst“, „Jüngste zuerst“, „Name“, die Ordner mit, der älteste oben bei der Vorgabe (F14); „Bearbeiten“ in der Listenzeile. **MINOR** *(1.390 → 1.431 Rückbauten, Prüfstand 7.848 → 7.912, Sprachschlüssel 1.341 → 1.359). Fingerprint `7ace25ed` (davor `2b87077f`)* | nein | — |
 | ~~**0.52.0**~~ | ~~**Dateien: Gruppieren, Sortieren mit Richtung, Kopfzeile; Erweiterte Infos; Video ganz laden**~~ | **GEBAUT am 30. September 2026** auf 0.51.0 — Änderungsprotokoll 0.52.0, nach `Doku/Auftrag_0.52.0.md`. Sortieren nach Name, Datum, Größe mit Richtungsknopf, gespeichert als `filesSort` mit Richtung (alte Werte gelten weiter); „Nach Typ gruppiert“ (`filesGroup`) in jeder Gruppe, das Vollbild blättert in derselben Folge; Kopfzeile der Liste am Rechner; ✎ und 🔗 in einer festen Spalte, Art, Größe und Datum stehen untereinander; „Art“ als Beschreibung, bei Videos Codec und Länge; Menü „…“ in fünf Gruppen, „Öffnen“ auch bei Bildern und Videos, „Vorschaubild wählen …“. „Erweiterte Infos“ zu Bildern und Videos mit `mediainfo.js` auf dem Server, neue Tabelle `attachment_media`, neue Route `GET /api/attachments/:id/info`, der Codec am Vorschaubild. Ein Video lädt beim Abspielen ganz, bis 2 GB am Rechner und 500 MB am Telefon, gemessen in Chromium. Punkt 58 behoben; Punkt 59 nachgestellt und im Prüfstand behoben. Das Messverfahren für den N100 liegt vor. **MINOR** *(1.431 → 1.482 Rückbauten, Prüfstand 7.912 → 7.975, Sprachschlüssel 1.359 → 1.410). Fingerprint `a4d2ab5e` (davor `7ace25ed`)* | **ja** | — |
-| **0.53.0** | **Einzelne Dateien aus einem Backup zurückholen** | Vorgabe des Betreibers vom 30. September 2026 (F4 in `Doku/Auftrag_0.51.0.md`): eigene Runde nach 0.51.0. **Vor dem Bau wird das Konzept mit dem Betreiber abgestimmt** (Abschnitt 0.53.0; bis 30. September 2026 als 0.52.0 geführt) | offen | — |
+| **0.53.0** | **Einzelne Dateien aus einem Backup zurückholen; Erweiterte Infos, Sortieren nach Typ** | Vorgabe des Betreibers vom 30. September 2026 (F4 in `Doku/Auftrag_0.51.0.md`): eigene Runde nach 0.51.0. **Vor dem Bau wird das Konzept mit dem Betreiber abgestimmt** (Abschnitt 0.53.0; bis 30. September 2026 als 0.52.0 geführt). Dazu vier Punkte aus der Abnahme von 0.52.0, aufgenommen am 30. September 2026: „Audio“ statt „Ton“ unter „Erweiterte Infos“ (A1), „Typ“ in „Dateien sortieren“ (A2), „Container“ statt „Format“ und „H.264 (AVC)“ statt „AVC“ (A3), ⓘ im Vollbild öffnet „Erweiterte Infos“ (A4) | offen | — |
 | ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. Die zwei offenen Punkte des Eintrags stehen in der Zeile darunter | — | — |
 | ~~*ohne Nummer*~~ | ~~**Vorgabewerte und Tastaturbedienung beim Sortieren**~~ | **VORLÄUFIG GESTRICHEN am 21. September 2026:** der Inhalt ist nirgends beschrieben — weder hier noch im Sammelblatt noch im Projektstand steht, welche Vorgabewerte gemeint sind und was die Tastatur beim Sortieren tun soll. *Die Zeile kommt zurück, sobald der Betreiber sagt, was gemeint war.* | — | — |
 | ~~*ohne Nummer*~~ | ~~**Die Doppelung in der README auflösen**~~ | **GEBAUT mit 0.38.0 am 19. September 2026.** *Befund aus BA 6 der 0.37.0: zwei Abschnitte der README trugen dieselben drei Sachverhalte — dass eine fehlende Spalte nicht nachgerüstet wird, dass der Kasten jede fehlende Spalte samt altem Namen nennt, und dass die Instanz startet, aber jede Seite scheitert, die eine der Spalten liest.* **Jetzt verweist jeder der beiden auf den anderen:** `README.md`:348 nach unten, `README.md`:464 nach oben. *0.38.5 hat die README danach noch einmal gegliedert.* | nein | — |
@@ -3786,7 +3786,7 @@ aufhebt.
 
 ---
 
-## 0.53.0 — „Einzelne Dateien aus einem Backup zurückholen“
+## 0.53.0 — „Einzelne Dateien aus einem Backup zurückholen; Erweiterte Infos, Sortieren nach Typ“
 
 **Aufgenommen am 30. September 2026** als 0.52.0; am selben Tag auf 0.53.0
 gerückt (U1 in `Doku/Auftrag_0.52.0.md`). Vorgabe des Betreibers in der
@@ -3815,6 +3815,121 @@ wird nichts.
 - Die vorige Fassung mit zurückholen?
 - Einzeln gelöschte Dateien zusätzlich für 30 Tage in den Papierkorb, als Weg
   ohne Backup?
+
+### Dazu vier Punkte aus der Abnahme von 0.52.0
+
+**Aufgenommen am 30. September 2026** auf Wunsch des Betreibers. Die offenen
+Fragen je Punkt kommen in Abschnitt 0 des Auftrags.
+
+| | Punkt | Vorgabe des Betreibers, 30. September 2026 |
+|---|---|---|
+| A1 | „Audio“ statt „Ton“ unter „Erweiterte Infos“ | „nicht Ton, sondern das Wort Audio verwenden“ |
+| A2 | „Typ“ in der Auswahl „Dateien sortieren“ | zusätzlich zu Name, Datum und Größe |
+| A3 | Container und Codec benennen | Fragetafel: „Container und H.264“ |
+| A4 | ⓘ in der Leiste des Vollbilds | ein Klick öffnet „Erweiterte Infos“ |
+
+#### A1 — „Audio“ statt „Ton“
+
+Drei Schlüssel in `public/languages/de.json`, Zeilen 897 bis 899:
+
+| Schlüssel | heute | neu |
+|---|---|---|
+| `entry.mediaAudio` | Ton | Audio |
+| `entry.mediaAudioTrack` | Ton, Spur {n} von {count} | Audio, Spur {n} von {count} |
+| `entry.mediaAudioTracks` | Tonspuren | Audiospuren |
+
+Englisch steht schon auf „Audio“, Türkisch auf „Ses“; beide bleiben.
+`manual-de.md` nennt in den Zeilen 491 und 493 „Tonspuren“ und „Je Tonspur“
+und wird mit angepasst.
+
+#### A2 — Sortieren nach „Typ“
+
+„Dateien sortieren“ bietet heute Name, Datum und Größe. Nach der Art ordnet
+nur „Nach Typ gruppiert“. Die Spalte „Art“ der Kopfzeile sortiert nicht; so
+steht es in `Doku/Auftrag_0.52.0.md`, Zeile 156.
+
+| Stelle | Änderung |
+|---|---|
+| `FILES_SORTS`, `public/app.js`:1307 | neuer Schlüssel `type`, Richtung „A → Z“ und „Z → A“ |
+| `FILE_ORDER`, `public/app.js`:7395 | `type` ordnet nach `kindOf()` in der Folge von `kindOrder`: Arten nach Name, „Sonstige“ zuletzt |
+| `PICK_SETTINGS.filesSort`, `server.js`:1696 | nimmt `type_asc` und `type_desc` an |
+| Prüfung von `filesSort`, `public/app.js`:2791 | ebenso |
+| `sortedFolders()`, `public/app.js`:7409 | ordnet heute jeden Schlüssel außer Datum und Name nach der Größensumme der Ordner; `type` braucht eine eigene Regel |
+| Sprachdateien | neuer Schlüssel `entry.filesSortType` in drei Sprachen |
+
+Offen für den Auftrag:
+
+- Innerhalb eines Typs nach Name, und „Z → A“ kehrt die ganze Folge um wie
+  bei den anderen Schlüsseln? Vorschlag: ja.
+- Die Ordner bei „Typ“ nach Name? Vorschlag: ja.
+- Die Spalte „Art“ wird ein Knopf und heißt „Typ“ wie in „Nach Typ
+  gruppiert“? Vorschlag: ja. Englisch heißt sie schon „Type“.
+
+#### A3 — Container und Codec benennen
+
+Unter „Allgemein → Format“ steht das Feld `Format` der Spur „General“ von
+MediaInfo, unverändert. Gemessen mit `mediainfo.js` an nachgebauten Dateien:
+
+| `ftyp` | Videospur | Allgemein → Format | Video → Codec |
+|---|---|---|---|
+| `mp42`, `isom`, `M4V ` | `avc1` | MPEG-4 | AVC |
+| `mp42` | `hvc1` | MPEG-4 | HEVC |
+| `mp42`, `3gp4` | `mp4v` | MPEG-4 | MPEG-4 Visual |
+| `qt  ` | `avc1` | MPEG-4, Profil QuickTime | AVC |
+| `XAVC` | `avc1`, `hvc1` | XAVC | AVC, HEVC |
+
+„MPEG-4“ ist dort das Dateiformat (MPEG-4 Teil 14), nicht der Codec. H.264
+ist MPEG-4 Teil 10 und heißt bei MediaInfo „AVC“. „MPEG-4 Visual“ ist Teil 2
+und ein anderer Codec.
+
+Vorgabe des Betreibers aus der Fragetafel:
+
+- Die Zeile „Format“ unter „Allgemein“ heißt „Container“.
+- Unter „Video → Codec“ steht „H.264 (AVC)“ und „H.265 (HEVC)“.
+- In der Spalte „Art“ und am Vorschaubild steht kurz „H.264“ und „H.265“.
+
+Der Weg: `attachment_media.info` behält den Wortlaut von MediaInfo. Umbenannt
+wird beim Anzeigen in `public/app.js`: `mediaInfoHtml()` (Zeile 4950),
+`kindText()` (Zeile 4928), das Vorschaubild (Zeile 7149) und die Beschriftung
+der Zeile (Zeile 7191). Gelesen wird dafür nichts neu. Andere Codecs, etwa
+VP9, AV1 oder MPEG-4 Visual, bleiben im Wortlaut von MediaInfo.
+`manual-de.md`, Zeile 490, wird mit angepasst.
+
+Offen für den Auftrag:
+
+- Bei Bildern bleibt „Format“, dort steht das Bildformat wie JPEG oder PNG?
+  Vorschlag: ja.
+- Die neuen Namen nur bei Videospuren, Bildspuren bleiben im Wortlaut von
+  MediaInfo? Vorschlag: ja.
+
+#### A4 — ⓘ in der Leiste des Vollbilds
+
+Die Leiste im Vollbild (`public/app.js`, Zeilen 4537 bis 4546) hat Zähler,
+Link, Download, Zoom, Vorschaubild, Löschen und Schließen. „Erweiterte Infos“
+gibt es nur im Menü „…“ (`fileMenu()`, Zeile 7562).
+
+Vorgabe: ein Knopf ⓘ oben in der Leiste. Ein Klick öffnet „Erweiterte Infos“
+zur Datei, die gerade gezeigt wird.
+
+Der Weg:
+
+- `openLightbox()` bekommt eine Option `info`. Nur `showFile()` gibt sie mit
+  (Zeile 7873), also nur für Bilder und Videos unter „Dateien“.
+- `showMediaInfo()` (Zeile 7548) setzt den Fokus beim Schließen auf „…“ in
+  der Liste. Aus dem Vollbild geht er auf ⓘ zurück.
+- Der Dialog liegt über dem Vollbild: `--z-dialog` ist 100, `--z-lightbox`
+  ist 90 (`public/style.css`, Zeilen 129 und 130).
+- Zu prüfen: Esc und die Pfeiltasten bei offenem Dialog. `onKey()` im
+  Vollbild (Zeile 4748) und in `openModal()` (Zeile 350) hören beide im
+  Capture auf `keydown`; das Vollbild meldet sich zuerst an.
+
+Offen für den Auftrag:
+
+- Der Knopf steht links neben dem Link? Vorschlag: ja.
+- Fotos des Eintrags und Bilder in Kommentaren haben keine Erweiterten
+  Infos und bekommen keinen Knopf. Sollen sie welche bekommen? Vorschlag:
+  nein. Der Server liest heute nur Dateien unter „Dateien“
+  (`attachment_media`).
 
 ---
 
