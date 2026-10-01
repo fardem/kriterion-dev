@@ -5129,6 +5129,13 @@ async function eachPicked(chosen, send) {
 const FILES_PER_ENTRY = 100;
 // Zeichen im Namen eines Ordners, gleich FOLDER_NAME_MAX in server.js.
 const FOLDER_NAME_MAX = 80;
+// Gleich FILE_NAME_MAX in server.js.
+const FILE_NAME_MAX = 200;
+// Wie path.extname() in Node: ein Punkt am Anfang macht keine Endung.
+const fileExtension = (name) => {
+  const at = name.lastIndexOf('.');
+  return at > 0 && name !== '..' ? name.slice(at) : '';
+};
 // Klartext je Anfrage beim Upload in Stuecken, gleich UPLOAD_PIECE in server.js.
 const UPLOAD_PIECE = 8 * 1048576;
 // Wartezeit in ms vor dem zweiten, dritten und vierten Versuch, wenn die Verbindung fehlt.
@@ -7595,6 +7602,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     if (a.preview === 'image' || a.preview === 'video')
       pass.push({ label: t('entry.mediaInfo'), own: true, run: () => fileInfo(a, li.querySelector('.amore')) });
     const targets = moveTargets(a);
+    if (a.mine === true) sort.push({ label: t('entry.renameFileMenu'), own: true, run: () => renameFile(a) });
     if (a.mine === true && targets.length)
       sort.push({ label: t('entry.moveTo'), own: true, run: () => moveMenu(a, li, targets) });
     if (a.mine && a.preview === 'video') sort.push({ label: t('entry.chooseStill'), run: () => showFile(a.id) });
@@ -7707,6 +7715,38 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     drawAtts();
     toast(to.folderId ? t('entry.movedTo', { name: to.label }) : t('entry.movedLoose'));
     attsBox.querySelector(`[data-key="f${Number(a.id)}"] .aface`)?.focus();
+  }
+
+  /* ---- Datei umbenennen ---- */
+  function renameFile(a) {
+    const ext = fileExtension(a.filename);
+    const back = () => attsBox.querySelector(`[data-key="f${Number(a.id)}"] .amore`)?.focus();
+    const { bd, done } = openModal(`<div class="modal"><h2>${tH('entry.renameFile')}</h2>
+      <div class="field"><label for="nb-name">${tH('entry.fileNameLabel')}</label>
+        <div class="arename"><input class="input" id="nb-name" maxlength="${FILE_NAME_MAX - ext.length}"
+          value="${esc(a.filename.slice(0, a.filename.length - ext.length))}">${ext
+          ? `<span class="arename-ext">${esc(ext)}</span>` : ''}</div></div>
+      <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.cancel')}</button>
+      <button class="btn btn-accent" data-yes>${tH('dialog.save')}</button></div></div>`,
+      back, false, (e) => e.key === 'Enter' && document.activeElement === field && (go(), true));
+    const field = bd.querySelector('#nb-name'), yes = bd.querySelector('[data-yes]');
+    const go = async () => {
+      const stem = field.value.trim();
+      if (!stem || yes.disabled) return field.focus();
+      yes.disabled = true;
+      try { item = await api('PUT', `/api/attachments/${Number(a.id)}`, { filename: stem }); }
+      catch (e) { toast(e.message, true); yes.disabled = false; return field.focus(); }
+      const fresh = fileOf('f' + a.id);
+      if (fresh && openPreview === a.id && previewBox) {
+        previewBox.setAttribute('aria-label', fresh.filename);
+        previewBox.querySelector('.apreview-name').textContent = fresh.filename;
+      }
+      drawAtts();
+      done();
+    };
+    bd.querySelector('[data-no]').onclick = () => done();
+    yes.onclick = go;
+    field.focus(); field.select();
   }
 
   /* ---- Ordner ---- */

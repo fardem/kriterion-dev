@@ -33,8 +33,8 @@ async function run() {
     fUnknown.length === 0 && fGone.length === 0,
     `ohne Entscheidung: ${fUnknown.join(' · ') || '—'} · verschwunden: ${fGone.join(' · ') || '—'}`);
   // Die feste Zahl macht jede neue Route in F_ROUTES sichtbar.
-  check('Und es sind jetzt genau 90 schreibende Routen',
-    F_ROUTES.length === 90 && fFound.length === 90,
+  check('Und es sind jetzt genau 91 schreibende Routen',
+    F_ROUTES.length === 91 && fFound.length === 91,
     `${F_ROUTES.length} erwartet, ${fFound.length} gefunden`);
   /* Gelesen werden die geladenen Listen aus auth.js, nicht ihr Quelltext;
      ein Textvergleich schluege auch bei Kommentaren an. */
@@ -1621,7 +1621,7 @@ async function run() {
         : part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('/'));
     // Auf leeren Mengen waeren die Pruefungen darunter immer gruen.
     check('Der Waechter sieht beide Seiten',
-      rrRoutes.length === 128 && rrBrowser.length > 100000,
+      rrRoutes.length === 129 && rrBrowser.length > 100000,
       `${rrRoutes.length} Routen, ${rrBrowser.length} Zeichen im Browser`);
     /* Die Verwaltungstafel baut diese Adressen aus ihrem Feld `url`; eine
        Suche, die das faende, faende jede Adresse. */

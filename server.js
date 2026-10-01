@@ -855,6 +855,10 @@ const putEditAll = db.prepare(`INSERT INTO attachment_editing (attachment_id, ed
 // Zweiter Wert 1: die Sitzung ist zu Ende, der Editor bekommt einen neuen Schluessel.
 const countSave = db.prepare(`INSERT INTO attachment_editing (attachment_id, revision, saves) VALUES (?, ?, 1)
   ON CONFLICT(attachment_id) DO UPDATE SET revision = revision + excluded.revision, saves = saves + 1`);
+// saved_by nur, wenn die Nummer aus `users` des Rueckrufs ein Account ist.
+const recordSave = db.prepare(`INSERT INTO attachment_changes (attachment_id, saved_at, saved_by)
+  VALUES (?, datetime('now'), (SELECT id FROM users WHERE id = ?))
+  ON CONFLICT(attachment_id) DO UPDATE SET saved_at = excluded.saved_at, saved_by = excluded.saved_by`);
 const keepPrevious = db.prepare(`INSERT OR REPLACE INTO attachment_previous
   (attachment_id, session_key, filename, mime_type, size, data)
   SELECT id, ?, filename, mime_type, size, data FROM attachments WHERE id = ?`);
@@ -876,11 +880,11 @@ const mayEditFile = (userId, a) =>
    Speicherungen derselben Sitzung ersetzen nur die aktuelle. `disk`: die neue
    Fassung liegt schon verschluesselt unter upload/. */
 const SAVE_MOVED = { ok: false, reason: 'moved' };
-function saveEdited(id, key, data, filetype, sessionEnds, disk = null) {
-  try { return saveEditedIn(id, key, data, filetype, sessionEnds, disk); }
+function saveEdited(id, key, data, filetype, sessionEnds, disk = null, by = null) {
+  try { return saveEditedIn(id, key, data, filetype, sessionEnds, disk, by); }
   catch (e) { if (e === SAVE_MOVED) return SAVE_MOVED; throw e; }
 }
-function saveEditedIn(id, key, data, filetype, sessionEnds, disk) {
+function saveEditedIn(id, key, data, filetype, sessionEnds, disk, by) {
   return (disk ? commitFull : (work) => db.transaction(work)())(() => {
     const a = db.prepare('SELECT id, item_id, filename, mime_type, created_at FROM attachments WHERE id = ?')
       .get(id);
@@ -903,6 +907,7 @@ function saveEditedIn(id, key, data, filetype, sessionEnds, disk) {
     }
     const current = docserver.editorKey(a, editingOf(id).revision) === key;
     countSave.run(id, sessionEnds && current ? 1 : 0);
+    recordSave.run(id, by);
     dropFileTile.run(id);
     touch.run(a.item_id);
     return { ok: true };
@@ -947,7 +952,9 @@ app.post('/api/document-server/callback/:id', async (req, res, next) => {
         DISK_WRITING.add(disk.name);
         await attachments.sealInto(diskPath(disk.name, true), disk, 0, got.data, { fresh: true });
       }
-      saved = saveEdited(id, key, got.data, cb.data.filetype, status === 2, disk);
+      // Bei Status 2 und 6 nennt `users` zuerst den Account, der zuletzt bearbeitet hat.
+      const by = Number([].concat(cb.data.users || [])[0]) || null;
+      saved = saveEdited(id, key, got.data, cb.data.filetype, status === 2, disk, by);
       if (disk && saved.ok) moveIntoPlace(disk.name);
     } finally { if (disk) { DISK_WRITING.delete(disk.name); sweepSoon(true); } }
     if (saved.reason === 'gone') { editedGone(id); return res.json({ error: 0 }); }
@@ -4154,6 +4161,8 @@ const stepUpload = db.prepare('UPDATE uploads SET received = ?, touched_at = ? W
 const dropUpload = db.prepare('DELETE FROM uploads WHERE id = ?');
 const addDiskFromUpload = db.prepare(`INSERT INTO disk_files (name, size, chunk, large, file_key, attachment_id)
   SELECT name, size, ?, large, file_key, ? FROM uploads WHERE id = ?`);
+const recordModified = db.prepare(`INSERT INTO attachment_changes (attachment_id, file_modified)
+  VALUES (?, datetime(? / 1000, 'unixepoch'))`);
 const addDiskAttachment = lateStatement(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
   VALUES (?, ?, ?, ?, x'', ?, ?)`);
 
@@ -4276,6 +4285,7 @@ function finishUpload(req, res, u) {
     const fresh = addDiskAttachment().run(u.item_id, u.filename, attachments.outType(u.filename), u.size,
                                         pos, u.user_id).lastInsertRowid;
     addDiskFromUpload.run(CHUNK, fresh, u.id);
+    if (u.modified > 0) recordModified.run(fresh, u.modified);
     if (u.folder_id != null) putFileFolder.run(fresh, u.folder_id);
     if (filesEditAllOf(u.user_id) && docserver.editFormat(u.filename)) putEditAll.run(fresh, 1);
     dropUpload.run(u.id);
@@ -4684,6 +4694,50 @@ app.put('/api/attachments/:id/folder', (req, res) => {
     putFileFolder.run(a.id, f.id);
   }
   touch.run(a.item_id);
+  res.json(detail(a.item_id, req.user.id, localeOf(req)));
+});
+
+/* ---- Datei umbenennen ---- */
+// Wie beim Hochladen in UTF-16-Einheiten.
+const FILE_NAME_MAX = 200;
+const qRenameFile = lateStatement(`SELECT a.id, a.item_id, a.user_id, a.filename, f.folder_id
+  FROM attachments a LEFT JOIN attachment_folders f ON f.attachment_id = a.id WHERE a.id = ?`);
+const qNamesBeside = db.prepare(`SELECT a.filename FROM attachments a
+  LEFT JOIN attachment_folders f ON f.attachment_id = a.id WHERE a.item_id = ? AND a.id != ? AND f.folder_id IS ?`);
+const renameFile = db.prepare('UPDATE attachments SET filename = ? WHERE id = ?');
+const qPreviousName = db.prepare('SELECT filename FROM attachment_previous WHERE attachment_id = ?');
+const renamePrevious = db.prepare('UPDATE attachment_previous SET filename = ? WHERE attachment_id = ?');
+
+// Die Endung bleibt: sie bestimmt Typ, Auslieferung und den Document Server. Eine eingetippte Endung faellt weg.
+function fileStem(raw, ext) {
+  if (typeof raw !== 'string') return null;
+  let stem = path.basename(raw).trim();
+  if (ext && stem.toLowerCase().endsWith(ext.toLowerCase())) stem = stem.slice(0, -ext.length).trimEnd();
+  return /^[.\s]*$/.test(stem) || /[\x00-\x1f\x7f]/.test(stem) ? null : stem;
+}
+
+/* Nur wer hochgeladen hat, auch kein Admin. Gleiche Namen zaehlen ohne Gross- und Kleinschreibung
+   im selben Ordner, ohne Ordner in der Gruppe ohne Ordner. */
+app.put('/api/attachments/:id', (req, res) => {
+  const a = qRenameFile().get(req.params.id);
+  if (!a) return res.status(404).json({ error: t(localeOf(req), 'server.fileGone')});
+  if (!selfOnly(req, a.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
+  const ext = path.extname(a.filename);
+  const stem = fileStem((req.body || {}).filename, ext);
+  if (stem === null || (stem + ext).length > FILE_NAME_MAX)
+    return res.status(400).json({ error: t(localeOf(req), 'server.fileName', { max: FILE_NAME_MAX - ext.length })});
+  const filename = stem + ext;
+  const lower = filename.toLowerCase();
+  if (qNamesBeside.all(a.item_id, a.id, a.folder_id).some(o => o.filename.toLowerCase() === lower))
+    return res.status(409).json({ error: t(localeOf(req),
+      a.folder_id == null ? 'server.nameTakenLoose' : 'server.fileNameTaken', { name: filename })});
+  if (filename !== a.filename) db.transaction(() => {
+    renameFile.run(filename, a.id);
+    // Sonst kaeme der alte Name mit der vorigen Fassung zurueck.
+    const before = qPreviousName.get(a.id);
+    if (before) renamePrevious.run(stem + path.extname(before.filename), a.id);
+    touch.run(a.item_id);
+  })();
   res.json(detail(a.item_id, req.user.id, localeOf(req)));
 });
 
@@ -6703,11 +6757,13 @@ const qFileForTrash = lateStatement(`SELECT a.id, a.item_id, a.filename, a.mime_
     a.user_id, u.username AS user_name, length(a.data) AS inline, i.created_at AS item_created, i.title AS item_title,
     f.id AS folder_id, f.name AS folder_name, f.created_at AS folder_created, f.test_day_id AS folder_day,
     f.user_id AS folder_user, fu.username AS folder_user_name,
-    e.edit_all, e.saves, s.duration, (s.attachment_id IS NOT NULL) AS has_still
+    e.edit_all, e.saves, s.duration, (s.attachment_id IS NOT NULL) AS has_still,
+    c.file_modified, c.saved_at, c.saved_by, cu.username AS saved_by_name
   FROM attachments a JOIN items i ON i.id = a.item_id LEFT JOIN users u ON u.id = a.user_id
   LEFT JOIN attachment_folders af ON af.attachment_id = a.id LEFT JOIN folders f ON f.id = af.folder_id
   LEFT JOIN users fu ON fu.id = f.user_id LEFT JOIN attachment_editing e ON e.attachment_id = a.id
-  LEFT JOIN attachment_stills s ON s.attachment_id = a.id WHERE a.id = ?`);
+  LEFT JOIN attachment_stills s ON s.attachment_id = a.id
+  LEFT JOIN attachment_changes c ON c.attachment_id = a.id LEFT JOIN users cu ON cu.id = c.saved_by WHERE a.id = ?`);
 const diskFileIntoTrash = db.prepare('UPDATE disk_files SET trash_id = ? WHERE attachment_id = ?');
 const diskFileFromTrash = db.prepare('UPDATE disk_files SET attachment_id = ?, trash_id = NULL WHERE trash_id = ?');
 // Teile in trash_bytes: das Standbild und der Inhalt einer Datei, die noch in der Datenbank liegt.
@@ -6722,7 +6778,9 @@ function fileIntoTrash(id, actor) {
     author: person(a.user_id, a.user_name), editAll: a.edit_all === 1, saves: a.saves || 0,
     duration: a.duration ?? null, still: a.has_still ? TRASH_STILL : null, data: a.inline ? TRASH_DATA : null,
     folder: a.folder_id == null ? null : { id: a.folder_id, name: a.folder_name, created_at: a.folder_created,
-      testDay: a.folder_day, author: person(a.folder_user, a.folder_user_name) } };
+      testDay: a.folder_day, author: person(a.folder_user, a.folder_user_name) },
+    changes: a.file_modified == null && a.saved_at == null ? null : { fileModified: a.file_modified,
+      savedAt: a.saved_at, savedBy: person(a.saved_by, a.saved_by_name) } };
   const row = insertTrash.run(a.filename, JSON.stringify({ kind: 'file',
     item: { id: a.item_id, created_at: a.item_created, title: a.item_title }, file }), actor).lastInsertRowid;
   if (a.has_still) insertTrashBytes.fileStill.run(row, TRASH_STILL, id);
@@ -6764,6 +6822,8 @@ function folderBack(itemId, old, made) {
 const addFileBack = lateStatement(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order,
   user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
 const qNextSort = db.prepare('SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM attachments WHERE item_id = ?');
+const putChanges = db.prepare(`INSERT INTO attachment_changes (attachment_id, file_modified, saved_at, saved_by)
+  VALUES (?, ?, ?, ?)`);
 const refusal = (status, key, values = {}) => Object.assign(new Message(key, values, status), { denial: true });
 
 /* In einer Transaktion des Aufrufers. Liefert die neue Nummer; `inline`: der Inhalt liegt
@@ -6784,6 +6844,8 @@ function fileFromTrash(z, made = new Map()) {
   const still = bytes(f.still);
   if (still) putStill.run(id, f.duration ?? null, still);
   if (f.editAll) putEditAll.run(id, 1);
+  if (f.changes) putChanges.run(id, f.changes.fileModified ?? null, f.changes.savedAt ?? null,
+    keptAuthor(f.changes.savedBy));
   delTrashRow.run(z.id);
   touch.run(itemId);
   return { id, itemId, inline: !!inline, filename: f.filename };

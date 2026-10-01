@@ -1562,6 +1562,9 @@ body.lb-open { overflow: hidden; }
 .modal .ta { min-height: 74px; }
 .modal-acts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
 .modal .minfo-name { font-family: var(--mono); font-size: .8rem; overflow-wrap: anywhere; }
+.arename { display: flex; align-items: center; gap: 6px; }
+.arename .input { flex: 1; min-width: 0; }
+.arename-ext { font-family: var(--mono); font-size: .88rem; color: var(--muted); white-space: nowrap; }
 .minfo-head { margin: 14px 0 2px; font-size: .8rem; font-weight: 620; color: var(--muted); }
 .minfo-head:first-child { margin-top: 0; }
 .adeleted-list { list-style: none; margin: 0; padding: 0; max-height: 55vh; overflow-y: auto; }

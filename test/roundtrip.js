@@ -330,8 +330,8 @@ async function sendImport(object, mode, withoutShare = false) {
   /* Parameter wie :id durch eine Zahl ersetzen, sonst passt der Pfad auf keine Route. */
   const csAddress = (filePath) => filePath.replace(/:[A-Za-z]+/g, '7');
   const csGuarded = H.F_ROUTES.filter(([m, p]) => !csFree.has(`${m} ${p}`));
-  check('Zweiundachtzig der neunzig Routen stehen hinter dem Schutz',
-    csGuarded.length === 82 && H.F_ROUTES.length === 90,
+  check('Dreiundachtzig der einundneunzig Routen stehen hinter dem Schutz',
+    csGuarded.length === 83 && H.F_ROUTES.length === 91,
     `${csGuarded.length} von ${H.F_ROUTES.length}`);
   const csThrough = [];
   for (const [method, filePath] of csGuarded) {

@@ -274,6 +274,17 @@ CREATE TABLE IF NOT EXISTS attachment_editing (
   saves INTEGER NOT NULL DEFAULT 0
 );
 
+-- Eigene Tabelle: eine neue Spalte meldete schemaDifferences() in bestehenden Datenbanken als fehlend,
+-- eine fehlende Tabelle legt der Start an.
+CREATE TABLE IF NOT EXISTS attachment_changes (
+  attachment_id INTEGER PRIMARY KEY REFERENCES attachments(id) ON DELETE CASCADE,
+  -- File.lastModified beim Hochladen, als UTC wie created_at.
+  file_modified TEXT,
+  -- Die letzte Speicherung im Document Server.
+  saved_at TEXT,
+  saved_by INTEGER REFERENCES users(id) ON DELETE SET NULL
+);
+
 -- Die Fassung vor der letzten Bearbeitung, eine je Datei.
 CREATE TABLE IF NOT EXISTS attachment_previous (
   attachment_id INTEGER PRIMARY KEY REFERENCES attachments(id) ON DELETE CASCADE,
