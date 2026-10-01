@@ -182,14 +182,19 @@ sagt der Fahrplan.
 > Anleitung beim Bau von 0.53.0. **Am selben Tag sind 42 und 60 bis 63 nach
 > 0.54.0 fortgezogen** (bis zur Antwort auf F1 als 0.53.1 geführt); sie stehen
 > mit ihrer Ausarbeitung im Fahrplan als B4 bis B8.
+>
+> **Ebenfalls am 1. Oktober 2026 ist 57 nach 0.55.0 fortgezogen**, die zweite
+> Fassung der Videos für das Telefon. Sie steht mit ihrer Ausarbeitung im
+> Fahrplan als B1.
 
 ### Was ohne Nummer offen ist
 
 | steht in | worum es geht | Nutzen | Aufwand | Vorschlag |
 |---|---|---|---|---|
 | **20** | Nach einem Umbenennen holt die Oberfläche vier Antworten statt drei; die vierte ist die größte der Installation | niedrig | klein | liegen lassen |
+| **52** | `.env.before-key-change-*` steht in keiner Ignorierliste; mit `COPY . .` geht der alte Schlüssel ins Image | mittel | klein | in eine Runde nehmen; am 1. Oktober 2026 nicht für 0.55.0 gewählt |
 | **54** | „Dateien“ wie im Windows-Explorer: Auswahl mit Strg und Umschalt, Doppelklick zum Öffnen; die Kopfzeile ist in 0.52.0 | niedrig | mittel | liegen lassen |
-| **57** | Eine schnell abspielbare Fassung für das Telefon mit ffmpeg, nur wenn es schnell geht; erst messen | offen | offen | Messverfahren, dann Machbarkeit besprechen (Vorgabe) |
+| Protokoll 0.54.0 | „Infos“ zeigt nichts aus der Datei bei PDF mit `/Info` in einem gepackten Objektstrom und bei Office-Dateien als ZIP64 | mittel | klein | am 1. Oktober 2026 nicht für 0.55.0 gewählt |
 | ~~Protokoll 0.38.2~~ | ~~Die Strichstärke des Löschkreuzes bleibt 1.8, dieselbe wie am Stift und am Zitatzeichen~~ | — | — | **ABGELEHNT am 21. September 2026** |
 | ~~Protokoll 0.38.2~~ | ~~Der Trefferausschnitt zeigt bei einem Treffer im Ziel eines Links den Rohtext samt seiner Marken~~ | — | — | **RUHT seit dem 21. September 2026** |
 | ~~Protokoll 0.38.3~~ | ~~Der Halt nach einem Sprung ist eine Frist von 1600 Millisekunden und keine Messung~~ | — | — | **RUHT seit dem 21. September 2026** |
@@ -2714,33 +2719,3 @@ Offen sind die Teile, die am 30. September 2026 nicht gewählt wurden: mehrere
 Dateien mit Strg-Klick und Umschalt-Klick auswählen, ohne vorher „Auswählen“ zu
 drücken, und ein einfacher Klick markiert, ein Doppelklick öffnet. Das Menü
 „…“ öffnet sich schon mit der rechten Maustaste und mit Umschalt+F10.
-
-## 57. Eine schnell abspielbare Fassung für das Telefon
-
-**Art: Wunsch** *(Betreiber)* **· Herkunft: Abnahme von 0.51.0, 30. September
-2026 · Einschätzung: offen · Fahrplan: offen**
-
-Vom Punkt „Vorpuffern im Player“ ist das Laden des ganzen Videos mit 0.52.0
-fortgezogen; die ganze Ausarbeitung steht im Fahrplan unter 0.52.0. Der Cache
-bleibt, wie er ist (Vorgabe des Betreibers vom 30. September 2026). Offen ist
-die zweite, kleinere Fassung für das Telefon.
-
-**Vorgabe des Betreibers:** Vor einer Umsetzung wird die Machbarkeit
-besprochen und abgestimmt. ffmpeg lohnt sich nur, wenn es schnell geht.
-
-**Server:** Intel N100 (Angabe des Betreibers). Seine Grafik hat Quick Sync.
-In Hardware dekodiert sie H.264 nur mit 8 Bit und 4:2:0, HEVC auch mit 10 Bit
-und 4:2:2, dazu VP9 und AV1; sie kodiert H.264 und HEVC. XAVC HS der A6700
-(HEVC) geht damit in Hardware, XAVC S mit 4:2:2 und 10 Bit und XAVC S-I
-(H.264) nicht; die rechnet die CPU allein. Im Container braucht es `/dev/dri`,
-ffmpeg mit VA-API und den Intel-Mediatreiber.
-
-**Der Weg:** ffmpeg wandelt jedes Format nach H.264 und AAC in MP4 mit dem
-`moov`-Kasten vorn (`-movflags +faststart`), etwa 1080p30 mit 5 Mbit/s, rund
-2,3 GB je Stunde. Umgewandelt wird im Hintergrund nach dem Upload, wie bei den
-Vorschaubildern. Braucht ffmpeg im Image, Rechenzeit je Video und Platz für die
-zweite Fassung.
-
-**Zu klären:** wie lange der N100 für ein echtes Video der A6700 braucht, mit
-Quick Sync und nur mit der CPU, und in welchem Format die Kamera aufnimmt. Das
-Messverfahren steht in `Doku/Messverfahren_Umwandlung.md`.
