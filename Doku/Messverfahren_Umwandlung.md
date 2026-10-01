@@ -168,6 +168,9 @@ Was schnell genug ist, entscheidet der Betreiber mit den Zahlen (F1).
 3. Im Ordner `bash messung.sh | tee messung.txt` aufrufen. Braucht Docker
    `sudo`, dann `sudo bash messung.sh | tee messung.txt`.
 
+`MBIT=7.5 bash messung.sh | tee messung.txt` setzt eine Bitrate für alle Videos
+(V13, F21). Ohne `MBIT` gelten 5, 8 oder 16 Mbit/s nach der Bildrate.
+
 Das Skript
 
 1. baut zwei Images aus `node:22-bookworm-slim`, dem Basis-Image von Kriterion,
@@ -194,6 +197,8 @@ die beiden Images; `linuxserver/ffmpeg` ebenso, wenn das Skript es geladen hat.
 #!/bin/bash
 # Misst die Umwandlung in Proxys für Kriterion. Aufruf im Ordner mit den Videos:
 #   bash messung.sh | tee messung.txt
+# MBIT=7.5 setzt eine Bitrate für alle Videos; leer: 5, 8 oder 16 Mbit/s nach Bildrate.
+MBIT=${MBIT:-}
 DRI=${DRI:-/dev/dri/renderD128}
 LSIO=linuxserver/ffmpeg:latest
 NPROC=$(nproc)
@@ -259,7 +264,7 @@ wandle() {
   say "  Weg $weg: $f"
   local t0=$SECONDS
   ff "$img" -benchmark -nostats -progress pipe:1 -stats_period 1 -y "${dec[@]}" -i "$f" \
-    -vf "$vf" "${enc[@]}" -b:v "${mbit}M" -maxrate "${mbit}M" -bufsize "$((2 * mbit))M" -g "$gop" \
+    -vf "$vf" "${enc[@]}" -b:v "${mbit}M" -maxrate "${mbit}M" -bufsize "$(awk -v m="$mbit" 'BEGIN { print 2 * m }')M" -g "$gop" \
     -c:a aac -b:a 128k -movflags +faststart "$aus" 2>"$TMP/lauf.log" |
     while IFS= read -r z; do
       case $z in out_time_us=*) echo "$SECONDS ${z#out_time_us=}" ;; esac
@@ -357,6 +362,7 @@ for f in *; do
   mbit=5
   [ "$n" -gt $((30 * d)) ] && mbit=8
   [ "$n" -gt $((60 * d)) ] && mbit=16
+  [ -n "$MBIT" ] && mbit=$MBIT
   gop=$(((2 * n + d - 1) / d))
   fmt="$codec $pix"
   case $trc in arib-std-b67) fmt="$fmt HLG" ;; smpte2084) fmt="$fmt PQ" ;; esac
@@ -380,18 +386,18 @@ for f in *; do
     img=$CPUIMG
     [ "$weg" != C ] && img=$HWIMG
     if ! wandle "$weg" "$img" "$f" "$mbit" "$gop"; then
-      echo "| $f | $fmt | ${w}×${h} | $fps | $quelle | $laenge | $weg | $mbit Mbit/s | Fehler | | | |"
+      echo "| $f | $fmt | ${w}×${h} | $fps | $quelle | $laenge | $weg | ${mbit/./,} Mbit/s | Fehler | | | |"
       [ "$weg" = A ] || continue
       weg=B
       if ! wandle B "$img" "$f" "$mbit" "$gop"; then
-        echo "| $f | $fmt | ${w}×${h} | $fps | $quelle | $laenge | B | $mbit Mbit/s | Fehler | | | |"
+        echo "| $f | $fmt | ${w}×${h} | $fps | $quelle | $laenge | B | ${mbit/./,} Mbit/s | Fehler | | | |"
         continue
       fi
     fi
     werte=$(awk -v ut="$UT" -v st="$ST" -v rt="$RT" -v d="$dur" -v n="$NPROC" -v b="$BYTES" 'BEGIN {
       z = int(rt + 0.5)
       printf "%d:%02d | %.1f | %d %% | %d MB", z / 60, z % 60, d / rt, (ut + st) / rt / n * 100 + 0.5, b / 1e6 + 0.5 }')
-    echo "| $f | $fmt | ${w}×${h} | $fps | $quelle | $laenge | $weg | $mbit Mbit/s | ${werte//./,} |"
+    echo "| $f | $fmt | ${w}×${h} | $fps | $quelle | $laenge | $weg | ${mbit/./,} Mbit/s | ${werte//./,} |"
     if [ "$lang" = 1 ]; then
       m=$(minuten)
       echo "$f, Weg $weg: ${m:-Lauf kürzer als zwei Minuten}" >>"$TMP/dauerlast"
