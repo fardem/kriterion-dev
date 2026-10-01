@@ -1781,6 +1781,7 @@ app.get('/api/settings', (req, res) => res.json({
   tagsFreeCreate: freeCreate('tagsFreeCreate'),
   categoriesFreeCreate: freeCreate('categoriesFreeCreate'),
   potentialMode: potentialMode(),
+  partialShare: partialShare(),
   imageStore: imageStore(),
   imageStores: Object.keys(IMAGE_STORES),
   /* Ob die zweite Bestaetigung bei diesem Zugang auch den Code verlangt. */
@@ -1848,6 +1849,14 @@ app.put('/api/settings', (req, res) => {
             refuse('server.uploadLimitRange', { what: t(localeOf(req), g.label), min: g.min, max: g.max });
           limitsWanted[k] = n;
         }
+      }
+
+      let shareWanted = null;
+      if (req.body.partialShare !== undefined) {
+        const n = req.body.partialShare;
+        if (!Number.isInteger(n) || n < PARTIAL_SHARE.min || n > PARTIAL_SHARE.max)
+          refuse('server.partialShare', { min: PARTIAL_SHARE.min, max: PARTIAL_SHARE.max });
+        shareWanted = n;
       }
 
       /* Bildablage: hier geprueft, unten mit den uebrigen globalen Schaltern
@@ -1977,6 +1986,7 @@ app.put('/api/settings', (req, res) => {
       for (const k of ['tagsFreeCreate', 'categoriesFreeCreate', 'documentServer', 'documentEditAll'])
         if (req.body[k] !== undefined) putSetting.run(k, JSON.stringify(!!req.body[k]));
       if (storeWanted !== null) putSetting.run('imageStore', JSON.stringify(storeWanted));
+      if (shareWanted !== null) putSetting.run('partialShare', JSON.stringify(shareWanted));
       /* potentialMode steht in OWNER_KEYS; ein Admin wird oben abgewiesen. */
       if (req.body.potentialMode !== undefined)
         putSetting.run('potentialMode', JSON.stringify(!!req.body.potentialMode));
@@ -2007,7 +2017,7 @@ app.put('/api/settings', (req, res) => {
                  searchNames: pick(req.user.id, 'searchNames'),
                  tagsFreeCreate: freeCreate('tagsFreeCreate'),
                  categoriesFreeCreate: freeCreate('categoriesFreeCreate'),
-                 potentialMode: potentialMode(),
+                 potentialMode: potentialMode(), partialShare: partialShare(),
                  languages: languageEntries(),
                  /* Die Namenstabellen nur, wenn Sprachen geaendert wurden. */
                  ...(isAdmin(req) && languagesTouched
@@ -3354,6 +3364,35 @@ const qNewRatings = lateStatement(
     WHERE set_at IS NOT NULL AND set_at > ? AND value > 0 AND user_id IS NOT ?
     GROUP BY item_id, user_id`);
 
+/* ---- Filter „Keine“ und „Teilweise“ ---- */
+// Prozent der Kriterien einer Phase; darunter gilt ein Eintrag als teilweise bewertet.
+const PARTIAL_SHARE = { min: 1, max: 100, fallback: 80 };
+const partialShare = () => {
+  const v = getSetting('partialShare', PARTIAL_SHARE.fallback);
+  return Number.isInteger(v) && v >= PARTIAL_SHARE.min && v <= PARTIAL_SHARE.max ? v : PARTIAL_SHARE.fallback;
+};
+const qCriteriaPerPhase = lateStatement('SELECT phase, COUNT(*) AS n FROM rating_criteria GROUP BY phase');
+const qOwnPerPhase = lateStatement(`SELECT r.item_id, c.phase, COUNT(*) AS n FROM ratings r
+  JOIN rating_criteria c ON c.id = r.criterion_id WHERE r.user_id = ? AND r.value > 0 GROUP BY r.item_id, c.phase`);
+/* Je Phase 'none', 'partial' oder 'full', gemessen an den eigenen Werten; vor dem Test bei 'after' null.
+   Ohne Kriterien, beim Potenzial auch ohne potentialMode, fehlt die Phase; der Browser blendet ihre Gruppe aus. */
+function ownShares(userId) {
+  const totals = Object.fromEntries(qCriteriaPerPhase().all().map(z => [z.phase, z.n]));
+  if (!potentialMode()) delete totals.before;
+  const own = new Map(qOwnPerPhase().all(userId).map(z => [`${z.item_id}|${z.phase}`, z.n]));
+  const share = partialShare();
+  return (itemId, tested) => {
+    const out = {};
+    for (const phase of ['before', 'after']) {
+      const total = totals[phase];
+      if (!total) continue;
+      const n = own.get(`${itemId}|${phase}`) || 0;
+      out[phase] = phase === 'after' && !tested ? null : n === 0 ? 'none' : n * 100 < share * total ? 'partial' : 'full';
+    }
+    return out;
+  };
+}
+
 app.get('/api/items', (req, res) => {
   let rows = qAllItems.all();
   const term = fulltextTerm(req.query.q);
@@ -3398,8 +3437,10 @@ app.get('/api/items', (req, res) => {
   const catPer = new Map(named(qAllCategories.all(), categoryNames(localeOf(req)))
     .map(k => [k.id, k]));
   const testDaysPer = timeline ? testDaysPerEntry(req.user.id) : null;
+  const shareOf = ownShares(req.user.id);
   for (const it of rows) {
     it.rejected = !!it.rejected; it.tested = !!it.tested;
+    it.share = shareOf(it.id, it.tested);
     it.author = authorFrom(card, it.user_id);
     it.mine = it.user_id === req.user.id;
     delete it.user_id;
@@ -4773,8 +4814,8 @@ app.put('/api/attachments/:id', (req, res) => {
   const filename = stem + ext;
   const lower = filename.toLowerCase();
   if (qNamesBeside.all(a.item_id, a.id, a.folder_id).some(o => o.filename.toLowerCase() === lower))
-    return res.status(409).json({ error: t(localeOf(req),
-      a.folder_id == null ? 'server.nameTakenLoose' : 'server.fileNameTaken', { name: filename })});
+    return res.status(409).json({ error: a.folder_id == null ? t(localeOf(req), 'server.nameTakenLoose', { name: filename })
+      : t(localeOf(req), 'server.fileNameTaken', { name: filename }) });
   if (filename !== a.filename) db.transaction(() => {
     renameFile.run(filename, a.id);
     // Sonst kaeme der alte Name mit der vorigen Fassung zurueck.

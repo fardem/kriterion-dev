@@ -356,6 +356,79 @@ async function run() {
     await new Promise(r => ds.close(r));
   }
 
+  group('Filter nach Potenzial und Bewertung: der Server');
+  {
+    const eDir = path.join(root, 'filter');
+    fs.mkdirSync(eDir);
+    const E = H.startFurtherServer(eDir, {}, 7340);
+    await E.ready;
+    await E.call('POST', '/api/setup', { user: 'owner', password: pw('owner') });
+    await E.call('POST', '/api/users', { username: 'zweit', password: pw('zweit'), role: 'user' });
+    await E.call('POST', '/api/users', { username: 'dritt', password: pw('dritt'), role: 'admin' });
+    const e = {};
+    for (const user of ['owner', 'zweit', 'dritt']) {
+      const login = await fetch(E.base + '/api/login', { method: 'POST',
+        headers: { 'content-type': 'application/json' }, body: JSON.stringify({ user, password: pw(user) }) });
+      e[user] = jar('', login);
+    }
+    const asE = async (who, method, url, body) => {
+      const a = await fetch(E.base + url, { method,
+        headers: withCsrf(e[who], body !== undefined ? { 'content-type': 'application/json' } : {}),
+        body: body !== undefined ? JSON.stringify(body) : undefined });
+      return { status: a.status, content: await a.json().catch(() => null) };
+    };
+    for (const name of ['Vierte', 'Fuenfte']) await asE('owner', 'POST', '/api/criteria', { name, phase: 'after' });
+    for (const name of ['Wunsch', 'Nutzen']) await asE('owner', 'POST', '/api/criteria', { name, phase: 'before' });
+    const criteria = (await asE('owner', 'GET', '/api/criteria')).content || [];
+    const after = criteria.filter(k => k.phase === 'after').map(k => k.id), before = criteria.filter(k => k.phase === 'before').map(k => k.id);
+    const item = async (title, tested) => {
+      const id = (await asE('owner', 'POST', '/api/items', { title })).content.id;
+      if (tested) await asE('owner', 'PUT', `/api/items/${id}`, { tested: true });
+      return id;
+    };
+    const rate = async (who, id, ids) => { for (const k of ids) await asE(who, 'PUT', `/api/items/${id}/ratings`, { criterionId: k, value: 4 }); };
+    const x1 = await item('Drei von fünf', true), x2 = await item('Vier von fünf', true);
+    const x3 = await item('Keiner', true), x4 = await item('Ungetestet', false);
+    await rate('zweit', x1, [...after.slice(0, 3), before[0]]);
+    await rate('zweit', x2, [...after.slice(0, 4), ...before]);
+    await rate('owner', x3, [after[0]]);
+    await rate('zweit', x4, [before[0]]);
+    await rate('zweit', x4, [before[1]]);
+    await asE('zweit', 'PUT', `/api/items/${x4}/ratings`, { criterionId: before[1], value: 0 });
+    const shares = async (who) => Object.fromEntries(((await asE(who, 'GET', '/api/items')).content || [])
+      .map(i => [i.title, i.share]));
+    const mine = await shares('zweit');
+    check('Je Eintrag und Phase: keine, teilweise oder voll, an den eigenen Werten; 4 von 5 bei 80 % ist voll',
+      after.length === 5 && before.length === 2 && equal(mine, {
+        'Drei von fünf': { before: 'partial', after: 'partial' }, 'Vier von fünf': { before: 'full', after: 'full' },
+        'Keiner': { before: 'none', after: 'none' }, 'Ungetestet': { before: 'partial', after: null } }),
+      JSON.stringify(mine));
+    check('Fremde Werte zählen nicht: für den Eigentümer ist „Keiner“ teilweise, „Drei von fünf“ ohne Wert',
+      (await shares('owner'))['Keiner']?.after === 'partial' && (await shares('owner'))['Drei von fünf']?.after === 'none',
+      JSON.stringify(await shares('owner')));
+    const byUser = await asE('zweit', 'PUT', '/api/settings', { partialShare: 90 });
+    const wrong = [];
+    for (const v of [0, 101, 80.5, '80', null]) {
+      const r = await asE('dritt', 'PUT', '/api/settings', { partialShare: v });
+      if (r.status !== 400 || r.content?.error !== deText('server.partialShare', { min: 1, max: 100 })) wrong.push(`${v}: ${r.status}`);
+    }
+    const byAdmin = await asE('dritt', 'PUT', '/api/settings', { partialShare: 90 });
+    check('Die Schwelle ändert jeder Admin, sonst 403; nur ganze Zahlen von 1 bis 100',
+      byUser.status === 403 && wrong.length === 0 && byAdmin.status === 200 && byAdmin.content?.partialShare === 90 &&
+      (await asE('zweit', 'GET', '/api/settings')).content?.partialShare === 90, `${byUser.status} ${wrong.join(' · ')} ${byAdmin.status}`);
+    check('Mit 90 % sind 4 von 5 teilweise',
+      (await shares('zweit'))['Vier von fünf']?.after === 'partial', JSON.stringify((await shares('zweit'))['Vier von fünf']));
+    await asE('owner', 'PUT', '/api/settings', { potentialMode: false });
+    const off = await shares('zweit');
+    await asE('owner', 'PUT', '/api/settings', { potentialMode: true });
+    for (const k of before) await asE('owner', 'DELETE', `/api/criteria/${k}`);
+    const none = await shares('zweit');
+    check('Ohne Potenzialmodus und ohne Kriterien der Phase fehlt sie in `share`',
+      Object.values(off).every(v => !('before' in v) && 'after' in v) && Object.values(none).every(v => !('before' in v)),
+      `${JSON.stringify(off)} ${JSON.stringify(none)}`);
+    await E.stop();
+  }
+
   fs.rmSync(root, { recursive: true, force: true });
 
   /* ---- Oberflaeche ---- */
@@ -559,6 +632,81 @@ async function run() {
     const source = read('public/app.js');
     check('Im Code stehen weder „am …“ noch „von …“ noch „… offen“ fest',
       !/`am \$\{|`von \$\{|\} offen`/.test(source) && !/: 'keine'|return 'leer'/.test(source), 'Quelltext');
+  }
+
+  group('Filter nach Potenzial und Bewertung: Leiste und Einstellung');
+  {
+    const entry = (id, title, share, more = {}) => ({ id, title, rejected: false, tested: true, favorite: false,
+      category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null, testCount: 0,
+      updated_at: `2026-08-0${id} 10:00:00`, share, ...more });
+    const items = [entry(1, 'Teil', { before: 'partial', after: 'partial' }), entry(2, 'Voll', { before: 'full', after: 'full' }),
+      entry(3, 'Ohne', { before: 'none', after: 'none' }), entry(4, 'Ungetestet', { before: 'none', after: null }, { tested: false })];
+    const ready = (x) => !!x.document.getElementById('count') && openRequests(x) === 0;
+    const m = buildDom(JSDOM, { overviewItems: items, settings: { filters: null, userCount: 1, partialShare: 75 } });
+    const w = m.w;
+    await until(w, ready, 2000, 'die Uebersicht').catch(() => {});
+    const pills = (x, key) => [...(x.document.getElementById(`f-${key}`)?.querySelectorAll('.pill') || [])];
+    const row = w.document.getElementById('f-shares');
+    check('Eine Zeile mit „Potenzial“ und „Bewertung“, je „Alle · Keine · Teilweise“; der Titel nennt die Schwelle',
+      equal([...(row?.querySelectorAll('.eyebrow') || [])].map(e => e.textContent), ['Potenzial', 'Bewertung']) &&
+      equal(pills(w, 'potential').map(b => b.textContent), ['Alle', 'Keine', 'Teilweise']) &&
+      equal(pills(w, 'rating').map(b => b.textContent), ['Alle', 'Keine', 'Teilweise']) &&
+      pills(w, 'rating')[2]?.title === 'Weniger als 75 % der Kriterien selbst bewertet', row?.textContent);
+    const shown = () => w.visibleItems().map(i => i.title).sort();
+    pills(w, 'rating')[2]?.click();
+    await until(w, ready, 1000, 'das Filtern').catch(() => {});
+    check('„Bewertung: Teilweise“ zeigt nur den teilweise bewerteten Eintrag, zählt als aktiv und wird gespeichert',
+      equal(shown(), ['Teil']) && w.filterNumber() === 1 &&
+      m.sent.some(x => x.method === 'PUT' && x.url === '/api/settings' && x.body?.filters?.rating === 'partial'), shown().join(' '));
+    pills(w, 'rating')[1]?.click();
+    await until(w, ready, 1000, 'das Filtern').catch(() => {});
+    check('„Bewertung: Keine“: ungetestete Einträge zählen nicht', equal(shown(), ['Ohne']), shown().join(' '));
+    pills(w, 'rating')[0]?.click();
+    await until(w, ready, 1000, 'das Filtern').catch(() => {});
+    pills(w, 'potential')[1]?.click();
+    await until(w, ready, 1000, 'das Filtern').catch(() => {});
+    check('„Potenzial: Keine“ zählt jeden Eintrag, auch den ungetesteten', equal(shown(), ['Ohne', 'Ungetestet']), shown().join(' '));
+    w.close();
+
+    const without = items.map(i => ({ ...i, share: { after: i.share.after } }));
+    const h = buildDom(JSDOM, { overviewItems: without,
+      settings: { filters: { potential: 'partial', rating: 'all' }, userCount: 1 } });
+    await until(h.w, ready, 2000, 'die Uebersicht').catch(() => {});
+    check('Nennt der Server die Phase nicht, fehlt ihre Gruppe, und ein gespeicherter Wert gilt als „Alle“',
+      !h.w.document.getElementById('f-potential') && !!h.w.document.getElementById('f-rating') &&
+      h.w.visibleItems().length === 4 && h.w.filterNumber() === 0, `${h.w.visibleItems().length} ${h.w.filterNumber()}`);
+    h.w.close();
+
+    const a = buildDom(JSDOM, { settings: { filters: null, userCount: 1, partialShare: 80 } });
+    await until(a.w, ready, 2000, 'die Uebersicht').catch(() => {});
+    await D.sysSection(a.w, 'inventory');
+    const field = a.w.document.getElementById('partial-share');
+    check('Das Feld „Schwelle für „Teilweise““ steht in der Karte „Bewertung: Kriterien“, mit 80',
+      field?.value === '80' && field?.closest('.sys-card')?.querySelector('h3')?.textContent === 'Bewertung: Kriterien' &&
+      field?.closest('label')?.textContent.startsWith(DE['card.partialShare']), field?.closest('.sys-card')?.querySelector('h3')?.textContent);
+    const asked = [];
+    const base = a.w.fetch;
+    a.w.fetch = (url, opt) => {
+      const body = opt?.body ? JSON.parse(opt.body) : {};
+      if (url !== '/api/settings' || opt?.method !== 'PUT' || body.partialShare === undefined) return base(url, opt);
+      asked.push(body.partialShare);
+      return Promise.resolve(body.partialShare === 0 ? answerWith({ error: 'nein' }, 400) : answerWith({ partialShare: body.partialShare }));
+    };
+    field.value = '90';
+    field.dispatchEvent(new a.w.Event('change'));
+    await until(a.w, () => a.w.eval('PARTIAL_SHARE') === 90, 1000, 'das Speichern').catch(() => {});
+    field.value = '0';
+    field.dispatchEvent(new a.w.Event('change'));
+    await until(a.w, () => asked.length === 2 && field.value === '90', 1000, 'die Ablehnung').catch(() => {});
+    check('Eine Änderung geht an PUT /api/settings; abgelehnt steht wieder der alte Wert da',
+      equal(asked, [90, 0]) && a.w.eval('PARTIAL_SHARE') === 90 && field.value === '90', `${asked} ${field.value}`);
+    a.w.close();
+    const u = buildDom(JSDOM, { settings: { filters: null, userCount: 2, isAdmin: false, isOwner: false } });
+    await until(u.w, ready, 2000, 'die Uebersicht').catch(() => {});
+    await D.sysSection(u.w, 'inventory');
+    check('Ohne Adminrechte fehlt das Feld',
+      !u.w.document.getElementById('partial-share') && !!u.w.document.getElementById('mcrits'), 'Feld');
+    u.w.close();
   }
 
   group('Bilder: Typ, Vorschaubild und Erweiterte Infos');

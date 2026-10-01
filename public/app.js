@@ -948,8 +948,9 @@ function commentNumbers(comments) {
 function filesSummary(item) {
   const files = item.attachments || [];
   const videos = files.filter(a => kindOf(a) === 'video').length, images = files.filter(a => kindOf(a) === 'image').length;
-  const parts = [[(item.folders || []).length, 'entry.sumFolders'], [videos, 'entry.sumVideos'], [images, 'entry.sumImages'],
-    [files.length - videos - images, 'entry.sumOthers']].filter(([n]) => n > 0).map(([n, key]) => t(key, { n }));
+  const folders = (item.folders || []).length, others = files.length - videos - images;
+  const parts = [folders && t('entry.sumFolders', { n: folders }), videos && t('entry.sumVideos', { n: videos }),
+    images && t('entry.sumImages', { n: images }), others && t('entry.sumOthers', { n: others })].filter(Boolean);
   if (files.length) parts.push(filesize(files.reduce((sum, a) => sum + a.size, 0)));
   return parts.join(' · ') || t('entry.sumNone');
 }
@@ -2745,8 +2746,14 @@ const isNarrow = () => !!(window.matchMedia && window.matchMedia(NARROW).matches
 const CATEGORY_NONE = 'ohne';
 /* Die einzige Vorgabe der Filter; keine Kopie davon anlegen. */
 const FILTER_DEFAULT = { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'all',
-                         rejected: 'all', favorite: false,
+                         rejected: 'all', favorite: false, potential: 'all', rating: 'all',
                          sort: 'updated_desc' };
+/* Filter nach den eigenen Werten; `share` am Eintrag rechnet der Server mit der Schwelle aus den
+   Einstellungen. Nennt er eine Phase nicht, fehlt ihre Gruppe, und ihr Wert gilt als 'all'. */
+const SHARE_PHASES = { potential: 'before', rating: 'after' };
+const SHARE_VALUES = ['all', 'none', 'partial'];
+const shareShown = (key) => state.all.some(i => i.share && SHARE_PHASES[key] in i.share);
+const shareWanted = (f, key) => (shareShown(key) ? f[key] : 'all');
 
 const statusEffective = (f) => f.tested;
 
@@ -2780,6 +2787,8 @@ let TAGS_FREE = true;
 let CATEGORIES_FREE = true;
 /* Vorgabe wie am Server. */
 let POTENTIAL_MODE = true;
+// Gleich PARTIAL_SHARE.fallback in server.js, bis die Einstellungen da sind.
+let PARTIAL_SHARE = 80;
 /* Speicherformat fuer hochgeladene PNG; Vorgabe wie am Server. */
 let IMAGE_STORE = 'webp-lossless';
 let IMAGE_STORES = ['png', 'webp-lossless', 'webp-lossy'];
@@ -2840,6 +2849,7 @@ async function loadSettings() {
     CATEGORIES_FREE = SETTINGS.categoriesFreeCreate !== false;
   if (SETTINGS.potentialMode !== undefined)
     POTENTIAL_MODE = SETTINGS.potentialMode !== false;
+  if (Number.isInteger(SETTINGS.partialShare)) PARTIAL_SHARE = SETTINGS.partialShare;
   if (SETTINGS.imageStore !== undefined) IMAGE_STORE = SETTINGS.imageStore;
   if (Array.isArray(SETTINGS.imageStores) && SETTINGS.imageStores.length)
     IMAGE_STORES = SETTINGS.imageStores;
@@ -2891,6 +2901,7 @@ function filterNormal(raw) {
     v === CATEGORY_NONE || state.categories.some(c => c.id === v));
   if (f.tagMode !== 'or') f.tagMode = 'and';
   f.favorite = f.favorite === true;
+  for (const key of Object.keys(SHARE_PHASES)) if (!SHARE_VALUES.includes(f[key])) f[key] = 'all';
   /* `fresh` stammt von einem entfernten Filter. */
   delete f.fresh;
   return f;
@@ -3023,6 +3034,10 @@ function visibleItems(filter) {
   if (f.rejected === 'ja') out = out.filter(i => i.rejected);
   else if (f.rejected === 'nein') out = out.filter(i => !i.rejected);
   if (f.favorite) out = out.filter(i => i.favorite);
+  for (const key of Object.keys(SHARE_PHASES)) {
+    const wanted = shareWanted(f, key);
+    if (wanted !== 'all') out = out.filter(i => i.share?.[SHARE_PHASES[key]] === wanted);
+  }
   /* Die Suche steckt schon in `state.items` (GET /api/items?q=). */
 
   out = [...out].sort((a, b) => {
@@ -3483,6 +3498,7 @@ function filterNumber() {
   if (f.tested !== v.tested) n++;
   if (f.rejected !== v.rejected) n++;
   if (f.favorite) n++;
+  for (const key of Object.keys(SHARE_PHASES)) if (shareWanted(f, key) !== 'all') n++;
   /* Kategorien zaehlen zusammen als ein Filter, weil sie mit `or` verknuepft
      sind; Tags zaehlen einzeln. */
   if (f.categoryIds.length) n++;
@@ -3558,6 +3574,27 @@ function drawFilters() {
     g1b.appendChild(b);
   });
   r1.appendChild(g1b);
+
+  /* ---- Potenzial und Bewertung, gemessen an den eigenen Werten ---- */
+  const shares = [['potential', V.potential], ['rating', V.ratingOne]].filter(([key]) => shareShown(key));
+  if (shares.length) {
+    const r = row(shares[0][1]);
+    r.id = 'f-shares';
+    shares.forEach(([key, label], at) => {
+      if (at) secondLabel(r, label);
+      const g = document.createElement('div');
+      g.className = 'pills'; g.id = `f-${key}`;
+      [['all', t('list.all')], ['none', t('list.shareNone')], ['partial', t('list.sharePartial')]].forEach(([v, l]) => {
+        const b = document.createElement('button');
+        b.className = 'pill' + (f[key] === v ? ' on' : '');
+        b.textContent = l;
+        if (v === 'partial') b.title = t('list.sharePartialHint', { share: PARTIAL_SHARE });
+        b.onclick = () => { f[key] = v; redraw(); };
+        g.appendChild(b);
+      });
+      r.appendChild(g);
+    });
+  }
 
   /* ---- Kategorie ---- */
   const r2 = row(t('list.category'));
@@ -6309,10 +6346,10 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     // Beim Oeffnen steht die bisherige Begruendung zum Ueberschreiben im Feld.
     if (open && document.activeElement !== field) field.value = item.rejected_reason || '';
 
-    const date = item.rejected_at ? fmtDate(item.rejected_at) : '';
-    const name = item.rejectedAuthor && multipleUsers() ? authorName(item.rejectedAuthor) : '';
-    const head = date && name ? t('entry.rejectedBy', { date, name }) : date ? t('entry.rejectedOn', { date })
-      : name ? t('entry.rejectedWho', { name }) : '';
+    const when = item.rejected_at ? fmtDate(item.rejected_at) : '';
+    const who = item.rejectedAuthor && multipleUsers() ? authorName(item.rejectedAuthor) : '';
+    const head = when && who ? t('entry.rejectedBy', { date: when, name: who }) : when ? t('entry.rejectedOn', { date: when })
+      : who ? t('entry.rejectedWho', { name: who }) : '';
 
     /* Das ✎ steht auch ohne Begruendung da, zum Nachtragen. */
     const showPen = item.rejected && mine;
@@ -9704,6 +9741,9 @@ function cardCriteria(phase) {
           <input class="input input-sm" id="${k.field}" placeholder="${esc(t('card.newCriterion'))}" style="padding:8px 11px">
           <button class="btn btn-sm" id="${k.button}">${tH('entry.create')}</button>
         </div>` : ''}
+        ${!before && ADMIN ? `<p class="desc" style="margin:16px 0 8px">${tH('card.partialShareHint')}</p>
+          <label class="ex-files" for="partial-share">${tH('card.partialShare')}<input class="input input-sm share-in"
+            id="partial-share" type="number" min="1" max="100" step="1" value="${Number(PARTIAL_SHARE)}"> %</label>` : ''}
         ${before ? `${!POTENTIAL_MODE
             ? `<p class="desc" id="pot-off" style="margin:16px 0 0">${tH('card.potentialModeOff')}</p>` : ''}
           ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">${tH('card.potentialModeHint')}</p>
@@ -9733,6 +9773,15 @@ function setUpCriteriaOut(fetched, phase) {
     document.getElementById(k.button).onclick = addCrit;
     critField.addEventListener('keydown', e => { if (e.key === 'Enter') addCrit(); });
   }
+  const shareField = document.getElementById('partial-share');
+  if (shareField) shareField.onchange = async () => {
+    try {
+      const saved = await api('PUT', '/api/settings', { partialShare: Number(shareField.value) });
+      if (Number.isInteger(saved.partialShare)) PARTIAL_SHARE = saved.partialShare;
+      toast(t('list.saved'));
+    } catch (e) { toast(e.message, true); }
+    shareField.value = String(PARTIAL_SHARE);
+  };
   if (phase === 'before') createToggle('pot-mode', 'potentialMode',
     () => POTENTIAL_MODE, v => { POTENTIAL_MODE = v; },
     () => renderSystem({ keepScroll: true }));

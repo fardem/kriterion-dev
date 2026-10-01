@@ -1565,6 +1565,7 @@ body.lb-open { overflow: hidden; }
 .arename { display: flex; align-items: center; gap: 6px; }
 .arename .input { flex: 1; min-width: 0; }
 .arename-ext { font-family: var(--mono); font-size: .88rem; color: var(--muted); white-space: nowrap; }
+.share-in { width: 5.5em; margin: 0 4px 0 8px; }
 .minfo-head { margin: 14px 0 2px; font-size: .8rem; font-weight: 620; color: var(--muted); }
 .minfo-head:first-child { margin-top: 0; }
 .adeleted-list { list-style: none; margin: 0; padding: 0; max-height: 55vh; overflow-y: auto; }
