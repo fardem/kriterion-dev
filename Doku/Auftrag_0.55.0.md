@@ -212,6 +212,22 @@ die Datei nur einmal, und das Video springt nicht (B2).
   17 MB; der Bau dauerte in der Sitzung von Claude (4 Kerne) 2 min 35 s. Weg C
   geprüft mit HEVC 4K50 mit HLG, dem Proxy der A6700 hochkant und einer
   `mkv`-Datei; Quick Sync nicht geprüft.
+- Die Wege für ffmpeg (F19):
+
+| Weg | Image | Stand |
+|---|---|---|
+| Pakete aus Debian | 705 MB | gemessen; Quick Sync läuft auf dem N100 |
+| schlankes ffmpeg, im ersten Abschnitt des `Dockerfile` übersetzt | 263 MB | gemessen; Weg C geprüft, Quick Sync nicht |
+| `jellyfin-ffmpeg` aus der Paketquelle des Jellyfin-Projekts, mit eigenem Intel-Treiber | nicht gemessen | `repo.jellyfin.org` ist in der Sitzung von Claude gesperrt |
+| fertige statische Builds, etwa von BtbN | nicht gemessen | fremder Ersteller; in der Sitzung gesperrt |
+| eigener Container neben Kriterion | 227 MB und der zweite, etwa 802 MB | zweiter Dienst in der Compose-Datei; gegen F2 |
+| ffmpeg auf dem Host | – | verworfen: ein eingebundenes Programm des Hosts braucht dessen Bibliotheken; ein Dienst auf dem Host müsste jeder Nutzer installieren (V16); Zugriff auf `/var/run/docker.sock` gäbe Kriterion volle Rechte über den Host |
+| Pakete aus Debian, Abhängigkeiten danach gelöscht | – | verworfen: beschädigt die Paketverwaltung |
+| ffmpeg als WebAssembly | – | verworfen: ohne Grafik und langsamer als Weg C |
+
+  Auf dem Host braucht Quick Sync in jedem Weg nur den Kernel-Treiber `i915`
+  mit Firmware. Der Intel-Treiber 23.1.1 aus Debian 12 kann den N100; ob er
+  neuere Intel-Generationen kann, ist nicht geprüft.
 
 ### 2.7 Quick Sync und die Messung
 
@@ -289,7 +305,9 @@ und der Bitrate des Videos:
   statt der früheren 608×1080.
 - Die 4K-Videos der A6700 haben 45 Mbit/s im Video; die Datei hat 58 bis
   64 Mbit/s mit Ton in LPCM und der Spur `rtmd`.
-- Ob die Proxys aus Weg A aufrecht stehen, prüft der Betreiber am Telefon.
+- Alle Proxys der Hochkant-Videos stehen aufrecht, aus Weg A und aus Weg C
+  (Betreiber, 2. Oktober 2026). `-noautorotate` ist damit auch mit Quick Sync
+  bestätigt.
 
 ### 2.8 Größen
 
