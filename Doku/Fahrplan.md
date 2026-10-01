@@ -211,7 +211,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.51.0**~~ | ~~**Backup: Stände sichtbar, Zurückspielen mit Skript; Dateien sortieren**~~ | **GEBAUT am 30. September 2026** auf 0.50.0 — Änderungsprotokoll 0.51.0, nach `Doku/Auftrag_0.51.0.md`. `./backuptool.sh list`, `show`, `check` und `restore`; `restore` prüft bei laufender Instanz, hält an, legt ein Backup davor an (`# vor` in der Liste) und spielt zurück, danach enthält `data/files/` genau die Dateien des gewählten Stands; ein zweiter Aufruf führt einen Abbruch zu Ende. Jede Liste beginnt mit `# version`, auch ohne Dateien; das Alter bleibt die Änderungszeit (F13). „Alte Backups“ mit Version, Dateien und „nur hier“ je Backup, „Auswählen“ und Löschen mehrerer, die jüngsten nach „Mindestens behalten“ gesperrt; „prüfen“ nennt Version und Schema. Neue Module `schema.js`, `backup.js`, `backuptool.js`. „ab 3:12“ steht 10 s; „Dateien“ sortiert nach „Älteste zuerst“, „Jüngste zuerst“, „Name“, die Ordner mit, der älteste oben bei der Vorgabe (F14); „Bearbeiten“ in der Listenzeile. **MINOR** *(1.390 → 1.431 Rückbauten, Prüfstand 7.848 → 7.912, Sprachschlüssel 1.341 → 1.359). Fingerprint `7ace25ed` (davor `2b87077f`)* | nein | — |
 | ~~**0.52.0**~~ | ~~**Dateien: Gruppieren, Sortieren mit Richtung, Kopfzeile; Erweiterte Infos; Video ganz laden**~~ | **GEBAUT am 30. September 2026** auf 0.51.0 — Änderungsprotokoll 0.52.0, nach `Doku/Auftrag_0.52.0.md`. Sortieren nach Name, Datum, Größe mit Richtungsknopf, gespeichert als `filesSort` mit Richtung (alte Werte gelten weiter); „Nach Typ gruppiert“ (`filesGroup`) in jeder Gruppe, das Vollbild blättert in derselben Folge; Kopfzeile der Liste am Rechner; ✎ und 🔗 in einer festen Spalte, Art, Größe und Datum stehen untereinander; „Art“ als Beschreibung, bei Videos Codec und Länge; Menü „…“ in fünf Gruppen, „Öffnen“ auch bei Bildern und Videos, „Vorschaubild wählen …“. „Erweiterte Infos“ zu Bildern und Videos mit `mediainfo.js` auf dem Server, neue Tabelle `attachment_media`, neue Route `GET /api/attachments/:id/info`, der Codec am Vorschaubild. Ein Video lädt beim Abspielen ganz, bis 2 GB am Rechner und 500 MB am Telefon, gemessen in Chromium. Punkt 58 behoben; Punkt 59 nachgestellt und im Prüfstand behoben. Das Messverfahren für den N100 liegt vor. **MINOR** *(1.431 → 1.482 Rückbauten, Prüfstand 7.912 → 7.975, Sprachschlüssel 1.359 → 1.410). Fingerprint `a4d2ab5e` (davor `7ace25ed`)* | **ja** | — |
 | ~~**0.53.0**~~ | ~~**Papierkorb für Dateien, Dateien aus Backups zurückholen; Erweiterte Infos, Sortieren nach Typ; README, Anleitung und CHANGELOG englisch**~~ | **GEBAUT am 1. Oktober 2026** auf 0.52.0 — Änderungsprotokoll 0.53.0, nach `Doku/Auftrag_0.53.0.md`. Eine einzeln gelöschte Datei liegt 30 Tage im Papierkorb, als Zeile in `trash` mit `content.kind = 'file'`, ihr Inhalt bleibt über `disk_files.trash_id` auf der Platte; der Eigentümer-Admin stellt sie mit Ordner, Verfasser und Datum wieder her. „Gelöschte Dateien …“ im Eintrag nennt die Dateien aus dem Papierkorb und aus allen lesbaren Backups und holt sie zurück, unter dem Lockfile des Backup-Ordners; eine öfter gespeicherte Datei kommt als eigene Datei mit „(Backup TT.MM.JJJJ)“ daneben, Dateien aus der Datenbank alter Backups werden neu verschlüsselt; je Datei eine Zeile `backup.fetch`. „Typ“ in „Dateien sortieren“ und in der Kopfzeile; „Audio“, „Container“ bei Videos, „H.264 (AVC)“ im Dialog und „H.264“ in Liste und Kacheln; Erweiterte Infos auch für Fotos und Videos des Eintrags (neue Tabelle `photo_media`, Route `GET /api/photos/:id/info`), ⓘ im Vollbild; bei offenem Dialog reagiert das Vollbild auf keine Taste (B2). README und Anleitung englisch, deutsch und türkisch; das CHANGELOG englisch, 2.865 → 1.451 Zeilen. **MINOR** *(1.482 → 1.520 Rückbauten, Prüfstand 7.975 → 8.040, Sprachschlüssel 1.410 → 1.431). Fingerprint `5e5fb3c7` (davor `a4d2ab5e`)* | **ja** | — |
-| **0.53.1** | **Punkte aus der Abnahme von 0.53.0** | Gesammelt ab 1. Oktober 2026. **Gebaut wird, wenn der Betreiber fertig gesammelt hat** (Vorgabe vom 1. Oktober 2026). B1: Bilder nennen unter „Typ“ Format und Pixel, „PNG · 1920 × 1080“, am Vorschaubild das Format; B2: Vorschaubilder in der Bilddatei stehen unter „Erweiterte Infos“ als eine Zeile statt als eigene Gruppen „Bild“ (Abschnitt 0.53.1) | offen | — |
+| **0.53.1** | **Punkte aus der Abnahme von 0.53.0** | Gesammelt ab 1. Oktober 2026. **Gebaut wird, wenn der Betreiber fertig gesammelt hat** (Vorgabe vom 1. Oktober 2026). B1: Bilder nennen unter „Typ“ Format und Pixel, „PNG · 1920 × 1080“, am Vorschaubild das Format; B2: Vorschaubilder in der Bilddatei stehen unter „Erweiterte Infos“ als eine Zeile statt als eigene Gruppen „Bild“; B3: zugeklappt nennt „Dateien“ nur Ordner, Videos, Bilder, weitere Dateien und die Größe, ohne Bedienelemente (Abschnitt 0.53.1) | offen | — |
 | ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. Die zwei offenen Punkte des Eintrags stehen in der Zeile darunter | — | — |
 | ~~*ohne Nummer*~~ | ~~**Vorgabewerte und Tastaturbedienung beim Sortieren**~~ | **VORLÄUFIG GESTRICHEN am 21. September 2026:** der Inhalt ist nirgends beschrieben — weder hier noch im Sammelblatt noch im Projektstand steht, welche Vorgabewerte gemeint sind und was die Tastatur beim Sortieren tun soll. *Die Zeile kommt zurück, sobald der Betreiber sagt, was gemeint war.* | — | — |
 | ~~*ohne Nummer*~~ | ~~**Die Doppelung in der README auflösen**~~ | **GEBAUT mit 0.38.0 am 19. September 2026.** *Befund aus BA 6 der 0.37.0: zwei Abschnitte der README trugen dieselben drei Sachverhalte — dass eine fehlende Spalte nicht nachgerüstet wird, dass der Kasten jede fehlende Spalte samt altem Namen nennt, und dass die Instanz startet, aber jede Seite scheitert, die eine der Spalten liest.* **Jetzt verweist jeder der beiden auf den anderen:** `README.md`:348 nach unten, `README.md`:464 nach oben. *0.38.5 hat die README danach noch einmal gegliedert.* | nein | — |
@@ -3955,12 +3955,15 @@ die bestehenden Einträge, gekürzt auf höchstens 1.500 Zeilen (F20, F24).
 
 **Aufgenommen am 1. Oktober 2026.** Vorgabe des Betreibers vom selben Tag:
 „als Punkt für 0.53.1 aufnehmen. Gebaut wird, wenn ich fertig gesammelt habe.“
-Die offenen Fragen je Punkt kommen in Abschnitt 0 des Auftrags.
+Dazu: „nimm alle zusätzlichen Punkte für 0.53.1 auf … ich werde noch weiter
+sammeln.“ Weitere Punkte kommen deshalb ohne Rückfrage hierher. Die offenen
+Fragen je Punkt kommen in Abschnitt 0 des Auftrags.
 
 | | Punkt | Vorgabe des Betreibers, 1. Oktober 2026 |
 |---|---|---|
 | B1 | Bildformat und Pixel unter „Typ“ | „wie bei Video auch bei Bildern angeben, welchen Codec bzw. welches Bildformat es hat: PNG, JPEG etc.“ Fragetafel: „PNG · 1920 × 1080“ in der Liste; das Format auch am Vorschaubild, wie bei Videos; Sortieren nach „Typ“ wie bisher nach Name |
 | B2 | Vorschaubilder in der Bilddatei unter „Erweiterte Infos“ | Nachfrage: „warum habe ich hier 2 × zusätzliche Infos?“ Fragetafel: eine Gruppe „Bild“ für das Hauptbild, darin eine Zeile für die Vorschaubilder in der Datei |
+| B3 | Der zugeklappte Kopf von „Dateien“ | „wenn zugeklappt ist, sind nur die Zahlen von Videos, Bildern, Ordnern und sonstigen Dateien interessant, aber nicht die Sortierfilter und Auswahl etc.“ Fragetafel: „3 Ordner · 12 Videos · 9 Bilder · 4 weitere · 1.122,2 MB“; aufgeklappt wie bisher |
 
 #### B1 — Bildformat und Pixel unter „Typ“
 
@@ -4035,6 +4038,38 @@ Offen für den Auftrag:
   Vorschlag: ja, „2 (256 × 205, 160 × 120)“.
 - Gilt dasselbe für Fotos und Videos des Eintrags (`photo_media`)? Vorschlag:
   ja, es ist derselbe Dialog.
+
+#### B3 — Der zugeklappte Kopf von „Dateien“
+
+**Stand mit 0.53.0:** Zugeklappt blendet `.block.closed > *:not(.block-head)`
+(`public/style.css`:1667) nur den Inhalt unter dem Kopf aus. Im Kopf bleiben
+„(28)“ aus `blockSummary()` (`public/app.js`:940), „28 Dateien · 1.122,2 MB“
+aus `#acount` (`public/app.js`:7470) und alle Bedienelemente in
+`.ahead-acts`: Sortieren, Richtung, Gruppieren, „Kacheln“ und „Liste“,
+„Auswählen“, „Ordner hinzufügen“, „Gelöschte Dateien …“.
+
+**Vorgabe des Betreibers (Fragetafel, 1. Oktober 2026):**
+
+- Zugeklappt: „3 Ordner · 12 Videos · 9 Bilder · 4 weitere · 1.122,2 MB“,
+  ohne Bedienelemente. „weitere“ statt „Sonstige“, weil „Sonstige“ unter
+  „Nach Typ gruppiert“ nur Dateien unbekannter Art meint. Arten ohne Datei
+  fallen weg.
+- Aufgeklappt: wie bisher, „28 Dateien · 1.122,2 MB“ und alle Bedienelemente.
+
+| Stelle | Änderung |
+|---|---|
+| `public/style.css`:1667 | `.block.closed .ahead-acts` und `#acount` ausblenden |
+| `blockSummary()`, `public/app.js`:940 | `dateien` liefert die Aufteilung statt der Zahl; Videos und Bilder nach `kindOf()`, Ordner aus `item.folders`, die Größe wie `#acount` |
+| Sprachdateien | Schlüssel mit Ein- und Mehrzahl für Ordner, Videos, Bilder und weitere Dateien, in drei Sprachen |
+| Anleitung | der zugeklappte Kopf, in allen drei Sprachen |
+
+Offen für den Auftrag:
+
+- `blockSummary()` setzt die Kurzfassung in Klammern. Die Aufteilung ohne
+  Klammern? Vorschlag: ja, sie ist schon eine Zeile für sich.
+- `blockSummary()` schreibt „keine“ und „leer“ fest auf Deutsch, für
+  `kategorie` und `beschreibung`. Mit derselben Runde über die Sprachdateien?
+  Vorschlag: ja.
 
 ---
 
