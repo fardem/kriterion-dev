@@ -211,7 +211,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.51.0**~~ | ~~**Backup: Stände sichtbar, Zurückspielen mit Skript; Dateien sortieren**~~ | **GEBAUT am 30. September 2026** auf 0.50.0 — Änderungsprotokoll 0.51.0, nach `Doku/Auftrag_0.51.0.md`. `./backuptool.sh list`, `show`, `check` und `restore`; `restore` prüft bei laufender Instanz, hält an, legt ein Backup davor an (`# vor` in der Liste) und spielt zurück, danach enthält `data/files/` genau die Dateien des gewählten Stands; ein zweiter Aufruf führt einen Abbruch zu Ende. Jede Liste beginnt mit `# version`, auch ohne Dateien; das Alter bleibt die Änderungszeit (F13). „Alte Backups“ mit Version, Dateien und „nur hier“ je Backup, „Auswählen“ und Löschen mehrerer, die jüngsten nach „Mindestens behalten“ gesperrt; „prüfen“ nennt Version und Schema. Neue Module `schema.js`, `backup.js`, `backuptool.js`. „ab 3:12“ steht 10 s; „Dateien“ sortiert nach „Älteste zuerst“, „Jüngste zuerst“, „Name“, die Ordner mit, der älteste oben bei der Vorgabe (F14); „Bearbeiten“ in der Listenzeile. **MINOR** *(1.390 → 1.431 Rückbauten, Prüfstand 7.848 → 7.912, Sprachschlüssel 1.341 → 1.359). Fingerprint `7ace25ed` (davor `2b87077f`)* | nein | — |
 | ~~**0.52.0**~~ | ~~**Dateien: Gruppieren, Sortieren mit Richtung, Kopfzeile; Erweiterte Infos; Video ganz laden**~~ | **GEBAUT am 30. September 2026** auf 0.51.0 — Änderungsprotokoll 0.52.0, nach `Doku/Auftrag_0.52.0.md`. Sortieren nach Name, Datum, Größe mit Richtungsknopf, gespeichert als `filesSort` mit Richtung (alte Werte gelten weiter); „Nach Typ gruppiert“ (`filesGroup`) in jeder Gruppe, das Vollbild blättert in derselben Folge; Kopfzeile der Liste am Rechner; ✎ und 🔗 in einer festen Spalte, Art, Größe und Datum stehen untereinander; „Art“ als Beschreibung, bei Videos Codec und Länge; Menü „…“ in fünf Gruppen, „Öffnen“ auch bei Bildern und Videos, „Vorschaubild wählen …“. „Erweiterte Infos“ zu Bildern und Videos mit `mediainfo.js` auf dem Server, neue Tabelle `attachment_media`, neue Route `GET /api/attachments/:id/info`, der Codec am Vorschaubild. Ein Video lädt beim Abspielen ganz, bis 2 GB am Rechner und 500 MB am Telefon, gemessen in Chromium. Punkt 58 behoben; Punkt 59 nachgestellt und im Prüfstand behoben. Das Messverfahren für den N100 liegt vor. **MINOR** *(1.431 → 1.482 Rückbauten, Prüfstand 7.912 → 7.975, Sprachschlüssel 1.359 → 1.410). Fingerprint `a4d2ab5e` (davor `7ace25ed`)* | **ja** | — |
 | ~~**0.53.0**~~ | ~~**Papierkorb für Dateien, Dateien aus Backups zurückholen; Erweiterte Infos, Sortieren nach Typ; README, Anleitung und CHANGELOG englisch**~~ | **GEBAUT am 1. Oktober 2026** auf 0.52.0 — Änderungsprotokoll 0.53.0, nach `Doku/Auftrag_0.53.0.md`. Eine einzeln gelöschte Datei liegt 30 Tage im Papierkorb, als Zeile in `trash` mit `content.kind = 'file'`, ihr Inhalt bleibt über `disk_files.trash_id` auf der Platte; der Eigentümer-Admin stellt sie mit Ordner, Verfasser und Datum wieder her. „Gelöschte Dateien …“ im Eintrag nennt die Dateien aus dem Papierkorb und aus allen lesbaren Backups und holt sie zurück, unter dem Lockfile des Backup-Ordners; eine öfter gespeicherte Datei kommt als eigene Datei mit „(Backup TT.MM.JJJJ)“ daneben, Dateien aus der Datenbank alter Backups werden neu verschlüsselt; je Datei eine Zeile `backup.fetch`. „Typ“ in „Dateien sortieren“ und in der Kopfzeile; „Audio“, „Container“ bei Videos, „H.264 (AVC)“ im Dialog und „H.264“ in Liste und Kacheln; Erweiterte Infos auch für Fotos und Videos des Eintrags (neue Tabelle `photo_media`, Route `GET /api/photos/:id/info`), ⓘ im Vollbild; bei offenem Dialog reagiert das Vollbild auf keine Taste (B2). README und Anleitung englisch, deutsch und türkisch; das CHANGELOG englisch, 2.865 → 1.451 Zeilen. **MINOR** *(1.482 → 1.520 Rückbauten, Prüfstand 7.975 → 8.040, Sprachschlüssel 1.410 → 1.431). Fingerprint `5e5fb3c7` (davor `a4d2ab5e`)* | **ja** | — |
-| **0.53.1** | **Punkte aus der Abnahme von 0.53.0** | Gesammelt ab 1. Oktober 2026. **Gebaut wird, wenn der Betreiber fertig gesammelt hat** (Vorgabe vom 1. Oktober 2026). B1: Bilder nennen unter „Typ“ Format und Pixel, „PNG · 1920 × 1080“, am Vorschaubild das Format; B2: Vorschaubilder in der Bilddatei stehen unter „Erweiterte Infos“ als eine Zeile statt als eigene Gruppen „Bild“; B3: zugeklappt nennt „Dateien“ nur Ordner, Videos, Bilder, weitere Dateien und die Größe, ohne Bedienelemente; B4: Dateien umbenennen (Punkt 60); B5 bis B7: fester deutscher Text im Code, „Eintrag exportieren“ und vier Namen der Anleitung (Punkte 61 bis 63); B8: das Stilblatt nach der Kommentarregel durchsehen (Punkt 42) (Abschnitt 0.53.1) | offen | — |
+| **0.53.1** | **Punkte aus der Abnahme von 0.53.0** | Gesammelt ab 1. Oktober 2026. **Gebaut wird, wenn der Betreiber fertig gesammelt hat** (Vorgabe vom 1. Oktober 2026). B1: Bilder nennen unter „Typ“ Format und Pixel, „PNG · 1920 × 1080“, am Vorschaubild das Format; B2: Vorschaubilder in der Bilddatei stehen unter „Erweiterte Infos“ als eine Zeile statt als eigene Gruppen „Bild“; B3: zugeklappt nennt „Dateien“ nur Ordner, Videos, Bilder, weitere Dateien und die Größe, ohne Bedienelemente; B4: Dateien umbenennen (Punkt 60); B5 bis B7: fester deutscher Text im Code, „Eintrag exportieren“ und vier Namen der Anleitung (Punkte 61 bis 63); B8: das Stilblatt nach der Kommentarregel durchsehen (Punkt 42); B9: EXIF-Angaben bei Bildern; B10: „Infos“ zu Dokumenten (Abschnitt 0.53.1, Auftrag `Doku/Auftrag_0.53.1.md`) | offen | — |
 | ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. Die zwei offenen Punkte des Eintrags stehen in der Zeile darunter | — | — |
 | ~~*ohne Nummer*~~ | ~~**Vorgabewerte und Tastaturbedienung beim Sortieren**~~ | **VORLÄUFIG GESTRICHEN am 21. September 2026:** der Inhalt ist nirgends beschrieben — weder hier noch im Sammelblatt noch im Projektstand steht, welche Vorgabewerte gemeint sind und was die Tastatur beim Sortieren tun soll. *Die Zeile kommt zurück, sobald der Betreiber sagt, was gemeint war.* | — | — |
 | ~~*ohne Nummer*~~ | ~~**Die Doppelung in der README auflösen**~~ | **GEBAUT mit 0.38.0 am 19. September 2026.** *Befund aus BA 6 der 0.37.0: zwei Abschnitte der README trugen dieselben drei Sachverhalte — dass eine fehlende Spalte nicht nachgerüstet wird, dass der Kasten jede fehlende Spalte samt altem Namen nennt, und dass die Instanz startet, aber jede Seite scheitert, die eine der Spalten liest.* **Jetzt verweist jeder der beiden auf den anderen:** `README.md`:348 nach unten, `README.md`:464 nach oben. *0.38.5 hat die README danach noch einmal gegliedert.* | nein | — |
@@ -3969,6 +3969,8 @@ Fragen je Punkt kommen in Abschnitt 0 des Auftrags.
 | B6 | Die Anleitung beschreibt „Eintrag exportieren“ (Punkt 62) | „62 und 63 so übernehmen“ |
 | B7 | Namen in der Anleitung und in `en.json` (Punkt 63) | ebenso |
 | B8 | Das Stilblatt nach der Kommentarregel durchsehen (Punkt 42) | „42, 60 auch bitte in 0.53.1 aufnehmen“ |
+| B9 | EXIF-Angaben bei Bildern | „bei Bildern, wenn es drin ist, auch die EXIF-Daten, die wichtigsten mit aufnehmen: wann, welche Kamera etc.“ |
+| B10 | „Infos“ zu Dokumenten | „bei Dokumenten eventuell auch die Basisinformation, wann zuletzt geändert etc. Das heißt auch da Infos, nicht erweiterte, sondern Infos.“ Dazu: „schau, was man so noch hat: zuletzt bearbeitet von etc., halt die Dinge, die interessant sein könnten.“ |
 
 #### B1 — Bildformat und Pixel unter „Typ“
 
@@ -4189,6 +4191,44 @@ Offen für den Auftrag:
   Sammelblatt erwogen? Vorschlag: nein. `CLAUDE.md` erlaubt sie im
   Kommentar, und ein Verweis auf `Doku/` steht in keiner ausgelieferten
   Datei.
+
+#### B9 — EXIF-Angaben bei Bildern
+
+**Stand mit 0.53.0:** `mediaSummary()` (`attachments.js`:379) übernimmt für
+Bilder Format, Pixel, Bittiefe, Farbraum und Unterabtastung. MediaInfo liest
+aus JPEG kein EXIF. Kamera, Objektiv, Aufnahmezeit, Blende, Belichtungszeit,
+ISO und Brennweite fehlen in seiner Ausgabe, auch mit allen Feldern
+(`full: true`). Nachgestellt am 1. Oktober 2026 mit einem JPEG, dem `sharp`
+diese Felder mitgegeben hat. Das Aufnahmedatum zu `20D_9141.jpg` stammt
+deshalb nicht aus EXIF.
+
+`sharp` liefert den EXIF-Block roh (`metadata().exif`) und die Ausrichtung
+(`orientation`) schon aus den ersten 4 KB der Datei. Gelesen werden kann der
+Block mit `exif-reader` 2.0.3 (MIT, ohne weitere Pakete, 33 kB, gepflegt vom
+Verfasser von `sharp`) oder mit einem eigenen Leser in `attachments.js`.
+
+Der Weg: Die Warteschlange liest den Block beim Bild mit, legt die Felder in
+`attachment_media.info` ab, und der Dialog zeigt sie als eigene Gruppe. Die
+offenen Fragen stehen im Auftrag.
+
+#### B10 — „Infos“ zu Dokumenten
+
+**Stand mit 0.53.0:** „Erweiterte Infos“ gibt es nur für Bilder und Videos
+(`mediaKind()`, `attachments.js`). Zu einem Dokument kennt Kriterion Name,
+Typ, Größe, Verfasser und Zeitpunkt des Hochladens (`attachments`), die Zahl
+der Speicherungen im Document Server (`attachment_editing.saves`) und den
+Zeitpunkt, zu dem die vorige Fassung abgelegt wurde
+(`attachment_previous.saved_at`). Zeitpunkt und Account der letzten
+Speicherung stehen nirgends. `uploads.modified`, die Änderungszeit der Datei
+auf dem Rechner, fällt nach dem Hochladen weg.
+
+Die Datei selbst trägt Angaben: Office-Dateien in `docProps/core.xml` (Titel,
+Autor, zuletzt gespeichert von, erstellt, geändert) und `docProps/app.xml`
+(Seiten, Programm). `attachments.js` hat dafür schon einen ZIP-Leser
+(`docxPreview()`). PDF-Dateien tragen sie im Info-Wörterbuch.
+
+Der Weg: Bei Dokumenten heißt der Menüpunkt „Infos“; der Dialog sieht aus wie
+„Erweiterte Infos“. Die offenen Fragen stehen im Auftrag.
 
 ---
 
