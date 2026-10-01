@@ -11,6 +11,26 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 *Collected here while building.*
 
+## [0.54.0] - 2026-10-01
+
+Fingerprint `6402677f` — previously `5e5fb3c7`.
+
+### Added
+
+- "Rename …" in the "…" menu of an own file; the extension stays, and a name already used in the same folder is refused.
+- "Info" for Word, Excel, PowerPoint, OpenDocument and PDF files: upload, last save in the Document Server and its account, and title, author, pages and dates from the file.
+- "Extended info" of an image shows EXIF under "Capture": time taken, camera, lens, exposure, aperture, ISO, focal length; a location only as "yes". New dependency `exif-reader`.
+- Overview filters "Potential" and "Rating" with "None" and "Partial", measured by your own stars; an admin sets the threshold for "Partial" (default 80 %) in "Rating: criteria".
+
+### Changed
+
+- "Type" shows format and pixels of an image as displayed ("PNG · 1920 × 1080"); the thumbnail shows the format.
+- Thumbnails embedded in an image file appear as one row under "Image" instead of further "Image" groups.
+- After the update, Kriterion reads each image and photo once more in the background for orientation and EXIF.
+- Collapsed, the "Files" header shows only counts and size.
+- "Rejected on … by …" and the title of the task button come from the language files; in English the card and section are "Users".
+- The manual no longer describes "Export entry", which does not exist.
+
 ## [0.53.0] - 2026-10-01
 
 Fingerprint `5e5fb3c7` — previously `a4d2ab5e`.
