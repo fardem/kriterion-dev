@@ -3958,10 +3958,10 @@ die bestehenden Einträge, gekürzt auf höchstens 1.500 Zeilen (F20, F24).
 Dazu: „nimm alle zusätzlichen Punkte für 0.53.1 auf … ich werde noch weiter
 sammeln.“ Weitere Punkte kommen deshalb ohne Rückfrage hierher.
 
-**Der Auftrag steht in `Doku/Auftrag_0.54.0.md`**, F1 bis F19 am 1. Oktober
+**Der Auftrag steht in `Doku/Auftrag_0.54.0.md`**, F1 bis F26 am 1. Oktober
 2026 beantwortet. Nach F1 heißt die Runde 0.54.0: B4 bringt eine neue Route,
 B10 eine neue Tabelle. Wo unten „offen für den Auftrag“ steht, gilt die
-Antwort dort.
+Antwort dort. B11 kam nach dem Start des Baus dazu (F20).
 
 | | Punkt | Vorgabe des Betreibers, 1. Oktober 2026 |
 |---|---|---|
@@ -3975,6 +3975,7 @@ Antwort dort.
 | B8 | Das Stilblatt nach der Kommentarregel durchsehen (Punkt 42) | „42, 60 auch bitte in 0.53.1 aufnehmen“ |
 | B9 | EXIF-Angaben bei Bildern | „bei Bildern, wenn es drin ist, auch die EXIF-Daten, die wichtigsten mit aufnehmen: wann, welche Kamera etc.“ |
 | B10 | „Infos“ zu Dokumenten | „bei Dokumenten eventuell auch die Basisinformation, wann zuletzt geändert etc. Das heißt auch da Infos, nicht erweiterte, sondern Infos.“ Dazu: „schau, was man so noch hat: zuletzt bearbeitet von etc., halt die Dinge, die interessant sein könnten.“ |
+| B11 | Filter nach Potenzial und Bewertung | „ungeschätzte oder unbewertete filtern und auch ein Punkt zum Filtern für teilweise bewertete, wenn weniger als 80 % (einstellbar im Admin-Menü) der möglichen Bewertungen oder Schätzungen bewertet worden sind“. Dazu: „also als Filter Schätzung, Bewertung, und je teilweise“. Fragetafel: in 0.54.0 nachtragen; gemessen an den eigenen Werten |
 
 #### B1 — Bildformat und Pixel unter „Typ“
 
@@ -4233,6 +4234,19 @@ Autor, zuletzt gespeichert von, erstellt, geändert) und `docProps/app.xml`
 
 Der Weg: Bei Dokumenten heißt der Menüpunkt „Infos“; der Dialog sieht aus wie
 „Erweiterte Infos“. Die offenen Fragen stehen im Auftrag.
+
+#### B11 — Filter nach Potenzial und Bewertung
+
+**Stand mit 0.53.0:** Die Filterleiste der Übersicht kennt Status, Ablehnung,
+Favoriten, Kategorien und Tags. `GET /api/items` liefert je Eintrag die
+Durchschnitte, aber nicht, wie viele Kriterien der Account selbst bewertet
+hat.
+
+Der Weg: eine neue Zeile mit den Gruppen „Potenzial“ und „Bewertung“, je
+„Alle · Keine · Teilweise“. „Teilweise“ heißt: mindestens ein eigener Wert und
+weniger eigene Werte als die Schwelle, Vorgabe 80 % der Kriterien der Phase.
+Die Schwelle stellt ein Admin unter Einstellungen › Bestand ein. Die Antworten
+stehen im Auftrag (F20 bis F26).
 
 ---
 
