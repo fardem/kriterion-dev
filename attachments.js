@@ -431,10 +431,182 @@ async function mediaFacts(size, read) {
   return { ...facts, ...await imageHead(await read(Math.min(size, CHUNK), 0)) };
 }
 
+/* ---- Infos zu Dokumenten ---- */
+// Wie KIND_OF_EXTENSION in public/app.js fuer pdf, word, excel und powerpoint; null: nur Angaben aus Kriterion.
+const DOCUMENT_READERS = { pdf: 'pdf', docx: 'ooxml', xlsx: 'ooxml', pptx: 'ooxml', odt: 'odf', ods: 'odf', odp: 'odf',
+  doc: null, rtf: null, xls: null, ppt: null };
+const isDocument = (filename) => Object.prototype.hasOwnProperty.call(DOCUMENT_READERS, extension(filename));
+// Ein ZIP-Eintrag und jede Haelfte eines PDF.
+const DOCUMENT_PART = 1024 * 1024;
+const ZIP_END_MAX = 22 + 65535;
+
+const docText = (v) => {
+  const text = v == null ? '' : String(v).replace(/\s+/g, ' ').trim();
+  return text ? text.slice(0, 200) : null;
+};
+const docCount = (v) => (/^\d+$/.test(String(v ?? '').trim()) && Number(v) > 0 ? Number(v) : null);
+const XML_NAMED = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
+const xmlDecode = (text) => text.replace(/&(?:#x([0-9a-f]+)|#(\d+)|(amp|lt|gt|quot|apos));/gi, (m, hex, dec, name) => {
+  if (name) return XML_NAMED[name.toLowerCase()];
+  const code = hex ? parseInt(hex, 16) : Number(dec);
+  return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : '';
+});
+// Das erste Element `name` mit beliebigem Praefix, ohne innere Tags.
+function xmlValue(xml, name) {
+  const m = new RegExp(`<(?:[\\w.-]+:)?${name}(?:\\s[^>]*)?>([\\s\\S]*?)</(?:[\\w.-]+:)?${name}>`).exec(xml);
+  return m ? docText(xmlDecode(m[1].replace(/<[^>]*>/g, ''))) : null;
+}
+const xmlAttribute = (tag, name) => {
+  const m = new RegExp(`\\s(?:[\\w.-]+:)?${name}="([^"]*)"`).exec(tag);
+  return m ? xmlDecode(m[1]) : null;
+};
+
+// Mit Zeitzone als UTC mit „Z“; ohne Zeitzone, wie die Datei sie nennt.
+function docTime(v) {
+  const m = /^(\d{4})-(\d\d)-(\d\d)(?:[T ](\d\d):(\d\d)(?::(\d\d))?(?:[.,]\d+)?)?\s*(Z|[+-]\d\d:?\d\d)?$/i
+    .exec(String(v ?? '').trim());
+  if (!m) return null;
+  const [, y, mo, d, h = '00', mi = '00', sec = '00', zone] = m;
+  const local = `${y}-${mo}-${d}T${h}:${mi}:${sec}`;
+  if (!zone) return local;
+  const ms = Date.parse(local + (/^z$/i.test(zone) ? 'Z' : zone.replace(/^([+-]\d\d):?(\d\d)$/, '$1:$2')));
+  return Number.isNaN(ms) ? null : new Date(ms).toISOString().slice(0, 19) + 'Z';
+}
+// „D:20200425142211+02'00'“; fehlende Teile wie in der PDF-Norm.
+function pdfTime(v) {
+  const m = /^D:(\d{4})(\d\d)?(\d\d)?(\d\d)?(\d\d)?(\d\d)?\s*(Z|[+-]\d\d'?\d\d)?/.exec(String(v ?? '').trim());
+  if (!m) return null;
+  const [, y, mo = '01', d = '01', h = '00', mi = '00', sec = '00', zone] = m;
+  return docTime(`${y}-${mo}-${d}T${h}:${mi}:${sec}${zone ? zone.replace(/'/g, '') : ''}`);
+}
+
+/* Liest nur das zentrale Verzeichnis und die genannten Eintraege; Eintraege ueber DOCUMENT_PART
+   bleiben ungelesen, ebenso ZIP64. */
+async function zipParts(size, read, names) {
+  const tailLength = Math.min(size, ZIP_END_MAX);
+  const tail = await read(tailLength, size - tailLength);
+  let end = -1;
+  for (let i = tail.length - 22; i >= 0; i--) if (tail.readUInt32LE(i) === 0x06054b50) { end = i; break; }
+  if (end < 0) return {};
+  const count = tail.readUInt16LE(end + 10), dirSize = tail.readUInt32LE(end + 12), dirAt = tail.readUInt32LE(end + 16);
+  if (dirSize > DOCUMENT_PART || dirAt + dirSize > size) return {};
+  const dir = await read(dirSize, dirAt);
+  const out = {};
+  for (let n = 0, p = 0; n < count && p + 46 <= dir.length && dir.readUInt32LE(p) === 0x02014b50; n++) {
+    const method = dir.readUInt16LE(p + 10), packed = dir.readUInt32LE(p + 20), unpacked = dir.readUInt32LE(p + 24);
+    const nameLength = dir.readUInt16LE(p + 28), at = dir.readUInt32LE(p + 42);
+    const name = dir.subarray(p + 46, p + 46 + nameLength).toString('utf8');
+    p += 46 + nameLength + dir.readUInt16LE(p + 30) + dir.readUInt16LE(p + 32);
+    if (!names.includes(name) || packed > DOCUMENT_PART || unpacked > DOCUMENT_PART || at + 30 > size) continue;
+    const head = await read(30, at);
+    if (head.length < 30 || head.readUInt32LE(0) !== 0x04034b50) continue;
+    const start = at + 30 + head.readUInt16LE(26) + head.readUInt16LE(28);
+    if (start + packed > size) continue;
+    const raw = await read(packed, start);
+    try {
+      if (method === 0) out[name] = raw;
+      else if (method === 8) out[name] = zlib.inflateRawSync(raw, { maxOutputLength: DOCUMENT_PART });
+    } catch { /* ein kaputter Eintrag fehlt */ }
+  }
+  return out;
+}
+
+function ooxmlFacts(parts) {
+  const core = parts['docProps/core.xml']?.toString('utf8') || '', app = parts['docProps/app.xml']?.toString('utf8') || '';
+  return { title: xmlValue(core, 'title'), createdBy: xmlValue(core, 'creator'), created: docTime(xmlValue(core, 'created')),
+    lastModifiedBy: xmlValue(core, 'lastModifiedBy'), modified: docTime(xmlValue(core, 'modified')),
+    pages: docCount(xmlValue(app, 'Pages')), words: docCount(xmlValue(app, 'Words')),
+    slides: docCount(xmlValue(app, 'Slides')), application: xmlValue(app, 'Application') };
+}
+
+// In meta.xml ist dc:creator, wer zuletzt bearbeitet hat; meta:initial-creator, wer erstellt hat.
+function odfFacts(parts) {
+  const meta = parts['meta.xml']?.toString('utf8') || '';
+  const stats = /<(?:[\w.-]+:)?document-statistic\b[^>]*>/.exec(meta)?.[0] || '';
+  return { title: xmlValue(meta, 'title'), createdBy: xmlValue(meta, 'initial-creator'),
+    created: docTime(xmlValue(meta, 'creation-date')), lastModifiedBy: xmlValue(meta, 'creator'),
+    modified: docTime(xmlValue(meta, 'date')), pages: docCount(xmlAttribute(stats, 'page-count')),
+    words: docCount(xmlAttribute(stats, 'word-count')), slides: null, application: xmlValue(meta, 'generator') };
+}
+
+// Text eines PDF-Strings: UTF-16BE mit BOM, UTF-8 mit BOM, sonst Latin-1 statt PDFDocEncoding.
+function pdfDecode(bytes) {
+  if (bytes[0] === 0xfe && bytes[1] === 0xff) {
+    const even = Buffer.from(bytes.subarray(2, 2 + ((bytes.length - 2) & ~1)));
+    return docText(even.swap16().toString('utf16le'));
+  }
+  if (bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) return docText(bytes.subarray(3).toString('utf8'));
+  return docText(bytes.toString('latin1'));
+}
+const PDF_ESCAPES = { n: 10, r: 13, t: 9, b: 8, f: 12 };
+function pdfLiteral(s, i) {
+  const out = [];
+  for (let depth = 0, k = i + 1; k < s.length; k++) {
+    const c = s[k];
+    if (c === '\\') {
+      const n = s[++k];
+      if (/[0-7]/.test(n)) {
+        let digits = n;
+        while (digits.length < 3 && /[0-7]/.test(s[k + 1])) digits += s[++k];
+        out.push(parseInt(digits, 8) & 0xff);
+      } else if (n === '\r') { if (s[k + 1] === '\n') k++; }
+      else if (n !== '\n' && n !== undefined) out.push(PDF_ESCAPES[n] ?? n.charCodeAt(0));
+    } else if (c === '(') { depth++; out.push(40); }
+    else if (c === ')') { if (depth-- === 0) break; out.push(41); }
+    else out.push(c.charCodeAt(0));
+  }
+  return pdfDecode(Buffer.from(out));
+}
+function pdfValue(dict, key) {
+  const m = new RegExp(`/${key}(?![A-Za-z0-9])\\s*`).exec(dict);
+  if (!m) return null;
+  const at = m.index + m[0].length;
+  if (dict[at] === '(') return pdfLiteral(dict, at);
+  if (dict[at] === '<' && dict[at + 1] !== '<') {
+    const hex = dict.slice(at + 1, dict.indexOf('>', at)).replace(/[^0-9a-f]/gi, '');
+    return pdfDecode(Buffer.from(hex.length % 2 ? hex + '0' : hex, 'hex'));
+  }
+  return null;
+}
+
+/* Nur das erste und das letzte MiB. Ein Info-Woerterbuch oder ein Seitenbaum in einem gepackten
+   Objektstrom bleibt ungelesen; bei verschluesselten Dateien auch die Texte. */
+async function pdfFacts(size, read) {
+  const first = await read(Math.min(size, DOCUMENT_PART), 0);
+  const rest = Math.min(Math.max(0, size - DOCUMENT_PART), DOCUMENT_PART);
+  const text = first.toString('latin1') + (rest ? '\n' + (await read(rest, size - rest)).toString('latin1') : '');
+  const info = [...text.matchAll(/\/Info\s+(\d+)\s+(\d+)\s+R/g)].pop();
+  let dict = '';
+  if (info) {
+    const at = text.search(new RegExp(`(?:^|[^0-9])${info[1]}\\s+${info[2]}\\s+obj\\b`));
+    if (at >= 0) dict = text.slice(at, text.indexOf('endobj', at) >>> 0);
+  }
+  if (/\/Encrypt\s/.test(text)) dict = '';
+  const counts = text.split('endobj').filter(o => /\/Type\s*\/Pages\b/.test(o))
+    .map(o => Number((/\/Count\s+(\d+)/.exec(o) || [])[1] || 0));
+  return { title: pdfValue(dict, 'Title'), author: pdfValue(dict, 'Author'), creatorTool: pdfValue(dict, 'Creator'),
+    producer: pdfValue(dict, 'Producer'), created: pdfTime(pdfValue(dict, 'CreationDate')),
+    modified: pdfTime(pdfValue(dict, 'ModDate')), pages: counts.length ? docCount(Math.max(...counts)) : null };
+}
+
+// null: kein Dokument mit Angaben in der Datei. Ein Lesefehler mit `damaged` geht an den Aufrufer.
+async function documentFacts(filename, size, read) {
+  const reader = DOCUMENT_READERS[extension(filename)];
+  if (!reader || !size) return null;
+  try {
+    if (reader === 'pdf') return await pdfFacts(size, read);
+    const parts = await zipParts(size, read, reader === 'ooxml' ? ['docProps/core.xml', 'docProps/app.xml'] : ['meta.xml']);
+    return reader === 'ooxml' ? ooxmlFacts(parts) : odfFacts(parts);
+  } catch (e) {
+    if (e.damaged) throw e;
+    return null;
+  }
+}
+
 module.exports = {
   extension, previewKind, setHeader, securityRule,
   typeFromBytes, setImageHeader, rangeOut,
   textPreview, textTileSvg, TEXT_TILE_BYTES: TEXT_TILE.bytes, docxPreview, VIDEO_TYPES, INLINE_ALLOWED, outType,
   CHUNK, TAG, encLen, sealChunk, openChunk, chunkCount, chunkPlain, chunkAt,
-  readChunk, readChunkSync, openWholeSync, sealInto, mediaKind, mediaFacts
+  readChunk, readChunkSync, openWholeSync, sealInto, mediaKind, mediaFacts, isDocument, documentFacts
 };

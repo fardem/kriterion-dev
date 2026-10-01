@@ -4021,10 +4021,11 @@ let mediaTurn = Promise.resolve();
 const inMediaTurn = (work) => (mediaTurn = mediaTurn.then(work, work));
 const unreadable = (why) => Object.assign(new Error(`media file unreadable: ${why}`), { damaged: true });
 
-// Stueckweise wie sendDiskFile(); das zuletzt entschluesselte Stueck bleibt fuer den naechsten Abruf.
-async function readMediaOf(a) {
+/* Stueckweise wie sendDiskFile(); das zuletzt entschluesselte Stueck bleibt fuer den naechsten Abruf.
+   `work(size, read)` wie attachments.mediaFacts(). */
+async function readPartsOf(a, work) {
   const f = diskFileOf(a.id);
-  if (!f) return attachments.mediaFacts(a.size, (length, offset) => {
+  if (!f) return work(a.size, (length, offset) => {
     const bytes = qMediaPart.get(offset + 1, length, a.id)?.part;
     // Die Umlagerung leert `data` waehrend des Lesens.
     if (!bytes || bytes.length < Math.min(length, a.size - offset)) throw unreadable('moved');
@@ -4039,7 +4040,7 @@ async function readMediaOf(a) {
   }
   let at = -1, plain = null;
   try {
-    return await attachments.mediaFacts(f.size, async (length, offset) => {
+    return await work(f.size, async (length, offset) => {
       const end = Math.min(f.size, offset + length), parts = [];
       for (let i = Math.floor(offset / f.chunk); i * f.chunk < end; i++) {
         if (i !== at) { plain = await attachments.readChunk(handle, f, i); at = i; }
@@ -4052,6 +4053,8 @@ async function readMediaOf(a) {
     throw e;
   } finally { await handle.close(); }
 }
+
+const readMediaOf = (a) => readPartsOf(a, attachments.mediaFacts);
 
 // null: keine Datei dieser Art; undefined: spaeter noch einmal.
 async function makeMedia(id) {
@@ -4340,10 +4343,33 @@ app.get('/api/attachments/:id/raw', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// Rechte wie /raw. Fehlt die Zeile noch, liest der Server sofort.
+/* ---- Infos zu Dokumenten ---- */
+const qDocumentFacts = lateStatement(`SELECT a.created_at, a.user_id, c.file_modified, c.saved_at, c.saved_by,
+    COALESCE(e.saves, 0) AS saves, p.saved_at AS previous_at
+  FROM attachments a LEFT JOIN attachment_changes c ON c.attachment_id = a.id
+  LEFT JOIN attachment_editing e ON e.attachment_id = a.id LEFT JOIN attachment_previous p ON p.attachment_id = a.id
+  WHERE a.id = ?`);
+// Bei jedem Aufruf neu gelesen: eine Office-Datei aendert sich mit jeder Speicherung. Ohne lesbare Datei `file: null`.
+async function documentInfo(a) {
+  let file = null;
+  try { file = await readPartsOf(a, (size, read) => attachments.documentFacts(a.filename, size, read)); }
+  catch (e) { if (!e.damaged) throw e; }
+  const k = qDocumentFacts().get(a.id);
+  if (!k) return null;
+  const card = authorCard();
+  return { document: true, file, kriterion: { uploadedBy: authorFrom(card, k.user_id), uploadedAt: k.created_at,
+    fileModified: k.file_modified, savedBy: k.saved_by == null ? null : authorFrom(card, k.saved_by), savedAt: k.saved_at,
+    saves: k.saves, previousAt: k.previous_at } };
+}
+
+// Rechte wie /raw. Fehlt die Zeile noch, liest der Server sofort; Dokumente bei jedem Aufruf.
 app.get('/api/attachments/:id/info', async (req, res, next) => {
   try {
     const a = qMediaSource.get(req.params.id);
+    if (a && attachments.isDocument(a.filename)) {
+      const facts = await documentInfo(a);
+      return facts ? res.json(facts) : res.status(404).json({ error: t(localeOf(req), 'server.fileGone') });
+    }
     if (!a || !attachments.mediaKind(a.filename)) return res.status(404).json({ error: t(localeOf(req), 'server.fileGone') });
     MEDIA_WAITING.delete(a.id);
     const facts = await inMediaTurn(() => makeMedia(a.id));

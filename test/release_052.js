@@ -411,8 +411,9 @@ async function run() {
       return out;
     };
     const office = menuOf('f49'), clip = menuOf('f48'), pdf = menuOf('f43'), zip = menuOf('f44'), png = menuOf('f42');
-    check('Office-Datei: Öffnen · Bearbeiten | Herunterladen · Link | Umbenennen | Fassung · Bearbeiten durch alle | Löschen',
-      equal(office, [DE['entry.openFile'], DE['entry.edit'], '|', DE['entry.download'], DE['entry.copyFileLink'], '|',
+    check('Office-Datei: Öffnen · Bearbeiten | Herunterladen · Link · Infos | Umbenennen | Fassung · Bearbeiten durch alle | Löschen',
+      equal(office, [DE['entry.openFile'], DE['entry.edit'], '|', DE['entry.download'], DE['entry.copyFileLink'],
+        DE['entry.docInfo'], '|',
         DE['entry.renameFileMenu'], '|', DE['entry.restorePrevious'], DE['entry.editAll'], '|', DE['entry.deleteFile']]),
       office.join(' / '));
     check('Eigenes Video: Öffnen | Herunterladen · Link · Erweiterte Infos | Umbenennen · Vorschaubild wählen … | Löschen',
@@ -428,7 +429,7 @@ async function run() {
         tileOf(w, 'f49')?.querySelector('.amore')?.click();
         const lines = [...w.document.querySelectorAll('.fmenu-line')];
         const ok = lines.length === 4 && lines.every(l => l.getAttribute('role') === 'separator') &&
-          w.document.querySelectorAll('.fmenu [role^="menuitem"]').length === 8;
+          w.document.querySelectorAll('.fmenu [role^="menuitem"]').length === 9;
         press(w.document.activeElement, 'Escape');
         return ok;
       })(), 'Linien');

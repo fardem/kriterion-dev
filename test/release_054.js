@@ -197,6 +197,165 @@ async function run() {
     await B2.stop();
   }
 
+  group('Infos zu Dokumenten: aus Kriterion und aus der Datei');
+  {
+    const http = require('http');
+    const zlib = require('zlib');
+    const SECRET = 'pruefstand-054-' + crypto.randomBytes(16).toString('hex');
+    const part = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
+    const jwt = (o) => {
+      const head = part({ alg: 'HS256', typ: 'JWT' }) + '.' + part(o);
+      return head + '.' + crypto.createHmac('sha256', SECRET).update(head).digest('base64url');
+    };
+    const served = new Map();
+    const ds = http.createServer((req, res) => {
+      if (req.url === '/healthcheck') { res.writeHead(200); return res.end('true'); }
+      const body = served.get(req.url.split('?')[0]);
+      res.writeHead(body ? 200 : 404);
+      res.end(body || '');
+    });
+    await new Promise(r => ds.listen(0, '127.0.0.1', r));
+    const DS_BASE = `http://127.0.0.1:${ds.address().port}`, FETCH_BASE = 'http://kriterion.invalid:3000';
+    const dDir = path.join(root, 'dokumente');
+    fs.mkdirSync(dDir);
+    const C = H.startFurtherServer(dDir, { DOCUMENT_SERVER_ADDRESS: 'http://office.invalid',
+      DOCUMENT_SERVER_INTERNAL_ADDRESS: DS_BASE, DOCUMENT_SERVER_SECRET: SECRET, INTERNAL_ADDRESS: FETCH_BASE }, 7340);
+    await C.ready;
+    await C.call('POST', '/api/setup', { user: 'owner', password: pw('owner') });
+    await C.call('POST', '/api/users', { username: 'zweit', password: pw('zweit'), role: 'user' });
+    const c = {};
+    for (const user of ['owner', 'zweit']) {
+      const login = await fetch(C.base + '/api/login', { method: 'POST',
+        headers: { 'content-type': 'application/json' }, body: JSON.stringify({ user, password: pw(user) }) });
+      c[user] = jar('', login);
+    }
+    const asC = async (who, method, url, body) => {
+      const a = await fetch(C.base + url, { method,
+        headers: withCsrf(c[who], body !== undefined ? { 'content-type': 'application/json' } : {}),
+        body: body !== undefined ? JSON.stringify(body) : undefined });
+      return { status: a.status, content: await a.json().catch(() => null) };
+    };
+    const inC = (fn) => {
+      const d = open(path.join(dDir, 'katalog.sqlite'));
+      d.pragma('busy_timeout = 4000');
+      try { return fn(d); } finally { d.close(); }
+    };
+    await asC('owner', 'PUT', '/api/settings', { documentServer: true });
+    const zip = (entries) => {
+      const locals = [], centrals = [];
+      let at = 0;
+      for (const e of entries) {
+        const name = Buffer.from(e.name), raw = Buffer.from(e.data), packed = e.store ? raw : zlib.deflateRawSync(raw);
+        const local = Buffer.alloc(30), central = Buffer.alloc(46);
+        local.writeUInt32LE(0x04034b50, 0); local.writeUInt16LE(e.store ? 0 : 8, 8);
+        local.writeUInt32LE(packed.length, 18); local.writeUInt32LE(raw.length, 22); local.writeUInt16LE(name.length, 26);
+        central.writeUInt32LE(0x02014b50, 0); central.writeUInt16LE(e.store ? 0 : 8, 10);
+        central.writeUInt32LE(packed.length, 20); central.writeUInt32LE(raw.length, 24);
+        central.writeUInt16LE(name.length, 28); central.writeUInt32LE(at, 42);
+        locals.push(local, name, packed);
+        centrals.push(central, name);
+        at += 30 + name.length + packed.length;
+      }
+      const dir = Buffer.concat(centrals), end = Buffer.alloc(22);
+      end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(entries.length, 8); end.writeUInt16LE(entries.length, 10);
+      end.writeUInt32LE(dir.length, 12); end.writeUInt32LE(at, 16);
+      return Buffer.concat([...locals, dir, end]);
+    };
+    const core = (who) => `<?xml version="1.0"?><cp:coreProperties xmlns:cp="c" xmlns:dc="d" xmlns:dcterms="t" xmlns:xsi="x">
+      <dc:title>Bericht Q3 &amp; Plan</dc:title><dc:creator>Anna</dc:creator><cp:lastModifiedBy>${who}</cp:lastModifiedBy>
+      <dcterms:created xsi:type="dcterms:W3CDTF">2026-09-01T08:00:00Z</dcterms:created>
+      <dcterms:modified xsi:type="dcterms:W3CDTF">2026-09-30T14:30:00+02:00</dcterms:modified></cp:coreProperties>`;
+    const docx = (who) => zip([{ name: '[Content_Types].xml', data: '<Types/>' }, { name: 'docProps/core.xml', data: core(who) },
+      { name: 'docProps/app.xml', data: '<Properties><Application>Microsoft Office Word</Application><Pages>3</Pages>' +
+        '<Words>1234</Words></Properties>' }, { name: 'word/document.xml', data: '<w:document/>' }]);
+    const meta = (extra = '') => `<office:document-meta><office:meta><meta:generator>LibreOffice/24.2</meta:generator>
+      <dc:title>Notizen</dc:title><meta:initial-creator>Anna</meta:initial-creator><dc:creator>Ben</dc:creator>
+      <meta:creation-date>2026-09-01T10:00:00.123456789</meta:creation-date><dc:date>2026-09-30T14:30:00</dc:date>
+      <meta:document-statistic meta:page-count="2" meta:word-count="345"/>${extra}</office:meta></office:document-meta>`;
+    const odt = zip([{ name: 'mimetype', data: 'application/vnd.oasis.opendocument.text', store: true },
+      { name: 'meta.xml', data: meta() }]);
+    const bigOdt = zip([{ name: 'mimetype', data: 'application/vnd.oasis.opendocument.text', store: true },
+      { name: 'meta.xml', data: meta('<!--' + 'x'.repeat(1100000) + '-->') }]);
+    const pdfOf = (parts) => Buffer.from(parts.join('\n'), 'latin1');
+    const info = `4 0 obj\n<< /Title (Jahres\\(bericht\\)) /Author <FEFF0041006E006E0061> /Creator (Writer)
+      /Producer (LibreOffice 24.2) /CreationDate (D:20260901100000+02'00') /ModDate (D:20260930123000Z) >>\nendobj`;
+    const pages = '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 7 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R >>\nendobj';
+    const pdf = pdfOf(['%PDF-1.7', '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj', pages, info,
+      'trailer\n<< /Root 1 0 R /Info 4 0 R >>', '%%EOF']);
+    const filler = '%' + 'f'.repeat(1300000);
+    const bigPdf = pdfOf(['%PDF-1.7', '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj', filler, info, filler, pages,
+      'trailer\n<< /Root 1 0 R /Info 4 0 R >>', '%%EOF']);
+
+    const x = (await asC('owner', 'POST', '/api/items', { title: 'Dokumente' })).content.id;
+    const modified = Date.UTC(2026, 8, 15, 9, 30);
+    const sent = await H.sendFiles(C.base, c.zweit, x, [{ name: 'bericht.docx', content: docx('Ben'), modified },
+      { name: 'notiz.odt', content: odt }, { name: 'gross.odt', content: bigOdt }, { name: 'jahr.pdf', content: pdf },
+      { name: 'dick.pdf', content: bigPdf }, { name: 'alt.rtf', content: '{\\rtf1 alt}' }]);
+    const named = Object.fromEntries((sent.content?.attachments || []).map(a => [a.filename, a]));
+    const infoOf = async (name) => (await asC('owner', 'GET', `/api/attachments/${named[name]?.id}/info`)).content;
+    const word = await infoOf('bericht.docx');
+    check('Office: Titel, erstellt von, erstellt, zuletzt bearbeitet von, geändert, Seiten, Wörter, Programm',
+      equal(word?.file, { title: 'Bericht Q3 & Plan', createdBy: 'Anna', created: '2026-09-01T08:00:00Z', lastModifiedBy: 'Ben',
+        modified: '2026-09-30T12:30:00Z', pages: 3, words: 1234, slides: null, application: 'Microsoft Office Word' }),
+      JSON.stringify(word?.file));
+    check('Aus Kriterion: hochgeladen von und am, geändert vor dem Hochladen; noch keine Speicherung',
+      word?.document === true && word?.kriterion?.uploadedBy?.name === 'zweit' &&
+      word?.kriterion?.uploadedAt === named['bericht.docx']?.created_at && word?.kriterion?.fileModified === '2026-09-15 09:30:00' &&
+      word?.kriterion?.savedAt === null && word?.kriterion?.saves === 0 && word?.kriterion?.previousAt === null,
+      JSON.stringify(word?.kriterion));
+    check('OpenDocument: meta.xml, die Zeiten ohne Zeitzone wie geschrieben',
+      equal((await infoOf('notiz.odt'))?.file, { title: 'Notizen', createdBy: 'Anna', created: '2026-09-01T10:00:00',
+        lastModifiedBy: 'Ben', modified: '2026-09-30T14:30:00', pages: 2, words: 345, slides: null, application: 'LibreOffice/24.2' }),
+      JSON.stringify((await infoOf('notiz.odt'))?.file));
+    const big = await infoOf('gross.odt');
+    check('Ein Eintrag über 1 MB wird nicht gelesen',
+      big?.document === true && big?.file && Object.values(big.file).every(v => v === null), JSON.stringify(big?.file));
+    check('PDF: Info-Wörterbuch mit UTF-16 und Klammern, die Zeiten in UTC; Seiten aus dem Seitenbaum',
+      equal((await infoOf('jahr.pdf'))?.file, { title: 'Jahres(bericht)', author: 'Anna', creatorTool: 'Writer',
+        producer: 'LibreOffice 24.2', created: '2026-09-01T08:00:00Z', modified: '2026-09-30T12:30:00Z', pages: 7 }),
+      JSON.stringify((await infoOf('jahr.pdf'))?.file));
+    const thick = (await infoOf('dick.pdf'))?.file;
+    check('Bei PDF nur das erste und das letzte MiB: das Info-Wörterbuch in der Mitte fehlt, die Seiten nicht',
+      bigPdf.length > 2 * 1024 * 1024 && thick?.title === null && thick?.pages === 7, JSON.stringify(thick));
+    const rtf = await infoOf('alt.rtf');
+    check('RTF: nur die Angaben aus Kriterion',
+      rtf?.document === true && rtf?.file === null && rtf?.kriterion?.uploadedBy?.name === 'zweit', JSON.stringify(rtf));
+
+    const a = named['bericht.docx'];
+    const zweitId = inC(d => d.prepare("SELECT id FROM users WHERE username = 'zweit'").get().id);
+    const key = crypto.createHmac('sha256', SECRET)
+      .update(`${FETCH_BASE}/api/document-server/attachments/${a.id}|${a.created_at}|e0`).digest('hex').slice(0, 40);
+    const save = async (users, file) => {
+      served.set('/cache/neu.docx', file);
+      const fields = { key, status: 6, url: `${DS_BASE}/cache/neu.docx`, filetype: 'docx', users };
+      const r = await fetch(`${C.base}/api/document-server/callback/${a.id}`, { method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ...fields, token: jwt({ ...fields, exp: Math.floor(Date.now() / 1000) + 300 }) }) });
+      return (await r.json().catch(() => null))?.error;
+    };
+    const strangerSave = await save(['999'], docx('Ben'));
+    const afterStranger = await infoOf('bericht.docx');
+    check('Eine Nummer aus `users`, die kein Account ist: Zeitpunkt ja, Account nein',
+      strangerSave === 0 && /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/.test(afterStranger?.kriterion?.savedAt || '') &&
+      afterStranger?.kriterion?.savedBy === null, JSON.stringify(afterStranger?.kriterion));
+    const ownSave = await save([String(zweitId)], docx('Carla'));
+    const after = await infoOf('bericht.docx');
+    check('Der Rückruf hält fest, wer zuletzt gespeichert hat; die Angaben der Datei sind die neuen',
+      ownSave === 0 && after?.kriterion?.savedBy?.name === 'zweit' && after?.kriterion?.saves === 2 &&
+      !!after?.kriterion?.previousAt && after?.file?.lastModifiedBy === 'Carla', JSON.stringify(after?.kriterion));
+    await asC('zweit', 'DELETE', `/api/attachments/${a.id}`);
+    const trashed = inC(d => d.prepare("SELECT id FROM trash WHERE title = 'bericht.docx'").get()?.id);
+    const back = await asC('owner', 'POST', `/api/trash/${trashed}/restore`);
+    const again = ((await asC('owner', 'GET', `/api/items/${x}`)).content?.attachments || [])
+      .find(f => f.filename === 'bericht.docx');
+    const restored = (await asC('owner', 'GET', `/api/attachments/${again?.id}/info`)).content?.kriterion;
+    check('Die Angaben reisen durch den Papierkorb und kommen beim Wiederherstellen zurück',
+      back.status === 200 && restored?.savedBy?.name === 'zweit' && restored?.savedAt === after?.kriterion?.savedAt &&
+      restored?.fileModified === '2026-09-15 09:30:00', `${back.status} ${JSON.stringify(back.content).slice(0, 200)} ${JSON.stringify(restored)}`);
+    await C.stop();
+    await new Promise(r => ds.close(r));
+  }
+
   fs.rmSync(root, { recursive: true, force: true });
 
   /* ---- Oberflaeche ---- */
@@ -267,6 +426,61 @@ async function run() {
     check('Esc bricht ab, ohne Anfrage; der Fokus geht zurueck auf „…“',
       !w.document.querySelector('.modal') && sent.length === 2 &&
       w.document.activeElement === tileOf(w, 'f49')?.querySelector('.amore'), w.document.activeElement?.className);
+    w.close();
+  }
+
+  group('Infos zu Dokumenten: Menüpunkt und Dialog');
+  {
+    const m = buildDom(JSDOM, { hash: '#/item/1', extraAttachments: [file(70, 'bericht.docx', 4000, '2026-08-05 09:00:00'),
+      file(71, 'tabelle.ods', 10, '2026-08-05 12:00:00'), file(72, 'alt.ppt', 10, '2026-08-05 12:00:00')],
+      settings: { filters: null, userCount: 2 } });
+    const w = m.w;
+    await settle(w, 7);
+    const labels = (key) => {
+      const out = menuOf(w, key).map(e => e.textContent);
+      press(w.document.querySelector('.fmenu-list'), 'Escape');
+      return out;
+    };
+    const has = ['f70', 'f71', 'f72', 'f43', 'f44', 'f41', 'f42'].map(k => labels(k).includes(DE['entry.docInfo']));
+    check('„Infos“ bei Word, Tabelle, Präsentation und PDF; nicht bei ZIP, Text und Bild',
+      equal(has, [true, true, true, true, false, false, false]) && DE['entry.docInfo'] === 'Infos' &&
+      labels('f42').includes(DE['entry.mediaInfo']), has.join(' '));
+    const facts = { document: true,
+      kriterion: { uploadedBy: { id: 2, name: 'zweit', deleted: false }, uploadedAt: '2026-09-29 08:00:00',
+        fileModified: '2026-09-15 09:30:00', savedBy: { id: 1, name: 'chefin', deleted: false }, savedAt: '2026-09-30 12:30:00',
+        saves: 4, previousAt: '2026-09-30 11:00:00' },
+      file: { title: 'Bericht Q3', createdBy: 'Anna', created: '2026-09-01T08:00:00Z', lastModifiedBy: 'Ben',
+        modified: '2026-09-30T14:30:00', pages: 3, words: 1234, slides: null, application: 'Microsoft Office Word' } };
+    const asked = [];
+    const base = w.fetch;
+    w.fetch = (url, opt) => {
+      if (!/\/api\/attachments\/70\/info$/.test(url)) return base(url, opt);
+      asked.push(url);
+      return Promise.resolve(answerWith(facts));
+    };
+    menuOf(w, 'f70').find(e => e.textContent === DE['entry.docInfo'])?.click();
+    await until(w, (x) => x.document.querySelector('.modal.minfo .kv'), 1000, 'die Angaben').catch(() => {});
+    const modal = w.document.querySelector('.modal.minfo');
+    const heads = [...(modal?.querySelectorAll('.minfo-head') || [])].map(e => e.textContent);
+    const rows = [...(modal?.querySelectorAll('.kv') || [])].map(r => `${r.querySelector('.k').textContent}: ${r.querySelector('.v').textContent}`);
+    const local = (iso) => new Date(iso.replace(' ', 'T') + 'Z').toLocaleString('de-DE',
+      { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    check('Der Dialog „Infos“: erst „In Kriterion“, dann „In der Datei“',
+      modal?.querySelector('h2')?.textContent === 'Infos' && equal(heads, ['In Kriterion', 'In der Datei']) &&
+      equal(asked, ['/api/attachments/70/info']), heads.join(' | '));
+    check('In Kriterion: hochgeladen, geändert vor dem Hochladen, zuletzt gespeichert, Speicherungen, vorige Fassung',
+      equal(rows.slice(0, 7), ['Hochgeladen von: zweit', `Hochgeladen am: ${local('2026-09-29 08:00:00')}`,
+        `Geändert vor dem Hochladen: ${local('2026-09-15 09:30:00')}`, 'Zuletzt gespeichert von: chefin',
+        `Zuletzt gespeichert am: ${local('2026-09-30 12:30:00')}`, 'Speicherungen: 4', `Vorige Fassung vom: ${local('2026-09-30 11:00:00')}`]),
+      rows.slice(0, 7).join(' | '));
+    check('In der Datei: eine Zeit mit Zeitzone in Ortszeit, eine ohne wie geschrieben',
+      equal(rows.slice(7), ['Titel: Bericht Q3', 'Erstellt von: Anna', `Erstellt: ${local('2026-09-01 08:00:00')}`,
+        'Zuletzt bearbeitet von: Ben', 'Geändert: 30.09.2026, 14:30', 'Seiten: 3', 'Wörter: 1234', 'Programm: Microsoft Office Word']),
+      rows.slice(7).join(' | '));
+    press(w.document.body, 'Escape');
+    check('Esc schließt; der Fokus geht zurück auf „…“',
+      !w.document.querySelector('.modal.minfo') && w.document.activeElement === tileOf(w, 'f70')?.querySelector('.amore'),
+      w.document.activeElement?.className);
     w.close();
   }
 
