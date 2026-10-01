@@ -180,8 +180,8 @@ sagt der Fahrplan.
 >
 > **Am 1. Oktober 2026 sind 61 bis 63 dazugekommen**, aus der Übersetzung der
 > Anleitung beim Bau von 0.53.0. **Am selben Tag sind 42 und 60 bis 63 nach
-> 0.53.1 fortgezogen**; sie stehen mit ihrer Ausarbeitung im Fahrplan als B4
-> bis B8.
+> 0.54.0 fortgezogen** (bis zur Antwort auf F1 als 0.53.1 geführt); sie stehen
+> mit ihrer Ausarbeitung im Fahrplan als B4 bis B8.
 
 ### Was ohne Nummer offen ist
 
