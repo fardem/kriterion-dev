@@ -2,9 +2,10 @@
 
 **Aufgestellt am 1. Oktober 2026.** Grundlage ist der Abschnitt 0.55.0 in
 `Doku/Fahrplan.md` mit B1, der zweiten Fassung der Videos für das Telefon
-(Punkt 57 aus `Doku/Fehler_und_Ideen.md`), und das Messverfahren
-`Doku/Messverfahren_Umwandlung.md`. F1 bis F14 sind am 1. Oktober 2026 in vier
-Fragetafeln beantwortet.
+(Punkt 57 aus `Doku/Fehler_und_Ideen.md`), mit B2 aus der Abnahme von 0.54.0
+und das Messverfahren `Doku/Messverfahren_Umwandlung.md`. F1 bis F14 sind am
+1. Oktober 2026 in vier Fragetafeln beantwortet, F15 zu B2 am selben Tag in
+einer fünften.
 
 Vorgabe des Betreibers: Weitere Punkte aus der Abnahme von 0.54.0 kommen in
 diese Runde, und gebaut wird, wenn er den Bau startet. Kommen vor dem Start
@@ -28,8 +29,10 @@ Zeilennummern gelten für `bf925e9` (0.54.0).
 | V4 | B1 | „ffmpeg lohnt sich nur, wenn es schnell geht“; vor einer Umsetzung wird die Machbarkeit besprochen und abgestimmt (30. September 2026) |
 | V5 | B1 | Der Cache bleibt, wie er ist (30. September 2026) |
 | V6 | B1 | Server: Intel N100 mit Quick Sync (Angabe des Betreibers, 30. September 2026) |
+| V7 | B2 | „wenn ich ein Video abspiele, fängt es an zu puffern und zu spielen … wenn der Buffer voll ist, zuckt das Video hässlich, und dann springt es vom Stream zum Cache … eigentlich erwarte ich, dass es gar nicht springt“ |
+| V8 | B2 | „kann es sein, dass es einmal für den Stream downloadet und einmal für den Buffer? … kostet es nicht Bandbreite?“ |
 
-V1 und V2 vom 1. Oktober 2026.
+V1, V2, V7 und V8 vom 1. Oktober 2026.
 
 ### Fragen
 
@@ -49,12 +52,14 @@ V1 und V2 vom 1. Oktober 2026.
 | F12 | B1: Backup, Export und Papierkorb? | die Telefonfassung geht nicht mit; nach Zurückspielen und Wiederherstellen wandelt Kriterion neu um · sie geht ins Backup mit | **geht nicht mit** (Empfehlung) |
 | F13 | B1: Wer schaltet die Telefonfassung ein? | der Eigentümer-Admin, Vorgabe aus · jeder Admin | **der Eigentümer-Admin, Vorgabe aus** (Empfehlung) |
 | F14 | B1: Videos mit HDR, bei der A6700 HLG? | wie andere Videos; ob die Farben stimmen, zeigt die Messung am Telefon · keine Telefonfassung | **wie andere Videos** (Empfehlung) |
+| F15 | B2: Wie soll „Video ganz laden“ künftig arbeiten? | erst laden, wenn das Video stockt, und nur im Stand wechseln · nur auf Knopfdruck · entfällt | **entfällt** |
 
-Anders als empfohlen: F1, F3 und F6. Zu F1: Der Betreiber entscheidet mit der
-ausgefüllten Tafel aus dem Messverfahren, ob B1 gebaut wird. Zu F3: Ohne Quick
-Sync wandelt die CPU alle Formate über Weg C um. Zu F6: `mkv`, `avi`, `wmv` und
-`flv` bekommen immer eine Telefonfassung; sie spielen dann am Telefon und am
-Rechner über sie.
+Anders als empfohlen: F1, F3, F6 und F15. Zu F1: Der Betreiber entscheidet mit
+der ausgefüllten Tafel aus dem Messverfahren, ob B1 gebaut wird. Zu F3: Ohne
+Quick Sync wandelt die CPU alle Formate über Weg C um. Zu F6: `mkv`, `avi`,
+`wmv` und `flv` bekommen immer eine Telefonfassung; sie spielen dann am Telefon
+und am Rechner über sie. Zu F15: Der Browser puffert wieder selbst, wie vor
+0.52.0.
 
 ---
 
@@ -66,6 +71,9 @@ Sync mit der CPU. Am Rechner, beim Herunterladen und im Backup bleibt das
 Original. Videos, die kein Browser abspielt (`mkv`, `avi`, `wmv`, `flv`),
 spielen überall über die Telefonfassung. Gebaut wird B1 erst, wenn der Betreiber
 mit den Zahlen aus der Messung entschieden hat (V4, F1).
+
+„Video ganz laden“ entfällt. Beim Abspielen lädt der Browser die Datei nur noch
+einmal, und das Video springt nicht mehr (B2).
 
 ---
 
@@ -178,8 +186,28 @@ eingetragen, wenn die Zahlen vorliegen.
 | Telefonfassung 1080p30 | 5 Mbit/s und 128 kbit/s | 2,3 GB |
 | Telefonfassung 720p30 | 2,5 Mbit/s und 128 kbit/s | 1,2 GB |
 
-„Video ganz laden“ am Telefon mit 500 MB: beim Original 40 Sekunden, bei der
-Telefonfassung 1080p30 13 Minuten.
+### 2.9 „Video ganz laden“ (B2)
+
+- `loadWhole()` (`public/app.js`:4633) startet beim Ereignis `play`
+  (`public/app.js`:4668) einen zweiten Abruf der ganzen Datei:
+  `fetch(…, cache: 'no-store')` (`public/app.js`:4638). Der Player lädt daneben
+  selbst stückweise weiter.
+- Ist die Kopie fertig, setzt `loadWhole()` sie als Quelle des Players
+  (`player.src`, `public/app.js`:4660) und springt an dieselbe Stelle. Der
+  Browser lädt das Video dabei neu: Er verwirft seinen Puffer, liest den Kopf
+  der Datei und sucht die Stelle. Das ist der Sprung aus V7.
+- Was der Player bis zum Wechsel geladen hat, kommt zweimal über die Leitung;
+  bei einer Datei von 500 MB bis zu rund 1 GB (V8). Auf einer langsamen Leitung
+  nimmt der zweite Abruf dem Player Bandbreite.
+- Dazu gehören `WHOLE_BYTES` (`public/app.js`:4578), `dropWhole()`
+  (`public/app.js`:4626), `shownSource()` (`public/app.js`:4625, auch bei der
+  Übergabe an das Vollbild, `public/app.js`:4687), `.lb-loaded`
+  (`public/app.js`:4594; `public/style.css`:291 und 1525) und
+  `entry.videoLoaded` in den drei Sprachdateien.
+- Prüfstand: die Gruppe „Video ganz laden“ in `test/release_052.js` (ab Zeile
+  513, 9 Prüfungen) und die Rückbauten 1568 bis 1578.
+- Anleitung: „Video ganz laden“ in `manual-de.md`:352, `manual.md`:349 und
+  `manual-tr.md`:350.
 
 ---
 
@@ -187,7 +215,7 @@ Telefonfassung 1080p30 13 Minuten.
 
 ### Vorgaben des Betreibers
 
-V1 bis V6 und F1 bis F14 aus Abschnitt 0.
+V1 bis V8 und F1 bis F15 aus Abschnitt 0.
 
 ### Entschieden in diesem Auftrag
 
@@ -222,13 +250,24 @@ V1 bis V6 und F1 bis F14 aus Abschnitt 0.
 | Tabelle | `attachment_phone (attachment_id INTEGER PRIMARY KEY REFERENCES attachments(id) ON DELETE CASCADE, name TEXT UNIQUE, size INTEGER, file_key BLOB, width INTEGER, height INTEGER, state TEXT NOT NULL, reason TEXT, made_at TEXT)` |
 | Verzeichnis | `data/files/phone/` mit den Rechten 0700. Ein Trigger schreibt beim Löschen einer Zeile ihren Namen nach `disk_files_gone`; `sweepDisk()` löscht die Datei. Dateien in `data/files/phone/` ohne Zeile löscht der stündliche Lauf; `unknownFiles()` nennt sie nicht |
 | Auslieferung | `?size=phone` an `GET /api/attachments/:id/raw`, mit Bereichen wie `sendDiskFile()`. Ohne fertige Telefonfassung 404 |
-| Abspielen | nach F10 und F11. `playSource()` nimmt am Telefon (`isNarrow()`) die Telefonfassung, wenn sie fertig ist. „Video ganz laden“ misst dann ihre Größe. Die Stelle, an der das Video stand, gilt für beide Fassungen |
+| Abspielen | nach F10 und F11. `playSource()` nimmt am Telefon (`isNarrow()`) die Telefonfassung, wenn sie fertig ist. Die Stelle, an der das Video stand, gilt für beide Fassungen |
 | Anzeige | „Erweiterte Infos“ bekommt eine Gruppe „Telefonfassung“: Zustand, Pixel, Größe |
 | Karte | Einstellungen › Installation, Karte „Telefonfassung“: Schalter (F13), ob Quick Sync kodiert (Test aus Abschnitt 2 des Messverfahrens) oder die CPU umwandelt (F3), Zahl der fertigen, wartenden und fehlgeschlagenen Fassungen, Platz auf der Platte |
 | Backup, Export, Papierkorb | nach F12 |
 | Platz | `spaceShort()` gilt vor jedem Lauf |
 | Image | `Dockerfile`: `ffmpeg` und der Intel-Mediatreiber im zweiten Abschnitt, mit `--no-install-recommends`. Ob der freie Treiber aus Debian auf dem N100 H.264 kodiert oder der aus `non-free` nötig ist, klärt BA 2. `docker-compose.example.yml`: `devices: - /dev/dri:/dev/dri`, auskommentiert |
 | Prüfstand | Statt ffmpeg läuft ein Skript des Prüfstands, das eine kleine MP4 schreibt; der Schalter dafür kommt über `keys.testbenchSwitch()`. Eine echte Umwandlung prüft nur die Abnahme |
+
+#### B2 — „Video ganz laden“ entfällt (V7, V8, F15)
+
+| Frage | Antwort |
+|---|---|
+| Player | `loadWhole()`, `dropWhole()`, `WHOLE_BYTES` und `.lb-loaded` entfallen. `shownSource()` liefert die Quelle des Players. Beim Abspielen wechselt die Quelle nicht mehr |
+| Puffern | Der Browser puffert selbst; `preload="metadata"` bleibt (V5) |
+| Texte | `entry.videoLoaded` entfällt in den drei Sprachdateien |
+| Prüfstand | Die Gruppe „Video ganz laden“ in `test/release_052.js` prüft künftig: beim Abspielen kein zweiter Abruf, die Quelle bleibt, kein Text „geladen“. Die Rückbauten 1568 bis 1578 bekommen neue Ziele oder entfallen |
+| Anleitung | Der Absatz „Video ganz laden“ entfällt in allen drei Fassungen |
+| Messung | B2 hängt nicht an der Messung aus BA 1 |
 
 ---
 
@@ -266,7 +305,7 @@ Reihenfolge nach F9, Fehler, Platz, Neustart.
 ### BA 6 — Auslieferung und Abspielen
 
 `?size=phone`, `playSource()`, der Umschalter (F10), der Rechner ohne HEVC und
-das Standbild (F11), die vier Endungen als Video (F6), „Video ganz laden“.
+das Standbild (F11), die vier Endungen als Video (F6).
 
 ### BA 7 — Karte und Erweiterte Infos
 
@@ -278,24 +317,31 @@ Infos“.
 Nach F12: Papierkorb, Wiederherstellen, Backup, Zurückspielen mit
 `backuptool.js`, Export und Import.
 
-### BA 9 — Texte
+### BA 9 — „Video ganz laden“ entfällt (B2)
+
+`loadWhole()` und was dazugehört, `.lb-loaded`, `entry.videoLoaded`. Hängt
+nicht an BA 1.
+
+### BA 10 — Texte
 
 `de.json`, `en.json`, `tr.json`.
 
-### BA 10 — Anleitung und README
+### BA 11 — Anleitung und README
 
 Anleitung und README in drei Sprachen: die Telefonfassung, der Umschalter, die
-Karte. README: `/dev/dri` und die Gruppe im Container, die unverschlüsselte
-Kopie in `/tmp` während des Laufs.
+Karte; der Absatz „Video ganz laden“ entfällt. README: `/dev/dri` und die Gruppe
+im Container, die unverschlüsselte Kopie in `/tmp` während des Laufs.
 
-### BA 11 — Der Prüfstand
+### BA 12 — Der Prüfstand
 
-Neues Modul `test/release_055.js` mit dem Ersatz für ffmpeg. Je Zusage eine
+Neues Modul `test/release_055.js` mit dem Ersatz für ffmpeg; die Gruppe „Video
+ganz laden“ in `test/release_052.js` und die Rückbauten 1568 bis 1578 nach B2.
+Je Zusage eine
 Prüfung und ein Rückbau in `counterproof.js`. Die Rückbauten werden einzeln
 gegen ihr Modul gefahren, mit höchstens vier Spuren (`OFFSET_TRACES` in
 `test/frame.js`).
 
-### BA 12 — Dokumentation und Zahlen
+### BA 13 — Dokumentation und Zahlen
 
 CHANGELOG englisch, Änderungsprotokoll mit „Vorgaben des Betreibers“,
 `Doku/Fahrplan.md`, `Doku/Entwicklung.md` (Abschnitt „Kurzvideos“ und die
@@ -325,6 +371,9 @@ Fingerprint. Zahlen am fertigen Stand.
 11. Eine Datei `.mkv` hochladen: Nach der Umwandlung hat sie ein Vorschaubild
     und spielt am Rechner und am Telefon (F6).
 12. Ein Backup enthält keine Telefonfassung (F12).
+13. Ein Video am Rechner und am Telefon bis zum Ende abspielen: kein Zucken,
+    kein Sprung. Die Netzwerkanalyse des Browsers zeigt nur die Abrufe des
+    Players (B2).
 
 ---
 
@@ -339,6 +388,7 @@ Fingerprint. Zahlen am fertigen Stand.
 | Standbild vom Server | das Standbild macht weiter der Browser |
 | Umwandeln zu festen Zeiten | eine Umwandlung zugleich mit Priorität 19 |
 | Videos des Eintrags und in Kommentaren | nach F5 |
+| „Video ganz laden“ erst beim Stocken oder auf Knopfdruck | F15 |
 
 ---
 
