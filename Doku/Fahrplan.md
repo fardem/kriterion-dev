@@ -1,6 +1,6 @@
 # Fahrplan
 
-**Der Plan von 0.41.0 bis 0.53.0 · Stand 1. Oktober 2026, 0.53.0 gebaut**
+**Der Plan von 0.41.0 bis 0.54.0 · Stand 1. Oktober 2026, 0.53.0 gebaut**
 
 *Hier stand bis 0.48.0 „0.47.1 gebaut“; 0.48.0 hat die Zeile nicht nachgeführt.*
 
@@ -211,10 +211,11 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.51.0**~~ | ~~**Backup: Stände sichtbar, Zurückspielen mit Skript; Dateien sortieren**~~ | **GEBAUT am 30. September 2026** auf 0.50.0 — Änderungsprotokoll 0.51.0, nach `Doku/Auftrag_0.51.0.md`. `./backuptool.sh list`, `show`, `check` und `restore`; `restore` prüft bei laufender Instanz, hält an, legt ein Backup davor an (`# vor` in der Liste) und spielt zurück, danach enthält `data/files/` genau die Dateien des gewählten Stands; ein zweiter Aufruf führt einen Abbruch zu Ende. Jede Liste beginnt mit `# version`, auch ohne Dateien; das Alter bleibt die Änderungszeit (F13). „Alte Backups“ mit Version, Dateien und „nur hier“ je Backup, „Auswählen“ und Löschen mehrerer, die jüngsten nach „Mindestens behalten“ gesperrt; „prüfen“ nennt Version und Schema. Neue Module `schema.js`, `backup.js`, `backuptool.js`. „ab 3:12“ steht 10 s; „Dateien“ sortiert nach „Älteste zuerst“, „Jüngste zuerst“, „Name“, die Ordner mit, der älteste oben bei der Vorgabe (F14); „Bearbeiten“ in der Listenzeile. **MINOR** *(1.390 → 1.431 Rückbauten, Prüfstand 7.848 → 7.912, Sprachschlüssel 1.341 → 1.359). Fingerprint `7ace25ed` (davor `2b87077f`)* | nein | — |
 | ~~**0.52.0**~~ | ~~**Dateien: Gruppieren, Sortieren mit Richtung, Kopfzeile; Erweiterte Infos; Video ganz laden**~~ | **GEBAUT am 30. September 2026** auf 0.51.0 — Änderungsprotokoll 0.52.0, nach `Doku/Auftrag_0.52.0.md`. Sortieren nach Name, Datum, Größe mit Richtungsknopf, gespeichert als `filesSort` mit Richtung (alte Werte gelten weiter); „Nach Typ gruppiert“ (`filesGroup`) in jeder Gruppe, das Vollbild blättert in derselben Folge; Kopfzeile der Liste am Rechner; ✎ und 🔗 in einer festen Spalte, Art, Größe und Datum stehen untereinander; „Art“ als Beschreibung, bei Videos Codec und Länge; Menü „…“ in fünf Gruppen, „Öffnen“ auch bei Bildern und Videos, „Vorschaubild wählen …“. „Erweiterte Infos“ zu Bildern und Videos mit `mediainfo.js` auf dem Server, neue Tabelle `attachment_media`, neue Route `GET /api/attachments/:id/info`, der Codec am Vorschaubild. Ein Video lädt beim Abspielen ganz, bis 2 GB am Rechner und 500 MB am Telefon, gemessen in Chromium. Punkt 58 behoben; Punkt 59 nachgestellt und im Prüfstand behoben. Das Messverfahren für den N100 liegt vor. **MINOR** *(1.431 → 1.482 Rückbauten, Prüfstand 7.912 → 7.975, Sprachschlüssel 1.359 → 1.410). Fingerprint `a4d2ab5e` (davor `7ace25ed`)* | **ja** | — |
 | ~~**0.53.0**~~ | ~~**Papierkorb für Dateien, Dateien aus Backups zurückholen; Erweiterte Infos, Sortieren nach Typ; README, Anleitung und CHANGELOG englisch**~~ | **GEBAUT am 1. Oktober 2026** auf 0.52.0 — Änderungsprotokoll 0.53.0, nach `Doku/Auftrag_0.53.0.md`. Eine einzeln gelöschte Datei liegt 30 Tage im Papierkorb, als Zeile in `trash` mit `content.kind = 'file'`, ihr Inhalt bleibt über `disk_files.trash_id` auf der Platte; der Eigentümer-Admin stellt sie mit Ordner, Verfasser und Datum wieder her. „Gelöschte Dateien …“ im Eintrag nennt die Dateien aus dem Papierkorb und aus allen lesbaren Backups und holt sie zurück, unter dem Lockfile des Backup-Ordners; eine öfter gespeicherte Datei kommt als eigene Datei mit „(Backup TT.MM.JJJJ)“ daneben, Dateien aus der Datenbank alter Backups werden neu verschlüsselt; je Datei eine Zeile `backup.fetch`. „Typ“ in „Dateien sortieren“ und in der Kopfzeile; „Audio“, „Container“ bei Videos, „H.264 (AVC)“ im Dialog und „H.264“ in Liste und Kacheln; Erweiterte Infos auch für Fotos und Videos des Eintrags (neue Tabelle `photo_media`, Route `GET /api/photos/:id/info`), ⓘ im Vollbild; bei offenem Dialog reagiert das Vollbild auf keine Taste (B2). README und Anleitung englisch, deutsch und türkisch; das CHANGELOG englisch, 2.865 → 1.451 Zeilen. **MINOR** *(1.482 → 1.520 Rückbauten, Prüfstand 7.975 → 8.040, Sprachschlüssel 1.410 → 1.431). Fingerprint `5e5fb3c7` (davor `a4d2ab5e`)* | **ja** | — |
+| **0.54.0** | **Punkte aus der Abnahme von 0.53.0** | Gesammelt ab 1. Oktober 2026, bis zur Antwort auf F1 als 0.53.1 geführt. **Gebaut wird, wenn der Betreiber fertig gesammelt hat** (Vorgabe vom 1. Oktober 2026). B1: Bilder nennen unter „Typ“ Format und Pixel, „PNG · 1920 × 1080“, am Vorschaubild das Format; B2: Vorschaubilder in der Bilddatei stehen unter „Erweiterte Infos“ als eine Zeile statt als eigene Gruppen „Bild“; B3: zugeklappt nennt „Dateien“ nur Ordner, Videos, Bilder, weitere Dateien und die Größe, ohne Bedienelemente; B4: Dateien umbenennen (Punkt 60); B5 bis B7: fester deutscher Text im Code, „Eintrag exportieren“ und vier Namen der Anleitung (Punkte 61 bis 63); B8: das Stilblatt nach der Kommentarregel durchsehen (Punkt 42); B9: EXIF-Angaben bei Bildern; B10: „Infos“ zu Dokumenten (Abschnitt 0.54.0, Auftrag `Doku/Auftrag_0.54.0.md`) | offen | — |
 | ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. Die zwei offenen Punkte des Eintrags stehen in der Zeile darunter | — | — |
 | ~~*ohne Nummer*~~ | ~~**Vorgabewerte und Tastaturbedienung beim Sortieren**~~ | **VORLÄUFIG GESTRICHEN am 21. September 2026:** der Inhalt ist nirgends beschrieben — weder hier noch im Sammelblatt noch im Projektstand steht, welche Vorgabewerte gemeint sind und was die Tastatur beim Sortieren tun soll. *Die Zeile kommt zurück, sobald der Betreiber sagt, was gemeint war.* | — | — |
 | ~~*ohne Nummer*~~ | ~~**Die Doppelung in der README auflösen**~~ | **GEBAUT mit 0.38.0 am 19. September 2026.** *Befund aus BA 6 der 0.37.0: zwei Abschnitte der README trugen dieselben drei Sachverhalte — dass eine fehlende Spalte nicht nachgerüstet wird, dass der Kasten jede fehlende Spalte samt altem Namen nennt, und dass die Instanz startet, aber jede Seite scheitert, die eine der Spalten liest.* **Jetzt verweist jeder der beiden auf den anderen:** `README.md`:348 nach unten, `README.md`:464 nach oben. *0.38.5 hat die README danach noch einmal gegliedert.* | nein | — |
-| *ohne Nummer* | **`public/style.css` noch einmal ansehen** | Vorgabe des Betreibers vom 17. September 2026 zu **Punkt 42** des Sammelblatts. **Der Kommentaranteil liegt bei 40 Prozent — 1.215 Zeilen von 3.029**, gemessen am gebauten Stand 0.38.3. *Hier stand vorher 54,5 %; das war ein Byteanteil am Stand nach 0.35.0, und 0.37.0 hat die Datei danach noch einmal gekürzt.* Die Datei gehört zu den achtzehn des Fingerprints, eine Runde daran ändert ihn | nein | — |
+| *ohne Nummer* | **`public/style.css` noch einmal ansehen** | Vorgabe des Betreibers vom 17. September 2026 zu **Punkt 42** des Sammelblatts. **Der Kommentaranteil liegt bei 40 Prozent — 1.215 Zeilen von 3.029**, gemessen am gebauten Stand 0.38.3. *Hier stand vorher 54,5 %; das war ein Byteanteil am Stand nach 0.35.0, und 0.37.0 hat die Datei danach noch einmal gekürzt.* Die Datei gehört zu den achtzehn des Fingerprints, eine Runde daran ändert ihn **Am 1. Oktober 2026 nach 0.54.0 gezogen (B8), neu gemessen: 524 Kommentarzeilen von 2.665, 19,7 Prozent.** | nein | — |
 | ~~*ohne Nummer*~~ | ~~**Drei kleine Punkte, die 0.35.2 ausdrücklich nicht mitnimmt**~~ | **ALLE DREI SIND ZU, die letzten beiden am 21. September 2026.** *Sie standen in `Doku/Auftrag_0.35.2.md` als V3 bis V5.* **Punkt 33** — *am 19. September 2026 geschlossen: schon gebaut.* **Punkt 38** — *GEBAUT mit 0.38.5: die Zählzeile der Meldungstafel steht in Kurzform, deutsch 227,6 → 158,1 px bei 360 CSS-Pixeln.* **Punkt 27** — *GEBAUT mit 0.38.5: `leftovers()` fragt nach `KRITERION_RUN`, neun von zwölf roten Spuren vorher, null von zwanzig nachher.* | nein | — |
 | ~~*ohne Nummer*~~ | ~~**`Auffangnetz` und `Grundausstattung` umbenennen**~~ | **Befund aus dem Bau der 0.37.0.** *`CLAUDE.md` führt beide Wörter unter „nicht verwenden".* **Sie stehen als Abschnittsüberschrift in `db.js` und in sieben Namen des Prüfstands.** *Sie in einer Runde zu ersetzen, die etwas anderes tut, hieße den Prüfstand umzubenennen — deshalb eine eigene Runde.* **0.38.0 fasst sie ausdrücklich nicht an** *(Entscheidung des Betreibers vom 19. September 2026)* — **GEBAUT mit 0.38.5.** *Hier stand „Dutzende"; gezählt sind es* **74 Stellen**: *fünf in ausgelieferten Dateien, sieben Namen (ein Gruppenname, vier Prüfungsnamen, ein Rückbauname, ein `expected`), 23 Kommentare im Quelltext und 51 in der Prosa der Papiere — der Wortfilter liest auch `Doku/*.md` und `CHANGELOG.md`.* | **gebaut** | — |
 
@@ -3947,6 +3948,291 @@ und `manual.md`, dazu `README-de.md`, `manual-de.md`, `README-tr.md` und
 die bestehenden Einträge, gekürzt auf höchstens 1.500 Zeilen (F20, F24).
 `CLAUDE.md` bekommt beide Regeln (F19, F20). Die Einzelheiten stehen in
 `Doku/Auftrag_0.53.0.md`, Abschnitt 3.
+
+---
+
+## 0.54.0 — „Punkte aus der Abnahme von 0.53.0“
+
+**Aufgenommen am 1. Oktober 2026.** Vorgabe des Betreibers vom selben Tag:
+„als Punkt für 0.53.1 aufnehmen. Gebaut wird, wenn ich fertig gesammelt habe.“
+Dazu: „nimm alle zusätzlichen Punkte für 0.53.1 auf … ich werde noch weiter
+sammeln.“ Weitere Punkte kommen deshalb ohne Rückfrage hierher.
+
+**Der Auftrag steht in `Doku/Auftrag_0.54.0.md`**, F1 bis F19 am 1. Oktober
+2026 beantwortet. Nach F1 heißt die Runde 0.54.0: B4 bringt eine neue Route,
+B10 eine neue Tabelle. Wo unten „offen für den Auftrag“ steht, gilt die
+Antwort dort.
+
+| | Punkt | Vorgabe des Betreibers, 1. Oktober 2026 |
+|---|---|---|
+| B1 | Bildformat und Pixel unter „Typ“ | „wie bei Video auch bei Bildern angeben, welchen Codec bzw. welches Bildformat es hat: PNG, JPEG etc.“ Fragetafel: „PNG · 1920 × 1080“ in der Liste; das Format auch am Vorschaubild, wie bei Videos; Sortieren nach „Typ“ wie bisher nach Name |
+| B2 | Vorschaubilder in der Bilddatei unter „Erweiterte Infos“ | Nachfrage: „warum habe ich hier 2 × zusätzliche Infos?“ Fragetafel: eine Gruppe „Bild“ für das Hauptbild, darin eine Zeile für die Vorschaubilder in der Datei |
+| B3 | Der zugeklappte Kopf von „Dateien“ | „wenn zugeklappt ist, sind nur die Zahlen von Videos, Bildern, Ordnern und sonstigen Dateien interessant, aber nicht die Sortierfilter und Auswahl etc.“ Fragetafel: „3 Ordner · 12 Videos · 9 Bilder · 4 weitere · 1.122,2 MB“; aufgeklappt wie bisher |
+| B4 | Dateien umbenennen (Punkt 60) | Fragetafel: „Ja, wie vorgeschlagen“ |
+| B5 | Deutscher Text fest im Code (Punkt 61) | Fragetafel: „Ja, auch 61“ |
+| B6 | Die Anleitung beschreibt „Eintrag exportieren“ (Punkt 62) | „62 und 63 so übernehmen“ |
+| B7 | Namen in der Anleitung und in `en.json` (Punkt 63) | ebenso |
+| B8 | Das Stilblatt nach der Kommentarregel durchsehen (Punkt 42) | „42, 60 auch bitte in 0.53.1 aufnehmen“ |
+| B9 | EXIF-Angaben bei Bildern | „bei Bildern, wenn es drin ist, auch die EXIF-Daten, die wichtigsten mit aufnehmen: wann, welche Kamera etc.“ |
+| B10 | „Infos“ zu Dokumenten | „bei Dokumenten eventuell auch die Basisinformation, wann zuletzt geändert etc. Das heißt auch da Infos, nicht erweiterte, sondern Infos.“ Dazu: „schau, was man so noch hat: zuletzt bearbeitet von etc., halt die Dinge, die interessant sein könnten.“ |
+
+#### B1 — Bildformat und Pixel unter „Typ“
+
+**Stand mit 0.53.0:** In der Spalte „Typ“ steht bei Videos „H.264 · 0:05“,
+bei Bildern nur „Bild“. Am Vorschaubild steht bei Videos der Codec, bei
+Bildern nichts. Die Angaben zu jedem Bild liegen schon in `attachment_media`;
+die Warteschlange liest Bilder mit. Gelesen wird dafür nichts neu.
+
+Gemessen am 1. Oktober 2026 mit `mediainfo.js` an Bildern aus `sharp`:
+
+| Endung | `general.format` | `image[0].format` |
+|---|---|---|
+| `.jpg` | JPEG | JPEG |
+| `.png` | PNG | PNG |
+| `.webp` | WebP | VP8 |
+| `.gif` | GIF | GIF |
+| `.avif` | avif | AV1 |
+| `.bmp` | Bitmap | Raw |
+
+Das Bildformat steht in `general.format`. `image[0].format` ist der Codec im
+Bild.
+
+| Stelle | Änderung |
+|---|---|
+| `qAttachments`, `server.js`:2393 | liest heute nur `$.video[0].format`; für Bilder dazu `$.general.format`, `$.image[0].width` und `$.image[0].height`. Die erste Bildspur ist das Hauptbild (B2) |
+| Antwort je Datei, `server.js`:2749 | `codec` und `infoSoon` auch bei Bildern, dazu die Pixel |
+| `kindText()`, `public/app.js`:4935 | bei Bildern „PNG · 1920 × 1080“; ohne Angaben bleibt „Bild“ |
+| `CODEC_NAMES`, `public/app.js`:4942 | ebenso für Bildformate: „avif“ als „AVIF“, „Bitmap“ als „BMP“ |
+| Vorschaubild, `public/app.js`:7165 | `.acodec` auch bei Bildern, nur das Format |
+| Zeile, `public/app.js`:7206 | `codec` und die Beschriftung der Zeile auch bei Bildern |
+| Sortieren nach „Typ“ | bleibt: innerhalb der Art nach Name |
+| Anleitung | „Typ“ in allen drei Sprachen |
+
+Offen für den Auftrag:
+
+- Ein Foto im Hochformat trägt oft eine EXIF-Ausrichtung. Dann nennen die
+  Bilddaten Breite und Höhe vertauscht. Pixel so, wie das Bild angezeigt
+  wird? Vorschlag: ja.
+- Liest die Warteschlange ein Bild nicht, bleibt „Bild“ stehen? Vorschlag: ja.
+
+#### B2 — Vorschaubilder in der Bilddatei
+
+**Befund des Betreibers:** Unter „Erweiterte Infos“ zu `20D_9141.jpg` stehen
+drei Gruppen „Bild“: 4729 × 3783 und zweimal 256 × 205.
+
+**Ursache:** MediaInfo meldet jedes Bild in der Datei als eigene Spur.
+Bildprogramme schreiben ein Vorschaubild in den EXIF-Block (APP1, IFD1),
+Photoshop ein zweites in seinen eigenen Block (APP13, Ressource `0x040C`).
+`mediaSummary()` in `attachments.js` übernimmt alle Spuren, `mediaInfoHtml()`
+in `public/app.js` zeigt je Spur eine Gruppe.
+
+Nachgestellt am 1. Oktober 2026 mit `mediainfo.js` an einem JPEG aus `sharp`,
+1250 × 1000, mit eingesetzten Blöcken:
+
+| Blöcke in der Datei | Spuren „Image“ |
+|---|---|
+| keine | JPEG 1250 × 1000 |
+| APP1 mit Vorschaubild | JPEG 1250 × 1000, JPEG 256 × 205 |
+| APP1 und APP13 mit Vorschaubild | JPEG 1250 × 1000, JPEG 256 × 205, JPEG 256 × 205 |
+
+Die erste Spur ist das Hauptbild.
+
+| Stelle | Änderung |
+|---|---|
+| `mediaInfoHtml()`, `public/app.js`:4985 | eine Gruppe „Bild“ für `image[0]`; die übrigen Spuren als eine Zeile darin: „Vorschaubilder in der Datei: 2 (256 × 205)“ |
+| Sprachdateien | ein neuer Schlüssel für die Zeile, in drei Sprachen |
+| `attachment_media.info` | bleibt; gelesen wird nichts neu |
+
+Offen für den Auftrag:
+
+- Haben die Vorschaubilder verschiedene Größen, stehen alle in der Zeile?
+  Vorschlag: ja, „2 (256 × 205, 160 × 120)“.
+- Gilt dasselbe für Fotos und Videos des Eintrags (`photo_media`)? Vorschlag:
+  ja, es ist derselbe Dialog.
+
+#### B3 — Der zugeklappte Kopf von „Dateien“
+
+**Stand mit 0.53.0:** Zugeklappt blendet `.block.closed > *:not(.block-head)`
+(`public/style.css`:1667) nur den Inhalt unter dem Kopf aus. Im Kopf bleiben
+„(28)“ aus `blockSummary()` (`public/app.js`:940), „28 Dateien · 1.122,2 MB“
+aus `#acount` (`public/app.js`:7470) und alle Bedienelemente in
+`.ahead-acts`: Sortieren, Richtung, Gruppieren, „Kacheln“ und „Liste“,
+„Auswählen“, „Ordner hinzufügen“, „Gelöschte Dateien …“.
+
+**Vorgabe des Betreibers (Fragetafel, 1. Oktober 2026):**
+
+- Zugeklappt: „3 Ordner · 12 Videos · 9 Bilder · 4 weitere · 1.122,2 MB“,
+  ohne Bedienelemente. „weitere“ statt „Sonstige“, weil „Sonstige“ unter
+  „Nach Typ gruppiert“ nur Dateien unbekannter Art meint. Arten ohne Datei
+  fallen weg.
+- Aufgeklappt: wie bisher, „28 Dateien · 1.122,2 MB“ und alle Bedienelemente.
+
+| Stelle | Änderung |
+|---|---|
+| `public/style.css`:1667 | `.block.closed .ahead-acts` und `#acount` ausblenden |
+| `blockSummary()`, `public/app.js`:940 | `dateien` liefert die Aufteilung statt der Zahl; Videos und Bilder nach `kindOf()`, Ordner aus `item.folders`, die Größe wie `#acount` |
+| Sprachdateien | Schlüssel mit Ein- und Mehrzahl für Ordner, Videos, Bilder und weitere Dateien, in drei Sprachen |
+| Anleitung | der zugeklappte Kopf, in allen drei Sprachen |
+
+Offen für den Auftrag:
+
+- `blockSummary()` setzt die Kurzfassung in Klammern. Die Aufteilung ohne
+  Klammern? Vorschlag: ja, sie ist schon eine Zeile für sich.
+- `blockSummary()` schreibt „keine“ und „leer“ fest auf Deutsch, für
+  `kategorie` und `beschreibung`. Mit derselben Runde über die Sprachdateien?
+  Vorschlag: ja.
+
+### Ausarbeitung, fortgezogen aus `Doku/Fehler_und_Ideen.md`
+
+Am 1. Oktober 2026 in diese Runde gezogen, auf Frage des Betreibers nach den
+offenen Punkten: 42 und 60 bis 63.
+
+#### B4 — Dateien umbenennen (Punkt 60)
+
+**Herkunft:** Prüfung von Zeile und Menü zu 0.52.0 (Befund 9 in
+`Doku/Auftrag_0.52.0.md`); am 30. September 2026 auf später gelegt (F7).
+
+**Stand mit 0.53.0:** Ordner lassen sich über „Bearbeiten …“ umbenennen
+(`PUT /api/folders/:id`, nur der Verfasser, `selfOnly()` in
+`server.js`:1017). Dateien nicht. Ein anderer Name geht nur über
+Herunterladen, Umbenennen, neu Hochladen und Löschen. Dabei gehen Verfasser
+und Datum verloren, ebenso Verweise in Kommentaren und Beschreibung, Ordner,
+Standbild, gemerkte Stelle, „Bearbeiten durch alle“ und die vorige Fassung.
+
+| Stelle | Was der Name dort bestimmt |
+|---|---|
+| Liste, Kacheln, Dialoge, Papierkorb | die Anzeige; Sortieren nach Name |
+| `setHeader()`, `attachments.js`:89 | den Namen beim Herunterladen; über die Endung Typ und Auslieferung (`outType()`, `INLINE_ALLOWED`) |
+| `docserver.js`:143 bis 150 | Titel, `fileType` und `documentType` im Document Server |
+| Links und Verweise | nichts; sie nutzen die Nummer der Datei |
+| `documentKey()`, `docserver.js`:133 | nichts; der Schlüssel hängt an Nummer und `created_at` |
+
+**Vorgabe des Betreibers (Fragetafel, 1. Oktober 2026), wie vorgeschlagen:**
+
+- „Umbenennen …“ im Menü „…“ der Datei. Der Dialog zeigt den Namen ohne
+  Endung; die Endung steht fest dahinter.
+- Die Endung bleibt immer. Sie bestimmt Vorschau, Document Server und die
+  Auslieferung an den Browser.
+- Umbenennen darf nur, wer die Datei hochgeladen hat, wie bei Ordnern.
+- Neue Route `PUT /api/attachments/:id` mit `filename`. Geprüft wird wie beim
+  Hochladen (`server.js`:4176): ohne Pfad, höchstens 200 Zeichen, nicht leer.
+- Kein Eintrag im Sicherheitsprotokoll. Umbenennen ist Bearbeiten wie bei
+  Ordnern.
+- Ist die Datei im Document Server offen, geht Umbenennen trotzdem. Der
+  Editor zeigt den neuen Namen beim nächsten Öffnen.
+
+Backup und Export tragen den neuen Namen. Ein älteres Backup und „Gelöschte
+Dateien …“ zeigen den alten.
+
+Offen für den Auftrag:
+
+- Derselbe Name wie bei einer anderen Datei im Ordner: erlaubt wie beim
+  Hochladen? Vorschlag: ja.
+- Umbenennen auch im Vollbild? Vorschlag: nein, nur im Menü „…“.
+
+#### B5 — Deutscher Text fest im Code (Punkt 61)
+
+Zwei Stellen in `public/app.js` setzen deutschen Text ein, den keine
+Sprachdatei kennt:
+
+- Zeilen 6239 und 6241: `entry.rejectedBy` bekommt „am …“ und „von …“ aus
+  dem Code. Auf Türkisch steht dort „Reddedildi am 14.03.2026, 09:12 von
+  Anna“.
+- Zeile 3168, `drawHeadCounts()`: Der Titel des Knopfs für offene Aufgaben
+  lautet in jeder Sprache „3 Aufgaben offen“.
+
+Der Weg: je ein Schlüssel mit Platzhaltern in den drei Sprachdateien.
+Zusammen mit „keine“ und „leer“ aus B3.
+
+#### B6 — Die Anleitung beschreibt „Eintrag exportieren“ (Punkt 62)
+
+Der Abschnitt steht in `manual-de.md`:584, `manual.md`:571 und
+`manual-tr.md`:575. Er nennt einen Knopf am Fuß des Eintrags. `public/app.js`
+hat keinen solchen Knopf, `de.json` keinen Schlüssel und der Server keine
+Route für den Export eines einzelnen Eintrags.
+
+Offen für den Auftrag: Der Abschnitt entfällt, oder die Funktion kommt?
+Vorschlag: Der Abschnitt entfällt in allen drei Fassungen. Export und Import
+laufen über die Karte „Export und Import“, auch in Teilen.
+
+#### B7 — Namen in der Anleitung und in `en.json` (Punkt 63)
+
+| `manual-de.md` | Sprachdatei |
+|---|---|
+| Zeile 264: „Ähnlich: …“ | `list.similarTitles` „Ähnliche Titel:“ |
+| Zeile 268: Status „Alles“ | `list.all` „Alle“ |
+| Zeilen 302, 317, 820: „Offen“ | `list.openTasks` „Offene {taskMany}“ |
+| Zeile 708: die Karte „Verfahren der Ablage“ | `card.storeMethod` ist eine Zwischenüberschrift in der Karte „Bildformate“ |
+
+Die englische und die türkische Fassung nehmen die Namen schon aus `en.json`
+und `tr.json`. In `en.json` heißt der Abschnitt mit allen Accounts
+`card.user` „User“, in der Einzahl.
+
+Der Weg: die deutsche Anleitung an `de.json` angleichen, danach die englische
+und die türkische Fassung prüfen; `card.user` englisch in der Mehrzahl.
+
+#### B8 — Das Stilblatt nach der Kommentarregel durchsehen (Punkt 42)
+
+**Herkunft:** 0.35.0. Vorgabe des Betreibers vom 17. September 2026:
+„`public/style.css` noch einmal ansehen“ (Zeile ohne Nummer in der Tafel
+oben).
+
+**Stand, gemessen am 1. Oktober 2026 mit `tools/comments.js` an 0.53.0:**
+524 Kommentarzeilen von 2.665 Zeilen, also **19,7 Prozent**, bei 2.141
+Zeilen Code. Ein Viertel der Codezeilen wären 535. Das Sammelblatt nannte
+40 Prozent: 1.187 von 2.963 Zeilen, gemessen am 19. September 2026 an
+0.37.0. Seitdem sind Kommentare gestrichen worden.
+
+Der Weg: `public/style.css` nach Abschnitt 3 von `CLAUDE.md` durchgehen, wie
+die JavaScript-Dateien. Ein Kommentar bleibt nur, wo der Code eine Frage
+offenlässt. Tafeln gemessener Werte bleiben. Danach senkt
+`node tools/comments.js --write` die Obergrenze. Die Datei gehört zum
+Fingerprint.
+
+Offen für den Auftrag:
+
+- Die Tafeln gemessener Werte in ein eigenes Papier verschieben, wie im
+  Sammelblatt erwogen? Vorschlag: nein. `CLAUDE.md` erlaubt sie im
+  Kommentar, und ein Verweis auf `Doku/` steht in keiner ausgelieferten
+  Datei.
+
+#### B9 — EXIF-Angaben bei Bildern
+
+**Stand mit 0.53.0:** `mediaSummary()` (`attachments.js`:379) übernimmt für
+Bilder Format, Pixel, Bittiefe, Farbraum und Unterabtastung. MediaInfo liest
+aus JPEG kein EXIF. Kamera, Objektiv, Aufnahmezeit, Blende, Belichtungszeit,
+ISO und Brennweite fehlen in seiner Ausgabe, auch mit allen Feldern
+(`full: true`). Nachgestellt am 1. Oktober 2026 mit einem JPEG, dem `sharp`
+diese Felder mitgegeben hat. Das Aufnahmedatum zu `20D_9141.jpg` stammt
+deshalb nicht aus EXIF.
+
+`sharp` liefert den EXIF-Block roh (`metadata().exif`) und die Ausrichtung
+(`orientation`) schon aus den ersten 4 KB der Datei. Gelesen werden kann der
+Block mit `exif-reader` 2.0.3 (MIT, ohne weitere Pakete, 33 kB, gepflegt vom
+Verfasser von `sharp`) oder mit einem eigenen Leser in `attachments.js`.
+
+Der Weg: Die Warteschlange liest den Block beim Bild mit, legt die Felder in
+`attachment_media.info` ab, und der Dialog zeigt sie als eigene Gruppe. Die
+offenen Fragen stehen im Auftrag.
+
+#### B10 — „Infos“ zu Dokumenten
+
+**Stand mit 0.53.0:** „Erweiterte Infos“ gibt es nur für Bilder und Videos
+(`mediaKind()`, `attachments.js`). Zu einem Dokument kennt Kriterion Name,
+Typ, Größe, Verfasser und Zeitpunkt des Hochladens (`attachments`), die Zahl
+der Speicherungen im Document Server (`attachment_editing.saves`) und den
+Zeitpunkt, zu dem die vorige Fassung abgelegt wurde
+(`attachment_previous.saved_at`). Zeitpunkt und Account der letzten
+Speicherung stehen nirgends. `uploads.modified`, die Änderungszeit der Datei
+auf dem Rechner, fällt nach dem Hochladen weg.
+
+Die Datei selbst trägt Angaben: Office-Dateien in `docProps/core.xml` (Titel,
+Autor, zuletzt gespeichert von, erstellt, geändert) und `docProps/app.xml`
+(Seiten, Programm). `attachments.js` hat dafür schon einen ZIP-Leser
+(`docxPreview()`). PDF-Dateien tragen sie im Info-Wörterbuch.
+
+Der Weg: Bei Dokumenten heißt der Menüpunkt „Infos“; der Dialog sieht aus wie
+„Erweiterte Infos“. Die offenen Fragen stehen im Auftrag.
 
 ---
 
