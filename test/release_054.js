@@ -116,7 +116,87 @@ async function run() {
       'Neu.pdf.txt', 'Papierkorb');
   }
 
-  await B.stop();
+  group('Bilder: Format, Pixel, EXIF und das Nachlesen');
+  {
+    const wait = (ms) => new Promise(r => setTimeout(r, ms));
+    const until2 = async (test, ms = 8000) => {
+      for (const t0 = Date.now(); Date.now() - t0 < ms; await wait(100)) if (await test()) return true;
+      return false;
+    };
+    const camera = await H.sharp({ create: { width: 400, height: 300, channels: 3, background: '#468' } }).jpeg()
+      .withMetadata({ orientation: 6 })
+      .withExif({ IFD0: { Make: 'Canon', Model: 'Canon EOS 20D', DateTime: '2020:04:26 10:00:00' },
+        IFD2: { DateTimeOriginal: '2020:04:25 14:22:11', FNumber: '28/10', ExposureTime: '1/125', ISOSpeedRatings: '400',
+          FocalLength: '50/1', FocalLengthIn35mmFilm: '80', LensModel: 'EF50mm f/1.8 II' },
+        IFD3: { GPSLatitudeRef: 'N', GPSLatitude: '52/1 30/1 0/1', GPSLongitudeRef: 'E', GPSLongitude: '13/1 24/1 0/1' } })
+      .toBuffer();
+    const plain = await H.sharp({ create: { width: 40, height: 30, channels: 3, background: '#864' } }).png().toBuffer();
+    const p = await newItem('Eintrag Bilder');
+    await upload('owner', p, [{ name: 'kamera.jpg', content: camera }, { name: 'grafik.png', content: plain }]);
+    const files = () => filesOf(p);
+    await until2(async () => (await files()).every(f => f.infoSoon === false));
+    const [jpg, png] = ['kamera.jpg', 'grafik.png'].map(async n => (await files()).find(f => f.filename === n));
+    const j = await jpg, g = await png;
+    check('Bilder tragen Format und Pixel; bei Ausrichtung 6 wie angezeigt: 300 × 400',
+      j?.codec === 'JPEG' && j?.width === 300 && j?.height === 400 && g?.codec === 'PNG' && g?.width === 40 && g?.height === 30,
+      JSON.stringify([j, g].map(f => f && [f.codec, f.width, f.height, f.infoSoon])));
+    const info = await as('zweit', 'GET', `/api/attachments/${j?.id}/info`);
+    const stored = inDb(d => d.prepare('SELECT info FROM attachment_media WHERE attachment_id = ?').get(j?.id)?.info || '');
+    check('EXIF: Zeit, Kamera, Objektiv, Belichtung, Blende, ISO, Brennweite mit Kleinbild; GPS nur als ja',
+      equal(info.content?.exif, { taken: '2020-04-25 14:22:11', camera: 'Canon EOS 20D', lens: 'EF50mm f/1.8 II',
+        exposure: 0.008, aperture: 2.8, iso: 400, focal: 50, focal35: 80, gps: true }) && info.content?.orientation === 6,
+      JSON.stringify(info.content?.exif));
+    check('Die Koordinaten stehen nirgends in der Datenbank',
+      stored.includes('"gps":true') && !/GPS|Latitude|Longitude|52\.5|13\.4/.test(stored), stored.slice(0, 200));
+    const pngInfo = (await as('zweit', 'GET', `/api/attachments/${g?.id}/info`)).content;
+    check('Ohne EXIF: `exif` ist null, `orientation` steht trotzdem da',
+      pngInfo?.exif === null && 'orientation' in (pngInfo || {}), JSON.stringify(pngInfo).slice(0, 200));
+
+    const old = (info) => { const o = JSON.parse(info); delete o.orientation; delete o.exif; return JSON.stringify(o); };
+    inDb(d => d.prepare('UPDATE attachment_media SET info = ? WHERE attachment_id = ?').run(old(stored), j?.id));
+    const again = await as('zweit', 'GET', `/api/attachments/${j?.id}/info`);
+    check('Eine Zeile aus der Zeit vor EXIF liest der Server bei „Erweiterte Infos“ neu',
+      again.content?.exif?.camera === 'Canon EOS 20D' && again.content?.orientation === 6 &&
+      JSON.parse(inDb(d => d.prepare('SELECT info FROM attachment_media WHERE attachment_id = ?').get(j?.id).info)).orientation === 6,
+      JSON.stringify(again.content).slice(0, 160));
+    const clip = inDb(d => Number(d.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, user_id)
+      VALUES (?, 'alt.mp4', 'video/mp4', 4, x'00000000', 1)`).run(p).lastInsertRowid));
+    const clipInfo = { general: { format: 'MPEG-4' }, video: [{ format: 'AVC' }], audio: [], image: [] };
+    inDb(d => d.prepare('INSERT INTO attachment_media (attachment_id, info) VALUES (?, ?)').run(clip, JSON.stringify(clipInfo)));
+    check('Ein Video mit alter Zeile liest er nicht neu',
+      equal((await as('zweit', 'GET', `/api/attachments/${clip}/info`)).content, clipInfo), 'Video');
+
+    const send = async (url, list) => {
+      const fd = new FormData();
+      for (const f of list) fd.append(f.field, new Blob([f.content], { type: f.type }), f.name);
+      const a = await fetch(B.base + url, { method: 'POST', body: fd, headers: withCsrf(cookies.owner, {}) });
+      return { status: a.status, content: await a.json().catch(() => null) };
+    };
+    const up = await send(`/api/items/${p}/photos`, [{ field: 'photos', name: 'foto.jpg', type: 'image/jpeg', content: camera }]);
+    const photo = (up.content?.photos || [])[0];
+    const photoInfo = await as('zweit', 'GET', `/api/photos/${photo?.id}/info`);
+    check('Fotos des Eintrags: dieselben Angaben aus EXIF',
+      up.status === 201 && photoInfo.content?.exif?.camera === 'Canon EOS 20D' && photoInfo.content?.orientation === 6,
+      `${up.status} ${JSON.stringify(photoInfo.content?.exif)}`);
+    inDb(d => {
+      const row = d.prepare('SELECT info FROM photo_media WHERE photo_id = ?').get(photo?.id);
+      d.prepare('UPDATE photo_media SET info = ? WHERE photo_id = ?').run(old(row.info), photo?.id);
+      d.prepare('UPDATE attachment_media SET info = ? WHERE attachment_id = ?').run(old(stored), j?.id);
+    });
+    await B.stop();
+    const B2 = H.startFurtherServer(dir, {}, 7340);
+    await B2.ready;
+    const readAgain = await until2(() => inDb(d => {
+      const f = d.prepare('SELECT info FROM attachment_media WHERE attachment_id = ?').get(j?.id)?.info;
+      const ph = d.prepare('SELECT info FROM photo_media WHERE photo_id = ?').get(photo?.id)?.info;
+      return f && ph && JSON.parse(f).orientation === 6 && JSON.parse(ph).orientation === 6;
+    }), 10000);
+    check('Nach dem Start liest die Warteschlange alte Zeilen von Bildern und Fotos einmal nach',
+      readAgain && !('orientation' in JSON.parse(inDb(d => d.prepare('SELECT info FROM attachment_media WHERE attachment_id = ?')
+        .get(clip).info))), 'Nachlesen');
+    await B2.stop();
+  }
+
   fs.rmSync(root, { recursive: true, force: true });
 
   /* ---- Oberflaeche ---- */
@@ -187,6 +267,71 @@ async function run() {
     check('Esc bricht ab, ohne Anfrage; der Fokus geht zurueck auf „…“',
       !w.document.querySelector('.modal') && sent.length === 2 &&
       w.document.activeElement === tileOf(w, 'f49')?.querySelector('.amore'), w.document.activeElement?.className);
+    w.close();
+  }
+
+  group('Bilder: Typ, Vorschaubild und Erweiterte Infos');
+  {
+    const image = (id, filename, more = {}) => file(id, filename, 2000, '2026-08-05 10:00:00',
+      { mime_type: 'image/jpeg', preview: 'image', ...more });
+    const m = buildDom(JSDOM, { hash: '#/item/1', extraAttachments: [
+      image(60, 'hoch.jpg', { codec: 'JPEG', width: 3024, height: 4032 }), image(61, 'bild.png', { codec: 'PNG', width: 1920, height: 1080 }),
+      image(62, 'neu.avif', { codec: 'avif', width: 10, height: 10 }), image(63, 'ohne.png')], settings: { filters: null, userCount: 1 } });
+    const w = m.w;
+    await settle(w, 8);
+    const codecs = ['f60', 'f61', 'f62', 'f63'].map(k => tileOf(w, k)?.querySelector('.acodec')?.textContent ?? '');
+    check('Am Vorschaubild steht das Format: JPEG, PNG, AVIF; ohne Angaben nichts',
+      equal(codecs, ['JPEG', 'PNG', 'AVIF', '']), codecs.join(' | '));
+    w.document.querySelector('.aview-btn[data-view="list"]')?.click();
+    await until(w, () => openRequests(w) === 0, 2000, 'die Liste').catch(() => {});
+    const kinds = ['f60', 'f61', 'f62', 'f63'].map(k => tileOf(w, k)?.querySelector('.akind')?.textContent);
+    check('In der Spalte „Typ“: „PNG · 1920 × 1080“; ohne Angaben „Bild“',
+      equal(kinds, ['JPEG · 3024 × 4032', 'PNG · 1920 × 1080', 'AVIF · 10 × 10', DE['entry.kindImage']]), kinds.join(' | '));
+    check('Die Beschriftung der Zeile nennt Format und Pixel',
+      (tileOf(w, 'f61')?.querySelector('.aface')?.getAttribute('aria-label') || '').includes('PNG · 1920 × 1080'),
+      tileOf(w, 'f61')?.querySelector('.aface')?.getAttribute('aria-label'));
+
+    const facts = { general: { format: 'JPEG', size: 2000, recorded: '2020-04-25 14:22:11' }, video: [], audio: [],
+      image: [{ format: 'JPEG', width: 4032, height: 3024, bitDepth: 8 }, { format: 'JPEG', width: 256, height: 205 },
+        { format: 'JPEG', width: 256, height: 205 }], orientation: 6,
+      exif: { taken: '2020-04-25 14:22:11', camera: 'Canon EOS 20D', lens: 'EF50mm f/1.8 II', exposure: 0.008, aperture: 2.8,
+        iso: 400, focal: 50, focal35: 80, gps: true } };
+    const two = { ...facts, image: [facts.image[0], { format: 'JPEG', width: 256, height: 205 }, { format: 'JPEG', width: 160, height: 120 }],
+      orientation: 1, exif: { exposure: 2, focal: 35 } };
+    const base = w.fetch;
+    w.fetch = (url, opt) => {
+      if (/\/api\/attachments\/60\/info$/.test(url)) return Promise.resolve(answerWith(facts));
+      if (/\/api\/attachments\/61\/info$/.test(url)) return Promise.resolve(answerWith(two));
+      return base(url, opt);
+    };
+    const dialog = async (key) => {
+      menuOf(w, key).find(e => e.textContent === DE['entry.mediaInfo'])?.click();
+      await until(w, (x) => x.document.querySelector('.modal.minfo .kv'), 1000, 'die Angaben').catch(() => {});
+      const modal = w.document.querySelector('.modal.minfo');
+      const out = { heads: [...(modal?.querySelectorAll('.minfo-head') || [])].map(e => e.textContent),
+        rows: [...(modal?.querySelectorAll('.kv') || [])].map(r => `${r.querySelector('.k').textContent}: ${r.querySelector('.v').textContent}`) };
+      press(w.document.body, 'Escape');
+      return out;
+    };
+    const one = await dialog('f60');
+    check('Eine Gruppe „Bild“ für das Hauptbild, darin die Vorschaubilder der Datei',
+      equal(one.heads, [DE['entry.mediaGeneral'], DE['entry.kindImage'], DE['entry.mediaShot']]) &&
+      one.rows.includes(`${DE['entry.mediaThumbs']}: 2 (256 × 205)`) && DE['entry.mediaThumbs'] === 'Vorschaubilder in der Datei',
+      one.heads.join(' | '));
+    check('Pixel bei Ausrichtung 6 wie angezeigt: 3024 × 4032',
+      one.rows.includes(`${DE['entry.mediaResolution']}: 3024 × 4032`), one.rows.join(' | '));
+    const shot = one.rows.slice(one.rows.indexOf(`${DE['entry.mediaTaken']}: 25.04.2020, 14:22`));
+    check('„Aufnahme“: Zeit, Kamera, Objektiv, „1/125 s“, „f/2,8“, ISO, Brennweite mit Kleinbild, Ort nur als „ja“',
+      equal(shot, ['Aufnahmezeit: 25.04.2020, 14:22', 'Kamera: Canon EOS 20D', 'Objektiv: EF50mm f/1.8 II',
+        'Belichtungszeit: 1/125 s', 'Blende: f/2,8', 'ISO: 400', 'Brennweite: 50 mm (Kleinbild 80 mm)', 'Ort in der Datei: ja']),
+      shot.join(' | '));
+    check('Mit Aufnahmezeit aus EXIF entfällt „Aufnahmedatum“ unter „Allgemein“',
+      !one.rows.some(r => r.startsWith(`${DE['entry.mediaRecorded']}:`)), one.rows.slice(0, 4).join(' | '));
+    const other = await dialog('f61');
+    check('Verschiedene Vorschaubilder stehen alle da; „2 s“ und Brennweite ohne Kleinbild',
+      other.rows.includes(`${DE['entry.mediaThumbs']}: 2 (256 × 205, 160 × 120)`) && other.rows.includes('Belichtungszeit: 2 s') &&
+      other.rows.includes('Brennweite: 35 mm') && other.rows.includes(`${DE['entry.mediaResolution']}: 4032 × 3024`) &&
+      other.rows.some(r => r.startsWith(`${DE['entry.mediaRecorded']}:`)), other.rows.join(' | '));
     w.close();
   }
 }

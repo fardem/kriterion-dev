@@ -2397,7 +2397,9 @@ const qAttachments = lateStatement(`SELECT a.id, a.filename, a.mime_type, a.size
     a.created_at, a.user_id, COALESCE(e.edit_all, 0) AS edit_all,
     (p.attachment_id IS NOT NULL) AS has_previous, s.duration, length(s.still) AS still,
     f.folder_id AS folder, d.name AS stored, d.large, (t.attachment_id IS NOT NULL) AS has_tile, length(t.thumb) AS tile,
-    (m.attachment_id IS NOT NULL) AS has_media, json_extract(m.info, '$.video[0].format') AS codec
+    (m.attachment_id IS NOT NULL) AS has_media, json_extract(m.info, '$.video[0].format') AS codec,
+    json_extract(m.info, '$.general.format') AS image_format, json_extract(m.info, '$.image[0].width') AS width,
+    json_extract(m.info, '$.image[0].height') AS height, json_extract(m.info, '$.orientation') AS orientation
   FROM attachments a
   LEFT JOIN attachment_editing e ON e.attachment_id = a.id
   LEFT JOIN attachment_thumbs t ON t.attachment_id = a.id
@@ -2752,8 +2754,10 @@ function detail(id, userId, locale) {
       // Nur Dokumente: `thumb` ist die Laenge des Vorschaubilds wie `still`.
       ...(tileKind ? { thumb: a2.tile, thumbSoon: !a2.has_tile && (tileKind === 'text' || officeOn)
                                                   && !TILES_FAILED.has(a2.id) } : {}),
-      // Der Codec am Vorschaubild; `infoSoon`, solange die Warteschlange ihn noch liest.
-      ...(kind === 'video' ? { codec: a2.codec, infoSoon: !a2.has_media && !MEDIA_FAILED.has(a2.id) } : {})
+      // Am Vorschaubild der Codec, bei Bildern das Format; `infoSoon`, solange die Warteschlange liest.
+      ...(kind === 'video' ? { codec: a2.codec, infoSoon: !a2.has_media && !MEDIA_FAILED.has(a2.id) } : {}),
+      ...(kind === 'image' ? { codec: a2.image_format, ...shownPixels(a2.width, a2.height, a2.orientation),
+                               infoSoon: !a2.has_media && !MEDIA_FAILED.has(a2.id) } : {})
     };
   });
   const openFolders = new Set(qOpenFolders.all(userId, id).map(z => z.folder_id));
@@ -3997,10 +4001,16 @@ function docTilesAgain() {
 /* ---- Erweiterte Infos zu Bildern und Videos ---- */
 const qMedia = db.prepare('SELECT info FROM attachment_media WHERE attachment_id = ?');
 const putMedia = db.prepare('INSERT OR REPLACE INTO attachment_media (attachment_id, info) VALUES (?, ?)');
-const qMediaSource = db.prepare(`SELECT a.id, a.filename, a.size, (m.attachment_id IS NOT NULL) AS has_media
+// `stale`: eine Zeile ohne `orientation` stammt aus der Zeit vor EXIF; Bilder werden einmal nachgelesen.
+const qMediaSource = db.prepare(`SELECT a.id, a.filename, a.size, (m.attachment_id IS NOT NULL) AS has_media,
+    (json_type(m.info, '$.orientation') IS NULL) AS stale
   FROM attachments a LEFT JOIN attachment_media m ON m.attachment_id = a.id WHERE a.id = ?`);
-const qMediaMissing = db.prepare(`SELECT a.id, a.filename FROM attachments a
-  LEFT JOIN attachment_media m ON m.attachment_id = a.id WHERE m.attachment_id IS NULL ORDER BY a.id DESC`);
+const qMediaMissing = db.prepare(`SELECT a.id, a.filename, (m.attachment_id IS NOT NULL) AS has_media FROM attachments a
+  LEFT JOIN attachment_media m ON m.attachment_id = a.id
+  WHERE m.attachment_id IS NULL OR json_type(m.info, '$.orientation') IS NULL ORDER BY a.id DESC`);
+// Bei EXIF-Ausrichtung 5 bis 8 steht das Bild gedreht; Breite und Hoehe wie angezeigt.
+const shownPixels = (width, height, orientation) =>
+  (orientation >= 5 && orientation <= 8 ? { width: height, height: width } : { width, height });
 const qMediaPart = db.prepare('SELECT substr(data, ?, ?) AS part FROM attachments WHERE id = ?');
 const MEDIA_WAITING = new Set();
 // Ohne lesbare Datei; der stuendliche Lauf versucht es wieder.
@@ -4046,14 +4056,16 @@ async function readMediaOf(a) {
 // null: keine Datei dieser Art; undefined: spaeter noch einmal.
 async function makeMedia(id) {
   const a = qMediaSource.get(id);
-  if (!a || !attachments.mediaKind(a.filename)) return null;
-  if (a.has_media) return JSON.parse(qMedia.get(id).info);
+  const kind = a && attachments.mediaKind(a.filename);
+  if (!kind) return null;
+  const known = a.has_media ? JSON.parse(qMedia.get(id).info) : undefined;
+  if (known && !(kind === 'image' && a.stale)) return known;
   let facts;
   try { facts = await readMediaOf(a); }
   catch (e) {
     if (!e.damaged) throw e;
     MEDIA_FAILED.add(id);
-    return undefined;
+    return known;
   }
   // Waehrend des Lesens kann die Datei geloescht und die Nummer neu vergeben worden sein.
   const now = qMediaSource.get(id);
@@ -4066,10 +4078,13 @@ async function makeMedia(id) {
 /* ---- Erweiterte Infos zu Fotos und Videos des Eintrags ---- */
 const qPhotoMedia = db.prepare('SELECT info FROM photo_media WHERE photo_id = ?');
 const putPhotoMedia = db.prepare('INSERT OR REPLACE INTO photo_media (photo_id, info) VALUES (?, ?)');
-const qPhotoMediaSource = db.prepare(`SELECT p.id, length(p.data) AS size, (m.photo_id IS NOT NULL) AS has_media
+// Wie bei Dateien; ein Bild erkennt die Zeile an ihrer leeren Liste `video`.
+const PHOTO_STALE = `json_type(m.info, '$.orientation') IS NULL AND json_array_length(m.info, '$.video') = 0`;
+const qPhotoMediaSource = db.prepare(`SELECT p.id, length(p.data) AS size, (m.photo_id IS NOT NULL) AS has_media,
+    COALESCE(${PHOTO_STALE}, 0) AS stale
   FROM photos p LEFT JOIN photo_media m ON m.photo_id = p.id WHERE p.id = ?`);
 const qPhotoMediaMissing = db.prepare(`SELECT p.id FROM photos p LEFT JOIN photo_media m ON m.photo_id = p.id
-  WHERE m.photo_id IS NULL ORDER BY p.id DESC`);
+  WHERE m.photo_id IS NULL OR (${PHOTO_STALE}) ORDER BY p.id DESC`);
 const qPhotoPart = db.prepare('SELECT substr(data, ?, ?) AS part FROM photos WHERE id = ?');
 const PHOTO_MEDIA_WAITING = new Set();
 const PHOTO_MEDIA_FAILED = new Set();
@@ -4078,7 +4093,8 @@ const PHOTO_MEDIA_FAILED = new Set();
 async function makePhotoMedia(id) {
   const p = qPhotoMediaSource.get(id);
   if (!p) return null;
-  if (p.has_media) return JSON.parse(qPhotoMedia.get(id).info);
+  const known = p.has_media ? JSON.parse(qPhotoMedia.get(id).info) : undefined;
+  if (known && !p.stale) return known;
   let facts;
   try {
     facts = await attachments.mediaFacts(p.size, (length, offset) => {
@@ -4089,7 +4105,7 @@ async function makePhotoMedia(id) {
   } catch (e) {
     if (!e.damaged) throw e;
     PHOTO_MEDIA_FAILED.add(id);
-    return undefined;
+    return known;
   }
   if (!qPhotoMediaSource.get(id)) return null;
   putPhotoMedia.run(id, JSON.stringify(facts));
@@ -4127,8 +4143,10 @@ function mediaSoon(ids) {
     MEDIA_WAITING.clear();
     for (const id of [...ids, ...rest]) MEDIA_WAITING.add(Number(id));
   } else {
-    for (const r of qMediaMissing.all())
-      if (attachments.mediaKind(r.filename) && !MEDIA_FAILED.has(r.id)) MEDIA_WAITING.add(r.id);
+    for (const r of qMediaMissing.all()) {
+      const kind = attachments.mediaKind(r.filename);
+      if (kind && (!r.has_media || kind === 'image') && !MEDIA_FAILED.has(r.id)) MEDIA_WAITING.add(r.id);
+    }
     photoMediaSoon();
   }
   startMedia();

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "better-sqlite3-multiple-ciphers": "^11.5.0",
+    "exif-reader": "^2.0.3",
     "express": "^4.21.0",
     "mediainfo.js": "^0.3.8",
     "multer": "^2.0.1",

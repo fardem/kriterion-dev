@@ -4932,14 +4932,17 @@ function kindOf(a) {
   const ending = ((/\.([^.\s/\\]+)$/.exec(a.filename || '') || [])[1] || '').toLowerCase();
   return KIND_OF_EXTENSION[ending] || 'other';
 }
+const pixelText = (w, h) => (w && h ? `${w} × ${h}` : '');
+// Ohne gelesene Angaben steht bei Bildern „Bild“.
 function kindText(a) {
   const kind = kindOf(a);
+  if (kind === 'image') return [codecName(a.codec), pixelText(a.width, a.height)].filter(Boolean).join(' · ') || t(KIND_WORDS.image);
   if (kind !== 'video') return t(KIND_WORDS[kind]);
   return [codecName(a.codec) || t(KIND_WORDS.video), durationText(a.duration)].filter(Boolean).join(' · ');
 }
-/* Namen der Videocodecs wie in den Datenblaettern der Kameras; die Datenbank behaelt den
+/* Namen von Videocodecs und Bildformaten wie in Datenblaettern; die Datenbank behaelt den
    Wortlaut von MediaInfo. `long`: mit dem Namen von MediaInfo in Klammern. */
-const CODEC_NAMES = { AVC: 'H.264', HEVC: 'H.265' };
+const CODEC_NAMES = { AVC: 'H.264', HEVC: 'H.265', avif: 'AVIF', Bitmap: 'BMP' };
 function codecName(format, long = false) {
   const name = CODEC_NAMES[format];
   if (!name) return format || '';
@@ -4962,15 +4965,45 @@ function mediaGroup(head, rows) {
   return shown.length ? `<h3 class="minfo-head">${esc(head)}</h3>` + shown.map(([k, v]) =>
     `<div class="kv"><span class="k">${tH(k)}</span><span class="v">${esc(v)}</span></div>`).join('') : '';
 }
+// Die Zeit der Kamera hat keine Zeitzone und steht da, wie die Kamera sie zeigt.
+function fmtCameraTime(text) {
+  const d = new Date(String(text).replace(' ', 'T') + 'Z');
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleString(LOCALE,
+    { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
+}
+// Unter 0,4 s als Bruch wie an der Kamera: „1/125 s“.
+const exposureText = (s) => t('entry.mediaSeconds', { n: s < 0.4 ? `1/${Math.round(1 / s)}` : number(s, 0, 1) });
+const focalText = (e) => (!e.focal ? '' : e.focal35
+  ? t('entry.mediaFocalFull', { mm: number(e.focal, 0, 1), full: number(e.focal35) }) : t('entry.mediaMm', { n: number(e.focal, 0, 1) }));
+function shotGroup(e) {
+  return mediaGroup(t('entry.mediaShot'), [['entry.mediaTaken', e.taken ? fmtCameraTime(e.taken) : ''],
+    ['entry.mediaCamera', e.camera], ['entry.mediaLens', e.lens], ['entry.mediaExposure', e.exposure ? exposureText(e.exposure) : ''],
+    ['entry.mediaAperture', e.aperture ? `f/${number(e.aperture, 0, 1)}` : ''], ['entry.mediaIso', e.iso ? String(e.iso) : ''],
+    ['entry.mediaFocal', focalText(e)], ['entry.mediaPlace', e.gps ? t('entry.mediaYes') : '']]);
+}
+/* Die erste Bildspur ist das Hauptbild; weitere sind Vorschaubilder in der Datei, etwa im EXIF-Block.
+   Bei EXIF-Ausrichtung 5 bis 8 stehen Breite und Hoehe wie angezeigt. */
+function imageGroup(f) {
+  const [main, ...thumbs] = f.image || [];
+  if (!main) return '';
+  const turned = f.orientation >= 5 && f.orientation <= 8;
+  const sizes = [...new Set(thumbs.map(i => pixelText(i.width, i.height)).filter(Boolean))];
+  const bits = (n) => (n ? t('entry.mediaBits', { n }) : '');
+  return mediaGroup(t('entry.kindImage'), [['entry.mediaFormat', main.format],
+    ['entry.mediaResolution', turned ? pixelText(main.height, main.width) : pixelText(main.width, main.height)],
+    ['entry.mediaBitDepth', bits(main.bitDepth)], ['entry.mediaColorSpace', main.colorSpace], ['entry.mediaChroma', main.chroma],
+    ['entry.mediaThumbs', !thumbs.length ? '' : sizes.length ? `${thumbs.length} (${sizes.join(', ')})` : String(thumbs.length)]]);
+}
 function mediaInfoHtml(f) {
-  const g = f.general || {}, video = f.video || [], audio = f.audio || [];
+  const g = f.general || {}, video = f.video || [], audio = f.audio || [], shot = f.exif || {};
   const area = (w, h) => (w && h ? `${w} × ${h}` : '');
   const bits = (n) => (n ? t('entry.mediaBits', { n }) : '');
   const recorded = /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d/.exec(g.recorded || '');
   const html = [
     mediaGroup(t('entry.mediaGeneral'), [[video.length ? 'entry.mediaContainer' : 'entry.mediaFormat', g.format],
       ['entry.mediaFileSize', g.size ? fmtBytes(g.size) : ''], ['entry.mediaDuration', durationText(g.duration)],
-      ['entry.mediaTotalRate', bitRateText(g.bitRate)], ['entry.mediaRecorded', recorded ? fmtDate(recorded[0]) : g.recorded],
+      ['entry.mediaTotalRate', bitRateText(g.bitRate)],
+      ['entry.mediaRecorded', shot.taken ? '' : recorded ? fmtDate(recorded[0]) : g.recorded],
       ['entry.mediaAudioTracks', video.length ? String(audio.length) : '']]),
     ...video.map(v => mediaGroup(t('entry.kindVideo'), [['entry.mediaCodec', codecName(v.format, true)], ['entry.mediaProfile', v.profile],
       ['entry.mediaResolution', area(v.width, v.height)],
@@ -4982,9 +5015,7 @@ function mediaInfoHtml(f) {
       ['entry.mediaCodec', s.format], ['entry.mediaChannels', s.channels ? String(s.channels) : ''],
       ['entry.mediaSamplingRate', s.samplingRate ? t('entry.mediaKhz', { n: number(s.samplingRate / 1000, 0, 1) }) : ''],
       ['entry.mediaBitRate', bitRateText(s.bitRate)], ['entry.mediaLanguage', languageName(s.language)]])),
-    ...(f.image || []).map(i => mediaGroup(t('entry.kindImage'), [['entry.mediaFormat', i.format],
-      ['entry.mediaResolution', area(i.width, i.height)], ['entry.mediaBitDepth', bits(i.bitDepth)],
-      ['entry.mediaColorSpace', i.colorSpace], ['entry.mediaChroma', i.chroma]]))
+    imageGroup(f), shotGroup(shot)
   ].join('');
   return html || `<p>${tH('entry.mediaNone')}</p>`;
 }
@@ -7201,7 +7232,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     li.dataset.file = a.id;
     const kind = fileKind(a.filename);
     const readable = FILE_READABLE.includes(a.preview);
-    const video = a.preview === 'video';
+    const video = a.preview === 'video', image = a.preview === 'image';
     const face = li.querySelector('.aface');
     const from = multipleUsers() ? authorName(a.author) : '';
     const length = video ? durationText(a.duration) : '';
@@ -7210,8 +7241,9 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     fillTile(li, { name: a.filename, size: filesize(a.size), kind, meta: from, duration: length,
       picture: a.preview === 'image' || (video && a.still) || a.thumb ? fileTileSource(a) : coming,
       video: video || /^video\//.test(a.mime_type || ''), badge: a.thumb ? kind : '',
-      date: fmtDateOnly(a.created_at), from, kindCell: kindText(a), codec: video ? codecName(a.codec) : '',
-      label: [a.filename, kind, video ? codecName(a.codec) : '', length, filesize(a.size), from].filter(Boolean).join(', '),
+      date: fmtDateOnly(a.created_at), from, kindCell: kindText(a), codec: video || image ? codecName(a.codec) : '',
+      label: [a.filename, kind, video ? codecName(a.codec) : image && a.codec ? kindText(a) : '', length,
+        filesize(a.size), from].filter(Boolean).join(', '),
       open: openPreview === a.id || lightboxFile === a.id });
     if (video && !a.still && a.mine === true && shown) catchUpStill(id, a);
     if (readable && !isNarrow()) {

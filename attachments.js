@@ -3,6 +3,8 @@
 const zlib = require('zlib');
 const fs = require('fs');
 const crypto = require('crypto');
+const sharp = require('sharp');
+const exifReader = require('exif-reader');
 const mediaInfoFactory = require('mediainfo.js').default;
 
 /* ---- Typen ---- */
@@ -382,11 +384,51 @@ function mediaSummary(tracks) {
   };
 }
 
-// `read(length, offset)` liefert die Bytes ab `offset`. Eine Instanz je Datei, danach freigegeben.
+/* ---- EXIF ---- */
+const exifText = (v) => {
+  const text = typeof v === 'string' ? v.replace(/\0+$/, '').trim() : '';
+  return text ? text.slice(0, 80) : null;
+};
+const exifNumber = (v) => {
+  const n = Number(Array.isArray(v) ? v[0] : v);
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+// exif-reader liest die Zeit der Kamera ohne Zeitzone als UTC; so bleibt sie, wie die Kamera sie zeigt.
+const exifTime = (d) => (d instanceof Date && !Number.isNaN(d.getTime()) ? d.toISOString().slice(0, 19).replace('T', ' ') : null);
+
+// GPS nur als ja oder nein; die Koordinaten werden nicht gespeichert.
+function exifSummary(raw) {
+  let e;
+  try { e = exifReader(raw); } catch { return null; }
+  const image = e.Image || {}, photo = e.Photo || {}, gps = e.GPSInfo || {};
+  const make = exifText(image.Make), model = exifText(image.Model);
+  // „Canon“ und „Canon EOS 20D“ ergeben „Canon EOS 20D“.
+  const camera = make && model && !model.toLowerCase().startsWith(make.split(/\s+/)[0].toLowerCase())
+    ? `${make} ${model}` : model || make;
+  const out = { taken: exifTime(photo.DateTimeOriginal) || exifTime(image.DateTime), camera,
+    lens: exifText(photo.LensModel), exposure: exifNumber(photo.ExposureTime), aperture: exifNumber(photo.FNumber),
+    iso: exifNumber(photo.ISOSpeedRatings), focal: exifNumber(photo.FocalLength),
+    focal35: exifNumber(photo.FocalLengthIn35mmFilm), gps: Array.isArray(gps.GPSLatitude) && Array.isArray(gps.GPSLongitude) };
+  return Object.values(out).some(v => v !== null && v !== false) ? out : null;
+}
+
+// sharp braucht im ersten Stueck den ganzen Bildkopf bis zum SOF eines JPEG; sonst fehlen beide Angaben.
+async function imageHead(head) {
+  let meta;
+  try { meta = await sharp(head).metadata(); } catch { return { orientation: null, exif: null }; }
+  return { orientation: Number.isInteger(meta.orientation) ? meta.orientation : null,
+    exif: meta.exif ? exifSummary(meta.exif) : null };
+}
+
+/* `read(length, offset)` liefert die Bytes ab `offset`. Eine Instanz je Datei, danach freigegeben.
+   `orientation` steht immer da; an ihr erkennt die Warteschlange Zeilen aus der Zeit vor EXIF. */
 async function mediaFacts(size, read) {
   const mi = await mediaInfoFactory({ format: 'object' });
-  try { return mediaSummary((await mi.analyzeData(size, read))?.media?.track || []); }
+  let facts;
+  try { facts = mediaSummary((await mi.analyzeData(size, read))?.media?.track || []); }
   finally { mi.close(); }
+  if (facts.video.length) return { ...facts, orientation: null, exif: null };
+  return { ...facts, ...await imageHead(await read(Math.min(size, CHUNK), 0)) };
 }
 
 module.exports = {
