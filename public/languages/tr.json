@@ -856,6 +856,24 @@
     "one": "{n} dosya · {filesize}",
     "other": "{n} dosya · {filesize}"
   },
+  "entry.sumFolders": {
+    "one": "{n} klasör",
+    "other": "{n} klasör"
+  },
+  "entry.sumVideos": {
+    "one": "{n} video",
+    "other": "{n} video"
+  },
+  "entry.sumImages": {
+    "one": "{n} görsel",
+    "other": "{n} görsel"
+  },
+  "entry.sumOthers": {
+    "one": "{n} diğer",
+    "other": "{n} diğer"
+  },
+  "entry.sumNone": "yok",
+  "entry.sumEmpty": "boş",
   "entry.fileDeleteHint": "“{filename}” ardından {trashDays} gün çöp kutusunda kalır.",
   "entry.fileDropHint": "Buraya sürükle ya da + ile yükle.",
   "entry.fileFailed": "başarısız",
@@ -1123,7 +1141,9 @@
   "entry.refGone": "silindi",
   "entry.refHint": "Yoruma git",
   "entry.refOfficeHint": "Önizlemeyi aç veya kapat",
-  "entry.rejectedBy": "Reddedildi {what}",
+  "entry.rejectedBy": "{date} tarihinde {name} tarafından reddedildi",
+  "entry.rejectedOn": "{date} tarihinde reddedildi",
+  "entry.rejectedWho": "{name} tarafından reddedildi",
   "entry.rejectReasonHint": "Neden reddedildi? (isteğe bağlı)",
   "entry.remove": "Kaldır",
   "entry.removeAgain": "Yeniden kaldır",
@@ -1294,6 +1314,7 @@
   "list.open": "Aç",
   "list.openCount": " ({n} açık)",
   "list.openGroupedBy": "{length} {task} açık, gruplama: {entryOne}.",
+  "list.openTitle": "{n} {task} açık",
   "list.openMenu": "Menüyü aç",
   "list.openTasks": "Açık {taskMany}",
   "list.or": "Ya da",

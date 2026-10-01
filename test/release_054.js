@@ -484,6 +484,83 @@ async function run() {
     w.close();
   }
 
+  group('Der zugeklappte Kopf von „Dateien“');
+  {
+    const closedBlocks = (closed) => ({ side: ['kategorie', 'tags', 'potenzial', 'bewertung'],
+      bottom: ['beschreibung', 'testtage', 'links', 'dateien', 'kommentare'], closed });
+    const video = (id, filename) => file(id, filename, 3 * 1024 * 1024, '2026-08-04 11:00:00',
+      { mime_type: 'video/mp4', preview: 'video', still: 1234, duration: 42, codec: 'AVC' });
+    const folders = [{ id: 91, name: 'Zebra', mine: true, author: vChefin, testDay: null },
+      { id: 90, name: 'Anker', mine: true, author: vChefin, testDay: null }];
+    const m = buildDom(JSDOM, { hash: '#/item/1', folders,
+      extraAttachments: [video(80, 'a.mp4'), video(81, 'b.mp4'), file(82, 'c.jpg', 1000, '2026-08-05 10:00:00',
+        { mime_type: 'image/jpeg', preview: 'image', folder: 90 })],
+      settings: { filters: null, userCount: 1, blocks: closedBlocks(['dateien', 'links']) } });
+    const w = m.w;
+    await until(w, (x) => x.document.querySelector('.block[data-block="dateien"] .bsum')?.textContent && openRequests(x) === 0,
+      3000, 'der Kopf').catch(() => {});
+    const files = m.example.attachments;
+    const bytes = files.reduce((sum, a) => sum + a.size, 0);
+    const size = bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(0)} KB` : `${(bytes / 1024 / 1024).toFixed(1).replace('.', ',')} MB`;
+    const kinds = { video: 0, image: 0 };
+    for (const a of files) if (/^video\//.test(a.mime_type) || a.preview === 'video') kinds.video++;
+      else if (/^image\//.test(a.mime_type) || a.preview === 'image') kinds.image++;
+    const head = w.document.querySelector('.block[data-block="dateien"] .bsum')?.textContent;
+    check('Zugeklappt: „2 Ordner · 2 Videos · 2 Bilder · 3 weitere · …“ ohne Klammern',
+      head === [deText('entry.sumFolders', { n: 2 }), deText('entry.sumVideos', { n: kinds.video }),
+        deText('entry.sumImages', { n: kinds.image }), deText('entry.sumOthers', { n: files.length - kinds.video - kinds.image }),
+        size].join(' · ') && kinds.video === 2 && /^2 Ordner · 2 Videos/.test(head || ''), head);
+    check('Andere Blöcke behalten die Klammern',
+      /^\(\d+\)$/.test(w.document.querySelector('.block[data-block="links"] .bsum')?.textContent || ''),
+      w.document.querySelector('.block[data-block="links"] .bsum')?.textContent);
+    const css = read('public/style.css');
+    check('Das Stilblatt blendet zugeklappt die Bedienelemente und „28 Dateien · …“ aus',
+      /\.block\.closed \.ahead-acts, \.block\.closed #acount \{ display: none; \}/.test(css), 'Regel fehlt');
+    w.document.querySelector('.block[data-block="dateien"] .block-head .label')?.click();
+    await until(w, () => openRequests(w) === 0, 1000, 'das Aufklappen').catch(() => {});
+    check('Aufgeklappt bleibt der Kopf wie bisher, ohne Kurzfassung',
+      !w.document.querySelector('.block[data-block="dateien"]')?.classList.contains('closed') &&
+      w.document.querySelector('.block[data-block="dateien"] .bsum')?.textContent === '' &&
+      /\d+ Dateien · /.test(w.document.getElementById('acount')?.textContent || ''),
+      w.document.getElementById('acount')?.textContent);
+    w.close();
+    const empty = buildDom(JSDOM, { hash: '#/item/1', withoutRating: true,
+      settings: { filters: null, userCount: 1, blocks: closedBlocks(['kategorie', 'beschreibung']) } });
+    empty.example.attachments = [];
+    await until(empty.w, (x) => x.document.querySelector('.block[data-block="kategorie"] .bsum')?.textContent &&
+      openRequests(x) === 0, 3000, 'der Eintrag').catch(() => {});
+    const summary = (name) => empty.w.document.querySelector(`.block[data-block="${name}"] .bsum`)?.textContent;
+    check('„keine“ und „leer“ kommen aus der Sprachdatei',
+      DE['entry.sumNone'] === 'keine' && DE['entry.sumEmpty'] === 'leer' &&
+      (empty.example.category ? true : summary('kategorie') === '(keine)'), `${summary('kategorie')} ${summary('beschreibung')}`);
+    empty.w.close();
+  }
+
+  group('Texte ohne festes Deutsch: Ablehnung und Aufgabenknopf');
+  {
+    const TR = JSON.parse(read('public/languages/tr.json'));
+    const anna = { id: 2, name: 'Anna', deleted: false };
+    const d = buildDom(JSDOM, { hash: '#/item/1', rejection: { at: '2026-03-14 08:12:00', reason: 'Pahalı', author: anna },
+      settings: { filters: null, userCount: 3, language: 'tr' } });
+    await until(d.w, (x) => x.document.querySelector('#rej-badge .rej-text')?.textContent && openRequests(x) === 0,
+      3000, 'die Ablehnung').catch(() => {});
+    const sentence = d.w.document.querySelector('#rej-badge .rej-text')?.textContent || '';
+    check('Auf Türkisch kein „am“ und kein „von“: Datum und Account als Platzhalter',
+      /tarihinde Anna tarafından reddedildi/.test(sentence) && !/\bam\b|\bvon\b/.test(sentence) &&
+      TR['entry.rejectedBy'] === '{date} tarihinde {name} tarafından reddedildi', sentence);
+    d.w.close();
+    const o = buildDom(JSDOM, { settings: { filters: null, userCount: 3, language: 'tr' } });
+    await until(o.w, (x) => x.document.getElementById('open')?.title && openRequests(x) === 0, 3000, 'die Kopfzeile').catch(() => {});
+    const title = o.w.document.getElementById('open')?.title || '';
+    // Das Wort kommt aus dem Vokabular, das der Mock auf Deutsch liefert; der Satz aus tr.json.
+    check('Der Titel des Aufgabenknopfs kommt aus einem Schlüssel: auf Türkisch „1 … açık“',
+      /^1 \S+ açık$/.test(title) && !/offen/.test(title) && TR['list.openTitle'] === '{n} {task} açık', title);
+    o.w.close();
+    const source = read('public/app.js');
+    check('Im Code stehen weder „am …“ noch „von …“ noch „… offen“ fest',
+      !/`am \$\{|`von \$\{|\} offen`/.test(source) && !/: 'keine'|return 'leer'/.test(source), 'Quelltext');
+  }
+
   group('Bilder: Typ, Vorschaubild und Erweiterte Infos');
   {
     const image = (id, filename, more = {}) => file(id, filename, 2000, '2026-08-05 10:00:00',

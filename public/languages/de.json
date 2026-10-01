@@ -856,6 +856,24 @@
     "one": "{n} Datei · {filesize}",
     "other": "{n} Dateien · {filesize}"
   },
+  "entry.sumFolders": {
+    "one": "{n} Ordner",
+    "other": "{n} Ordner"
+  },
+  "entry.sumVideos": {
+    "one": "{n} Video",
+    "other": "{n} Videos"
+  },
+  "entry.sumImages": {
+    "one": "{n} Bild",
+    "other": "{n} Bilder"
+  },
+  "entry.sumOthers": {
+    "one": "{n} weitere",
+    "other": "{n} weitere"
+  },
+  "entry.sumNone": "keine",
+  "entry.sumEmpty": "leer",
   "entry.fileDeleteHint": "„{filename}“ liegt danach {trashDays} Tage im Papierkorb.",
   "entry.fileDropHint": "Hierher ziehen oder mit + hochladen.",
   "entry.fileFailed": "fehlgeschlagen",
@@ -1123,7 +1141,9 @@
   "entry.refGone": "gelöscht",
   "entry.refHint": "Zum Kommentar springen",
   "entry.refOfficeHint": "Vorschau auf- und zuklappen",
-  "entry.rejectedBy": "Abgelehnt {what}",
+  "entry.rejectedBy": "Abgelehnt am {date} von {name}",
+  "entry.rejectedOn": "Abgelehnt am {date}",
+  "entry.rejectedWho": "Abgelehnt von {name}",
   "entry.rejectReasonHint": "Warum abgelehnt? (freiwillig)",
   "entry.remove": "Entfernen",
   "entry.removeAgain": "Wieder entfernen",
@@ -1294,6 +1314,7 @@
   "list.open": "Öffnen",
   "list.openCount": " ({n} offen)",
   "list.openGroupedBy": "{length} {task} offen, gruppiert nach {entryOne}.",
+  "list.openTitle": "{n} {task} offen",
   "list.openMenu": "Menü öffnen",
   "list.openTasks": "Offene {taskMany}",
   "list.or": "Oder",

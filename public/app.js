@@ -149,6 +149,13 @@ function number(n, digits = 0, atMost = digits) {
     .format(Number.isFinite(value) ? value : 0);
 }
 
+// Die Groesse unter „Dateien“; fmtBytes() rechnet ueber MB hinaus in GB.
+function filesize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
+  return number(bytes / 1024 / 1024, 1) + ' MB';
+}
+
 function fmtBytes(b) {
   if (!b) return '0 B';
   const u = ['B','KB','MB','GB'];
@@ -937,9 +944,19 @@ function commentNumbers(comments) {
 }
 
 // Kurzfassung des Inhalts für die eingeklappte Kopfzeile.
+// Zugeklappt nur die Zahlen; eine Art ohne Datei faellt weg, die Groesse wie in #acount.
+function filesSummary(item) {
+  const files = item.attachments || [];
+  const videos = files.filter(a => kindOf(a) === 'video').length, images = files.filter(a => kindOf(a) === 'image').length;
+  const parts = [[(item.folders || []).length, 'entry.sumFolders'], [videos, 'entry.sumVideos'], [images, 'entry.sumImages'],
+    [files.length - videos - images, 'entry.sumOthers']].filter(([n]) => n > 0).map(([n, key]) => t(key, { n }));
+  if (files.length) parts.push(filesize(files.reduce((sum, a) => sum + a.size, 0)));
+  return parts.join(' · ') || t('entry.sumNone');
+}
+
 function blockSummary(name, item) {
   switch (name) {
-    case 'kategorie': return item.category ? item.category.name : 'keine';
+    case 'kategorie': return item.category ? item.category.name : t('entry.sumNone');
     case 'tags': return String(item.tags.length);
     /* Sternkaesten: eine Kurzfassung nur ohne Wert. */
     case 'bewertung': return item.avgRating ? '' : t('list.notRatedYet');
@@ -947,12 +964,12 @@ function blockSummary(name, item) {
     case 'beschreibung': {
       // Ohne Marken: ein halbes `**` stuende hier sonst sichtbar da.
       const text = markupPlain(item.description || '').trim().replace(/\s+/g, ' ');
-      if (!text) return 'leer';
+      if (!text) return t('entry.sumEmpty');
       return text.length > 40 ? text.slice(0, 40) + ' …' : text;
     }
     case 'testtage': return String(item.testDays.length);
     case 'links': return String(item.links.length);
-    case 'dateien': return String((item.attachments || []).length);
+    case 'dateien': return filesSummary(item);
     /* Die Zahlen des Kommentarblocks stehen in seiner Kopfzeile, auch eingeklappt. */
     case 'kommentare': return '';
     default: return '';
@@ -1022,9 +1039,9 @@ function setUpBlocksOut(item) {
     block.classList.toggle('closed', closed);
     head.querySelector('.bcaret').textContent = closed ? '▸' : '▾';
     const sum = head.querySelector('.bsum');
-    // Eine leere Kurzfassung bleibt leer: "()" waere eine Klammer um nichts.
+    // Eine leere Kurzfassung bleibt leer: "()" waere eine Klammer um nichts. „Dateien“ ist eine Aufzaehlung.
     const short = closed ? blockSummary(name, item) : '';
-    sum.textContent = short ? `(${short})` : '';
+    sum.textContent = !short ? '' : name === 'dateien' ? short : `(${short})`;
 
     // Klick auf die Kopfzeile klappt ein und aus.
     head.onclick = (e) => {
@@ -3165,7 +3182,7 @@ function drawHeadCounts() {
     el.hidden = !open;
   });
   atElement('open', b => b.title = open
-    ? `${open} ${vTask(open)} offen`
+    ? t('list.openTitle', { n: open, task: vTask(open) })
     : t('list.openTasks'));
   const fresh = bellNew();
   /* Die Zahl steht im Titel, am Knopf nur ein Punkt. */
@@ -6292,11 +6309,10 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     // Beim Oeffnen steht die bisherige Begruendung zum Ueberschreiben im Feld.
     if (open && document.activeElement !== field) field.value = item.rejected_reason || '';
 
-    const parts = [];
-    if (item.rejected_at) parts.push(`am ${fmtDate(item.rejected_at)}`);
-    if (item.rejectedAuthor && multipleUsers())
-      parts.push(`von ${authorName(item.rejectedAuthor)}`);
-    const head = parts.length ? t('entry.rejectedBy', { what: parts.join(' ') }) : '';
+    const date = item.rejected_at ? fmtDate(item.rejected_at) : '';
+    const name = item.rejectedAuthor && multipleUsers() ? authorName(item.rejectedAuthor) : '';
+    const head = date && name ? t('entry.rejectedBy', { date, name }) : date ? t('entry.rejectedOn', { date })
+      : name ? t('entry.rejectedWho', { name }) : '';
 
     /* Das ✎ steht auch ohne Begruendung da, zum Nachtragen. */
     const showPen = item.rejected && mine;
@@ -7140,12 +7156,6 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   let previewBox = null;
   // Die Bilddatei im Vollbild, fuer den Rahmen ihrer Kachel.
   let lightboxFile = 0;
-
-  function filesize(bytes) {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
-    return number(bytes / 1024 / 1024, 1) + ' MB';
-  }
 
   const fileOf = (key) => (item.attachments || []).find(a => 'f' + a.id === key) || null;
   const uploadOf = (key) => UPLOADS.find(u => 'u' + u.no === key) || null;

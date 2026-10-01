@@ -1667,7 +1667,7 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
 .bgrip:hover { color: var(--accent-text); }
 .bcaret { color: var(--faint); font-size: .73rem; width: .8em; flex-shrink: 0; }
 .bsum { color: var(--muted); font-size: .83rem; font-family: var(--mono); }
-.block.closed > *:not(.block-head) { display: none; }
+.block.closed > *:not(.block-head), .block.closed .ahead-acts, .block.closed #acount { display: none; }
 .block.closed { padding-bottom: 15px; }
 .block.closed .block-head { margin-bottom: 0; }
 /* Beim Ziehen schrumpft der Block auf seine Kopfzeile. */

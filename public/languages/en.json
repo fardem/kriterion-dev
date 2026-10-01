@@ -856,6 +856,24 @@
     "one": "{n} file · {filesize}",
     "other": "{n} files · {filesize}"
   },
+  "entry.sumFolders": {
+    "one": "{n} folder",
+    "other": "{n} folders"
+  },
+  "entry.sumVideos": {
+    "one": "{n} video",
+    "other": "{n} videos"
+  },
+  "entry.sumImages": {
+    "one": "{n} image",
+    "other": "{n} images"
+  },
+  "entry.sumOthers": {
+    "one": "{n} other",
+    "other": "{n} others"
+  },
+  "entry.sumNone": "none",
+  "entry.sumEmpty": "empty",
   "entry.fileDeleteHint": "“{filename}” then stays in the trash for {trashDays} days.",
   "entry.fileDropHint": "Drag here or upload with +.",
   "entry.fileFailed": "failed",
@@ -1123,7 +1141,9 @@
   "entry.refGone": "deleted",
   "entry.refHint": "Jump to comment",
   "entry.refOfficeHint": "Show or hide the preview",
-  "entry.rejectedBy": "Rejected {what}",
+  "entry.rejectedBy": "Rejected on {date} by {name}",
+  "entry.rejectedOn": "Rejected on {date}",
+  "entry.rejectedWho": "Rejected by {name}",
   "entry.rejectReasonHint": "Why rejected? (optional)",
   "entry.remove": "Remove",
   "entry.removeAgain": "Remove again",
@@ -1294,6 +1314,7 @@
   "list.open": "Open",
   "list.openCount": " ({n} open)",
   "list.openGroupedBy": "{length} {task} open, grouped by {entryOne}.",
+  "list.openTitle": "{n} {task} open",
   "list.openMenu": "Open menu",
   "list.openTasks": "Open {taskMany}",
   "list.or": "Or",
