@@ -710,6 +710,7 @@
   "card.uploadLimitsHint": "Her türde en büyük dosya, MB olarak. Değişiklik bir sonraki yüklemeden itibaren geçerlidir; mevcut dosyalar olduğu gibi kalır.",
   "card.usePartsHint": "**“Parçalar hâlinde dışa aktar”** kullan; her parça eksiksiz bir dışa aktarma dosyasıdır. Yedekleme için **Yedekleme** kartı daha basit.",
   "card.user": "Kullanıcı",
+  "card.users": "Kullanıcı",
   "card.userCreated": "Kullanıcı oluşturuldu",
   "card.userCreatedLink": "Kullanıcı oluşturuldu — bağlantı aşağıda",
   "card.userDeleted": "Kullanıcı silindi",

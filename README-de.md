@@ -22,7 +22,8 @@ unter „Dateien“ liegt einzeln verschlüsselt (AES-256-GCM) unter
 zusätzlich unverschlüsselt in dessen Zwischenspeicher.
 
 Gebaut mit Node.js, Express, SQLCipher (`better-sqlite3-multiple-ciphers`),
-`sharp`, `nodemailer` und `mediainfo.js`. Das Frontend kommt ohne Framework aus.
+`sharp`, `nodemailer`, `mediainfo.js` und `exif-reader`. Das Frontend kommt ohne
+Framework aus.
 
 Diese Datei beschreibt Installation und Betrieb. Die Bedienung steht im
 [Handbuch](manual-de.md).
@@ -592,9 +593,18 @@ letzte Stück ist der Eintrag.
 
 `GET /api/attachments/<id>/info` und `GET /api/photos/<id>/info` liefern die
 Erweiterten Infos zu einem Bild oder Video als JSON mit `general`, `video`,
-`audio` und `image`. Der Server liest sie mit `mediainfo.js` und legt sie in
-den Tabellen `attachment_media` und `photo_media` ab; im JSON-Export stehen sie
-nicht.
+`audio`, `image`, `orientation` und `exif`. Der Server liest sie mit
+`mediainfo.js`, `sharp` und `exif-reader` und legt sie in den Tabellen
+`attachment_media` und `photo_media` ab; im JSON-Export stehen sie nicht. Zu
+Office-, OpenDocument- und PDF-Dateien liefert dieselbe Route die „Infos“ mit
+`document: true`, `kriterion` und `file`, bei jedem Aufruf neu gelesen.
+Zeitpunkt und Account der letzten Speicherung im Document Server und die
+Änderungszeit der Datei beim Hochladen stehen in der Tabelle
+`attachment_changes`, ebenfalls nicht im JSON-Export.
+
+`PUT /api/attachments/<id>` mit `filename` benennt eine Datei um; die Endung
+bleibt. Umbenennen darf nur, wer hochgeladen hat (sonst 403). Hat derselbe
+Ordner schon eine Datei mit diesem Namen, antwortet der Server mit 409.
 
 `GET /api/items/<id>/deleted-files` nennt dem Eigentümer-Admin die gelöschten
 Dateien eines Eintrags aus Papierkorb und Backups. `POST` an dieselbe Adresse
@@ -617,7 +627,7 @@ Urheberrechtsvermerk gehen mit. Keine Garantie, keine Haftung.
 
 ### Die Lizenzen der Abhängigkeiten
 
-Gemessen an den 172 Paketen, die `npm install` anlegt: 136 MIT, 12 ISC,
+Gemessen an den 173 Paketen, die `npm install` anlegt: 137 MIT, 12 ISC,
 6 Apache-2.0, 4 BSD-3-Clause, 3 MIT-0, 3 BSD-2-Clause, 2 LGPL-3.0-or-later,
 der Rest CC0, 0BSD, BlueOak und Pakete mit einem Wahlrecht.
 

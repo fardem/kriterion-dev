@@ -569,7 +569,7 @@ function pdfValue(dict, key) {
   return null;
 }
 
-/* Nur das erste und das letzte MiB. Ein Info-Woerterbuch oder ein Seitenbaum in einem gepackten
+/* Nur das erste und das letzte MiB. Das Objekt /Info oder ein Seitenbaum in einem gepackten
    Objektstrom bleibt ungelesen; bei verschluesselten Dateien auch die Texte. */
 async function pdfFacts(size, read) {
   const first = await read(Math.min(size, DOCUMENT_PART), 0);

@@ -710,6 +710,7 @@
   "card.uploadLimitsHint": "The largest file of each kind, in MB. A change applies from the next upload; existing files stay as they are.",
   "card.usePartsHint": "Use **“Export in parts”**; every part is a complete export file. For a backup the card **Backup** is simpler.",
   "card.user": "User",
+  "card.users": "Users",
   "card.userCreated": "User created",
   "card.userCreatedLink": "User created — the link is below",
   "card.userDeleted": "User deleted",

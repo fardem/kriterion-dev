@@ -22,8 +22,8 @@ altında durur, anahtarı veritabanındadır. Bir
 ayrıca şifresiz olarak onun önbelleğinde de durur.
 
 Node.js, Express, SQLCipher (`better-sqlite3-multiple-ciphers`), `sharp`,
-`nodemailer` ve `mediainfo.js` ile geliştirildi. Ön yüz hiçbir framework
-kullanmaz.
+`nodemailer`, `mediainfo.js` ve `exif-reader` ile geliştirildi. Ön yüz hiçbir
+framework kullanmaz.
 
 Bu dosya kurulumu ve işletimi anlatır. Kullanımı
 [Kılavuz](manual-tr.md) anlatır.
@@ -594,9 +594,18 @@ application/octet-stream` ve `upload-offset: <received>`. Son parçanın yanıt�
 
 `GET /api/attachments/<id>/info` ve `GET /api/photos/<id>/info`, bir resmin ya
 da videonun “Ayrıntılı bilgi” verisini JSON olarak döndürür: `general`,
-`video`, `audio` ve `image`. Sunucu bu bilgiyi `mediainfo.js` ile okur ve
-`attachment_media` ile `photo_media` tablolarına yazar; JSON dışa aktarmada yer
-almaz.
+`video`, `audio`, `image`, `orientation` ve `exif`. Sunucu bu bilgiyi
+`mediainfo.js`, `sharp` ve `exif-reader` ile okur ve `attachment_media` ile
+`photo_media` tablolarına yazar; JSON dışa aktarmada yer almaz. Office,
+OpenDocument ve PDF dosyaları için aynı yol “Bilgi” verisini `document: true`,
+`kriterion` ve `file` ile döndürür; her çağrıda yeniden okunur. Document
+Server'daki son kaydetmenin zamanı ve hesabı ile dosyanın yüklemedeki
+değiştirilme zamanı `attachment_changes` tablosunda durur; bunlar da JSON dışa
+aktarmada yer almaz.
+
+`PUT /api/attachments/<id>`, `filename` ile bir dosyayı yeniden adlandırır;
+uzantı kalır. Yalnızca dosyayı yükleyen kişi yeniden adlandırabilir (aksi
+halde 403). Aynı klasörde bu adda bir dosya zaten varsa sunucu 409 döndürür.
 
 `GET /api/items/<id>/deleted-files`, sahip yöneticiye bir öğenin çöp kutusundaki
 ve yedeklemelerdeki silinmiş dosyalarını listeler. Aynı adrese yapılan bir
@@ -619,7 +628,7 @@ bildirimi birlikte verilir. Garanti yok, sorumluluk yok.
 
 ### Bağımlılıkların lisansları
 
-`npm install` komutunun kurduğu 172 paket üzerinden ölçüldü: 136 MIT, 12 ISC,
+`npm install` komutunun kurduğu 173 paket üzerinden ölçüldü: 137 MIT, 12 ISC,
 6 Apache-2.0, 4 BSD-3-Clause, 3 MIT-0, 3 BSD-2-Clause, 2 LGPL-3.0-or-later,
 geri kalanı CC0, 0BSD, BlueOak ve lisans seçimi sunan paketler.
 

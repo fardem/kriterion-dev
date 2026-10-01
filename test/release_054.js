@@ -58,7 +58,7 @@ async function run() {
     await upload('zweit', x, [{ name: 'A.docx', content: bytes('A') }, { name: 'B.docx', content: bytes('B') }], folder);
     await upload('zweit', x, [{ name: 'C.docx', content: bytes('C') }, { name: 'D.docx', content: bytes('D') },
       { name: 'Notiz.txt', content: bytes('Notiz') }]);
-    const a = await fileNamed(x, 'A.docx'), c = await fileNamed(x, 'C.docx'), note = await fileNamed(x, 'Notiz.txt');
+    const a = await fileNamed(x, 'A.docx'), c = await fileNamed(x, 'C.docx'), plain = await fileNamed(x, 'Notiz.txt');
     const rename = (who, id, filename) => as(who, 'PUT', `/api/attachments/${id}`, { filename });
     const logRows = () => inDb(d => d.prepare('SELECT COUNT(*) AS n FROM security_log').get().n);
     const logBefore = logRows();
@@ -93,11 +93,11 @@ async function run() {
 
     const before = inDb(d => d.prepare('SELECT updated_at FROM items WHERE id = ?').get(x).updated_at);
     await H.nextSecond();
-    const kept = await rename('zweit', note.id, '../ordner/Neu.pdf');
-    const download = await fetch(`${B.base}/api/attachments/${note.id}/raw`, { headers: withCsrf(cookies.zweit, {}) });
+    const kept = await rename('zweit', plain.id, '../ordner/Neu.pdf');
+    const download = await fetch(`${B.base}/api/attachments/${plain.id}/raw`, { headers: withCsrf(cookies['zweit'], {}) });
     const after = inDb(d => d.prepare('SELECT updated_at FROM items WHERE id = ?').get(x).updated_at);
     check('Die Endung bleibt, der Pfad faellt weg: „Neu.pdf.txt“, ausgeliefert als Text',
-      kept.status === 200 && (kept.content?.attachments || []).find(f => f.id === note.id)?.filename === 'Neu.pdf.txt' &&
+      kept.status === 200 && (kept.content?.attachments || []).find(f => f.id === plain.id)?.filename === 'Neu.pdf.txt' &&
       /Neu\.pdf\.txt/.test(download.headers.get('content-disposition') || '') &&
       /^text\/plain/.test(download.headers.get('content-type') || ''),
       `${kept.status} ${download.headers.get('content-disposition')} ${download.headers.get('content-type')}`);
@@ -110,7 +110,7 @@ async function run() {
     check('Die vorige Fassung bekommt den neuen Namen mit ihrer eigenen Endung',
       inDb(d => d.prepare('SELECT filename FROM attachment_previous WHERE attachment_id = ?').get(a.id)?.filename) ===
       'Fassung.doc', 'vorige Fassung');
-    await as('zweit', 'DELETE', `/api/attachments/${note.id}`);
+    await as('zweit', 'DELETE', `/api/attachments/${plain.id}`);
     check('Der Papierkorb nennt den neuen Namen',
       inDb(d => d.prepare("SELECT title FROM trash WHERE json_extract(content, '$.kind') = 'file'").get()?.title) ===
       'Neu.pdf.txt', 'Papierkorb');
@@ -204,7 +204,7 @@ async function run() {
     const SECRET = 'pruefstand-054-' + crypto.randomBytes(16).toString('hex');
     const part = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
     const jwt = (o) => {
-      const head = part({ alg: 'HS256', typ: 'JWT' }) + '.' + part(o);
+      const head = part({ 'alg': 'HS256', 'typ': 'JWT' }) + '.' + part(o);
       return head + '.' + crypto.createHmac('sha256', SECRET).update(head).digest('base64url');
     };
     const served = new Map();
@@ -288,7 +288,7 @@ async function run() {
 
     const x = (await asC('owner', 'POST', '/api/items', { title: 'Dokumente' })).content.id;
     const modified = Date.UTC(2026, 8, 15, 9, 30);
-    const sent = await H.sendFiles(C.base, c.zweit, x, [{ name: 'bericht.docx', content: docx('Ben'), modified },
+    const sent = await H.sendFiles(C.base, c['zweit'], x, [{ name: 'bericht.docx', content: docx('Ben'), modified },
       { name: 'notiz.odt', content: odt }, { name: 'gross.odt', content: bigOdt }, { name: 'jahr.pdf', content: pdf },
       { name: 'dick.pdf', content: bigPdf }, { name: 'alt.rtf', content: '{\\rtf1 alt}' }]);
     const named = Object.fromEntries((sent.content?.attachments || []).map(a => [a.filename, a]));
@@ -322,7 +322,7 @@ async function run() {
       rtf?.document === true && rtf?.file === null && rtf?.kriterion?.uploadedBy?.name === 'zweit', JSON.stringify(rtf));
 
     const a = named['bericht.docx'];
-    const zweitId = inC(d => d.prepare("SELECT id FROM users WHERE username = 'zweit'").get().id);
+    const secondId = inC(d => d.prepare("SELECT id FROM users WHERE username = 'zweit'").get().id);
     const key = crypto.createHmac('sha256', SECRET)
       .update(`${FETCH_BASE}/api/document-server/attachments/${a.id}|${a.created_at}|e0`).digest('hex').slice(0, 40);
     const save = async (users, file) => {
@@ -338,7 +338,7 @@ async function run() {
     check('Eine Nummer aus `users`, die kein Account ist: Zeitpunkt ja, Account nein',
       strangerSave === 0 && /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/.test(afterStranger?.kriterion?.savedAt || '') &&
       afterStranger?.kriterion?.savedBy === null, JSON.stringify(afterStranger?.kriterion));
-    const ownSave = await save([String(zweitId)], docx('Carla'));
+    const ownSave = await save([String(secondId)], docx('Carla'));
     const after = await infoOf('bericht.docx');
     check('Der Rückruf hält fest, wer zuletzt gespeichert hat; die Angaben der Datei sind die neuen',
       ownSave === 0 && after?.kriterion?.savedBy?.name === 'zweit' && after?.kriterion?.saves === 2 &&
@@ -430,6 +430,33 @@ async function run() {
   }
 
   fs.rmSync(root, { recursive: true, force: true });
+
+  group('Anleitung, README und Namen');
+  {
+    const manuals = { de: read('manual-de.md'), en: read('manual.md'), tr: read('manual-tr.md') };
+    check('„Eintrag exportieren“ steht in keiner der drei Anleitungen',
+      !/Eintrag exportieren/.test(manuals.de) && !/Export entry|Exporting an entry/.test(manuals.en) &&
+      !/Öğeyi dışa aktar/.test(manuals.tr), 'Abschnitt');
+    check('Die Anleitung nennt „Ähnliche Titel:“, „Alle“, „Offene Aufgaben“ und den Abschnitt „Verfahren der Ablage“',
+      manuals.de.includes('„Ähnliche Titel: …“') && manuals.de.includes('- **Status:** Alle,') &&
+      manuals.de.includes('### Glocke und „Offene Aufgaben“') && !/„Offen"/.test(manuals.de) &&
+      manuals.de.includes('Der Abschnitt „Verfahren der Ablage“ der Karte „Bildformate“'), 'Namen');
+    const covered = (text, words) => words.filter(x => !text.includes(x));
+    const missing = [...covered(manuals.de, ['„Umbenennen …“', '**Infos:**', 'Aufnahme:', '„Teilweise“', 'PNG · 1920 × 1080']),
+      ...covered(manuals.en, ['“Rename …”', '**Info:**', 'Capture:', '“Partial”', 'PNG · 1920 × 1080']),
+      ...covered(manuals.tr, ['“Yeniden adlandır …”', '**Bilgi:**', 'Çekim:', '“Kısmen”', 'PNG · 1920 × 1080'])];
+    check('Alle drei Anleitungen beschreiben Umbenennen, Infos, Aufnahme, den Filter und den Typ bei Bildern',
+      missing.length === 0, missing.join(' · ') || 'alles da');
+    const readmes = ['README.md', 'README-de.md', 'README-tr.md'].map(read);
+    check('Jede README nennt `exif-reader` und `PUT /api/attachments/<id>`',
+      readmes.every(r => r.includes('`exif-reader`') && r.includes('`PUT /api/attachments/<id>`')), 'README');
+    const EN = JSON.parse(read('public/languages/en.json'));
+    const app = read('public/app.js');
+    check('Englisch heißen Karte und Abschnitt „Users“, die Rolle bleibt „User“',
+      EN['card.users'] === 'Users' && EN['card.user'] === 'User' && app.includes("name: () => t('card.users')") &&
+      app.includes("<h3>${tH('card.users')}</h3>") && manuals.en.includes('“Users” card (Settings › Users)'),
+      `${EN['card.users']} / ${EN['card.user']}`);
+  }
 
   /* ---- Oberflaeche ---- */
   if (!JSDOM) { check('jsdom steht bereit', false, 'npm install'); return; }

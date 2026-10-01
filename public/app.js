@@ -8698,7 +8698,7 @@ const SYS_SECTIONS = [
   { key: 'personal',     name: () => t('card.personal') },
   { key: 'inventory',    name: () => t('card.inventory') },
   // Der Schluessel steht in der Adresse und bleibt, auch wenn der Text wechselt.
-  { key: 'users',        name: () => t('card.user') },
+  { key: 'users',        name: () => t('card.users') },
   { key: 'database',     name: () => t('card.database') },
   { key: 'installation', name: () => t('card.installation') }
 ];
@@ -10472,7 +10472,7 @@ function setUpTrashOut(fetched) {
 /* ---- Karte „Benutzer" — Abschnitt „Benutzer" ---- */
 function cardUsers() {
   return `<div class="sys-card wide">
-        <h3>${tH('card.user')}</h3>
+        <h3>${tH('card.users')}</h3>
         <p class="desc">${tH('card.usersHint')}</p>
         ${more(`${tH('card.lockInsteadHint')} ${OWNER
             ? t('card.rolesYouOnly')

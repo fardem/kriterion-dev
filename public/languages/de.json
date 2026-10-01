@@ -710,6 +710,7 @@
   "card.uploadLimitsHint": "Die größte Datei je Art, in MB. Eine Änderung gilt ab dem nächsten Hochladen; vorhandene Dateien bleiben, wie sie sind.",
   "card.usePartsHint": "**„In Teilen exportieren“** nutzen; jeder Teil ist eine vollständige Exportdatei. Für ein Backup ist die Karte **Backup** einfacher.",
   "card.user": "Benutzer",
+  "card.users": "Benutzer",
   "card.userCreated": "Benutzer angelegt",
   "card.userCreatedLink": "Benutzer angelegt — der Link steht unten",
   "card.userDeleted": "Benutzer gelöscht",

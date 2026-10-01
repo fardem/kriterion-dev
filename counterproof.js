@@ -1772,16 +1772,15 @@ const REGRESSIONS = [
   {
     nr: '243', name: 'Die Aussage verliert ihren Verfasser',
     file: 'public/app.js',
-    search: "    if (item.rejectedAuthor && multipleUsers())\n" +
-      "      parts.push(`von ${authorName(item.rejectedAuthor)}`);",
-    replacement: "",
+    search: "    const who = item.rejectedAuthor && multipleUsers() ? authorName(item.rejectedAuthor) : '';",
+    replacement: "    const who = '';",
     expected: 'Die Aussage an der Marke — 0.14.0'
   },
   {
     nr: '247', name: 'Der Name steht auch bei einem einzigen Zugang da',
     file: 'public/app.js',
-    search: "    if (item.rejectedAuthor && multipleUsers())",
-    replacement: "    if (item.rejectedAuthor)",
+    search: "    const who = item.rejectedAuthor && multipleUsers() ?",
+    replacement: "    const who = item.rejectedAuthor ?",
     expected: 'Die Aussage an der Marke — 0.14.0'
   },
   {
@@ -5575,8 +5574,8 @@ const REGRESSIONS = [
   {
     nr: '810', name: 'Die Antwort verschweigt, wie der Schalter steht',
     file: 'server.js',
-    search: "  potentialMode: potentialMode(),\n  imageStore: imageStore(),",
-    replacement: "  imageStore: imageStore(),",
+    search: "  potentialMode: potentialMode(),\n  partialShare: partialShare(),",
+    replacement: "  partialShare: partialShare(),",
     expected: 'Der Potenzialmodus — 0.26.0'
   },
   {
@@ -7778,8 +7777,8 @@ const REGRESSIONS = [
   {
     nr: '1128', name: 'Ein Kommentar nennt wieder eine Bauabschnittsnummer',
     file: 'public/style.css',
-    search: '/* ---- Die Vergleichsleiste ---- Statt mittig als Pille nimmt sie auf dem',
-    replacement: '/* ---- Die Vergleichsleiste, BA 5 ---- Statt mittig als Pille nimmt sie auf dem',
+    search: '/* ---- Vergleichsleiste ---- */',
+    replacement: '/* ---- Vergleichsleiste, BA 5 ---- */',
     expected: 'Kein Papierverweis geht mit hinaus'
   },
   {
@@ -10560,8 +10559,8 @@ const REGRESSIONS = [
   {
     nr: '1537', name: "Ohne lesbare Datei fragt der Browser ohne Ende nach",
     file: 'server.js',
-    search: "    if (!e.damaged) throw e;\n    MEDIA_FAILED.add(id);\n    return undefined;",
-    replacement: "    if (!e.damaged) throw e;\n    return undefined;",
+    search: "    if (!e.damaged) throw e;\n    MEDIA_FAILED.add(id);\n    return known;",
+    replacement: "    if (!e.damaged) throw e;\n    return known;",
     expected: "Erweiterte Infos: sofort, beim Start, ohne Datei und mit der Datei geloescht"
   },
   {
@@ -10721,7 +10720,7 @@ const REGRESSIONS = [
   {
     nr: '1560', name: "Der Codec fehlt am Vorschaubild",
     file: 'public/app.js',
-    search: "codec: video ? codecName(a.codec) : '',",
+    search: "codec: video || image ? codecName(a.codec) : '',",
     replacement: "codec: '',",
     expected: "Erweiterte Infos: Dialog und Codec am Vorschaubild"
   },
@@ -11057,7 +11056,7 @@ const REGRESSIONS = [
   {
     nr: '1608', name: "Der Codec heisst wie bei MediaInfo",
     file: 'public/app.js',
-    search: "const CODEC_NAMES = { AVC: 'H.264', HEVC: 'H.265' };",
+    search: "const CODEC_NAMES = { AVC: 'H.264', HEVC: 'H.265', avif: 'AVIF', Bitmap: 'BMP' };",
     replacement: "const CODEC_NAMES = {};",
     expected: "Erweiterte Infos: Audio, Container und H.264"
   },
@@ -11116,6 +11115,391 @@ const REGRESSIONS = [
     search: "https://keepachangelog.com/en/1.1.0/",
     replacement: "https://keepachangelog.com/de/1.1.0/",
     expected: "Das CHANGELOG ist englisch und kurz"
+  },
+  {
+    nr: '1617', name: "Ein Admin benennt fremde Dateien um",
+    file: 'server.js',
+    search: "  if (!selfOnly(req, a.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});\n  const ext = path.extname(a.filename);",
+    replacement: "  const ext = path.extname(a.filename);",
+    expected: "Dateien umbenennen: die Route"
+  },
+  {
+    nr: '1618', name: "Die Endung geht beim Umbenennen verloren",
+    file: 'server.js',
+    search: "  const filename = stem + ext;\n",
+    replacement: "  const filename = stem;\n",
+    expected: "Dateien umbenennen: die Route"
+  },
+  {
+    nr: '1619', name: "Gleiche Namen im selben Ordner gehen durch",
+    file: 'server.js',
+    search: "  if (qNamesBeside.all(a.item_id, a.id, a.folder_id).some(o => o.filename.toLowerCase() === lower))",
+    replacement: "  if (false)",
+    expected: "Dateien umbenennen: die Route"
+  },
+  {
+    nr: '1620', name: "Gross- und Kleinschreibung trennt gleiche Namen",
+    file: 'server.js',
+    search: "some(o => o.filename.toLowerCase() === lower)",
+    replacement: "some(o => o.filename === lower)",
+    expected: "Dateien umbenennen: die Route"
+  },
+  {
+    nr: '1621', name: "Die vorige Fassung behaelt den alten Namen",
+    file: 'server.js',
+    search: "    if (before) renamePrevious.run(stem + path.extname(before.filename), a.id);\n",
+    replacement: "",
+    expected: "Dateien umbenennen: die Route"
+  },
+  {
+    nr: '1622', name: "Steuerzeichen im Namen gehen durch",
+    file: 'server.js',
+    search: "  return /^[.\\s]*$/.test(stem) || /[\\x00-\\x1f\\x7f]/.test(stem) ? null : stem;",
+    replacement: "  return /^[.\\s]*$/.test(stem) ? null : stem;",
+    expected: "Dateien umbenennen: die Route"
+  },
+  {
+    nr: '1623', name: "Nach dem Umbenennen gilt der Eintrag nicht als geaendert",
+    file: 'server.js',
+    search: "renamePrevious.run(stem + path.extname(before.filename), a.id);\n    touch.run(a.item_id);",
+    replacement: "renamePrevious.run(stem + path.extname(before.filename), a.id);",
+    expected: "Dateien umbenennen: die Route"
+  },
+  {
+    nr: '1624', name: "„Umbenennen …“ steht auch an fremden Dateien",
+    file: 'public/app.js',
+    search: "    if (a.mine === true) sort.push({ label: t('entry.renameFileMenu')",
+    replacement: "    if (true) sort.push({ label: t('entry.renameFileMenu')",
+    expected: "Dateien umbenennen: Menü und Dialog"
+  },
+  {
+    nr: '1625', name: "Der Dialog zeigt die Endung im Feld",
+    file: 'public/app.js',
+    search: "value=\"${esc(a.filename.slice(0, a.filename.length - ext.length))}\"",
+    replacement: "value=\"${esc(a.filename)}\"",
+    expected: "Dateien umbenennen: Menü und Dialog"
+  },
+  {
+    nr: '1626', name: "Nach dem Dialog steht der Fokus nicht auf „…“",
+    file: 'public/app.js',
+    search: "    const back = () => attsBox.querySelector(`[data-key=\"f${Number(a.id)}\"] .amore`)?.focus();",
+    replacement: "    const back = () => {};",
+    expected: "Dateien umbenennen: Menü und Dialog"
+  },
+  {
+    nr: '1627', name: "Eine Ablehnung schliesst den Dialog",
+    file: 'public/app.js',
+    search: "      catch (e) { toast(e.message, true); yes.disabled = false; return field.focus(); }\n      const fresh = fileOf('f' + a.id);",
+    replacement: "      catch (e) { toast(e.message, true); return done(); }\n      const fresh = fileOf('f' + a.id);",
+    expected: "Dateien umbenennen: Menü und Dialog"
+  },
+  {
+    nr: '1628', name: "Die Pixel kennen keine Ausrichtung",
+    file: 'server.js',
+    search: "  (orientation >= 5 && orientation <= 8 ? { width: height, height: width } : { width, height });",
+    replacement: "  ({ width, height });",
+    expected: "Bilder: Format, Pixel, EXIF und das Nachlesen"
+  },
+  {
+    nr: '1629', name: "Bilder tragen kein Format",
+    file: 'server.js',
+    search: "      ...(kind === 'image' ? { codec: a2.image_format,",
+    replacement: "      ...(kind === 'image' ? { codec: null,",
+    expected: "Bilder: Format, Pixel, EXIF und das Nachlesen"
+  },
+  {
+    nr: '1630', name: "EXIF wird nicht gelesen",
+    file: 'attachments.js',
+    search: "    exif: meta.exif ? exifSummary(meta.exif) : null };",
+    replacement: "    exif: null };",
+    expected: "Bilder: Format, Pixel, EXIF und das Nachlesen"
+  },
+  {
+    nr: '1631', name: "Die Koordinaten werden gespeichert",
+    file: 'attachments.js',
+    search: "    focal35: exifNumber(photo.FocalLengthIn35mmFilm), gps: Array.isArray(gps.GPSLatitude) && Array.isArray(gps.GPSLongitude) };",
+    replacement: "    focal35: exifNumber(photo.FocalLengthIn35mmFilm), gps: Array.isArray(gps.GPSLatitude) && Array.isArray(gps.GPSLongitude), place: gps };",
+    expected: "Bilder: Format, Pixel, EXIF und das Nachlesen"
+  },
+  {
+    nr: '1632', name: "Alte Zeilen von Bildern werden nicht nachgelesen",
+    file: 'server.js',
+    search: "  if (known && !(kind === 'image' && a.stale)) return known;",
+    replacement: "  if (known) return known;",
+    expected: "Bilder: Format, Pixel, EXIF und das Nachlesen"
+  },
+  {
+    nr: '1633', name: "Videos mit alter Zeile liest der Server neu",
+    file: 'server.js',
+    search: "  if (known && !(kind === 'image' && a.stale)) return known;",
+    replacement: "  if (known && !a.stale) return known;",
+    expected: "Bilder: Format, Pixel, EXIF und das Nachlesen"
+  },
+  {
+    nr: '1634', name: "Alte Zeilen von Fotos werden nicht nachgelesen",
+    file: 'server.js',
+    search: "  if (known && !p.stale) return known;",
+    replacement: "  if (known) return known;",
+    expected: "Bilder: Format, Pixel, EXIF und das Nachlesen"
+  },
+  {
+    nr: '1635', name: "Office-Dateien ohne Ersteller",
+    file: 'attachments.js',
+    search: "  return { title: xmlValue(core, 'title'), createdBy: xmlValue(core, 'creator'),",
+    replacement: "  return { title: xmlValue(core, 'title'), createdBy: null,",
+    expected: "Infos zu Dokumenten: aus Kriterion und aus der Datei"
+  },
+  {
+    nr: '1636', name: "In meta.xml gilt dc:creator als Ersteller",
+    file: 'attachments.js',
+    search: "  return { title: xmlValue(meta, 'title'), createdBy: xmlValue(meta, 'initial-creator'),",
+    replacement: "  return { title: xmlValue(meta, 'title'), createdBy: xmlValue(meta, 'creator'),",
+    expected: "Infos zu Dokumenten: aus Kriterion und aus der Datei"
+  },
+  {
+    nr: '1637', name: "Die Grenze fuer Dokumente liegt bei 4 MiB",
+    file: 'attachments.js',
+    search: "const DOCUMENT_PART = 1024 * 1024;",
+    replacement: "const DOCUMENT_PART = 4 * 1024 * 1024;",
+    expected: "Infos zu Dokumenten: aus Kriterion und aus der Datei"
+  },
+  {
+    nr: '1638', name: "PDF-Texte in UTF-16 bleiben unlesbar",
+    file: 'attachments.js',
+    search: "  if (bytes[0] === 0xfe && bytes[1] === 0xff) {",
+    replacement: "  if (false) {",
+    expected: "Infos zu Dokumenten: aus Kriterion und aus der Datei"
+  },
+  {
+    nr: '1639', name: "Der Rueckruf vergisst, wer gespeichert hat",
+    file: 'server.js',
+    search: "      const by = Number([].concat(cb.data.users || [])[0]) || null;",
+    replacement: "      const by = null;",
+    expected: "Infos zu Dokumenten: aus Kriterion und aus der Datei"
+  },
+  {
+    nr: '1640', name: "Eine fremde Nummer aus `users` gilt als Account",
+    file: 'server.js',
+    search: "  VALUES (?, datetime('now'), (SELECT id FROM users WHERE id = ?))",
+    replacement: "  VALUES (?, datetime('now'), ?)",
+    expected: "Infos zu Dokumenten: aus Kriterion und aus der Datei"
+  },
+  {
+    nr: '1641', name: "Die Angaben gehen im Papierkorb verloren",
+    file: 'server.js',
+    search: "  if (f.changes) putChanges.run(",
+    replacement: "  if (false) putChanges.run(",
+    expected: "Infos zu Dokumenten: aus Kriterion und aus der Datei"
+  },
+  {
+    nr: '1642', name: "Die Aenderungszeit beim Hochladen fehlt",
+    file: 'server.js',
+    search: "    if (u.modified > 0) recordModified.run(fresh, u.modified);\n",
+    replacement: "",
+    expected: "Infos zu Dokumenten: aus Kriterion und aus der Datei"
+  },
+  {
+    nr: '1643', name: "Dokumente bekommen keine Infos",
+    file: 'server.js',
+    search: "    if (a && attachments.isDocument(a.filename)) {",
+    replacement: "    if (false) {",
+    expected: "Infos zu Dokumenten: aus Kriterion und aus der Datei"
+  },
+  {
+    nr: '1644', name: "„Infos“ fehlt im Menue",
+    file: 'public/app.js',
+    search: "    else if (DOCUMENT_KINDS.includes(kindOf(a)))",
+    replacement: "    else if (false)",
+    expected: "Infos zu Dokumenten: Menüpunkt und Dialog"
+  },
+  {
+    nr: '1645', name: "Infos zu Dokumenten erscheinen als Erweiterte Infos",
+    file: 'public/app.js',
+    search: "      body.innerHTML = facts.document ? documentInfoHtml(facts) : mediaInfoHtml(facts);",
+    replacement: "      body.innerHTML = mediaInfoHtml(facts);",
+    expected: "Infos zu Dokumenten: Menüpunkt und Dialog"
+  },
+  {
+    nr: '1646', name: "Zugeklappt steht „Dateien“ wieder in Klammern",
+    file: 'public/app.js',
+    search: "    sum.textContent = !short ? '' : name === 'dateien' ? short : `(${short})`;",
+    replacement: "    sum.textContent = short ? `(${short})` : '';",
+    expected: "Der zugeklappte Kopf von „Dateien“"
+  },
+  {
+    nr: '1647', name: "Zugeklappt bleiben die Bedienelemente stehen",
+    file: 'public/style.css',
+    search: ".block.closed > *:not(.block-head), .block.closed .ahead-acts, .block.closed #acount { display: none; }",
+    replacement: ".block.closed > *:not(.block-head) { display: none; }",
+    expected: "Der zugeklappte Kopf von „Dateien“"
+  },
+  {
+    nr: '1648', name: "Videos zaehlen unter „weitere“",
+    file: 'public/app.js',
+    search: "  const videos = files.filter(a => kindOf(a) === 'video').length,",
+    replacement: "  const videos = 0,",
+    expected: "Der zugeklappte Kopf von „Dateien“"
+  },
+  {
+    nr: '1649', name: "Die Ablehnung nennt „am“ und „von“ fest",
+    file: 'public/app.js',
+    search: "    const head = when && who ? t('entry.rejectedBy', { date: when, name: who })",
+    replacement: "    const head = when && who ? `Abgelehnt am ${when} von ${who}`",
+    expected: "Texte ohne festes Deutsch: Ablehnung und Aufgabenknopf"
+  },
+  {
+    nr: '1650', name: "Der Aufgabenknopf sagt „offen“ fest",
+    file: 'public/app.js',
+    search: "    ? t('list.openTitle', { n: open, task: vTask(open) })",
+    replacement: "    ? `${open} ${vTask(open)} offen`",
+    expected: "Texte ohne festes Deutsch: Ablehnung und Aufgabenknopf"
+  },
+  {
+    nr: '1651', name: "„keine“ steht fest im Code",
+    file: 'public/app.js',
+    search: "    case 'kategorie': return item.category ? item.category.name : t('entry.sumNone');",
+    replacement: "    case 'kategorie': return item.category ? item.category.name : 'keine';",
+    expected: "Texte ohne festes Deutsch: Ablehnung und Aufgabenknopf"
+  },
+  {
+    nr: '1652', name: "Die Schwelle selbst gilt als teilweise",
+    file: 'server.js',
+    search: "n * 100 < share * total ? 'partial' : 'full';",
+    replacement: "n * 100 <= share * total ? 'partial' : 'full';",
+    expected: "Filter nach Potenzial und Bewertung: der Server"
+  },
+  {
+    nr: '1653', name: "Fremde Werte zaehlen mit",
+    file: 'server.js',
+    search: "JOIN rating_criteria c ON c.id = r.criterion_id WHERE r.user_id = ? AND r.value > 0 GROUP BY r.item_id, c.phase`);",
+    replacement: "JOIN rating_criteria c ON c.id = r.criterion_id WHERE (r.user_id = ? OR 1) AND r.value > 0 GROUP BY r.item_id, c.phase`);",
+    expected: "Filter nach Potenzial und Bewertung: der Server"
+  },
+  {
+    nr: '1654', name: "Ungetestete Eintraege zaehlen bei „Bewertung“",
+    file: 'server.js',
+    search: "      out[phase] = phase === 'after' && !tested ? null : ",
+    replacement: "      out[phase] = ",
+    expected: "Filter nach Potenzial und Bewertung: der Server"
+  },
+  {
+    nr: '1655', name: "Die Schwelle nimmt 0 und 101 an",
+    file: 'server.js',
+    search: "        if (!Number.isInteger(n) || n < PARTIAL_SHARE.min || n > PARTIAL_SHARE.max)",
+    replacement: "        if (!Number.isInteger(n))",
+    expected: "Filter nach Potenzial und Bewertung: der Server"
+  },
+  {
+    nr: '1656', name: "Ohne Potenzialmodus bleibt die Phase stehen",
+    file: 'server.js',
+    search: "  if (!potentialMode()) delete totals.before;\n",
+    replacement: "",
+    expected: "Filter nach Potenzial und Bewertung: der Server"
+  },
+  {
+    nr: '1657', name: "Die Filter „Potenzial“ und „Bewertung“ wirken nicht",
+    file: 'public/app.js',
+    search: "    if (wanted !== 'all') out = out.filter(i => i.share?.[SHARE_PHASES[key]] === wanted);\n",
+    replacement: "",
+    expected: "Filter nach Potenzial und Bewertung: Leiste und Einstellung"
+  },
+  {
+    nr: '1658', name: "Die beiden Filter zaehlen nicht als aktiv",
+    file: 'public/app.js',
+    search: "  for (const key of Object.keys(SHARE_PHASES)) if (shareWanted(f, key) !== 'all') n++;\n",
+    replacement: "",
+    expected: "Filter nach Potenzial und Bewertung: Leiste und Einstellung"
+  },
+  {
+    nr: '1659', name: "Eine ausgeblendete Gruppe filtert weiter",
+    file: 'public/app.js',
+    search: "const shareWanted = (f, key) => (shareShown(key) ? f[key] : 'all');",
+    replacement: "const shareWanted = (f, key) => f[key];",
+    expected: "Filter nach Potenzial und Bewertung: Leiste und Einstellung"
+  },
+  {
+    nr: '1660', name: "Das Feld fuer die Schwelle steht auch ohne Adminrechte da",
+    file: 'public/app.js',
+    search: "        ${!before && ADMIN ? `<p class=\"desc\" style=\"margin:16px 0 8px\">${tH('card.partialShareHint')}</p>",
+    replacement: "        ${!before ? `<p class=\"desc\" style=\"margin:16px 0 8px\">${tH('card.partialShareHint')}</p>",
+    expected: "Filter nach Potenzial und Bewertung: Leiste und Einstellung"
+  },
+  {
+    nr: '1661', name: "Eine abgelehnte Schwelle bleibt im Feld stehen",
+    file: 'public/app.js',
+    search: "    } catch (e) { toast(e.message, true); }\n    shareField.value = String(PARTIAL_SHARE);\n",
+    replacement: "    } catch (e) { toast(e.message, true); }\n",
+    expected: "Filter nach Potenzial und Bewertung: Leiste und Einstellung"
+  },
+  {
+    nr: '1662', name: "Bilder heissen in der Spalte „Typ“ nur „Bild“",
+    file: 'public/app.js',
+    search: "  if (kind === 'image') return [codecName(a.codec), pixelText(a.width, a.height)].filter(Boolean).join(' · ') || t(KIND_WORDS.image);\n",
+    replacement: "",
+    expected: "Bilder: Typ, Vorschaubild und Erweiterte Infos"
+  },
+  {
+    nr: '1663', name: "Die Vorschaubilder in der Datei fehlen",
+    file: 'public/app.js',
+    search: "  const [main, ...thumbs] = f.image || [];",
+    replacement: "  const [main] = f.image || [], thumbs = [];",
+    expected: "Bilder: Typ, Vorschaubild und Erweiterte Infos"
+  },
+  {
+    nr: '1664', name: "„Aufnahmedatum“ bleibt neben der Zeit aus EXIF",
+    file: 'public/app.js',
+    search: "      ['entry.mediaRecorded', shot.taken ? '' : recorded ? fmtDate(recorded[0]) : g.recorded],",
+    replacement: "      ['entry.mediaRecorded', recorded ? fmtDate(recorded[0]) : g.recorded],",
+    expected: "Bilder: Typ, Vorschaubild und Erweiterte Infos"
+  },
+  {
+    nr: '1665', name: "Die Belichtungszeit steht als Dezimalzahl",
+    file: 'public/app.js',
+    search: "t('entry.mediaSeconds', { n: s < 0.4 ? `1/${Math.round(1 / s)}` : number(s, 0, 1) });",
+    replacement: "t('entry.mediaSeconds', { n: number(s, 0, 3) });",
+    expected: "Bilder: Typ, Vorschaubild und Erweiterte Infos"
+  },
+  {
+    nr: '1666', name: "Die Pixel im Dialog kennen keine Ausrichtung",
+    file: 'public/app.js',
+    search: "    ['entry.mediaResolution', turned ? pixelText(main.height, main.width) : pixelText(main.width, main.height)],",
+    replacement: "    ['entry.mediaResolution', pixelText(main.width, main.height)],",
+    expected: "Bilder: Typ, Vorschaubild und Erweiterte Infos"
+  },
+  {
+    nr: '1667', name: "Die deutsche Anleitung beschreibt wieder „Eintrag exportieren“",
+    file: 'manual-de.md',
+    search: "## Kommentare\n\nEin Kommentar hat eine **Art**",
+    replacement: "### Eintrag exportieren\n\nNur für den Eigentümer-Admin.\n\n## Kommentare\n\nEin Kommentar hat eine **Art**",
+    expected: "Anleitung, README und Namen"
+  },
+  {
+    nr: '1668', name: "Die Anleitung sagt wieder „Ähnlich:“",
+    file: 'manual-de.md',
+    search: "Beim Anlegen zeigt „Ähnliche Titel: …“",
+    replacement: "Beim Anlegen zeigt „Ähnlich: …“",
+    expected: "Anleitung, README und Namen"
+  },
+  {
+    nr: '1669', name: "Die Anleitung beschreibt „Infos“ nicht",
+    file: 'manual-de.md',
+    search: "- **Infos:** „Infos“ im Menü ⋯ einer Word-, Excel-, PowerPoint- oder PDF-Datei",
+    replacement: "- „Infos“ im Menü ⋯ einer Word-, Excel-, PowerPoint- oder PDF-Datei",
+    expected: "Anleitung, README und Namen"
+  },
+  {
+    nr: '1670', name: "Die englische README nennt `exif-reader` nicht",
+    file: 'README.md',
+    search: "`sharp`, `nodemailer`, `mediainfo.js` and `exif-reader`. The frontend uses no",
+    replacement: "`sharp`, `nodemailer` and `mediainfo.js`. The frontend uses no",
+    expected: "Anleitung, README und Namen"
+  },
+  {
+    nr: '1671', name: "Der Abschnitt heisst englisch wieder „User“",
+    file: 'public/app.js',
+    search: "  { key: 'users',        name: () => t('card.users') },",
+    replacement: "  { key: 'users',        name: () => t('card.user') },",
+    expected: "Anleitung, README und Namen"
   }
 
 ];

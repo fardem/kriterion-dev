@@ -274,6 +274,12 @@ Oluştururken “Benzer başlıklar: …” benzer başlıklı mevcut öğeleri 
 - **Etiketler:** birden fazlası seçilebilir. Geçiş düğmesi “Ve” (varsayılan)
   ile “Ya da” arasında seçim yapar. Soluk görünen bir etiket eklenirse hiç
   sonuç kalmaz.
+- **Potansiyel ve Değerlendirme:** her biri “Tümü”, “Yok” ve “Kısmen”; kendi
+  yıldızlarına göre. “Yok”: o kutuda kendi yıldızı yok. “Kısmen”: kendi
+  yıldızları eşiğin altında, varsayılan olarak ölçütlerin %80'i.
+  “Değerlendirme”de yalnızca test edilmiş öğeler sayılır. Eşiği bir yönetici
+  “Değerlendirme: ölçütler” kartında ayarlar. Potansiyel modu kapalıysa ya da
+  bir kutunun ölçütü yoksa onun grubu görünmez.
 - **“Filtreleri sıfırla (n)”** bir filtre seçildiği anda sıralama satırında
   görünür. Arama sözcüğü, sıralama ve kayıtlı görünümler kalır.
 - **Sıralama:** son değişikliğe, değerlendirmeye, potansiyele, başlığa, test
@@ -301,7 +307,7 @@ dikeyde puan. Bir tıklama öğeyi açar. Beş test gününden itibaren görün�
 Bir döşemedeki işaret öğeyi karşılaştırmaya alır. İki hesaptan itibaren
 “Benimkiler / Tümü” kendi değerlerinle herkesin ortalaması arasında geçiş yapar.
 
-### Zil ve “Açık”
+### Zil ve “Açık görevler”
 
 Zil, son açılıştan beri başkalarının yeni yorumlarını ve değerlendirmelerini
 bildirir. Panel bunları “Bana yönelik” (`@name` ile anılanlar), “Bana ait
@@ -314,7 +320,7 @@ Zilin sınırları:
 - Bildirim başına okundu bilgisi tutmaz: paneli açmak her şeyi görüldü sayar.
 - Değişen başlıkları, yeni dosyaları ve yeni test günlerini bildirmez.
 
-“Açık” bütün öğelerin tamamlanmamış görevlerini sayar. Arkasındaki görünüm
+“Açık görevler” bütün öğelerin tamamlanmamış görevlerini sayar. Arkasındaki görünüm
 bunları son tarihe göre sıralar: gecikmiş, bugün, daha sonra, tarihsiz.
 Görevler doğrudan orada tamamlandı olarak işaretlenir.
 
@@ -374,8 +380,13 @@ değişmez.
   resim, ad, tür, boyut, yükleme tarihi ve birden fazla hesap varsa yükleyen
   kişi; telefonda boyut ve tarih adın altında durur. Tür şunlardan biridir:
   Video, Görsel, PDF, Word, Excel, PowerPoint, Metin, Arşiv ya da Diğer; bir
-  videoda bu sütunda codec ve süre durur, örneğin “H.265 · 3:12”. Tıklama, menü,
-  önizleme ve klavye iki görünümde de aynıdır. Dosya başına 2 GB'a kadar
+  videoda bu sütunda codec ve süre durur, örneğin “H.265 · 3:12”, bir görselde
+  gösterildiği gibi biçim ve piksel, örneğin “PNG · 1920 × 1080”. Okunmuş bilgi
+  yoksa orada “Görsel” yazar. Kapalıyken bloğun başlığı yalnızca sayıları ve
+  boyutu gösterir, örneğin “3 klasör · 12 video · 9 görsel · 4 diğer ·
+  1122,2 MB”; dosyası olmayan bir tür görünmez. Sıralama, görünüm ve düğmeler
+  yalnızca açık başlıkta durur. Tıklama, menü, önizleme ve klavye iki görünümde
+  de aynıdır. Dosya başına 2 GB'a kadar
   (“Dosya” sınırı), öğe başına en çok 100 dosya.
 - **Bilgisayarda liste:** Listenin üstünde bir başlık satırı durur. “Ad”, “Tür”,
   “Boyut” ya da “Tarih” üzerine bir tıklama ona göre sıralar, ikinci tıklama
@@ -455,7 +466,8 @@ değişmez.
   altında dosyayı hangi Document Server'ın gösterdiği yazar. Diğer her dosya
   kendi menüsünü açar. Bir tıklama hiçbir zaman indirme yapmaz.
 - **Videolar:** MP4, M4V, WebM ve MOV tam ekranda oynar, iPhone'da da. Döşeme
-  bir küçük resim, ▶, süreyi ve sol altta codec'i gösterir, örneğin “HEVC”.
+  bir küçük resim, ▶, süreyi ve sol altta codec'i gösterir, örneğin “H.265”;
+  bir görselin döşemesi orada biçimi gösterir, örneğin “JPEG”.
   Kriterion codec'i yükleme bittikten sonra okur; güncellemeden önceki
   videolarda bir sonraki başlatmada. Küçük resim yükleme sırasında tarayıcıda,
   sürenin %10'unda oluşur. Eksikse, örneğin bir içe aktarmadan sonra, videoyu
@@ -477,8 +489,8 @@ değişmez.
   uzantı durur.
 - **⋯ menüsü:** her döşemede durur ve yalnızca izin verilenleri, çizgilerle
   ayrılmış beş grupta sunar: “Aç” ve “Düzenle”; “İndir”,
-  “Bu dosyaya bağlantıyı kopyala” ve “Ayrıntılı bilgi”; “Şuraya taşı …” ve
-  “Küçük resmi seç …”; “Önceki sürümü geri yükle” ve “Herkes düzenleyebilir”;
+  “Bu dosyaya bağlantıyı kopyala” ve “Ayrıntılı bilgi” ya da “Bilgi”;
+  “Yeniden adlandır …”, “Şuraya taşı …” ve “Küçük resmi seç …”; “Önceki sürümü geri yükle” ve “Herkes düzenleyebilir”;
   “Dosyayı sil”. Üstte ad, birden fazla hesap varsa dosyayı kimin ne zaman
   yüklediği de durur. Telefonda menü alt kenarda açılır. Hâlâ yüklenen bir
   döşemede “İptal”, bir hatadan sonra “Yeniden dene” ve “Kaldır” durur.
@@ -490,9 +502,34 @@ değişmez.
   kare hızı, bit hızı, bit derinliği, renk alt örneklemesi ve HDR. H.264 ve
   H.265, MediaInfo'daki adı parantez içinde taşır, örneğin “H.265 (HEVC)”;
   listede ve küçük resimde kısaca “H.265” yazar. Her ses parçası için: codec,
-  kanallar, örnekleme hızı, bit hızı ve dil. Resim: biçim, çözünürlük, bit
-  derinliği, renk uzayı ve renk alt örneklemesi. Dosyanın belirtmediği bilgiler
-  görünmez.
+  kanallar, örnekleme hızı, bit hızı ve dil. Görsel: ana resim; biçim,
+  gösterildiği gibi çözünürlük, bit derinliği, renk uzayı ve renk alt
+  örneklemesi. Dosyadaki küçük resimler, örneğin EXIF bloğundakiler, sayı ve
+  boyutlarıyla tek satırda durur. Çekim: EXIF'ten çekim zamanı, kamera,
+  objektif, pozlama süresi, diyafram, ISO ve odak uzaklığı; dosya taşıyorsa
+  35 mm karşılığıyla. Dosyada bir konum varsa yalnızca “Dosyada konum: evet”
+  durur; Kriterion koordinat saklamaz. EXIF'te çekim zamanı varsa görsellerde
+  “Genel” altındaki “Kayıt tarihi” görünmez. Güncellemeden önceki görselleri
+  Kriterion başlatmadan sonra bir kez yeniden okur. Dosyanın belirtmediği
+  bilgiler görünmez.
+- **Bilgi:** Bir Word, Excel, PowerPoint ya da PDF dosyasının ve bunların
+  OpenDocument karşılıklarının ⋯ menüsündeki “Bilgi” iki grup gösterir.
+  “Kriterion'da”: yükleyen ve yükleme tarihi, yüklemeden önce değiştirilme
+  (dosyanın bilgisayardaki zamanı, yalnızca güncellemeden sonraki dosyalarda),
+  Document Server'da son kaydeden ve son kaydetme tarihi, kaydetme sayısı ve
+  önceki sürümün tarihi. “Dosyada”: başlık, oluşturan, oluşturulma, son
+  düzenleyen, değiştirilme, sayfalar, sözcükler, slaytlar ve uygulama; PDF'te
+  başlık, yazar, oluşturma aracı, üreten, oluşturulma, değiştirilme ve
+  sayfalar. Pencere açılınca okunur; bir Office dosyasının 1 MB'ı aşan
+  parçaları ve PDF'te ilk ve son MB dışındaki her şey okunmaz. `.doc`, `.xls`,
+  `.ppt` ve `.rtf` dosyalarında yalnızca Kriterion'daki bilgiler durur. Eksik
+  olan görünmez.
+- **Yeniden adlandırma:** Kendi dosyasının ⋯ menüsündeki “Yeniden adlandır …”
+  adı uzantısız gösterir; uzantı kalır. Enter kaydeder, Esc iptal eder. Aynı
+  klasörde, klasörsüz dosyalarda da, ikinci bir dosya aynı adı taşıyamaz;
+  büyük ve küçük harf fark etmez. Yeniden adlandırmayı yalnızca dosyayı
+  yükleyen kişi yapabilir, dosya Document Server'da açıkken de. Önceki sürüm
+  yeni adı kendi uzantısıyla alır.
 - **Klavye:** Tab her döşemeye ve onun ⋯ düğmesine ulaşır. Shift+F10 menüyü
   açar, ↑ ve ↓ seçer, Enter uygular, Esc kapatır.
 - **Bağlantıyı kopyala:** dosyanın adresini kopyalar. Bir resmin ya da videonun
@@ -571,11 +608,6 @@ adla yeniden oluşur. Document Server bir dosyayı yedeklemeden sonra
 kaydettiyse, yedeklemedeki sürüm adında “(Backup GG.AA.YYYY)” ile ayrı bir
 dosya olarak eklenir. Kopyası yedekleme klasöründe olmayan bir dosya
 kutucuksuz durur.
-
-### Öğeyi dışa aktarma
-
-Yalnızca sahip yönetici için: öğenin altındaki “Öğeyi dışa aktar”, yalnızca bu
-öğeyi dosyalarıyla birlikte içeren bir dışa aktarma dosyası yazar.
 
 ## Yorumlar
 
@@ -666,7 +698,7 @@ aktarma, yedekleme ve güvenlik günlüğünü yalnızca sahip yönetici görür
 | Belgeler | Document Server üzerinden görüntülemeyi ve düzenlemeyi açma ve kapatma; “Herkes düzenleyebilir”: bir hesap kendi değerini belirlemediği sürece başlangıç değeri; kart bağlantıyı denetler. Adresler ve secret `.env` dosyasında durur, bkz. README |
 | Sayılar | verinin kapsamı, veritabanı boyutu, diskteki dosyalar (bunlardan “Ek” sınırını aşanlar ve çöp kutusundakiler), yüklemeler, boş alan, sürüm, parmak izi, şifreleme yöntemleri; sahip yönetici için anahtar değeri. Yalnızca varsa: hâlâ veritabanında olup diske taşınmayı bekleyen dosyalar, eksik dosyalar, silinmeyi bekleyen dosyalar ve başvurusuz dosyalar. Başvurusuz dosyaları sahip yönetici “Sil” ile siler, ama yalnızca yedekleme klasöründe aynı boyutta bir kopya varsa |
 | Kategoriler, Etiketler | oluşturma, yeniden adlandırma, silme; bir işaret, herkesin öğede yeni ad oluşturup oluşturamayacağını belirler |
-| Değerlendirme: ölçütler, Potansiyel: ölçütler | oluşturma, yeniden adlandırma, sıralama, ağırlık verme (0,2 ile 2 arası, varsayılan 1) |
+| Değerlendirme: ölçütler, Potansiyel: ölçütler | oluşturma, yeniden adlandırma, sıralama, ağırlık verme (0,2 ile 2 arası, varsayılan 1); “Değerlendirme: ölçütler” kartında genel bakış filtrelerindeki “Kısmen” eşiği (1 ile 100 arası %, varsayılan 80) |
 | Arama motorları | altı yerleşik ve en çok üç özel arama motoru (yer tutucu olarak `%s`); biri varsayılandır |
 | Bağlantılar | görünür bağlantı satırlarının sayısı, kişisel |
 | Görünüm | renk şeması, dil, yazı boyutu, küçük resimlerin boyutu, zaman çizgisi, blokların düzeni; kişisel |
@@ -695,7 +727,8 @@ ve video sınırlarını öndeki reverse proxy geçirmelidir (README).
 
 ### Resim biçimleri
 
-Kartın “Saklama yöntemi” kısmı PNG resimlerinin nasıl saklanacağını belirler:
+“Resim biçimleri” kartının “Saklama yöntemi” kısmı PNG resimlerinin nasıl
+saklanacağını belirler:
 
 | Yöntem | Etkisi |
 |---|---|
@@ -807,7 +840,7 @@ gösterir. Bu yüzden taşımada kullanıcıları önceden aynı adlarla oluştu
 
 Aynı arayüz, genişliğe ve kullanıma uyarlanmış.
 
-- Telefonda zil, “Açık”, ayarlar ve çıkış menü simgesinin arkasındadır. Arama
+- Telefonda zil, “Açık görevler”, ayarlar ve çıkış menü simgesinin arkasındadır. Arama
   ve “+ Öğe” görünür kalır. Dokunmatik bir tablet de aynı menüyü alır.
 - Telefonda filtreler kapalıdır. Düğme etkin filtrelerin sayısını gösterir.
 - Bir öğenin altındaki “‹ Önceki” ve “Sonraki ›” genel görünümün sırasıyla
