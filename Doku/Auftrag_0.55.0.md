@@ -2,10 +2,10 @@
 
 **Aufgestellt am 1. Oktober 2026.** Grundlage ist der Abschnitt 0.55.0 in
 `Doku/Fahrplan.md` mit B1, der zweiten Fassung der Videos für das Telefon
-(Punkt 57 aus `Doku/Fehler_und_Ideen.md`), mit B2 aus der Abnahme von 0.54.0
-und das Messverfahren `Doku/Messverfahren_Umwandlung.md`. F1 bis F14 sind am
-1. Oktober 2026 in vier Fragetafeln beantwortet, F15 zu B2 am selben Tag in
-einer fünften.
+(Punkt 57 aus `Doku/Fehler_und_Ideen.md`), mit B2 aus der Abnahme von 0.54.0 und
+das Messverfahren `Doku/Messverfahren_Umwandlung.md`. F1 bis F14 sind
+am 1. Oktober 2026 in vier Fragetafeln beantwortet, F15 zu B2 am selben Tag in
+einer fünften; die Antwort auf F15 hat der Betreiber danach geändert (V9).
 
 Vorgabe des Betreibers: Weitere Punkte aus der Abnahme von 0.54.0 kommen in
 diese Runde, und gebaut wird, wenn er den Bau startet. Kommen vor dem Start
@@ -31,8 +31,9 @@ Zeilennummern gelten für `bf925e9` (0.54.0).
 | V6 | B1 | Server: Intel N100 mit Quick Sync (Angabe des Betreibers, 30. September 2026) |
 | V7 | B2 | „wenn ich ein Video abspiele, fängt es an zu puffern und zu spielen … wenn der Buffer voll ist, zuckt das Video hässlich, und dann springt es vom Stream zum Cache … eigentlich erwarte ich, dass es gar nicht springt“ |
 | V8 | B2 | „kann es sein, dass es einmal für den Stream downloadet und einmal für den Buffer? … kostet es nicht Bandbreite?“ |
+| V9 | B2 | „Doch lieber auf Knopfdruck“: ersetzt die erste Antwort auf F15, „entfällt“ |
 
-V1, V2, V7 und V8 vom 1. Oktober 2026.
+V1, V2 und V7 bis V9 vom 1. Oktober 2026.
 
 ### Fragen
 
@@ -52,14 +53,14 @@ V1, V2, V7 und V8 vom 1. Oktober 2026.
 | F12 | B1: Backup, Export und Papierkorb? | die Telefonfassung geht nicht mit; nach Zurückspielen und Wiederherstellen wandelt Kriterion neu um · sie geht ins Backup mit | **geht nicht mit** (Empfehlung) |
 | F13 | B1: Wer schaltet die Telefonfassung ein? | der Eigentümer-Admin, Vorgabe aus · jeder Admin | **der Eigentümer-Admin, Vorgabe aus** (Empfehlung) |
 | F14 | B1: Videos mit HDR, bei der A6700 HLG? | wie andere Videos; ob die Farben stimmen, zeigt die Messung am Telefon · keine Telefonfassung | **wie andere Videos** (Empfehlung) |
-| F15 | B2: Wie soll „Video ganz laden“ künftig arbeiten? | erst laden, wenn das Video stockt, und nur im Stand wechseln · nur auf Knopfdruck · entfällt | **entfällt** |
+| F15 | B2: Wie soll „Video ganz laden“ künftig arbeiten? | erst laden, wenn das Video stockt, und nur im Stand wechseln · nur auf Knopfdruck · entfällt | **nur auf Knopfdruck** (zuerst „entfällt“, geändert mit V9) |
 
 Anders als empfohlen: F1, F3, F6 und F15. Zu F1: Der Betreiber entscheidet mit
 der ausgefüllten Tafel aus dem Messverfahren, ob B1 gebaut wird. Zu F3: Ohne
 Quick Sync wandelt die CPU alle Formate über Weg C um. Zu F6: `mkv`, `avi`,
 `wmv` und `flv` bekommen immer eine Telefonfassung; sie spielen dann am Telefon
-und am Rechner über sie. Zu F15: Der Browser puffert wieder selbst, wie vor
-0.52.0.
+und am Rechner über sie. Zu F15: Ganz geladen wird nur noch auf Knopfdruck; ohne
+Knopf puffert der Browser selbst, wie vor 0.52.0.
 
 ---
 
@@ -72,8 +73,9 @@ Original. Videos, die kein Browser abspielt (`mkv`, `avi`, `wmv`, `flv`),
 spielen überall über die Telefonfassung. Gebaut wird B1 erst, wenn der Betreiber
 mit den Zahlen aus der Messung entschieden hat (V4, F1).
 
-„Video ganz laden“ entfällt. Beim Abspielen lädt der Browser die Datei nur noch
-einmal, und das Video springt nicht mehr (B2).
+„Video ganz laden“ läuft nur noch auf Knopfdruck: Das Video hält an, lädt
+einmal ganz und spielt dann aus der Kopie weiter. Ohne Knopf lädt der Browser
+die Datei nur einmal, und das Video springt nicht (B2).
 
 ---
 
@@ -215,7 +217,7 @@ eingetragen, wenn die Zahlen vorliegen.
 
 ### Vorgaben des Betreibers
 
-V1 bis V8 und F1 bis F15 aus Abschnitt 0.
+V1 bis V9 und F1 bis F15 aus Abschnitt 0.
 
 ### Entschieden in diesem Auftrag
 
@@ -258,15 +260,17 @@ V1 bis V8 und F1 bis F15 aus Abschnitt 0.
 | Image | `Dockerfile`: `ffmpeg` und der Intel-Mediatreiber im zweiten Abschnitt, mit `--no-install-recommends`. Ob der freie Treiber aus Debian auf dem N100 H.264 kodiert oder der aus `non-free` nötig ist, klärt BA 2. `docker-compose.example.yml`: `devices: - /dev/dri:/dev/dri`, auskommentiert |
 | Prüfstand | Statt ffmpeg läuft ein Skript des Prüfstands, das eine kleine MP4 schreibt; der Schalter dafür kommt über `keys.testbenchSwitch()`. Eine echte Umwandlung prüft nur die Abnahme |
 
-#### B2 — „Video ganz laden“ entfällt (V7, V8, F15)
+#### B2 — „Video ganz laden“ auf Knopfdruck (V7 bis V9, F15)
 
 | Frage | Antwort |
 |---|---|
-| Player | `loadWhole()`, `dropWhole()`, `WHOLE_BYTES` und `.lb-loaded` entfallen. `shownSource()` liefert die Quelle des Players. Beim Abspielen wechselt die Quelle nicht mehr |
-| Puffern | Der Browser puffert selbst; `preload="metadata"` bleibt (V5) |
-| Texte | `entry.videoLoaded` entfällt in den drei Sprachdateien |
-| Prüfstand | Die Gruppe „Video ganz laden“ in `test/release_052.js` prüft künftig: beim Abspielen kein zweiter Abruf, die Quelle bleibt, kein Text „geladen“. Die Rückbauten 1568 bis 1578 bekommen neue Ziele oder entfallen |
-| Anleitung | Der Absatz „Video ganz laden“ entfällt in allen drei Fassungen |
+| Knopf | „Ganz laden“ in der Leiste des Vollbilds, bei Videos bis zur Grenze aus `WHOLE_BYTES`: 2.048 MB am Rechner, 500 MB am Telefon. Spielt das Telefon die Telefonfassung (B1), zählt ihre Größe. Der Knopf steht auch bei Datensparen; ihn zu drücken ist eine bewusste Wahl |
+| Ablauf | Ein Druck hält das Video an und lädt die Datei einmal ganz, mit „geladen 45 %“. Während des Ladens lädt der Player nichts nach. Danach spielt das Video aus der Kopie an derselben Stelle weiter, wenn es vorher lief; sonst bleibt es stehen |
+| Abbrechen | ein zweiter Druck, ein anderes Video oder das Schließen des Vollbilds. Das Video spielt danach wieder aus dem Netz |
+| Ohne Knopf | kein zweiter Abruf und kein Wechsel der Quelle; der Browser puffert selbst, `preload="metadata"` bleibt (V5) |
+| Texte | `entry.videoLoaded` bleibt; neu sind Name und Titel des Knopfs |
+| Prüfstand | Die Gruppe „Video ganz laden“ in `test/release_052.js` prüft künftig: beim Abspielen kein Abruf außer denen des Players; der Knopf lädt einmal, das Video steht dabei, danach spielt es aus der Kopie weiter; Abbrechen. Die Rückbauten 1568 bis 1578 bekommen neue Ziele |
+| Anleitung | Der Absatz „Video ganz laden“ beschreibt den Knopf, in allen drei Fassungen |
 | Messung | B2 hängt nicht an der Messung aus BA 1 |
 
 ---
@@ -317,10 +321,10 @@ Infos“.
 Nach F12: Papierkorb, Wiederherstellen, Backup, Zurückspielen mit
 `backuptool.js`, Export und Import.
 
-### BA 9 — „Video ganz laden“ entfällt (B2)
+### BA 9 — „Video ganz laden“ auf Knopfdruck (B2)
 
-`loadWhole()` und was dazugehört, `.lb-loaded`, `entry.videoLoaded`. Hängt
-nicht an BA 1.
+Der Knopf im Vollbild, `loadWhole()` nur über ihn, das Video steht während des
+Ladens, Abbrechen, Texte. Hängt nicht an BA 1.
 
 ### BA 10 — Texte
 
@@ -329,8 +333,9 @@ nicht an BA 1.
 ### BA 11 — Anleitung und README
 
 Anleitung und README in drei Sprachen: die Telefonfassung, der Umschalter, die
-Karte; der Absatz „Video ganz laden“ entfällt. README: `/dev/dri` und die Gruppe
-im Container, die unverschlüsselte Kopie in `/tmp` während des Laufs.
+Karte; der Absatz „Video ganz laden“ beschreibt den Knopf. README: `/dev/dri`
+und die Gruppe im Container, die unverschlüsselte Kopie in `/tmp` während des
+Laufs.
 
 ### BA 12 — Der Prüfstand
 
@@ -374,6 +379,9 @@ Fingerprint. Zahlen am fertigen Stand.
 13. Ein Video am Rechner und am Telefon bis zum Ende abspielen: kein Zucken,
     kein Sprung. Die Netzwerkanalyse des Browsers zeigt nur die Abrufe des
     Players (B2).
+14. „Ganz laden“ drücken: Das Video hält an, „geladen … %“ zählt hoch, danach
+    spielt es an derselben Stelle weiter. Springen braucht kein Laden mehr. Ein
+    zweiter Druck während des Ladens bricht ab (B2).
 
 ---
 
@@ -388,7 +396,7 @@ Fingerprint. Zahlen am fertigen Stand.
 | Standbild vom Server | das Standbild macht weiter der Browser |
 | Umwandeln zu festen Zeiten | eine Umwandlung zugleich mit Priorität 19 |
 | Videos des Eintrags und in Kommentaren | nach F5 |
-| „Video ganz laden“ erst beim Stocken oder auf Knopfdruck | F15 |
+| „Video ganz laden“ von selbst oder erst beim Stocken | F15 |
 
 ---
 
