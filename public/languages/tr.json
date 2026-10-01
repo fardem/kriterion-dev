@@ -1577,7 +1577,7 @@
   "server.fileEntryGone": "Bu dosyanın ait olduğu {entryOne} bulunamadı.",
   "server.fileGone": "Bu dosya artık yok.",
   "server.partialShare": "“Kısmen” eşiği {min} ile {max} arasında bir tam sayıdır.",
-  "server.fileName": "Uzantıdan önceki ad 1 ile {max} karakter arasında olmalı ve yalnızca noktalardan oluşmamalıdır.",
+  "server.fileName": "Uzantıdan önceki ad 1 ile {max} karakter arasında olmalı ve yalnızca noktalardan oluşmamalı.",
   "server.fileNameTaken": "Bu klasörde zaten “{name}” adlı bir dosya var.",
   "server.nameTakenLoose": "Klasörsüz dosyalar arasında zaten “{name}” adlı bir dosya var.",
   "server.fileNotText": "Bu dosya metin olarak okunamıyor.",

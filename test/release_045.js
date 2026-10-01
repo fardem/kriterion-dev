@@ -213,8 +213,11 @@ async function run() {
       tileOf(e.w, 'add')?.querySelector('.aface')?.getAttribute('aria-disabled') === 'true' && picked === 1 &&
       e.w.document.querySelector('.toast')?.textContent === deText('server.fileCap', { cap: 100, entryOne: ENTRY_ONE }),
       `${tileOf(e.w, 'add')?.querySelector('.ameta')?.textContent} · ${picked}`);
+    const threeFiles = JSON.stringify([1, 2, 3].map(id => ({ id, filename: `d${id}.txt`, mime_type: 'text/plain',
+      preview: 'text', size: 10 })));
+    const threeSum = e.w.eval(`blockSummary('dateien', { attachments: ${threeFiles} })`);
     check('Eingeklappt nennt der Blockkopf die Zahl der Dateien',
-      e.w.eval("blockSummary('dateien', { attachments: [1, 2, 3] })") === '3', 'andere Kurzfassung');
+      String(threeSum).startsWith(`${DE['entry.sumOthers'].other.replace('{n}', '3')} · `), threeSum || 'andere Kurzfassung');
     e.w.close();
   }
 
@@ -289,11 +292,12 @@ async function run() {
       !menuOf(w, 'f43').some(x => x.endsWith(DE['entry.editAll'])), ownOffice.join(' / '));
     check('Bearbeiten und die vorige Fassung stehen nur mit Recht da',
       equal(ownOffice, ['menuitem:' + DE['entry.openFile'], 'menuitem:' + DE['entry.edit'],
-        'menuitem:' + DE['entry.download'], 'menuitem:' + DE['entry.copyFileLink'],
-        'menuitem:' + DE['entry.restorePrevious'], 'menuitemcheckbox:' + DE['entry.editAll'],
-        'menuitem:' + DE['entry.deleteFile']]) &&
-      equal(foreignOffice, [DE['entry.openFile'], DE['entry.edit'], DE['entry.download'], DE['entry.copyFileLink']]),
-      foreignOffice.join(' / '));
+        'menuitem:' + DE['entry.download'], 'menuitem:' + DE['entry.copyFileLink'], 'menuitem:' + DE['entry.docInfo'],
+        'menuitem:' + DE['entry.renameFileMenu'], 'menuitem:' + DE['entry.restorePrevious'],
+        'menuitemcheckbox:' + DE['entry.editAll'], 'menuitem:' + DE['entry.deleteFile']]) &&
+      equal(foreignOffice, [DE['entry.openFile'], DE['entry.edit'], DE['entry.download'], DE['entry.copyFileLink'],
+        DE['entry.docInfo']]),
+      `${ownOffice.join(' / ')} || ${foreignOffice.join(' / ')}`);
     moreOf(w, 'f41')?.click();
     check('Der Kopf nennt Name und, ab zwei Accounts, wer wann hochgeladen hat',
       w.document.querySelector('.fmenu-name')?.textContent === 'notiz.txt' &&
