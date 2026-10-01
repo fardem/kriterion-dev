@@ -274,6 +274,23 @@ Quick Sync kodiert mit beiden Treibern aus Debian, auch mit dem freien
   Weg C drehte das Bild und verkleinerte es auf 608×1080. Seither gilt
   `-noautorotate` (Messverfahren, Abschnitt 4). Die Zeiten gelten.
 
+Dritte Messung des Betreibers am 2. Oktober 2026, 00:16, mit `-noautorotate`
+und der Bitrate des Videos:
+
+| Datei | Format | Video Mbit/s | Dauer | Weg A: Zeit | Faktor | CPU | Weg C: Zeit | Faktor | CPU | Größe |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 20260718_C3524.MP4 | H.264 1080p 29,97, hochkant | 15,4 | 1:25 | 0:16 | 5,3 | 12 % | 0:55 | 1,5 | 84 % | 82 MB |
+| 20260718_C3619.MP4 | HEVC 10 Bit 4K 59,94, hochkant | 45,2 | 0:59 | 0:29 | 2,0 | 16 % | 2:13 | 0,4 | 87 % | 56 MB |
+| 20260923_C3762.MP4 | HEVC 10 Bit 4K 59,94, hochkant | 45,1 | 1:05 | 0:35 | 1,9 | 15 % | 2:22 | 0,5 | 85 % | 62 MB |
+| IMG_2618.MOV | H.264 4K 24 | 45,0 | 2:17 | 0:31 | 4,4 | 11 % | 2:57 | 0,8 | 89 % | 132 MB |
+
+- Drei der vier Videos sind hochkant. Weg A ist gleich schnell geblieben.
+- Weg C braucht für `C3524` jetzt 0:55 statt 0:33: Er kodiert 1920×1080
+  statt der früheren 608×1080.
+- Die 4K-Videos der A6700 haben 45 Mbit/s im Video; die Datei hat 58 bis
+  64 Mbit/s mit Ton in LPCM und der Spur `rtmd`.
+- Ob die Proxys aus Weg A aufrecht stehen, prüft der Betreiber am Telefon.
+
 ### 2.8 Größen
 
 | Fassung | Bitrate | je Stunde |
