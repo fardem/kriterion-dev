@@ -179,20 +179,17 @@ sagt der Fahrplan.
 > Kopfzeile und von 57 das Laden des ganzen Videos. Neu ist 60.
 >
 > **Am 1. Oktober 2026 sind 61 bis 63 dazugekommen**, aus der Übersetzung der
-> Anleitung beim Bau von 0.53.0.
+> Anleitung beim Bau von 0.53.0. **Am selben Tag sind 42 und 60 bis 63 nach
+> 0.53.1 fortgezogen**; sie stehen mit ihrer Ausarbeitung im Fahrplan als B4
+> bis B8.
 
 ### Was ohne Nummer offen ist
 
 | steht in | worum es geht | Nutzen | Aufwand | Vorschlag |
 |---|---|---|---|---|
-| **42**, Fahrplan | Der Kommentaranteil von `public/style.css` liegt bei 40 Prozent — 1.215 von 3.029 Zeilen; offen ist, ob die gemessenen Zahlen in ein eigenes Papier wandern | niedrig | — | Entscheidung des Betreibers |
 | **20** | Nach einem Umbenennen holt die Oberfläche vier Antworten statt drei; die vierte ist die größte der Installation | niedrig | klein | liegen lassen |
 | **54** | „Dateien“ wie im Windows-Explorer: Auswahl mit Strg und Umschalt, Doppelklick zum Öffnen; die Kopfzeile ist in 0.52.0 | niedrig | mittel | liegen lassen |
 | **57** | Eine schnell abspielbare Fassung für das Telefon mit ffmpeg, nur wenn es schnell geht; erst messen | offen | offen | Messverfahren, dann Machbarkeit besprechen (Vorgabe) |
-| **60** | Dateien umbenennen; der Betreiber hat es am 30. September 2026 auf später gelegt | mittel | klein | eigene Runde |
-| **61** | Deutscher Text fest in `public/app.js`: „am … von …“ an einer Ablehnung, „… offen“ am Knopf für offene Aufgaben | mittel | klein | mit der nächsten Runde an den Texten |
-| **62** | Die Anleitung beschreibt „Eintrag exportieren“; den Knopf gibt es nicht | mittel | klein | Entscheidung des Betreibers |
-| **63** | Vier Namen der deutschen Anleitung weichen von `de.json` ab; `card.user` heißt englisch „User“ | niedrig | klein | mit der nächsten Runde an der Anleitung |
 | ~~Protokoll 0.38.2~~ | ~~Die Strichstärke des Löschkreuzes bleibt 1.8, dieselbe wie am Stift und am Zitatzeichen~~ | — | — | **ABGELEHNT am 21. September 2026** |
 | ~~Protokoll 0.38.2~~ | ~~Der Trefferausschnitt zeigt bei einem Treffer im Ziel eines Links den Rohtext samt seiner Marken~~ | — | — | **RUHT seit dem 21. September 2026** |
 | ~~Protokoll 0.38.3~~ | ~~Der Halt nach einem Sprung ist eine Frist von 1600 Millisekunden und keine Messung~~ | — | — | **RUHT seit dem 21. September 2026** |
@@ -2176,60 +2173,6 @@ der Betreiber einträgt.*
 
 ---
 
-## 42. Der Kommentaranteil des Stilblatts liegt bei 40 Prozent
-
-**Art: Idee** *(Quelltext)* **· Herkunft: 0.35.0 · Einschätzung: klein ·
-zweimal gekürzt**
-
-> **NACHGEMESSEN AM 19. SEPTEMBER 2026, GEBAUTER STAND 0.37.0:** der Anteil
-> liegt bei **40 Prozent** — 1.187 Kommentarzeilen von 2.963. *Gemessen an
-> den Bytes sind es 33,8 Prozent, 65.933 von 195.090.* **1.574 Zeilen in 409
-> Blöcken sind 1.187 in 443 geworden**, und von 184 Blöcken über drei Zeilen
-> bleiben acht — alle acht tragen eine Tafel gemessener Werte.
->
-> **`tools/comments.js` zählt das Blatt jetzt mit**, und der Prüfstand nennt
-> seine Zahl eigens: eine Quote bekommt es nicht, weil sie gemessene Zahlen
-> herausnähme. *Damit ist auch der dritte Schritt von Punkt 43 gebaut.*
-
-> **BERICHTIGT AM 19. SEPTEMBER 2026.** *Die Zeilenzahlen oben stimmen — 1.187
-> von 2.963 sind 40 Prozent.* **Die Byteangaben stimmen nicht:** „65.933 von
-> 195.090" nennt als Nenner die Dateigröße nach **0.35.0**, nicht die nach
-> 0.37.0. *Das Blatt misst seit BA 5 nur noch 167.501 Bytes.*
->
-> **Gemessen mit der Zählweise des Wächters selbst** *(`test/source.js`,
-> Gruppe „Das Stilblatt trägt weniger Kommentar als vorher")*: **78.771 von
-> 167.501 Bytes, also 47,0 Prozent**, in 443 Blöcken. *Der Wert 65.933 lässt
-> sich mit keiner der drei Zählweisen nachstellen.*
->
-> *Der Anteil ist damit trotzdem gefallen: nach 0.35.0 waren es 106.321 von
-> 195.090 Bytes, also 54,5 Prozent.*
->
-> **Was offen bleibt, ist die Entscheidung des Betreibers**, ob die Zahlen aus
-> den Kommentaren in ein eigenes Papier wandern. Sie steht unverändert.
-
-**DIE JAVASCRIPT-DATEIEN HALTEN SEIT 0.34.1 HÖCHSTENS 30 PROZENT KOMMENTAR JE
-DATEI.** `public/style.css` lag bei **70,5 Prozent** und liegt nach 0.35.0 bei
-**54,5** *(211.862 → 106.321 Bytes)*.
-
-*Weiter zu kürzen hieße, die gemessenen Zahlen aus den Kommentaren zu nehmen —
-die Kontrastwerte des Farbkonzepts, die Pixelrechnungen der Umbruchpunkte, die
-Messtafeln der Vorschaureihe.* **Abschnitt 9 des Auftrags zu 0.35.0 sagt, dass
-keine Quote gegen die Regel erzwungen wird**, und deshalb steht die Zahl hier
-statt in einer Prüfung mit 30.
-
-**`tools/comments.js` zählt dieses Blatt weiterhin nicht** — es zählt
-JavaScript. Der Wächter über das Stilblatt steht in `test/source.js` und hält
-den erreichten Stand *(höchstens 200.000 Bytes, davon höchstens 110.000 in
-Kommentarblöcken, und genau 1.639 Regelzeilen)*.
-
-**Was zu bauen wäre** — *entweder die Zahlen in ein eigenes Papier verschieben
-und aus den Kommentaren nehmen, oder die Zahl hinnehmen.* **Das ist eine
-Entscheidung des Betreibers und keine Messung.**
-
-**Was es anfasst** — `public/style.css`, `tools/comments.js`, `test/source.js`.
-
----
-
 ## 43. ~~Der Quelltext verweist auf Papiere, die nicht mitgehen~~ — **GEBAUT mit 0.37.0**
 
 **Art: Idee** *(Quelltext)* **· Herkunft: 0.35.0, beim Zuschnitt der
@@ -2801,65 +2744,3 @@ zweite Fassung.
 **Zu klären:** wie lange der N100 für ein echtes Video der A6700 braucht, mit
 Quick Sync und nur mit der CPU, und in welchem Format die Kamera aufnimmt. Das
 Messverfahren steht in `Doku/Messverfahren_Umwandlung.md`.
-
-## 60. Dateien umbenennen
-
-**Art: Wunsch** *(Prüfung von Zeile und Menü)* **· Herkunft: Auftrag 0.52.0,
-30. September 2026 · Einschätzung: klein · Fahrplan: offen**
-
-Ordner lassen sich umbenennen („Bearbeiten …“), Dateien nicht. In der Prüfung
-von Zeile und Menü zu 0.52.0 (Abschnitt 2.2 des Auftrags, Befund 9) fiel das
-auf; der Betreiber hat es am 30. September 2026 auf später gelegt (F7).
-
-**Der Weg:** nur eigene Dateien, die Endung bleibt; eine neue Route und ein
-Eintrag im Sicherheitsprotokoll. Offen ist, was mit einer Datei geschieht, die
-gerade im Document Server bearbeitet wird.
-
-## 61. Deutscher Text fest im Code der Oberfläche
-
-**Art: Fehler** *(Übersetzung der Anleitung)* **· Herkunft: Bau von 0.53.0,
-1. Oktober 2026 · Einschätzung: klein · Fahrplan: offen**
-
-Zwei Stellen in `public/app.js` setzen deutschen Text ein, den keine
-Sprachdatei kennt:
-
-- Die Zeile über der Begründung einer Ablehnung: `entry.rejectedBy` bekommt
-  „am …“ und „von …“ aus dem Code. Auf Türkisch steht dort „Reddedildi am
-  14.03.2026, 09:12 von Anna“.
-- Der Titel des Knopfs für offene Aufgaben in der Kopfzeile
-  (`drawHeadCounts()`): „3 Aufgaben offen“ in jeder Sprache.
-
-**Der Weg:** je ein Schlüssel mit Platzhaltern in den drei Sprachdateien.
-
-## 62. Die Anleitung beschreibt „Eintrag exportieren“
-
-**Art: Fehler** *(Übersetzung der Anleitung)* **· Herkunft: Bau von 0.53.0,
-1. Oktober 2026 · Einschätzung: klein · Fahrplan: offen**
-
-Der Abschnitt „Eintrag exportieren“ steht in allen drei Fassungen der
-Anleitung und nennt einen Knopf am Fuß des Eintrags. `public/app.js` hat
-keinen solchen Knopf, `de.json` keinen Schlüssel und der Server keine Route
-für den Export eines einzelnen Eintrags.
-
-**Zu klären:** ob der Abschnitt entfällt oder die Funktion kommen soll.
-
-## 63. Namen in der Anleitung und in `en.json`
-
-**Art: Fehler** *(Übersetzung der Anleitung)* **· Herkunft: Bau von 0.53.0,
-1. Oktober 2026 · Einschätzung: klein · Fahrplan: offen**
-
-Die deutsche Anleitung weicht an vier Stellen von `de.json` ab. Die englische
-und die türkische Fassung nehmen die Namen aus `en.json` und `tr.json`.
-
-| Anleitung | Sprachdatei |
-|---|---|
-| „Ähnlich: …“ | `list.similarTitles` „Ähnliche Titel:“ |
-| Status „Alles“ | `list.all` „Alle“ |
-| „Offen“ | `list.openTasks` „Offene {taskMany}“ |
-| die Karte „Verfahren der Ablage“ | `card.storeMethod` ist eine Zwischenüberschrift in der Karte „Bildformate“ |
-
-In `en.json` heißt der Abschnitt mit allen Accounts `card.user` „User“, in
-der Einzahl.
-
-**Der Weg:** die deutsche Anleitung angleichen, danach die englische und die
-türkische Fassung.
