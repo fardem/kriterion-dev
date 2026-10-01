@@ -1,6 +1,6 @@
 # Fahrplan
 
-**Der Plan von 0.41.0 bis 0.54.0 · Stand 1. Oktober 2026, 0.54.0 gebaut**
+**Der Plan von 0.41.0 bis 0.55.0 · Stand 1. Oktober 2026, 0.54.0 gebaut**
 
 *Hier stand bis 0.48.0 „0.47.1 gebaut“; 0.48.0 hat die Zeile nicht nachgeführt.*
 
@@ -212,6 +212,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.52.0**~~ | ~~**Dateien: Gruppieren, Sortieren mit Richtung, Kopfzeile; Erweiterte Infos; Video ganz laden**~~ | **GEBAUT am 30. September 2026** auf 0.51.0 — Änderungsprotokoll 0.52.0, nach `Doku/Auftrag_0.52.0.md`. Sortieren nach Name, Datum, Größe mit Richtungsknopf, gespeichert als `filesSort` mit Richtung (alte Werte gelten weiter); „Nach Typ gruppiert“ (`filesGroup`) in jeder Gruppe, das Vollbild blättert in derselben Folge; Kopfzeile der Liste am Rechner; ✎ und 🔗 in einer festen Spalte, Art, Größe und Datum stehen untereinander; „Art“ als Beschreibung, bei Videos Codec und Länge; Menü „…“ in fünf Gruppen, „Öffnen“ auch bei Bildern und Videos, „Vorschaubild wählen …“. „Erweiterte Infos“ zu Bildern und Videos mit `mediainfo.js` auf dem Server, neue Tabelle `attachment_media`, neue Route `GET /api/attachments/:id/info`, der Codec am Vorschaubild. Ein Video lädt beim Abspielen ganz, bis 2 GB am Rechner und 500 MB am Telefon, gemessen in Chromium. Punkt 58 behoben; Punkt 59 nachgestellt und im Prüfstand behoben. Das Messverfahren für den N100 liegt vor. **MINOR** *(1.431 → 1.482 Rückbauten, Prüfstand 7.912 → 7.975, Sprachschlüssel 1.359 → 1.410). Fingerprint `a4d2ab5e` (davor `7ace25ed`)* | **ja** | — |
 | ~~**0.53.0**~~ | ~~**Papierkorb für Dateien, Dateien aus Backups zurückholen; Erweiterte Infos, Sortieren nach Typ; README, Anleitung und CHANGELOG englisch**~~ | **GEBAUT am 1. Oktober 2026** auf 0.52.0 — Änderungsprotokoll 0.53.0, nach `Doku/Auftrag_0.53.0.md`. Eine einzeln gelöschte Datei liegt 30 Tage im Papierkorb, als Zeile in `trash` mit `content.kind = 'file'`, ihr Inhalt bleibt über `disk_files.trash_id` auf der Platte; der Eigentümer-Admin stellt sie mit Ordner, Verfasser und Datum wieder her. „Gelöschte Dateien …“ im Eintrag nennt die Dateien aus dem Papierkorb und aus allen lesbaren Backups und holt sie zurück, unter dem Lockfile des Backup-Ordners; eine öfter gespeicherte Datei kommt als eigene Datei mit „(Backup TT.MM.JJJJ)“ daneben, Dateien aus der Datenbank alter Backups werden neu verschlüsselt; je Datei eine Zeile `backup.fetch`. „Typ“ in „Dateien sortieren“ und in der Kopfzeile; „Audio“, „Container“ bei Videos, „H.264 (AVC)“ im Dialog und „H.264“ in Liste und Kacheln; Erweiterte Infos auch für Fotos und Videos des Eintrags (neue Tabelle `photo_media`, Route `GET /api/photos/:id/info`), ⓘ im Vollbild; bei offenem Dialog reagiert das Vollbild auf keine Taste (B2). README und Anleitung englisch, deutsch und türkisch; das CHANGELOG englisch, 2.865 → 1.451 Zeilen. **MINOR** *(1.482 → 1.520 Rückbauten, Prüfstand 7.975 → 8.040, Sprachschlüssel 1.410 → 1.431). Fingerprint `5e5fb3c7` (davor `a4d2ab5e`)* | **ja** | — |
 | ~~**0.54.0**~~ | ~~**Punkte aus der Abnahme von 0.53.0**~~ | **GEBAUT am 1. Oktober 2026** auf 0.53.0 — Änderungsprotokoll 0.54.0, nach `Doku/Auftrag_0.54.0.md`. Bilder nennen unter „Typ“ Format und Pixel wie angezeigt, „PNG · 1920 × 1080“, am Vorschaubild das Format (B1); eingebettete Vorschaubilder stehen unter „Bild“ als eine Zeile (B2); zugeklappt nennt „Dateien“ nur Zahlen und Größe (B3); „Umbenennen …“ mit `PUT /api/attachments/:id`, die Endung bleibt, gleiche Namen im selben Ordner werden abgelehnt (B4); feste Texte aus den Sprachdateien, „Eintrag exportieren“ und vier Namen der Anleitung, `card.users` (B5 bis B7); das Stilblatt durchgesehen, 524 → 514 Kommentarzeilen (B8); EXIF unter „Aufnahme“ mit `exif-reader`, Ort nur als „ja“ (B9); „Infos“ zu Office-, OpenDocument- und PDF-Dateien, neue Tabelle `attachment_changes` (B10); Filter „Potenzial“ und „Bewertung“ mit „Keine“ und „Teilweise“ an den eigenen Werten, Schwelle 80 % in „Bewertung: Kriterien“ (B11). **MINOR** *(1.520 → 1.575 Rückbauten, Prüfstand 8.040 → 8.110, Sprachschlüssel 1.431 → 1.489). Fingerprint `6402677f` (davor `5e5fb3c7`)* | **ja** | — |
+| **0.55.0** | **Eine Fassung der Videos für das Telefon; Punkte aus der Abnahme von 0.54.0** | Aufgenommen am 1. Oktober 2026. **Gebaut wird, wenn der Betreiber den Bau startet**; Punkte aus der Abnahme von 0.54.0 kommen dazu (Fragetafel vom 1. Oktober 2026). B1: Am Telefon spielt ein Video unter „Dateien“ eine kleinere Fassung in H.264 und AAC, die ffmpeg im Hintergrund erzeugt (Punkt 57). B1 wird erst gebaut, wenn die Zahlen aus `Doku/Messverfahren_Umwandlung.md` vorliegen und der Betreiber mit ihnen entschieden hat (Vorgabe vom 30. September 2026, F1) (Abschnitt 0.55.0, Auftrag `Doku/Auftrag_0.55.0.md`, F1 bis F14 am 1. Oktober 2026 beantwortet) | offen | — |
 | ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. Die zwei offenen Punkte des Eintrags stehen in der Zeile darunter | — | — |
 | ~~*ohne Nummer*~~ | ~~**Vorgabewerte und Tastaturbedienung beim Sortieren**~~ | **VORLÄUFIG GESTRICHEN am 21. September 2026:** der Inhalt ist nirgends beschrieben — weder hier noch im Sammelblatt noch im Projektstand steht, welche Vorgabewerte gemeint sind und was die Tastatur beim Sortieren tun soll. *Die Zeile kommt zurück, sobald der Betreiber sagt, was gemeint war.* | — | — |
 | ~~*ohne Nummer*~~ | ~~**Die Doppelung in der README auflösen**~~ | **GEBAUT mit 0.38.0 am 19. September 2026.** *Befund aus BA 6 der 0.37.0: zwei Abschnitte der README trugen dieselben drei Sachverhalte — dass eine fehlende Spalte nicht nachgerüstet wird, dass der Kasten jede fehlende Spalte samt altem Namen nennt, und dass die Instanz startet, aber jede Seite scheitert, die eine der Spalten liest.* **Jetzt verweist jeder der beiden auf den anderen:** `README.md`:348 nach unten, `README.md`:464 nach oben. *0.38.5 hat die README danach noch einmal gegliedert.* | nein | — |
@@ -4249,6 +4250,57 @@ Der Weg: eine neue Zeile mit den Gruppen „Potenzial“ und „Bewertung“, je
 weniger eigene Werte als die Schwelle, Vorgabe 80 % der Kriterien der Phase.
 Die Schwelle stellt ein Admin unter Einstellungen › Bestand ein. Die Antworten
 stehen im Auftrag (F20 bis F26).
+
+---
+
+## 0.55.0 — „Eine Fassung der Videos für das Telefon; Punkte aus der Abnahme von 0.54.0“
+
+**Aufgenommen am 1. Oktober 2026.** Fragetafel vom selben Tag: Punkt 57 kommt
+in diese Runde. Angeboten waren dazu 52, 54 und die Angaben aus gepackten
+PDF-Objektströmen; sie bleiben offen. Die Runde bleibt für weitere Punkte
+offen: Punkte aus der Abnahme von 0.54.0 kommen ohne Rückfrage hierher.
+Gebaut wird, wenn der Betreiber den Bau startet.
+
+**Der Auftrag steht in `Doku/Auftrag_0.55.0.md`**, F1 bis F14 am 1. Oktober
+2026 in vier Fragetafeln beantwortet. B1 wird erst gebaut, wenn die Zahlen aus
+`Doku/Messverfahren_Umwandlung.md` vorliegen und der Betreiber mit ihnen
+entschieden hat (F1).
+
+| | Punkt | Vorgabe des Betreibers |
+|---|---|---|
+| B1 | Eine Fassung der Videos für das Telefon (Punkt 57) | „für mobil mit ffmpeg, egal welches Format das hat, eine schnell abspielbare Konvertierung durchführen lassen“ und „ffmpeg lohnt sich nur, wenn es schnell geht“ (30. September 2026). Fragetafeln vom 1. Oktober 2026: in 0.55.0; ffmpeg im Image unter einer eigenen Benutzernummer; ohne Quick Sync wandelt die CPU um; 1080p30 mit 5 Mbit/s; auch `mkv`, `avi`, `wmv` und `flv`; am Telefon mit Umschalter zum Original; nicht im Backup |
+
+#### B1 — Eine Fassung der Videos für das Telefon
+
+Die Ausarbeitung steht so, wie sie als Punkt 57 im Sammelblatt stand.
+
+**Art: Wunsch** *(Betreiber)* **· Herkunft: Abnahme von 0.51.0, 30. September
+2026 · Einschätzung: offen · Fahrplan: 0.55.0**
+
+Vom Punkt „Vorpuffern im Player“ ist das Laden des ganzen Videos mit 0.52.0
+fortgezogen; die ganze Ausarbeitung steht im Fahrplan unter 0.52.0. Der Cache
+bleibt, wie er ist (Vorgabe des Betreibers vom 30. September 2026). Offen ist
+die zweite, kleinere Fassung für das Telefon.
+
+**Vorgabe des Betreibers:** Vor einer Umsetzung wird die Machbarkeit
+besprochen und abgestimmt. ffmpeg lohnt sich nur, wenn es schnell geht.
+
+**Server:** Intel N100 (Angabe des Betreibers). Seine Grafik hat Quick Sync.
+In Hardware dekodiert sie H.264 nur mit 8 Bit und 4:2:0, HEVC auch mit 10 Bit
+und 4:2:2, dazu VP9 und AV1; sie kodiert H.264 und HEVC. XAVC HS der A6700
+(HEVC) geht damit in Hardware, XAVC S mit 4:2:2 und 10 Bit und XAVC S-I
+(H.264) nicht; die rechnet die CPU allein. Im Container braucht es `/dev/dri`,
+ffmpeg mit VA-API und den Intel-Mediatreiber.
+
+**Der Weg:** ffmpeg wandelt jedes Format nach H.264 und AAC in MP4 mit dem
+`moov`-Kasten vorn (`-movflags +faststart`), etwa 1080p30 mit 5 Mbit/s, rund
+2,3 GB je Stunde. Umgewandelt wird im Hintergrund nach dem Upload, wie bei den
+Vorschaubildern. Braucht ffmpeg im Image, Rechenzeit je Video und Platz für die
+zweite Fassung.
+
+**Zu klären:** wie lange der N100 für ein echtes Video der A6700 braucht, mit
+Quick Sync und nur mit der CPU, und in welchem Format die Kamera aufnimmt. Das
+Messverfahren steht in `Doku/Messverfahren_Umwandlung.md`.
 
 ---
 
