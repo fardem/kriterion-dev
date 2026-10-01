@@ -446,3 +446,43 @@ say ""
 say "Fertig. Die Proxys liegen als *.proxy-A.mp4, *.proxy-B.mp4 und *.proxy-C.mp4 neben den Videos."
 say "Images entfernen: docker image rm kriterion-messung:intel-media-va-driver kriterion-messung:intel-media-va-driver-non-free"
 ```
+
+---
+
+## 7. Probebau: schlankes ffmpeg
+
+Für F19 im Auftrag gemessen am 1. Oktober 2026, in der Sitzung von Claude. Die
+Quellen `ffmpeg_7.1.5.orig.tar.xz` kommen aus Debian 13
+(`apt-get source --download-only ffmpeg` mit `deb-src` für `trixie`) und liegen
+neben dem `Dockerfile`. `docker build -t kriterion-messung:schlank .` baut es.
+
+| Image | Größe |
+|---|---|
+| `node:22-bookworm-slim` | 227 MB |
+| mit `ffmpeg` und `intel-media-va-driver` aus Debian | 705 MB |
+| mit diesem schlanken ffmpeg und `intel-media-va-driver` | 263 MB |
+
+```dockerfile
+FROM node:22-bookworm-slim AS ffbuild
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends build-essential nasm pkg-config xz-utils \
+      libx264-dev libva-dev libdrm-dev libdav1d-dev zlib1g-dev \
+ && rm -rf /var/lib/apt/lists/*
+COPY ffmpeg_7.1.5.orig.tar.xz /src/
+WORKDIR /src
+RUN tar xf ffmpeg_7.1.5.orig.tar.xz && cd ffmpeg-7.1.5 \
+ && ./configure --prefix=/opt/ff --disable-debug --disable-doc --disable-ffplay --disable-ffprobe \
+      --disable-autodetect --enable-gpl --enable-libx264 --enable-libdav1d --enable-vaapi --enable-libdrm --enable-zlib \
+      --disable-encoders --enable-encoder=libx264,h264_vaapi,aac \
+      --disable-muxers --enable-muxer=mp4,mov,null \
+      --disable-filters --enable-filter=scale,scale_vaapi,format,hwupload,null,anull,aresample,aformat,testsrc2 \
+      --disable-devices --enable-indev=lavfi \
+      --disable-protocols --enable-protocol=file,pipe,http,tcp \
+ && make -j"$(nproc)" && make install && strip /opt/ff/bin/ffmpeg
+
+FROM node:22-bookworm-slim
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends libx264-164 libva2 libva-drm2 libdrm2 libdav1d6 intel-media-va-driver \
+ && rm -rf /var/lib/apt/lists/*
+COPY --from=ffbuild /opt/ff/bin/ffmpeg /usr/local/bin/ffmpeg
+```

@@ -41,8 +41,9 @@ Zeilennummern gelten für `bf925e9` (0.54.0).
 | V13 | B1 | „die Qualität war ok, vermutlich wäre dann 7,5 Mbit etwas besser“ und „wir können ja noch einen Test machen mit 7,5 Mbit, so ein Mittelding“: Anlass für F21 |
 | V14 | B1 | „wenn wir diesen Weg gehen, sollte es so sein, dass Proxys da sein können, aber wenn sie nicht da sind, darf kein Fehler verursacht werden. Dann wird im Hintergrund einfach einer angelegt … also ein unkomplizierter, smoother Flow“ |
 | V15 | B1 | „das Problem ist, dass jede Maschine anders ist; wenn ich das veröffentliche und wir brauchen das, muss das gut dokumentiert sein“ |
+| V16 | B1 | „zu Forschungszwecken ist das ja ok, aber wenn wir es veröffentlichen, muss es für alle Menschen, oder meistens Menschen, ein gangbarer Weg sein und nicht ein sehr spezieller, nerdiger Weg“ |
 
-V1, V2 und V7 bis V15 vom 1. Oktober 2026.
+V1, V2 und V7 bis V16 vom 1. Oktober 2026.
 
 ### Fragen
 
@@ -66,7 +67,7 @@ V1, V2 und V7 bis V15 vom 1. Oktober 2026.
 | F16 | B1: Die Bildrate bleibt wie im Original (V10). Bleibt es bei 1080p, wenn das Original mehr Zeilen hat? | ja, 1080p: 4K wird auf 1920×1080 verkleinert · nein, Pixel wie im Original, nur die Bitrate sinkt | **ja, 1080p** (Empfehlung) |
 | F17 | B1: Welche Bitrate bekommen Videos mit mehr als 30 Bildern je Sekunde? | steigt mit der Bildrate: 5 Mbit/s bis 30p, 8 Mbit/s bei 50p und 60p, 16 Mbit/s bei 100p und 120p · immer 5 Mbit/s · bis 30p 5, sonst 8 Mbit/s | **steigt mit der Bildrate** (Empfehlung) |
 | F18 | B1: Wie heißt die kleine Fassung in Kriterion (V11)? | Proxy · Lowres · Telefonfassung bleibt | **Proxy** (Empfehlung) |
-| F19 | B1: Wie kommt ffmpeg ins Image (F2)? Gemessen in Abschnitt 2.6 | Pakete aus Debian: das Image wächst um 478 MB, mit dem Treiber aus `non-free` um 507 MB; Updates kommen mit Debian · ffmpeg im ersten Abschnitt des `Dockerfile` selbst übersetzen, nur mit den nötigen Teilen; die Größe misst erst der Bau, jedes Update von ffmpeg geht von Hand | offen; Empfehlung: Pakete aus Debian |
+| F19 | B1: Wie kommt ffmpeg ins Image (F2)? Gemessen in Abschnitt 2.6 | Pakete aus Debian mit dem freien Treiber: 705 MB statt 227 MB, ffmpeg 5.1.9; Updates kommen mit Debian · ffmpeg 7.1 im ersten Abschnitt des `Dockerfile` selbst übersetzen, nur mit den nötigen Teilen: 263 MB; jede neue Version von ffmpeg trägt jemand im `Dockerfile` nach | offen; Empfehlung: Pakete aus Debian, der Standardweg (V16) |
 | F20 | B1: Gehen wir den Weg mit Proxys (B1 bauen)? Messung in Abschnitt 2.7, ohne Quick Sync | ja, Quick Sync parallel klären · erst Quick Sync, dann neu messen · nein, nur B2 | offen (Tafel weggeklickt); Empfehlung: ja |
 | F21 | B1: Welche Bitrate bekommt der Proxy (V13)? Die Bitrate ändert die Dauer nicht (Abschnitt 2.7) | immer 7,5 Mbit/s · ab 7,5 steigend: 12 bei 50p und 60p, 24 bei 100p und 120p · bleibt 5, 8, 16 (F17) | offen (Tafel weggeklickt); Empfehlung: immer 7,5 Mbit/s |
 | F22 | B1: Proxy im Papierkorb, im Backup und im Export (V12, statt F12)? | Papierkorb ja, Backup und Export nein · überall wie das Original · nirgends (F12) | offen (Tafel weggeklickt); Empfehlung: Papierkorb ja, Backup und Export nein |
@@ -202,7 +203,15 @@ die Datei nur einmal, und das Video springt nicht (B2).
   sind `libllvm15` (112 MB, über Mesa), `libicu72` (35 MB), `libflite1`
   (27 MB), `libmfx1` (27 MB) und `libgl1-mesa-dri` (25 MB). Debian liefert
   ffmpeg 5.1.9 und den Treiber 23.1.1. Die „rund 100 MB“ aus
-  `Doku/Entwicklung.md` waren nicht gemessen (F19).
+  `Doku/Entwicklung.md` waren nicht gemessen (F19). Der freie Treiber reicht
+  (Abschnitt 2.7); `non-free` ist nicht nötig.
+- Probebau am 1. Oktober 2026, schlankes ffmpeg 7.1.5 aus den Quellen von
+  Debian 13: alle Decoder und Container zum Lesen, zum Schreiben libx264,
+  `h264_vaapi`, AAC und MP4, dazu VA-API und dav1d; das `Dockerfile` steht im
+  Messverfahren, Abschnitt 7. Das Image hat 263 MB, das Programm `ffmpeg`
+  17 MB; der Bau dauerte in der Sitzung von Claude (4 Kerne) 2 min 35 s. Weg C
+  geprüft mit HEVC 4K50 mit HLG, dem Proxy der A6700 hochkant und einer
+  `mkv`-Datei; Quick Sync nicht geprüft.
 
 ### 2.7 Quick Sync und die Messung
 
