@@ -49,13 +49,13 @@ Alle vom 1. Oktober 2026.
 | F10 | B3, B5: „keine“ und „leer“ in `blockSummary()` | über die Sprachdateien · bleiben || **über die Sprachdateien** (Empfehlung) |
 | F11 | B6: „Eintrag exportieren“ in der Anleitung | der Abschnitt entfällt in allen drei Fassungen · die Funktion kommt || **der Abschnitt entfällt** (Empfehlung) |
 | F12 | B8: Tafeln gemessener Werte im Stilblatt | bleiben im Kommentar · wandern in ein Papier in `Doku/` || **bleiben im Kommentar** (Empfehlung) |
-| F13 | B9: welche EXIF-Felder? | Aufnahmezeit, Kamera, Objektiv, Belichtungszeit, Blende, ISO, Brennweite · dazu Blitz, Software, Urheber, Copyright · nur Aufnahmezeit und Kamera | |
-| F14 | B9: GPS-Position in der Datei? | nur „Ort in der Datei: ja“ · die Koordinaten · gar nichts | |
-| F15 | B9: womit wird EXIF gelesen? | `exif-reader` 2.0.3 · ein eigener Leser in `attachments.js` | |
-| F16 | B10: welche Angaben? | aus Kriterion und aus der Datei · nur aus Kriterion · nur aus der Datei | |
-| F17 | B10: die Änderungszeit der Datei vom Rechner beim Hochladen behalten? | ja, in der neuen Tabelle · nein | |
-| F18 | B10: Name des Menüpunkts | „Infos“ bei Dokumenten, „Erweiterte Infos“ bei Bildern und Videos · „Infos“ für alle Dateien | |
-| F19 | B10: welche Dokumente? | Office, OpenDocument und PDF · dazu Textdateien · nur Office und PDF | |
+| F13 | B9: welche EXIF-Felder? | Aufnahmezeit, Kamera, Objektiv, Belichtungszeit, Blende, ISO, Brennweite · dazu Blitz, Software, Urheber, Copyright · nur Aufnahmezeit und Kamera || **die wichtigsten** (Empfehlung) |
+| F14 | B9: GPS-Position in der Datei? | nur „Ort in der Datei: ja“ · die Koordinaten · gar nichts || **nur „Ort in der Datei: ja“** (Empfehlung) |
+| F15 | B9: womit wird EXIF gelesen? | `exif-reader` 2.0.3 · ein eigener Leser in `attachments.js` || **`exif-reader` 2.0.3** (Empfehlung) |
+| F16 | B10: welche Angaben? | aus Kriterion und aus der Datei · nur aus Kriterion · nur aus der Datei || **aus Kriterion und aus der Datei** (Empfehlung) |
+| F17 | B10: die Änderungszeit der Datei vom Rechner beim Hochladen behalten? | ja, in der neuen Tabelle · nein || **ja, in der neuen Tabelle** (Empfehlung) |
+| F18 | B10: Name des Menüpunkts | „Infos“ bei Dokumenten, „Erweiterte Infos“ bei Bildern und Videos · „Infos“ für alle Dateien || **„Infos“ bei Dokumenten** (Empfehlung) |
+| F19 | B10: welche Dokumente? | Office, OpenDocument und PDF · dazu Textdateien · nur Office und PDF || **Office, OpenDocument und PDF** (Empfehlung) |
 
 ---
 
