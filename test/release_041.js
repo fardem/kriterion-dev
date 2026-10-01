@@ -610,7 +610,7 @@ async function run() {
     check('Kein Wert in de.json sagt „Sicherung" ausser „Sicherung der Datenbank"',
       deHits.length === 0, deHits.join(' ') || 'keiner');
     const sources = [
-      ['README.md', readText('README.md').split('\n')],
+      ['README-de.md', readText('README-de.md').split('\n')],
       ['manual-de.md', readText('manual-de.md').split('\n')],
       ['.env.example', hashComments(readText('.env.example'))],
       ['docker-compose.example.yml', hashComments(readText('docker-compose.example.yml'))],
@@ -666,7 +666,7 @@ async function run() {
   group('Englische Bezeichnungen in neuen Installationen');
   {
     const GERMAN = /kriterion-sicherung|\/app\/sicherung|\/sicherung\b|kriterion-alt\b|sicherung-data-|kriterion-probe|vor-schluesselwechsel|usertool\.js (liste|passwort|entfernen|eigentuemer|zweifaktor)\b|--eintraege|--beitraege|keytool\.(sh|js) (zeigen|wechseln)\b|--wer\b|--ja\b/;
-    const readme = readText('README.md');
+    const readme = readText('README-de.md');
     const bashBlocks = [...readme.matchAll(/```(?:bash|sh|yaml)?\n([\s\S]*?)```/g)].flatMap(m => m[1].split('\n'));
     const places = [
       ['.env.example', readText('.env.example').split('\n')],

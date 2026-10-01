@@ -722,8 +722,8 @@ const EVENTS = [
   // twofactor.reset: ein Wiederherstellungscode wurde verbraucht.
   'twofactor.on', 'twofactor.off', 'twofactor.reset',
   /* key: Wechsel des Datenbankschluessels ueber keytool.js, immer ohne actor.
-     backup.delete: eine Zeile je entferntes Backup. */
-  'export', 'import', 'backup', 'backup.delete', 'key'
+     backup.delete und backup.fetch: eine Zeile je Backup oder zurueckgeholte Datei. */
+  'export', 'import', 'backup', 'backup.delete', 'backup.fetch', 'key'
 ];
 // Erlaubte Werte fuer detail.
 const DETAILS = ['user', 'admin', 'owner', 'active', 'locked',
@@ -782,7 +782,7 @@ const LOG_GROUPS = {
           'user.delete', 'user.self', 'link.new', 'link.use',
           'request.approve', 'request.reject'],
   twofactor: ['twofactor.on', 'twofactor.off', 'twofactor.reset'],
-  inventory: ['export', 'import', 'backup', 'backup.delete', 'key']
+  inventory: ['export', 'import', 'backup', 'backup.delete', 'backup.fetch', 'key']
 };
 
 const LOG_COLUMNS =

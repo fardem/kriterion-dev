@@ -3413,7 +3413,7 @@ const REGRESSIONS = [
   },
   {
     nr: '478', name: 'Die README nennt den Pflichtschritt zur Compose-Datei nicht mehr',
-    file: 'README.md',
+    file: 'README-de.md',
     search: "**Der Schritt `cp docker-compose.example.yml docker-compose.yml` ist Pflicht.**",
     replacement: "",
     expected: 'Die Compose-Datei wird nicht ueberschrieben'
@@ -4037,9 +4037,9 @@ const REGRESSIONS = [
   {
     nr: '560', name: 'Der Vorgang sicherung.weg steht in keiner Gruppe',
     file: 'auth.js',
-    search: "  inventory: ['export', 'import', 'backup', 'backup.delete', 'key']",
-    replacement: "  bestand: ['export', 'import', 'backup', 'key']",
-    expected: 'Das Sicherheitsprotokoll: die Gruppen des Filters'
+    search: "  inventory: ['export', 'import', 'backup', 'backup.delete', 'backup.fetch', 'key']",
+    replacement: "  bestand: ['export', 'import', 'backup', 'backup.fetch', 'key']",
+    expected: 'Das Sicherheitsprotokoll in der Oberflaeche'
   },
   {
     nr: '561', name: 'Die Karte „Alte Sicherungen" faellt aus dem Systembereich',
@@ -8171,7 +8171,7 @@ const REGRESSIONS = [
   /* ---- Das Inhaltsverzeichnis der Anleitung ---- */
   {
     nr: '1189', name: 'Eine Sprungmarke der README zeigt auf nichts',
-    file: 'README.md',
+    file: 'README-de.md',
     search: "- [Konfiguration](#konfiguration)",
     replacement: "- [Konfiguration](#einstellungen-der-dateien)",
     expected: "Die Anleitung liegt in zwei Dateien \u2014 0.34.2"
@@ -8270,21 +8270,21 @@ const REGRESSIONS = [
   },
   {
     nr: '1196', name: 'Das Lizenzabzeichen faellt aus der README',
-    file: 'README.md',
+    file: 'README-de.md',
     search: "![Lizenz](https://img.shields.io/badge/Lizenz-MIT-informational)\n",
     replacement: "",
     expected: 'Die Lizenz geht mit hinaus'
   },
   {
     nr: '1197', name: 'Die README nennt die LGPL-Pakete nicht mehr',
-    file: 'README.md',
+    file: 'README-de.md',
     search: "**Die zwei LGPL-Pakete sind `@img/sharp-libvips-linux-x64` und\n`@img/sharp-libvips-linuxmusl-x64`**",
     replacement: "**Die zwei LGPL-Pakete gehoeren zur Bildbibliothek**",
     expected: 'Die Lizenz geht mit hinaus'
   },
   {
     nr: '1198', name: 'Der Transparenzvermerk faellt aus der README',
-    file: 'README.md',
+    file: 'README-de.md',
     search: "## Wie dieser Code entstanden ist",
     replacement: "## Woher der Code kommt",
     expected: 'Die Lizenz geht mit hinaus'
@@ -9074,8 +9074,8 @@ const REGRESSIONS = [
   {
     nr: '1313', name: 'Der Server zaehlt je Eintrag bis 20',
     file: 'server.js',
-    search: "  if (fileSlots(itemId) >= FILES_PER_ENTRY)",
-    replacement: "  if (fileSlots(itemId) >= 20)",
+    search: "  if (fileSlots(itemId) >= FILES_PER_ENTRY)\n    return res.status(400)",
+    replacement: "  if (fileSlots(itemId) >= 20)\n    return res.status(400)",
     expected: "Dateien in Kacheln: 100 je Eintrag"
   },
   {
@@ -9502,8 +9502,8 @@ const REGRESSIONS = [
   {
     nr: '1385', name: "Die Datei wird vor dem Commit geloescht",
     file: 'server.js',
-    search: "  db.prepare('DELETE FROM attachments WHERE id = ?').run(req.params.id);\n  // Sortiernummern lueckenlos halten, wie bei Fotos und Links.",
-    replacement: "  const early = qDiskName.get(req.params.id);\n  if (early) fs.rmSync(diskPath(early.name), { force: true });\n  db.prepare('DELETE FROM attachments WHERE id = ?').run(req.params.id);\n  // Sortiernummern lueckenlos halten, wie bei Fotos und Links.",
+    search: "    fileIntoTrash(Number(req.params.id), req.user.id);\n    db.prepare('DELETE FROM attachments WHERE id = ?').run(req.params.id);",
+    replacement: "    const early = qDiskName.get(req.params.id);\n    if (early) fs.rmSync(diskPath(early.name), { force: true });\n    fileIntoTrash(Number(req.params.id), req.user.id);\n    db.prepare('DELETE FROM attachments WHERE id = ?').run(req.params.id);",
     expected: "Platte: Trigger und Loeschliste"
   },
   {
@@ -10012,7 +10012,7 @@ const REGRESSIONS = [
   },
   {
     nr: '1459', name: "Der Pfad fuer NPMplus traegt wieder {32}",
-    file: 'README.md',
+    file: 'README-de.md',
     search: "  `^/api/(import|uploads/[0-9a-f]+|(items|comments)/[0-9]+/(photos|videos|comments|images))$`",
     replacement: "  `^/api/(import|uploads/[0-9a-f]{32}|(items|comments)/[0-9]+/(photos|videos|comments|images))$`",
     expected: "Reverse Proxy: die Pfade fuer NPMplus in der README"
@@ -10189,7 +10189,7 @@ const REGRESSIONS = [
   {
     nr: '1484', name: "Die Auswahl loescht ohne Rueckfrage",
     file: 'public/app.js',
-    search: "    if (!await confirmBox(t('entry.pickDeleteAsk', { n: chosen.length }), t('entry.pickDeleteHint'))) return;\n",
+    search: "    if (!await confirmBox(t('entry.pickDeleteAsk', { n: chosen.length }),\n      t('entry.pickTrashHint', { trashDays: TRASH_DAYS }))) return;\n",
     replacement: "",
     expected: "Auswahl unter „Dateien\" im Browser"
   },
@@ -10588,8 +10588,8 @@ const REGRESSIONS = [
   {
     nr: '1541', name: "Die Ordner zaehlen nach Groesse ihre Nummer",
     file: 'public/app.js',
-    search: "    const by = key === 'name' ? (x, y) => byName(x.name, y.name) : (x, y) => sum(x) - sum(y);",
-    replacement: "    const by = key === 'name' ? (x, y) => byName(x.name, y.name) : (x, y) => x.id - y.id;",
+    search: "    const by = key === 'name' || key === 'type' ? (x, y) => byName(x.name, y.name) : (x, y) => sum(x) - sum(y);",
+    replacement: "    const by = key === 'name' || key === 'type' ? (x, y) => byName(x.name, y.name) : (x, y) => x.id - y.id;",
     expected: "Sortieren mit Richtung"
   },
   {
@@ -10721,7 +10721,7 @@ const REGRESSIONS = [
   {
     nr: '1560', name: "Der Codec fehlt am Vorschaubild",
     file: 'public/app.js',
-    search: "codec: video ? a.codec || '' : '',",
+    search: "codec: video ? codecName(a.codec) : '',",
     replacement: "codec: '',",
     expected: "Erweiterte Infos: Dialog und Codec am Vorschaubild"
   },
@@ -10749,7 +10749,7 @@ const REGRESSIONS = [
   {
     nr: '1564', name: "Nach dem Dialog steht der Fokus nirgends",
     file: 'public/app.js',
-    search: "      () => { if (li.isConnected) li.querySelector('.amore')?.focus(); }, null);",
+    search: "      () => { if (back && back.isConnected) back.focus(); }, null);",
     replacement: "      () => {}, null);",
     expected: "Erweiterte Infos: Dialog und Codec am Vorschaubild"
   },
@@ -10850,6 +10850,272 @@ const REGRESSIONS = [
     search: "    if (whole || !source || navigator.connection?.saveData",
     replacement: "    if (!source || navigator.connection?.saveData",
     expected: "Video ganz laden"
+  },
+  {
+    nr: '1579', name: "Eine geloeschte Datei geht nicht in den Papierkorb",
+    file: 'server.js',
+    search: "    fileIntoTrash(Number(req.params.id), req.user.id);\n",
+    replacement: "",
+    expected: "Papierkorb fuer Dateien: Loeschen legt ab"
+  },
+  {
+    nr: '1580', name: "Der Papierkorb haelt die Datei nicht auf der Platte",
+    file: 'server.js',
+    search: "  diskFileIntoTrash.run(row, id);\n",
+    replacement: "",
+    expected: "Papierkorb fuer Dateien: Loeschen legt ab"
+  },
+  {
+    nr: '1581', name: "Jeder Admin stellt Dateien wieder her",
+    file: 'server.js',
+    search: "app.post('/api/trash/:id/restore', ownerOnly,",
+    replacement: "app.post('/api/trash/:id/restore', adminOnly,",
+    expected: "Papierkorb fuer Dateien: Wiederherstellen"
+  },
+  {
+    nr: '1582', name: "Der geloeschte Ordner entsteht nicht neu",
+    file: 'server.js',
+    search: "function folderBack(itemId, old, made) {\n  if (!old) return null;\n",
+    replacement: "function folderBack(itemId, old, made) {\n  return null;\n",
+    expected: "Papierkorb fuer Dateien: Wiederherstellen"
+  },
+  {
+    nr: '1583', name: "Die Datei kommt ohne Verfasser zurueck",
+    file: 'server.js',
+    search: "  if (!p || p.id == null) return null;\n  const u = qAccountOf.get(p.id);\n",
+    replacement: "  return null;\n  const u = qAccountOf.get(p.id);\n",
+    expected: "Papierkorb fuer Dateien: Wiederherstellen"
+  },
+  {
+    nr: '1584', name: "Das Standbild kommt nicht zurueck",
+    file: 'server.js',
+    search: "  const still = bytes(f.still);\n  if (still) putStill.run(id, f.duration ?? null, still);\n",
+    replacement: "",
+    expected: "Papierkorb fuer Dateien: Wiederherstellen"
+  },
+  {
+    nr: '1585', name: "Der Papierkorb fuellt den Eintrag ueber 100 Dateien",
+    file: 'server.js',
+    search: "  if (itemId == null) throw refusal(404, 'server.fileEntryGone');\n  if (fileSlots(itemId) >= FILES_PER_ENTRY) throw refusal(400, 'server.fileCap', { cap: FILES_PER_ENTRY });\n",
+    replacement: "  if (itemId == null) throw refusal(404, 'server.fileEntryGone');\n",
+    expected: "Papierkorb fuer Dateien: Frist, Grenze und geloeschter Eintrag"
+  },
+  {
+    nr: '1586', name: "Nach dem Papierkorb findet die Datei ihren Eintrag nicht",
+    file: 'server.js',
+    search: "const entryOf = (e) => (e ? (qEntrySame.get(e.id, e.created_at) || qEntryLike.get(e.created_at, e.title))?.id ?? null",
+    replacement: "const entryOf = (e) => (e ? qEntrySame.get(e.id, e.created_at)?.id ?? null",
+    expected: "Papierkorb fuer Dateien: Frist, Grenze und geloeschter Eintrag"
+  },
+  {
+    nr: '1587', name: "Nach der Frist bleibt die Datei auf der Platte",
+    file: 'server.js',
+    search: "  if (cleanupTrash()) sweepSoon();\n",
+    replacement: "  cleanupTrash();\n",
+    expected: "Papierkorb fuer Dateien: Frist, Grenze und geloeschter Eintrag"
+  },
+  {
+    nr: '1588', name: "Die Karte haelt jeden Eintrag fuer vorhanden",
+    file: 'server.js',
+    search: "    size: f.size, entryThere: entryOf(item) != null };",
+    replacement: "    size: f.size, entryThere: true };",
+    expected: "Papierkorb fuer Dateien: Frist, Grenze und geloeschter Eintrag"
+  },
+  {
+    nr: '1589', name: "Der Dialog liest keine Backups",
+    file: 'server.js',
+    search: "  for (const d of list) {\n    let probe;\n",
+    replacement: "  for (const d of []) {\n    let probe;\n",
+    expected: "Dateien aus Backups zurueckholen: B zurueck, D bleibt"
+  },
+  {
+    nr: '1590', name: "Jeder Admin sieht die geloeschten Dateien",
+    file: 'server.js',
+    search: "app.get('/api/items/:id/deleted-files', ownerOnly,",
+    replacement: "app.get('/api/items/:id/deleted-files', adminOnly,",
+    expected: "Dateien aus Backups zurueckholen: B zurueck, D bleibt"
+  },
+  {
+    nr: '1591', name: "Das Zurueckholen steht nicht im Sicherheitsprotokoll",
+    file: 'server.js',
+    search: "                auth.log('backup.fetch', { actor: req.user.id });\n",
+    replacement: "",
+    expected: "Dateien aus Backups zurueckholen: B zurueck, D bleibt"
+  },
+  {
+    nr: '1592', name: "Oefter gespeicherte Dateien fehlen im Dialog",
+    file: 'server.js',
+    search: "  if (now !== undefined && !(now > r.saves)) return null;\n",
+    replacement: "  if (now !== undefined) return null;\n",
+    expected: "Dateien aus Backups zurueckholen: aeltere Fassung, fehlende Kopie, fremder Schluessel"
+  },
+  {
+    nr: '1593', name: "Die aeltere Fassung traegt den Namen der jetzigen",
+    file: 'server.js',
+    search: "  const dot = filename.lastIndexOf('.');\n  return dot > 0 ? filename.slice(0, dot) + mark + filename.slice(dot) : filename + mark;\n",
+    replacement: "  return filename;\n",
+    expected: "Dateien aus Backups zurueckholen: aeltere Fassung, fehlende Kopie, fremder Schluessel"
+  },
+  {
+    nr: '1594', name: "Eine fehlende Kopie wird nicht abgelehnt",
+    file: 'server.js',
+    search: "  if (from && !backup.copyPresent(folder, { name: r.disk, length: encLen(f.size, f.chunk) }))\n    throw refusal(409, 'server.backupCopyMissing');\n",
+    replacement: "",
+    expected: "Dateien aus Backups zurueckholen: aeltere Fassung, fehlende Kopie, fremder Schluessel"
+  },
+  {
+    nr: '1595', name: "Aus der Datenbank eines Backups kommen leere Stuecke",
+    file: 'server.js',
+    search: "    const bytes = part.get(i * f.chunk + 1, f.chunk, id)?.part || NO_BYTES;\n",
+    replacement: "    const bytes = NO_BYTES;\n",
+    expected: "Dateien aus Backups zurueckholen: aus der Datenbank eines alten Backups"
+  },
+  {
+    nr: '1596', name: "Das Lockfile eines anderen Laufs haelt nichts auf",
+    file: 'server.js',
+    search: "    const lock = list ? takeBackupLock(target.filePath) : null;\n",
+    replacement: "    const lock = list ? (takeBackupLock(target.filePath) || 'ohne') : null;\n",
+    expected: "Dateien aus Backups zurueckholen: Eintrag aus dem Papierkorb, Grenze, laufendes Backup"
+  },
+  {
+    nr: '1597', name: "Der Server nimmt filesSort nach Typ nicht an",
+    file: 'server.js',
+    search: "'size_asc', 'size_desc', 'type_asc', 'type_desc'],",
+    replacement: "'size_asc', 'size_desc'],",
+    expected: "Sortieren nach Typ: die Einstellung"
+  },
+  {
+    nr: '1598', name: "Nach dem Hochladen eines Fotos liest niemand die Angaben",
+    file: 'server.js',
+    search: "    photoMediaSoon(added);\n",
+    replacement: "",
+    expected: "Erweiterte Infos zu Fotos und Videos des Eintrags"
+  },
+  {
+    nr: '1599', name: "Mit dem Foto bleiben seine Angaben",
+    file: 'schema.js',
+    search: "photo_id INTEGER PRIMARY KEY REFERENCES photos(id) ON DELETE CASCADE",
+    replacement: "photo_id INTEGER PRIMARY KEY REFERENCES photos(id)",
+    expected: "Erweiterte Infos zu Fotos und Videos des Eintrags"
+  },
+  {
+    nr: '1600', name: "Jeder sieht „Gelöschte Dateien …“",
+    file: 'public/app.js',
+    search: "${OWNER\n          ? `<button class=\"link-btn\" id=\"adeleted\">",
+    replacement: "${true\n          ? `<button class=\"link-btn\" id=\"adeleted\">",
+    expected: "Gelöschte Dateien: Knopf, Dialog und Zurückholen"
+  },
+  {
+    nr: '1601', name: "Die Rueckfrage nennt die Frist nicht",
+    file: 'public/app.js',
+    search: "t('entry.fileDeleteHint', { filename: a.filename, trashDays: TRASH_DAYS })",
+    replacement: "t('entry.fileDeleteHint', { filename: a.filename })",
+    expected: "Papierkorb: Dateien in der Karte, die Rückfrage beim Löschen"
+  },
+  {
+    nr: '1602', name: "Die Karte nennt nur den Dateinamen",
+    file: 'public/app.js',
+    search: "      const name = file ? [z.entry, z.folder, z.title].filter(Boolean).join(' › ') : z.title;\n",
+    replacement: "      const name = z.title;\n",
+    expected: "Papierkorb: Dateien in der Karte, die Rückfrage beim Löschen"
+  },
+  {
+    nr: '1603', name: "Der fehlende Eintrag steht nicht in der Zeile",
+    file: 'public/app.js',
+    search: "        file && !z.entryThere ? t('card.trashEntryGone') : ''\n",
+    replacement: "        ''\n",
+    expected: "Papierkorb: Dateien in der Karte, die Rückfrage beim Löschen"
+  },
+  {
+    nr: '1604', name: "„Typ“ fehlt in der Auswahl",
+    file: 'public/app.js',
+    search: "Object.entries(FILES_SORTS).map(([v, s]) => `<option",
+    replacement: "Object.entries(FILES_SORTS).filter(([v]) => v !== 'type').map(([v, s]) => `<option",
+    expected: "Sortieren nach Typ: Auswahl, Kopfzeile und Ordner"
+  },
+  {
+    nr: '1605', name: "Nach Typ zaehlt nur der Name",
+    file: 'public/app.js',
+    search: "    type: (a, b) => kindOrder(kindOf(a), kindOf(b)) || byName(a.filename, b.filename)",
+    replacement: "    type: (a, b) => byName(a.filename, b.filename)",
+    expected: "Sortieren nach Typ: Auswahl, Kopfzeile und Ordner"
+  },
+  {
+    nr: '1606', name: "Ordner stehen bei „Typ“ nach Groesse",
+    file: 'public/app.js',
+    search: "    const by = key === 'name' || key === 'type' ? (x, y)",
+    replacement: "    const by = key === 'name' ? (x, y)",
+    expected: "Sortieren nach Typ: Auswahl, Kopfzeile und Ordner"
+  },
+  {
+    nr: '1607', name: "Die Spalte „Typ“ ist kein Knopf",
+    file: 'public/app.js',
+    search: "<button type=\"button\" class=\"acol\" data-sort=\"type\"></button>",
+    replacement: "<span class=\"acol\" data-sort=\"type\"></span>",
+    expected: "Sortieren nach Typ: Auswahl, Kopfzeile und Ordner"
+  },
+  {
+    nr: '1608', name: "Der Codec heisst wie bei MediaInfo",
+    file: 'public/app.js',
+    search: "const CODEC_NAMES = { AVC: 'H.264', HEVC: 'H.265' };",
+    replacement: "const CODEC_NAMES = {};",
+    expected: "Erweiterte Infos: Audio, Container und H.264"
+  },
+  {
+    nr: '1609', name: "Auch bei Videos steht „Format“",
+    file: 'public/app.js',
+    search: "[[video.length ? 'entry.mediaContainer' : 'entry.mediaFormat', g.format],",
+    replacement: "[['entry.mediaFormat', g.format],",
+    expected: "Erweiterte Infos: Audio, Container und H.264"
+  },
+  {
+    nr: '1610', name: "Hinter einem Dialog blaettert das Vollbild weiter",
+    file: 'public/app.js',
+    search: "nur ihn.\n    if (document.querySelector('.backdrop')) return;\n",
+    replacement: "nur ihn.\n",
+    expected: "ⓘ im Vollbild und die Tasten bei offenem Dialog"
+  },
+  {
+    nr: '1611', name: "ⓘ fehlt im Vollbild der Dateien",
+    file: 'public/app.js',
+    search: "      still: { may: (a) => a.mine === true && isVideo(a), save: saveStill },\n      info: fileInfo\n",
+    replacement: "      still: { may: (a) => a.mine === true && isVideo(a), save: saveStill }\n",
+    expected: "ⓘ im Vollbild und die Tasten bei offenem Dialog"
+  },
+  {
+    nr: '1612', name: "ⓘ fehlt im Vollbild der Fotos",
+    file: 'public/app.js',
+    search: "        openLightbox([...item.photos], idx, item.title, deletePhoto, innerPlayer, photoLink, { info: photoInfo });\n    };\n",
+    replacement: "        openLightbox([...item.photos], idx, item.title, deletePhoto, innerPlayer, photoLink);\n    };\n",
+    expected: "ⓘ im Vollbild und die Tasten bei offenem Dialog"
+  },
+  {
+    nr: '1613', name: "Die englische README weicht im Codeblock ab",
+    file: 'README.md',
+    search: "docker compose logs --tail 30 kriterion",
+    replacement: "docker compose logs --tail 50 kriterion",
+    expected: "README und Anleitung in drei Sprachen"
+  },
+  {
+    nr: '1614', name: "Die englische README nennt nicht alle Sprachen",
+    file: 'README.md',
+    search: "English · [Deutsch](README-de.md) · [Türkçe](README-tr.md)",
+    replacement: "English · [Deutsch](README-de.md)",
+    expected: "README und Anleitung in drei Sprachen"
+  },
+  {
+    nr: '1615', name: "Auf Tuerkisch steht yedek allein",
+    file: 'README-tr.md',
+    search: "Önce bir yedekleme oluştur.",
+    replacement: "Önce bir yedek oluştur.",
+    expected: "README und Anleitung in drei Sprachen"
+  },
+  {
+    nr: '1616', name: "Das CHANGELOG verweist auf die deutsche Fassung von Keep a Changelog",
+    file: 'CHANGELOG.md',
+    search: "https://keepachangelog.com/en/1.1.0/",
+    replacement: "https://keepachangelog.com/de/1.1.0/",
+    expected: "Das CHANGELOG ist englisch und kurz"
   }
 
 ];

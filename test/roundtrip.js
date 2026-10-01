@@ -330,8 +330,8 @@ async function sendImport(object, mode, withoutShare = false) {
   /* Parameter wie :id durch eine Zahl ersetzen, sonst passt der Pfad auf keine Route. */
   const csAddress = (filePath) => filePath.replace(/:[A-Za-z]+/g, '7');
   const csGuarded = H.F_ROUTES.filter(([m, p]) => !csFree.has(`${m} ${p}`));
-  check('Einundachtzig der neunundachtzig Routen stehen hinter dem Schutz',
-    csGuarded.length === 81 && H.F_ROUTES.length === 89,
+  check('Zweiundachtzig der neunzig Routen stehen hinter dem Schutz',
+    csGuarded.length === 82 && H.F_ROUTES.length === 90,
     `${csGuarded.length} von ${H.F_ROUTES.length}`);
   const csThrough = [];
   for (const [method, filePath] of csGuarded) {
@@ -649,7 +649,7 @@ async function sendImport(object, mode, withoutShare = false) {
     imFingerprint.includes('images.js') && imFingerprint.includes('batchrun.js'),
     imFingerprint.join(' · '));
 
-  const readmeText = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
+  const readmeText = fs.readFileSync(path.join(__dirname, 'README-de.md'), 'utf8');
   const handle = (readmeText.match(/for f in ([^;]*?); do/s) || [, ''])[1]
     .replace(/\\\s*\n\s*/g, ' ').trim().split(/\s+/).filter(Boolean);
   check('Der Handgriff im README steht ueberhaupt da',
@@ -1720,7 +1720,7 @@ async function sendImport(object, mode, withoutShare = false) {
       /app\.get\('\/api\/manifest\.json'/.test(serverCode)
       && !/app\.(post|put|delete)\('\/api\/manifest\.json'/.test(serverCode));
     check('Und die Zahl der lesenden Routen steht',
-      (serverCode.match(/^app\.get\('/gm) || []).length === 36,
+      (serverCode.match(/^app\.get\('/gm) || []).length === 38,
       String((serverCode.match(/^app\.get\('/gm) || []).length));
 
     // Die Pruefungen danach rechnen mit dem alten Titel.
@@ -2687,7 +2687,7 @@ async function sendImport(object, mode, withoutShare = false) {
     .map(m => m[1]).filter(a => a !== 'id, userId, locale');
   const withoutUser = calls.filter(a => !/,\s*req\.user\.id\s*,\s*localeOf\(req\s*$/.test(a));
   check('Keine Aufrufstelle von detail() ohne Benutzer und ohne Sprache',
-    calls.length === 34 && withoutUser.length === 0,
+    calls.length === 35 && withoutUser.length === 0,
     `${calls.length} Aufrufe, unvollstaendig: ${JSON.stringify(withoutUser)}`);
   check('detail() klemmt einen fehlenden Benutzer ab, statt still false zu liefern',
     /function detail\(id, userId, locale\) \{\s*\n\s*if \(userId == null\) throw/.test(source),
@@ -4052,9 +4052,9 @@ async function sendImport(object, mode, withoutShare = false) {
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
       .all().map(z => z.name).sort();
     tzDb.close();
-    check('Die Datenbank traegt genau zweiundvierzig Tabellen',
-      tzTables.length === 42 && tzTables.includes('comment_videos') && tzTables.includes('attachment_stills') &&
-      tzTables.includes('attachment_media') &&
+    check('Die Datenbank traegt genau dreiundvierzig Tabellen',
+      tzTables.length === 43 && tzTables.includes('comment_videos') && tzTables.includes('attachment_stills') &&
+      tzTables.includes('attachment_media') && tzTables.includes('photo_media') &&
       tzTables.includes('folders') && tzTables.includes('attachment_folders') &&
       ['uploads', 'disk_files', 'disk_files_gone', 'video_positions', 'folder_open'].every(n => tzTables.includes(n)),
       `${tzTables.length}: ${tzTables.join(' ')}`);

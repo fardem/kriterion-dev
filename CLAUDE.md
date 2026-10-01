@@ -3,8 +3,13 @@
 ## 1. Sprache
 
 Deutsch, sachlich, kurz. Gilt für Chat, Commits, Pull Requests, Kommentare und
-Dokumentation. Im Chat duzen wir uns. Dokumentation und Commits kommen ohne
-Anrede aus.
+`Doku/`. Im Chat duzen wir uns. Dokumentation und Commits kommen ohne Anrede
+aus.
+
+README und Anleitung gibt es in drei Sprachen. Hauptfassung ist Englisch:
+`README.md` und `manual.md`. Dazu kommen `README-de.md` und `manual-de.md`
+deutsch, `README-tr.md` und `manual-tr.md` türkisch. Jede Änderung geht in alle
+drei Fassungen. Das CHANGELOG wird nur englisch fortgeführt.
 
 - Ein Sachverhalt pro Satz.
 - Normale Fachbegriffe: Repository, Branch, Commit, Datenbank, Tabelle, Spalte,
@@ -32,7 +37,8 @@ Nicht:
 ### Begriffe
 
 Für Dinge der Oberfläche gilt der Name aus `public/languages/de.json`, nicht der
-aus dem Code. Beispiel: „Einstellungen", nicht „Systembereich".
+aus dem Code. Beispiel: „Einstellungen", nicht „Systembereich". In englischen
+und türkischen Texten gilt der Name aus `en.json` und `tr.json`.
 
 Gängige englische IT-Begriffe bleiben englisch, auch in der Oberfläche: Update,
 Backup, Migration, Account, Link, Cookie, Login. Sie werden nicht eingedeutscht.
@@ -161,14 +167,15 @@ beschrieben: „es wird nicht migriert", nicht „ab 0.33.0 wird nicht migriert"
 
 Ausgeliefert sind: die achtzehn JavaScript-Module, `public/style.css`,
 `public/index.html`, `public/theme.js`, die drei Sprachdateien, `.env.example`,
-`docker-compose.example.yml`, `Dockerfile`, `README.md`, `manual-de.md`.
+`docker-compose.example.yml`, `Dockerfile`, `README.md`, `README-de.md`,
+`README-tr.md`, `manual.md`, `manual-de.md`, `manual-tr.md`.
 
 Ausnahmen:
 
 - die eigene Version in `package.json` und in der Ausgabe des Servers
 - `1.1.1970` in `twofactor.js`, die SVG-Pfade `-1.8.3l` und `1.8.3H9` in
-  `public/app.js`, `keepachangelog.com/de/1.1.0/` und `14.03.2026` in der
-  Anleitung (keine Versionsangaben)
+  `public/app.js`, `keepachangelog.com/en/1.1.0/` und `14.03.2026` in den
+  drei Anleitungen (keine Versionsangaben)
 
 Tests in `test/source.js` prüfen beide Regeln.
 

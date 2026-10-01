@@ -19,7 +19,7 @@ async function run() {
     return false;
   };
 
-  /* Ein MP4 aus Kaesten: HEVC 3840 × 2160 und zwei Tonspuren (deu, eng), 10 s, Datum 30.09.2026.
+  /* Ein MP4 aus Kaesten: HEVC 3840 × 2160 und zwei Audiospuren (deu, eng), 10 s, Datum 30.09.2026.
      MediaInfo liest nur die Kaesten; `pad` legt Bytes vor `moov`, damit es ueber mehrere Stuecke springt. */
   const box = (name, ...parts) => {
     const body = Buffer.concat(parts), head = Buffer.alloc(8);
@@ -138,7 +138,7 @@ async function run() {
     info.status === 200 && g.format === 'MPEG-4' && g.size === 3 * 1024 * 1024 + mp4().length && g.duration === 10 &&
     /^2026-09-30 00:00:00/.test(g.recorded || '') && v.format === 'HEVC' && v.width === 3840 && v.height === 2160,
     JSON.stringify(info.content));
-  check('Ton: zwei Spuren mit Abtastrate und Sprache',
+  check('Audio: zwei Spuren mit Abtastrate und Sprache',
     equal((info.content?.audio || []).map(s => [s.samplingRate, s.language]), [[48000, 'de'], [48000, 'en']]),
     JSON.stringify(info.content?.audio));
   const image = (await as('owner', 'GET', `/api/attachments/${photoId}/info`)).content?.image?.[0] || {};
@@ -199,7 +199,7 @@ async function run() {
     const queue = server.slice(server.indexOf('function startMedia()'));
     check('Route und Warteschlange lesen nacheinander: beide ueber inMediaTurn()',
       /inMediaTurn\(\(\) => makeMedia\(a\.id\)\)/.test(route.slice(0, 700)) &&
-      /inMediaTurn\(\(\) => makeMedia\(id\)\)/.test(queue.slice(0, 500)), 'ohne inMediaTurn');
+      /inMediaTurn\(\(\) => \(files \? makeMedia\(id\) : makePhotoMedia\(id\)\)\)/.test(queue.slice(0, 700)), 'ohne inMediaTurn');
     check('Und die Instanz wird nach jeder Datei freigegeben',
       /finally \{ mi\.close\(\); \}/.test(read('attachments.js')), 'kein close()');
   }
@@ -280,10 +280,10 @@ async function run() {
     const head = w.document.querySelector('#atts > .acols');
     const col = (key) => head?.querySelector(`.acol[data-sort="${key}"]`);
     const box = w.document.getElementById('asort'), dir2 = w.document.getElementById('asort-dir');
-    check('Eine Kopfzeile ueber allen Gruppen: Name, Art, Größe, Datum, Von; drei davon sind Knöpfe',
+    check('Eine Kopfzeile ueber allen Gruppen: Name, Typ, Größe, Datum, Von; vier davon sind Knöpfe',
       !!head && head.nextElementSibling?.classList.contains('agroup') &&
       equal([...head.querySelectorAll('.acol')].map(e => e.tagName + ':' + e.textContent.replace(/ [▲▼]$/, '')),
-        ['BUTTON:' + DE['entry.filesSortName'], 'SPAN:' + DE['entry.colKind'], 'BUTTON:' + DE['entry.filesSortSize'],
+        ['BUTTON:' + DE['entry.filesSortName'], 'BUTTON:' + DE['entry.colKind'], 'BUTTON:' + DE['entry.filesSortSize'],
           'BUTTON:' + DE['entry.filesSortDate'], 'SPAN:' + DE['entry.colFrom']]),
       head?.textContent);
     check('Die sortierte Spalte traegt ▲ und aria-pressed; die Richtung steht im Namen',
@@ -363,9 +363,9 @@ async function run() {
     const w = m.w;
     await settle(w, 7);
     const kindOfRow = (key) => tileOf(w, key)?.querySelector('.akind')?.textContent;
-    check('Art ist eine Beschreibung; beim Video Codec und Laenge',
+    check('Typ ist eine Beschreibung; beim Video Codec und Laenge',
       equal(['f41', 'f42', 'f43', 'f44', 'f48', 'f49'].map(kindOfRow),
-        [DE['entry.kindText'], DE['entry.kindImage'], DE['entry.kindPdf'], DE['entry.kindArchive'], 'HEVC · 0:42', DE['entry.kindWord']]),
+        [DE['entry.kindText'], DE['entry.kindImage'], DE['entry.kindPdf'], DE['entry.kindArchive'], 'H.265 · 0:42', DE['entry.kindWord']]),
       ['f41', 'f42', 'f43', 'f44', 'f48', 'f49'].map(kindOfRow).join(' | '));
     const acts = (key) => tileOf(w, key)?.querySelector('.aacts');
     check('Jede Zeile traegt die Spalte mit ✎ und 🔗, auch ohne Bearbeiten',
@@ -446,7 +446,7 @@ async function run() {
     const w = m.w;
     await settle(w, 7);
     check('In den Kacheln steht der Codec am Vorschaubild; ohne Codec nichts',
-      tileOf(w, 'f48')?.querySelector('.apic .acodec')?.textContent === 'HEVC' &&
+      tileOf(w, 'f48')?.querySelector('.apic .acodec')?.textContent === 'H.265' &&
       !tileOf(w, 'f49')?.querySelector('.acodec') && !tileOf(w, 'f42')?.querySelector('.acodec') &&
       /\n\.alist \.ameta, [^\n]*\n\.alist \.apic \.acodec \{ display: none; \}/.test(css),
       tileOf(w, 'f48')?.querySelector('.apic')?.innerHTML);
@@ -472,21 +472,21 @@ async function run() {
     const rows = Object.fromEntries([...modal.querySelectorAll('.kv')].map((r, at) =>
       [`${at}`, `${r.querySelector('.k').textContent}: ${r.querySelector('.v').textContent}`]));
     const all = Object.values(rows);
-    check('Gruppen: Allgemein, Video, Ton je Spur mit Zahl',
+    check('Gruppen: Allgemein, Video, Audio je Spur mit Zahl',
       equal(heads, [DE['entry.mediaGeneral'], DE['entry.kindVideo'], deText('entry.mediaAudioTrack', { n: 1, count: 2 }),
         deText('entry.mediaAudioTrack', { n: 2, count: 2 })]), heads.join(' | '));
     const row = (key, value) => `${DE[key]}: ${value}`;
-    check('Allgemein: Format, Dateigröße, Dauer, Gesamtbitrate, Aufnahmedatum, Tonspuren',
-      all.includes(row('entry.mediaFormat', 'XAVC')) && all.includes(row('entry.mediaFileSize', '1.1 GB'.replace('.', ','))) &&
+    check('Allgemein: Container, Dateigröße, Dauer, Gesamtbitrate, Aufnahmedatum, Audiospuren',
+      all.includes(row('entry.mediaContainer', 'XAVC')) && all.includes(row('entry.mediaFileSize', '1.1 GB'.replace('.', ','))) &&
       all.includes(row('entry.mediaDuration', '3:12')) && all.includes(row('entry.mediaTotalRate', '100,5 Mbit/s')) &&
       all.some(x => x.startsWith(`${DE['entry.mediaRecorded']}: 30.09.2026`)) && all.includes(row('entry.mediaAudioTracks', '2')),
       all.slice(0, 6).join(' | '));
     check('Video: Codec, Profil, Auflösung, Bildrate, Bitrate, Bittiefe, Unterabtastung, HDR',
-      [row('entry.mediaCodec', 'HEVC'), row('entry.mediaProfile', 'Main 4:2:2 10@L5.1@Main'),
+      [row('entry.mediaCodec', 'H.265 (HEVC)'), row('entry.mediaProfile', 'Main 4:2:2 10@L5.1@Main'),
         row('entry.mediaResolution', '3840 × 2160'), row('entry.mediaFrameRate', '25 fps'), row('entry.mediaBitRate', '99 Mbit/s'),
         row('entry.mediaBitDepth', '10 Bit'), row('entry.mediaChroma', '4:2:2'), row('entry.mediaHdr', 'HLG')].every(x => all.includes(x)),
       all.slice(6, 14).join(' | '));
-    check('Ton: je Spur Codec, Kanäle, Abtastrate, Bitrate, Sprache; eine fehlende Angabe fehlt',
+    check('Audio: je Spur Codec, Kanäle, Abtastrate, Bitrate, Sprache; eine fehlende Angabe fehlt',
       [row('entry.mediaCodec', 'PCM'), row('entry.mediaChannels', '2'), row('entry.mediaSamplingRate', '48 kHz'),
         row('entry.mediaBitRate', '1,5 Mbit/s'), row('entry.mediaLanguage', 'Deutsch'), row('entry.mediaSamplingRate', '44,1 kHz'),
         row('entry.mediaBitRate', '128 kbit/s')].every(x => all.includes(x)) &&

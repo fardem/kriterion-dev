@@ -177,6 +177,9 @@ sagt der Fahrplan.
 > **Am 30. September 2026 sind fünf Punkte fortgezogen.** 53, 55, 56, 58 und 59
 > stehen mit ihrer Ausarbeitung im Fahrplan unter 0.52.0, dazu von 54 die
 > Kopfzeile und von 57 das Laden des ganzen Videos. Neu ist 60.
+>
+> **Am 1. Oktober 2026 sind 61 bis 63 dazugekommen**, aus der Übersetzung der
+> Anleitung beim Bau von 0.53.0.
 
 ### Was ohne Nummer offen ist
 
@@ -187,6 +190,9 @@ sagt der Fahrplan.
 | **54** | „Dateien“ wie im Windows-Explorer: Auswahl mit Strg und Umschalt, Doppelklick zum Öffnen; die Kopfzeile ist in 0.52.0 | niedrig | mittel | liegen lassen |
 | **57** | Eine schnell abspielbare Fassung für das Telefon mit ffmpeg, nur wenn es schnell geht; erst messen | offen | offen | Messverfahren, dann Machbarkeit besprechen (Vorgabe) |
 | **60** | Dateien umbenennen; der Betreiber hat es am 30. September 2026 auf später gelegt | mittel | klein | eigene Runde |
+| **61** | Deutscher Text fest in `public/app.js`: „am … von …“ an einer Ablehnung, „… offen“ am Knopf für offene Aufgaben | mittel | klein | mit der nächsten Runde an den Texten |
+| **62** | Die Anleitung beschreibt „Eintrag exportieren“; den Knopf gibt es nicht | mittel | klein | Entscheidung des Betreibers |
+| **63** | Vier Namen der deutschen Anleitung weichen von `de.json` ab; `card.user` heißt englisch „User“ | niedrig | klein | mit der nächsten Runde an der Anleitung |
 | ~~Protokoll 0.38.2~~ | ~~Die Strichstärke des Löschkreuzes bleibt 1.8, dieselbe wie am Stift und am Zitatzeichen~~ | — | — | **ABGELEHNT am 21. September 2026** |
 | ~~Protokoll 0.38.2~~ | ~~Der Trefferausschnitt zeigt bei einem Treffer im Ziel eines Links den Rohtext samt seiner Marken~~ | — | — | **RUHT seit dem 21. September 2026** |
 | ~~Protokoll 0.38.3~~ | ~~Der Halt nach einem Sprung ist eine Frist von 1600 Millisekunden und keine Messung~~ | — | — | **RUHT seit dem 21. September 2026** |
@@ -2808,3 +2814,52 @@ auf; der Betreiber hat es am 30. September 2026 auf später gelegt (F7).
 **Der Weg:** nur eigene Dateien, die Endung bleibt; eine neue Route und ein
 Eintrag im Sicherheitsprotokoll. Offen ist, was mit einer Datei geschieht, die
 gerade im Document Server bearbeitet wird.
+
+## 61. Deutscher Text fest im Code der Oberfläche
+
+**Art: Fehler** *(Übersetzung der Anleitung)* **· Herkunft: Bau von 0.53.0,
+1. Oktober 2026 · Einschätzung: klein · Fahrplan: offen**
+
+Zwei Stellen in `public/app.js` setzen deutschen Text ein, den keine
+Sprachdatei kennt:
+
+- Die Zeile über der Begründung einer Ablehnung: `entry.rejectedBy` bekommt
+  „am …“ und „von …“ aus dem Code. Auf Türkisch steht dort „Reddedildi am
+  14.03.2026, 09:12 von Anna“.
+- Der Titel des Knopfs für offene Aufgaben in der Kopfzeile
+  (`drawHeadCounts()`): „3 Aufgaben offen“ in jeder Sprache.
+
+**Der Weg:** je ein Schlüssel mit Platzhaltern in den drei Sprachdateien.
+
+## 62. Die Anleitung beschreibt „Eintrag exportieren“
+
+**Art: Fehler** *(Übersetzung der Anleitung)* **· Herkunft: Bau von 0.53.0,
+1. Oktober 2026 · Einschätzung: klein · Fahrplan: offen**
+
+Der Abschnitt „Eintrag exportieren“ steht in allen drei Fassungen der
+Anleitung und nennt einen Knopf am Fuß des Eintrags. `public/app.js` hat
+keinen solchen Knopf, `de.json` keinen Schlüssel und der Server keine Route
+für den Export eines einzelnen Eintrags.
+
+**Zu klären:** ob der Abschnitt entfällt oder die Funktion kommen soll.
+
+## 63. Namen in der Anleitung und in `en.json`
+
+**Art: Fehler** *(Übersetzung der Anleitung)* **· Herkunft: Bau von 0.53.0,
+1. Oktober 2026 · Einschätzung: klein · Fahrplan: offen**
+
+Die deutsche Anleitung weicht an vier Stellen von `de.json` ab. Die englische
+und die türkische Fassung nehmen die Namen aus `en.json` und `tr.json`.
+
+| Anleitung | Sprachdatei |
+|---|---|
+| „Ähnlich: …“ | `list.similarTitles` „Ähnliche Titel:“ |
+| Status „Alles“ | `list.all` „Alle“ |
+| „Offen“ | `list.openTasks` „Offene {taskMany}“ |
+| die Karte „Verfahren der Ablage“ | `card.storeMethod` ist eine Zwischenüberschrift in der Karte „Bildformate“ |
+
+In `en.json` heißt der Abschnitt mit allen Accounts `card.user` „User“, in
+der Einzahl.
+
+**Der Weg:** die deutsche Anleitung angleichen, danach die englische und die
+türkische Fassung.

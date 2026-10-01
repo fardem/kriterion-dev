@@ -1693,7 +1693,7 @@ const PICK_SETTINGS = {
                    wrong: 'server.themeUnknown' },
   filesView:   { list: ['tiles', 'list'],  cast: String, fallback: 'tiles',
                  wrong: 'server.viewUnknown' },
-  filesSort:   { list: ['name_asc', 'name_desc', 'date_asc', 'date_desc', 'size_asc', 'size_desc'],
+  filesSort:   { list: ['name_asc', 'name_desc', 'date_asc', 'date_desc', 'size_asc', 'size_desc', 'type_asc', 'type_desc'],
                  cast: String, fallback: 'date_asc', wrong: 'server.sortUnknown',
                  alias: { oldest: 'date_asc', newest: 'date_desc', name: 'name_asc' } },
   filesGroup:  { list: ['none', 'type'],  cast: String, fallback: 'none',
@@ -3615,13 +3615,13 @@ app.post('/api/items/:id/photos', entryAuthorOnly,
       ready.push({ mime: start.mime, data: start.data, thumb: v.thumb, medium: v.medium });
     }
     const into = db.prepare('INSERT INTO photos (item_id, mime_type, data, thumb, medium, sort_order) VALUES (?, ?, ?, ?, ?, ?)');
-    db.transaction(() => {
+    const added = db.transaction(() => {
       let pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM photos WHERE item_id = ?')
         .get(req.params.id).m + 1;
-      for (const p of ready)
-        into.run(req.params.id, p.mime, p.data, p.thumb, p.medium, pos++);
+      return ready.map(p => into.run(req.params.id, p.mime, p.data, p.thumb, p.medium, pos++).lastInsertRowid);
     })();
     touch.run(req.params.id);
+    photoMediaSoon(added);
     res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
   } catch (e) { next(e); }
 });
@@ -3672,10 +3672,11 @@ app.post('/api/items/:id/videos', entryAuthorOnly,
         return res.status(400).json({ error: t(localeOf(req), 'server.stillNoPreview')});
       const pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM photos WHERE item_id = ?')
         .get(req.params.id).m + 1;
-      db.prepare(`INSERT INTO photos (item_id, mime_type, data, thumb, medium, sort_order, kind, duration)
+      const added = db.prepare(`INSERT INTO photos (item_id, mime_type, data, thumb, medium, sort_order, kind, duration)
                   VALUES (?, ?, ?, ?, ?, ?, 'video', ?)`)
-        .run(req.params.id, video.mimetype, video.buffer, v.thumb, v.medium, pos, duration);
+        .run(req.params.id, video.mimetype, video.buffer, v.thumb, v.medium, pos, duration).lastInsertRowid;
       touch.run(req.params.id);
+      photoMediaSoon([added]);
       res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
     } catch (e) { next(e); }
   });
@@ -4055,16 +4056,60 @@ async function makeMedia(id) {
   return facts;
 }
 
+/* ---- Erweiterte Infos zu Fotos und Videos des Eintrags ---- */
+const qPhotoMedia = db.prepare('SELECT info FROM photo_media WHERE photo_id = ?');
+const putPhotoMedia = db.prepare('INSERT OR REPLACE INTO photo_media (photo_id, info) VALUES (?, ?)');
+const qPhotoMediaSource = db.prepare(`SELECT p.id, length(p.data) AS size, (m.photo_id IS NOT NULL) AS has_media
+  FROM photos p LEFT JOIN photo_media m ON m.photo_id = p.id WHERE p.id = ?`);
+const qPhotoMediaMissing = db.prepare(`SELECT p.id FROM photos p LEFT JOIN photo_media m ON m.photo_id = p.id
+  WHERE m.photo_id IS NULL ORDER BY p.id DESC`);
+const qPhotoPart = db.prepare('SELECT substr(data, ?, ?) AS part FROM photos WHERE id = ?');
+const PHOTO_MEDIA_WAITING = new Set();
+const PHOTO_MEDIA_FAILED = new Set();
+
+// Wie makeMedia(); die Bytes stehen in photos.data und werden stueckweise gelesen.
+async function makePhotoMedia(id) {
+  const p = qPhotoMediaSource.get(id);
+  if (!p) return null;
+  if (p.has_media) return JSON.parse(qPhotoMedia.get(id).info);
+  let facts;
+  try {
+    facts = await attachments.mediaFacts(p.size, (length, offset) => {
+      const bytes = qPhotoPart.get(offset + 1, length, id)?.part;
+      if (!bytes || bytes.length < Math.min(length, p.size - offset)) throw unreadable('gone');
+      return bytes;
+    });
+  } catch (e) {
+    if (!e.damaged) throw e;
+    PHOTO_MEDIA_FAILED.add(id);
+    return undefined;
+  }
+  if (!qPhotoMediaSource.get(id)) return null;
+  putPhotoMedia.run(id, JSON.stringify(facts));
+  PHOTO_MEDIA_FAILED.delete(id);
+  return facts;
+}
+
+// Dateien zuerst; die Fotos folgen, wenn keine Datei mehr wartet.
 function startMedia() {
-  if (mediaRunning || !MEDIA_WAITING.size) return;
+  if (mediaRunning || (!MEDIA_WAITING.size && !PHOTO_MEDIA_WAITING.size)) return;
   mediaRunning = (async () => {
-    while (MEDIA_WAITING.size) {
-      const id = MEDIA_WAITING.values().next().value;
-      MEDIA_WAITING.delete(id);
-      await inMediaTurn(() => makeMedia(id));
+    while (MEDIA_WAITING.size || PHOTO_MEDIA_WAITING.size) {
+      const files = MEDIA_WAITING.size > 0, waiting = files ? MEDIA_WAITING : PHOTO_MEDIA_WAITING;
+      const id = waiting.values().next().value;
+      waiting.delete(id);
+      await inMediaTurn(() => (files ? makeMedia(id) : makePhotoMedia(id)));
     }
   })().catch(e => logFail(`Media info: ${e.message}`))
     .finally(() => { mediaRunning = null; startMedia(); });
+}
+
+// Mit `ids` diese Fotos; ohne alle Fotos und Videos ohne Zeile in photo_media.
+function photoMediaSoon(ids) {
+  if (DATABASE_INCOMPLETE) return;
+  if (ids) for (const id of ids) PHOTO_MEDIA_WAITING.add(Number(id));
+  else for (const r of qPhotoMediaMissing.all()) if (!PHOTO_MEDIA_FAILED.has(r.id)) PHOTO_MEDIA_WAITING.add(r.id);
+  startMedia();
 }
 
 // Mit `ids` vorn in die Reihe; ohne alle Bilder und Videos ohne Zeile in attachment_media.
@@ -4077,11 +4122,13 @@ function mediaSoon(ids) {
   } else {
     for (const r of qMediaMissing.all())
       if (attachments.mediaKind(r.filename) && !MEDIA_FAILED.has(r.id)) MEDIA_WAITING.add(r.id);
+    photoMediaSoon();
   }
   startMedia();
 }
 function mediaAgain() {
   MEDIA_FAILED.clear();
+  PHOTO_MEDIA_FAILED.clear();
   mediaSoon();
 }
 
@@ -4273,6 +4320,19 @@ app.get('/api/attachments/:id/info', async (req, res, next) => {
     MEDIA_WAITING.delete(a.id);
     const facts = await inMediaTurn(() => makeMedia(a.id));
     if (facts === null) return res.status(404).json({ error: t(localeOf(req), 'server.fileGone') });
+    if (facts === undefined) return res.status(500).json({ error: t(localeOf(req), 'server.mediaUnreadable') });
+    res.json(facts);
+  } catch (e) { next(e); }
+});
+
+// Rechte wie /api/photos/:id/raw. Fehlt die Zeile noch, liest der Server sofort.
+app.get('/api/photos/:id/info', async (req, res, next) => {
+  try {
+    const p = qPhotoMediaSource.get(req.params.id);
+    if (!p) return res.status(404).json({ error: t(localeOf(req), 'server.photoGone') });
+    PHOTO_MEDIA_WAITING.delete(p.id);
+    const facts = await inMediaTurn(() => makePhotoMedia(p.id));
+    if (facts === null) return res.status(404).json({ error: t(localeOf(req), 'server.photoGone') });
     if (facts === undefined) return res.status(500).json({ error: t(localeOf(req), 'server.mediaUnreadable') });
     res.json(facts);
   } catch (e) { next(e); }
@@ -4525,12 +4585,15 @@ app.delete('/api/attachments/:id', (req, res) => {
   const a = db.prepare('SELECT item_id, user_id FROM attachments WHERE id = ?').get(req.params.id);
   if (!a) return res.status(404).json({ error: t(localeOf(req), 'server.fileGone')});
   if (!mayChange(req, a.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
-  db.prepare('DELETE FROM attachments WHERE id = ?').run(req.params.id);
-  // Sortiernummern lueckenlos halten, wie bei Fotos und Links.
-  const rest = db.prepare('SELECT id FROM attachments WHERE item_id = ? ORDER BY sort_order, id').all(a.item_id);
-  const s2 = db.prepare('UPDATE attachments SET sort_order = ? WHERE id = ?');
-  rest.forEach((r, i) => s2.run(i, r.id));
-  touch.run(a.item_id);
+  db.transaction(() => {
+    fileIntoTrash(Number(req.params.id), req.user.id);
+    db.prepare('DELETE FROM attachments WHERE id = ?').run(req.params.id);
+    // Sortiernummern lueckenlos halten, wie bei Fotos und Links.
+    const rest = db.prepare('SELECT id FROM attachments WHERE item_id = ? ORDER BY sort_order, id').all(a.item_id);
+    const s2 = db.prepare('UPDATE attachments SET sort_order = ? WHERE id = ?');
+    rest.forEach((r, i) => s2.run(i, r.id));
+    touch.run(a.item_id);
+  })();
   reclaim();
   res.json(detail(a.item_id, req.user.id, localeOf(req)));
 });
@@ -6515,7 +6578,7 @@ async function importEntries(payload, userId, mode2, bytesSource, trashId, writt
   if (stats.attachments) {
     docTilesSoon();
     mediaSoon();
-  }
+  } else if (stats.photos || stats.videos) photoMediaSoon();
   return { ok: true, mode: mode2, ...stats,
            authorAssigned: assigned, authorUnknown: unknown,
            weightsDropped: dropped, videosWithoutFile, videosUnreadable, newIds,
@@ -6633,8 +6696,113 @@ function intoTrash(itemId, actor) {
 const diskIntoTrash = db.prepare(`UPDATE disk_files SET trash_id = ?
   WHERE attachment_id IN (SELECT id FROM attachments WHERE item_id = ?)`);
 
-/* created_by und created_at aus dem gespeicherten JSON. */
+/* ---- Dateien im Papierkorb ---- */
+/* Eine einzeln geloeschte Datei ist eine Zeile in trash mit `content.kind = 'file'`; ihr Inhalt
+   bleibt ueber disk_files.trash_id auf der Platte. */
+const qFileForTrash = lateStatement(`SELECT a.id, a.item_id, a.filename, a.mime_type, a.size, a.created_at,
+    a.user_id, u.username AS user_name, length(a.data) AS inline, i.created_at AS item_created, i.title AS item_title,
+    f.id AS folder_id, f.name AS folder_name, f.created_at AS folder_created, f.test_day_id AS folder_day,
+    f.user_id AS folder_user, fu.username AS folder_user_name,
+    e.edit_all, e.saves, s.duration, (s.attachment_id IS NOT NULL) AS has_still
+  FROM attachments a JOIN items i ON i.id = a.item_id LEFT JOIN users u ON u.id = a.user_id
+  LEFT JOIN attachment_folders af ON af.attachment_id = a.id LEFT JOIN folders f ON f.id = af.folder_id
+  LEFT JOIN users fu ON fu.id = f.user_id LEFT JOIN attachment_editing e ON e.attachment_id = a.id
+  LEFT JOIN attachment_stills s ON s.attachment_id = a.id WHERE a.id = ?`);
+const diskFileIntoTrash = db.prepare('UPDATE disk_files SET trash_id = ? WHERE attachment_id = ?');
+const diskFileFromTrash = db.prepare('UPDATE disk_files SET attachment_id = ?, trash_id = NULL WHERE trash_id = ?');
+// Teile in trash_bytes: das Standbild und der Inhalt einer Datei, die noch in der Datenbank liegt.
+const TRASH_STILL = 0, TRASH_DATA = 1;
+const person = (id, name) => (id == null ? null : { id, name: name ?? null });
+
+// In der Transaktion des Loeschens, vor dem DELETE: sonst verloere die Datei ihren letzten Besitzer.
+function fileIntoTrash(id, actor) {
+  const a = qFileForTrash().get(id);
+  if (!a) return null;
+  const file = { id: a.id, filename: a.filename, mime_type: a.mime_type, size: a.size, created_at: a.created_at,
+    author: person(a.user_id, a.user_name), editAll: a.edit_all === 1, saves: a.saves || 0,
+    duration: a.duration ?? null, still: a.has_still ? TRASH_STILL : null, data: a.inline ? TRASH_DATA : null,
+    folder: a.folder_id == null ? null : { id: a.folder_id, name: a.folder_name, created_at: a.folder_created,
+      testDay: a.folder_day, author: person(a.folder_user, a.folder_user_name) } };
+  const row = insertTrash.run(a.filename, JSON.stringify({ kind: 'file',
+    item: { id: a.item_id, created_at: a.item_created, title: a.item_title }, file }), actor).lastInsertRowid;
+  if (a.has_still) insertTrashBytes.fileStill.run(row, TRASH_STILL, id);
+  if (a.inline) insertTrashBytes.file.run(row, TRASH_DATA, id);
+  diskFileIntoTrash.run(row, id);
+  return row;
+}
+
+/* Nach dem Papierkorb oder dem Zurueckspielen eines Backups traegt ein Eintrag eine neue Nummer;
+   created_at und Titel bleiben. Dieselbe Regel wie compare() in backuptool.js. */
+const qEntrySame = db.prepare('SELECT id FROM items WHERE id = ? AND created_at = ?');
+const qEntryLike = db.prepare('SELECT id FROM items WHERE created_at = ? AND title = ? ORDER BY id LIMIT 1');
+const entryOf = (e) => (e ? (qEntrySame.get(e.id, e.created_at) || qEntryLike.get(e.created_at, e.title))?.id ?? null
+                          : null);
+
+// Ein geloeschter Account behaelt seine Nummer; ein fremder Account mit derselben Nummer nicht.
+const qAccountOf = db.prepare('SELECT username, status FROM users WHERE id = ?');
+function keptAuthor(p) {
+  if (!p || p.id == null) return null;
+  const u = qAccountOf.get(p.id);
+  return u && (u.username === p.name || u.status === 'deleted') ? p.id : null;
+}
+
+/* Fehlt der Ordner, entsteht er mit Name und Datum neu; Dateien desselben Ordners aus einem
+   Vorgang teilen ihn ueber `made`. Den Testtag bekommt er nur, wenn der im Eintrag frei ist. */
+const qFolderIn = db.prepare('SELECT id FROM folders WHERE id = ? AND item_id = ?');
+function folderBack(itemId, old, made) {
+  if (!old) return null;
+  if (qFolderIn.get(old.id, itemId)) return old.id;
+  if (made.has(old.id)) return made.get(old.id);
+  const day = old.testDay != null ? qDayRow.get(old.testDay) : null;
+  const free = day && day.item_id === itemId && !qDayTaken.get(day.id) ? day.id : null;
+  const id = Number(iFolderAdd.run(itemId, old.name, keptAuthor(old.author), old.created_at || null, free)
+    .lastInsertRowid);
+  made.set(old.id, id);
+  return id;
+}
+
+const addFileBack = lateStatement(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order,
+  user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+const qNextSort = db.prepare('SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM attachments WHERE item_id = ?');
+const refusal = (status, key, values = {}) => Object.assign(new Message(key, values, status), { denial: true });
+
+/* In einer Transaktion des Aufrufers. Liefert die neue Nummer; `inline`: der Inhalt liegt
+   wieder in der Datenbank und wird danach umgelagert. */
+function fileFromTrash(z, made = new Map()) {
+  const c = JSON.parse(z.content);
+  const itemId = entryOf(c.item);
+  if (itemId == null) throw refusal(404, 'server.fileEntryGone');
+  if (fileSlots(itemId) >= FILES_PER_ENTRY) throw refusal(400, 'server.fileCap', { cap: FILES_PER_ENTRY });
+  const f = c.file;
+  const bytes = (part) => (part == null ? null : qTrashBytes.get(z.id, part)?.data ?? null);
+  const inline = bytes(f.data);
+  const id = Number(addFileBack().run(itemId, f.filename, f.mime_type || '', f.size, inline || NO_BYTES,
+    qNextSort.get(itemId).n, keptAuthor(f.author), f.created_at).lastInsertRowid);
+  diskFileFromTrash.run(id, z.id);
+  const folder = folderBack(itemId, f.folder, made);
+  if (folder != null) putFileFolder.run(id, folder);
+  const still = bytes(f.still);
+  if (still) putStill.run(id, f.duration ?? null, still);
+  if (f.editAll) putEditAll.run(id, 1);
+  delTrashRow.run(z.id);
+  touch.run(itemId);
+  return { id, itemId, inline: !!inline, filename: f.filename };
+}
+
+// Nach dem Commit: Vorschaubild, Angaben und bei Bedarf die Umlagerung.
+function fileBackQueued(done) {
+  const tiles = done.filter(d => docTileKind(d.filename)).map(d => d.id);
+  const media = done.filter(d => attachments.mediaKind(d.filename)).map(d => d.id);
+  const inline = done.filter(d => d.inline).map(d => d.id);
+  if (tiles.length) docTilesSoon(tiles);
+  if (media.length) mediaSoon(media);
+  if (inline.length) relocate(inline).catch(e => logFail(`Relocation: ${e.message}`));
+}
+
+/* created_by und created_at aus dem gespeicherten JSON; bei einer Datei steht `file` darin. */
 const qTrash = db.prepare(`SELECT p.id, p.title, p.deleted_at, p.deleted_by,
+    json_extract(p.content, '$.kind') AS kind, json_extract(p.content, '$.item') AS item,
+    json_extract(p.content, '$.file') AS file,
     json_extract(p.content, '$.items[0].author') AS created_by,
     json_extract(p.content, '$.items[0].created_at') AS created_at,
     (SELECT COUNT(*) FROM trash_bytes b WHERE b.trash_id = p.id) AS files,
@@ -6644,23 +6812,34 @@ const qTrash = db.prepare(`SELECT p.id, p.title, p.deleted_at, p.deleted_by,
     (SELECT COUNT(*) FROM disk_files d WHERE d.trash_id = p.id) AS disk
   FROM trash p ORDER BY p.deleted_at DESC, p.id DESC`);
 
+// Frist auf dem Server, damit TRASH_DAYS nur hier steht.
+const trashDaysOpen = (deletedAt) => Math.max(0, TRASH_DAYS - Math.floor(
+  (Date.now() - Date.parse(deletedAt.replace(' ', 'T') + 'Z')) / 86400000));
+
+/* Ein Eintrag nennt Verfasser, Datum und Zahl der Dateien; eine Datei ihren Eintrag,
+   Ordner, Verfasser und Groesse. */
+function trashRowKind(z, card) {
+  if (z.kind !== 'file') return { kind: 'entry', createdBy: z.created_by ? authorByName(card, z.created_by) : null,
+    created_at: z.created_at || null, files: z.files + z.disk };
+  const f = JSON.parse(z.file), item = JSON.parse(z.item);
+  return { kind: 'file', createdBy: f.author ? authorFrom(card, keptAuthor(f.author)) : null,
+    created_at: f.created_at || null, files: 1, entry: item.title, folder: f.folder ? f.folder.name : null,
+    size: f.size, entryThere: entryOf(item) != null };
+}
+
 app.get('/api/trash', adminOnly, (req, res) => {
-  cleanupTrash();
+  // Eine GET-Anfrage stoesst die Loeschliste sonst nicht an.
+  if (cleanupTrash()) sweepSoon();
   const card = authorCard();
   res.json({
     // Die Karte nennt die Frist, bevor sie die Liste zeichnet.
     days: TRASH_DAYS,
     rows: qTrash.all().map(z => ({
-      id: z.id, title: z.title, deleted_at: z.deleted_at,
+      id: z.id, title: z.title, deleted_at: z.deleted_at, ...trashRowKind(z, card),
       // Form wie bei Verfassern, damit ein geloeschter Account als
       // „Gelöschter Benutzer" mit Nummer erscheint.
       deletedBy: authorFrom(card, z.deleted_by),
-      createdBy: z.created_by ? authorByName(card, z.created_by) : null,
-      created_at: z.created_at || null,
-      files: z.files + z.disk, bytes: z.bytes,
-      // Frist auf dem Server, damit TRASH_DAYS nur hier steht.
-      daysOpen: Math.max(0, TRASH_DAYS - Math.floor(
-        (Date.now() - Date.parse(z.deleted_at.replace(' ', 'T') + 'Z')) / 86400000))
+      bytes: z.bytes, daysOpen: trashDaysOpen(z.deleted_at)
     }))
   });
 });
@@ -6679,6 +6858,11 @@ app.post('/api/trash/:id/restore', ownerOnly, async (req, res, next) => {
     let envelope;
     try { envelope = JSON.parse(z.content); }
     catch { return res.status(500).json({ error: t(localeOf(req), 'server.trashUnreadable')}); }
+    if (envelope.kind === 'file') {
+      const done = db.transaction(() => fileFromTrash(z))();
+      fileBackQueued([done]);
+      return res.json({ ok: true, kind: 'file', itemId: done.itemId, title: z.title, authorUnknown: [] });
+    }
     // Bytes einzeln aus trash_bytes, nie alle zugleich im Speicher.
     const source = (nr) => {
       const b = qTrashBytes.get(z.id, nr);
@@ -7183,6 +7367,213 @@ app.post('/api/backup/check', ownerOnly, (req, res) => {
     // Laesst sich oeffnen und kennt `items` nicht: eine fremde SQLite-Datei.
     return res.json({ ok: false, reason: 'foreign', at: file.time, bytes: file.bytes, nr });
   }
+});
+
+/* ---- Geloeschte Dateien eines Eintrags: Papierkorb und Backups ---- */
+const qItemHead = db.prepare('SELECT id, created_at, title FROM items WHERE id = ?');
+const qTrashFiles = db.prepare(`SELECT id, title, deleted_at, content FROM trash
+  WHERE json_extract(content, '$.kind') = 'file' ORDER BY deleted_at DESC, id DESC`);
+const qLiveFiles = db.prepare(`SELECT a.id, a.created_at, COALESCE(e.saves, 0) AS saves FROM attachments a
+  LEFT JOIN attachment_editing e ON e.attachment_id = a.id WHERE a.item_id = ?`);
+const addDiskBack = db.prepare(`INSERT INTO disk_files (name, size, chunk, large, file_key, attachment_id)
+  VALUES (?, ?, ?, ?, ?, ?)`);
+
+function trashFilesOf(itemId) {
+  const out = [];
+  for (const z of qTrashFiles.all()) {
+    const c = JSON.parse(z.content);
+    if (entryOf(c.item) === itemId) out.push({ z, file: c.file });
+  }
+  return out;
+}
+
+// Die Fassung aus einem Backup neben der geaenderten Datei; das Datum in TZ des Servers.
+function olderName(filename, ms) {
+  const d = new Date(ms), two = (n) => String(n).padStart(2, '0');
+  const mark = ` (Backup ${two(d.getDate())}.${two(d.getMonth() + 1)}.${d.getFullYear()})`;
+  const dot = filename.lastIndexOf('.');
+  return dot > 0 ? filename.slice(0, dot) + mark + filename.slice(dot) : filename + mark;
+}
+
+/* Was der Dialog anbietet: fehlt im Eintrag und im Papierkorb, oder ist im laufenden Stand
+   oefter gespeichert (`older`). Belegt ein Name auf der Platte noch eine Zeile, etwa als
+   vorige Fassung, bleibt die Datei draussen. */
+function backupOffer(r, live, trashed) {
+  const id = `${r.id}|${r.created_at}`;
+  if (trashed.has(id)) return null;
+  const now = live.get(id);
+  if (now !== undefined && !(now > r.saves)) return null;
+  if (r.disk && qDiskKnown.get(r.disk)) return null;
+  return { older: now !== undefined };
+}
+
+function backupPlaceNow() {
+  if (!backupState().input) return null;
+  const target = checkPlace(getSetting('backupPlace', ''));
+  return target.error ? null : target;
+}
+
+// Jedes Backup wird nur lesend geoeffnet; Backups mit anderem Schluessel zaehlen als nicht lesbar.
+function deletedFiles(it) {
+  const trashRows = trashFilesOf(it.id);
+  const out = { place: false, unreadable: 0, backups: [],
+    trash: trashRows.map(({ z, file }) => ({ trash: z.id, filename: file.filename, folder: file.folder?.name ?? null,
+      size: file.size, deleted_at: z.deleted_at, daysOpen: trashDaysOpen(z.deleted_at) })) };
+  const target = backupPlaceNow();
+  const list = target ? backupList(target.filePath) : null;
+  if (!list) return out;
+  out.place = true;
+  const live = new Map(qLiveFiles.all(it.id).map(f => [`${f.id}|${f.created_at}`, f.saves]));
+  const trashed = new Set(trashRows.map(({ file }) => `${file.id}|${file.created_at}`));
+  const seen = new Set();
+  for (const d of list) {
+    let probe;
+    try { probe = backup.openBackup(path.join(target.filePath, d.name), keyHex); }
+    catch { out.unreadable++; continue; }
+    try {
+      const rows = backup.entryFiles(probe, it);
+      if (rows === null) { out.unreadable++; continue; }
+      for (const r of rows) {
+        const offer = seen.has(r.version) ? null : backupOffer(r, live, trashed);
+        if (!offer) continue;
+        seen.add(r.version);
+        const missing = r.disk ? !backup.copyPresent(target.filePath, { name: r.disk, length: encLen(r.disk_size, r.chunk) })
+                               : !r.inline;
+        out.backups.push({ backup: d.name, at: sqlTime(d.time), file: r.version, size: r.size, older: offer.older, missing,
+          filename: offer.older ? olderName(r.filename, d.time) : r.filename, folder: r.folder_name ?? null });
+      }
+    } catch { out.unreadable++; }
+    finally { probe.close(); }
+  }
+  return out;
+}
+
+app.get('/api/items/:id/deleted-files', ownerOnly, (req, res) => {
+  const it = qItemHead.get(req.params.id);
+  if (!it) return res.status(404).json({ error: t(localeOf(req), 'server.entryUnknown') });
+  res.json(deletedFiles(it));
+});
+
+// Liegt die Datei im Backup noch in der Datenbank, wird sie in Stuecken neu verschluesselt.
+async function sealFromBackup(probe, id, f) {
+  const part = probe.prepare('SELECT substr(data, ?, ?) AS part FROM attachments WHERE id = ?');
+  for (let i = 0; i === 0 || i * f.chunk < f.size; i++) {
+    const bytes = part.get(i * f.chunk + 1, f.chunk, id)?.part || NO_BYTES;
+    await attachments.sealInto(diskPath(f.name, true), f, i, bytes, { fresh: i === 0 });
+  }
+}
+
+/* Eine Datei aus einem geoeffneten Backup; `made` teilt neue Ordner eines Vorgangs.
+   Wirft `refusal()` mit dem Grund fuer die Antwort. */
+async function fileFromBackup(it, d, folder, probe, r, made) {
+  const offer = backupOffer(r, new Map(qLiveFiles.all(it.id).map(f => [`${f.id}|${f.created_at}`, f.saves])),
+    new Set(trashFilesOf(it.id).map(({ file }) => `${file.id}|${file.created_at}`)));
+  if (!offer) throw refusal(409, 'server.backupFileThere');
+  if (fileSlots(it.id) >= FILES_PER_ENTRY) throw refusal(400, 'server.fileCap', { cap: FILES_PER_ENTRY });
+  const f = r.disk ? { name: r.disk, size: r.disk_size, chunk: r.chunk, large: r.large ? 1 : 0, key: r.file_key }
+                   : { name: freshName(), size: r.size, chunk: CHUNK, large: 0, key: crypto.randomBytes(32) };
+  const from = r.disk ? path.join(folder, COPY_DIR, r.disk) : null;
+  if (from && !backup.copyPresent(folder, { name: r.disk, length: encLen(f.size, f.chunk) }))
+    throw refusal(409, 'server.backupCopyMissing');
+  if (!from && !r.inline) throw refusal(409, 'server.backupCopyMissing');
+  const short = spaceShort(encLen(f.size, f.chunk));
+  if (short) throw refusal(507, 'server.backupFetchSpace');
+  DISK_WRITING.add(f.name);
+  try {
+    if (from) await backup.copySynced(from, diskPath(f.name, true));
+    else await sealFromBackup(probe, r.id, f);
+    const still = r.has_still ? probe.prepare('SELECT still FROM attachment_stills WHERE attachment_id = ?').get(r.id)
+      ?.still : null;
+    const filename = offer.older ? olderName(r.filename, d.time) : r.filename;
+    const id = commitFull(() => {
+      if (qDiskKnown.get(f.name) || !backupOffer(r, new Map(qLiveFiles.all(it.id)
+        .map(x => [`${x.id}|${x.created_at}`, x.saves])), new Set())) return null;
+      const added = Number(addFileBack().run(it.id, filename, r.mime_type || '', r.size, NO_BYTES,
+        qNextSort.get(it.id).n, keptAuthor(person(r.user_id, r.user_name)), r.created_at).lastInsertRowid);
+      addDiskBack.run(f.name, f.size, f.chunk, f.large, f.key, added);
+      dropGone.run(f.name);
+      const into = folderBack(it.id, r.folder_id == null ? null : { id: r.folder_id, name: r.folder_name,
+        created_at: r.folder_created, testDay: r.folder_day, author: person(r.folder_user, r.folder_user_name) }, made);
+      if (into != null) putFileFolder.run(added, into);
+      if (still) putStill.run(added, r.duration ?? null, still);
+      if (r.edit_all) putEditAll.run(added, 1);
+      touch.run(it.id);
+      return added;
+    });
+    if (id == null) throw refusal(409, 'server.backupFileThere');
+    moveIntoPlace(f.name);
+    // Liegt die Datei noch unter files/, hat die Loeschliste sie noch nicht geraeumt.
+    fs.rmSync(diskPath(f.name, true), { force: true });
+    return { id, itemId: it.id, inline: false, filename };
+  } catch (e) {
+    if (!qDiskKnown.get(f.name))
+      for (const rest of [diskPath(f.name, true), diskPath(f.name, true) + '.part']) fs.rmSync(rest, { force: true });
+    throw e;
+  } finally { DISK_WRITING.delete(f.name); }
+}
+
+/* Zuerst der Papierkorb, dann die Backups unter der Sperre des Backup-Ordners. Je geholter
+   Datei aus einem Backup eine Zeile backup.fetch. */
+app.post('/api/items/:id/deleted-files', ownerOnly, async (req, res, next) => {
+  const locale = localeOf(req);
+  const it = qItemHead.get(req.params.id);
+  if (!it) return res.status(404).json({ error: t(locale, 'server.entryUnknown') });
+  const b = req.body || {};
+  const trashIds = Array.isArray(b.trash) ? b.trash.map(Number).filter(Number.isSafeInteger) : [];
+  const wanted = Array.isArray(b.backup)
+    ? b.backup.filter(x => x && typeof x.name === 'string' && typeof x.file === 'string') : [];
+  if (!trashIds.length && !wanted.length || trashIds.length + wanted.length > FILES_PER_ENTRY)
+    return res.status(400).json({ error: t(locale, 'server.deletedChoice') });
+  const made = new Map(), done = [], refused = [];
+  const refuse = (filename, e) => {
+    if (!e.denial) throw e;
+    refused.push({ filename, reason: errorText(req, e) });
+  };
+  try {
+    for (const nr of trashIds) {
+      const z = db.prepare('SELECT * FROM trash WHERE id = ?').get(nr);
+      const c = z ? JSON.parse(z.content) : null;
+      if (!c || c.kind !== 'file' || entryOf(c.item) !== it.id) {
+        refused.push({ filename: z ? z.title : String(nr), reason: t(locale, 'server.trashGone') });
+        continue;
+      }
+      try { done.push(db.transaction(() => fileFromTrash(z, made))()); } catch (e) { refuse(z.title, e); }
+    }
+    const target = wanted.length ? backupPlaceNow() : null;
+    const list = target ? backupList(target.filePath) : null;
+    const lock = list ? takeBackupLock(target.filePath) : null;
+    if (wanted.length && !lock) {
+      const why = t(locale, list ? 'server.backupRunning' : 'server.backupDirUnreachable');
+      for (const w of wanted) refused.push({ filename: w.file, reason: why });
+    }
+    if (lock) {
+      try {
+        for (const name of [...new Set(wanted.map(w => w.name))]) {
+          const d = list.find(x => x.name === name);
+          const files = wanted.filter(w => w.name === name).map(w => w.file);
+          let probe = null;
+          try { if (d) probe = backup.openBackup(path.join(target.filePath, d.name), keyHex); } catch {}
+          if (!probe) {
+            for (const file of files) refused.push({ filename: file, reason: t(locale, 'server.backupGone') });
+            continue;
+          }
+          try {
+            const rows = backup.entryFiles(probe, it) || [];
+            for (const file of files) {
+              const r = rows.find(x => x.version === file);
+              if (!r) { refused.push({ filename: file, reason: t(locale, 'server.backupFileGone') }); continue; }
+              try {
+                done.push(await fileFromBackup(it, d, target.filePath, probe, r, made));
+                auth.log('backup.fetch', { actor: req.user.id });
+              } catch (e) { refuse(r.filename, e); }
+            }
+          } finally { probe.close(); }
+        }
+      } finally { dropBackupLock(lock); }
+    }
+    fileBackQueued(done);
+    res.json({ ...detail(it.id, req.user.id, localeOf(req)), fetched: done.length, refused });
+  } catch (e) { next(e); }
 });
 
 // Beim Start protokollieren: ein falscher Ort faellt so vor dem ersten Backup auf.

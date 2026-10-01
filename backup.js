@@ -402,8 +402,48 @@ function storeSize(folder) {
   return { count, bytes };
 }
 
+/* ---- Dateien eines Eintrags in einem Backup ---- */
+const tablesIn = (probe) => new Set(probe.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all()
+  .map(z => z.name));
+const columnsIn = (probe, table) => new Set(probe.prepare(`PRAGMA table_info("${table}")`).all().map(c => c.name));
+
+/* `entry`: Nummer, created_at und Titel im laufenden Stand; gefunden wird er wie in compare()
+   in backuptool.js. null: keine Datenbank von Kriterion. Fehlt einem aelteren Backup eine
+   Tabelle oder Spalte, bleibt die Angabe NULL. */
+function entryFiles(probe, entry) {
+  const tables = tablesIn(probe);
+  if (!tables.has('items') || !tables.has('attachments')) return null;
+  const it = probe.prepare('SELECT id FROM items WHERE id = ? AND created_at = ?').get(entry.id, entry.created_at)
+    || probe.prepare('SELECT id FROM items WHERE created_at = ? AND title = ? ORDER BY id LIMIT 1')
+      .get(entry.created_at, entry.title);
+  if (!it) return [];
+  const has = (table, column) => tables.has(table) && columnsIn(probe, table).has(column);
+  const pick = (ok, expr, name) => `${ok ? expr : 'NULL'} AS ${name}`;
+  const disk = tables.has('disk_files'), folder = tables.has('folders') && tables.has('attachment_folders');
+  const editing = tables.has('attachment_editing'), stills = tables.has('attachment_stills');
+  const cols = ['a.id', 'a.filename', 'a.mime_type', 'a.size', 'a.created_at', 'a.user_id',
+    'length(a.data) AS inline', 'u.username AS user_name',
+    pick(disk, 'd.name', 'disk'), pick(disk, 'd.size', 'disk_size'), pick(disk, 'd.chunk', 'chunk'),
+    pick(has('disk_files', 'large'), 'd.large', 'large'), pick(disk, 'd.file_key', 'file_key'),
+    pick(folder, 'f.id', 'folder_id'), pick(folder, 'f.name', 'folder_name'),
+    pick(folder, 'f.created_at', 'folder_created'), pick(has('folders', 'test_day_id'), 'f.test_day_id', 'folder_day'),
+    pick(folder, 'f.user_id', 'folder_user'), pick(folder, 'fu.username', 'folder_user_name'),
+    pick(has('attachment_editing', 'saves'), 'e.saves', 'saves'),
+    pick(has('attachment_editing', 'edit_all'), 'e.edit_all', 'edit_all'),
+    pick(stills, 's.duration', 'duration'), pick(stills, '(s.attachment_id IS NOT NULL)', 'has_still')];
+  const joins = ['LEFT JOIN users u ON u.id = a.user_id',
+    disk ? 'LEFT JOIN disk_files d ON d.attachment_id = a.id' : '',
+    folder ? `LEFT JOIN attachment_folders af ON af.attachment_id = a.id LEFT JOIN folders f ON f.id = af.folder_id
+      LEFT JOIN users fu ON fu.id = f.user_id` : '',
+    editing ? 'LEFT JOIN attachment_editing e ON e.attachment_id = a.id' : '',
+    stills ? 'LEFT JOIN attachment_stills s ON s.attachment_id = a.id' : ''];
+  return probe.prepare(`SELECT ${cols.join(', ')} FROM attachments a ${joins.join(' ')}
+    WHERE a.item_id = ? ORDER BY a.sort_order, a.id`).all(it.id)
+    .map(r => ({ ...r, saves: r.saves || 0, version: `${r.id}|${r.created_at}|${r.saves || 0}` }));
+}
+
 module.exports = {
-  BACKUP_PATTERN, CLEANUP_KEEP, CLEANUP_DAYS, DAY_MS, COPY_DIR, LIST_PATTERN, DISK_NAME, ABSENT_MARK,
+  BACKUP_PATTERN, CLEANUP_KEEP, CLEANUP_DAYS, DAY_MS, COPY_DIR, LIST_PATTERN, DISK_NAME, ABSENT_MARK, entryFiles,
   backupState, checkPlace, backupList, ruleHit, lockedNames, checkRuleValue, removeBackups,
   takeLock, dropLock, lockHolder, listPath, readList, writeList, openBackup, diskList, copyPresent, copySynced,
   copyDiskFiles, clearBackupRest, spaceShort, writeBackup, cleanBackupFiles, listCheck, copiesFreed,

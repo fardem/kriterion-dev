@@ -81,6 +81,11 @@ annehmen.
   Start und stündlich für die Dateien aus `MEDIA_FAILED`. Fehlt die Zeile, liest
   `GET /api/attachments/:id/info` sofort. `inMediaTurn()` lässt immer nur eine
   Analyse laufen. Nicht im Export und nicht im Papierkorb.
+- `photo_media`: dasselbe für Fotos und Videos des Eintrags, stückweise aus
+  `photos.data` gelesen (`makePhotoMedia()`). Dieselbe Warteschlange nimmt sie
+  nach den Dateien: nach dem Upload und nach einem Import, beim Start und
+  stündlich für Fotos ohne Zeile. Fehlt die Zeile, liest
+  `GET /api/photos/:id/info` sofort. Nicht im Export.
 - `folders`: Ordner unter „Dateien“ mit Name (1 bis 80 Zeichen), Verfasser und
   Zeitpunkt; `AUTOINCREMENT`, damit ein Upload auf einen gelöschten Ordner nie
   in einem neuen mit derselben Nummer landet. `test_day_id`: ein eigener
@@ -120,7 +125,8 @@ AES-256-GCM verschlüsselt (Nonce aus Stücknummer, AAD der Name), 16 Bytes Mark
 je Stück. `data/files/upload/` hält Uploads und Dateien, die noch nicht
 committet sind. Beide Verzeichnisse haben den Modus `0700`. Im Backup-Ordner
 stehen die Kopien unter `kriterion-files/`, dazu je Backup eine Liste
-`kriterion-<zeitpunkt>.files` und während eines Backups `.lock`.
+`kriterion-<zeitpunkt>.files` und während eines Backups oder des Zurückholens
+von Dateien `.lock`.
 - `settings`: globale Einstellungen, darunter Titel, Vokabular, Suchmaschinen
   und das Verfahren der Bildablage (`imageStore`).
 - `user_settings`: vierzehn persönliche Schlüssel je Benutzer (`PERSONAL_KEYS`),
@@ -146,8 +152,13 @@ stehen die Kopien unter `kriterion-files/`, dazu je Backup eine Liste
   einer festen Liste. Kein Freitext, keine Adresse. Leeres `actor` heißt
   „über `usertool.js`", außer bei einer gescheiterten Anmeldung. 180 Tage.
 - `trash`, `trash_bytes`: Papierkorb. Je gelöschtem Eintrag eine Zeile mit dem
-  Paket im Austauschformat, die Bytes je Datei in der zweiten Tabelle. Keine
-  andere Abfrage liest diese Tabellen.
+  Paket im Austauschformat, die Bytes je Datei in der zweiten Tabelle. Eine
+  einzeln gelöschte Datei ist eine Zeile mit `content.kind = 'file'`: Eintrag
+  (Nummer, `created_at`, Titel), Ordner, Verfasser und Angaben der Datei als
+  JSON. Standbild und Inhalt aus der Datenbank stehen als Teil 0 und 1 in
+  `trash_bytes`; der Inhalt auf der Platte bleibt über `disk_files.trash_id`.
+  Außer dem Papierkorb liest nur „Gelöschte Dateien …“
+  (`GET /api/items/:id/deleted-files`) diese Tabellen.
 
 Verfasser tragen sechs Tabellen: `items`, `comments`, `test_days`, `ratings`,
 `links`, `attachments`, jeweils in `user_id`. `trash.deleted_by`,

@@ -305,6 +305,12 @@ CREATE TABLE IF NOT EXISTS attachment_media (
   info TEXT NOT NULL
 );
 
+-- Dasselbe fuer Fotos und Videos des Eintrags.
+CREATE TABLE IF NOT EXISTS photo_media (
+  photo_id INTEGER PRIMARY KEY REFERENCES photos(id) ON DELETE CASCADE,
+  info TEXT NOT NULL
+);
+
 -- Ordner unter „Dateien“. AUTOINCREMENT: ein Upload, der auf einen geloeschten
 -- Ordner wartet, landet nie in einem neuen mit derselben Nummer.
 CREATE TABLE IF NOT EXISTS folders (

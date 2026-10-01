@@ -45,7 +45,7 @@ const SCRYPT_SHIPPED = Number((fs.readFileSync(path.join(__dirname, 'auth.js'), 
   .match(/^const SCRYPT_SHIPPED = (\d+);$/m) || [])[1]);
 const RUN_SCRYPT = RUN_KEYS.scryptCost(SCRYPT_SHIPPED);
 
-const readmeFlat = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8')
+const readmeFlat = fs.readFileSync(path.join(__dirname, 'README-de.md'), 'utf8')
   .replace(/\s+/g, ' ');
 const handbookFlat = fs.readFileSync(path.join(__dirname, 'manual-de.md'), 'utf8')
   .replace(/\s+/g, ' ');
@@ -539,6 +539,7 @@ const F_ROUTES = [
   ['POST',   '/api/images/convert',          'ownerOnly, zweitbestaetigt'],
   ['POST',   '/api/backup/cleanup',      'ownerOnly, zweitbestaetigt'],
   ['POST',   '/api/backup/check',            'ownerOnly'],
+  ['POST',   '/api/items/:id/deleted-files',   'ownerOnly'],
   // Nur der Eigentuemer-Admin, und nur mit Kopie im Backup-Ordner.
   ['DELETE', '/api/files/unknown',           'ownerOnly']
 ];
@@ -618,6 +619,10 @@ const F_READ_ROUTES = [
     'Die signierte Konfiguration des Betrachters; wer die Datei laden darf, darf sie auch ansehen.'],
   ['/api/attachments/:id/info',    'angemeldet',
     'Die Erweiterten Infos zu einem Bild oder Video; sie stehen in der Datei, die jeder Angemeldete laden darf.'],
+  ['/api/photos/:id/info',         'angemeldet',
+    'Dasselbe fuer ein Foto oder Video des Eintrags, das jeder Angemeldete laden darf.'],
+  ['/api/items/:id/deleted-files', 'ownerOnly',
+    'Geloeschte Dateien eines Eintrags aus Papierkorb und Backups; zurueckholen darf nur der Eigentuemer.'],
   ['/api/document-server',         'adminOnly',
     'Adressen und Zustand des Document Servers fuer die Karte; das Secret steht nicht darin.'],
   ['/api/items/:id/votes',         'adminOnly',
