@@ -92,8 +92,8 @@ Hintergrund an (V14).
 ## 1. Das Ziel
 
 Am Rechner und am Telefon spielt ein Video unter „Dateien“ einen Proxy, sobald
-er fertig ist: eine kleinere Fassung in H.264 und AAC, mit höchstens 1080
-Zeilen und der Bildrate des Originals (V12). ffmpeg erzeugt ihn im Hintergrund,
+er fertig ist: eine kleinere Fassung in H.264 und AAC, an der kürzeren Seite
+höchstens 1080 Pixel, mit der Bildrate des Originals (V12). ffmpeg erzeugt ihn im Hintergrund,
 mit Quick Sync auf dem N100, ohne Quick Sync mit der CPU. Der Umschalter zeigt
 das Original für ein Abspielen; „Herunterladen“ liefert immer das Original.
 Fehlt ein Proxy, spielt das Original, ohne Fehlermeldung (V14). Videos, die
@@ -241,8 +241,29 @@ Backports.
   Läufe je Bitrate in wechselnder Reihenfolge: Median 6,85 s bei 5 Mbit/s,
   6,47 s bei 7,5, 6,69 s bei 8 und 7,06 s bei 16. Dieselbe Bitrate schwankt um
   bis zu 1 s.
-- Die Messung mit Quick Sync steht aus: nach `firmware-intel-graphics` und
-  einem Neustart des Hosts.
+- Die Messung mit Quick Sync folgte nach `firmware-intel-graphics` und einem
+  Neustart des Hosts.
+
+Zweite Messung des Betreibers am 1. Oktober 2026, 23:57, mit `MBIT=7.5`. Der
+Kernel meldet GuC und HuC geladen, „HuC: authenticated for all workloads“.
+Quick Sync kodiert mit beiden Treibern aus Debian, auch mit dem freien
+`intel-media-va-driver` 23.1.1; der Treiber aus `non-free` ist nicht nötig.
+
+| Datei | Format | Dauer | Weg A: Zeit | Faktor | CPU | Weg C: Zeit | Faktor | CPU | Größe |
+|---|---|---|---|---|---|---|---|---|---|
+| 20260718_C3524.MP4 | H.264 1080p 29,97, 25 Mbit/s | 1:25 | 0:16 | 5,3 | 12 % | 0:33 | 2,6 | 84 % | 82 MB |
+| 20260718_C3619.MP4 | HEVC 10 Bit 4K 59,94, 64 Mbit/s | 0:59 | 0:29 | 2,0 | 16 % | 1:57 | 0,5 | 83 % | 56 MB |
+| 20260923_C3762.MP4 | HEVC 10 Bit 4K 59,94, 58 Mbit/s | 1:05 | 0:35 | 1,9 | 15 % | 2:06 | 0,5 | 81 % | 62 MB |
+| IMG_2618.MOV | H.264 4K 24, 45 Mbit/s | 2:17 | 0:31 | 4,4 | 11 % | 2:58 | 0,8 | 88 % | 132 MB |
+
+- Mit Quick Sync braucht eine Stunde 4K60 der A6700 rund 30 Minuten; die CPU
+  bleibt bei 11 bis 16 %.
+- Die Spalte „Mbit/s“ dieser Messung ist die Bitrate der ganzen Datei; das
+  Skript nennt seither die des Videos.
+- Hochkant-Videos waren in dieser Fassung des Skripts falsch: Weg A ließ die
+  Drehung weg, der Proxy lag quer („Weg A liegt falsch, muss gedreht werden“);
+  Weg C drehte das Bild und verkleinerte es auf 608×1080. Seither gilt
+  `-noautorotate` (Messverfahren, Abschnitt 4). Die Zeiten gelten.
 
 ### 2.8 Größen
 
@@ -310,7 +331,7 @@ V1 bis V15 und F1 bis F18 aus Abschnitt 0; F19 bis F23 sind offen.
 | Auswahl | nach F5 bis F7 und F14. `mkv`, `avi`, `wmv` und `flv` bekommen immer einen Proxy (F6) |
 | Analyse | `mediaKind()` (`attachments.js`:361) nimmt `mkv`, `avi`, `wmv` und `flv` dazu: Die Warteschlange analysiert sie, „Erweiterte Infos“ zeigt sie (heute 404, `server.js`:4414) |
 | Die vier Endungen | Bis ihr Proxy fertig ist, bleiben sie wie heute ohne Vorschau. Danach gelten sie als Video: Das Standbild entsteht aus dem Proxy, sie spielen über ihn am Telefon und am Rechner; „Herunterladen“ liefert das Original |
-| Ziel | nach F8, F16, F17 und V10: höchstens 1080 Zeilen; das Seitenverhältnis bleibt; ein Video mit weniger Zeilen behält seine Höhe. Die Bildrate bleibt wie im Original. H.264 mit 5 Mbit/s bis 30 Bilder je Sekunde, 8 Mbit/s bis 60 und 16 Mbit/s darüber, ein Keyframe alle 2 Sekunden; AAC mit 128 kbit/s |
+| Ziel | nach F8, F16, F17 und V10: die kürzere Seite höchstens 1080 Pixel; das Seitenverhältnis bleibt; ein kleineres Video behält seine Größe. Ein Hochkant-Video bleibt so gespeichert wie das Original, die Drehung bleibt als Metadatum (`-noautorotate`); ohne die Option wurde ein Hochkant-Video in 1080p zu 608×1080 (Messverfahren, Abschnitt 4). Die Bildrate bleibt wie im Original. H.264 mit 5 Mbit/s bis 30 Bilder je Sekunde, 8 Mbit/s bis 60 und 16 Mbit/s darüber, ein Keyframe alle 2 Sekunden; AAC mit 128 kbit/s |
 | Reihenfolge | eine Umwandlung zugleich, mit Priorität 19 (`os.setPriority()`); neue Videos vor dem Bestand (F9). Erst nach der Analyse mit MediaInfo: ohne Zeile in `attachment_media` keine Umwandlung. Weg C belegt die CPU für die ganze Umwandlung; die Priorität hält Kriterion bedienbar |
 | Abbruch | ffmpeg wird beendet, wenn der Lauf länger dauert als die Dauer des Videos mal 4 plus 10 Minuten, wenn der freie Platz nicht reicht (`spaceShort()`) und beim Beenden von Kriterion |
 | Fehler | Zustand „fehlgeschlagen“ mit dem Grund in der Tabelle. Der nächste Start von Kriterion versucht es einmal neu. Fehlt ein Proxy, ist seine Datei weg oder lässt sie sich nicht entschlüsseln, spielt das Original ohne Fehlermeldung, und Kriterion stellt das Video wieder in die Warteschlange (V14) |
@@ -452,7 +473,8 @@ Fingerprint. Zahlen am fertigen Stand.
     spielt es an derselben Stelle weiter. Springen braucht kein Laden mehr. Ein
     zweiter Druck während des Ladens bricht ab (B2).
 15. Ein Video der A6700 in 4K mit 50p: Der Proxy hat 1920×1080 und 50 Bilder
-    je Sekunde, die Bitrate nach F21 (V10, F16).
+    je Sekunde, die Bitrate nach F21 (V10, F16). Ein Hochkant-Video in 1080p:
+    Der Proxy ist hochkant und hat 1080 Pixel an der kürzeren Seite.
 16. Ein Video ohne Proxy öffnen, etwa direkt nach dem Hochladen: Es spielt das
     Original, ohne Fehlermeldung; der Proxy entsteht im Hintergrund (V14).
 17. Ohne Firmware für `i915` nennt die Karte den Grund (V15).

@@ -8,8 +8,9 @@ N100 kodieren. Kriterion ist dabei nicht beteiligt.
 
 Ziel der Umwandlung (F8, F16, F17 und V10 im Auftrag):
 
-- höchstens 1080 Zeilen; das Seitenverhältnis bleibt, ein Video mit weniger
-  Zeilen behält seine Höhe
+- die kürzere Seite höchstens 1080 Pixel; das Seitenverhältnis bleibt, ein
+  kleineres Video behält seine Größe. Ein Hochkant-Video bleibt so gespeichert
+  wie das Original, die Drehung bleibt als Metadatum im Proxy
 - die Bildrate des Originals
 - H.264 mit 5 Mbit/s bis 30 Bilder je Sekunde, 8 Mbit/s bis 60 und 16 Mbit/s
   darüber; ein Keyframe alle 2 Sekunden
@@ -98,6 +99,18 @@ Backports, installiert nur `firmware-misc-nonfree` 20250410-2~bpo12+1.
 
 ## 4. Umwandeln
 
+`KW` und `KH` begrenzen die kürzere Seite auf 1080 Pixel:
+
+```sh
+KW="'if(gt(iw,ih),-2,min(1080,iw))'"
+KH="'if(gt(iw,ih),min(1080,ih),-2)'"
+```
+
+`-noautorotate` lässt ein Hochkant-Video so liegen, wie es gespeichert ist.
+Ohne die Option dreht ffmpeg das Bild zuerst; ein Hochkant-Video in 1080p wurde
+dann zu 608×1080. Geprüft am 1. Oktober 2026 mit einem Proxy der A6700
+(1920×1080, Drehung −90°): mit der Option 1920×1080, Drehung −90°.
+
 `MBIT` und `GOP` folgen aus der Bildrate. `MBIT` ist 5 bis 30 Bilder je
 Sekunde, 8 bis 60 und 16 darüber. `GOP` ist die Zahl der Bilder in 2 Sekunden,
 bei 50p also 100.
@@ -107,7 +120,7 @@ mit 8 Bit und 4:2:0:
 
 ```sh
 ffmpeg -hwaccel vaapi -hwaccel_device /dev/dri/renderD128 -hwaccel_output_format vaapi \
-  -i C0001.MP4 -vf "scale_vaapi=w=-2:h='min(1080,ih)':format=nv12" \
+  -noautorotate -i C0001.MP4 -vf "scale_vaapi=w=$KW:h=$KH:format=nv12" \
   -c:v h264_vaapi -b:v ${MBIT}M -maxrate ${MBIT}M -bufsize $((2 * MBIT))M -g $GOP \
   -c:a aac -b:a 128k -movflags +faststart C0001.proxy-A.mp4
 ```
@@ -117,7 +130,7 @@ kodiert:
 
 ```sh
 ffmpeg -init_hw_device vaapi=va:/dev/dri/renderD128 -filter_hw_device va \
-  -i C0001.MP4 -vf "scale=-2:'min(1080,ih)',format=nv12,hwupload" \
+  -noautorotate -i C0001.MP4 -vf "scale=$KW:$KH,format=nv12,hwupload" \
   -c:v h264_vaapi -b:v ${MBIT}M -maxrate ${MBIT}M -bufsize $((2 * MBIT))M -g $GOP \
   -c:a aac -b:a 128k -movflags +faststart C0001.proxy-B.mp4
 ```
@@ -125,7 +138,7 @@ ffmpeg -init_hw_device vaapi=va:/dev/dri/renderD128 -filter_hw_device va \
 **C — nur die CPU**, für jede Datei:
 
 ```sh
-ffmpeg -i C0001.MP4 -vf "scale=-2:'min(1080,ih)',format=yuv420p" \
+ffmpeg -noautorotate -i C0001.MP4 -vf "scale=$KW:$KH,format=yuv420p" \
   -c:v libx264 -preset veryfast -b:v ${MBIT}M -maxrate ${MBIT}M -bufsize $((2 * MBIT))M -g $GOP \
   -c:a aac -b:a 128k -movflags +faststart C0001.proxy-C.mp4
 ```
@@ -140,8 +153,9 @@ Das Skript schreibt eine Tafel mit diesen Spalten:
 
 | Spalte | Inhalt |
 |---|---|
-| Format | `codec_name` und `pix_fmt` aus Abschnitt 3, dazu HLG oder PQ |
-| Pixel, Bilder/s, Mbit/s, Dauer | das Original |
+| Format | `codec_name` und `pix_fmt` aus Abschnitt 3, dazu HLG oder PQ und „hochkant“ |
+| Pixel, Bilder/s, Dauer | das Original, Pixel wie gespeichert |
+| Video Mbit/s | Bitrate des Videos im Original, ohne Ton und Metadaten; Sony schreibt eine eigene Spur `rtmd` |
 | Weg | A, B oder C aus Abschnitt 4 |
 | Ziel | Bitrate des Proxys |
 | Zeit | Dauer der Umwandlung |
@@ -209,6 +223,11 @@ trap 'rm -rf "$TMP"' EXIT
 
 say() { printf '%s\n' "$*" >&2; }
 
+# Die kürzere Seite höchstens 1080 Pixel. Ein Hochkant-Video bleibt liegend gespeichert;
+# -noautorotate lässt die Drehung als Metadatum im Proxy.
+KW="'if(gt(iw,ih),-2,min(1080,iw))'"
+KH="'if(gt(iw,ih),min(1080,ih),-2)'"
+
 # Basis-Image von Kriterion mit ffmpeg und einem der beiden Intel-Treiber aus Debian.
 bau() {
   docker build -q -t "kriterion-messung:$1" --build-arg TREIBER="$1" - >"$TMP/bau.log" 2>&1 <<'EOF'
@@ -256,14 +275,14 @@ wandle() {
   aus="${f%.*}.proxy-$weg.mp4"
   case $weg in
     A) dec=(-hwaccel vaapi -hwaccel_device "$DRI" -hwaccel_output_format vaapi)
-       vf="scale_vaapi=w=-2:h='min(1080,ih)':format=nv12"; enc=(-c:v h264_vaapi) ;;
+       vf="scale_vaapi=w=$KW:h=$KH:format=nv12"; enc=(-c:v h264_vaapi) ;;
     B) dec=(-init_hw_device vaapi=va:"$DRI" -filter_hw_device va)
-       vf="scale=-2:'min(1080,ih)',format=nv12,hwupload"; enc=(-c:v h264_vaapi) ;;
-    C) vf="scale=-2:'min(1080,ih)',format=yuv420p"; enc=(-c:v libx264 -preset veryfast) ;;
+       vf="scale=$KW:$KH,format=nv12,hwupload"; enc=(-c:v h264_vaapi) ;;
+    C) vf="scale=$KW:$KH,format=yuv420p"; enc=(-c:v libx264 -preset veryfast) ;;
   esac
   say "  Weg $weg: $f"
   local t0=$SECONDS
-  ff "$img" -benchmark -nostats -progress pipe:1 -stats_period 1 -y "${dec[@]}" -i "$f" \
+  ff "$img" -benchmark -nostats -progress pipe:1 -stats_period 1 -y "${dec[@]}" -noautorotate -i "$f" \
     -vf "$vf" "${enc[@]}" -b:v "${mbit}M" -maxrate "${mbit}M" -bufsize "$(awk -v m="$mbit" 'BEGIN { print 2 * m }')M" -g "$gop" \
     -c:a aac -b:a 128k -movflags +faststart "$aus" 2>"$TMP/lauf.log" |
     while IFS= read -r z; do
@@ -334,7 +353,7 @@ fi
 echo "- Weg A und B: ${HWIMG:-keiner}${HWIMG:+, ffmpeg $(version "$HWIMG")}"
 echo "- Weg C: $CPUIMG, ffmpeg $(version "$CPUIMG")"
 echo
-echo "| Datei | Format | Pixel | Bilder/s | Mbit/s | Dauer | Weg | Ziel | Zeit | Faktor | CPU | Größe |"
+echo "| Datei | Format | Pixel | Bilder/s | Video Mbit/s | Dauer | Weg | Ziel | Zeit | Faktor | CPU | Größe |"
 echo "|---|---|---|---|---|---|---|---|---|---|---|---|"
 
 for f in *; do
@@ -343,16 +362,22 @@ for f in *; do
     *.mp4 | *.mov | *.m4v | *.mts | *.m2ts | *.mkv | *.avi | *.wmv | *.flv | *.webm) ;;
     *) continue ;;
   esac
-  codec= pix= w= h= rate= trc= dur= br=
+  codec= pix= w= h= rate= trc= dur= br= vbr= rot=
   while IFS='=' read -r k v; do
+    v=${v//\"/}
     case $k in
-      codec_name) codec=$v ;; pix_fmt) pix=$v ;; width) w=$v ;; height) h=$v ;;
-      r_frame_rate) rate=$v ;; color_transfer) trc=$v ;; duration) dur=$v ;; bit_rate) br=$v ;;
+      streams_stream_0_codec_name) codec=$v ;; streams_stream_0_pix_fmt) pix=$v ;;
+      streams_stream_0_width) w=$v ;; streams_stream_0_height) h=$v ;;
+      streams_stream_0_r_frame_rate) rate=$v ;; streams_stream_0_color_transfer) trc=$v ;;
+      streams_stream_0_bit_rate) vbr=$v ;; streams_stream_0_side_data_list_side_data_*_rotation) rot=$v ;;
+      format_duration) dur=$v ;; format_bit_rate) br=$v ;;
     esac
   done < <(docker run --rm -v "$PWD:/work" -w /work --entrypoint ffprobe "$CPUIMG" -v error \
              -select_streams v:0 \
-             -show_entries stream=codec_name,pix_fmt,width,height,r_frame_rate,color_transfer:format=duration,bit_rate \
-             -of default=nw=1 "$f" 2>/dev/null)
+             -show_entries stream=codec_name,pix_fmt,width,height,r_frame_rate,color_transfer,bit_rate:stream_side_data=rotation:format=duration,bit_rate \
+             -of flat=s=_ "$f" 2>/dev/null)
+  # Bitrate des Videos; ohne Angabe im Container (etwa mkv) die der ganzen Datei.
+  case $vbr in '' | *[!0-9]*) vbr=$br ;; esac
   if [ -z "$codec" ]; then
     echo "| $f | kein Video | | | | | | | | | | |"
     continue
@@ -366,8 +391,10 @@ for f in *; do
   gop=$(((2 * n + d - 1) / d))
   fmt="$codec $pix"
   case $trc in arib-std-b67) fmt="$fmt HLG" ;; smpte2084) fmt="$fmt PQ" ;; esac
+  case $rot in 90 | -90 | 270 | -270) fmt="$fmt, hochkant" ;; esac
   fps=$(awk -v n="$n" -v d="$d" 'BEGIN { s = sprintf("%.2f", n / d); sub(/\.?0+$/, "", s); sub(/\./, ",", s); print s }')
-  quelle=$(awk -v b="${br:-0}" 'BEGIN { printf "%d", b / 1e6 + 0.5 }')
+  quelle=$(awk -v b="${vbr:-0}" 'BEGIN { printf "%.1f", b / 1e6 }')
+  quelle=${quelle/./,}
   laenge=$(awk -v s="${dur:-0}" 'BEGIN { s = int(s + 0.5); printf "%d:%02d", s / 60, s % 60 }')
   hw=
   if [ -n "$HWIMG" ]; then
