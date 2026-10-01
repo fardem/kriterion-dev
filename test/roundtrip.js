@@ -2687,7 +2687,7 @@ async function sendImport(object, mode, withoutShare = false) {
     .map(m => m[1]).filter(a => a !== 'id, userId, locale');
   const withoutUser = calls.filter(a => !/,\s*req\.user\.id\s*,\s*localeOf\(req\s*$/.test(a));
   check('Keine Aufrufstelle von detail() ohne Benutzer und ohne Sprache',
-    calls.length === 35 && withoutUser.length === 0,
+    calls.length === 36 && withoutUser.length === 0,
     `${calls.length} Aufrufe, unvollstaendig: ${JSON.stringify(withoutUser)}`);
   check('detail() klemmt einen fehlenden Benutzer ab, statt still false zu liefern',
     /function detail\(id, userId, locale\) \{\s*\n\s*if \(userId == null\) throw/.test(source),
@@ -3746,10 +3746,10 @@ async function sendImport(object, mode, withoutShare = false) {
     const bpPackage = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
     /* Fest eingetragen: aus der Lockfile gelesen, koennte die Pruefung nicht scheitern. */
     const BP_RANGES = {
-      'better-sqlite3-multiple-ciphers': '^11.5.0',
+      'better-sqlite3-multiple-ciphers': '^11.5.0', 'exif-reader': '^2.0.3',
       express: '^4.21.0', 'mediainfo.js': '^0.3.8', multer: '^2.0.1', nodemailer: '^10.0.12', sharp: '^0.35.3'
     };
-    check('Beipackprobe: package.json nennt die sechs Bereiche',
+    check('Beipackprobe: package.json nennt die sieben Bereiche',
       equal(bpPackage.dependencies, BP_RANGES), JSON.stringify(bpPackage.dependencies));
     check('Und die eine Entwicklungsabhaengigkeit steht unveraendert daneben',
       equal(bpPackage.devDependencies, { jsdom: '^30.0.1' }),
@@ -4052,11 +4052,12 @@ async function sendImport(object, mode, withoutShare = false) {
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
       .all().map(z => z.name).sort();
     tzDb.close();
-    check('Die Datenbank traegt genau dreiundvierzig Tabellen',
-      tzTables.length === 43 && tzTables.includes('comment_videos') && tzTables.includes('attachment_stills') &&
+    check('Die Datenbank traegt genau vierundvierzig Tabellen',
+      tzTables.length === 44 && tzTables.includes('comment_videos') && tzTables.includes('attachment_stills') &&
       tzTables.includes('attachment_media') && tzTables.includes('photo_media') &&
       tzTables.includes('folders') && tzTables.includes('attachment_folders') &&
-      ['uploads', 'disk_files', 'disk_files_gone', 'video_positions', 'folder_open'].every(n => tzTables.includes(n)),
+      ['uploads', 'disk_files', 'disk_files_gone', 'video_positions', 'folder_open', 'attachment_changes']
+        .every(n => tzTables.includes(n)),
       `${tzTables.length}: ${tzTables.join(' ')}`);
     /* login_attempts: in einer Map setzte jeder Neustart die Zaehler auf null. */
     check('Und die neue heisst login_attempts',

@@ -396,12 +396,12 @@ async function run() {
     await rate('zweit', x4, [before[1]]);
     await asE('zweit', 'PUT', `/api/items/${x4}/ratings`, { criterionId: before[1], value: 0 });
     const shares = async (who) => Object.fromEntries(((await asE(who, 'GET', '/api/items')).content || [])
-      .map(i => [i.title, i.share]));
+      .map(i => [i.title, i.share]).sort(([a], [b]) => a.localeCompare(b)));
     const mine = await shares('zweit');
     check('Je Eintrag und Phase: keine, teilweise oder voll, an den eigenen Werten; 4 von 5 bei 80 % ist voll',
       after.length === 5 && before.length === 2 && equal(mine, {
-        'Drei von fünf': { before: 'partial', after: 'partial' }, 'Vier von fünf': { before: 'full', after: 'full' },
-        'Keiner': { before: 'none', after: 'none' }, 'Ungetestet': { before: 'partial', after: null } }),
+        'Drei von fünf': { before: 'partial', after: 'partial' }, 'Keiner': { before: 'none', after: 'none' },
+        'Ungetestet': { before: 'partial', after: null }, 'Vier von fünf': { before: 'full', after: 'full' } }),
       JSON.stringify(mine));
     check('Fremde Werte zählen nicht: für den Eigentümer ist „Keiner“ teilweise, „Drei von fünf“ ohne Wert',
       (await shares('owner'))['Keiner']?.after === 'partial' && (await shares('owner'))['Drei von fünf']?.after === 'none',
@@ -448,8 +448,10 @@ async function run() {
     check('Alle drei Anleitungen beschreiben Umbenennen, Infos, Aufnahme, den Filter und den Typ bei Bildern',
       missing.length === 0, missing.join(' · ') || 'alles da');
     const readmes = ['README.md', 'README-de.md', 'README-tr.md'].map(read);
-    check('Jede README nennt `exif-reader` und `PUT /api/attachments/<id>`',
-      readmes.every(r => r.includes('`exif-reader`') && r.includes('`PUT /api/attachments/<id>`')), 'README');
+    const builtWith = [/Built with [\s\S]{0,200}`exif-reader`/, /Gebaut mit [\s\S]{0,200}`exif-reader`/,
+      /`exif-reader` ile geliştirildi/];
+    check('Jede README nennt `exif-reader` bei den Bausteinen und `PUT /api/attachments/<id>`',
+      readmes.every((r, i) => builtWith[i].test(r) && r.includes('`PUT /api/attachments/<id>`')), 'README');
     const EN = JSON.parse(read('public/languages/en.json'));
     const app = read('public/app.js');
     check('Englisch heißen Karte und Abschnitt „Users“, die Rolle bleibt „User“',
