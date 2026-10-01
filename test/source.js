@@ -33,8 +33,8 @@ async function run() {
     fUnknown.length === 0 && fGone.length === 0,
     `ohne Entscheidung: ${fUnknown.join(' · ') || '—'} · verschwunden: ${fGone.join(' · ') || '—'}`);
   // Die feste Zahl macht jede neue Route in F_ROUTES sichtbar.
-  check('Und es sind jetzt genau 90 schreibende Routen',
-    F_ROUTES.length === 90 && fFound.length === 90,
+  check('Und es sind jetzt genau 91 schreibende Routen',
+    F_ROUTES.length === 91 && fFound.length === 91,
     `${F_ROUTES.length} erwartet, ${fFound.length} gefunden`);
   /* Gelesen werden die geladenen Listen aus auth.js, nicht ihr Quelltext;
      ein Textvergleich schluege auch bei Kommentaren an. */
@@ -1005,8 +1005,8 @@ async function run() {
     /* Sonst bliebe die Gestaltprobe gruen, wenn die Zeile mit `.id = '…'`
        fehlte: `f-cat-none` steht nur dort. */
     const setIds = [...appSource.matchAll(/\.id = ['"]([\w-]+)['"]/g)].map(m => '#' + m[1]);
-    check('Und die vierzehn id, die das Skript selbst setzt, stehen alle in der Gestaltliste',
-      setIds.length === 14 && setIds.every(n => shapes.has(n)),
+    check('Und die fuenfzehn id, die das Skript selbst setzt, stehen alle in der Gestaltliste',
+      setIds.length === 15 && setIds.every(n => shapes.has(n)),
       setIds.filter(n => !shapes.has(n)).join(' ') || `${setIds.length} gesetzte id`);
 
     /* ---- Kuerzeprobe ---- */
@@ -1050,7 +1050,7 @@ async function run() {
         if (part.kind === CODE)
           for (const m of part.value.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) benchNames.add(m[0]);
     check('Der Waechter sieht wirklich den ganzen Pruefstand',
-      benchNames.size > 2000 && BENCH.length === 34,
+      benchNames.size > 2000 && BENCH.length === 35,
       `${benchNames.size} Bezeichner aus ${BENCH.length} Dateien`);
 
     /* Keine Benennungen, sondern Gegenstaende von Pruefungen: abgelegte
@@ -1088,8 +1088,8 @@ async function run() {
     const readShipped = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
     const stWord = 'Stolper' + 'stein';
     const stAll = [...BENCH, ...SHIPPED];
-    check('Der Waechter sieht alle dreiundfuenfzig Dateien',
-      stAll.length === 53, `${stAll.length} Dateien`);
+    check('Der Waechter sieht alle vierundfuenfzig Dateien',
+      stAll.length === 54, `${stAll.length} Dateien`);
     /* Die SQL-Kommentare im SCHEMA von schema.js stehen in einem Template-String,
        den segment() als Text liefert; hier zaehlen sie als Kommentar. */
     const stSqlRow = /^\s*--/;
@@ -1621,7 +1621,7 @@ async function run() {
         : part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('/'));
     // Auf leeren Mengen waeren die Pruefungen darunter immer gruen.
     check('Der Waechter sieht beide Seiten',
-      rrRoutes.length === 128 && rrBrowser.length > 100000,
+      rrRoutes.length === 129 && rrBrowser.length > 100000,
       `${rrRoutes.length} Routen, ${rrBrowser.length} Zeichen im Browser`);
     /* Die Verwaltungstafel baut diese Adressen aus ihrem Feld `url`; eine
        Suche, die das faende, faende jede Adresse. */
@@ -1853,8 +1853,8 @@ async function run() {
       }
       if (has) ssCode++;
     }
-    check('Und es stehen genau 1999 Regelzeilen da',
-      ssCode === 1999, `${ssCode} Zeilen`);
+    check('Und es stehen genau 2003 Regelzeilen da',
+      ssCode === 2003, `${ssCode} Zeilen`);
     // Laenger als drei Zeilen darf nur eine Tabelle gemessener Werte sein.
     const ssLines = ssBlocks.map(b => b.split('\n').length);
     const ssOver = ssLines.filter(n => n > 3).length;

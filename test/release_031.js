@@ -203,9 +203,11 @@ async function check0311() {
       'card.off':         'Zustandswort einer Kennzeile',
       'card.on':          'Zustandswort einer Kennzeile',
       'entry.none':       'Eintrag der Kategorieauswahl',
+      'entry.sumNone':    'Kurzfassung eines leeren Blocks',
       'list.less':        'Beschriftung des Tagwolkenknopfes',
       'list.more':        'Beschriftung des Tagwolkenknopfes',
       'list.or':          'Beschriftung eines Filterknopfes',
+      'list.shareNone':   'Beschriftung eines Filterknopfes',
       'list.tagModeAnd':  'Beschriftung eines Filterknopfes',
       'list.without':     'Beschriftung eines Filterknopfes'
     };

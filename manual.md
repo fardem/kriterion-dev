@@ -88,7 +88,7 @@ own account, the test email and everything on an entry.
 The person who sets up the installation is the owner admin. The role can be
 passed on.
 
-Users are managed in the “User” card (Settings › User). The rules:
+Users are managed in the “Users” card (Settings › Users). The rules:
 
 - An admin does not change other admins or the owner admin.
 - The last active owner admin cannot be demoted, locked or removed.
@@ -165,7 +165,7 @@ sends only two kinds of email, both as plain text: token links and the test
 email.
 
 Only the owner admin sets up the mail account, in the “Mail delivery” card
-(Settings › User). The dialog asks for provider (GMX, Web.de, Gmail, Strato,
+(Settings › Users). The dialog asks for provider (GMX, Web.de, Gmail, Strato,
 IONOS or “Own server”), username, password and sender address. For the
 presets, Kriterion supplies server, port and encryption. The password is never
 shown; an empty field leaves it unchanged.
@@ -201,7 +201,7 @@ backup and key changes. Not in it: contents of entries, IP addresses, browser
 identifiers.
 
 The views “All · Failed · Sign-ins · User · Second factor · Database” each
-show the 100 most recent rows. Names lead to the “User” card. Rows are kept
+show the 100 most recent rows. Names lead to the “Users” card. Rows are kept
 for 180 days and cannot be deleted before then.
 
 ### Who may do what
@@ -271,6 +271,12 @@ similar title.
   shows entries without a category.
 - **Tags:** several can be chosen. The toggle sets And (default) or Or. Dimmed
   tags would no longer give a match.
+- **Potential and Rating:** each “All”, “None” and “Partial”, measured by the
+  user's own stars. “None”: no own star in that box. “Partial”: fewer own
+  stars than the threshold, by default 80 % of the criteria. For “Rating”, only
+  tested entries count. An admin sets the threshold in the “Rating: criteria”
+  card. If the potential mode is off or a box has no criteria, its group is
+  missing.
 - **“Reset filters (n)”** appears in the sort row as soon as a filter is set.
   The search term, the sort order and saved views stay.
 - **Sort order:** by last change, rating, potential, title, number of test
@@ -371,9 +377,14 @@ setting). The original stays unchanged.
   thumbnail, name, type, size, upload date and, with several accounts, who
   uploaded it; on the phone, size and date are below the name. The type is
   Video, Image, PDF, Word, Excel, PowerPoint, Text, Archive or Other; for a
-  video, codec and length appear there, for example “H.265 · 3:12”. Click,
-  menu, preview and keyboard work the same in both views. Up to 2 GB per file
-  (limit “File”), at most 100 per entry.
+  video, codec and length appear there, for example “H.265 · 3:12”, for an
+  image format and pixels as displayed, for example “PNG · 1920 × 1080”.
+  Without details read from the file, it says “Image”. Click, menu, preview and
+  keyboard work the same in both views. Up to 2 GB per file (limit “File”), at
+  most 100 per entry. Collapsed, the block header shows only numbers and size,
+  for example “3 folders · 12 videos · 9 images · 4 others · 1122.2 MB”; a type
+  without files is left out. Sort order, view and buttons are only in the
+  expanded header.
 - **List on a computer:** A header row is shown above the list. A click on
   “Name”, “Type”, “Size” or “Date” sorts by it, a second click reverses the
   direction; ▲ or ▼ marks the sorted column. At the end of each row are ✎
@@ -453,8 +464,9 @@ setting). The original stays unchanged.
   click never downloads.
 - **Videos:** MP4, M4V, WebM and MOV play in full screen, also on the iPhone.
   The tile shows a thumbnail, ▶, the duration and, at the bottom left, the
-  codec, for example “HEVC”. Kriterion reads the codec after the upload; for
-  videos from before the update, at the next start. The thumbnail is created
+  codec, for example “H.265”; the tile of an image shows the format there, for
+  example “JPEG”. Kriterion reads the codec after the upload; for videos from
+  before the update, at the next start. The thumbnail is created
   in the browser during the upload, at 10 % of the length. If it is missing,
   for example after an import, the browser of the person who uploaded the video
   creates it when the entry is opened. “Choose thumbnail …” in the ⋯ menu opens
@@ -475,8 +487,9 @@ setting). The original stays unchanged.
   shows the extension.
 - **⋯ menu:** is on every tile and offers only what the user may do, in five
   groups separated by lines: “Open” and “Edit”; “Download”, “Copy link to this
-  file” and “Extended info”; “Move to …” and “Choose thumbnail …”; “Restore
-  previous version” and “Editable by all”; “Delete file”. The top shows the
+  file” and “Extended info” or “Info”; “Rename …”, “Move to …” and “Choose
+  thumbnail …”; “Restore previous version” and “Editable by all”; “Delete
+  file”. The top shows the
   name and, with several accounts, who uploaded the file and when. On the
   phone, the menu opens at the bottom edge. A tile that is still uploading
   offers “Cancel”, after an error “Try again” and “Remove”.
@@ -488,8 +501,33 @@ setting). The original stays unchanged.
   rate, bit rate, bit depth, chroma subsampling and HDR. H.264 and H.265 carry
   the MediaInfo name in brackets, for example “H.265 (HEVC)”; the list and the
   thumbnail show just “H.265”. Per audio track: codec, channels, sampling rate,
-  bit rate and language. Image: format, resolution, bit depth, colour space and
-  chroma subsampling. What the file does not state is left out.
+  bit rate and language. Image: the main image with format, resolution as
+  displayed, bit depth, colour space and chroma subsampling; thumbnails inside
+  the file, for example in the EXIF block, appear as one row with number and
+  sizes. Capture: from EXIF the time taken, camera, lens, exposure time,
+  aperture, ISO and focal length, with the 35 mm equivalent if the file states
+  it. If the file contains a location, only “Location in the file: yes” is
+  shown; Kriterion does not store coordinates. With a time taken from EXIF,
+  “Recorded” under “General” is left out for images. Images from before the
+  update are read again once after the start. What the file does not state is
+  left out.
+- **Info:** “Info” in the ⋯ menu of a Word, Excel, PowerPoint or PDF file and
+  their OpenDocument counterparts shows two groups. “In Kriterion”: uploaded by
+  and on, modified before upload (the time of the file on the computer, only
+  for files since the update), last saved by and on in the Document Server,
+  number of saves and the date of the previous version. “In the file”: title,
+  created by, created, last modified by, modified, pages, words, slides and
+  application; for PDF title, author, created with, produced by, created,
+  modified and pages. It is read when the dialog opens; parts of an Office
+  file over 1 MB and, for PDF, everything except the first and the last MB stay
+  unread. For `.doc`, `.xls`, `.ppt` and `.rtf` only the details from
+  Kriterion appear. What is missing is not shown.
+- **Rename:** “Rename …” in the ⋯ menu of an own file shows the name without
+  the extension; the extension stays. Enter saves, Esc cancels. In the same
+  folder, or among the files without a folder, no second file may have the
+  same name; upper and lower case do not count. Only the person who uploaded
+  the file may rename it, also while it is open in the Document Server. The
+  previous version gets the new name with its own extension.
 - **Keyboard:** Tab reaches every tile and its ⋯. Shift+F10 opens the menu, ↑
   and ↓ select, Enter runs the item, Esc closes.
 - **Copy link:** copies the URL of the file. The URL of an image or video opens
@@ -568,11 +606,6 @@ since the backup, the version from the backup is added as a separate file, with
 “(Backup DD.MM.YYYY)” in the name. A file whose copy is missing from the backup
 folder is shown without a checkbox.
 
-### Exporting an entry
-
-Only for the owner admin: “Export entry” at the foot of the entry writes an
-export file with just this entry and its files.
-
 ## Comments
 
 A comment has a **kind** (note, report or task) and can be **pinned**. Order:
@@ -645,7 +678,7 @@ Sections without a visible card do not appear.
 |---|---|
 | Personal | My account, My sessions, Appearance, Documents |
 | Inventory | Categories, Tags, Rating: criteria, Potential: criteria, Vocabulary, Links, Search engines, Trash |
-| User | User, Requests, Security log, Mail delivery |
+| Users | Users, Requests, Security log, Mail delivery |
 | Database | Metrics, Image formats, Upload limits, Backup, Old backups, Export and import |
 | Installation | Title, Languages, Documents |
 
@@ -659,7 +692,7 @@ security log only the owner admin.
 | Documents | switch viewing and editing through a Document Server on and off; “Editable by all”: start value as long as an account has not set its own; the card checks the connection. URLs and secret are in the `.env`, see README |
 | Metrics | size of the inventory, database size, files on disk (of which above “Attachment” and in the trash), uploads, free space, version, fingerprint, encryption methods; for the owner admin the key value. Only when there are any: files still in the database waiting to be moved to disk, missing files, files waiting to be deleted and files without a reference. The owner admin deletes the files without a reference with “Delete”, but only if a copy of the same length is in the backup folder |
 | Categories, Tags | create, rename, delete; a tick sets whether anyone may create new names on an entry |
-| Rating: criteria, Potential: criteria | create, rename, sort, weight (0.2 to 2, default 1) |
+| Rating: criteria, Potential: criteria | create, rename, sort, weight (0.2 to 2, default 1); in “Rating: criteria” the threshold for “Partial” in the overview filters (1 to 100 %, default 80) |
 | Search engines | six built-in and up to three custom ones (`%s` as placeholder); one is the default |
 | Links | number of visible link rows, personal |
 | Appearance | colour scheme, language, font size, thumbnail size, timeline, block layout; personal |
@@ -687,7 +720,8 @@ through requests as large as the limits for photos and videos (README).
 
 ### Image formats
 
-The “Storage method” card sets how PNG images are stored:
+The “Storage method” section of the “Image formats” card sets how PNG images
+are stored:
 
 | Method | Effect |
 |---|---|

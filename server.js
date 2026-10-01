@@ -855,6 +855,10 @@ const putEditAll = db.prepare(`INSERT INTO attachment_editing (attachment_id, ed
 // Zweiter Wert 1: die Sitzung ist zu Ende, der Editor bekommt einen neuen Schluessel.
 const countSave = db.prepare(`INSERT INTO attachment_editing (attachment_id, revision, saves) VALUES (?, ?, 1)
   ON CONFLICT(attachment_id) DO UPDATE SET revision = revision + excluded.revision, saves = saves + 1`);
+// saved_by nur, wenn die Nummer aus `users` des Rueckrufs ein Account ist.
+const recordSave = db.prepare(`INSERT INTO attachment_changes (attachment_id, saved_at, saved_by)
+  VALUES (?, datetime('now'), (SELECT id FROM users WHERE id = ?))
+  ON CONFLICT(attachment_id) DO UPDATE SET saved_at = excluded.saved_at, saved_by = excluded.saved_by`);
 const keepPrevious = db.prepare(`INSERT OR REPLACE INTO attachment_previous
   (attachment_id, session_key, filename, mime_type, size, data)
   SELECT id, ?, filename, mime_type, size, data FROM attachments WHERE id = ?`);
@@ -876,11 +880,11 @@ const mayEditFile = (userId, a) =>
    Speicherungen derselben Sitzung ersetzen nur die aktuelle. `disk`: die neue
    Fassung liegt schon verschluesselt unter upload/. */
 const SAVE_MOVED = { ok: false, reason: 'moved' };
-function saveEdited(id, key, data, filetype, sessionEnds, disk = null) {
-  try { return saveEditedIn(id, key, data, filetype, sessionEnds, disk); }
+function saveEdited(id, key, data, filetype, sessionEnds, disk = null, by = null) {
+  try { return saveEditedIn(id, key, data, filetype, sessionEnds, disk, by); }
   catch (e) { if (e === SAVE_MOVED) return SAVE_MOVED; throw e; }
 }
-function saveEditedIn(id, key, data, filetype, sessionEnds, disk) {
+function saveEditedIn(id, key, data, filetype, sessionEnds, disk, by) {
   return (disk ? commitFull : (work) => db.transaction(work)())(() => {
     const a = db.prepare('SELECT id, item_id, filename, mime_type, created_at FROM attachments WHERE id = ?')
       .get(id);
@@ -903,6 +907,7 @@ function saveEditedIn(id, key, data, filetype, sessionEnds, disk) {
     }
     const current = docserver.editorKey(a, editingOf(id).revision) === key;
     countSave.run(id, sessionEnds && current ? 1 : 0);
+    recordSave.run(id, by);
     dropFileTile.run(id);
     touch.run(a.item_id);
     return { ok: true };
@@ -947,7 +952,9 @@ app.post('/api/document-server/callback/:id', async (req, res, next) => {
         DISK_WRITING.add(disk.name);
         await attachments.sealInto(diskPath(disk.name, true), disk, 0, got.data, { fresh: true });
       }
-      saved = saveEdited(id, key, got.data, cb.data.filetype, status === 2, disk);
+      // Bei Status 2 und 6 nennt `users` zuerst den Account, der zuletzt bearbeitet hat.
+      const by = Number([].concat(cb.data.users || [])[0]) || null;
+      saved = saveEdited(id, key, got.data, cb.data.filetype, status === 2, disk, by);
       if (disk && saved.ok) moveIntoPlace(disk.name);
     } finally { if (disk) { DISK_WRITING.delete(disk.name); sweepSoon(true); } }
     if (saved.reason === 'gone') { editedGone(id); return res.json({ error: 0 }); }
@@ -1774,6 +1781,7 @@ app.get('/api/settings', (req, res) => res.json({
   tagsFreeCreate: freeCreate('tagsFreeCreate'),
   categoriesFreeCreate: freeCreate('categoriesFreeCreate'),
   potentialMode: potentialMode(),
+  partialShare: partialShare(),
   imageStore: imageStore(),
   imageStores: Object.keys(IMAGE_STORES),
   /* Ob die zweite Bestaetigung bei diesem Zugang auch den Code verlangt. */
@@ -1841,6 +1849,14 @@ app.put('/api/settings', (req, res) => {
             refuse('server.uploadLimitRange', { what: t(localeOf(req), g.label), min: g.min, max: g.max });
           limitsWanted[k] = n;
         }
+      }
+
+      let shareWanted = null;
+      if (req.body.partialShare !== undefined) {
+        const n = req.body.partialShare;
+        if (!Number.isInteger(n) || n < PARTIAL_SHARE.min || n > PARTIAL_SHARE.max)
+          refuse('server.partialShare', { min: PARTIAL_SHARE.min, max: PARTIAL_SHARE.max });
+        shareWanted = n;
       }
 
       /* Bildablage: hier geprueft, unten mit den uebrigen globalen Schaltern
@@ -1970,6 +1986,7 @@ app.put('/api/settings', (req, res) => {
       for (const k of ['tagsFreeCreate', 'categoriesFreeCreate', 'documentServer', 'documentEditAll'])
         if (req.body[k] !== undefined) putSetting.run(k, JSON.stringify(!!req.body[k]));
       if (storeWanted !== null) putSetting.run('imageStore', JSON.stringify(storeWanted));
+      if (shareWanted !== null) putSetting.run('partialShare', JSON.stringify(shareWanted));
       /* potentialMode steht in OWNER_KEYS; ein Admin wird oben abgewiesen. */
       if (req.body.potentialMode !== undefined)
         putSetting.run('potentialMode', JSON.stringify(!!req.body.potentialMode));
@@ -2000,7 +2017,7 @@ app.put('/api/settings', (req, res) => {
                  searchNames: pick(req.user.id, 'searchNames'),
                  tagsFreeCreate: freeCreate('tagsFreeCreate'),
                  categoriesFreeCreate: freeCreate('categoriesFreeCreate'),
-                 potentialMode: potentialMode(),
+                 potentialMode: potentialMode(), partialShare: partialShare(),
                  languages: languageEntries(),
                  /* Die Namenstabellen nur, wenn Sprachen geaendert wurden. */
                  ...(isAdmin(req) && languagesTouched
@@ -2390,7 +2407,9 @@ const qAttachments = lateStatement(`SELECT a.id, a.filename, a.mime_type, a.size
     a.created_at, a.user_id, COALESCE(e.edit_all, 0) AS edit_all,
     (p.attachment_id IS NOT NULL) AS has_previous, s.duration, length(s.still) AS still,
     f.folder_id AS folder, d.name AS stored, d.large, (t.attachment_id IS NOT NULL) AS has_tile, length(t.thumb) AS tile,
-    (m.attachment_id IS NOT NULL) AS has_media, json_extract(m.info, '$.video[0].format') AS codec
+    (m.attachment_id IS NOT NULL) AS has_media, json_extract(m.info, '$.video[0].format') AS codec,
+    json_extract(m.info, '$.general.format') AS image_format, json_extract(m.info, '$.image[0].width') AS width,
+    json_extract(m.info, '$.image[0].height') AS height, json_extract(m.info, '$.orientation') AS orientation
   FROM attachments a
   LEFT JOIN attachment_editing e ON e.attachment_id = a.id
   LEFT JOIN attachment_thumbs t ON t.attachment_id = a.id
@@ -2745,8 +2764,10 @@ function detail(id, userId, locale) {
       // Nur Dokumente: `thumb` ist die Laenge des Vorschaubilds wie `still`.
       ...(tileKind ? { thumb: a2.tile, thumbSoon: !a2.has_tile && (tileKind === 'text' || officeOn)
                                                   && !TILES_FAILED.has(a2.id) } : {}),
-      // Der Codec am Vorschaubild; `infoSoon`, solange die Warteschlange ihn noch liest.
-      ...(kind === 'video' ? { codec: a2.codec, infoSoon: !a2.has_media && !MEDIA_FAILED.has(a2.id) } : {})
+      // Am Vorschaubild der Codec, bei Bildern das Format; `infoSoon`, solange die Warteschlange liest.
+      ...(kind === 'video' ? { codec: a2.codec, infoSoon: !a2.has_media && !MEDIA_FAILED.has(a2.id) } : {}),
+      ...(kind === 'image' ? { codec: a2.image_format, ...shownPixels(a2.width, a2.height, a2.orientation),
+                               infoSoon: !a2.has_media && !MEDIA_FAILED.has(a2.id) } : {})
     };
   });
   const openFolders = new Set(qOpenFolders.all(userId, id).map(z => z.folder_id));
@@ -3343,6 +3364,35 @@ const qNewRatings = lateStatement(
     WHERE set_at IS NOT NULL AND set_at > ? AND value > 0 AND user_id IS NOT ?
     GROUP BY item_id, user_id`);
 
+/* ---- Filter „Keine“ und „Teilweise“ ---- */
+// Prozent der Kriterien einer Phase; darunter gilt ein Eintrag als teilweise bewertet.
+const PARTIAL_SHARE = { min: 1, max: 100, fallback: 80 };
+const partialShare = () => {
+  const v = getSetting('partialShare', PARTIAL_SHARE.fallback);
+  return Number.isInteger(v) && v >= PARTIAL_SHARE.min && v <= PARTIAL_SHARE.max ? v : PARTIAL_SHARE.fallback;
+};
+const qCriteriaPerPhase = lateStatement('SELECT phase, COUNT(*) AS n FROM rating_criteria GROUP BY phase');
+const qOwnPerPhase = lateStatement(`SELECT r.item_id, c.phase, COUNT(*) AS n FROM ratings r
+  JOIN rating_criteria c ON c.id = r.criterion_id WHERE r.user_id = ? AND r.value > 0 GROUP BY r.item_id, c.phase`);
+/* Je Phase 'none', 'partial' oder 'full', gemessen an den eigenen Werten; vor dem Test bei 'after' null.
+   Ohne Kriterien, beim Potenzial auch ohne potentialMode, fehlt die Phase; der Browser blendet ihre Gruppe aus. */
+function ownShares(userId) {
+  const totals = Object.fromEntries(qCriteriaPerPhase().all().map(z => [z.phase, z.n]));
+  if (!potentialMode()) delete totals.before;
+  const own = new Map(qOwnPerPhase().all(userId).map(z => [`${z.item_id}|${z.phase}`, z.n]));
+  const share = partialShare();
+  return (itemId, tested) => {
+    const out = {};
+    for (const phase of ['before', 'after']) {
+      const total = totals[phase];
+      if (!total) continue;
+      const n = own.get(`${itemId}|${phase}`) || 0;
+      out[phase] = phase === 'after' && !tested ? null : n === 0 ? 'none' : n * 100 < share * total ? 'partial' : 'full';
+    }
+    return out;
+  };
+}
+
 app.get('/api/items', (req, res) => {
   let rows = qAllItems.all();
   const term = fulltextTerm(req.query.q);
@@ -3387,8 +3437,10 @@ app.get('/api/items', (req, res) => {
   const catPer = new Map(named(qAllCategories.all(), categoryNames(localeOf(req)))
     .map(k => [k.id, k]));
   const testDaysPer = timeline ? testDaysPerEntry(req.user.id) : null;
+  const shareOf = ownShares(req.user.id);
   for (const it of rows) {
     it.rejected = !!it.rejected; it.tested = !!it.tested;
+    it.share = shareOf(it.id, it.tested);
     it.author = authorFrom(card, it.user_id);
     it.mine = it.user_id === req.user.id;
     delete it.user_id;
@@ -3990,10 +4042,16 @@ function docTilesAgain() {
 /* ---- Erweiterte Infos zu Bildern und Videos ---- */
 const qMedia = db.prepare('SELECT info FROM attachment_media WHERE attachment_id = ?');
 const putMedia = db.prepare('INSERT OR REPLACE INTO attachment_media (attachment_id, info) VALUES (?, ?)');
-const qMediaSource = db.prepare(`SELECT a.id, a.filename, a.size, (m.attachment_id IS NOT NULL) AS has_media
+// `stale`: eine Zeile ohne `orientation` stammt aus der Zeit vor EXIF; Bilder werden einmal nachgelesen.
+const qMediaSource = db.prepare(`SELECT a.id, a.filename, a.size, (m.attachment_id IS NOT NULL) AS has_media,
+    (json_type(m.info, '$.orientation') IS NULL) AS stale
   FROM attachments a LEFT JOIN attachment_media m ON m.attachment_id = a.id WHERE a.id = ?`);
-const qMediaMissing = db.prepare(`SELECT a.id, a.filename FROM attachments a
-  LEFT JOIN attachment_media m ON m.attachment_id = a.id WHERE m.attachment_id IS NULL ORDER BY a.id DESC`);
+const qMediaMissing = db.prepare(`SELECT a.id, a.filename, (m.attachment_id IS NOT NULL) AS has_media FROM attachments a
+  LEFT JOIN attachment_media m ON m.attachment_id = a.id
+  WHERE m.attachment_id IS NULL OR json_type(m.info, '$.orientation') IS NULL ORDER BY a.id DESC`);
+// Bei EXIF-Ausrichtung 5 bis 8 steht das Bild gedreht; Breite und Hoehe wie angezeigt.
+const shownPixels = (width, height, orientation) =>
+  (orientation >= 5 && orientation <= 8 ? { width: height, height: width } : { width, height });
 const qMediaPart = db.prepare('SELECT substr(data, ?, ?) AS part FROM attachments WHERE id = ?');
 const MEDIA_WAITING = new Set();
 // Ohne lesbare Datei; der stuendliche Lauf versucht es wieder.
@@ -4004,10 +4062,11 @@ let mediaTurn = Promise.resolve();
 const inMediaTurn = (work) => (mediaTurn = mediaTurn.then(work, work));
 const unreadable = (why) => Object.assign(new Error(`media file unreadable: ${why}`), { damaged: true });
 
-// Stueckweise wie sendDiskFile(); das zuletzt entschluesselte Stueck bleibt fuer den naechsten Abruf.
-async function readMediaOf(a) {
+/* Stueckweise wie sendDiskFile(); das zuletzt entschluesselte Stueck bleibt fuer den naechsten Abruf.
+   `work(size, read)` wie attachments.mediaFacts(). */
+async function readPartsOf(a, work) {
   const f = diskFileOf(a.id);
-  if (!f) return attachments.mediaFacts(a.size, (length, offset) => {
+  if (!f) return work(a.size, (length, offset) => {
     const bytes = qMediaPart.get(offset + 1, length, a.id)?.part;
     // Die Umlagerung leert `data` waehrend des Lesens.
     if (!bytes || bytes.length < Math.min(length, a.size - offset)) throw unreadable('moved');
@@ -4022,7 +4081,7 @@ async function readMediaOf(a) {
   }
   let at = -1, plain = null;
   try {
-    return await attachments.mediaFacts(f.size, async (length, offset) => {
+    return await work(f.size, async (length, offset) => {
       const end = Math.min(f.size, offset + length), parts = [];
       for (let i = Math.floor(offset / f.chunk); i * f.chunk < end; i++) {
         if (i !== at) { plain = await attachments.readChunk(handle, f, i); at = i; }
@@ -4036,17 +4095,21 @@ async function readMediaOf(a) {
   } finally { await handle.close(); }
 }
 
+const readMediaOf = (a) => readPartsOf(a, attachments.mediaFacts);
+
 // null: keine Datei dieser Art; undefined: spaeter noch einmal.
 async function makeMedia(id) {
   const a = qMediaSource.get(id);
-  if (!a || !attachments.mediaKind(a.filename)) return null;
-  if (a.has_media) return JSON.parse(qMedia.get(id).info);
+  const kind = a && attachments.mediaKind(a.filename);
+  if (!kind) return null;
+  const known = a.has_media ? JSON.parse(qMedia.get(id).info) : undefined;
+  if (known && !(kind === 'image' && a.stale)) return known;
   let facts;
   try { facts = await readMediaOf(a); }
   catch (e) {
     if (!e.damaged) throw e;
     MEDIA_FAILED.add(id);
-    return undefined;
+    return known;
   }
   // Waehrend des Lesens kann die Datei geloescht und die Nummer neu vergeben worden sein.
   const now = qMediaSource.get(id);
@@ -4059,10 +4122,13 @@ async function makeMedia(id) {
 /* ---- Erweiterte Infos zu Fotos und Videos des Eintrags ---- */
 const qPhotoMedia = db.prepare('SELECT info FROM photo_media WHERE photo_id = ?');
 const putPhotoMedia = db.prepare('INSERT OR REPLACE INTO photo_media (photo_id, info) VALUES (?, ?)');
-const qPhotoMediaSource = db.prepare(`SELECT p.id, length(p.data) AS size, (m.photo_id IS NOT NULL) AS has_media
+// Wie bei Dateien; ein Bild erkennt die Zeile an ihrer leeren Liste `video`.
+const PHOTO_STALE = `json_type(m.info, '$.orientation') IS NULL AND json_array_length(m.info, '$.video') = 0`;
+const qPhotoMediaSource = db.prepare(`SELECT p.id, length(p.data) AS size, (m.photo_id IS NOT NULL) AS has_media,
+    COALESCE(${PHOTO_STALE}, 0) AS stale
   FROM photos p LEFT JOIN photo_media m ON m.photo_id = p.id WHERE p.id = ?`);
 const qPhotoMediaMissing = db.prepare(`SELECT p.id FROM photos p LEFT JOIN photo_media m ON m.photo_id = p.id
-  WHERE m.photo_id IS NULL ORDER BY p.id DESC`);
+  WHERE m.photo_id IS NULL OR (${PHOTO_STALE}) ORDER BY p.id DESC`);
 const qPhotoPart = db.prepare('SELECT substr(data, ?, ?) AS part FROM photos WHERE id = ?');
 const PHOTO_MEDIA_WAITING = new Set();
 const PHOTO_MEDIA_FAILED = new Set();
@@ -4071,7 +4137,8 @@ const PHOTO_MEDIA_FAILED = new Set();
 async function makePhotoMedia(id) {
   const p = qPhotoMediaSource.get(id);
   if (!p) return null;
-  if (p.has_media) return JSON.parse(qPhotoMedia.get(id).info);
+  const known = p.has_media ? JSON.parse(qPhotoMedia.get(id).info) : undefined;
+  if (known && !p.stale) return known;
   let facts;
   try {
     facts = await attachments.mediaFacts(p.size, (length, offset) => {
@@ -4082,7 +4149,7 @@ async function makePhotoMedia(id) {
   } catch (e) {
     if (!e.damaged) throw e;
     PHOTO_MEDIA_FAILED.add(id);
-    return undefined;
+    return known;
   }
   if (!qPhotoMediaSource.get(id)) return null;
   putPhotoMedia.run(id, JSON.stringify(facts));
@@ -4120,8 +4187,10 @@ function mediaSoon(ids) {
     MEDIA_WAITING.clear();
     for (const id of [...ids, ...rest]) MEDIA_WAITING.add(Number(id));
   } else {
-    for (const r of qMediaMissing.all())
-      if (attachments.mediaKind(r.filename) && !MEDIA_FAILED.has(r.id)) MEDIA_WAITING.add(r.id);
+    for (const r of qMediaMissing.all()) {
+      const kind = attachments.mediaKind(r.filename);
+      if (kind && (!r.has_media || kind === 'image') && !MEDIA_FAILED.has(r.id)) MEDIA_WAITING.add(r.id);
+    }
     photoMediaSoon();
   }
   startMedia();
@@ -4154,6 +4223,8 @@ const stepUpload = db.prepare('UPDATE uploads SET received = ?, touched_at = ? W
 const dropUpload = db.prepare('DELETE FROM uploads WHERE id = ?');
 const addDiskFromUpload = db.prepare(`INSERT INTO disk_files (name, size, chunk, large, file_key, attachment_id)
   SELECT name, size, ?, large, file_key, ? FROM uploads WHERE id = ?`);
+const recordModified = db.prepare(`INSERT INTO attachment_changes (attachment_id, file_modified)
+  VALUES (?, datetime(? / 1000, 'unixepoch'))`);
 const addDiskAttachment = lateStatement(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
   VALUES (?, ?, ?, ?, x'', ?, ?)`);
 
@@ -4276,6 +4347,7 @@ function finishUpload(req, res, u) {
     const fresh = addDiskAttachment().run(u.item_id, u.filename, attachments.outType(u.filename), u.size,
                                         pos, u.user_id).lastInsertRowid;
     addDiskFromUpload.run(CHUNK, fresh, u.id);
+    if (u.modified > 0) recordModified.run(fresh, u.modified);
     if (u.folder_id != null) putFileFolder.run(fresh, u.folder_id);
     if (filesEditAllOf(u.user_id) && docserver.editFormat(u.filename)) putEditAll.run(fresh, 1);
     dropUpload.run(u.id);
@@ -4312,10 +4384,33 @@ app.get('/api/attachments/:id/raw', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// Rechte wie /raw. Fehlt die Zeile noch, liest der Server sofort.
+/* ---- Infos zu Dokumenten ---- */
+const qDocumentFacts = lateStatement(`SELECT a.created_at, a.user_id, c.file_modified, c.saved_at, c.saved_by,
+    COALESCE(e.saves, 0) AS saves, p.saved_at AS previous_at
+  FROM attachments a LEFT JOIN attachment_changes c ON c.attachment_id = a.id
+  LEFT JOIN attachment_editing e ON e.attachment_id = a.id LEFT JOIN attachment_previous p ON p.attachment_id = a.id
+  WHERE a.id = ?`);
+// Bei jedem Aufruf neu gelesen: eine Office-Datei aendert sich mit jeder Speicherung. Ohne lesbare Datei `file: null`.
+async function documentInfo(a) {
+  let file = null;
+  try { file = await readPartsOf(a, (size, read) => attachments.documentFacts(a.filename, size, read)); }
+  catch (e) { if (!e.damaged) throw e; }
+  const k = qDocumentFacts().get(a.id);
+  if (!k) return null;
+  const card = authorCard();
+  return { document: true, file, kriterion: { uploadedBy: authorFrom(card, k.user_id), uploadedAt: k.created_at,
+    fileModified: k.file_modified, savedBy: k.saved_by == null ? null : authorFrom(card, k.saved_by), savedAt: k.saved_at,
+    saves: k.saves, previousAt: k.previous_at } };
+}
+
+// Rechte wie /raw. Fehlt die Zeile noch, liest der Server sofort; Dokumente bei jedem Aufruf.
 app.get('/api/attachments/:id/info', async (req, res, next) => {
   try {
     const a = qMediaSource.get(req.params.id);
+    if (a && attachments.isDocument(a.filename)) {
+      const facts = await documentInfo(a);
+      return facts ? res.json(facts) : res.status(404).json({ error: t(localeOf(req), 'server.fileGone') });
+    }
     if (!a || !attachments.mediaKind(a.filename)) return res.status(404).json({ error: t(localeOf(req), 'server.fileGone') });
     MEDIA_WAITING.delete(a.id);
     const facts = await inMediaTurn(() => makeMedia(a.id));
@@ -4684,6 +4779,50 @@ app.put('/api/attachments/:id/folder', (req, res) => {
     putFileFolder.run(a.id, f.id);
   }
   touch.run(a.item_id);
+  res.json(detail(a.item_id, req.user.id, localeOf(req)));
+});
+
+/* ---- Datei umbenennen ---- */
+// Wie beim Hochladen in UTF-16-Einheiten.
+const FILE_NAME_MAX = 200;
+const qRenameFile = lateStatement(`SELECT a.id, a.item_id, a.user_id, a.filename, f.folder_id
+  FROM attachments a LEFT JOIN attachment_folders f ON f.attachment_id = a.id WHERE a.id = ?`);
+const qNamesBeside = db.prepare(`SELECT a.filename FROM attachments a
+  LEFT JOIN attachment_folders f ON f.attachment_id = a.id WHERE a.item_id = ? AND a.id != ? AND f.folder_id IS ?`);
+const renameFile = db.prepare('UPDATE attachments SET filename = ? WHERE id = ?');
+const qPreviousName = db.prepare('SELECT filename FROM attachment_previous WHERE attachment_id = ?');
+const renamePrevious = db.prepare('UPDATE attachment_previous SET filename = ? WHERE attachment_id = ?');
+
+// Die Endung bleibt: sie bestimmt Typ, Auslieferung und den Document Server. Eine eingetippte Endung faellt weg.
+function fileStem(raw, ext) {
+  if (typeof raw !== 'string') return null;
+  let stem = path.basename(raw).trim();
+  if (ext && stem.toLowerCase().endsWith(ext.toLowerCase())) stem = stem.slice(0, -ext.length).trimEnd();
+  return /^[.\s]*$/.test(stem) || /[\x00-\x1f\x7f]/.test(stem) ? null : stem;
+}
+
+/* Nur wer hochgeladen hat, auch kein Admin. Gleiche Namen zaehlen ohne Gross- und Kleinschreibung
+   im selben Ordner, ohne Ordner in der Gruppe ohne Ordner. */
+app.put('/api/attachments/:id', (req, res) => {
+  const a = qRenameFile().get(req.params.id);
+  if (!a) return res.status(404).json({ error: t(localeOf(req), 'server.fileGone')});
+  if (!selfOnly(req, a.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
+  const ext = path.extname(a.filename);
+  const stem = fileStem((req.body || {}).filename, ext);
+  if (stem === null || (stem + ext).length > FILE_NAME_MAX)
+    return res.status(400).json({ error: t(localeOf(req), 'server.fileName', { max: FILE_NAME_MAX - ext.length })});
+  const filename = stem + ext;
+  const lower = filename.toLowerCase();
+  if (qNamesBeside.all(a.item_id, a.id, a.folder_id).some(o => o.filename.toLowerCase() === lower))
+    return res.status(409).json({ error: a.folder_id == null ? t(localeOf(req), 'server.nameTakenLoose', { name: filename })
+      : t(localeOf(req), 'server.fileNameTaken', { name: filename }) });
+  if (filename !== a.filename) db.transaction(() => {
+    renameFile.run(filename, a.id);
+    // Sonst kaeme der alte Name mit der vorigen Fassung zurueck.
+    const before = qPreviousName.get(a.id);
+    if (before) renamePrevious.run(stem + path.extname(before.filename), a.id);
+    touch.run(a.item_id);
+  })();
   res.json(detail(a.item_id, req.user.id, localeOf(req)));
 });
 
@@ -6703,11 +6842,13 @@ const qFileForTrash = lateStatement(`SELECT a.id, a.item_id, a.filename, a.mime_
     a.user_id, u.username AS user_name, length(a.data) AS inline, i.created_at AS item_created, i.title AS item_title,
     f.id AS folder_id, f.name AS folder_name, f.created_at AS folder_created, f.test_day_id AS folder_day,
     f.user_id AS folder_user, fu.username AS folder_user_name,
-    e.edit_all, e.saves, s.duration, (s.attachment_id IS NOT NULL) AS has_still
+    e.edit_all, e.saves, s.duration, (s.attachment_id IS NOT NULL) AS has_still,
+    c.file_modified, c.saved_at, c.saved_by, cu.username AS saved_by_name
   FROM attachments a JOIN items i ON i.id = a.item_id LEFT JOIN users u ON u.id = a.user_id
   LEFT JOIN attachment_folders af ON af.attachment_id = a.id LEFT JOIN folders f ON f.id = af.folder_id
   LEFT JOIN users fu ON fu.id = f.user_id LEFT JOIN attachment_editing e ON e.attachment_id = a.id
-  LEFT JOIN attachment_stills s ON s.attachment_id = a.id WHERE a.id = ?`);
+  LEFT JOIN attachment_stills s ON s.attachment_id = a.id
+  LEFT JOIN attachment_changes c ON c.attachment_id = a.id LEFT JOIN users cu ON cu.id = c.saved_by WHERE a.id = ?`);
 const diskFileIntoTrash = db.prepare('UPDATE disk_files SET trash_id = ? WHERE attachment_id = ?');
 const diskFileFromTrash = db.prepare('UPDATE disk_files SET attachment_id = ?, trash_id = NULL WHERE trash_id = ?');
 // Teile in trash_bytes: das Standbild und der Inhalt einer Datei, die noch in der Datenbank liegt.
@@ -6722,7 +6863,9 @@ function fileIntoTrash(id, actor) {
     author: person(a.user_id, a.user_name), editAll: a.edit_all === 1, saves: a.saves || 0,
     duration: a.duration ?? null, still: a.has_still ? TRASH_STILL : null, data: a.inline ? TRASH_DATA : null,
     folder: a.folder_id == null ? null : { id: a.folder_id, name: a.folder_name, created_at: a.folder_created,
-      testDay: a.folder_day, author: person(a.folder_user, a.folder_user_name) } };
+      testDay: a.folder_day, author: person(a.folder_user, a.folder_user_name) },
+    changes: a.file_modified == null && a.saved_at == null ? null : { fileModified: a.file_modified,
+      savedAt: a.saved_at, savedBy: person(a.saved_by, a.saved_by_name) } };
   const row = insertTrash.run(a.filename, JSON.stringify({ kind: 'file',
     item: { id: a.item_id, created_at: a.item_created, title: a.item_title }, file }), actor).lastInsertRowid;
   if (a.has_still) insertTrashBytes.fileStill.run(row, TRASH_STILL, id);
@@ -6764,6 +6907,8 @@ function folderBack(itemId, old, made) {
 const addFileBack = lateStatement(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order,
   user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
 const qNextSort = db.prepare('SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM attachments WHERE item_id = ?');
+const putChanges = db.prepare(`INSERT INTO attachment_changes (attachment_id, file_modified, saved_at, saved_by)
+  VALUES (?, ?, ?, ?)`);
 const refusal = (status, key, values = {}) => Object.assign(new Message(key, values, status), { denial: true });
 
 /* In einer Transaktion des Aufrufers. Liefert die neue Nummer; `inline`: der Inhalt liegt
@@ -6784,6 +6929,8 @@ function fileFromTrash(z, made = new Map()) {
   const still = bytes(f.still);
   if (still) putStill.run(id, f.duration ?? null, still);
   if (f.editAll) putEditAll.run(id, 1);
+  if (f.changes) putChanges.run(id, f.changes.fileModified ?? null, f.changes.savedAt ?? null,
+    keptAuthor(f.changes.savedBy));
   delTrashRow.run(z.id);
   touch.run(itemId);
   return { id, itemId, inline: !!inline, filename: f.filename };

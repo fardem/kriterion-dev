@@ -221,6 +221,8 @@ async function run() {
       'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 'INPUT', 'TEXTAREA', 'SELECT',
       // Formen, Typen und Ziele
       'image/', 'image/*', 'image/jpeg', 'PNG', 'JPEG', 'GIF', '_blank', 'https://',
+      // Namen von Bildformaten wie in Datenblaettern und die Zeitzone der Kamerazeit
+      'AVIF', 'BMP', 'UTC',
       // Die Auswahl im Kommentar nimmt auch Videos.
       'image/*,video/*', 'video/',
       // Die Art im DataTransfer, wenn Dateien auf den Block gezogen werden
@@ -265,9 +267,9 @@ async function run() {
     ].sort();
     const tooMany = rest.filter(t => !REST_EXPECTED.includes(t));
     const missing = REST_EXPECTED.filter(t => !rest.includes(t));
-    check('Restprobe: weniger als siebzig lesbare Texte in app.js',
-      rest.length < 70, `${rest.length} verschiedene, ${restPlaces.length} Stellen`);
-    check('Und es sind genau die dreiundsechzig benannten',
+    check('Restprobe: weniger als zweiundsiebzig lesbare Texte in app.js',
+      rest.length < 72, `${rest.length} verschiedene, ${restPlaces.length} Stellen`);
+    check('Und es sind genau die einundsiebzig benannten',
       tooMany.length === 0 && missing.length === 0,
       `zu viel: ${tooMany.slice(0, 8).map(t => JSON.stringify(t.slice(0, 40))).join(' · ')} · fehlt: ${missing.slice(0, 8).map(t => JSON.stringify(t.slice(0, 40))).join(' · ')}`);
     check('Und der Filter laesst einen deutschen Satz stehen',

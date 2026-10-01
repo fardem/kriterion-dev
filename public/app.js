@@ -149,6 +149,13 @@ function number(n, digits = 0, atMost = digits) {
     .format(Number.isFinite(value) ? value : 0);
 }
 
+// Die Groesse unter „Dateien“; fmtBytes() rechnet ueber MB hinaus in GB.
+function filesize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
+  return number(bytes / 1024 / 1024, 1) + ' MB';
+}
+
 function fmtBytes(b) {
   if (!b) return '0 B';
   const u = ['B','KB','MB','GB'];
@@ -937,9 +944,20 @@ function commentNumbers(comments) {
 }
 
 // Kurzfassung des Inhalts für die eingeklappte Kopfzeile.
+// Zugeklappt nur die Zahlen; eine Art ohne Datei faellt weg, die Groesse wie in #acount.
+function filesSummary(item) {
+  const files = item.attachments || [];
+  const videos = files.filter(a => kindOf(a) === 'video').length, images = files.filter(a => kindOf(a) === 'image').length;
+  const folders = (item.folders || []).length, others = files.length - videos - images;
+  const parts = [folders && t('entry.sumFolders', { n: folders }), videos && t('entry.sumVideos', { n: videos }),
+    images && t('entry.sumImages', { n: images }), others && t('entry.sumOthers', { n: others })].filter(Boolean);
+  if (files.length) parts.push(filesize(files.reduce((sum, a) => sum + a.size, 0)));
+  return parts.join(' · ') || t('entry.sumNone');
+}
+
 function blockSummary(name, item) {
   switch (name) {
-    case 'kategorie': return item.category ? item.category.name : 'keine';
+    case 'kategorie': return item.category ? item.category.name : t('entry.sumNone');
     case 'tags': return String(item.tags.length);
     /* Sternkaesten: eine Kurzfassung nur ohne Wert. */
     case 'bewertung': return item.avgRating ? '' : t('list.notRatedYet');
@@ -947,12 +965,12 @@ function blockSummary(name, item) {
     case 'beschreibung': {
       // Ohne Marken: ein halbes `**` stuende hier sonst sichtbar da.
       const text = markupPlain(item.description || '').trim().replace(/\s+/g, ' ');
-      if (!text) return 'leer';
+      if (!text) return t('entry.sumEmpty');
       return text.length > 40 ? text.slice(0, 40) + ' …' : text;
     }
     case 'testtage': return String(item.testDays.length);
     case 'links': return String(item.links.length);
-    case 'dateien': return String((item.attachments || []).length);
+    case 'dateien': return filesSummary(item);
     /* Die Zahlen des Kommentarblocks stehen in seiner Kopfzeile, auch eingeklappt. */
     case 'kommentare': return '';
     default: return '';
@@ -1022,9 +1040,9 @@ function setUpBlocksOut(item) {
     block.classList.toggle('closed', closed);
     head.querySelector('.bcaret').textContent = closed ? '▸' : '▾';
     const sum = head.querySelector('.bsum');
-    // Eine leere Kurzfassung bleibt leer: "()" waere eine Klammer um nichts.
+    // Eine leere Kurzfassung bleibt leer: "()" waere eine Klammer um nichts. „Dateien“ ist eine Aufzaehlung.
     const short = closed ? blockSummary(name, item) : '';
-    sum.textContent = short ? `(${short})` : '';
+    sum.textContent = !short ? '' : name === 'dateien' ? short : `(${short})`;
 
     // Klick auf die Kopfzeile klappt ein und aus.
     head.onclick = (e) => {
@@ -2728,8 +2746,14 @@ const isNarrow = () => !!(window.matchMedia && window.matchMedia(NARROW).matches
 const CATEGORY_NONE = 'ohne';
 /* Die einzige Vorgabe der Filter; keine Kopie davon anlegen. */
 const FILTER_DEFAULT = { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'all',
-                         rejected: 'all', favorite: false,
+                         rejected: 'all', favorite: false, potential: 'all', rating: 'all',
                          sort: 'updated_desc' };
+/* Filter nach den eigenen Werten; `share` am Eintrag rechnet der Server mit der Schwelle aus den
+   Einstellungen. Nennt er eine Phase nicht, fehlt ihre Gruppe, und ihr Wert gilt als 'all'. */
+const SHARE_PHASES = { potential: 'before', rating: 'after' };
+const SHARE_VALUES = ['all', 'none', 'partial'];
+const shareShown = (key) => state.all.some(i => i.share && SHARE_PHASES[key] in i.share);
+const shareWanted = (f, key) => (shareShown(key) ? f[key] : 'all');
 
 const statusEffective = (f) => f.tested;
 
@@ -2763,6 +2787,8 @@ let TAGS_FREE = true;
 let CATEGORIES_FREE = true;
 /* Vorgabe wie am Server. */
 let POTENTIAL_MODE = true;
+// Gleich PARTIAL_SHARE.fallback in server.js, bis die Einstellungen da sind.
+let PARTIAL_SHARE = 80;
 /* Speicherformat fuer hochgeladene PNG; Vorgabe wie am Server. */
 let IMAGE_STORE = 'webp-lossless';
 let IMAGE_STORES = ['png', 'webp-lossless', 'webp-lossy'];
@@ -2823,6 +2849,7 @@ async function loadSettings() {
     CATEGORIES_FREE = SETTINGS.categoriesFreeCreate !== false;
   if (SETTINGS.potentialMode !== undefined)
     POTENTIAL_MODE = SETTINGS.potentialMode !== false;
+  if (Number.isInteger(SETTINGS.partialShare)) PARTIAL_SHARE = SETTINGS.partialShare;
   if (SETTINGS.imageStore !== undefined) IMAGE_STORE = SETTINGS.imageStore;
   if (Array.isArray(SETTINGS.imageStores) && SETTINGS.imageStores.length)
     IMAGE_STORES = SETTINGS.imageStores;
@@ -2874,6 +2901,7 @@ function filterNormal(raw) {
     v === CATEGORY_NONE || state.categories.some(c => c.id === v));
   if (f.tagMode !== 'or') f.tagMode = 'and';
   f.favorite = f.favorite === true;
+  for (const key of Object.keys(SHARE_PHASES)) if (!SHARE_VALUES.includes(f[key])) f[key] = 'all';
   /* `fresh` stammt von einem entfernten Filter. */
   delete f.fresh;
   return f;
@@ -3006,6 +3034,10 @@ function visibleItems(filter) {
   if (f.rejected === 'ja') out = out.filter(i => i.rejected);
   else if (f.rejected === 'nein') out = out.filter(i => !i.rejected);
   if (f.favorite) out = out.filter(i => i.favorite);
+  for (const key of Object.keys(SHARE_PHASES)) {
+    const wanted = shareWanted(f, key);
+    if (wanted !== 'all') out = out.filter(i => i.share?.[SHARE_PHASES[key]] === wanted);
+  }
   /* Die Suche steckt schon in `state.items` (GET /api/items?q=). */
 
   out = [...out].sort((a, b) => {
@@ -3165,7 +3197,7 @@ function drawHeadCounts() {
     el.hidden = !open;
   });
   atElement('open', b => b.title = open
-    ? `${open} ${vTask(open)} offen`
+    ? t('list.openTitle', { n: open, task: vTask(open) })
     : t('list.openTasks'));
   const fresh = bellNew();
   /* Die Zahl steht im Titel, am Knopf nur ein Punkt. */
@@ -3466,6 +3498,7 @@ function filterNumber() {
   if (f.tested !== v.tested) n++;
   if (f.rejected !== v.rejected) n++;
   if (f.favorite) n++;
+  for (const key of Object.keys(SHARE_PHASES)) if (shareWanted(f, key) !== 'all') n++;
   /* Kategorien zaehlen zusammen als ein Filter, weil sie mit `or` verknuepft
      sind; Tags zaehlen einzeln. */
   if (f.categoryIds.length) n++;
@@ -3541,6 +3574,27 @@ function drawFilters() {
     g1b.appendChild(b);
   });
   r1.appendChild(g1b);
+
+  /* ---- Potenzial und Bewertung, gemessen an den eigenen Werten ---- */
+  const shares = [['potential', V.potential], ['rating', V.ratingOne]].filter(([key]) => shareShown(key));
+  if (shares.length) {
+    const r = row(shares[0][1]);
+    r.id = 'f-shares';
+    shares.forEach(([key, label], at) => {
+      if (at) secondLabel(r, label);
+      const g = document.createElement('div');
+      g.className = 'pills'; g.id = `f-${key}`;
+      [['all', t('list.all')], ['none', t('list.shareNone')], ['partial', t('list.sharePartial')]].forEach(([v, l]) => {
+        const b = document.createElement('button');
+        b.className = 'pill' + (f[key] === v ? ' on' : '');
+        b.textContent = l;
+        if (v === 'partial') b.title = t('list.sharePartialHint', { share: PARTIAL_SHARE });
+        b.onclick = () => { f[key] = v; redraw(); };
+        g.appendChild(b);
+      });
+      r.appendChild(g);
+    });
+  }
 
   /* ---- Kategorie ---- */
   const r2 = row(t('list.category'));
@@ -4923,6 +4977,8 @@ const KIND_OF_EXTENSION = { pdf: 'pdf', doc: 'word', docx: 'word', odt: 'word', 
   xls: 'excel', xlsx: 'excel', ods: 'excel', ppt: 'powerpoint', pptx: 'powerpoint', odp: 'powerpoint',
   txt: 'text', md: 'text', markdown: 'text', csv: 'text', tsv: 'text', log: 'text', ini: 'text', conf: 'text',
   zip: 'archive', rar: 'archive', '7z': 'archive', tar: 'archive', gz: 'archive', tgz: 'archive', bz2: 'archive', xz: 'archive' };
+// Dateien mit „Infos“; gleich DOCUMENT_READERS in attachments.js.
+const DOCUMENT_KINDS = ['pdf', 'word', 'excel', 'powerpoint'];
 const KIND_WORDS = { video: 'entry.kindVideo', image: 'entry.kindImage', pdf: 'entry.kindPdf', word: 'entry.kindWord',
   excel: 'entry.kindExcel', powerpoint: 'entry.kindPowerpoint', text: 'entry.kindText', archive: 'entry.kindArchive',
   other: 'entry.kindOther' };
@@ -4932,14 +4988,17 @@ function kindOf(a) {
   const ending = ((/\.([^.\s/\\]+)$/.exec(a.filename || '') || [])[1] || '').toLowerCase();
   return KIND_OF_EXTENSION[ending] || 'other';
 }
+const pixelText = (w, h) => (w && h ? `${w} × ${h}` : '');
+// Ohne gelesene Angaben steht bei Bildern „Bild“.
 function kindText(a) {
   const kind = kindOf(a);
+  if (kind === 'image') return [codecName(a.codec), pixelText(a.width, a.height)].filter(Boolean).join(' · ') || t(KIND_WORDS.image);
   if (kind !== 'video') return t(KIND_WORDS[kind]);
   return [codecName(a.codec) || t(KIND_WORDS.video), durationText(a.duration)].filter(Boolean).join(' · ');
 }
-/* Namen der Videocodecs wie in den Datenblaettern der Kameras; die Datenbank behaelt den
+/* Namen von Videocodecs und Bildformaten wie in Datenblaettern; die Datenbank behaelt den
    Wortlaut von MediaInfo. `long`: mit dem Namen von MediaInfo in Klammern. */
-const CODEC_NAMES = { AVC: 'H.264', HEVC: 'H.265' };
+const CODEC_NAMES = { AVC: 'H.264', HEVC: 'H.265', avif: 'AVIF', Bitmap: 'BMP' };
 function codecName(format, long = false) {
   const name = CODEC_NAMES[format];
   if (!name) return format || '';
@@ -4962,15 +5021,45 @@ function mediaGroup(head, rows) {
   return shown.length ? `<h3 class="minfo-head">${esc(head)}</h3>` + shown.map(([k, v]) =>
     `<div class="kv"><span class="k">${tH(k)}</span><span class="v">${esc(v)}</span></div>`).join('') : '';
 }
+// Die Zeit der Kamera hat keine Zeitzone und steht da, wie die Kamera sie zeigt.
+function fmtCameraTime(text) {
+  const d = new Date(String(text).replace(' ', 'T') + 'Z');
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleString(LOCALE,
+    { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
+}
+// Unter 0,4 s als Bruch wie an der Kamera: „1/125 s“.
+const exposureText = (s) => t('entry.mediaSeconds', { n: s < 0.4 ? `1/${Math.round(1 / s)}` : number(s, 0, 1) });
+const focalText = (e) => (!e.focal ? '' : e.focal35
+  ? t('entry.mediaFocalFull', { mm: number(e.focal, 0, 1), full: number(e.focal35) }) : t('entry.mediaMm', { n: number(e.focal, 0, 1) }));
+function shotGroup(e) {
+  return mediaGroup(t('entry.mediaShot'), [['entry.mediaTaken', e.taken ? fmtCameraTime(e.taken) : ''],
+    ['entry.mediaCamera', e.camera], ['entry.mediaLens', e.lens], ['entry.mediaExposure', e.exposure ? exposureText(e.exposure) : ''],
+    ['entry.mediaAperture', e.aperture ? `f/${number(e.aperture, 0, 1)}` : ''], ['entry.mediaIso', e.iso ? String(e.iso) : ''],
+    ['entry.mediaFocal', focalText(e)], ['entry.mediaPlace', e.gps ? t('entry.mediaYes') : '']]);
+}
+/* Die erste Bildspur ist das Hauptbild; weitere sind Vorschaubilder in der Datei, etwa im EXIF-Block.
+   Bei EXIF-Ausrichtung 5 bis 8 stehen Breite und Hoehe wie angezeigt. */
+function imageGroup(f) {
+  const [main, ...thumbs] = f.image || [];
+  if (!main) return '';
+  const turned = f.orientation >= 5 && f.orientation <= 8;
+  const sizes = [...new Set(thumbs.map(i => pixelText(i.width, i.height)).filter(Boolean))];
+  const bits = (n) => (n ? t('entry.mediaBits', { n }) : '');
+  return mediaGroup(t('entry.kindImage'), [['entry.mediaFormat', main.format],
+    ['entry.mediaResolution', turned ? pixelText(main.height, main.width) : pixelText(main.width, main.height)],
+    ['entry.mediaBitDepth', bits(main.bitDepth)], ['entry.mediaColorSpace', main.colorSpace], ['entry.mediaChroma', main.chroma],
+    ['entry.mediaThumbs', !thumbs.length ? '' : sizes.length ? `${thumbs.length} (${sizes.join(', ')})` : String(thumbs.length)]]);
+}
 function mediaInfoHtml(f) {
-  const g = f.general || {}, video = f.video || [], audio = f.audio || [];
+  const g = f.general || {}, video = f.video || [], audio = f.audio || [], shot = f.exif || {};
   const area = (w, h) => (w && h ? `${w} × ${h}` : '');
   const bits = (n) => (n ? t('entry.mediaBits', { n }) : '');
   const recorded = /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d/.exec(g.recorded || '');
   const html = [
     mediaGroup(t('entry.mediaGeneral'), [[video.length ? 'entry.mediaContainer' : 'entry.mediaFormat', g.format],
       ['entry.mediaFileSize', g.size ? fmtBytes(g.size) : ''], ['entry.mediaDuration', durationText(g.duration)],
-      ['entry.mediaTotalRate', bitRateText(g.bitRate)], ['entry.mediaRecorded', recorded ? fmtDate(recorded[0]) : g.recorded],
+      ['entry.mediaTotalRate', bitRateText(g.bitRate)],
+      ['entry.mediaRecorded', shot.taken ? '' : recorded ? fmtDate(recorded[0]) : g.recorded],
       ['entry.mediaAudioTracks', video.length ? String(audio.length) : '']]),
     ...video.map(v => mediaGroup(t('entry.kindVideo'), [['entry.mediaCodec', codecName(v.format, true)], ['entry.mediaProfile', v.profile],
       ['entry.mediaResolution', area(v.width, v.height)],
@@ -4982,9 +5071,24 @@ function mediaInfoHtml(f) {
       ['entry.mediaCodec', s.format], ['entry.mediaChannels', s.channels ? String(s.channels) : ''],
       ['entry.mediaSamplingRate', s.samplingRate ? t('entry.mediaKhz', { n: number(s.samplingRate / 1000, 0, 1) }) : ''],
       ['entry.mediaBitRate', bitRateText(s.bitRate)], ['entry.mediaLanguage', languageName(s.language)]])),
-    ...(f.image || []).map(i => mediaGroup(t('entry.kindImage'), [['entry.mediaFormat', i.format],
-      ['entry.mediaResolution', area(i.width, i.height)], ['entry.mediaBitDepth', bits(i.bitDepth)],
-      ['entry.mediaColorSpace', i.colorSpace], ['entry.mediaChroma', i.chroma]]))
+    imageGroup(f), shotGroup(shot)
+  ].join('');
+  return html || `<p>${tH('entry.mediaNone')}</p>`;
+}
+// Mit „Z“ in UTC; ohne Zeitzone so, wie die Datei sie nennt.
+const fileTime = (v) => (!v ? '' : /Z$/.test(v) ? fmtDate(v.slice(0, 19).replace('T', ' ')) : fmtCameraTime(v));
+function documentInfoHtml(f) {
+  const k = f.kriterion || {}, d = f.file || {};
+  const who = (p) => (p ? authorName(p) : '');
+  const count = (n) => (n ? number(n) : '');
+  const html = [
+    mediaGroup(t('entry.docKriterion'), [['entry.docUploadedBy', who(k.uploadedBy)], ['entry.docUploadedAt', fmtDate(k.uploadedAt)],
+      ['entry.docFileModified', fmtDate(k.fileModified)], ['entry.docSavedBy', who(k.savedBy)], ['entry.docSavedAt', fmtDate(k.savedAt)],
+      ['entry.docSaves', count(k.saves)], ['entry.docPrevious', fmtDate(k.previousAt)]]),
+    mediaGroup(t('entry.docFile'), [['entry.docTitle', d.title], ['entry.docAuthor', d.author], ['entry.docCreatedBy', d.createdBy],
+      ['entry.docCreated', fileTime(d.created)], ['entry.docModifiedBy', d.lastModifiedBy], ['entry.docModified', fileTime(d.modified)],
+      ['entry.docPages', count(d.pages)], ['entry.docWords', count(d.words)], ['entry.docSlides', count(d.slides)],
+      ['entry.docApplication', d.application], ['entry.docCreatorTool', d.creatorTool], ['entry.docProducer', d.producer]])
   ].join('');
   return html || `<p>${tH('entry.mediaNone')}</p>`;
 }
@@ -5129,6 +5233,13 @@ async function eachPicked(chosen, send) {
 const FILES_PER_ENTRY = 100;
 // Zeichen im Namen eines Ordners, gleich FOLDER_NAME_MAX in server.js.
 const FOLDER_NAME_MAX = 80;
+// Gleich FILE_NAME_MAX in server.js.
+const FILE_NAME_MAX = 200;
+// Wie path.extname() in Node: ein Punkt am Anfang macht keine Endung.
+const fileExtension = (name) => {
+  const at = name.lastIndexOf('.');
+  return at > 0 && name !== '..' ? name.slice(at) : '';
+};
 // Klartext je Anfrage beim Upload in Stuecken, gleich UPLOAD_PIECE in server.js.
 const UPLOAD_PIECE = 8 * 1048576;
 // Wartezeit in ms vor dem zweiten, dritten und vierten Versuch, wenn die Verbindung fehlt.
@@ -6235,11 +6346,10 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     // Beim Oeffnen steht die bisherige Begruendung zum Ueberschreiben im Feld.
     if (open && document.activeElement !== field) field.value = item.rejected_reason || '';
 
-    const parts = [];
-    if (item.rejected_at) parts.push(`am ${fmtDate(item.rejected_at)}`);
-    if (item.rejectedAuthor && multipleUsers())
-      parts.push(`von ${authorName(item.rejectedAuthor)}`);
-    const head = parts.length ? t('entry.rejectedBy', { what: parts.join(' ') }) : '';
+    const when = item.rejected_at ? fmtDate(item.rejected_at) : '';
+    const who = item.rejectedAuthor && multipleUsers() ? authorName(item.rejectedAuthor) : '';
+    const head = when && who ? t('entry.rejectedBy', { date: when, name: who }) : when ? t('entry.rejectedOn', { date: when })
+      : who ? t('entry.rejectedWho', { name: who }) : '';
 
     /* Das ✎ steht auch ohne Begruendung da, zum Nachtragen. */
     const showPen = item.rejected && mine;
@@ -7084,12 +7194,6 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   // Die Bilddatei im Vollbild, fuer den Rahmen ihrer Kachel.
   let lightboxFile = 0;
 
-  function filesize(bytes) {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
-    return number(bytes / 1024 / 1024, 1) + ' MB';
-  }
-
   const fileOf = (key) => (item.attachments || []).find(a => 'f' + a.id === key) || null;
   const uploadOf = (key) => UPLOADS.find(u => 'u' + u.no === key) || null;
   // Uploads, die dieser Tab nicht haelt: aus einem anderen Fenster, einem frueheren Tab oder fremd.
@@ -7194,7 +7298,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     li.dataset.file = a.id;
     const kind = fileKind(a.filename);
     const readable = FILE_READABLE.includes(a.preview);
-    const video = a.preview === 'video';
+    const video = a.preview === 'video', image = a.preview === 'image';
     const face = li.querySelector('.aface');
     const from = multipleUsers() ? authorName(a.author) : '';
     const length = video ? durationText(a.duration) : '';
@@ -7203,8 +7307,9 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     fillTile(li, { name: a.filename, size: filesize(a.size), kind, meta: from, duration: length,
       picture: a.preview === 'image' || (video && a.still) || a.thumb ? fileTileSource(a) : coming,
       video: video || /^video\//.test(a.mime_type || ''), badge: a.thumb ? kind : '',
-      date: fmtDateOnly(a.created_at), from, kindCell: kindText(a), codec: video ? codecName(a.codec) : '',
-      label: [a.filename, kind, video ? codecName(a.codec) : '', length, filesize(a.size), from].filter(Boolean).join(', '),
+      date: fmtDateOnly(a.created_at), from, kindCell: kindText(a), codec: video || image ? codecName(a.codec) : '',
+      label: [a.filename, kind, video ? codecName(a.codec) : image && a.codec ? kindText(a) : '', length,
+        filesize(a.size), from].filter(Boolean).join(', '),
       open: openPreview === a.id || lightboxFile === a.id });
     if (video && !a.still && a.mine === true && shown) catchUpStill(id, a);
     if (readable && !isNarrow()) {
@@ -7563,8 +7668,8 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   }
 
   // Beim ersten Aufruf liest der Server die Datei; bis dahin steht „wird gelesen“ im Dialog.
-  async function showMediaInfo(url, name, back) {
-    const { bd, done } = openModal(`<div class="modal minfo"><h2>${tH('entry.mediaInfo')}</h2>
+  async function showMediaInfo(url, name, back, title = 'entry.mediaInfo') {
+    const { bd, done } = openModal(`<div class="modal minfo"><h2>${tH(title)}</h2>
       <p class="minfo-name"></p><div class="minfo-body" aria-live="polite"><p>${tH('entry.mediaReading')}</p></div>
       <div class="modal-acts"><button class="btn btn-accent" data-yes>${tH('list.close')}</button></div></div>`,
       () => { if (back && back.isConnected) back.focus(); }, null);
@@ -7572,10 +7677,13 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     bd.querySelector('[data-yes]').onclick = () => done(null);
     bd.querySelector('[data-yes]').focus();
     const body = bd.querySelector('.minfo-body');
-    try { body.innerHTML = mediaInfoHtml(await api('GET', url)); }
-    catch (e) { body.innerHTML = `<p>${esc(e.message)}</p>`; }
+    try {
+      const facts = await api('GET', url);
+      body.innerHTML = facts.document ? documentInfoHtml(facts) : mediaInfoHtml(facts);
+    } catch (e) { body.innerHTML = `<p>${esc(e.message)}</p>`; }
   }
   const fileInfo = (a, back) => showMediaInfo(`/api/attachments/${Number(a.id)}/info`, a.filename, back);
+  const documentInfo = (a, back) => showMediaInfo(`/api/attachments/${Number(a.id)}/info`, a.filename, back, 'entry.docInfo');
   // Fotos haben keinen Dateinamen; der Dialog nennt Art und Stelle wie der Zaehler im Vollbild.
   const photoInfo = (p, back) => showMediaInfo(`/api/photos/${Number(p.id)}/info`,
     `${t(p.kind === 'video' ? 'entry.kindVideo' : 'entry.kindImage')} ${item.photos.findIndex(x => x.id === p.id) + 1} / ${
@@ -7594,7 +7702,10 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     pass.push({ label: t('entry.copyFileLink'), run: () => copyText(fileLink(a), t('card.linkCopied')) });
     if (a.preview === 'image' || a.preview === 'video')
       pass.push({ label: t('entry.mediaInfo'), own: true, run: () => fileInfo(a, li.querySelector('.amore')) });
+    else if (DOCUMENT_KINDS.includes(kindOf(a)))
+      pass.push({ label: t('entry.docInfo'), own: true, run: () => documentInfo(a, li.querySelector('.amore')) });
     const targets = moveTargets(a);
+    if (a.mine === true) sort.push({ label: t('entry.renameFileMenu'), own: true, run: () => renameFile(a) });
     if (a.mine === true && targets.length)
       sort.push({ label: t('entry.moveTo'), own: true, run: () => moveMenu(a, li, targets) });
     if (a.mine && a.preview === 'video') sort.push({ label: t('entry.chooseStill'), run: () => showFile(a.id) });
@@ -7707,6 +7818,38 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     drawAtts();
     toast(to.folderId ? t('entry.movedTo', { name: to.label }) : t('entry.movedLoose'));
     attsBox.querySelector(`[data-key="f${Number(a.id)}"] .aface`)?.focus();
+  }
+
+  /* ---- Datei umbenennen ---- */
+  function renameFile(a) {
+    const ext = fileExtension(a.filename);
+    const back = () => attsBox.querySelector(`[data-key="f${Number(a.id)}"] .amore`)?.focus();
+    const { bd, done } = openModal(`<div class="modal"><h2>${tH('entry.renameFile')}</h2>
+      <div class="field"><label for="nb-name">${tH('entry.fileNameLabel')}</label>
+        <div class="arename"><input class="input" id="nb-name" maxlength="${FILE_NAME_MAX - ext.length}"
+          value="${esc(a.filename.slice(0, a.filename.length - ext.length))}">${ext
+          ? `<span class="arename-ext">${esc(ext)}</span>` : ''}</div></div>
+      <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.cancel')}</button>
+      <button class="btn btn-accent" data-yes>${tH('dialog.save')}</button></div></div>`,
+      back, false, (e) => e.key === 'Enter' && document.activeElement === field && (go(), true));
+    const field = bd.querySelector('#nb-name'), yes = bd.querySelector('[data-yes]');
+    const go = async () => {
+      const stem = field.value.trim();
+      if (!stem || yes.disabled) return field.focus();
+      yes.disabled = true;
+      try { item = await api('PUT', `/api/attachments/${Number(a.id)}`, { filename: stem }); }
+      catch (e) { toast(e.message, true); yes.disabled = false; return field.focus(); }
+      const fresh = fileOf('f' + a.id);
+      if (fresh && openPreview === a.id && previewBox) {
+        previewBox.setAttribute('aria-label', fresh.filename);
+        previewBox.querySelector('.apreview-name').textContent = fresh.filename;
+      }
+      drawAtts();
+      done();
+    };
+    bd.querySelector('[data-no]').onclick = () => done();
+    yes.onclick = go;
+    field.focus(); field.select();
   }
 
   /* ---- Ordner ---- */
@@ -8555,7 +8698,7 @@ const SYS_SECTIONS = [
   { key: 'personal',     name: () => t('card.personal') },
   { key: 'inventory',    name: () => t('card.inventory') },
   // Der Schluessel steht in der Adresse und bleibt, auch wenn der Text wechselt.
-  { key: 'users',        name: () => t('card.user') },
+  { key: 'users',        name: () => t('card.users') },
   { key: 'database',     name: () => t('card.database') },
   { key: 'installation', name: () => t('card.installation') }
 ];
@@ -9598,6 +9741,9 @@ function cardCriteria(phase) {
           <input class="input input-sm" id="${k.field}" placeholder="${esc(t('card.newCriterion'))}" style="padding:8px 11px">
           <button class="btn btn-sm" id="${k.button}">${tH('entry.create')}</button>
         </div>` : ''}
+        ${!before && ADMIN ? `<p class="desc" style="margin:16px 0 8px">${tH('card.partialShareHint')}</p>
+          <label class="ex-files" for="partial-share">${tH('card.partialShare')}<input class="input input-sm share-in"
+            id="partial-share" type="number" min="1" max="100" step="1" value="${Number(PARTIAL_SHARE)}"> %</label>` : ''}
         ${before ? `${!POTENTIAL_MODE
             ? `<p class="desc" id="pot-off" style="margin:16px 0 0">${tH('card.potentialModeOff')}</p>` : ''}
           ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">${tH('card.potentialModeHint')}</p>
@@ -9627,6 +9773,15 @@ function setUpCriteriaOut(fetched, phase) {
     document.getElementById(k.button).onclick = addCrit;
     critField.addEventListener('keydown', e => { if (e.key === 'Enter') addCrit(); });
   }
+  const shareField = document.getElementById('partial-share');
+  if (shareField) shareField.onchange = async () => {
+    try {
+      const saved = await api('PUT', '/api/settings', { partialShare: Number(shareField.value) });
+      if (Number.isInteger(saved.partialShare)) PARTIAL_SHARE = saved.partialShare;
+      toast(t('list.saved'));
+    } catch (e) { toast(e.message, true); }
+    shareField.value = String(PARTIAL_SHARE);
+  };
   if (phase === 'before') createToggle('pot-mode', 'potentialMode',
     () => POTENTIAL_MODE, v => { POTENTIAL_MODE = v; },
     () => renderSystem({ keepScroll: true }));
@@ -10317,7 +10472,7 @@ function setUpTrashOut(fetched) {
 /* ---- Karte „Benutzer" — Abschnitt „Benutzer" ---- */
 function cardUsers() {
   return `<div class="sys-card wide">
-        <h3>${tH('card.user')}</h3>
+        <h3>${tH('card.users')}</h3>
         <p class="desc">${tH('card.usersHint')}</p>
         ${more(`${tH('card.lockInsteadHint')} ${OWNER
             ? t('card.rolesYouOnly')

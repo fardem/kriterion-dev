@@ -261,16 +261,22 @@ Jede Trefferkachel nennt unter dem Titel, wo der Begriff steht, etwa
 und Kommentaren hervorgehoben. Die Adresse eines geöffneten Treffers trägt den
 Begriff (`#/item/12?q=ella`); Neuladen behält die Hervorhebung.
 
-Beim Anlegen zeigt „Ähnlich: …" vorhandene Einträge mit ähnlichem Titel.
+Beim Anlegen zeigt „Ähnliche Titel: …“ vorhandene Einträge mit ähnlichem Titel.
 
 ### Filter und Sortierung
 
-- **Status:** Alles, Getestet, Ungetestet. Dazu „Ablehnung" (Alle, Abgelehnt,
+- **Status:** Alle, Getestet, Ungetestet. Dazu „Ablehnung" (Alle, Abgelehnt,
   Nicht abgelehnt) und „★ Favoriten". Alle lassen sich kombinieren.
 - **Kategorien:** mehrere wählbar, immer als Oder. „Ohne" zeigt Einträge ohne
   Kategorie.
 - **Tags:** mehrere wählbar. Der Umschalter legt Und (Vorgabe) oder Oder fest.
   Gedämpfte Tags ergäben keinen Treffer mehr.
+- **Potenzial und Bewertung:** je „Alle“, „Keine“ und „Teilweise“, gemessen an
+  den eigenen Sternen. „Keine“: kein eigener Stern in diesem Kasten.
+  „Teilweise“: weniger eigene Sterne als die Schwelle, Vorgabe 80 % der
+  Kriterien. Bei „Bewertung“ zählen nur getestete Einträge. Die Schwelle stellt
+  ein Admin in der Karte „Bewertung: Kriterien“ ein. Ist der Potenzialmodus aus
+  oder hat ein Kasten keine Kriterien, fehlt seine Gruppe.
 - **„Filter zurücksetzen (n)"** steht in der Sortierzeile, sobald ein Filter
   gesetzt ist. Suchbegriff, Sortierung und gespeicherte Ansichten bleiben.
 - **Sortierung:** nach Änderung, Bewertung, Potenzial, Titel, Zahl der
@@ -299,7 +305,7 @@ Das Häkchen auf einer Kachel nimmt den Eintrag in den Vergleich. Ab zwei
 Accounts schaltet „meine / alle" zwischen eigenen Werten und dem Schnitt
 aller.
 
-### Glocke und „Offen"
+### Glocke und „Offene Aufgaben“
 
 Die Glocke meldet neue Kommentare und Bewertungen anderer seit dem letzten
 Öffnen. Die Tafel teilt sie in „An mich gerichtet" (mit `@name` markiert),
@@ -314,7 +320,7 @@ Grenzen der Glocke:
   gesehen.
 - Geänderte Titel, neue Dateien und neue Testtage meldet sie nicht.
 
-„Offen" zählt die unerledigten Aufgaben aller Einträge. Die Ansicht dahinter
+„Offene Aufgaben“ zählt die unerledigten Aufgaben aller Einträge. Die Ansicht dahinter
 ordnet sie nach Fälligkeit: überfällig, heute, später, ohne Datum. Abhaken
 geht direkt dort.
 
@@ -377,8 +383,13 @@ unverändert.
   Accounts, wer hochgeladen hat; auf dem Telefon stehen Größe und Datum unter
   dem Namen. Die Art ist Video, Bild, PDF, Word, Excel, PowerPoint, Text,
   Archiv oder Sonstige; bei einem Video stehen dort Codec und Länge, etwa
-  „H.265 · 3:12“. Klick, Menü, Vorschau und Tastatur sind in beiden Ansichten
-  gleich. Bis 2 GB je Datei (Grenze „Datei“), höchstens 100 je Eintrag.
+  „H.265 · 3:12“, bei einem Bild Format und Pixel wie angezeigt, etwa
+  „PNG · 1920 × 1080“. Ohne gelesene Angaben steht dort „Bild“. Klick, Menü,
+  Vorschau und Tastatur sind in beiden Ansichten gleich. Bis 2 GB je Datei
+  (Grenze „Datei“), höchstens 100 je Eintrag. Zugeklappt nennt der Kopf des
+  Blocks nur Zahlen und Größe, etwa „3 Ordner · 12 Videos · 9 Bilder · 4 weitere
+  · 1122,2 MB“; eine Art ohne Datei fehlt. Sortierung, Ansicht und Knöpfe
+  stehen nur im aufgeklappten Kopf.
 - **Liste am Rechner:** Über der Liste steht eine Kopfzeile. Ein Klick auf
   „Name“, „Typ“, „Größe“ oder „Datum“ sortiert danach, ein zweiter kehrt die Richtung
   um; ▲ oder ▼ steht an der sortierten Spalte. Am Ende jeder Zeile stehen ✎
@@ -461,8 +472,9 @@ unverändert.
   nie herunter.
 - **Videos:** MP4, M4V, WebM und MOV spielen im Vollbild, auch auf dem
   iPhone. Die Kachel zeigt ein Vorschaubild, ▶, die Dauer und links unten den
-  Codec, etwa „HEVC“. Den Codec liest Kriterion nach dem Upload; bei Videos von
-  vor dem Update beim nächsten Start. Das Vorschaubild entsteht beim Hochladen
+  Codec, etwa „H.265“; die Kachel eines Bildes zeigt dort das Format, etwa
+  „JPEG“. Den Codec liest Kriterion nach dem Upload; bei Videos von vor dem
+  Update beim nächsten Start. Das Vorschaubild entsteht beim Hochladen
   im Browser, bei 10 % der Länge. Fehlt es, etwa nach einem Import, erzeugt es
   der Browser dessen, der das Video hochgeladen hat, beim Öffnen des Eintrags.
   „Vorschaubild wählen …“ im Menü ⋯ öffnet das Vollbild; dort nimmt „Dieses
@@ -483,8 +495,8 @@ unverändert.
   Bilddatei nicht als Bild lesen, steht auf der Kachel die Endung.
 - **Menü ⋯:** steht an jeder Kachel und bietet nur an, was man darf, in fünf
   Gruppen, getrennt durch Linien: „Öffnen“ und „Bearbeiten“; „Herunterladen“,
-  „Link auf diese Datei kopieren“ und „Erweiterte Infos“; „Verschieben nach …“
-  und „Vorschaubild wählen …“; „Vorige Fassung wiederherstellen“ und
+  „Link auf diese Datei kopieren“ und „Erweiterte Infos“ oder „Infos“;
+  „Umbenennen …“, „Verschieben nach …“ und „Vorschaubild wählen …“; „Vorige Fassung wiederherstellen“ und
   „Bearbeiten durch alle“; „Datei löschen“. Oben steht der Name, bei
   mehreren Accounts auch, wer die Datei wann hochgeladen hat. Auf dem Telefon öffnet das Menü am unteren Rand. An
   einer Kachel, die noch hochgeht, steht „Abbrechen“, nach einem Fehler
@@ -497,8 +509,33 @@ unverändert.
   Bittiefe, Farbunterabtastung und HDR. H.264 und H.265 tragen den Namen von
   MediaInfo in Klammern, etwa „H.265 (HEVC)“; in der Liste und am Vorschaubild
   steht kurz „H.265“. Je Audiospur: Codec, Kanäle, Abtastrate, Bitrate und
-  Sprache. Bild: Format, Auflösung, Bittiefe, Farbraum und
-  Farbunterabtastung. Was die Datei nicht angibt, fehlt.
+  Sprache. Bild: das Hauptbild mit Format, Auflösung wie angezeigt, Bittiefe,
+  Farbraum und Farbunterabtastung; Vorschaubilder in der Datei, etwa im
+  EXIF-Block, stehen als eine Zeile mit Zahl und Größen. Aufnahme: aus EXIF
+  Aufnahmezeit, Kamera, Objektiv, Belichtungszeit, Blende, ISO und Brennweite,
+  mit Kleinbild-Angabe, wenn die Datei sie trägt. Steht ein Ort in der Datei,
+  steht dort nur „Ort in der Datei: ja“; Koordinaten speichert Kriterion nicht.
+  Mit einer Aufnahmezeit aus EXIF entfällt bei Bildern „Aufnahmedatum“ unter
+  „Allgemein“. Bilder von vor dem Update liest Kriterion nach dem Start einmal
+  nach. Was die Datei nicht angibt, fehlt.
+- **Infos:** „Infos“ im Menü ⋯ einer Word-, Excel-, PowerPoint- oder PDF-Datei
+  und ihrer OpenDocument-Gegenstücke zeigt zwei Gruppen. „In Kriterion“:
+  hochgeladen von und am, geändert vor dem Hochladen (die Zeit der Datei auf
+  dem Rechner, nur bei Dateien seit dem Update), zuletzt gespeichert von und am
+  im Document Server, Zahl der Speicherungen und das Datum der vorigen Fassung.
+  „In der Datei“: Titel, erstellt von, erstellt, zuletzt bearbeitet von,
+  geändert, Seiten, Wörter, Folien und Programm; bei PDF Titel, Autor,
+  erstellt mit, erzeugt von, erstellt, geändert und Seiten. Gelesen wird beim
+  Öffnen des Dialogs; Teile einer Office-Datei über 1 MB und bei PDF alles
+  außer dem ersten und dem letzten MB bleiben ungelesen. Bei `.doc`, `.xls`,
+  `.ppt` und `.rtf` stehen nur die Angaben aus Kriterion. Was fehlt, steht
+  nicht da.
+- **Umbenennen:** „Umbenennen …“ im Menü ⋯ einer eigenen Datei zeigt den Namen
+  ohne Endung; die Endung bleibt. Enter speichert, Esc bricht ab. Im selben
+  Ordner, ohne Ordner unter den Dateien ohne Ordner, darf kein zweiter Name
+  gleich lauten; Groß- und Kleinschreibung zählt dabei nicht. Umbenennen darf
+  nur, wer die Datei hochgeladen hat, auch während sie im Document Server offen
+  ist. Die vorige Fassung bekommt den neuen Namen mit ihrer Endung.
 - **Tastatur:** Tab erreicht jede Kachel und ihr ⋯. Umschalt+F10 öffnet das
   Menü, ↑ und ↓ wählen, Enter führt aus, Esc schließt.
 - **Link kopieren:** kopiert die Adresse der Datei. Die Adresse eines Bildes
@@ -580,11 +617,6 @@ Hat der Document Server eine Datei seit dem Backup gespeichert, kommt die
 Fassung aus dem Backup als eigene Datei dazu, mit „(Backup TT.MM.JJJJ)“ im
 Namen. Eine Datei, deren Kopie im Backup-Ordner fehlt, steht ohne Kästchen
 da.
-
-### Eintrag exportieren
-
-Nur für den Eigentümer-Admin: „Eintrag exportieren" am Fuß des Eintrags schreibt eine
-Exportdatei mit diesem einen Eintrag samt Dateien.
 
 ## Kommentare
 
@@ -677,7 +709,7 @@ Backup und Sicherheitsprotokoll nur der Eigentümer-Admin.
 | Dokumente | Anzeige und Bearbeiten über einen Document Server ein- und ausschalten; „Bearbeiten durch alle“: Startwert, solange ein Account keinen eigenen gesetzt hat; die Karte prüft die Verbindung. Adressen und Secret stehen in der `.env`, siehe README |
 | Kennzahlen | Umfang des Bestands, Datenbankgröße, Dateien auf der Platte (davon über „Anhang“ und im Papierkorb), Uploads, freier Platz, Version, Fingerprint, Verschlüsselungsverfahren; für den Eigentümer-Admin der Schlüsselwert. Nur wenn es welche gibt: Dateien, die noch in der Datenbank auf die Umlagerung warten, fehlende Dateien, Dateien, die auf das Löschen warten, und Dateien ohne Verweis. Diese löscht der Eigentümer-Admin mit „Löschen“, aber nur, wenn im Backup-Ordner eine Kopie gleicher Länge liegt |
 | Kategorien, Tags | anlegen, umbenennen, löschen; ein Häkchen legt fest, ob jeder neue Namen am Eintrag anlegen darf |
-| Bewertung: Kriterien, Potenzial: Kriterien | anlegen, umbenennen, sortieren, gewichten (0,2 bis 2, Vorgabe 1) |
+| Bewertung: Kriterien, Potenzial: Kriterien | anlegen, umbenennen, sortieren, gewichten (0,2 bis 2, Vorgabe 1); in „Bewertung: Kriterien“ die Schwelle für „Teilweise“ in den Filtern der Übersicht (1 bis 100 %, Vorgabe 80) |
 | Suchmaschinen | sechs eingebaute und bis zu drei eigene (`%s` als Platzhalter); eine ist Standard |
 | Links | Zahl der sichtbaren Linkzeilen, persönlich |
 | Darstellung | Farbschema, Sprache, Schriftgröße, Größe der Vorschaubilder, Zeitleiste, Anordnung der Blöcke; persönlich |
@@ -705,7 +737,8 @@ durchlassen (README).
 
 ### Bildformate
 
-Die Karte „Verfahren der Ablage" legt fest, wie PNG-Bilder gespeichert werden:
+Der Abschnitt „Verfahren der Ablage“ der Karte „Bildformate“ legt fest, wie
+PNG-Bilder gespeichert werden:
 
 | Verfahren | Wirkung |
 |---|---|
@@ -817,7 +850,7 @@ Vorgang fertig ist.
 
 Dieselbe Oberfläche, an Breite und Bedienung angepasst.
 
-- Auf dem Telefon liegen Glocke, „Offen", Einstellungen und Abmelden hinter
+- Auf dem Telefon liegen Glocke, „Offene Aufgaben“, Einstellungen und Abmelden hinter
   dem Menüzeichen. Suche und „+ Eintrag" bleiben sichtbar. Ein Tablett mit
   Touch bekommt dasselbe Menü.
 - Die Filter sind auf dem Telefon eingeklappt. Der Schalter nennt die Zahl der

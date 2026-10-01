@@ -21,7 +21,8 @@ in the database. With a [Document Server](#document-server), every Office file
 and every PDF is also stored unencrypted in its cache.
 
 Built with Node.js, Express, SQLCipher (`better-sqlite3-multiple-ciphers`),
-`sharp`, `nodemailer` and `mediainfo.js`. The frontend uses no framework.
+`sharp`, `nodemailer`, `mediainfo.js` and `exif-reader`. The frontend uses no
+framework.
 
 This file covers installing and running Kriterion. Using it is covered in the
 [manual](manual.md).
@@ -590,9 +591,18 @@ application/octet-stream` and `upload-offset: <received>`; the response to the
 last chunk is the entry.
 
 `GET /api/attachments/<id>/info` and `GET /api/photos/<id>/info` return the
-Extended info on an image or video as JSON with `general`, `video`, `audio`
-and `image`. The server reads it with `mediainfo.js` and stores it in the
-tables `attachment_media` and `photo_media`; it is not in the JSON export.
+Extended info on an image or video as JSON with `general`, `video`, `audio`,
+`image`, `orientation` and `exif`. The server reads it with `mediainfo.js`,
+`sharp` and `exif-reader` and stores it in the tables `attachment_media` and
+`photo_media`; it is not in the JSON export. For Office, OpenDocument and PDF
+files the same route returns the “Info” with `document: true`, `kriterion` and
+`file`, read again on every call. The time and account of the last save in the
+Document Server and the modification time of the file at upload are stored in
+the table `attachment_changes`, also not in the JSON export.
+
+`PUT /api/attachments/<id>` with `filename` renames a file; the extension
+stays. Only the person who uploaded the file may rename it (otherwise 403). If
+the same folder already has a file with that name, the server answers 409.
 
 `GET /api/items/<id>/deleted-files` lists the deleted files of an entry from
 the trash and backups for the owner admin. `POST` to the same URL with `trash`
@@ -615,7 +625,7 @@ warranty, no liability.
 
 ### Licences of the dependencies
 
-Measured on the 172 packages that `npm install` creates: 136 MIT, 12 ISC,
+Measured on the 173 packages that `npm install` creates: 137 MIT, 12 ISC,
 6 Apache-2.0, 4 BSD-3-Clause, 3 MIT-0, 3 BSD-2-Clause, 2 LGPL-3.0-or-later,
 the rest CC0, 0BSD, BlueOak and packages with a choice of licences.
 

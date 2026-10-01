@@ -76,11 +76,24 @@ annehmen.
   Browser erzeugt, 1600 px WebP. Setzen darf nur, wer die Datei hochgeladen
   hat (`PUT /api/attachments/:id/still`). Im Papierkorb und im Export.
 - `attachment_media`: die Erweiterten Infos zu einem Bild oder Video als JSON
-  (`general`, `video`, `audio`, `image`), gelesen mit `mediainfo.js` in der
-  Warteschlange `mediaSoon()`: nach dem Upload, nach Import und Papierkorb, beim
-  Start und stündlich für die Dateien aus `MEDIA_FAILED`. Fehlt die Zeile, liest
-  `GET /api/attachments/:id/info` sofort. `inMediaTurn()` lässt immer nur eine
-  Analyse laufen. Nicht im Export und nicht im Papierkorb.
+  (`general`, `video`, `audio`, `image`, `orientation`, `exif`), gelesen mit
+  `mediainfo.js` in der Warteschlange `mediaSoon()`: nach dem Upload, nach
+  Import und Papierkorb, beim Start und stündlich für die Dateien aus
+  `MEDIA_FAILED`. Ausrichtung und EXIF liest `sharp` mit `exif-reader` aus dem
+  ersten Stück (1 MiB); `orientation` steht immer da, eine Zeile ohne sie liest
+  die Warteschlange bei Bildern einmal nach. GPS steht nur als `gps: true`.
+  Fehlt die Zeile, liest `GET /api/attachments/:id/info` sofort.
+  `inMediaTurn()` lässt immer nur eine Analyse laufen. Nicht im Export und
+  nicht im Papierkorb.
+- `attachment_changes`: je Datei höchstens eine Zeile mit `file_modified`
+  (`File.lastModified` beim Hochladen, UTC), `saved_at` und `saved_by` (die
+  letzte Speicherung im Document Server, `users[0]` des Rückrufs, nur wenn die
+  Nummer ein Account ist). Eine eigene Tabelle statt neuer Spalten an
+  `attachments`: eine fehlende Spalte meldet `schemaDifferences()`, eine fehlende
+  Tabelle legt der Start an. Reist im Papierkorb in `content` mit; nicht im
+  Export. „Infos“ zu Dokumenten liest `GET /api/attachments/:id/info` bei jedem
+  Aufruf aus Kriterion und aus der Datei (`documentFacts()` in
+  `attachments.js`).
 - `photo_media`: dasselbe für Fotos und Videos des Eintrags, stückweise aus
   `photos.data` gelesen (`makePhotoMedia()`). Dieselbe Warteschlange nimmt sie
   nach den Dateien: nach dem Upload und nach einem Import, beim Start und

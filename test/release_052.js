@@ -128,9 +128,9 @@ async function run() {
   files = byName((await B.call('GET', `/api/items/${item}`)).content);
   check('Nach dem Upload liest die Warteschlange Video und Bild; die Textdatei nicht',
     sent.status === 201 && queued && mediaRow(textId) === null, `${sent.status} ${queued}`);
-  check('Die Liste nennt beim Video den Codec, infoSoon ist aus; Bild und Text tragen beides nicht',
-    files['clip.mp4']?.codec === 'HEVC' && files['clip.mp4']?.infoSoon === false &&
-    !('codec' in (files['foto.jpg'] || {})) && !('infoSoon' in (files['notiz.txt'] || {})),
+  check('Die Liste nennt beim Video den Codec, beim Bild das Format, infoSoon ist aus; die Textdatei traegt beides nicht',
+    files['clip.mp4']?.codec === 'HEVC' && files['clip.mp4']?.infoSoon === false && files['foto.jpg']?.codec === 'JPEG' &&
+    !('codec' in (files['notiz.txt'] || {})) && !('infoSoon' in (files['notiz.txt'] || {})),
     JSON.stringify([files['clip.mp4']?.codec, files['clip.mp4']?.infoSoon, files['foto.jpg']?.codec]));
   const info = await as('uploader', 'GET', `/api/attachments/${clip}/info`);
   const v = info.content?.video?.[0] || {}, g = info.content?.general || {};
@@ -151,7 +151,7 @@ async function run() {
     text.status === 404 && text.content?.error === DE['server.fileGone'] && outside.status === 401,
     `${text.status} ${outside.status}`);
   check('Die Angaben stehen als JSON in attachment_media und enthalten nur, was der Dialog zeigt',
-    equal(Object.keys(JSON.parse(mediaRow(clip) || '{}')), ['general', 'video', 'audio', 'image']) &&
+    equal(Object.keys(JSON.parse(mediaRow(clip) || '{}')), ['general', 'video', 'audio', 'image', 'orientation', 'exif']) &&
     equal(Object.keys(JSON.parse(mediaRow(clip) || '{}').video?.[0] || {}),
       ['format', 'profile', 'width', 'height', 'frameRate', 'bitRate', 'bitDepth', 'chroma', 'hdr']),
     (mediaRow(clip) || '').slice(0, 200));
@@ -411,12 +411,14 @@ async function run() {
       return out;
     };
     const office = menuOf('f49'), clip = menuOf('f48'), pdf = menuOf('f43'), zip = menuOf('f44'), png = menuOf('f42');
-    check('Office-Datei: Öffnen · Bearbeiten | Herunterladen · Link | Fassung · Bearbeiten durch alle | Löschen',
-      equal(office, [DE['entry.openFile'], DE['entry.edit'], '|', DE['entry.download'], DE['entry.copyFileLink'], '|',
-        DE['entry.restorePrevious'], DE['entry.editAll'], '|', DE['entry.deleteFile']]), office.join(' / '));
-    check('Eigenes Video: Öffnen | Herunterladen · Link · Erweiterte Infos | Vorschaubild wählen … | Löschen',
+    check('Office-Datei: Öffnen · Bearbeiten | Herunterladen · Link · Infos | Umbenennen | Fassung · Bearbeiten durch alle | Löschen',
+      equal(office, [DE['entry.openFile'], DE['entry.edit'], '|', DE['entry.download'], DE['entry.copyFileLink'],
+        DE['entry.docInfo'], '|',
+        DE['entry.renameFileMenu'], '|', DE['entry.restorePrevious'], DE['entry.editAll'], '|', DE['entry.deleteFile']]),
+      office.join(' / '));
+    check('Eigenes Video: Öffnen | Herunterladen · Link · Erweiterte Infos | Umbenennen · Vorschaubild wählen … | Löschen',
       equal(clip, [DE['entry.openFile'], '|', DE['entry.download'], DE['entry.copyFileLink'], DE['entry.mediaInfo'], '|',
-        DE['entry.chooseStill'], '|', DE['entry.deleteFile']]), clip.join(' / '));
+        DE['entry.renameFileMenu'], DE['entry.chooseStill'], '|', DE['entry.deleteFile']]), clip.join(' / '));
     check('Öffnen auch beim fremden Bild; Erweiterte Infos nur bei Bild und Video',
       equal(png, [DE['entry.openFile'], '|', DE['entry.download'], DE['entry.copyFileLink'], DE['entry.mediaInfo'], '|',
         DE['entry.deleteFile']]) &&
@@ -426,8 +428,8 @@ async function run() {
       (() => {
         tileOf(w, 'f49')?.querySelector('.amore')?.click();
         const lines = [...w.document.querySelectorAll('.fmenu-line')];
-        const ok = lines.length === 3 && lines.every(l => l.getAttribute('role') === 'separator') &&
-          w.document.querySelectorAll('.fmenu [role^="menuitem"]').length === 7;
+        const ok = lines.length === 4 && lines.every(l => l.getAttribute('role') === 'separator') &&
+          w.document.querySelectorAll('.fmenu [role^="menuitem"]').length === 9;
         press(w.document.activeElement, 'Escape');
         return ok;
       })(), 'Linien');

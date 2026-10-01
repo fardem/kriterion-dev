@@ -4,7 +4,8 @@
 `Doku/Fahrplan.md` mit den Punkten B1 bis B10: Funde aus der Abnahme von
 0.53.0 und die Punkte 42 und 60 bis 63 aus `Doku/Fehler_und_Ideen.md`. Die
 Runde hieß bis zur Antwort auf F1 0.53.1. F1 bis F19 sind am 1. Oktober 2026
-in fünf Fragetafeln beantwortet.
+in fünf Fragetafeln beantwortet. B11 kam am selben Tag nach dem Start des Baus
+dazu; F20 bis F26 sind in zwei weiteren Fragetafeln beantwortet.
 
 Vorgabe des Betreibers: Alle weiteren Punkte kommen in diese Runde, und gebaut
 wird, wenn er fertig gesammelt hat und den Bau startet. Kommen vor dem Start
@@ -33,6 +34,8 @@ Zeilennummern gelten für `3c36dff` (0.53.0).
 | V11 | B10 | Dokumente bekommen „Infos“: „wann zuletzt geändert etc. … nicht erweiterte, sondern Infos“; „schau, was man so noch hat: zuletzt bearbeitet von etc., halt die Dinge, die interessant sein könnten“ |
 | V12 | B10 | Kriterion hält Zeitpunkt und Account der letzten Speicherung im Document Server fest: „das muss geändert werden: Kriterion speichert keinen Zeitpunkt/Account …“ |
 | V13 | alle | „nimm alle zusätzlichen Punkte für 0.53.1 auf … ich werde noch weiter sammeln“; gebaut wird, wenn er fertig gesammelt hat |
+| V14 | B11 | „ungeschätzte oder unbewertete filtern und auch ein Punkt zum Filtern für teilweise bewertete, wenn weniger als 80 % (einstellbar im Admin-Menü) der möglichen Bewertungen oder Schätzungen bewertet worden sind“ |
+| V15 | B11 | „also als Filter Schätzung, Bewertung, und je teilweise“ |
 
 Alle vom 1. Oktober 2026.
 
@@ -59,6 +62,13 @@ Alle vom 1. Oktober 2026.
 | F17 | B10: die Änderungszeit der Datei vom Rechner beim Hochladen behalten? | ja, in der neuen Tabelle · nein | **ja, in der neuen Tabelle** (Empfehlung) |
 | F18 | B10: Name des Menüpunkts | „Infos“ bei Dokumenten, „Erweiterte Infos“ bei Bildern und Videos · „Infos“ für alle Dateien | **„Infos“ bei Dokumenten** (Empfehlung) |
 | F19 | B10: welche Dokumente? | Office, OpenDocument und PDF · dazu Textdateien · nur Office und PDF | **Office, OpenDocument und PDF** (Empfehlung) |
+| F20 | B11: in welcher Runde? | als Punkt 64 sammeln · in 0.54.0 nachtragen · eigene Runde direkt danach | **in 0.54.0 nachtragen** |
+| F21 | B11: woran misst sich „teilweise“? | eigene Werte · je Kriterium ein Wert von irgendeinem Account · alle Accounts | **eigene Werte** (Empfehlung) |
+| F22 | B11: Werte der Filter? | alle · keine · teilweise · dazu „vollständig“ | **alle · keine · teilweise** (Empfehlung) |
+| F23 | B11: ungetestete Einträge bei „Bewertung“? | zählen nicht · zählen als „keine“ | **zählen nicht** (Empfehlung) |
+| F24 | B11: eine Schwelle oder je Phase eine? | eine für beide · je eine | **eine für beide** (Empfehlung) |
+| F25 | B11: Eingabe der Schwelle? | ganze Zahl 1 bis 100 · Auswahl in 10er-Schritten | **ganze Zahl 1 bis 100** (Empfehlung) |
+| F26 | B11: wer ändert die Schwelle? | jeder Admin · nur der Eigentümer-Admin | **jeder Admin** (Empfehlung) |
 
 ---
 
@@ -71,7 +81,9 @@ EXIF-Angaben. Dokumente bekommen „Infos“ mit Angaben aus Kriterion und aus d
 Datei, auch wer zuletzt bearbeitet hat. Der zugeklappte Kopf von „Dateien“
 nennt nur Zahlen. Dateien lassen sich umbenennen. Feste deutsche Texte im Code
 und vier Namen der Anleitung werden berichtigt, die Kommentare im Stilblatt
-nach der Kommentarregel durchgesehen.
+nach der Kommentarregel durchgesehen. Die Übersicht filtert nach den eigenen
+Werten bei „Potenzial“ und „Bewertung“: keine oder teilweise, mit einer
+Schwelle, die ein Admin einstellt.
 
 ---
 
@@ -176,6 +188,25 @@ EXIF-Block roh (`metadata().exif`, im Beispiel 468 Bytes). `exif-reader`
   im Info-Wörterbuch (Titel, Autor, erstellt mit, erzeugt von, erstellt,
   geändert). `attachments.js` hat einen ZIP-Leser (Zeilen 215 bis 245).
 
+### 2.9 Filter der Übersicht (B11)
+
+- `FILTER_DEFAULT` (`public/app.js`:2730) kennt Status, Ablehnung, Favoriten,
+  Kategorien und Tags. `visibleItems()` (`public/app.js`:2993) filtert im
+  Browser, `filterNumber()` (`public/app.js`:3462) zählt die aktiven Filter,
+  `filterNormal()` (`public/app.js`:2862) prüft gespeicherte Filter und
+  Ansichten. `drawFilters()` (`public/app.js`:3489) zeichnet die Leiste;
+  „Ablehnung“ steht als zweite Gruppe in der Zeile „Status“
+  (`public/app.js`:3533).
+- `GET /api/items` (`server.js`:3346) liefert je Eintrag die Durchschnitte
+  (`avgRating`, `potentialRating`, `server.js`:3409). Wie viele Kriterien der
+  Account selbst bewertet hat, steht nicht in der Antwort.
+- `ratings` hat eine Zeile je Eintrag, Kriterium und Account. Der Wert 0 nimmt
+  eine Bewertung zurück. Kriterien der Phase `after` lassen sich erst nach dem
+  Test bewerten (`server.js`:4957), Kriterien der Phase `before` jederzeit.
+- Ist `potentialMode` (`server.js`:1023) aus, fehlt das Potenzial überall.
+- Globale Schalter, die jeder Admin setzt, schreibt `PUT /api/settings`
+  (`server.js`:1970), etwa `tagsFreeCreate`.
+
 ---
 
 ## 3. Die Entscheidungen
@@ -195,6 +226,7 @@ V1 bis V13 und F1 bis F19 aus Abschnitt 0, alle vom 1. Oktober 2026.
 | Abhängigkeiten | 6 → 7: `exif-reader` 2.0.3 (F15) |
 | Sicherheitsprotokoll | kein neuer Vorgang (V7) |
 | Sprachen | jeder neue Text in `de.json`, `en.json` und `tr.json`; README und Anleitung in allen drei Fassungen, das CHANGELOG englisch (`CLAUDE.md`) |
+| B11 | keine neue Route und keine neue Tabelle: die Schwelle steht in `settings` und geht über `PUT /api/settings` |
 
 #### B1 — Typ und Vorschaubild (V1 bis V3, F2 bis F4)
 
@@ -287,6 +319,22 @@ V1 bis V13 und F1 bis F19 aus Abschnitt 0, alle vom 1. Oktober 2026.
 | Papierkorb | Die Zeile reist in `content` mit und kommt beim Wiederherstellen zurück |
 | Export | nicht im Export; das Austauschformat bleibt 22 |
 
+#### B11 — Filter nach Potenzial und Bewertung (V14, V15, F20 bis F26)
+
+| Frage | Antwort |
+|---|---|
+| Filter | eine neue Zeile der Filterleiste mit den Gruppen „Potenzial“ und „Bewertung“ (Namen aus dem Vokabular), je „Alle · Keine · Teilweise“ (F22) |
+| Bezug | die eigenen Werte (F21): Kriterien der Phase mit einem eigenen Wert über 0, geteilt durch die Zahl der Kriterien der Phase. Jedes Kriterium zählt einmal, ohne Gewicht |
+| Keine | kein eigener Wert in der Phase |
+| Teilweise | mindestens ein eigener Wert und ein Anteil unter der Schwelle; verglichen wird ohne Runden |
+| Ungetestet | zählt bei „Bewertung“ nicht: „Keine“ und „Teilweise“ zeigen nur getestete Einträge (F23). Beim Potenzial zählt jeder Eintrag |
+| Schwelle | eine für beide Phasen (F24); ganze Zahl von 1 bis 100, Vorgabe 80 (F25); globale Einstellung `partialShare` |
+| Ort | Einstellungen › Bestand, Karte „Bewertung: Kriterien“. Jeder Admin ändert sie (F26); andere Accounts sehen das Feld nicht |
+| Potenzial aus | Ist `potentialMode` aus, fehlt die Gruppe „Potenzial“, und ihr gespeicherter Wert gilt als „Alle“ |
+| Ohne Kriterien | Hat eine Phase keine Kriterien, fehlt ihre Gruppe ebenso |
+| Server | `GET /api/items` liefert je Eintrag die Zahl der eigenen Werte je Phase |
+| Ansichten | gespeicherte Ansichten und „Filter zurücksetzen“ nehmen beide Filter mit; jeder zählt als ein aktiver Filter |
+
 ---
 
 ## 4. Die Bauabschnitte
@@ -330,21 +378,28 @@ Stilblatt, `blockSummary()`, Texte.
 ### BA 9 — Anleitung und README (B6, B7)
 
 Anleitung und README in drei Sprachen: „Typ“ bei Bildern, „Aufnahme“,
-„Infos“, „Umbenennen …“, der zugeklappte Kopf; „Eintrag exportieren“ fällt;
-die vier Namen; `card.user`. README: Abhängigkeit `exif-reader`, die neue
-Route.
+„Infos“, „Umbenennen …“, der zugeklappte Kopf, die Filter „Potenzial“ und
+„Bewertung“ mit der Schwelle; „Eintrag exportieren“ fällt; die vier Namen;
+`card.user`. README: Abhängigkeit `exif-reader`, die neue Route.
 
 ### BA 10 — Das Stilblatt (B8)
 
 Durchsicht, danach `node tools/comments.js --write`.
 
-### BA 11 — Der Prüfstand
+### BA 11 — Filter nach Potenzial und Bewertung (B11)
+
+Zahl der eigenen Werte je Phase in `GET /api/items`, Einstellung
+`partialShare`, Feld in der Karte „Bewertung: Kriterien“, die Filter in
+`FILTER_DEFAULT`, `filterNormal()`, `visibleItems()`, `filterNumber()` und
+`drawFilters()`, Texte.
+
+### BA 12 — Der Prüfstand
 
 Neues Modul `test/release_054.js`. Je Zusage eine Prüfung und ein Rückbau
 in `counterproof.js`. Die Rückbauten werden einzeln gegen ihr Modul gefahren,
 mit höchstens vier Spuren (`OFFSET_TRACES` in `test/frame.js`).
 
-### BA 12 — Dokumentation und Zahlen
+### BA 13 — Dokumentation und Zahlen
 
 CHANGELOG englisch, Änderungsprotokoll mit „Vorgaben des Betreibers“,
 `Doku/Fahrplan.md`, `Doku/Entwicklung.md` (Tabelle `attachment_changes`),
@@ -369,6 +424,11 @@ CHANGELOG englisch, Änderungsprotokoll mit „Vorgaben des Betreibers“,
 7. Ein PDF: „Infos“ mit Titel, Programm und Seiten.
 8. Einen Eintrag ablehnen, auf Türkisch ansehen: kein „am“ und kein „von“.
 9. Die Anleitung in drei Sprachen: kein Abschnitt „Eintrag exportieren“.
+10. Fünf Kriterien unter „Bewertung“, Schwelle 80: Unter „Bewertung:
+    Teilweise“ steht ein getesteter Eintrag mit drei eigenen Werten, einer mit
+    vier nicht. Unter „Bewertung: Keine“ steht kein ungetesteter Eintrag.
+11. Die Schwelle auf 90 stellen: Der Eintrag mit vier eigenen Werten steht
+    unter „Teilweise“. Ein Account ohne Adminrechte sieht das Feld nicht.
 
 ---
 
@@ -384,6 +444,9 @@ CHANGELOG englisch, Änderungsprotokoll mit „Vorgaben des Betreibers“,
 | Gleiche Namen beim Hochladen ablehnen | F8 gilt für das Umbenennen |
 | Die Messtafeln des Stilblatts in ein Papier | F12 |
 | Fotos des Eintrags umbenennen | B4 gilt für Dateien unter „Dateien“ |
+| Filter nach den Werten anderer Accounts | F21 |
+| Ein Filterwert „vollständig“ | F22 |
+| Anteil nach dem Gewicht der Kriterien | jedes Kriterium zählt einmal (B11) |
 
 ---
 
