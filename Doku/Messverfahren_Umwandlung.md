@@ -55,6 +55,32 @@ Endet der Befehl ohne Fehler, kodiert Quick Sync H.264 mit fester Bitrate.
 Gelingt er nur ohne `-b:v 5M -maxrate 5M -bufsize 10M`, lädt der Host
 vermutlich die HuC-Firmware nicht; die Wege A und B brauchen sie.
 
+Kodiert Quick Sync nicht, zeigen drei Befehle auf dem Host die Ursache:
+
+```sh
+grep -E 'DRIVER|PCI_ID' /sys/class/drm/renderD128/device/uevent
+ls /lib/firmware/i915/ | grep -E 'adlp_guc|tgl_huc'
+dmesg | grep -i -E 'i915|guc|huc|wedged'
+```
+
+- `DRIVER=i915` und eine `PCI_ID` mit `8086:` zeigen die Intel-Grafik am
+  Kernel-Treiber. Der N100 hat `8086:46D1`.
+- Fehlt `/lib/firmware/i915/`, fehlt die Firmware für GuC und HuC. Der
+  Intel-Mediatreiber meldet dann `iHD_drv_video.so init failed`, ffmpeg
+  `Input/output error`. Nach der Installation den Host neu starten.
+
+| System | Paket mit der Firmware für `i915` |
+|---|---|
+| Debian 12 | `firmware-misc-nonfree` (20230210-5) |
+| Debian 12 mit Firmware aus `bookworm-backports` | `firmware-intel-graphics` (20250410-2~bpo12+1) |
+| Debian 13 | `firmware-intel-graphics` (20250410-2) |
+| Ubuntu | `linux-firmware` (nicht geprüft) |
+
+Seit den Firmware-Paketen von 2025 enthält `firmware-misc-nonfree` keine Datei
+für `i915` mehr. Geprüft am 1. Oktober 2026 im Inhalt der Pakete. Gefunden auf
+dem N100 des Betreibers: OpenMediaVault auf Debian 12, Kernel 6.12.95 aus den
+Backports, installiert nur `firmware-misc-nonfree` 20250410-2~bpo12+1.
+
 ---
 
 ## 3. Das Aufnahmeformat
@@ -216,7 +242,7 @@ pruefe() {
   else
     echo "- $2: Quick Sync kodiert nicht"
   fi
-  grep -v '^ *$' "$TMP/qs.log" | tail -n 3 | sed 's/^/    /'
+  grep -i -E 'libva|vaapi|fail|error' "$TMP/qs.log" | tail -n 10 | sed 's/^/    /'
   return 1
 }
 
@@ -270,6 +296,9 @@ echo "- CPU: $(sed -n 's/^model name[[:space:]]*: //p' /proc/cpuinfo | head -n1)
 HW=()
 if [ -c "$DRI" ]; then
   HW=(--device "$DRI:$DRI" --group-add "$(stat -c %g "$DRI")")
+  gpu=$(sed -n 's/^\(DRIVER\|PCI_ID\)=//p' "/sys/class/drm/${DRI##*/}/device/uevent" 2>/dev/null | tr '\n' ' ')
+  echo "- Grafik: ${gpu:-unbekannt}; /lib/firmware/i915: $([ -d /lib/firmware/i915 ] && echo vorhanden || echo fehlt)"
+  dmesg 2>/dev/null | grep -i -E 'guc|huc|wedged' | tail -n 4 | sed 's/^/    /'
 else
   echo "- $DRI fehlt: nur Weg C"
 fi
