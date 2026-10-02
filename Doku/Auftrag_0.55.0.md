@@ -1,4 +1,4 @@
-# Auftrag 0.55.0 — „Proxys für Videos; Punkte aus der Abnahme von 0.54.0“
+# Auftrag 0.55.0 — „Proxys für Videos, Wartung und Einstellungen; Punkte aus der Abnahme von 0.54.0“
 
 **Aufgestellt am 1. Oktober 2026.** Grundlage ist der Abschnitt 0.55.0 in
 `Doku/Fahrplan.md` mit B1, einem Proxy für Videos (Punkt 57 aus
@@ -9,6 +9,9 @@ einer fünften; die Antwort auf F15 hat der Betreiber danach geändert (V9).
 F16 bis F18 folgen aus V10 und V11 und sind am selben Tag in zwei weiteren
 Tafeln beantwortet. Die Tafel mit F20 bis F23 hat der Betreiber am selben Tag
 weggeklickt; F19 bis F25 sind am 2. Oktober 2026 in zwei Tafeln beantwortet.
+Am selben Tag kamen B3, die Wartung, und B4, die neue Aufteilung der
+Einstellungen, dazu (V20 bis V23); F26 bis F32 sind in zwei weiteren Tafeln
+beantwortet.
 
 Vorgabe des Betreibers: Weitere Punkte aus der Abnahme von 0.54.0 kommen in
 diese Runde, und gebaut wird, wenn er den Bau startet. Kommen vor dem Start
@@ -44,8 +47,12 @@ Zeilennummern gelten für `bf925e9` (0.54.0).
 | V17 | B1 | „Wenn der schlanke Image mit ffmpeg für den User unsichtbar ist, dann können wir das schon machen“ |
 | V18 | B1, B2 | „wenn man ohne die Seite neu zu laden wieder abspielt, wäre es schön, wenn es nicht neu laden muss. Wie lange bleibt es im Cache?“ Antwort: Der Server erlaubt 1 Stunde (`Cache-Control: private, max-age=3600`, `server.js`:4441); ob der Browser die Stücke nimmt, hängt vom Browser ab, nicht gemessen. Daraus F25: Die letzte Kopie aus „Ganz laden“ bleibt bis zum Neuladen der Seite |
 | V19 | B1 | „klar, ich bin für die neuere Version, aber was wäre denn überhaupt der Vorteil“ und „es reicht doch, wenn du das in deiner Umgebung testest … an den Zeiten wird sich da nicht mehr viel tun“: ffmpeg 9.0.2 statt 7.1.5, ohne eigene Messung auf dem N100; Quick Sync und Hochkant prüft die Abnahme |
+| V20 | B3 | „Unbekannte Dateien, die zu keinem Eintrag passen, egal wie der Name und die Endung ist, müssen vom Eigentümer bereinigt werden können, quasi ein Datenbankabgleich mit Reinigen von Platte und auch Datenbank mit anschließendem Datenbank-Shrink (VACUUM?) … so etwas wie Wartung und Reinigung“ |
+| V21 | B4 | „die Karten im Admin-Bereich noch mal durchgehen, einige sind gewachsen. Die Frage ist: Sind sie richtig aufgeteilt? Kann man da noch mal eine Aufteilung und eventuelle Umsortierung vornehmen?“ |
+| V22 | B4 | „Der Serverbefehl darf nur dem Eigentümer-Admin angezeigt werden. Alle anderen bekommen den Hinweis: Wende dich an einen Admin, der ihm dabei helfen kann.“ In der Oberfläche lautet der Hinweis: „Wende dich an einen Admin, der dir dabei helfen kann.“ |
+| V23 | B4 | „insbesondere gehe mal durch, wer überhaupt welche Karten sehen darf und ob das Sinn macht, insbesondere was der User sehen kann“: Anlass für F30 bis F32 |
 
-V1, V2 und V7 bis V16 vom 1. Oktober 2026, V17 bis V19 vom 2. Oktober 2026.
+V1, V2 und V7 bis V16 vom 1. Oktober 2026, V17 bis V23 vom 2. Oktober 2026.
 
 ### Fragen
 
@@ -76,15 +83,24 @@ V1, V2 und V7 bis V16 vom 1. Oktober 2026, V17 bis V19 vom 2. Oktober 2026.
 | F23 | B1: Darf der Proxy während der Umwandlung unverschlüsselt liegen („gleich verschlüsselt“, V12)? | nur im RAM (tmpfs) · kurz auf der Platte in `/tmp` | **nur im RAM** (Empfehlung) |
 | F24 | B1: Wann bekommt ein Video einen Proxy (statt F7)? | wenn eines zutrifft: die kürzere Seite über 1080 Pixel; Video nicht H.264 mit 8 Bit und 4:2:0; Ton nicht AAC, MP3 oder Opus; Video über 12 Mbit/s; `mkv`, `avi`, `wmv`, `flv` · dasselbe ohne HEVC bis 1080p und 12 Mbit/s mit AAC · jedes Video | **wenn eines zutrifft** (Empfehlung). Der Kamera-Proxy (HEVC) bekommt dann auch einen. Dazu: „berechnet wird bei Dateien, die kleiner als 1080 sind, immer auf Originalgröße, es wird also nichts hochskaliert. 1080 ist nativ darzustellen, und alles darüber wird auf 1080p herunterskaliert“ |
 | F25 | B2: Bleibt ein ganz geladenes Video im Speicher, bis die Seite neu geladen wird (V18)? | das letzte bleibt, bis ein anderes ganz geladen oder die Seite neu geladen wird · verworfen beim Schließen | **das letzte bleibt** (Empfehlung) |
+| F26 | B3, B4: Wohin kommen die Neuordnung der Einstellungen und die Wartung? | eigene Runde 0.56.0 · in 0.55.0 · erst ins Sammelblatt | **in 0.55.0** |
+| F27 | B3: Wie weit geht die Wartung (V20)? | Abgleich ohne VACUUM: Dateien jeder Art ohne Verweis listen und löschen, fehlende Dateien nennen und zurückholen, Datenbank prüfen und nur melden · dazu ein Knopf für VACUUM, in der Messung 3,6 % kleiner, die Instanz steht währenddessen · bleibt wie heute | **Abgleich ohne VACUUM** (Empfehlung) |
+| F28 | B4: Welche Aufteilung der Karten (V21)? | wie vorgeschlagen (Abschnitt 3, B4) · ohne Abschnitt „Backup“ · nur große Karten teilen | **wie vorgeschlagen** (Empfehlung) |
+| F29 | B4: Wie stehen die Karten am Rechner nebeneinander? | nicht strecken: jede Karte so hoch wie ihr Inhalt · Spalten ohne Lücken · bleibt wie heute | **bleibt wie heute** |
+| F30 | B4: Was sieht ein Benutzer unter Einstellungen (V23)? | nur „Persönlich“ · dazu die beiden Kriterienlisten zum Lesen · bleibt wie heute | **nur „Persönlich“** (Empfehlung) |
+| F31 | B4: Karten, die ein Admin nur lesen kann: Papierkorb, Anfragen, Bildformate, Grenzen beim Hochladen? | sichtbar, gesperrte Felder als Text · ausblenden · bleibt wie heute | **sichtbar, als Text** (Empfehlung) |
+| F32 | B4: Wer sieht den Hinweis, dass der Schlüssel noch neben der Datenbank liegt? | nur der Eigentümer-Admin · jeder Admin | **nur der Eigentümer-Admin** (Empfehlung) |
 
-Anders als empfohlen: F1, F3, F6, F15 und F21. Zu F1: Der Betreiber hat mit den
+Anders als empfohlen: F1, F3, F6, F15, F21, F26 und F29. Zu F1: Der Betreiber hat mit den
 Zahlen aus dem Messverfahren entschieden; B1 ist freigegeben (F20). Zu F3: Ohne
 Quick Sync wandelt die CPU alle Formate über Weg C um. Zu F6: `mkv`, `avi`,
 `wmv` und `flv` bekommen immer einen Proxy; sie spielen dann am Telefon und am
 Rechner über ihn. Zu F15: Ganz geladen wird nur noch auf Knopfdruck; ohne
 Knopf puffert der Browser selbst, wie vor 0.52.0. Zu F21: Die Bitrate ist
 0,23 Mbit je Bild, höchstens 7,5 Mbit/s: 24p 5,52, 25p 5,75, 30p 6,9 Mbit/s,
-ab 50p 7,5 Mbit/s.
+ab 50p 7,5 Mbit/s. Zu F26: B3 und B4 kommen in diese Runde statt in eine
+eigene. Zu F29: Am Rechner wird jede Karte weiter so hoch wie die höchste Karte
+ihrer Zeile.
 
 Die Fragen F1 bis F15 stehen im Wortlaut der Tafeln. Seit F18 heißt die
 Telefonfassung „Proxy“.
@@ -93,6 +109,11 @@ V12 ersetzt F10 und F11: Am Rechner und am Telefon spielt der Proxy, sobald er
 fertig ist. Der Umschalter zum Original gilt nur für dieses Abspielen. Fehlt der
 Proxy, spielt das Original, ohne Fehlermeldung, und Kriterion legt ihn im
 Hintergrund an (V14). F21 ersetzt F17, F22 ersetzt F12, F24 ersetzt F7.
+
+Der Vorschlag zu F28 nannte „Benutzer (mit dem Serverbefehl)“, weil „Mein
+Account“ den Befehl jedem zu zeigen schien. Das war falsch: `serverBox()` zeigt
+Befehle nur dem Eigentümer-Admin (`public/app.js`:8764). Die Befehle bleiben, wo
+sie sind; neu ist nach V22 der Hinweis für alle anderen.
 
 ---
 
@@ -112,6 +133,18 @@ Proxy. B1 ist mit den Zahlen aus der Messung freigegeben (V4, F1, F20).
 einmal ganz und spielt dann aus der Kopie weiter; die letzte Kopie bleibt, bis
 die Seite neu geladen wird (F25). Ohne Knopf lädt der Browser die Datei nur
 einmal, und das Video springt nicht (B2).
+
+Der Eigentümer-Admin gleicht Platte und Datenbank ab (B3). Ein Knopf listet
+Dateien ohne Verweis mit jedem Namen, fehlende Dateien mit ihrem Eintrag und
+das Ergebnis einer Prüfung der Datenbank. Dateien ohne Verweis löscht er nach
+Bestätigung, fehlende holt er aus dem Backup-Ordner zurück. Einen Knopf für
+VACUUM gibt es nicht (F27).
+
+Die Einstellungen sind neu aufgeteilt (B4): Große Karten sind geteilt, jede
+Karte steht im passenden Abschnitt, dazu kommt ein Abschnitt „Backup“. Ein
+Benutzer sieht nur „Persönlich“ (F30). Serverbefehle sieht nur der
+Eigentümer-Admin; alle anderen lesen dort „Wende dich an einen Admin, der dir
+dabei helfen kann.“ (V22).
 
 ---
 
@@ -373,13 +406,92 @@ Quick Sync kodiert damit, mit dem freien Treiber 23.1.1 aus Debian.
 - Anleitung: „Video ganz laden“ in `manual-de.md`:352, `manual.md`:349 und
   `manual-tr.md`:350.
 
+### 2.10 Dateien ohne Verweis und Speicherpflege (B3), geprüft am 2. Oktober 2026
+
+- `unknownFiles()` (`server.js`:5525) zählt in `data/files/` nur Namen aus 32
+  Hexzeichen (`DISK_NAME`, `server.js`:3842), die weder `disk_files` noch
+  `disk_files_gone` kennen. Andere Namen und Verzeichnisse sieht Kriterion nicht.
+- „Kennzahlen“ nennt sie als „ohne Verweis“ (`diskRows()`,
+  `public/app.js`:11374). „Löschen“ (`DELETE /api/files/unknown`,
+  `server.js`:5557) sieht nur der Eigentümer-Admin; es entfernt nur Dateien mit
+  einer Kopie gleicher Länge im Backup-Ordner und schreibt eine Zeile ins
+  Server-Log.
+- Der stündliche Lauf löscht in `data/files/` nur Namen aus `disk_files_gone`
+  (`sweepDisk()`, `server.js`:7060). Unbekannte Dateien löscht er nur unter
+  `upload/` (`sweepUploadDir()`, `server.js`:7084).
+- „fehlen“ ist nur eine Zahl (`DISK_MISSING`). Der Server liefert je Anhang
+  `missing` (`server.js`:2763); die Oberfläche zeigt es nicht. Beim Start nennt
+  das Server-Log fehlende Dateien (`server.js`:7134), Dateien ohne Verweis nicht.
+- Der Schlüssel einer Datei steht nur in ihrer Zeile (`disk_files.file_key`).
+  Ohne die Zeile ist die Datei nicht lesbar.
+- Speicherpflege: `auto_vacuum` steht auf `INCREMENTAL` (`server.js`:7814).
+  `reclaim()` (`server.js`:547) läuft nach dem Löschen von Einträgen, Dateien,
+  Fotos, Kommentarbildern und -videos, nach Papierkorb, Umlagerung und Import;
+  beim Start, wenn mehr als 32 MB frei sind (`server.js`:7822).
+- Fremdschlüssel sind eingeschaltet (`db.js`:21); `schema.js` hat 61 Verweise.
+- Gemessen in der Sitzung von Claude (Xeon mit 4 Kernen), Testdatenbank mit
+  SQLCipher, 2.000 Fotos zu 100 KB und 50.000 Kommentare, die Hälfte gelöscht:
+
+| Schritt | Größe | Dauer |
+|---|---|---|
+| gefüllt | 230,5 MB | – |
+| nach dem Löschen | 230,5 MB | – |
+| `incremental_vacuum` | 119,6 MB | 1,9 s |
+| danach `VACUUM` | 115,3 MB | 3,1 s |
+
+### 2.11 Die Karten der Einstellungen (B4), geprüft am 2. Oktober 2026
+
+- Fünf Abschnitte (`SYS_SECTIONS`, `public/app.js`:8697) mit 25 Karten
+  (`SYS_CARDS`, `public/app.js`:8995). Am Rechner stehen die Karten in
+  `.sys-grid` (`public/style.css`:1172) in Spalten ab 300 px; jede Karte wird so
+  hoch wie die höchste Karte ihrer Zeile.
+- Gemessen mit Chromium in einer leeren Instanz: ein Account je Rolle, ein
+  Backup, keine Einträge.
+
+| Abschnitt | Telefon (390 px): Länge | Rechner (1280 px): leere Kartenfläche |
+|---|---|---|
+| Persönlich | 1.981 px | 35 % |
+| Bestand | 4.928 px | 40 % |
+| Benutzer | 2.148 px | 0 % |
+| Datenbank | 4.822 px | 23 % |
+| Installation | 1.150 px | 16 % |
+
+- Die längsten Karten am Telefon: Vokabular 1.641 px, Kennzahlen 1.277 px, Mein
+  Account 1.090 px, Grenzen beim Hochladen 908 px, Backup 815 px.
+- Am Rechner steht „Links“ mit 313 px Inhalt in einer Zeile von 1.640 px neben
+  „Vokabular“, „Meine Sitzungen“ mit 418 px neben „Mein Account“ mit 1.104 px,
+  „Bildformate“ mit 552 px neben „Kennzahlen“ mit 1.291 px.
+- „Kennzahlen“ zeigt den Bestand, den Speicher, Version und Fingerprint und den
+  Schlüssel mit den Verfahren der Verschlüsselung. „Mein Account“ enthält den
+  zweiten Faktor (`two-factor-block`, `public/app.js`:9331). „Links“ ist eine
+  persönliche Einstellung unter „Bestand“; „Vokabular“ und „Suchmaschinen“
+  gelten für die ganze Installation.
+- Wer was sieht, gemessen mit je einem Account:
+
+| Abschnitt | Benutzer | Admin | Eigentümer-Admin |
+|---|---|---|---|
+| Persönlich | Mein Account, Meine Sitzungen, Darstellung | ebenso | ebenso |
+| Bestand | Kategorien, Tags, Bewertung: Kriterien, Potenzial: Kriterien, nur zum Lesen; Links | alle 8 Karten, Papierkorb nur zum Lesen | alle 8 Karten |
+| Benutzer | – | Benutzer, Anfragen | dazu Sicherheitsprotokoll, Mailversand |
+| Datenbank | – | Kennzahlen; Bildformate und Grenzen beim Hochladen nur zum Lesen | alle 6 Karten |
+| Installation | – | Titel, Dokumente | dazu Sprachen |
+
+- „Dokumente“ unter „Persönlich“ erscheint nur mit Document Server. „Anfragen“
+  kann ein Admin nur lesen, solange die Registrierung aus ist. In „Kennzahlen“
+  sieht er den Hinweis, dass der Schlüssel neben der Datenbank liegt
+  (`card.keyStillBeside`, `public/app.js`:11358).
+- Serverbefehle zeigt `serverBox()` nur dem Eigentümer-Admin
+  (`public/app.js`:8764). Alle anderen sehen an ihrer Stelle nichts; nur
+  „Benutzer“ hat für Admins einen eigenen Satz (`card.lockedOutCard`,
+  `public/app.js`:10509).
+
 ---
 
 ## 3. Die Entscheidungen
 
 ### Vorgaben des Betreibers
 
-V1 bis V19 und F1 bis F25 aus Abschnitt 0.
+V1 bis V23 und F1 bis F32 aus Abschnitt 0.
 
 ### Entschieden in diesem Auftrag
 
@@ -388,10 +500,10 @@ V1 bis V19 und F1 bis F25 aus Abschnitt 0.
 | Frage | Antwort |
 |---|---|
 | Versionsnummer | **0.55.0**, MINOR. Schema: **ja**, eine neue Tabelle `proxy_files` und ein Trigger, kein Migrationsblock. Austauschformat: bleibt 22 |
-| Routen | keine neue. `GET /api/attachments/:id/raw?size=proxy` liefert den Proxy. Der Schalter geht über `PUT /api/settings`, der Zustand kommt mit `GET /api/settings` |
+| Routen | B1: keine neue. `GET /api/attachments/:id/raw?size=proxy` liefert den Proxy. Der Schalter geht über `PUT /api/settings`, der Zustand kommt mit `GET /api/settings`. B3: `GET /api/maintenance` liefert den Abgleich, `DELETE /api/files/unknown` nimmt die gewählten Namen, `POST /api/files/missing` holt fehlende Dateien aus dem Backup-Ordner; alle drei nur für den Eigentümer-Admin |
 | Abhängigkeiten | in `package.json` keine neue. Im Image ffmpeg 9.0.2, im ersten Abschnitt des `Dockerfile` übersetzt (F19), dazu `libx264-164`, `libva2`, `libva-drm2`, `libdrm2`, `libdav1d6` und auf amd64 `intel-media-va-driver` aus Debian |
-| Module | neues Modul `videoproxy.js`: Aufruf von ffmpeg, Wahl des Wegs, Test von Quick Sync. Nicht `proxy.js`: „Proxy“ meint im Code schon den Reverse Proxy (`BEHIND_PROXY`, `auth.js`:36). Die ausgelieferten JavaScript-Module werden 19 |
-| Sicherheitsprotokoll | kein neuer Vorgang |
+| Module | neues Modul `videoproxy.js`: Aufruf von ffmpeg, Wahl des Wegs, Test von Quick Sync. Nicht `proxy.js`: „Proxy“ meint im Code schon den Reverse Proxy (`BEHIND_PROXY`, `auth.js`:36). Die ausgelieferten JavaScript-Module werden 19. B3 bleibt in `server.js` neben `unknownFiles()` |
+| Sicherheitsprotokoll | kein neuer Vorgang; B3 schreibt wie heute eine Zeile ins Server-Log |
 | Sprachen | jeder neue Text in `de.json`, `en.json` und `tr.json`; README und Anleitung in allen drei Fassungen, das CHANGELOG englisch (`CLAUDE.md`) |
 
 #### B1 — Der Proxy
@@ -435,6 +547,51 @@ V1 bis V19 und F1 bis F25 aus Abschnitt 0.
 | Prüfstand | Die Gruppe „Video ganz laden“ in `test/release_052.js` prüft künftig: beim Abspielen kein Abruf außer denen des Players; der Knopf lädt einmal, das Video steht dabei, danach spielt es aus der Kopie weiter; Abbrechen; nach dem Schließen spielt dasselbe Video aus der Kopie, ein zweites ganz geladenes ersetzt sie (F25). Die Rückbauten 1568 bis 1578 bekommen neue Ziele |
 | Anleitung | Der Absatz „Video ganz laden“ beschreibt den Knopf, in allen drei Fassungen |
 | Messung | B2 hängt nicht an der Messung aus BA 1 |
+
+#### B3 — Wartung (V20, F27)
+
+| Frage | Antwort |
+|---|---|
+| Ort | Karte „Speicher und Wartung“ unter Einstellungen › Datenbank (B4). Die Karte sieht jeder Admin, den Knopf „Abgleich“ nur der Eigentümer-Admin |
+| Ablauf | „Abgleich“ ruft `GET /api/maintenance` und zeigt die Liste in der Karte. Gelöscht oder zurückgeholt wird erst nach Bestätigung |
+| Dateien ohne Verweis | jeder Eintrag in `data/files/` außer `upload/` und `proxy/`, den weder `disk_files` noch `disk_files_gone` kennt, mit jedem Namen, dazu Verzeichnisse und Verknüpfungen. Je Eintrag Name, Größe und Datum der Änderung; ein Verzeichnis mit Zahl und Größe seiner Dateien |
+| Löschen erlaubt | (a) mit einer Kopie gleicher Länge im Backup-Ordner, wie heute; (b) kein Backup im Backup-Ordner nennt den Namen: Keine Datenbank hat den Schlüssel, die Datei ist nicht lesbar; (c) der Name besteht nicht aus 32 Hexzeichen: Solche Namen legt Kriterion nicht an. Alles andere bleibt, und die Liste nennt den Grund. Ist kein Backup-Ordner eingerichtet oder erreichbar, gilt (b) nicht |
+| Löschen | Ein Verzeichnis wird mit Inhalt gelöscht; eine Verknüpfung als Verknüpfung, nie ihr Ziel. Während ein Backup läuft, wird nichts gelöscht (`takeBackupLock()` wie heute) |
+| Fehlende Dateien | die Namen aus `DISK_MISSING` mit Eintrag, Ordner und Dateiname. Liegt in `kriterion-files/` im Backup-Ordner eine Kopie mit der Länge aus `encLen()`, kopiert „Zurückholen“ sie über eine Datei `.part` nach `data/files/`, wie `fetchFiles()` in `backuptool.js`, und nimmt den Namen aus `DISK_MISSING`. Sonst nennt die Liste den Grund; die Datei löscht man im Eintrag wie gewohnt |
+| Am Eintrag | Eine fehlende Datei zeigt „fehlt“; das Feld `missing` liefert der Server schon (`server.js`:2763) |
+| Prüfung der Datenbank | `quick_check` und `foreign_key_check` in einem eigenen Thread mit eigener Verbindung wie die Läufe aus `batchrun.js`, damit Kriterion bedienbar bleibt. Nur Meldung, keine Reparatur (F27). Die Dauer wird beim Bau gemessen |
+| Freier Platz | `freelist_count` mal `page_size` als Zeile in der Karte |
+| VACUUM | kein Knopf (F27); `reclaim()` bleibt, wie es ist (Abschnitt 2.10) |
+| Protokoll | je Löschen und Zurückholen eine Zeile im Server-Log, wie heute bei „ohne Verweis“ |
+| Prüfstand | in `test/release_055.js`: fremder Name, Verzeichnis, Verknüpfung, die Fälle (a) bis (c), ein Name, der bleibt, Zurückholen, die Prüfung der Datenbank; je Zusage ein Rückbau |
+
+#### B4 — Die Einstellungen neu aufgeteilt (V21 bis V23, F28 bis F32)
+
+| Frage | Antwort |
+|---|---|
+| Abschnitte | Persönlich, Bestand, Benutzer, Datenbank, Backup (neu, Adresse `#/system/backup`), Installation |
+| Karten | nach F28, Tafel unten. In jedem Abschnitt steht vorn, was jeder sieht (`public/app.js`:8695) |
+| Neue Karten | „Zweiter Faktor“: der Block `two-factor-block` aus „Mein Account“. „Speicher und Wartung“: die Zeilen aus `diskRows()` (`public/app.js`:11374), die Größe der Datenbank und B3. „Version und Verschlüsselung“: Version, Fingerprint mit der Liste der Dateien, der Schlüssel und die Verfahren aus „Kennzahlen“. „Kennzahlen“ behält Einträge, Fotos, Videos, Kommentare, Links und Testtage |
+| Links | Die Karte „Links“ wird ein Block in „Darstellung“ |
+| Vokabular | breite Karte; am Rechner stehen die Felder in Spalten |
+| Benutzer | nach F30 nur „Persönlich“. Mit nur einem Abschnitt entfällt die Leiste der Abschnitte. Kategorien, Tags und Kriterien sieht er am Eintrag und in den Filtern |
+| Admin | nach F31 bleiben Papierkorb, Anfragen, Bildformate und Grenzen beim Hochladen sichtbar. Was er nicht ändern kann, steht als Text statt in gesperrten Feldern. Die Karte „Proxy“ (B1) sieht er ebenso; schalten kann sie nur der Eigentümer-Admin (F13) |
+| Schlüssel | nach F32 sieht den Hinweis, dass der Schlüssel neben der Datenbank liegt (`card.keyStillBeside`, `public/app.js`:11358), nur der Eigentümer-Admin |
+| Serverbefehle | nach V22: Wo der Eigentümer-Admin einen Befehl sieht, lesen alle anderen „Wende dich an einen Admin, der dir dabei helfen kann.“ Das gilt in „Mein Account“ (`public/app.js`:9328) und in der Box der Wiederherstellungscodes (`public/app.js`:9466). In „Benutzer“ bleibt für Admins `card.lockedOutCard` |
+| Rechner | nach F29 bleibt `.sys-grid` (`public/style.css`:1172), wie es ist |
+| Adressen und Texte | `#/system/database` bleibt; Backup, Alte Backups und Export und Import stehen unter `#/system/backup`. Texte, Anleitung und README, die eine Karte mit ihrem Abschnitt nennen, werden angepasst |
+| Prüfstand | Die Prüfungen der Abschnitte und Karten in `test/ui_system.js` folgen der neuen Aufteilung. Neu: je Rolle die sichtbaren Abschnitte und Karten, der Hinweis aus V22, Text statt gesperrter Felder |
+
+Die Aufteilung nach F28:
+
+| Abschnitt | Karten | sieht |
+|---|---|---|
+| Persönlich | Mein Account · Zweiter Faktor · Meine Sitzungen · Darstellung (mit Links) · Dokumente (nur mit Document Server) | jeder |
+| Bestand | Kategorien · Tags · Bewertung: Kriterien · Potenzial: Kriterien · Papierkorb | Admin |
+| Benutzer | Benutzer · Anfragen · Sicherheitsprotokoll · Mailversand | Admin; Sicherheitsprotokoll und Mailversand nur der Eigentümer-Admin |
+| Datenbank | Kennzahlen · Speicher und Wartung · Bildformate · Grenzen beim Hochladen | Admin |
+| Backup | Backup · Alte Backups · Export und Import | Eigentümer-Admin |
+| Installation | Titel · Sprachen · Vokabular · Suchmaschinen · Dokumente · Proxy · Version und Verschlüsselung | Admin; Sprachen nur der Eigentümer-Admin |
 
 ---
 
@@ -492,29 +649,42 @@ Der Knopf im Vollbild, `loadWhole()` nur über ihn, das Video steht während des
 Ladens, Abbrechen, die letzte Kopie bleibt bis zum Neuladen der Seite (F25),
 Texte. Hängt nicht an BA 1.
 
-### BA 10 — Texte
+### BA 10 — Wartung (B3)
+
+`GET /api/maintenance`, Löschen nach den Fällen (a) bis (c), Zurückholen
+fehlender Dateien, „fehlt“ am Eintrag, die Prüfung der Datenbank im eigenen
+Thread, der freie Platz in der Datenbank.
+
+### BA 11 — Die Einstellungen neu aufgeteilt (B4)
+
+Der Abschnitt „Backup“, die drei neuen Karten, „Links“ in „Darstellung“,
+„Vokabular“ als breite Karte, die Sichtbarkeit nach F30 bis F32, der Hinweis
+aus V22. Gemessen werden die Längen aus Abschnitt 2.11 danach noch einmal.
+
+### BA 12 — Texte
 
 `de.json`, `en.json`, `tr.json`.
 
-### BA 11 — Anleitung und README
+### BA 13 — Anleitung und README
 
 Anleitung und README in drei Sprachen: der Proxy, der Umschalter, die
 Karte; der Absatz „Video ganz laden“ beschreibt den Knopf. README (V15):
 `/dev/dri` und die Gruppe im Container; das Firmware-Paket für `i915` je System
 aus der Tafel im Messverfahren, Abschnitt 2; die drei Befehle zum Prüfen; was
 Kriterion ohne Quick Sync tut; der `tmpfs` für `/tmp`, seine Größe und die
-Option `noswap` (F23).
+Option `noswap` (F23). Anleitung: die Tafel der Abschnitte und Karten und die
+Karten „Speicher und Wartung“ und „Version und Verschlüsselung“ (B3, B4).
 
-### BA 12 — Der Prüfstand
+### BA 14 — Der Prüfstand
 
 Neues Modul `test/release_055.js` mit dem Ersatz für ffmpeg; die Gruppe „Video
-ganz laden“ in `test/release_052.js` und die Rückbauten 1568 bis 1578 nach B2.
-Je Zusage eine
+ganz laden“ in `test/release_052.js` und die Rückbauten 1568 bis 1578 nach B2;
+B3 in `test/release_055.js`, B4 in `test/ui_system.js`. Je Zusage eine
 Prüfung und ein Rückbau in `counterproof.js`. Die Rückbauten werden einzeln
 gegen ihr Modul gefahren, mit höchstens vier Spuren (`OFFSET_TRACES` in
 `test/frame.js`).
 
-### BA 13 — Dokumentation und Zahlen
+### BA 15 — Dokumentation und Zahlen
 
 CHANGELOG englisch, Änderungsprotokoll mit „Vorgaben des Betreibers“,
 `Doku/Fahrplan.md`, `Doku/Entwicklung.md` (Abschnitt „Kurzvideos“ und die
@@ -568,6 +738,24 @@ Fingerprint. Zahlen am fertigen Stand.
     unverschlüsselte Fassung (F23).
 20. Ein Video mit H.264, 1080p, AAC und unter 12 Mbit/s bekommt keinen Proxy;
     eine Sony-Datei mit LPCM bekommt einen (F24).
+21. In `data/files/` eine Datei `test.txt`, ein Verzeichnis und eine Datei mit
+    32 Hexzeichen ohne Zeile anlegen. „Abgleich“ nennt alle drei mit Name,
+    Größe und Datum; nach der Bestätigung sind sie weg (B3).
+22. Ist der Backup-Ordner nicht erreichbar, bleibt die Datei mit 32 Hexzeichen
+    liegen, und die Liste nennt den Grund; `test.txt` lässt sich löschen.
+23. Eine Datei eines Eintrags aus `data/files/` verschieben und Kriterion neu
+    starten. Der Abgleich nennt Eintrag und Datei, am Eintrag steht „fehlt“.
+    „Zurückholen“ holt sie aus dem Backup-Ordner; danach öffnet sie sich.
+24. Die Prüfung der Datenbank meldet „ok“, und Kriterion bleibt währenddessen
+    bedienbar. Einen Knopf für VACUUM gibt es nicht (F27).
+25. Abschnitte und Karten stehen wie in B4; „Backup“ sieht nur der
+    Eigentümer-Admin.
+26. Ein Benutzer sieht unter Einstellungen nur „Persönlich“, ohne Leiste der
+    Abschnitte; „Links“ steht in „Darstellung“ (F30).
+27. Ein Admin sieht Papierkorb, Anfragen, Bildformate und Grenzen beim
+    Hochladen ohne gesperrte Felder und keinen Hinweis zum Schlüssel (F31,
+    F32). In „Mein Account“ liest er „Wende dich an einen Admin, der dir dabei
+    helfen kann.“; der Eigentümer-Admin sieht dort den Befehl (V22).
 
 ---
 
@@ -588,6 +776,10 @@ Fingerprint. Zahlen am fertigen Stand.
 | Proxy im Backup und im Export | F22 |
 | Proxy unverschlüsselt auf der Platte | F23 |
 | Pakete aus Debian für ffmpeg | F19 |
+| Ein Knopf für VACUUM | F27; `reclaim()` gibt freien Platz schon zurück (Abschnitt 2.10) |
+| Reparatur der Datenbank | F27; die Prüfung meldet nur |
+| Karten am Rechner nicht strecken oder in Spalten | F29 |
+| Kategorien, Tags und Kriterien für Benutzer unter Einstellungen | F30 |
 
 ---
 
