@@ -698,6 +698,9 @@ async function run() {
   const withoutCopy = plant(filesDir, hex(), crypto.randomBytes(5000));
   const otherLength = plant(filesDir, hex(), crypto.randomBytes(5000));
   plant(copyDir, otherLength, crypto.randomBytes(4000));
+  // Nennt kein Backup den Namen, darf die Datei auch ohne Kopie weg.
+  fs.appendFileSync(path.join(backupRoot, (thirdBackup.content?.file || '').replace(/\.sqlite$/, '.files')),
+    `${withoutCopy} 5000\n${otherLength} 5000\n`);
   const knownName = diskRow(trackId)?.name;
   const listed = hex();
   plant(filesDir, listed, same);
@@ -709,11 +712,12 @@ async function run() {
   inDb(d => d.prepare('INSERT INTO disk_files_gone (name) VALUES (?)').run(listed));
   const inUpload = plant(uploadDir, hex(), same);
   plant(copyDir, inUpload, same);
-  const byAdminDelete = await as('admin', 'DELETE', '/api/files/unknown');
-  const byOwnerDelete = await as('owner', 'DELETE', '/api/files/unknown');
+  const asked = { names: [withCopy, withoutCopy, otherLength, knownName, listed, inUpload, 'upload'] };
+  const byAdminDelete = await as('admin', 'DELETE', '/api/files/unknown', asked);
+  const byOwnerDelete = await as('owner', 'DELETE', '/api/files/unknown', asked);
   reader.prepare('COMMIT').run();
   reader.close();
-  check('Der Admin bekommt 403; der Eigentuemer loescht nur Dateien ohne Verweis mit einer Kopie gleicher Laenge',
+  check('Der Admin bekommt 403; nennt ein Backup die Datei, loescht der Eigentuemer sie nur mit einer Kopie gleicher Laenge',
     byAdminDelete.status === 403 && byOwnerDelete.status === 200 && byOwnerDelete.content?.removed === 1 &&
     !onDisk(withCopy) && onDisk(withoutCopy) && onDisk(otherLength),
     `${byAdminDelete.status} ${byOwnerDelete.status} ${byOwnerDelete.content?.removed} ${onDisk(withCopy)} ${onDisk(withoutCopy)} ${onDisk(otherLength)}`);
@@ -723,14 +727,14 @@ async function run() {
   await start({}, { backup: false });
   const noPlace = plant(filesDir, hex(), same);
   plant(copyDir, noPlace, same);
-  const withoutPlace = await as('owner', 'DELETE', '/api/files/unknown');
-  check('Ohne Backup-Ordner wird nichts geloescht', withoutPlace.status === 200 &&
+  const withoutPlace = await as('owner', 'DELETE', '/api/files/unknown', { names: [noPlace] });
+  check('Ohne Backup-Ordner bleibt eine Datei mit einem Namen von Kriterion', withoutPlace.status === 200 &&
     withoutPlace.content?.removed === 0 && onDisk(noPlace), `${withoutPlace.status} ${withoutPlace.content?.removed}`);
   await start({ hold: 1500 });
   await sendFile('uploader', item, 'neu.txt', text('neu'), north.id);
   await wait(1100);
   const busyBackup = await as('owner', 'POST', '/api/backup');
-  const duringBackup = await as('owner', 'DELETE', '/api/files/unknown');
+  const duringBackup = await as('owner', 'DELETE', '/api/files/unknown', { names: [noPlace] });
   await backupDone();
   check('Waehrend der Kopie des Backups: 409', busyBackup.status === 202 && duringBackup.status === 409 &&
     duringBackup.content?.error === DE['server.backupRunning'] && onDisk(noPlace),
@@ -753,13 +757,22 @@ async function run() {
     trackMoved && nudgeMoved && nudged.status === 200 && trackSurvived && trackBack && byRun &&
     (await rawOf('uploader', trackId)).buf.equals(track) && (await rawOf('uploader', nudge.id)).buf.equals(text('Anstoss')),
     `${nudged.status} ${trackSurvived} ${trackBack} ${byRun}`);
-  await start({ run: 300, hold: 1500 });
   const writing = byName((await upload('uploader', item, [{ name: 'schreibt.txt', content: text('schreibt') }])).content)['schreibt.txt'];
-  const writeMove = await as('uploader', 'PUT', `/api/attachments/${writing.id}/folder`, { folderId: north.id });
-  await wait(700);
-  check('Ein Name, den der Server gerade schreibt, uebersteht den Lauf',
-    writeMove.status === 200 && !!diskRow(writing.id) && onDisk(diskRow(writing.id)?.name || '-') &&
-    (await rawOf('uploader', writing.id)).buf.equals(text('schreibt')), `${writeMove.status} ${!!diskRow(writing.id)}`);
+  const writingBefore = diskRow(writing.id)?.name;
+  await B.stop();
+  B = null;
+  inDb(d => {
+    d.exec('DROP TRIGGER IF EXISTS disk_files_kept');
+    d.prepare('UPDATE attachments SET data = ? WHERE id = ?').run(text('schreibt'), writing.id);
+    d.prepare('DELETE FROM disk_files WHERE attachment_id = ?').run(writing.id);
+    d.prepare('INSERT INTO disk_files_gone (name) VALUES (?)').run(writingBefore);
+  });
+  await start({ run: 300, hold: 1500 });
+  const relocated = await until2(() => dataLength(writing.id) === 0 && !!diskRow(writing.id), 8000);
+  await wait(300);
+  check('Ein Name, den der Server gerade schreibt, uebersteht den Lauf: eine Datei aus der Tabelle, die der Start umlagert',
+    relocated && onDisk(diskRow(writing.id)?.name || '-') && (await rawOf('uploader', writing.id)).buf.equals(text('schreibt')),
+    `${relocated} ${diskRow(writing.id)?.name}`);
 
   group('Platte: Checkpoint und FULL');
   await start();

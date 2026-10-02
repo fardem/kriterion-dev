@@ -7,9 +7,29 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 > A box above the changes of a version means there is something to do when updating.
 > Yanked versions are marked `[YANKED]`.
 
-## [Unreleased]
+## [0.55.0] - 2026-10-02
 
-*Collected here while building.*
+Fingerprint `064133fa` — previously `6402677f`.
+
+> For proxies of videos, add `tmpfs: - /tmp:size=2g` to `docker-compose.yml`, and `devices: - /dev/dri:/dev/dri` for Quick Sync (README, "Proxies for videos").
+
+### Added
+
+- Proxies for videos under "Files": a smaller version in H.264 with AAC, at most 1080 pixels on the shorter side, the frame rate of the original and 0.23 Mbit per frame up to 7.5 Mbit/s. It plays on computers and phones as soon as it is ready; "Original" in full screen switches for one playback, "Download" delivers the original. The owner admin switches proxies on in the new card "Proxy" (default off).
+- Quick Sync encodes the proxies when `/dev/dri` is mounted; otherwise the CPU converts at the lowest priority. The image builds ffmpeg 9.0.2 for this. `mkv`, `avi`, `wmv` and `flv` play through their proxy and get a thumbnail from it.
+- "Extended info" shows the group "Proxy" with state, resolution and size.
+- "Reconcile" in "Storage and maintenance" (owner admin): lists every file, directory and symbolic link in `data/files/` without a reference, with any name, and deletes the chosen ones if the backup folder holds them, no backup names them or Kriterion does not create such a name; lists missing files with entry and folder and fetches them back from the backup folder; checks the database and reports only.
+- A missing file shows "missing" under "Files".
+- "Storage and maintenance" shows the free space inside the database.
+
+### Changed
+
+- "Load whole" in the full-screen view of a video works only on its button: the video pauses, loads once and continues from the copy. Without the button the browser buffers as before 0.52.0.
+- Settings are reorganised: a section "Backup" with "Backup", "Old backups" and "Export and import"; "Metrics" is split into "Metrics", "Storage and maintenance" and "Version and encryption"; "Second factor" is a card of its own; the link rows are in "Appearance"; "Vocabulary" is a wide card.
+- A user sees only "Personal" under Settings. Admins see locked fields as text; only the owner admin sees the hint about the key next to the database.
+- Where the owner admin sees a server command, everyone else reads "ask an admin who can help you with it".
+- Deleting files without a reference moved from a button in the card into "Reconcile".
+- `docker-compose.example.yml` puts `/tmp` into RAM (`tmpfs`, 2 GB); proxies are only created there. `/dev/dri` is listed, commented out.
 
 ## [0.54.0] - 2026-10-01
 

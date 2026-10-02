@@ -44,7 +44,7 @@ Optional, per account, off by default. Nobody can switch it on or off for
 someone else, not even the owner admin. The code comes from an app on the
 phone; Kriterion does not send codes.
 
-Switch it on in the “My account” card:
+Switch it on in the “Second factor” card under “Personal”:
 
 1. Install a TOTP app, such as Google Authenticator, Aegis, 1Password or the
    Passwords app of iOS.
@@ -61,7 +61,7 @@ someone else's password.
 **Recovery codes:** When the second factor is switched on, eight codes appear.
 They are shown only once, and each one works once in place of an app code.
 **Keep them separate from the phone.** Without them, a lost phone is a lost
-account. New codes are available in “My account” in exchange for password and
+account. New codes are available in “Second factor” in exchange for password and
 code; the old ones then expire.
 
 If the phone and the codes are gone, the owner admin switches the second
@@ -346,12 +346,14 @@ off right there.
   (5 %, at least 10 seconds), Kriterion stores nothing; the video then starts
   from the beginning. This also applies to videos under “Files” and in
   comments.
-- **Loading the whole video:** When a video plays in full screen, the browser
-  loads the whole file, up to 2 GB on a computer and up to 500 MB on a phone.
-  At the top, “loaded 45 %” is shown. After that, the video no longer stalls,
-  and jumping needs no loading. The browser still loads larger videos, and
-  videos while data saving is on, in pieces. Nothing stays on the device after
-  closing. This also applies to videos under “Files” and in comments.
+- **Loading the whole video:** In full screen, a video shows “Load whole” at
+  the top, up to 2 GB on a computer and up to 500 MB on a phone. The button
+  pauses the video and loads the whole file once; “loaded 45 %” is shown at
+  the top. The video then continues at the same point, and jumping needs no
+  loading. Pressing it again cancels. The copy stays until the page is
+  reloaded or another video is loaded whole. Without the button, the browser
+  loads the video in pieces as usual. This also applies to videos under
+  “Files” and in comments.
 - **Selecting:** “Select” above the image strip puts a checkbox on every photo
   and video; a click or the space bar selects. The bar below shows the number
   and offers “Delete” with a confirmation, “Select all” and “Cancel”; Esc ends
@@ -474,6 +476,14 @@ setting). The original stays unchanged.
   shown. Only the person who uploaded the video may do this. If the browser
   cannot play a video, for example HEVC in Firefox, a sentence and “Download”
   are shown instead.
+- **Proxy:** A video under “Files” plays its proxy as soon as it is ready: a
+  smaller version in H.264 (README, “Proxies for videos”). In full screen,
+  “Original” switches to the original, for this playback only; the next time
+  it opens, the proxy plays again. The position applies to both. “Download”
+  always delivers the original. No browser plays videos with the endings
+  `mkv`, `avi`, `wmv` and `flv`; they play only with their proxy, and their
+  thumbnail is made from it. If a proxy is missing or cannot be read, the
+  original plays, and Kriterion creates the proxy again.
 - **Thumbnail of a document:** Text, Markdown, CSV and log files show their
   first lines on the tile. Word, Excel and PowerPoint files, their OpenDocument
   counterparts and PDF show the first page if the admin has switched on a
@@ -509,8 +519,9 @@ setting). The original stays unchanged.
   it. If the file contains a location, only “Location in the file: yes” is
   shown; Kriterion does not store coordinates. With a time taken from EXIF,
   “Recorded” under “General” is left out for images. Images from before the
-  update are read again once after the start. What the file does not state is
-  left out.
+  update are read again once after the start. If a video needs a proxy, the
+  group “Proxy” states its state, resolution and size. What the file does not
+  state is left out.
 - **Info:** “Info” in the ⋯ menu of a Word, Excel, PowerPoint or PDF file and
   their OpenDocument counterparts shows two groups. “In Kriterion”: uploaded by
   and on, modified before upload (the time of the file on the computer, only
@@ -676,27 +687,66 @@ Sections without a visible card do not appear.
 
 | Section | Cards |
 |---|---|
-| Personal | My account, My sessions, Appearance, Documents |
-| Inventory | Categories, Tags, Rating: criteria, Potential: criteria, Vocabulary, Links, Search engines, Trash |
+| Personal | My account, Second factor, My sessions, Appearance, Documents |
+| Inventory | Categories, Tags, Rating: criteria, Potential: criteria, Trash |
 | Users | Users, Requests, Security log, Mail delivery |
-| Database | Metrics, Image formats, Upload limits, Backup, Old backups, Export and import |
-| Installation | Title, Languages, Documents |
+| Database | Metrics, Storage and maintenance, Image formats, Upload limits |
+| Backup | Backup, Old backups, Export and import |
+| Installation | Title, Languages, Vocabulary, Search engines, Documents, Proxy, Version and encryption |
 
-A user sees their own cards and the lists of categories, tags and criteria,
-without editing. The admin sees everything else; export, import, backup and
-security log only the owner admin.
+A user sees only “Personal”. The admin sees everything else; what they may not
+change is shown as text. Only the owner admin sees the “Backup” section, the
+“Languages”, “Security log” and “Mail delivery” cards and the commands for the
+server. Everyone else reads instead of a command: “ask an admin who can help
+you with it.”
 
 | Card | Content |
 |---|---|
 | Title | title before signing in (visible to everyone, choose with care) and title after signing in |
 | Documents | switch viewing and editing through a Document Server on and off; “Editable by all”: start value as long as an account has not set its own; the card checks the connection. URLs and secret are in the `.env`, see README |
-| Metrics | size of the inventory, database size, files on disk (of which above “Attachment” and in the trash), uploads, free space, version, fingerprint, encryption methods; for the owner admin the key value. Only when there are any: files still in the database waiting to be moved to disk, missing files, files waiting to be deleted and files without a reference. The owner admin deletes the files without a reference with “Delete”, but only if a copy of the same length is in the backup folder |
+| Proxy | switch proxies for videos under “Files” on and off, only the owner admin, default off; whether Quick Sync encodes or the CPU converts, and why; whether `/tmp` is in RAM and how much is free; ready, waiting and failed proxies. See README, “Proxies for videos” |
+| Metrics | size of the inventory: entries, photos, videos, comments, links and test days |
+| Storage and maintenance | database size, trash, files on disk (of which above “Attachment” and in the trash), uploads, free space. Only when there are any: free space in the database (“of which free”), files still in the database waiting to be moved to disk, missing files, files waiting to be deleted and files without a reference. For the owner admin “Reconcile”, see below |
+| Version and encryption | version, fingerprint, encryption methods; for the owner admin the key value, as long as the key lies next to the database |
 | Categories, Tags | create, rename, delete; a tick sets whether anyone may create new names on an entry |
 | Rating: criteria, Potential: criteria | create, rename, sort, weight (0.2 to 2, default 1); in “Rating: criteria” the threshold for “Partial” in the overview filters (1 to 100 %, default 80) |
 | Search engines | six built-in and up to three custom ones (`%s` as placeholder); one is the default |
-| Links | number of visible link rows, personal |
-| Appearance | colour scheme, language, font size, thumbnail size, timeline, block layout; personal |
+| Second factor | switch on and off, new recovery codes; personal, see “Second factor” |
+| Appearance | colour scheme, language, font size, thumbnail size, timeline, number of visible link rows and engine names, block layout; personal |
 | Documents (personal) | appearance in the Document Server (Like Kriterion, Modern light, Modern dark) and the default “Editable by all” for the user's own new files. Only with the Document Server switched on |
+
+### Reconcile
+
+Only the owner admin sees “Reconcile” in the “Storage and maintenance” card. It
+compares `data/files/` with the database and checks the database. Nothing is
+deleted or fetched back without a confirmation.
+
+Files without a reference are files, directories and symbolic links in
+`data/files/` that the database does not know, with any name; `upload/` is not
+one of them. The list states size, date and reason. One of them can be deleted if
+one of these cases applies:
+
+| Case | Reason in the list |
+|---|---|
+| Kriterion does not create the name, or it is a directory or a symbolic link | Kriterion does not create this name. |
+| The backup folder contains the file with the same length | The backup folder contains it with the same length. |
+| No backup in the backup folder names it. Only the file's row in the database holds its key; without it the file cannot be read | No backup names it; without its row it cannot be read. |
+
+Everything else stays: a file that a backup names, if the backup folder does
+not contain it; every file with a Kriterion name as long as a backup has no file
+list or no backup folder is reachable. A directory is deleted with its content,
+a symbolic link as a link and never its target. Nothing is deleted while a
+backup is running.
+
+Missing files are missing on disk or have the wrong length. The list states
+entry, folder and file name, also for files in the trash and previous versions.
+If the backup folder contains the file with the same length, “Fetch back”
+restores it; otherwise it can be deleted in its entry. Under “Files”, a missing
+file shows “missing”.
+
+The database check (`quick_check` and `foreign_key_check` of SQLite) runs in a
+thread of its own; Kriterion stays usable. It only reports and repairs nothing.
+If it reports errors: README, “Restoring a backup”.
 
 ### Upload limits
 

@@ -54,7 +54,7 @@ Diese Datei beschreibt Installation und Betrieb. Die Bedienung steht im
 | | |
 |---|---|
 | Einträge | Titel, Beschreibung, Kategorie, Tags, Fotos, Kurzvideos, Dateien, Links |
-| Dateien | bis 2 GB je Datei, hochgeladen in Stücken, fortsetzbar; als Kacheln oder Liste, nach Name, Datum, Größe oder Typ sortiert, nach Typ gruppiert, mit Vorschaubild auch für Text, Office und PDF; in Ordnern; mehrere auf einmal löschen oder verschieben; gelöschte Dateien 30 Tage im Papierkorb und einzeln aus Backups zurückzuholen; Erweiterte Infos zu Bildern und Videos wie in MediaInfo, auch zu Fotos und Videos des Eintrags; Videos spielen an der zuletzt gesehenen Stelle weiter und laden beim Abspielen ganz |
+| Dateien | bis 2 GB je Datei, hochgeladen in Stücken, fortsetzbar; als Kacheln oder Liste, nach Name, Datum, Größe oder Typ sortiert, nach Typ gruppiert, mit Vorschaubild auch für Text, Office und PDF; in Ordnern; mehrere auf einmal löschen oder verschieben; gelöschte Dateien 30 Tage im Papierkorb und einzeln aus Backups zurückzuholen; Erweiterte Infos zu Bildern und Videos wie in MediaInfo, auch zu Fotos und Videos des Eintrags; Videos spielen an der zuletzt gesehenen Stelle weiter und laden auf Knopfdruck ganz; auf Wunsch spielen sie über einen kleineren Proxy in H.264, auch `mkv`, `avi`, `wmv` und `flv` |
 | Bewerten | eigene Kriterien mit 1 bis 5 Sternen, je Kriterium ein Gewicht, daraus ein gewichteter Schnitt |
 | Kommentare | Notiz, Bericht oder Aufgabe mit Fälligkeitsdatum, dazu Bilder und Videos |
 | Testtage | datierte Einträge mit Note und Tags |
@@ -151,6 +151,8 @@ weitere Benutzer und Mailversand werden in der Oberfläche eingerichtet; siehe
 | `docker-compose.yml` | Port, links in `"3100:3000"` | 3100 |
 | `docker-compose.yml` | Backup-Ordner: Einhängung und `BACKUP_DIR` | `./kriterion-backup`, siehe [Backup](#backup) |
 | `docker-compose.yml` | `TZ`: Zeitzone des Protokolls | `Europe/Berlin` |
+| `docker-compose.yml` | `devices: /dev/dri`: Quick Sync für die Proxys | die CPU wandelt um, siehe [Proxys für Videos](#proxys-für-videos) |
+| `docker-compose.yml` | `tmpfs: /tmp`: RAM, in dem ein Proxy entsteht | 2 GB; ohne `tmpfs` keine Proxys |
 
 `PUBLIC_ADDRESS` braucht Schema und Rechnername, ein Pfad ist erlaubt, `?` und
 `#` nicht. Ein ungültiger Wert steht als Warnung im Protokoll; der Start läuft
@@ -177,8 +179,8 @@ und Schlüssel zusammen.
 
 **Schlüssel in die `.env` übernehmen:**
 
-1. In der Oberfläche den Wert aus der Karte „Kennzahlen" kopieren (nur für den
-   Eigentümer-Admin sichtbar).
+1. In der Oberfläche den Wert aus der Karte „Version und Verschlüsselung“
+   kopieren (nur für den Eigentümer-Admin sichtbar).
 2. `ENCRYPTION_KEY=<Wert>` in die `.env` eintragen.
 3. `docker compose up -d`
 4. Im Protokoll prüfen: `Key loaded from ENCRYPTION_KEY.`
@@ -374,7 +376,8 @@ docker compose up -d
 
 Die Schleife holt die Dateien, die die Liste des Backups nennt, und übergeht
 ihre Kopfzeilen. Sie löscht keine; Dateien des neueren Stands bleiben liegen,
-und „Kennzahlen" nennt sie als Dateien ohne Verweis.
+und „Speicher und Wartung“ nennt sie als Dateien ohne Verweis. „Abgleich“ in
+derselben Karte zeigt, welche davon sich löschen lassen (Anleitung, „Abgleich“).
 
 ## Update
 
@@ -415,7 +418,8 @@ Daten, obwohl `ENCRYPTION_KEY` gesetzt war, wurde die `.env` nicht gelesen:
 sofort anhalten.
 
 Liegen noch Dateien in der Datenbank, legt Kriterion sie nach dem Start im
-Hintergrund unter `data/files/` ab; „Kennzahlen“ nennt, wie viele noch warten.
+Hintergrund unter `data/files/` ab; „Speicher und Wartung“ nennt, wie viele
+noch warten.
 **Reicht der freie Platz nicht für diese Dateien und 1 GB Reserve, startet
 Kriterion nicht.** Das Protokoll nennt Bedarf und freien Platz.
 
@@ -427,21 +431,21 @@ vergleichen: `diff docker-compose.example.yml docker-compose.yml`.
 Die Versionsnummer (`curl -s http://localhost:3100/api/config`) sagt nur,
 welche `package.json` läuft. Ob alle Dateien dazu passen, zeigt der
 Fingerprint: eine Prüfsumme über alles, was der Server lädt und ausliefert. Er
-steht in der Karte „Kennzahlen"; der Sollwert steht im `CHANGELOG.md` beim
-Eintrag der Version.
+steht in der Karte „Version und Verschlüsselung“; der Sollwert steht im
+`CHANGELOG.md` beim Eintrag der Version.
 
 Weicht er ab, findet diese Schleife die Datei, im Projektordner oder im
 Container (`docker compose exec kriterion sh`):
 
 ```bash
 for f in attachments.js auth.js backup.js batchrun.js docserver.js images.js db.js keys.js \
-         log.js mail.js package.json schema.js server.js twofactor.js public/*; do
+         log.js mail.js package.json schema.js server.js twofactor.js videoproxy.js public/*; do
   printf "%-26s %s\n" "$f" "$(sha256sum "$f" | cut -c1-8)"
 done
 ```
 
-Dieselbe Liste zeigt die Karte „Kennzahlen" unter „Dateien zeigen". Eine
-abweichende oder überzählige Datei ersetzen bzw. löschen, dann
+Dieselbe Liste zeigt die Karte „Version und Verschlüsselung“ unter „Dateien
+zeigen“. Eine abweichende oder überzählige Datei ersetzen bzw. löschen, dann
 `docker compose up -d --build`.
 
 ## Hinter einem Reverse Proxy
@@ -528,6 +532,77 @@ INTERNAL_ADDRESS=http://kriterion:3000
 Document Servers**, bis er ihn leert, auch ohne dass jemand sie ansieht: Für das
 Vorschaubild holt er jede dieser Dateien einmal ab. Die Verschlüsselung der
 Datenbank gilt für diese Kopie nicht.
+
+## Proxys für Videos
+
+Für Videos unter „Dateien“ legt Kriterion eine kleinere Fassung an, den Proxy:
+H.264 mit AAC, an der kürzeren Seite höchstens 1080 Pixel, mit der Bildrate des
+Originals und 0,23 Mbit je Bild, höchstens 7,5 Mbit/s. Am Rechner und am Telefon
+spielt der Proxy, sobald er fertig ist; „Herunterladen“ liefert das Original.
+Eingeschaltet wird er unter Einstellungen › Installation › „Proxy“, nur vom
+Eigentümer-Admin; die Vorgabe ist aus.
+
+Einen Proxy bekommt ein Video, wenn eines zutrifft: die kürzere Seite hat mehr
+als 1080 Pixel, das Video ist nicht H.264 mit 8 Bit und 4:2:0, der Ton ist nicht
+AAC, MP3 oder Opus, das Video hat mehr als 12 Mbit/s, oder die Endung ist `mkv`,
+`avi`, `wmv` oder `flv`. ffmpeg läuft im Container unter der Nummer 65534, ohne
+Zugriff auf `data/`. Original und Proxy liegen nie unverschlüsselt auf der
+Platte. Backup und Export nehmen den Proxy nicht mit; nach dem Zurückspielen
+legt Kriterion ihn neu an.
+
+### Arbeitsspeicher für ffmpeg
+
+ffmpeg schreibt den Proxy nach `/tmp`. `docker-compose.example.yml` legt dort
+einen `tmpfs` mit 2 GB an:
+
+```yaml
+    tmpfs:
+      - /tmp:size=2g
+```
+
+Ohne `tmpfs` wandelt Kriterion nicht um. Ein Proxy, der nicht in den freien
+Platz passt, entsteht nicht; bei 7,5 Mbit/s reichen 2 GB für rund 35 Minuten.
+RAM belegt der `tmpfs` nur, solange ein Proxy entsteht. Lagert der Host
+Arbeitsspeicher auf die Platte aus, kann ein Teil des Proxys dort landen. Ab
+Kernel 6.4 verhindert das die Option `noswap`: `- /tmp:size=2g,noswap`. Mit
+einem älteren Kernel startet der Container mit dieser Option nicht.
+
+### Quick Sync
+
+Mit einer Intel-Grafik kodiert Quick Sync. Auf dem N100 entstand der Proxy
+einer Stunde 4K mit 60 Bildern je Sekunde in rund 30 Minuten. Ohne Quick Sync
+wandelt die CPU um, für dieselbe Stunde in zwei bis zweieinhalb Stunden; sie
+läuft dabei mit niedrigster Priorität.
+
+In der `docker-compose.yml` die Grafik einbinden:
+
+```yaml
+    devices:
+      - /dev/dri:/dev/dri
+```
+
+Eine Gruppe im Container ist nicht nötig. Auf dem Host braucht der
+Kernel-Treiber `i915` seine Firmware:
+
+| System | Paket mit der Firmware für `i915` |
+|---|---|
+| Debian 12 | `firmware-misc-nonfree` |
+| Debian 12 mit Firmware aus `bookworm-backports` | `firmware-intel-graphics` |
+| Debian 13 | `firmware-intel-graphics` |
+| Ubuntu | `linux-firmware` (nicht geprüft) |
+
+Nach der Installation den Host neu starten. Nennt die Karte „Proxy“ danach
+keinen Treiber, zeigen drei Befehle auf dem Host die Ursache:
+
+```sh
+grep -E 'DRIVER|PCI_ID' /sys/class/drm/renderD128/device/uevent
+ls /lib/firmware/i915/ | grep -E 'adlp_guc|tgl_huc'
+dmesg | grep -i -E 'i915|guc|huc|wedged'
+```
+
+`DRIVER=i915` mit einer `PCI_ID`, die mit `8086:` beginnt, zeigt die
+Intel-Grafik am Treiber. Fehlt `/lib/firmware/i915/`, fehlt die Firmware. Auf
+arm64 enthält das Image keinen Intel-Treiber; dort wandelt immer die CPU um.
 
 ## Befehle auf dem Server
 

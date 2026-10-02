@@ -45,7 +45,7 @@ geçerli değil. Yöneticiden yeni bir tane iste.”
 başkası için açamaz ya da kapatamaz, sahip yönetici de. Kod telefondaki bir
 uygulamadan gelir; Kriterion kod göndermez.
 
-“Hesabım” kartında açmak için:
+“Kişisel” altındaki “İki adımlı doğrulama” kartında açmak için:
 
 1. Bir TOTP uygulaması kur, örneğin Google Authenticator, Aegis, 1Password
    ya da iOS'un Parolalar uygulaması.
@@ -62,7 +62,7 @@ kullanılırken istenir.
 **Kurtarma kodları:** İki adımlı doğrulamayı açarken sekiz kod görünür. Kodlar
 yalnızca bir kez gösterilir ve her biri bir kez, uygulama kodunun yerine
 geçerlidir. **Onları telefondan ayrı sakla.** Kodlar olmadan telefon kaybolursa
-hesap da kaybolur. Yeni kodları “Hesabım” kartında parola ve kodla alırsın;
+hesap da kaybolur. Yeni kodları “İki adımlı doğrulama” kartında parola ve kodla alırsın;
 eski kodlar o zaman geçersiz olur.
 
 Telefon ve kodlar yoksa, sahip yönetici iki adımlı doğrulamayı sunucuda kapatır
@@ -347,13 +347,14 @@ Görevler doğrudan orada tamamlandı olarak işaretlenir.
   “Devam: 3:12” ve “Baştan” görünür. 10 saniyenin altında ve son bölümde (%5,
   en az 10 saniye) Kriterion hiçbir şey hatırlamaz; video o zaman baştan
   başlar. Bu, “Dosyalar” altındaki ve yorumlardaki videolar için de geçerlidir.
-- **Videonun tamamını yükleme:** Bir video tam ekranda oynarken tarayıcı
-  dosyanın tamamını yükler; bilgisayarda 2 GB'a, telefonda 500 MB'a kadar.
-  Üstte “%45 yüklendi” yazar. Ondan sonra video takılmaz ve atlamak için
-  yükleme gerekmez. Daha büyük videoları ve veri tasarrufu açıkken videoları
-  tarayıcı her zamanki gibi parça parça yükler. Kapattıktan sonra cihazda hiçbir
-  şey kalmaz. Bu, “Dosyalar” altındaki ve yorumlardaki videolar için de
-  geçerlidir.
+- **Videonun tamamını yükleme:** Tam ekranda bir videonun üstünde “Tamamını
+  yükle” yazar; bilgisayarda 2 GB'a, telefonda 500 MB'a kadar. Düğme videoyu
+  durdurur ve dosyanın tamamını bir kez yükler; üstte “%45 yüklendi” yazar.
+  Sonra video aynı yerden devam eder ve atlamak için yükleme gerekmez. Tekrar
+  basmak yüklemeyi durdurur. Kopya, sayfa yeniden yüklenene ya da başka bir
+  video tamamen yüklenene kadar kalır. Düğme olmadan tarayıcı videoyu her
+  zamanki gibi parça parça yükler. Bu, “Dosyalar” altındaki ve yorumlardaki
+  videolar için de geçerlidir.
 - **Seçme:** Resim şeridinin üstündeki “Seç” her fotoğrafa ve videoya bir
   kutucuk koyar; tıklama ya da boşluk tuşu seçer. Alttaki çubuk sayıyı gösterir
   ve onay sorusuyla “Sil”, “Tümünü seç” ve “İptal” sunar; Esc seçimi bitirir.
@@ -476,6 +477,14 @@ değişmez.
   gösterilen kareyi alır. Bunu yalnızca videoyu yükleyen kişi yapabilir.
   Tarayıcı bir videoyu oynatamazsa, örneğin Firefox'ta HEVC, orada bir cümle ve
   “İndir” durur.
+- **Proxy:** “Dosyalar” altındaki bir video, proxy hazır olur olmaz onu oynatır:
+  H.264 biçiminde daha küçük bir sürüm (README, “Videolar için proxy”). Tam
+  ekranda “Orijinal” yalnızca bu oynatma için orijinale geçer; bir sonraki
+  açılışta yine proxy oynar. Konum ikisi için de geçerlidir. “İndir” her zaman
+  orijinali verir. `mkv`, `avi`, `wmv` ve `flv` uzantılı videoları hiçbir
+  tarayıcı oynatmaz; bunlar ancak proxy ile oynar ve küçük resimleri ondan
+  oluşur. Proxy yoksa ya da okunamıyorsa orijinal oynar ve Kriterion proxy'yi
+  yeniden oluşturur.
 - **Bir belgenin küçük resmi:** Metin, Markdown, CSV ve log dosyaları döşemede
   ilk satırlarını gösterir. Word, Excel ve PowerPoint dosyaları, bunların
   OpenDocument karşılıkları ve PDF, yönetici bir Document Server açtıysa ilk
@@ -510,8 +519,9 @@ değişmez.
   35 mm karşılığıyla. Dosyada bir konum varsa yalnızca “Dosyada konum: evet”
   durur; Kriterion koordinat saklamaz. EXIF'te çekim zamanı varsa görsellerde
   “Genel” altındaki “Kayıt tarihi” görünmez. Güncellemeden önceki görselleri
-  Kriterion başlatmadan sonra bir kez yeniden okur. Dosyanın belirtmediği
-  bilgiler görünmez.
+  Kriterion başlatmadan sonra bir kez yeniden okur. Bir video proxy
+  gerektiriyorsa “Proxy” grubu durumu, çözünürlüğü ve boyutu gösterir.
+  Dosyanın belirtmediği bilgiler görünmez.
 - **Bilgi:** Bir Word, Excel, PowerPoint ya da PDF dosyasının ve bunların
   OpenDocument karşılıklarının ⋯ menüsündeki “Bilgi” iki grup gösterir.
   “Kriterion'da”: yükleyen ve yükleme tarihi, yüklemeden önce değiştirilme
@@ -682,27 +692,66 @@ Görünür kartı olmayan bölümler görünmez.
 
 | Bölüm | Kartlar |
 |---|---|
-| Kişisel | Hesabım, Oturumlarım, Görünüm, Belgeler |
-| Veriler | Kategoriler, Etiketler, Değerlendirme: ölçütler, Potansiyel: ölçütler, Sözcükler, Bağlantılar, Arama motorları, Çöp kutusu |
+| Kişisel | Hesabım, İki adımlı doğrulama, Oturumlarım, Görünüm, Belgeler |
+| Veriler | Kategoriler, Etiketler, Değerlendirme: ölçütler, Potansiyel: ölçütler, Çöp kutusu |
 | Kullanıcı | Kullanıcı, Başvurular, Güvenlik günlüğü, Posta gönderimi |
-| Veritabanı | Sayılar, Resim biçimleri, Yükleme sınırları, Yedekleme, Eski yedeklemeler, Dışa ve içe aktarma |
-| Kurulum | Başlık, Diller, Belgeler |
+| Veritabanı | Sayılar, Depolama ve bakım, Resim biçimleri, Yükleme sınırları |
+| Yedekleme | Yedekleme, Eski yedeklemeler, Dışa ve içe aktarma |
+| Kurulum | Başlık, Diller, Sözcükler, Arama motorları, Belgeler, Proxy, Sürüm ve şifreleme |
 
-Bir kullanıcı kendi kartlarını ve kategori, etiket ve ölçüt listelerini
-düzenleyemeden görür. Geri kalan her şeyi yönetici görür; dışa aktarma, içe
-aktarma, yedekleme ve güvenlik günlüğünü yalnızca sahip yönetici görür.
+Bir kullanıcı yalnızca “Kişisel” bölümünü görür. Geri kalan her şeyi yönetici
+görür; değiştiremediği şeyler metin olarak durur. “Yedekleme” bölümünü,
+“Diller”, “Güvenlik günlüğü” ve “Posta gönderimi” kartlarını ve sunucu
+komutlarını yalnızca sahip yönetici görür. Diğer herkes bir komut yerine sana
+yardım edebilecek bir yöneticiye başvurmasını söyleyen bir cümle okur.
 
 | Kart | İçerik |
 |---|---|
 | Başlık | giriş öncesi başlık (herkese görünür; az bilgi veren bir başlık seç) ve giriş sonrası başlık |
 | Belgeler | Document Server üzerinden görüntülemeyi ve düzenlemeyi açma ve kapatma; “Herkes düzenleyebilir”: bir hesap kendi değerini belirlemediği sürece başlangıç değeri; kart bağlantıyı denetler. Adresler ve secret `.env` dosyasında durur, bkz. README |
-| Sayılar | verinin kapsamı, veritabanı boyutu, diskteki dosyalar (bunlardan “Ek” sınırını aşanlar ve çöp kutusundakiler), yüklemeler, boş alan, sürüm, parmak izi, şifreleme yöntemleri; sahip yönetici için anahtar değeri. Yalnızca varsa: hâlâ veritabanında olup diske taşınmayı bekleyen dosyalar, eksik dosyalar, silinmeyi bekleyen dosyalar ve başvurusuz dosyalar. Başvurusuz dosyaları sahip yönetici “Sil” ile siler, ama yalnızca yedekleme klasöründe aynı boyutta bir kopya varsa |
+| Proxy | “Dosyalar” altındaki videolar için proxy'leri açma ve kapatma, yalnızca sahip yönetici, varsayılan kapalı; Quick Sync'in mi kodladığı yoksa işlemcinin mi dönüştürdüğü ve nedeni; `/tmp` RAM içinde mi ve ne kadar boş; hazır, bekleyen ve başarısız proxy'ler. Bkz. README, “Videolar için proxy” |
+| Sayılar | verinin kapsamı: öğeler, fotoğraflar, videolar, yorumlar, bağlantılar ve test günleri |
+| Depolama ve bakım | veritabanı boyutu, çöp kutusu, diskteki dosyalar (bunlardan “Ek” sınırını aşanlar ve çöp kutusundakiler), yüklemeler, boş alan. Yalnızca varsa: veritabanındaki boş alan (“içindeki boş alan”), hâlâ veritabanında olup diske taşınmayı bekleyen dosyalar, eksik dosyalar, silinmeyi bekleyen dosyalar ve başvurusuz dosyalar. Sahip yönetici için “Eşleştir”, bkz. aşağısı |
+| Sürüm ve şifreleme | sürüm, parmak izi, şifreleme yöntemleri; anahtar veritabanının yanında durduğu sürece sahip yönetici için anahtar değeri |
 | Kategoriler, Etiketler | oluşturma, yeniden adlandırma, silme; bir işaret, herkesin öğede yeni ad oluşturup oluşturamayacağını belirler |
 | Değerlendirme: ölçütler, Potansiyel: ölçütler | oluşturma, yeniden adlandırma, sıralama, ağırlık verme (0,2 ile 2 arası, varsayılan 1); “Değerlendirme: ölçütler” kartında genel bakış filtrelerindeki “Kısmen” eşiği (1 ile 100 arası %, varsayılan 80) |
 | Arama motorları | altı yerleşik ve en çok üç özel arama motoru (yer tutucu olarak `%s`); biri varsayılandır |
-| Bağlantılar | görünür bağlantı satırlarının sayısı, kişisel |
-| Görünüm | renk şeması, dil, yazı boyutu, küçük resimlerin boyutu, zaman çizgisi, blokların düzeni; kişisel |
+| İki adımlı doğrulama | açma ve kapatma, yeni kurtarma kodları; kişisel, bkz. “İki adımlı doğrulama” |
+| Görünüm | renk şeması, dil, yazı boyutu, küçük resimlerin boyutu, zaman çizgisi, görünür bağlantı satırlarının ve arama motoru adlarının sayısı, blokların düzeni; kişisel |
 | Belgeler (kişisel) | Document Server'daki görünüm (Kriterion gibi, Modern açık, Modern koyu) ve kendi yeni dosyaların için “Herkes düzenleyebilir” varsayılanı. Yalnızca Document Server açıkken |
+
+### Eşleştirme
+
+“Depolama ve bakım” kartındaki “Eşleştir” düğmesini yalnızca sahip yönetici
+görür. `data/files/` klasörünü veritabanıyla karşılaştırır ve veritabanını
+denetler. Silme ve geri alma yalnızca bir onaydan sonra yapılır.
+
+Başvurusuz dosyalar, `data/files/` içinde veritabanının tanımadığı dosyalar,
+dizinler ve sembolik bağlantılardır, adları ne olursa olsun; `upload/` bunlara
+dahil değildir. Liste boyutu, tarihi ve nedeni gösterir. Bunlardan biri, şu
+durumlardan biri geçerliyse silinebilir:
+
+| Durum | Listedeki neden |
+|---|---|
+| Adı Kriterion oluşturmaz ya da bu bir dizin veya sembolik bağlantıdır | Kriterion bu adı oluşturmaz. |
+| Yedekleme klasörü dosyayı aynı boyutta içerir | Yedekleme klasörü onu aynı boyutta içeriyor. |
+| Yedekleme klasöründeki hiçbir yedekleme adı anmaz. Bir dosyanın anahtarı yalnızca veritabanındaki satırında durur; satırı olmadan dosya okunamaz | Hiçbir yedekleme onu anmıyor; satırı olmadan okunamaz. |
+
+Geri kalan her şey kalır: bir yedeklemenin andığı ve yedekleme klasörünün
+içermediği bir dosya; bir yedeklemenin dosya listesi olmadığı ya da yedekleme
+klasörüne erişilemediği sürece Kriterion adı taşıyan her dosya. Bir dizin
+içeriğiyle birlikte silinir, sembolik bağlantı bağlantı olarak silinir, hedefi
+asla. Bir yedekleme sürerken hiçbir şey silinmez.
+
+Eksik dosyalar diskte yoktur ya da boyutları yanlıştır. Liste öğeyi, klasörü ve
+dosya adını gösterir; çöp kutusundaki dosyalar ve önceki sürümler için de.
+Yedekleme klasörü dosyayı aynı boyutta içeriyorsa “Geri al” onu geri getirir;
+yoksa dosya öğesinde silinebilir. “Dosyalar” altında eksik bir dosya “eksik”
+gösterir.
+
+Veritabanı denetimi (SQLite'ın `quick_check` ve `foreign_key_check` komutları)
+kendi iş parçacığında çalışır; Kriterion kullanılabilir kalır. Yalnızca bildirir,
+hiçbir şeyi onarmaz. Hata bildirirse: README, “Yedeklemeyi geri yükleme”.
 
 ### Yükleme sınırları
 

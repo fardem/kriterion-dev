@@ -884,11 +884,11 @@ async function check0314() {
       /(?:^|[^\p{L}])(?:her|kaç)\s+\{(\w*Many)\}/u.test('her {entryMany} için') &&
       !/(?:^|[^\p{L}])(?:her|kaç)\s+\{(\w*Many)\}/u.test('her {entryOne} için'),
       'der Leser sieht die Nachbarschaft nicht');
-    const AN_SINGULAR_SENTENCES = ['card.blocksHint', 'card.criteriaAdminHint',
+    const AN_SINGULAR_SENTENCES = ['card.blocksHint',
       'card.criteriaTip', 'card.orderAppliesNote', 'list.showAll'];
     const anNotOne = AN_SINGULAR_SENTENCES.filter(k => !/\{entryOne\}/.test(String(anFiles.tr[k])));
-    check(`Und die fuenf Saetze, die sie verlangen, tragen {entryOne} — ${AN_SINGULAR_SENTENCES.length}`,
-      anNotOne.length === 0, anNotOne.join(' ') || 'alle fuenf');
+    check(`Und die vier Saetze, die sie verlangen, tragen {entryOne} — ${AN_SINGULAR_SENTENCES.length}`,
+      anNotOne.length === 0, anNotOne.join(' ') || 'alle vier');
 
     /* tgPlaces in check0313() laesst Einzahl und Mehrzahl eines Worts tauschen;
        hier wird geprueft, dass der Tausch im Paar bleibt. */

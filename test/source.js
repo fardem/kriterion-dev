@@ -34,7 +34,7 @@ async function run() {
     `ohne Entscheidung: ${fUnknown.join(' · ') || '—'} · verschwunden: ${fGone.join(' · ') || '—'}`);
   // Die feste Zahl macht jede neue Route in F_ROUTES sichtbar.
   check('Und es sind jetzt genau 91 schreibende Routen',
-    F_ROUTES.length === 91 && fFound.length === 91,
+    F_ROUTES.length === 92 && fFound.length === 92,
     `${F_ROUTES.length} erwartet, ${fFound.length} gefunden`);
   /* Gelesen werden die geladenen Listen aus auth.js, nicht ihr Quelltext;
      ein Textvergleich schluege auch bei Kommentaren an. */
@@ -107,7 +107,7 @@ async function run() {
     `ohne Eintrag: ${fReadUnknown.join(' · ') || '—'} · verschwunden: ${fReadGone.join(' · ') || '—'}`);
   // Die 38 ergibt auch ein Zaehlen der GET-Routen am Zeilenanfang von server.js.
   check('Und es sind genau 38 lesende Routen',
-    F_READ_ROUTES.length === 38 && fRead.length === 38,
+    F_READ_ROUTES.length === 39 && fRead.length === 39,
     `${F_READ_ROUTES.length} erwartet, ${fRead.length} gefunden`);
   check('Und jede Zeile des Verzeichnisses sagt, warum sie dort sitzt',
     F_READ_ROUTES.every(([, , why]) => typeof why === 'string' && why.trim().length > 30),
@@ -266,7 +266,7 @@ async function run() {
   check('Und der Server fragt nirgends mehr nach der kleinsten Nummer',
     fMinIdImServer === 0, `${fMinIdImServer} Vorkommen`);
   // "Leitung" ist ein frueherer Name des Admins.
-  const fLine = ['server.js', 'auth.js', 'db.js', 'schema.js', 'backup.js', 'backuptool.js',
+  const fLine = ['server.js', 'auth.js', 'db.js', 'schema.js', 'backup.js', 'backuptool.js', 'videoproxy.js',
     'public/app.js', 'public/index.html']
     .filter(d => fs.readFileSync(path.join(__dirname, d), 'utf8').includes('Leitung'));
   check('Das Wort Leitung kommt nirgends mehr vor', fLine.length === 0, fLine.join(' · '));
@@ -527,7 +527,7 @@ async function run() {
 
   // Der Cookiename kommt nur aus auth.COOKIE_NAME.
   const COOKIE_FILES = ['server.js', 'db.js', 'schema.js', 'backup.js', 'attachments.js', 'keys.js',
-                          'public/app.js', 'public/index.html', 'usertool.js', 'backuptool.js'];
+                          'public/app.js', 'public/index.html', 'usertool.js', 'backuptool.js', 'videoproxy.js'];
   // Gegenstueck zu onlyComments() weiter unten.
   function withoutComments(text) {
     let inBlock = false;
@@ -545,8 +545,8 @@ async function run() {
     .map(d => [d, cookieCount(fs.readFileSync(path.join(__dirname, d), 'utf8'))])
     .filter(([, n]) => n > 0);
   // Auf null Dateien waere die Pruefung darunter immer gruen.
-  check('Der Cookiewaechter sieht alle zehn ausgelieferten Dateien an',
-    COOKIE_FILES.length === 10 &&
+  check('Der Cookiewaechter sieht alle elf ausgelieferten Dateien an',
+    COOKIE_FILES.length === 11 &&
     COOKIE_FILES.every(n => fs.existsSync(path.join(__dirname, n))),
     JSON.stringify(COOKIE_FILES.filter(n => !fs.existsSync(path.join(__dirname, n)))));
   check('Der Cookiename steht in keiner davon abgeschrieben',
@@ -582,7 +582,7 @@ async function run() {
   // Das Wort heisst Backup; das alte steht nur noch in „Sicherung der Datenbank".
   const BACKUP_FILES = ['server.js', 'db.js', 'schema.js', 'backup.js', 'auth.js', 'attachments.js',
                              'keys.js', 'public/app.js', 'public/index.html', 'usertool.js',
-                             'keytool.js', 'backuptool.js', 'public/style.css'];
+                             'keytool.js', 'backuptool.js', 'videoproxy.js', 'public/style.css'];
   const withoutConsole = (src) => {
     let out = '', i = 0;
     // Auch die Aufrufe von log.js schreiben ins Containerprotokoll und fallen weg.
@@ -625,13 +625,13 @@ async function run() {
   // Am Bildschirm heisst es Sicherheitsprotokoll, nicht Protokoll.
   const PROT_FILES = ['server.js', 'db.js', 'schema.js', 'backup.js', 'auth.js', 'attachments.js',
                         'keys.js', 'public/app.js', 'public/index.html', 'usertool.js',
-                        'backuptool.js', 'public/languages/de.json'];
+                        'backuptool.js', 'videoproxy.js', 'public/languages/de.json'];
   const protCount = (text) => (withoutComments(text).match(/(?<!Sicherheits)\bProtokoll\b/g) || []).length;
   const fProt = PROT_FILES
     .map(d => [d, protCount(fs.readFileSync(path.join(__dirname, d), 'utf8'))])
     .filter(([, n]) => n > 0);
-  check('Der Protokollwaechter sieht alle zwoelf ausgelieferten Dateien an',
-    PROT_FILES.length === 12 && PROT_FILES.every(n => fs.existsSync(path.join(__dirname, n))),
+  check('Der Protokollwaechter sieht alle dreizehn ausgelieferten Dateien an',
+    PROT_FILES.length === 13 && PROT_FILES.every(n => fs.existsSync(path.join(__dirname, n))),
     JSON.stringify(PROT_FILES.filter(n => !fs.existsSync(path.join(__dirname, n)))));
   // Das eine Vorkommen meint das Containerprotokoll nach einem gescheiterten Backup.
   check('Das alleinstehende Wort steht in genau einer ausgelieferten Zeile — 0.22.0',
@@ -758,7 +758,7 @@ async function run() {
                           'usertool.js', 'keytool.js', 'twofactor.js', 'testbench.js',
                           'counterproof.js', 'public/app.js',
                           'images.js', 'batchrun.js', 'mail.js', 'docserver.js',
-                          'schema.js', 'backup.js', 'backuptool.js'];
+                          'schema.js', 'backup.js', 'backuptool.js', 'videoproxy.js'];
   const LANGUAGE_MODULES = benchFiles().filter(n => n !== 'testbench.js');
   const languageSource = [...LANGUAGE_SOURCES, ...LANGUAGE_MODULES].flatMap(n => {
     const p = path.join(__dirname, n);
@@ -777,8 +777,8 @@ async function run() {
   });
 
   // Feste Zahl: eine gekuerzte Liste bliebe sonst gruen.
-  check('Der Sprachwaechter sieht alle achtzehn Quelltextdateien an',
-    LANGUAGE_SOURCES.length === 18 &&
+  check('Der Sprachwaechter sieht alle neunzehn Quelltextdateien an',
+    LANGUAGE_SOURCES.length === 19 &&
     LANGUAGE_SOURCES.every(n => fs.existsSync(path.join(__dirname, n))),
     `${LANGUAGE_SOURCES.length} Dateien, fehlend: ` +
     JSON.stringify(LANGUAGE_SOURCES.filter(n => !fs.existsSync(path.join(__dirname, n)))));
@@ -885,7 +885,7 @@ async function run() {
     const isGerman = (name) => pieces(name).some(w => GERMAN[w]);
     const SHIPPED = ['server.js', 'auth.js', 'db.js', 'mail.js', 'keys.js', 'attachments.js',
       'images.js', 'batchrun.js', 'log.js', 'usertool.js', 'twofactor.js', 'keytool.js',
-      'docserver.js', 'schema.js', 'backup.js', 'backuptool.js', 'public/app.js', 'public/theme.js'];
+      'docserver.js', 'schema.js', 'backup.js', 'backuptool.js', 'videoproxy.js', 'public/app.js', 'public/theme.js'];
     const readShipped = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
 
     // Erst der Leser: findet er nichts, waere jede Probe darunter gruen.
@@ -905,7 +905,7 @@ async function run() {
         if (part.kind === CODE)
           for (const m of part.value.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) identifiers.add(m[0]);
     check('Der Waechter sieht wirklich den ganzen ausgelieferten Code',
-      identifiers.size > 2000 && SHIPPED.length === 18, `${identifiers.size} Bezeichner aus ${SHIPPED.length} Dateien`);
+      identifiers.size > 2000 && SHIPPED.length === 19, `${identifiers.size} Bezeichner aus ${SHIPPED.length} Dateien`);
 
     // Englische Namen, die das Woerterbuch als deutsch kennt.
     const FALSE_FRIENDS = ['MAILTEST_KEY', 'cleanNote', 'liesIn', 'note', 'noteFailure', 'noteSuccess'];
@@ -1050,7 +1050,7 @@ async function run() {
         if (part.kind === CODE)
           for (const m of part.value.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) benchNames.add(m[0]);
     check('Der Waechter sieht wirklich den ganzen Pruefstand',
-      benchNames.size > 2000 && BENCH.length === 35,
+      benchNames.size > 2000 && BENCH.length === 37,
       `${benchNames.size} Bezeichner aus ${BENCH.length} Dateien`);
 
     /* Keine Benennungen, sondern Gegenstaende von Pruefungen: abgelegte
@@ -1082,14 +1082,14 @@ async function run() {
   {
     const SHIPPED = ['server.js', 'auth.js', 'db.js', 'mail.js', 'keys.js', 'attachments.js',
       'images.js', 'batchrun.js', 'log.js', 'usertool.js', 'twofactor.js', 'keytool.js',
-      'docserver.js', 'schema.js', 'backup.js', 'backuptool.js',
+      'docserver.js', 'schema.js', 'backup.js', 'backuptool.js', 'videoproxy.js',
       'public/app.js', 'public/theme.js', 'public/style.css'];
     const BENCH = [...benchFiles(), 'counterproof.js'];
     const readShipped = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
     const stWord = 'Stolper' + 'stein';
     const stAll = [...BENCH, ...SHIPPED];
-    check('Der Waechter sieht alle vierundfuenfzig Dateien',
-      stAll.length === 54, `${stAll.length} Dateien`);
+    check('Der Waechter sieht alle siebenundfuenfzig Dateien',
+      stAll.length === 57, `${stAll.length} Dateien`);
     /* Die SQL-Kommentare im SCHEMA von schema.js stehen in einem Template-String,
        den segment() als Text liefert; hier zaehlen sie als Kommentar. */
     const stSqlRow = /^\s*--/;
@@ -1149,13 +1149,14 @@ async function run() {
       'public/theme.js': 0, 'public/languages/de.json': 0,
       'public/languages/en.json': 0, 'public/languages/tr.json': 0,
       'public/favicon.svg': 0,
-      'log.js': 0, 'Dockerfile': 0, 'docker-compose.example.yml': 0,
+      // Im Dockerfile die Version von ffmpeg.
+      'log.js': 0, 'Dockerfile': 1, 'docker-compose.example.yml': 0, 'videoproxy.js': 0,
       'LICENSE': 0, 'schema.js': 0, 'backup.js': 0, 'backuptool.js': 0
     };
-    const VN_TOTAL = 3;
+    const VN_TOTAL = 4;
     const vnFiles = Object.keys(VN_CEILING);
-    check('Der Waechter sieht alle siebenundzwanzig Dateien, und jede liegt da',
-      vnFiles.length === 27
+    check('Der Waechter sieht alle achtundzwanzig Dateien, und jede liegt da',
+      vnFiles.length === 28
       && vnFiles.every(f => fs.existsSync(path.join(__dirname, ...f.split('/')))),
       vnFiles.filter(f => !fs.existsSync(path.join(__dirname, ...f.split('/')))).join(' ') || `${vnFiles.length} Dateien`);
     const vnCount = {};
@@ -1621,7 +1622,7 @@ async function run() {
         : part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('/'));
     // Auf leeren Mengen waeren die Pruefungen darunter immer gruen.
     check('Der Waechter sieht beide Seiten',
-      rrRoutes.length === 129 && rrBrowser.length > 100000,
+      rrRoutes.length === 131 && rrBrowser.length > 100000,
       `${rrRoutes.length} Routen, ${rrBrowser.length} Zeichen im Browser`);
     /* Die Verwaltungstafel baut diese Adressen aus ihrem Feld `url`; eine
        Suche, die das faende, faende jede Adresse. */
@@ -1656,13 +1657,13 @@ async function run() {
     const dvFiles = [
       'server.js', 'auth.js', 'db.js', 'mail.js', 'keys.js', 'attachments.js',
       'images.js', 'batchrun.js', 'log.js', 'usertool.js', 'twofactor.js',
-      'keytool.js', 'schema.js', 'backup.js', 'backuptool.js', 'public/app.js', 'public/theme.js',
+      'keytool.js', 'schema.js', 'backup.js', 'backuptool.js', 'videoproxy.js', 'public/app.js', 'public/theme.js',
       'public/index.html', 'public/style.css', 'public/favicon.svg',
       '.env.example', 'docker-compose.example.yml', 'Dockerfile',
       'README.md', 'README-de.md', 'README-tr.md', 'manual.md', 'manual-de.md', 'manual-tr.md',
       'CHANGELOG.md', 'package.json', 'LICENSE'];
-    check('Der Waechter sieht alle zweiunddreissig Dateien, und jede liegt da',
-      dvFiles.length === 32
+    check('Der Waechter sieht alle dreiunddreissig Dateien, und jede liegt da',
+      dvFiles.length === 33
       && dvFiles.every(f => fs.existsSync(path.join(__dirname, ...f.split('/')))),
       dvFiles.filter(f => !fs.existsSync(path.join(__dirname, ...f.split('/')))).join(' ')
       || `${dvFiles.length} Dateien`);
@@ -1689,7 +1690,7 @@ async function run() {
     const pvFiles = [
       'server.js', 'auth.js', 'db.js', 'mail.js', 'keys.js', 'attachments.js',
       'images.js', 'batchrun.js', 'log.js', 'usertool.js', 'twofactor.js',
-      'keytool.js', 'schema.js', 'backup.js', 'backuptool.js', 'public/app.js', 'public/theme.js',
+      'keytool.js', 'schema.js', 'backup.js', 'backuptool.js', 'videoproxy.js', 'public/app.js', 'public/theme.js',
       'public/style.css', 'public/index.html',
       'public/languages/de.json', 'public/languages/en.json',
       'public/languages/tr.json',
@@ -1716,8 +1717,8 @@ async function run() {
       ['BA <Zahl>', /\bBA\s+\d/g],
       ['(F<Zahl>)', /\(F\d+[a-z]?\)/g],
       ['Punkt <Zahl>', /\bPunkt\s+\d/g]];
-    check('Der Waechter sieht alle zweiunddreissig Dateien, und jede liegt da',
-      pvFiles.length === 32
+    check('Der Waechter sieht alle dreiunddreissig Dateien, und jede liegt da',
+      pvFiles.length === 33
       && pvFiles.every(f => fs.existsSync(path.join(__dirname, ...f.split('/')))),
       pvFiles.filter(f => !fs.existsSync(path.join(__dirname, ...f.split('/')))).join(' ')
       || `${pvFiles.length} Dateien`);
@@ -1853,8 +1854,8 @@ async function run() {
       }
       if (has) ssCode++;
     }
-    check('Und es stehen genau 2003 Regelzeilen da',
-      ssCode === 2003, `${ssCode} Zeilen`);
+    check('Und es stehen genau 2005 Regelzeilen da',
+      ssCode === 2005, `${ssCode} Zeilen`);
     // Laenger als drei Zeilen darf nur eine Tabelle gemessener Werte sein.
     const ssLines = ssBlocks.map(b => b.split('\n').length);
     const ssOver = ssLines.filter(n => n > 3).length;
@@ -1981,8 +1982,8 @@ async function run() {
     // Feste Zahl: auf einer leeren Menge waere die Pruefung darueber immer gruen.
     const zpCount = zpFiles.reduce((n, f) =>
       n + (zpRead(f).match(/\blog(?:Line|Warn|Fail)\(/g) || []).length, 0);
-    check('Und es sind 76 Protokollzeilen in den sieben Dateien',
-      zpCount === 76, `${zpCount} Zeilen`);
+    check('Und es sind 82 Protokollzeilen in den sieben Dateien',
+      zpCount === 82, `${zpCount} Zeilen`);
     // Ohne TZ laeuft der Container auf UTC, und der Versatz waere immer +00:00.
     const zpCompose = fs.readFileSync(
       path.join(__dirname, 'docker-compose.example.yml'), 'utf8');
@@ -2005,7 +2006,7 @@ async function run() {
     const LK_FILES = ['public/app.js', 'public/index.html', 'server.js', 'auth.js',
       'mail.js', 'db.js', 'keys.js', 'attachments.js', 'images.js',
       'usertool.js', 'keytool.js', 'twofactor.js', 'batchrun.js', 'docserver.js',
-      'schema.js', 'backup.js', 'backuptool.js'];
+      'schema.js', 'backup.js', 'backuptool.js', 'videoproxy.js'];
     const lkText = LK_FILES.map(lkRead).join('\n');
     const lkKeys = Object.keys(JSON.parse(lkRead('public/languages/de.json')))
       .filter(k => k !== '_locale' && k !== '_name');
@@ -2241,7 +2242,7 @@ async function run() {
   const hAll = assignments(hSource);
   // Feste Zahl: ueber null Zuweisungen waere die Pruefung immer gruen.
   check('Der Waechter sieht alle Zuweisungen an innerHTML',
-    hAll.length === 196, `${hAll.length} Zuweisungen`);
+    hAll.length === 200, `${hAll.length} Zuweisungen`);
   const hNaked = [];
   const hUsed = new Set();
   for (const one of hAll)
@@ -2352,9 +2353,11 @@ async function run() {
     'batchrun.js nennt attachments');
   const dKey = dSql.filter(x => /\bfile_key\b/.test(x));
   const dKeyRead = dKey.filter(x => !/^(INSERT|UPDATE) /.test(x));
-  check('file_key lesen nur qDiskFile und qUploadFile; sonst steht es nur in INSERT und UPDATE',
-    dKeyRead.length === 2 && dKeyRead.some(x => /^SELECT [^*]+ FROM disk_files WHERE attachment_id = \?$/.test(x)) &&
-    dKeyRead.some(x => /^SELECT [^*]+ FROM uploads WHERE id = \?$/.test(x)) && dKey.length === 7,
+  check('file_key lesen nur qDiskFile, qUploadFile und qProxyFile; sonst steht es nur in INSERT und UPDATE',
+    dKeyRead.length === 3 && dKeyRead.some(x => /^SELECT [^*]+ FROM disk_files WHERE attachment_id = \?$/.test(x)) &&
+    dKeyRead.some(x => /^SELECT [^*]+ FROM uploads WHERE id = \?$/.test(x)) &&
+    dKeyRead.some(x => /^SELECT [^*]+ FROM proxy_files p JOIN disk_files d ON d\.id = p\.disk_file_id WHERE d\.attachment_id = \?$/.test(x)) &&
+    dKey.length === 9,
     dKey.join(' · '));
   const dStar = dSql.filter(x => /SELECT (\w+\.)?\*[^;]*\bFROM (disk_files|uploads)\b/.test(x));
   check('Kein SELECT * auf disk_files oder uploads', dStar.length === 0, dStar.join(' · '));

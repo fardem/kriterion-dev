@@ -390,7 +390,7 @@ async function run() {
       backupStatus: status, backupCopies: copies });
     const w = d.w;
     await until(w, (x) => x.document.getElementById('count') && openRequests(x) === 0, 2000, 'die Uebersicht');
-    await D.sysSection(w, 'database');
+    await D.sysSection(w, 'backup');
     const rows = () => [...w.document.querySelectorAll('#cleanup-list .mrow')];
     const text = (el) => (el?.textContent || '').replace(/\s+/g, ' ').trim();
     check('Je Backup eine zweite Zeile mit Version und Dateien; ueber der Liste die Kopien',

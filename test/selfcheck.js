@@ -15,7 +15,7 @@ async function run() {
 
   const gpList = require('./counterproof').REGRESSIONS;
   // Mit jedem neuen Rueckbau in counterproof.js anheben.
-  check(`Es sind genau 1575 Rueckbauten`, gpList.length === 1575, `${gpList.length}`);
+  check(`Es sind genau 1678 Rueckbauten`, gpList.length === 1678, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* Jede Datei nur einmal lesen: ueber tausend Rueckbauten verteilen sich auf
@@ -33,9 +33,9 @@ async function run() {
     const n = gpFileText(file).split(r.search).length - 1;
     if (n !== 1) gpFail.push(`${r.nr} (${r.file}): ${n} Treffer`);
   }
-  // Belegt das einmalige Lesen je Datei. Neue Zieldateien in counterproof.js erhoehen die 50.
-  check('Der Waechter liest hoechstens fuenfzig Dateien',
-    gpText.size <= 50, `${gpText.size} Dateien fuer ${gpList.length} Rueckbauten`);
+  // Belegt das einmalige Lesen je Datei. Neue Zieldateien in counterproof.js erhoehen die 51.
+  check('Der Waechter liest hoechstens einundfuenfzig Dateien',
+    gpText.size <= 51, `${gpText.size} Dateien fuer ${gpList.length} Rueckbauten`);
   check('Jeder Suchtext kommt in seiner Datei genau einmal vor',
     gpFail.length === 0, gpFail.join(' · '));
   // Ein Ersatz gleich dem Suchtext baut nichts zurueck, und alles bliebe gruen.
@@ -53,7 +53,7 @@ async function run() {
   const gpModules = [...(gpDriver.match(/const MODULE = \[([\s\S]*?)\];/) || ['', ''])[1]
     .matchAll(/'(\w+)'/g)].map(m => `test/${m[1]}.js`);
   const gpUnrun = benchFiles().filter(f => f.startsWith('test/') && !gpModules.includes(f)
-    && f !== 'test/frame.js' && f !== 'test/dom.js');
+    && f !== 'test/frame.js' && f !== 'test/dom.js' && f !== 'test/ffmpeg.js');
   check('Der Treiber startet jedes Modul in test/',
     gpModules.length >= 28 && gpUnrun.length === 0,
     gpUnrun.join(' · ') || `${gpModules.length} Module`);
@@ -349,9 +349,10 @@ async function run() {
     const COMMENT_ROWS = [
       ['testbench.js', 29],
       ['test/batchrun.js', 26],
-      ['test/dom.js', 172],
+      ['test/dom.js', 175],
+      ['test/ffmpeg.js', 4],
       ['test/firstlogin.js', 12],
-      ['test/frame.js', 122],
+      ['test/frame.js', 125],
       ['test/keychange.js', 42],
       ['test/release_029.js', 14],
       ['test/release_030.js', 93],
@@ -363,33 +364,34 @@ async function run() {
       ['test/release_045.js', 6],
       ['test/release_046.js', 6],
       ['test/release_047.js', 14],
-      ['test/release_048.js', 16],
+      ['test/release_048.js', 17],
       ['test/release_049.js', 13],
       ['test/release_050.js', 9],
       ['test/release_051.js', 9],
-      ['test/release_052.js', 8],
+      ['test/release_052.js', 6],
       ['test/release_053.js', 12],
       ['test/release_054.js', 7],
+      ['test/release_055.js', 6],
       ['test/roundtrip.js', 1313],
       ['test/selfcheck.js', 85],
-      ['test/source.js', 216],
+      ['test/source.js', 217],
       ['test/ui_entry.js', 261],
       ['test/ui_export.js', 186],
       ['test/ui_inventory.js', 79],
       ['test/ui_language.js', 109],
       ['test/ui_overview.js', 171],
       ['test/ui_style.js', 168],
-      ['test/ui_system.js', 190],
+      ['test/ui_system.js', 187],
       ['test/ui_translator.js', 24],
       ['counterproof.js', 337],
-      ['server.js', 1054],
+      ['server.js', 1089],
       ['auth.js', 149],
       ['db.js', 56],
       ['mail.js', 17],
       ['keys.js', 14],
-      ['attachments.js', 68],
+      ['attachments.js', 69],
       ['images.js', 13],
-      ['batchrun.js', 14],
+      ['batchrun.js', 15],
       ['log.js', 3],
       ['usertool.js', 6],
       ['twofactor.js', 14],
@@ -398,15 +400,16 @@ async function run() {
       ['schema.js', 6],
       ['backup.js', 48],
       ['backuptool.js', 29],
-      ['public/app.js', 1187],
+      ['videoproxy.js', 24],
+      ['public/app.js', 1199],
       ['public/theme.js', 2],
       ['public/style.css', 514],
     ];
-    const COMMENT_TOTAL = { comment: 7148, code: 85970 };
+    const COMMENT_TOTAL = { comment: 7234, code: 88576 };
     // Ausgelieferte Dateien: Bloecke ueber drei Zeilen und Bloecke mit Betonung in Grossbuchstaben.
     const COMMENT_LIMITS = { longBlocks: 3, emphasis: 6 };
-    check('Der Waechter sieht alle vierundfuenfzig Dateien',
-      crAll.each.length === 54 && COMMENT_ROWS.length === 54,
+    check('Der Waechter sieht alle siebenundfuenfzig Dateien',
+      crAll.each.length === 57 && COMMENT_ROWS.length === 57,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
     const crWrong = [];
     for (let i = 0; i < COMMENT_ROWS.length; i++) {
@@ -441,7 +444,7 @@ async function run() {
     const crShippedOver = crShipped.filter(r => r.comment / r.rows > 0.25)
       .map(r => `${r.file} ${(r.comment / r.rows * 100).toFixed(1)}%`);
     check('Und keine ausgelieferte JavaScript-Datei liegt ueber 25 Prozent',
-      crShipped.length === 18 && crShippedOver.length === 0,
+      crShipped.length === 19 && crShippedOver.length === 0,
       crShippedOver.join(' · ') || `${crShipped.length} Dateien`);
     const crBlocks = crTool.SHIPPED.flatMap(f => crTool.blocks(f));
     const crLong = crBlocks.filter(b => b.rows > 3).length;

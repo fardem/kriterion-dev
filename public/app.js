@@ -1353,7 +1353,7 @@ function takeVocabulary(r) {
   if (r.vocabularyDefaults) VOCABULARY_DEFAULTS = r.vocabularyDefaults;
   if (r.vocabulary) V = { ...V, ...r.vocabulary };
 }
-/* Sprache, die „Bestand" fuer die drei Namenskarten und das Vokabular zeigt. */
+/* Sprache der drei Namenskarten unter „Bestand" und des Vokabulars unter „Installation". */
 let NAMES_SHOWN = null;
 /* Namen aller Sprachen, ohne Zwischenspeicher. */
 let NAMES_ALL = { cats: {}, crits: {} };
@@ -4472,8 +4472,13 @@ function seekVideo(e) {
   v.currentTime = Math.min(end, Math.max(0, v.currentTime + (e.key === 'ArrowLeft' ? -SEEK_STEP : SEEK_STEP)));
   return true;
 }
-// Eine Datei mit `inline=1`; ohne die Angabe liefert der Server sie als Download aus.
-const playSource = (p) => p.source === 'file' ? `/api/attachments/${Number(p.id)}/raw?inline=1` : imageSource(p, '');
+/* Eine Datei mit `inline=1`; ohne die Angabe liefert der Server sie als Download aus. Der Proxy spielt,
+   sobald er fertig ist; `original` nach dem Umschalter im Vollbild. */
+const playSource = (p, original = false) => (p.source !== 'file' ? imageSource(p, '') : p.proxy && !original
+  ? proxySource(p) : `/api/attachments/${Number(p.id)}/raw?inline=1`);
+// `v`: Ein neu angelegter Proxy bekommt eine neue Adresse; den alten haelt der Browser eine Stunde.
+const proxySource = (a) => `/api/attachments/${Number(a.id)}/raw?size=proxy&v=${Number(a.proxy.size)}`;
+const playBytes = (p, original = false) => (p.source === 'file' && p.proxy && !original ? p.proxy.size : p.size);
 // Kommentarbilder haben kein Original; beim Video gehoert der Klick der Abspielsteuerung.
 const hasOriginal = (p) => p.source !== 'comment' && !isVideo(p);
 // 42 -> "0:42", 130 -> "2:10". Ohne bekannte Dauer steht nichts da.
@@ -4576,6 +4581,8 @@ function centerStage(stage) {
 
 // Der Blob liegt im Speicher des Browsers; bei 100 Mbit/s 40 s Video am Telefon, 2 min 40 s am Rechner.
 const WHOLE_BYTES = () => (isNarrow() ? 500 : 2048) * 1024 * 1024;
+// Hoechstens eine ganz geladene Kopie; sie gilt bis zum Neuladen der Seite oder bis zur naechsten.
+let wholeCopy = null;
 
 /* Ohne `remove` kein Papierkorb, ohne `linkOf` kein Link kopieren; `inside` liefert den Abspieler
    der Seite fuer die Uebergabe eines laufenden Videos. `removable(p)` und `still.may(p)` blenden
@@ -4592,6 +4599,8 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
       <span class="lb-title">${esc(title || '')}</span>
       <div class="lb-tools">
         <span class="lb-loaded" hidden></span>
+        <button class="lb-btn whole" hidden aria-pressed="false">${tH('entry.loadWhole')}</button>
+        <button class="lb-btn original" hidden aria-pressed="false"></button>
         <span class="lb-count"></span>
         ${info ? `<button class="lb-btn info" title="${esc(t('entry.mediaInfo'))}" aria-label="${esc(t('entry.mediaInfo'))}">${ICON_INFO}</button>` : ''}
         ${linkOf ? `<button class="lb-btn copy" title="${esc(t('entry.copyLink'))}">${ICON_LINK}</button>` : ''}
@@ -4620,20 +4629,40 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
   const loaded = lb.querySelector('.lb-loaded');
   let spot = null;
 
-  // Video ganz laden. `url`: der fertige Blob; `source`: die Adresse, die er ersetzt.
-  let whole = null;
-  const shownSource = () => (whole?.url && player.getAttribute('src') === whole.url ? whole.source : player.getAttribute('src'));
-  function dropWhole() {
-    if (!whole) return;
-    whole.stop.abort();
-    if (whole.url) URL.revokeObjectURL(whole.url);
-    whole = null;
+  // Video ganz laden, nur auf Knopfdruck. `loading`: der laufende Abruf mit Stelle und Zustand davor.
+  const wholeButton = lb.querySelector('.whole');
+  let loading = null, original = false;
+  const shownSource = () => (wholeCopy && player.getAttribute('src') === wholeCopy.url ? wholeCopy.source : player.getAttribute('src'));
+  function markWhole() {
+    const copied = !!wholeCopy && player.getAttribute('src') === wholeCopy.url;
+    wholeButton.hidden = player.hidden || !note.hidden || playBytes(photos[i], original) > WHOLE_BYTES() ||
+      (!loading && (copied || !player.getAttribute('src')));
+    wholeButton.textContent = loading ? t('dialog.cancel') : t('entry.loadWhole');
+    wholeButton.title = loading ? t('entry.loadWholeStop') : t('entry.loadWholeTitle');
+    wholeButton.setAttribute('aria-pressed', String(!!loading));
+  }
+  function stopLoading(backToAddress) {
+    const was = loading;
+    if (!was) return;
+    loading = null;
+    was.stop.abort();
     loaded.hidden = true;
+    if (backToAddress) {
+      player.src = was.source;
+      player.currentTime = was.at;
+      if (was.playing) player.play()?.catch?.(() => {});
+    }
+    markWhole();
   }
   async function loadWhole() {
     const p = photos[i], source = player.getAttribute('src'), limit = WHOLE_BYTES();
-    if (whole || !source || navigator.connection?.saveData || p.size > limit) return;
-    const mine = whole = { source, stop: new AbortController(), url: null };
+    if (loading || !source || playBytes(p, original) > limit) return;
+    const mine = loading = { source, at: player.currentTime, playing: !player.paused, stop: new AbortController() };
+    // Ohne Quelle laedt der Player waehrend des Abrufs nichts nach.
+    player.pause();
+    player.removeAttribute('src');
+    player.load();
+    markWhole();
     try {
       const r = await fetch(source, { credentials: 'same-origin', cache: 'no-store', signal: mine.stop.signal });
       const total = Number(r.headers.get('Content-Length'));
@@ -4654,18 +4683,42 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
       // Chromium ohne Profil haelt knapp 2 GB; darueber meldet der Blob seine Groesse, liest aber nicht.
       if (ready.size !== total) throw new Error('not whole');
       await ready.slice(total - 1).arrayBuffer();
-      if (whole !== mine || player.getAttribute('src') !== source) return;
-      mine.url = URL.createObjectURL(ready);
-      const at = player.currentTime, playing = !player.paused;
-      player.src = mine.url;
-      player.currentTime = at;
-      if (playing) player.play()?.catch?.(() => {});
+      if (loading !== mine) return;
+      loading = null;
+      if (wholeCopy) URL.revokeObjectURL(wholeCopy.url);
+      wholeCopy = { source, url: URL.createObjectURL(ready) };
+      player.src = wholeCopy.url;
+      player.currentTime = mine.at;
+      if (mine.playing) player.play()?.catch?.(() => {});
       loaded.hidden = true;
+      markWhole();
     } catch {
-      if (whole === mine) dropWhole();
+      if (loading === mine) stopLoading(true);
     }
   }
-  player.addEventListener('play', loadWhole);
+  wholeButton.onclick = () => (loading ? stopLoading(true) : loadWhole());
+
+  // Das Original nur fuer dieses Abspielen: show() setzt `original` zurueck. Die Stelle gilt fuer beide.
+  const originalButton = lb.querySelector('.original');
+  function markOriginal() {
+    const p = photos[i];
+    originalButton.hidden = player.hidden || !(p.source === 'file' && p.proxy);
+    originalButton.textContent = original ? t('entry.playProxy') : t('entry.playOriginal');
+    originalButton.title = original ? t('entry.playProxyTitle') : t('entry.playOriginalTitle');
+    originalButton.setAttribute('aria-pressed', String(original));
+  }
+  function switchFile(toOriginal) {
+    const at = player.currentTime || 0, playing = !player.paused;
+    stopLoading(false);
+    original = toOriginal;
+    const address = playSource(photos[i], original);
+    player.src = wholeCopy?.source === address ? wholeCopy.url : address;
+    player.currentTime = at;
+    if (playing) player.play()?.catch?.(() => {});
+    markOriginal();
+    markWhole();
+  }
+  originalButton.onclick = () => switchFile(!original);
 
   /* Ein laufendes Video der Seite spielt im Vollbild an derselben Stelle weiter. */
   const inner = () => (typeof inside === 'function' ? inside() : null) || null;
@@ -4684,15 +4737,15 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
   /* Beim Blaettern und Schliessen anhalten; die Stelle merkt sich `handover`. */
   const hold = () => {
     if (!player.hidden || player.src) {
-      if (handover && shownSource() === handover.source) {
-        handover.position = player.currentTime || 0;
-        handover.wasPlaying = !player.paused;
+      if (handover && (loading ? loading.source : shownSource()) === handover.source) {
+        handover.position = loading ? loading.at : player.currentTime || 0;
+        handover.wasPlaying = loading ? loading.playing : !player.paused;
       }
       player.pause();
       player.removeAttribute('src');
       player.load();
     }
-    dropWhole();
+    stopLoading(false);
   };
 
   /* Beim Schliessen Quelle und Stelle an den Abspieler der Seite zurueckgeben. */
@@ -4731,10 +4784,12 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
     if (video) {
       const poster = imageSource(photos[i], 'medium');
       if (poster) player.poster = poster; else player.removeAttribute('poster');
-      player.src = playSource(photos[i]);
+      original = false;
+      const address = playSource(photos[i]);
+      player.src = wholeCopy?.source === address ? wholeCopy.url : address;
       spot = watchSpot(player, photos[i], stage);
       /* Die uebernommene Stelle gilt nur beim Oeffnen. */
-      if (handover && handover.open && player.getAttribute('src') === handover.source) {
+      if (handover && handover.open && shownSource() === handover.source) {
         handover.open = false;
         player.currentTime = handover.position;
         if (handover.wasPlaying) player.play()?.catch?.(() => {});
@@ -4756,6 +4811,8 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
     /* Nach dem Loeschen bis auf eines verschwinden Pfeile und Streifen. */
     lb.querySelectorAll('.lb-nav').forEach(k => { k.hidden = photos.length < 2; });
     markStrip();
+    markWhole();
+    markOriginal();
   }
   function markStrip() {
     if (!strip) return;
@@ -4781,9 +4838,13 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
 
   function unplayable() {
     if (player.hidden || !player.getAttribute('src')) return;
-    dropWhole();
+    // Ohne Meldung zum Original; der Server stellt das Video wieder in die Warteschlange.
+    if (photos[i].source === 'file' && photos[i].proxy && !original) return switchFile(true);
+    stopLoading(false);
     player.hidden = true;
     note.hidden = false;
+    markWhole();
+    markOriginal();
     const link = note.querySelector('a');
     link.hidden = photos[i].source !== 'file';
     link.href = imageSource(photos[i], '');
@@ -4976,7 +5037,8 @@ const fileKind = (name) => ((/\.([^.\s/\\]{1,5})$/.exec(name || '') || [])[1] ||
 const KIND_OF_EXTENSION = { pdf: 'pdf', doc: 'word', docx: 'word', odt: 'word', rtf: 'word',
   xls: 'excel', xlsx: 'excel', ods: 'excel', ppt: 'powerpoint', pptx: 'powerpoint', odp: 'powerpoint',
   txt: 'text', md: 'text', markdown: 'text', csv: 'text', tsv: 'text', log: 'text', ini: 'text', conf: 'text',
-  zip: 'archive', rar: 'archive', '7z': 'archive', tar: 'archive', gz: 'archive', tgz: 'archive', bz2: 'archive', xz: 'archive' };
+  zip: 'archive', rar: 'archive', '7z': 'archive', tar: 'archive', gz: 'archive', tgz: 'archive', bz2: 'archive', xz: 'archive',
+  mkv: 'video', avi: 'video', wmv: 'video', flv: 'video' };
 // Dateien mit „Infos“; gleich DOCUMENT_READERS in attachments.js.
 const DOCUMENT_KINDS = ['pdf', 'word', 'excel', 'powerpoint'];
 const KIND_WORDS = { video: 'entry.kindVideo', image: 'entry.kindImage', pdf: 'entry.kindPdf', word: 'entry.kindWord',
@@ -5050,6 +5112,16 @@ function imageGroup(f) {
     ['entry.mediaBitDepth', bits(main.bitDepth)], ['entry.mediaColorSpace', main.colorSpace], ['entry.mediaChroma', main.chroma],
     ['entry.mediaThumbs', !thumbs.length ? '' : sizes.length ? `${thumbs.length} (${sizes.join(', ')})` : String(thumbs.length)]]);
 }
+const PROXY_STATES = { ready: 'entry.proxyReady', waiting: 'entry.proxyWaiting', failed: 'entry.proxyFailed' };
+// Gruende aus server.js; sonst die letzte Zeile von ffmpeg.
+const PROXY_FAILURES = { tmpSpace: 'entry.proxyTmpSpace', space: 'entry.proxySpace', timeout: 'entry.proxyTimeout' };
+function proxyGroup(p) {
+  if (!p) return '';
+  const why = p.state === 'failed' && p.reason ? (PROXY_FAILURES[p.reason] ? t(PROXY_FAILURES[p.reason]) : p.reason) : '';
+  return mediaGroup(t('entry.mediaProxy'), [['entry.mediaProxyState',
+    [t(PROXY_STATES[p.state] || 'entry.proxyWaiting'), why].filter(Boolean).join(': ')],
+    ['entry.mediaResolution', pixelText(p.width, p.height)], ['entry.mediaFileSize', p.size ? fmtBytes(p.size) : '']]);
+}
 function mediaInfoHtml(f) {
   const g = f.general || {}, video = f.video || [], audio = f.audio || [], shot = f.exif || {};
   const area = (w, h) => (w && h ? `${w} × ${h}` : '');
@@ -5071,7 +5143,7 @@ function mediaInfoHtml(f) {
       ['entry.mediaCodec', s.format], ['entry.mediaChannels', s.channels ? String(s.channels) : ''],
       ['entry.mediaSamplingRate', s.samplingRate ? t('entry.mediaKhz', { n: number(s.samplingRate / 1000, 0, 1) }) : ''],
       ['entry.mediaBitRate', bitRateText(s.bitRate)], ['entry.mediaLanguage', languageName(s.language)]])),
-    imageGroup(f), shotGroup(shot)
+    imageGroup(f), shotGroup(shot), proxyGroup(f.proxy)
   ].join('');
   return html || `<p>${tH('entry.mediaNone')}</p>`;
 }
@@ -5548,16 +5620,17 @@ function stillAfterUpload(u, data) {
 function catchUpStill(itemId, a) {
   if (STILLS_TRIED.has(a.id) || STILLS_ON_WAY.has(a.id)) return;
   STILLS_TRIED.add(a.id);
-  STILLS_QUEUE.push({ itemId: Number(itemId), fileId: a.id });
+  STILLS_QUEUE.push({ itemId: Number(itemId), fileId: a.id,
+    source: a.proxy ? proxySource(a) : `/api/attachments/${Number(a.id)}/raw?inline=1` });
   catchUpNext();
 }
 
 async function catchUpNext() {
   if (STILL_RUNNING || !STILLS_QUEUE.length) return;
   STILL_RUNNING = true;
-  const { itemId, fileId } = STILLS_QUEUE.shift();
+  const { itemId, fileId, source } = STILLS_QUEUE.shift();
   try {
-    const made = await stillFrame(`/api/attachments/${fileId}/raw?inline=1`, STILL_SHARE);
+    const made = await stillFrame(source, STILL_SHARE);
     const answer = await api('PUT', `/api/attachments/${fileId}/still`, stillForm(made.image, made.duration), true);
     if (UPLOAD_VIEW?.itemId === itemId) UPLOAD_VIEW.took(answer);
   } catch { /* bleibt ohne Standbild bis zur naechsten Sitzung */ }
@@ -7304,12 +7377,14 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     const length = video ? durationText(a.duration) : '';
     // Bis PUT .../still antwortet, zeigt die Kachel das Standbild aus dem Browser.
     const coming = STILLS_ON_WAY.get(a.id)?.stillUrl || '';
-    fillTile(li, { name: a.filename, size: filesize(a.size), kind, meta: from, duration: length,
+    const missing = a.missing ? t('entry.fileMissing') : '';
+    fillTile(li, { name: a.filename, size: filesize(a.size), kind, meta: [from, missing].filter(Boolean).join(' · '),
+      duration: length, note: missing, corner: a.missing ? { kind: 'fail', text: '⚠' } : null,
       picture: a.preview === 'image' || (video && a.still) || a.thumb ? fileTileSource(a) : coming,
       video: video || /^video\//.test(a.mime_type || ''), badge: a.thumb ? kind : '',
       date: fmtDateOnly(a.created_at), from, kindCell: kindText(a), codec: video || image ? codecName(a.codec) : '',
       label: [a.filename, kind, video ? codecName(a.codec) : image && a.codec ? kindText(a) : '', length,
-        filesize(a.size), from].filter(Boolean).join(', '),
+        filesize(a.size), from, missing].filter(Boolean).join(', '),
       open: openPreview === a.id || lightboxFile === a.id });
     if (video && !a.still && a.mine === true && shown) catchUpStill(id, a);
     if (readable && !isNarrow()) {
@@ -7700,7 +7775,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       open.push({ label: t('entry.edit'), run: () => { location.hash = fileAddress(id, a.id, true); } });
     pass.push({ label: t('entry.download'), href: `/api/attachments/${Number(a.id)}/raw` });
     pass.push({ label: t('entry.copyFileLink'), run: () => copyText(fileLink(a), t('card.linkCopied')) });
-    if (a.preview === 'image' || a.preview === 'video')
+    if (a.preview === 'image' || kindOf(a) === 'video')
       pass.push({ label: t('entry.mediaInfo'), own: true, run: () => fileInfo(a, li.querySelector('.amore')) });
     else if (DOCUMENT_KINDS.includes(kindOf(a)))
       pass.push({ label: t('entry.docInfo'), own: true, run: () => documentInfo(a, li.querySelector('.amore')) });
@@ -8700,6 +8775,7 @@ const SYS_SECTIONS = [
   // Der Schluessel steht in der Adresse und bleibt, auch wenn der Text wechselt.
   { key: 'users',        name: () => t('card.users') },
   { key: 'database',     name: () => t('card.database') },
+  { key: 'backup',       name: () => t('card.backupSection') },
   { key: 'installation', name: () => t('card.installation') }
 ];
 
@@ -8995,6 +9071,8 @@ async function renderFileView(itemId, fileId, editWanted = false) {
 const SYS_CARDS = [
   { key: 'myaccount',    section: 'personal', visible: () => true,
     markup: cardUser,       wireUp: setUpUserOut },
+  { key: 'twofactor',    section: 'personal', visible: () => true,
+    markup: cardTwoFactor,  wireUp: setUpTwoFactorOut },
   { key: 'sessions',     section: 'personal', visible: () => true,
     markup: cardSessions,    wireUp: setUpSessionsOut },
   { key: 'appearance',   section: 'personal', visible: () => true,
@@ -9002,22 +9080,16 @@ const SYS_CARDS = [
   { key: 'mydocuments',  section: 'personal', visible: () => !!DOC_SETTINGS,
     markup: cardMyDocuments, wireUp: setUpMyDocumentsOut },
 
-  { key: 'categories',   section: 'inventory', visible: () => true,
+  { key: 'categories',   section: 'inventory', visible: () => ADMIN,
     markup: cardCategories,   wireUp: setUpCategoriesOut },
-  { key: 'tags',         section: 'inventory', visible: () => true,
+  { key: 'tags',         section: 'inventory', visible: () => ADMIN,
     markup: cardTags,         wireUp: setUpTagsOut },
-  { key: 'criteria',     section: 'inventory', visible: () => true,
+  { key: 'criteria',     section: 'inventory', visible: () => ADMIN,
     markup: () => cardCriteria('after'),
     wireUp: (g) => setUpCriteriaOut(g, 'after') },
-  { key: 'potentialcriteria', section: 'inventory', visible: () => true,
+  { key: 'potentialcriteria', section: 'inventory', visible: () => ADMIN,
     markup: () => cardCriteria('before'),
     wireUp: (g) => setUpCriteriaOut(g, 'before') },
-  { key: 'vocabulary',   section: 'inventory', visible: () => ADMIN,
-    markup: cardVocabulary,    wireUp: setUpVocabularyOut },
-  { key: 'links',        section: 'inventory', visible: () => true,
-    markup: cardLinks,        wireUp: setUpLinksOut },
-  { key: 'searchengines', section: 'inventory', visible: () => ADMIN,
-    markup: cardSearchProvider, wireUp: setUpSearchProviderOut },
   { key: 'trash',        section: 'inventory', visible: () => ADMIN,
     markup: cardTrash,   wireUp: setUpTrashOut },
 
@@ -9031,26 +9103,37 @@ const SYS_CARDS = [
     markup: cardMailDelivery,  wireUp: setUpMailDeliveryOut },
 
   { key: 'stats',        section: 'database', visible: () => ADMIN,
-    markup: cardStats,    wireUp: setUpStatsOut },
+    markup: cardStats },
+  { key: 'storage',      section: 'database', visible: () => ADMIN,
+    markup: cardStorage,  wireUp: setUpStorageOut },
   { key: 'imagestore',   section: 'database', visible: () => ADMIN,
     markup: cardImageStore,   wireUp: setUpImageStoreOut },
   // Admins sehen die Grenzen, aendern kann sie der Eigentuemer.
   { key: 'limits',       section: 'database', visible: () => ADMIN,
     markup: cardLimits,       wireUp: setUpLimitsOut },
-  { key: 'backup',       section: 'database', visible: () => OWNER,
+
+  { key: 'backup',       section: 'backup', visible: () => OWNER,
     markup: cardBackup,    wireUp: setUpBackupOut },
   // Direkt hinter "Backup": die eine Karte legt Backups an, die andere raeumt sie weg.
-  { key: 'cleanup',      section: 'database', visible: () => OWNER,
+  { key: 'cleanup',      section: 'backup', visible: () => OWNER,
     markup: cardCleanup,   wireUp: setUpCleanupOut },
-  { key: 'export',       section: 'database', visible: () => OWNER,
+  { key: 'export',       section: 'backup', visible: () => OWNER,
     markup: cardExport,       wireUp: setUpExportOut },
 
   { key: 'titles',       section: 'installation', visible: () => ADMIN,
     markup: cardTitle,        wireUp: setUpTitleOut },
   { key: 'languages',    section: 'installation', visible: () => OWNER,
     markup: cardLanguages,    wireUp: setUpLanguagesOut },
+  { key: 'vocabulary',   section: 'installation', visible: () => ADMIN,
+    markup: cardVocabulary,    wireUp: setUpVocabularyOut },
+  { key: 'searchengines', section: 'installation', visible: () => ADMIN,
+    markup: cardSearchProvider, wireUp: setUpSearchProviderOut },
   { key: 'documents',    section: 'installation', visible: () => ADMIN,
-    markup: cardDocuments,    wireUp: setUpDocumentsOut }
+    markup: cardDocuments,    wireUp: setUpDocumentsOut },
+  { key: 'proxy',        section: 'installation', visible: () => ADMIN,
+    markup: cardProxy,        wireUp: setUpProxyOut },
+  { key: 'version',      section: 'installation', visible: () => ADMIN,
+    markup: cardVersion,      wireUp: setUpVersionOut }
 ];
 
 /* Abschnitte mit mindestens einer sichtbaren Karte. */
@@ -9071,8 +9154,9 @@ async function renderSystem({ keepScroll = false } = {}) {
     [fetched.stats, fetched.titles, fetched.cats, fetched.tags, fetched.crits, fetched.account,
      fetched.trash, fetched.backup, fetched.sessions, fetched.log,
      fetched.mailStatus, fetched.requests, fetched.documents] = await Promise.all([
-      ADMIN ? api('GET', '/api/stats') : null, api('GET', '/api/titles'),
-      api('GET', '/api/product-categories'), api('GET', '/api/tags'), api('GET', '/api/criteria'),
+      ADMIN ? api('GET', '/api/stats') : null, ADMIN ? api('GET', '/api/titles') : null,
+      ADMIN ? api('GET', '/api/product-categories') : null, ADMIN ? api('GET', '/api/tags') : null,
+      ADMIN ? api('GET', '/api/criteria') : null,
       api('GET', '/api/account'), ADMIN ? api('GET', '/api/trash') : null,
       OWNER ? api('GET', '/api/backup') : null, api('GET', '/api/sessions'),
       OWNER ? api('GET', '/api/security-log') : null,
@@ -9099,13 +9183,13 @@ async function renderSystem({ keepScroll = false } = {}) {
       ? tH('card.settingsHintAll')
       : tH('card.settingsHint')}</p>
     ${/* Nur auf dem Telefon sichtbar, wie der Filterschalter der Uebersicht. */''}
-    <button class="btn btn-sm sys-toggle" id="sys-toggle"
+    ${visibleOnes.length > 1 ? `<button class="btn btn-sm sys-toggle" id="sys-toggle"
       aria-expanded="false" aria-controls="sys-tabs">${tH('card.sections')}<span class="fcount">${esc(open.name())}</span></button>
     <nav class="sys-tabs" id="sys-tabs" aria-label="${esc(t('card.sectionsHint'))}">
       ${visibleOnes.map(a => `<a class="sys-tab${a === open ? ' on' : ''}"
         href="${esc(sysUrl(a.key))}"${
         a === open ? ' aria-current="page"' : ''}>${esc(a.name())}</a>`).join('')}
-    </nav>
+    </nav>` : ''}
     <div class="sys-grid">
       ${cardMarkup}
     </div></div>`;
@@ -9325,10 +9409,9 @@ function cardUser(fetched) {
         <p class="desc" style="margin:0 0 10px">${SIGNUP
           ? `${tH('card.addressRequiredHint')} `
           : ''}${tH('card.resetMailHint')}</p>
-        ${serverBox(t('card.forgotPasswordHint'), 'docker compose exec kriterion node usertool.js password <name>')}
+        ${serverBox(t('card.forgotPasswordHint'), 'docker compose exec kriterion node usertool.js password <name>') ||
+          `<p class="desc" style="margin:0 0 10px">${tH('card.passwordAskAdmin')}</p>`}
         <button class="btn btn-accent btn-sm" id="acc-save" style="margin-top:10px">${tH('dialog.save')}</button>
-
-        <div class="two-factor-block" id="two-factor-block"></div>
       </div>`;
 }
 function setUpUserOut(fetched) {
@@ -9354,6 +9437,16 @@ function setUpUserOut(fetched) {
       renderSystem();   // leert die Passwortfelder
     } catch (e) { toast(e.message, true); }
   };
+}
+
+/* ---- Karte „Zweiter Faktor" — Abschnitt „Persönlich" ---- */
+function cardTwoFactor() {
+  return `<div class="sys-card">
+        <h3>${tH('card.twoFactorTitle')}</h3>
+        <div class="two-factor-block" id="two-factor-block"></div>
+      </div>`;
+}
+function setUpTwoFactorOut(fetched) {
   drawTwoFactor(fetched.account.twoFactor);
 }
 
@@ -9463,7 +9556,8 @@ function setUpUserOut(fetched) {
       ${tH('card.recoveryCodesHint')}
       <div class="two-factor-codes">${codes.map(c => `<span>${esc(c)}</span>`).join('')}</div>
       <p class="desc" style="margin:8px 0 0">${tH('card.allCodesUsed')}</p>
-      ${serverBox(t('card.twoFactorOffUser'), 'docker compose exec kriterion node usertool.js twofactor <name>')}`;
+      ${serverBox(t('card.twoFactorOffUser'), 'docker compose exec kriterion node usertool.js twofactor <name>') ||
+        `<p class="desc" style="margin:8px 0 0">${tH('card.twoFactorAskAdmin')}</p>`}`;
     box.appendChild(boxId);
   }
 
@@ -9568,6 +9662,12 @@ function cardAppearance() {
         <p class="desc" style="margin:16px 0 8px">${tH('card.timelineHint')}</p>
         <label class="ex-files"><input type="checkbox" id="timeline-on"> ${tH('card.showTimeline')}</label>
 
+        <p class="desc" style="margin:16px 0 8px">${tH('card.linkRowsHint')}</p>
+        <div class="pills" id="lrows"></div>
+        <p class="desc" style="margin:16px 0 0">${tH('card.linkListHint')}</p>
+        <p class="desc" style="margin:0 0 8px">${tH('card.engineCountHint')}</p>
+        <div class="pills" id="snames"></div>
+
         <p class="desc" style="margin:16px 0 8px">${tH('card.blocksHint')}</p>
         <button class="btn btn-ghost btn-sm" id="breset">${tH('card.restoreLayout')}</button>
       </div>`;
@@ -9597,6 +9697,8 @@ function setUpAppearanceOut() {
   drawTheme();
   drawFont();
   drawStrip();
+  drawLinkRows();
+  drawSearchNames();
   const zl = document.getElementById('timeline-on');
   zl.checked = TIMELINE_ON;
   zl.onchange = async () => {
@@ -9658,17 +9760,15 @@ function setUpAppearanceOut() {
 function cardCategories() {
   return `<div class="sys-card">
         <h3>${tH('card.categories')}</h3>
-        <p class="desc">${ADMIN
-          ? tH('card.categoriesHint')
-          : t('card.categoriesAdminHint')}</p>
-        ${ADMIN && LANGUAGES.filter(a => a.active).length > 1
+        <p class="desc">${tH('card.categoriesHint')}</p>
+        ${LANGUAGES.filter(a => a.active).length > 1
           ? `<div class="pills" id="ncatlang" style="margin-bottom:12px"></div>` : ''}
-        ${ADMIN ? `<div class="namegap" id="nunknown" hidden></div>` : ''}
+        <div class="namegap" id="nunknown" hidden></div>
         <div class="manage-list" id="mcats"></div>
         ${manageCreate('cat')}
-        ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">${tH('card.adminOnlyCategory')}</p>
+        <p class="desc" style="margin:16px 0 8px">${tH('card.adminOnlyCategory')}</p>
         <label class="ex-files"><input type="checkbox" id="cat-free">
-          ${tH('card.anyoneNewCategory')}</label>` : ''}
+          ${tH('card.anyoneNewCategory')}</label>
       </div>`;
 }
 function setUpCategoriesOut(fetched) {
@@ -9683,15 +9783,13 @@ function setUpCategoriesOut(fetched) {
 function cardTags() {
   return `<div class="sys-card">
         <h3>${tH('list.tags')}</h3>
-        <p class="desc">${ADMIN
-          ? tH('card.tagsHint')
-          : t('card.tagsAdminHint')}</p>
+        <p class="desc">${tH('card.tagsHint')}</p>
         <div class="manage-list" id="mtags"></div>
         ${/* Ohne dieses Feld entsteht ein Tag nur an einem Eintrag. */''}
         ${manageCreate('tag')}
-        ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">${tH('card.adminOnlyTag')}</p>
+        <p class="desc" style="margin:16px 0 8px">${tH('card.adminOnlyTag')}</p>
         <label class="ex-files"><input type="checkbox" id="tag-free">
-          ${tH('card.anyoneNewTag')}</label>` : ''}
+          ${tH('card.anyoneNewTag')}</label>
       </div>`;
 }
 function setUpTagsOut(fetched) {
@@ -9712,18 +9810,14 @@ function cardCriteria(phase) {
   return `<div class="sys-card">
         <h3>${tH('card.criteriaLabel', { label: before ? V.potential : V.ratingOne })}</h3>
         ${before ? `<p class="desc">${tH('card.potentialStarsHint')}
-             ${ADMIN ? t('card.criteriaHint') : t('card.listAdminHint')}</p>
-           ${ADMIN ? more(tH('card.criteriaTip')) : ''}`
-          : `<p class="desc">${ADMIN
-          ? t('card.criteriaHintDelete')
-          : tH('card.criteriaAdminHint')}</p>
-           ${ADMIN ? more(tH('card.orderAppliesNote')) : ''}`}
-        ${ADMIN && LANGUAGES.filter(a => a.active).length > 1
+             ${t('card.criteriaHint')}</p>
+           ${more(tH('card.criteriaTip'))}`
+          : `<p class="desc">${t('card.criteriaHintDelete')}</p>
+           ${more(tH('card.orderAppliesNote'))}`}
+        ${LANGUAGES.filter(a => a.active).length > 1
           ? `<div class="pills" id="${k.list}-lang" style="margin-bottom:12px"></div>` : ''}
         <div class="manage-list${before && !POTENTIAL_MODE ? ' list-quiet' : ''}" id="${k.list}"></div>
-        <p class="desc" style="margin:10px 0 0">${tH('card.weightExplainHint')} ${ADMIN
-            ? t('card.weightRangeHint')
-            : t('card.weightSystemDefault')}</p>
+        <p class="desc" style="margin:10px 0 0">${tH('card.weightExplainHint')} ${t('card.weightRangeHint')}</p>
         <!-- Ein Textfeld MIT Vorschlagsliste, kein Auswahlfeld: feste Stufen decken 0,2 bis 2 nicht
              ab, und ein Eintrag "anderer Wert ..." waere ein Moduswechsel -- erst waehlen, dann
              tippen, zwei Bedienformen fuer dieselbe Sache. Dasselbe Muster wie die Tageingabe am
@@ -9737,19 +9831,18 @@ function cardCriteria(phase) {
         ${before ? '' : `<datalist id="weightsug">
           <option value="0,5"><option value="0,8"><option value="1"><option value="1,2"><option value="1,5">
         </datalist>`}
-        ${ADMIN ? `<div class="row-in" style="margin-top:12px">
+        <div class="row-in" style="margin-top:12px">
           <input class="input input-sm" id="${k.field}" placeholder="${esc(t('card.newCriterion'))}" style="padding:8px 11px">
           <button class="btn btn-sm" id="${k.button}">${tH('entry.create')}</button>
-        </div>` : ''}
-        ${!before && ADMIN ? `<p class="desc" style="margin:16px 0 8px">${tH('card.partialShareHint')}</p>
+        </div>
+        ${!before ? `<p class="desc" style="margin:16px 0 8px">${tH('card.partialShareHint')}</p>
           <label class="ex-files" for="partial-share">${tH('card.partialShare')}<input class="input input-sm share-in"
             id="partial-share" type="number" min="1" max="100" step="1" value="${Number(PARTIAL_SHARE)}"> %</label>` : ''}
         ${before ? `${!POTENTIAL_MODE
             ? `<p class="desc" id="pot-off" style="margin:16px 0 0">${tH('card.potentialModeOff')}</p>` : ''}
-          ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">${tH('card.potentialModeHint')}</p>
-          <label class="ex-files"><input type="checkbox" id="pot-mode"${OWNER ? '' : ' disabled'}>
-            ${tH('card.potentialModeLabel')}</label>
-          ${OWNER ? '' : `<p class="desc">${tH('card.potentialModeOwner')}</p>`}` : ''}` : ''}
+          <p class="desc" style="margin:16px 0 8px">${tH('card.potentialModeHint')}</p>
+          ${OWNER ? `<label class="ex-files"><input type="checkbox" id="pot-mode">
+            ${tH('card.potentialModeLabel')}</label>` : `<p class="desc">${tH('card.potentialModeOwner')}</p>`}` : ''}
       </div>`;
 }
 function critRows(fetched, phase) {
@@ -10019,9 +10112,9 @@ function setUpCriteriaOut(fetched, phase) {
   }
 
 
-/* ---- Karte „Vokabular" — Abschnitt „Bestand" ---- */
+/* ---- Karte „Vokabular" — Abschnitt „Installation" ---- */
 function cardVocabulary() {
-  return `<div class="sys-card">
+  return `<div class="sys-card wide">
         <h3>${tH('card.vocabulary')}</h3>
         <p class="desc">${tH('card.vocabularyHint')}</p>
         ${LANGUAGES.filter(a => a.active).length > 1
@@ -10054,7 +10147,7 @@ const VOCABULARY_FIELDS = [
   ['v14', 'ratingMany', () => t('card.ratingMany')],
   ['v15', 'grade', () => t('card.grade')]
 ];
-/* Die Sprache der Namen und des Vokabulars im Abschnitt „Bestand". */
+/* Die Sprache der Namen und des Vokabulars. */
 const namesLanguage = () => {
   const ok = LANGUAGES.some(a => a.active && a.code === NAMES_SHOWN);
   return ok ? NAMES_SHOWN : LANGUAGE;
@@ -10217,7 +10310,7 @@ function setUpVocabularyOut() {
         : '<span class="dot" aria-hidden="true">●</span>');
       b.title = gaps ? t('card.wordsMissing', { n: gaps }) : t('card.languageComplete');
       b.onclick = () => {
-        /* NAMES_SHOWN gilt fuer den ganzen Abschnitt „Bestand". */
+        /* NAMES_SHOWN gilt auch fuer die drei Namenskarten unter „Bestand". */
         NAMES_SHOWN = a.code;
         renderSystem({ keepScroll: true });
       };
@@ -10256,23 +10349,6 @@ function setUpVocabularyOut() {
 }
 
 
-/* ---- Karte „Links" — Abschnitt „Bestand" ---- */
-function cardLinks() {
-  return `<div class="sys-card">
-        <h3>${tH('dialog.links')}</h3>
-        <p class="desc">${tH('card.linkRowsHint')}</p>
-        <div class="pills" id="lrows"></div>
-
-        <p class="desc sys-part">${tH('card.linkListHint')}</p>
-        <p class="desc" style="margin:0 0 8px">${tH('card.engineCountHint')}</p>
-        <div class="pills" id="snames"></div>
-      </div>`;
-}
-function setUpLinksOut() {
-  drawLinkRows();
-  drawSearchNames();
-}
-
   /* Ohne apply: die Zahl der Zeilen wirkt beim naechsten Zeichnen der Linkliste,
      die Zahl der Namen beim naechsten Aufbau. */
   function drawLinkRows() { pillRow({ boxId: 'lrows', levels: LINK_ROW_LEVELS,
@@ -10283,7 +10359,7 @@ function setUpLinksOut() {
     key: 'searchNames' }); }
 
 
-/* ---- Karte „Suchmaschinen" — Abschnitt „Bestand" ---- */
+/* ---- Karte „Suchmaschinen" — Abschnitt „Installation" ---- */
 function cardSearchProvider() {
   return `<div class="sys-card">
         <h3>${tH('card.searchEngines')}</h3>
@@ -10803,11 +10879,10 @@ function cardRequests(fetched) {
         ${!requests.an && !requests.deliveryReady ? `<p class="desc" id="signup-notready">
           <strong>${tH('card.needsMailHint')}</strong>
           ${esc(requests.deliveryReason)}</p>` : ''}
-        <div class="row-in" style="margin-top:10px">
-          <button class="btn btn-sm${requests.an ? '' : ' btn-accent'}" id="signup-toggle"${
-            !requests.an && !requests.deliveryReady ? ' disabled' : ''}>${
+        ${requests.an || requests.deliveryReady ? `<div class="row-in" style="margin-top:10px">
+          <button class="btn btn-sm${requests.an ? '' : ' btn-accent'}" id="signup-toggle">${
             requests.an ? t('card.turnSignupOff') : t('card.turnSignupOn')}</button>
-        </div>
+        </div>` : ''}
         <div class="manage-list" id="mrequests" style="margin-top:14px"></div>
         <div id="signup-link"></div>
       </div>`;
@@ -10843,7 +10918,7 @@ function setUpRequestsOut(fetched) {
     const toggle = document.getElementById('signup-toggle');
     if (toggle) {
       toggle.textContent = status.an ? t('card.turnSignupOff') : t('card.turnSignupOn');
-      toggle.disabled = !status.an && !status.deliveryReady;
+      toggle.hidden = !status.an && !status.deliveryReady;
     }
     box.innerHTML = '';
     if (!status.requests.length) {
@@ -11324,16 +11399,65 @@ function cardStats(fetched) {
         <div class="kv"><span class="k">${tH('list.photos')}</span><span class="v">${stats.photoCount} · ${fmtBytes(stats.photoBytes)}</span></div>
         <div class="kv"><span class="k">${tH('list.videos')}</span><span class="v">${stats.videoCount} · ${fmtBytes(stats.videoBytes)}</span></div>
         <div class="kv"><span class="k">${tH('dialog.comments')}</span><span class="v">${stats.commentCount}</span></div>
+        <div class="kv"><span class="k">${tH('card.commentImages')}</span><span class="v">${stats.commentImageCount || 0} · ${fmtBytes(stats.commentImageBytes)}</span></div>
         <div class="kv"><span class="k">${tH('dialog.links')}</span><span class="v">${stats.linkCount}</span></div>
         <div class="kv"><span class="k">${esc(V.dayMany)}</span><span class="v">${stats.testDayCount}</span></div>
-        ${stats.attachmentCount ? `<div class="kv"><span class="k">${tH('card.diskPending')}</span><span class="v">${stats.attachmentCount} · ${fmtBytes(stats.attachmentBytes)}</span></div>` : ''}
-        ${diskRows(stats.disk)}
+        ${exportTotal(stats) ? `<div class="kv"><span class="k">${tH('card.exportSizeAll')}</span><span class="v">≈ ${fmtBytes(exportTotal(stats))}</span></div>` : ''}
+      </div>`;
+}
+
+/* ---- Karte „Speicher und Wartung" — Abschnitt „Datenbank" ---- */
+function cardStorage(fetched) {
+  const { stats } = fetched;
+  return `<div class="sys-card">
+        <h3>${tH('card.storage')}</h3>
+        <p class="desc">${tH('card.storageHint')}</p>
+        <div class="kv"><span class="k">${tH('card.database')}</span><span class="v">${fmtBytes(stats.dbBytes)}</span></div>
+        ${stats.dbFree ? `<div class="kv"><span class="k">${tH('card.dbFree')}</span><span class="v">${fmtBytes(stats.dbFree)}</span></div>` : ''}
         ${/* Papierkorb als eigene Zeile: sonst wirkt die Datenbank nach dem Aufraeumen
              groesser als vorher. */''}
-        <div class="kv"><span class="k">${tH('card.commentImages')}</span><span class="v">${stats.commentImageCount || 0} · ${fmtBytes(stats.commentImageBytes)}</span></div>
         <div class="kv"><span class="k">${tH('card.trash')}</span><span class="v">${stats.trashCount || 0} · ${fmtBytes(stats.trashBytes)}</span></div>
-        <div class="kv"><span class="k">${tH('card.database')}</span><span class="v">${fmtBytes(stats.dbBytes)}</span></div>
-        ${exportTotal(stats) ? `<div class="kv"><span class="k">${tH('card.exportSizeAll')}</span><span class="v">≈ ${fmtBytes(exportTotal(stats))}</span></div>` : ''}
+        ${stats.attachmentCount ? `<div class="kv"><span class="k">${tH('card.diskPending')}</span><span class="v">${stats.attachmentCount} · ${fmtBytes(stats.attachmentBytes)}</span></div>` : ''}
+        <div id="disk-rows">${diskRows(stats.disk)}</div>
+        ${OWNER ? `<div class="sys-part"></div>
+        <p class="desc">${tH('card.maintHint')}</p>
+        <div class="row-in"><button class="btn btn-sm" id="maint-run">${tH('card.maintRun')}</button></div>
+        <div id="maint-out" aria-live="polite"></div>` : ''}
+      </div>`;
+}
+
+/* ---- Karte „Proxy" — Abschnitt „Installation" ---- */
+// Warum Quick Sync nicht kodiert oder Kriterion nicht umwandelt; die Gruende nennt videoproxy.probe().
+const PROXY_REASONS = { noDevice: 'card.proxyNoDevice', firmware: 'card.proxyFirmware', huc: 'card.proxyHuc',
+  missing: 'card.proxyMissing', notRoot: 'card.proxyNotRoot' };
+function cardProxy(fetched) {
+  const p = (fetched.stats || {}).proxy || {};
+  const on = SETTINGS.proxyOn === true;
+  const row = (label, value) => `<div class="kv"><span class="k">${tH(label)}</span><span class="v">${esc(value)}</span></div>`;
+  return `<div class="sys-card">
+        <h3>${tH('card.proxyTitle')}</h3>
+        <p class="desc">${tH('card.proxyHint')}</p>
+        ${OWNER ? `<label class="ex-files"><input type="checkbox" id="proxy-on"> ${tH('card.proxyOn')}</label>`
+          : `<p class="desc">${tH(on ? 'card.proxyIsOn' : 'card.proxyIsOff')}</p>`}
+        ${!p.checked ? '' : `<p class="desc">${p.quickSync ? tH('card.proxyQuickSync', { driver: p.driver })
+          : tH(PROXY_REASONS[p.reason] || 'card.proxyCpu')}</p>`}
+        <p class="desc">${p.tmpfs ? tH('card.proxyTmpfs', { free: fmtBytes(p.tmpFree), total: fmtBytes(p.tmpTotal) })
+          : tH('card.proxyNoTmpfs')}</p>
+        ${row('card.proxyReady', `${number(p.ready || 0)} · ${fmtBytes(p.bytes || 0)}`)}
+        ${row('card.proxyWaiting', number(p.waiting || 0))}
+        ${p.failed ? row('card.proxyFailed', number(p.failed)) : ''}
+      </div>`;
+}
+function setUpProxyOut() {
+  createToggle('proxy-on', 'proxyOn', () => SETTINGS.proxyOn === true, v => { SETTINGS.proxyOn = v; });
+}
+
+/* ---- Karte „Version und Verschlüsselung" — Abschnitt „Installation" ---- */
+function cardVersion(fetched) {
+  const { stats } = fetched;
+  return `<div class="sys-card">
+        <h3>${tH('card.versionTitle')}</h3>
+        <p class="desc">${tH('card.versionHint')}</p>
         ${/* Der Fingerprint zeigt, ob die laufenden Dateien zusammengehoeren; die
              Version zeigt das nicht. */''}
         <div class="kv"><span class="k">${tH('card.version')}</span><span class="v">${esc(stats.version || '—')}</span></div>
@@ -11344,23 +11468,19 @@ function cardStats(fetched) {
             aria-controls="fp-list">${tH('card.showFiles')}</button></div>
         <div class="fp-list" id="fp-list" hidden>${stats.fingerprintFiles.map(z =>
           `<div class="fp-row"><span class="fp-name">${esc(z.name)}</span><code>${esc(z.hash)}</code></div>`).join('')}</div>` : ''}
-        ${/* Den Schluessel im Klartext sieht nur der Eigentuemer. */''}
-        <div style="margin-top:14px">${stats.keyFromEnv
-          ? `<div class="ok-box">${tMarks('card.keyFromSetting', {
+        ${/* Den Schluessel und den Hinweis, dass er neben der Datenbank liegt, sieht nur der Eigentuemer. */''}
+        ${stats.keyFromEnv
+          ? `<div class="ok-box" style="margin-top:14px">${tMarks('card.keyFromSetting', {
               word: '<code>ENCRYPTION_KEY</code>',
               word2: '<code>.env</code>', word3: '<code>data/</code>' })}</div>`
           : (OWNER
-            ? `<div class="warn-box">${tH('card.keyBesideHint')}
+            ? `<div class="warn-box" style="margin-top:14px">${tH('card.keyBesideHint')}
               <p style="margin:9px 0 6px">${tMarks('card.keyIntoEnv', { word: '<code>.env</code>' })}</p>
               <code class="keyline" id="keyline">ENCRYPTION_KEY=${esc(stats.keyHex || '')}</code>
               ${serverBox(t('card.restartHint'), 'docker compose up -d')}
-            </div>`
-            : `<div class="warn-box">${tMarks('card.keyStillBeside', { word: '<code>ENCRYPTION_KEY</code>' })}</div>`)}
-        </div>
+            </div>` : '')}
         ${stats.method ? `<div class="sys-part"></div>
         <h4 class="sys-sub">${tH('card.techMethods')}</h4>
-        ${/* Beschriftung „Verschlüsselung": „Datenbank" steht in dieser Karte schon
-             fuer die Groesse. */''}
         <div class="kv"><span class="k">${tH('card.encryption')}</span><span class="v">${esc(stats.method.cipher || '—')}</span></div>
         <div class="kv"><span class="k">${tH('card.key')}</span><span class="v">${
           stats.method.keyBits ? t('card.keyBits', { keyBits: stats.method.keyBits }) : '—'}</span></div>
@@ -11374,7 +11494,6 @@ function cardStats(fetched) {
 function diskRows(d) {
   if (!d) return '';
   const row = (label, value) => `<div class="kv"><span class="k">${label}</span><span class="v">${value}</span></div>`;
-  const without = d.unknownCount - d.copiedCount;
   return [
     row(tH('card.diskFiles'), `${d.count} · ${fmtBytes(d.bytes)}`),
     d.largeCount ? row(tH('card.diskLarge'), `${d.largeCount} · ${fmtBytes(d.largeBytes)}`) : '',
@@ -11382,26 +11501,123 @@ function diskRows(d) {
     row(tH('card.diskUploads'), `${d.uploadCount} · ${fmtBytes(d.uploadBytes)}`),
     d.missing ? row(tH('card.diskMissing'), String(d.missing)) : '',
     d.gone ? row(tH('card.diskGone'), String(d.gone)) : '',
-    d.unknownCount ? row(tH('card.diskUnknown'), `${d.unknownCount} · ${fmtBytes(d.unknownBytes)}`)
-      + row(tH('card.diskCopied'), `${d.copiedCount} · ${fmtBytes(d.copiedBytes)}`)
-      + (without ? `<p class="hint hint-sm" style="margin:4px 2px 0">${tH('card.diskUncopied', { n: without })}</p>` : '')
-      + (OWNER && d.copiedCount ? `<div class="kv kv-act"><button class="btn btn-sm btn-danger" id="disk-unknown-delete"
-          data-n="${Number(d.copiedCount)}" data-bytes="${Number(d.copiedBytes)}">${tH('dialog.delete')}</button></div>` : '') : '',
+    d.unknownCount ? row(tH('card.diskUnknown'), `${d.unknownCount} · ${fmtBytes(d.unknownBytes)}`) : '',
     d.free != null ? row(tH('card.diskFree'), fmtBytes(d.free)) : ''
   ].join('');
 }
 
-function setUpStatsOut() {
-  atElement('disk-unknown-delete', b => b.onclick = async () => {
-    const n = Number(b.dataset.n);
-    const ask = t('card.unknownDeleteAsk', { n, bytes: fmtBytes(Number(b.dataset.bytes)) });
-    if (!await confirmBox(ask, t('card.unknownDeleteHint'))) return;
+/* Die ersten drei duerfen weg, wie FREE_WHY in server.js. */
+const MAINT_WHY = {
+  foreign: 'card.maintForeign', copied: 'card.maintCopied', unnamed: 'card.maintUnnamed',
+  named: 'card.maintNamed', unlisted: 'card.maintUnlisted', noFolder: 'card.maintNoFolder'
+};
+// Die Pruefung der Datenbank bleibt stehen, waehrend Loeschen und Zurueckholen die Listen neu zeichnen.
+let MAINT_CHECK = null;
+
+// Abstand der Nachfrage, solange der Server die Pruefung als laufend meldet.
+const MAINT_POLL_MS = 2000;
+function setUpStorageOut() {
+  atElement('maint-run', b => b.onclick = async () => {
+    const out = document.getElementById('maint-out');
+    b.disabled = true;
+    out.innerHTML = `<p class="hint hint-sm">${tH('card.maintRunning')}</p>`;
     try {
-      const r = await api('DELETE', '/api/files/unknown');
-      toast(t('card.unknownDeleted', { n: r.removed, bytes: fmtBytes(r.bytes) }));
-      renderSystem({ keepScroll: true });
+      for (;;) {
+        const m = await api('GET', '/api/maintenance');
+        MAINT_CHECK = m.check;
+        drawMaintenance(m);
+        if (!m.check || !m.check.running || !out.isConnected) break;
+        await new Promise(r => setTimeout(r, MAINT_POLL_MS));
+      }
+    } catch (e) { out.innerHTML = ''; toast(e.message, true); }
+    finally { b.disabled = false; }
+  });
+}
+
+function drawMaintenance(m) {
+  const out = document.getElementById('maint-out');
+  if (!out) return;
+  const check = MAINT_CHECK || {};
+  const unknown = m.unknown || [], missing = m.missing || [];
+  out.innerHTML = `<div class="sys-part"></div>
+    ${!unknown.length && !missing.length ? `<p class="desc">${tH('card.maintClean')}</p>` : ''}
+    ${unknown.length ? `<h4 class="sys-sub">${tH('card.maintUnknown', { n: unknown.length })}</h4>
+      <div class="cleanup-head"><button class="link-btn" id="maint-all"${
+        unknown.some(f => f.free) ? '' : ' hidden'}>${tH('entry.pickAll')}</button></div>
+      <div class="manage-list" id="maint-unknown">${unknown.map(f => `<div class="mrow">
+        <input type="checkbox" class="maint-pick" data-name="${esc(f.name)}" aria-label="${esc(f.name)}"${
+          f.free ? '' : ' disabled'}>
+        <span class="mname">${esc(f.name)}</span>
+        <span class="mcount">${esc(fmtBytes(f.size))} · ${esc(fmtDate(f.at))}</span>
+        <span class="mfiles">${f.kind === 'dir' ? `${tH('card.maintDir', { n: f.files })} · `
+          : f.kind === 'link' ? `${tH('card.maintLink')} · ` : f.kind === 'other' ? `${tH('card.maintOther')} · ` : ''}${
+          tH(MAINT_WHY[f.why] || 'card.maintNamed')}</span></div>`).join('')}</div>
+      <div class="row-in"><button class="btn btn-sm btn-danger" id="maint-delete" disabled>${
+        tH('dialog.delete')}</button></div>` : ''}
+    ${missing.length ? `<h4 class="sys-sub">${tH('card.maintMissing', { n: missing.length })}</h4>
+      <div class="manage-list" id="maint-missing">${missing.map(f => `<div class="mrow">
+        <input type="checkbox" class="maint-back" data-name="${esc(f.name)}" aria-label="${esc(f.filename || f.name)}"${
+          f.copy ? '' : ' disabled'}>
+        <span class="mname">${f.item ? `<a href="#/item/${Number(f.item.id)}">${esc(f.item.title)}</a>`
+          : esc(f.trash || '')}</span>
+        <span class="mcount">${esc(f.filename || f.name)}${f.folder ? ` · ${esc(f.folder)}` : ''}</span>
+        <span class="mfiles">${f.place === 'trash' ? `${tH('card.maintInTrash')} · `
+          : f.place === 'previous' ? `${tH('card.maintPrevious')} · ` : ''}${
+          f.copy ? tH('card.maintCopyThere') : f.why === 'noFolder' ? tH('server.backupDirUnreachable')
+            : tH('card.maintNoCopy')}</span></div>`).join('')}</div>
+      <div class="row-in"><button class="btn btn-sm" id="maint-restore" disabled>${
+        tH('card.maintRestore')}</button></div>` : ''}
+    <h4 class="sys-sub">${tH('card.maintCheck')}</h4>
+    ${check.running ? `<p class="hint hint-sm">${tH('card.maintCheckRunning')}</p>`
+      : check.ok ? `<p class="desc">${tH('card.maintCheckOk', { seconds: number((check.ms || 0) / 1000, 1) })}</p>`
+      : `<div class="warn-box">${tH('card.maintCheckBad', { seconds: number((check.ms || 0) / 1000, 1) })}<ul>${
+        (check.quick || []).filter(z => z !== 'ok').map(z => `<li>${esc(z)}</li>`).join('')}${
+        (check.keys || []).map(k => `<li>${tH('card.maintKeys', { n: k.count, table: k.table, parent: k.parent })}</li>`).join('')
+        }</ul></div>`}`;
+
+  const picks = (cls) => [...out.querySelectorAll(`.${cls}`)].filter(x => !x.disabled);
+  const chosen = (cls) => picks(cls).filter(x => x.checked).map(x => x.dataset.name);
+  const refresh = () => {
+    atElement('maint-delete', x => { x.disabled = !chosen('maint-pick').length; });
+    atElement('maint-restore', x => { x.disabled = !chosen('maint-back').length; });
+    atElement('maint-all', x => {
+      const all = picks('maint-pick');
+      x.textContent = t(all.length && all.every(y => y.checked) ? 'entry.pickNone' : 'entry.pickAll');
+    });
+  };
+  out.querySelectorAll('.maint-pick, .maint-back').forEach(x => { x.onchange = refresh; });
+  atElement('maint-all', x => x.onclick = () => {
+    const all = picks('maint-pick');
+    const on = !all.every(y => y.checked);
+    all.forEach(y => { y.checked = on; });
+    refresh();
+  });
+  const after = (r, note) => {
+    toast(note);
+    atElement('disk-rows', box => { box.innerHTML = diskRows(r.disk); });
+    drawMaintenance(r);
+  };
+  atElement('maint-delete', x => x.onclick = async () => {
+    const names = chosen('maint-pick');
+    const bytes = unknown.filter(f => names.includes(f.name)).reduce((n, f) => n + f.size, 0);
+    if (!names.length || !await confirmBox(t('card.maintDeleteAsk', { n: names.length, bytes: fmtBytes(bytes) }),
+      t('card.maintDeleteHint'))) return;
+    try {
+      const r = await api('DELETE', '/api/files/unknown', { names });
+      after(r, t('card.maintDeleted', { n: r.removed, bytes: fmtBytes(r.bytes) }));
     } catch (e) { toast(e.message, true); }
   });
+  atElement('maint-restore', x => x.onclick = async () => {
+    const names = chosen('maint-back');
+    if (!names.length || !await confirmBox(t('card.maintRestoreAsk', { n: names.length }),
+      t('card.maintRestoreHint'), t('card.maintRestore'), 'accent')) return;
+    try {
+      const r = await api('POST', '/api/files/missing', { names });
+      after(r, t('card.maintRestored', { n: r.restored }));
+    } catch (e) { toast(e.message, true); }
+  });
+}
+function setUpVersionOut() {
   const button = document.getElementById('fp-files');
   const list = document.getElementById('fp-list');
   // Ohne Liste kein Knopf: die Karte zeichnet beide oder keinen von beiden.
@@ -11472,14 +11688,16 @@ function cardLimits() {
         <p class="desc">${tH('card.uploadLimitsHint')}</p>
         ${LIMIT_KINDS.map(([kind, label]) => {
           const g = UPLOAD_LIMIT_RANGES[kind] || {};
+          if (!OWNER) return `<div class="kv"><span class="k">${tH(label)}</span><span class="v">${
+            Number(UPLOAD_LIMITS[kind])} MB</span></div>`;
           return `<div class="field"><label for="limit-${kind}">${tH(label)}</label>
           ${kind === 'attachment' ? `<p class="desc" style="margin:0 0 4px">${tH('card.limitAttachmentHint')}</p>` : ''}
           <p class="desc" style="margin:0 0 6px">${tH('card.limitRange', { min: g.min, max: g.max })}</p>
           <input class="input" id="limit-${kind}" type="number" inputmode="numeric" data-limit="${kind}"
-            min="${Number(g.min)}" max="${Number(g.max)}" step="1" value="${Number(UPLOAD_LIMITS[kind])}"${
-            OWNER ? '' : ' disabled'}></div>`;
+            min="${Number(g.min)}" max="${Number(g.max)}" step="1" value="${Number(UPLOAD_LIMITS[kind])}"></div>`;
         }).join('')}
-        <p class="hint hint-sm" style="margin:6px 2px 0">${tH('card.proxyBodyHint')}</p>
+        ${OWNER ? `<p class="hint hint-sm" style="margin:6px 2px 0">${tH('card.proxyBodyHint')}</p>`
+          : `<p class="desc" style="margin:10px 0 0">${tH('card.limitsOwner')}</p>`}
       </div>`;
 }
 function setUpLimitsOut() {
@@ -11575,7 +11793,7 @@ function setUpImageStoreOut(fetched) {
 
 const COMPOSE_FILE = 'docker-compose.yml';
 
-/* ---- Karte „Backup" — Abschnitt „Datenbank" ---- */
+/* ---- Karte „Backup" — Abschnitt „Backup" ---- */
 function cardBackup() {
   return `<div class="sys-card">
         <h3>${tH('card.backup')}</h3>
@@ -11714,7 +11932,7 @@ function followBackup(fetched) {
   }, 2000);
 }
 
-/* ---- Karte „Alte Backups" — Abschnitt „Datenbank" ---- */
+/* ---- Karte „Alte Backups" — Abschnitt „Backup" ---- */
 // Namen der gewaehlten Backups; null ausserhalb der Auswahl.
 let CLEANUP_PICK = null;
 function cardCleanup() {
@@ -11978,7 +12196,7 @@ function setUpCleanupOut(fetched) {
   }
 
 
-/* ---- Karte „Export und Import" — Abschnitt „Datenbank" ---- */
+/* ---- Karte „Export und Import" — Abschnitt „Backup" ---- */
 function cardExport(fetched) {
   const { stats } = fetched;
   return `<div class="sys-card">

@@ -420,7 +420,7 @@ async function run() {
     const d = buildDom(JSDOM, {
       settings: { filters: null, isAdmin: true, isOwner: true } });
     await until(d.w, listDrawn, 2000, 'die Uebersicht');
-    await sysSection(d.w, 'database');
+    await sysSection(d.w, 'backup');
     const cards = [...d.w.document.querySelectorAll('.sys-grid > .sys-card')];
     const ex = cards.find(k => k.querySelector('h3')?.textContent.trim() === 'Export und Import');
     check('Die Karte heisst „Export und Import"', !!ex,
@@ -1017,7 +1017,7 @@ async function run() {
     const tools = [...doc.querySelectorAll('.lightbox .lb-tools .lb-btn')]
       .map(b => b.className.replace('lb-btn ', ''));
     check('Und er steht vor dem Schliessen, nicht daneben',
-      equal(tools, ['info', 'copy', 'download', 'zoom', 'remove', 'close']), JSON.stringify(tools));
+      equal(tools, ['whole', 'original', 'info', 'copy', 'download', 'zoom', 'remove', 'close']), JSON.stringify(tools));
 
     const imagesBefore = [...doc.querySelectorAll('.lightbox .lb-thumb')].length;
     // `?.`: ein Rueckbau kann den Papierkorb entfernen, dann ist `removed()` null.

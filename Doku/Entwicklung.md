@@ -22,11 +22,13 @@ Aufbau, Datenmodell, Sicherheit der Auslieferung und Prüfstand. Betrieb steht i
 | `usertool.js` | Zugangsverwaltung auf dem Server |
 | `keytool.js`, `keytool.sh` | Schlüsselwechsel bei angehaltener Instanz |
 | `backuptool.js`, `backuptool.sh` | Backups ansehen und zurückspielen |
+| `videoproxy.js` | Proxys für Videos: Auswahl, Weg, Aufruf von ffmpeg, Test von Quick Sync |
 | `public/` | `index.html`, `app.js`, `style.css`, `theme.js`, drei Sprachdateien |
 | `test/`, `testbench.js`, `counterproof.js` | Prüfstand und Gegenproben |
 
-Das Frontend kommt ohne Framework und ohne Build aus. Sechs
-Laufzeitabhängigkeiten, festgelegt über `package-lock.json`.
+Das Frontend kommt ohne Framework und ohne Build aus. Sieben
+Laufzeitabhängigkeiten, festgelegt über `package-lock.json`; dazu ffmpeg im
+Image.
 
 ## Datenmodell
 
@@ -125,7 +127,16 @@ annehmen.
   und `attachment_previous.data` sind dann `x''`.
 - `disk_files_gone`: die Löschliste. Nur `sweepDisk()` in `server.js` löscht
   unter `data/files/`, und nur Namen aus dieser Liste, nach einem vollständigen
-  Checkpoint.
+  Checkpoint. Ein Proxy steht dort als `proxy/<Name>`.
+- `proxy_files`: je Datei auf der Platte höchstens ein Proxy, Schlüssel ist
+  `disk_file_id`. `state` ist `ready` mit Name unter `data/files/proxy/`,
+  Größe, `file_key` und Pixeln, oder `failed` mit `reason` (letzte Zeile von
+  ffmpeg, `tmpSpace`, `space` oder `timeout`) und ohne Datei. Die Zeile hängt
+  an `disk_files` und nicht an `attachments`: im Papierkorb behält
+  `disk_files` die Datei über `trash_id`, beim Wiederherstellen bekommt sie die
+  neue Nummer des Anhangs. `ON DELETE CASCADE` löscht die Zeile mit der Datei;
+  der Trigger `proxy_files_gone` trägt den Namen in die Löschliste ein. Nicht im
+  Backup und nicht im Export.
 
 **Trigger auf `disk_files`**, beim Start angelegt und bei abweichendem Text
 ersetzt: `disk_files_orphaned` trägt eine Zeile ohne Besitzer in die Löschliste
@@ -231,14 +242,48 @@ Text.
 
 ## Kurzvideos
 
-Das Standbild erzeugt der Browser beim Hochladen und schickt es mit. Dadurch
-braucht das Image kein `ffmpeg` (rund 100 MB), und der Server öffnet nie ein
-Video. Folge: ein Video, das der Browser nicht abspielt, lässt sich nicht
-hochladen.
+Das Standbild erzeugt der Browser beim Hochladen und schickt es mit; für
+Kurzvideos öffnet der Server kein Video. Folge: ein Kurzvideo, das der Browser
+nicht abspielt, lässt sich nicht hochladen. ffmpeg im Image wandelt nur Videos
+unter „Dateien“ um (Abschnitt „Proxys“).
 
 Vorgabe 20 MB je Video. Gemessen: 50 MB aus der verschlüsselten Datenbank zu
 lesen dauert rund 0,5 s, weil SQLite eine BLOB-Zeile ganz in den Speicher
 liest. Ausgeliefert wird in Ranges.
+
+## Proxys
+
+Ein Video unter „Dateien“ bekommt einen Proxy, wenn `needsProxy()` in
+`videoproxy.js` es verlangt; die Angaben kommen aus `attachment_media`. Die
+Warteschlange `proxySoon()` nimmt frisch analysierte Videos vor den Bestand,
+den Bestand beim Einschalten und stündlich, fehlgeschlagene nur beim Start. Es
+läuft immer eine Umwandlung, mit Priorität 19 über `nice -n 19`.
+`os.setPriority()` reicht dafür nicht: Docker gibt root kein `CAP_SYS_NICE`, und
+ffmpeg läuft unter einer anderen Nummer.
+
+- **Weg:** A dekodiert und kodiert mit Quick Sync, B dekodiert mit der CPU und
+  kodiert mit Quick Sync, C nur mit der CPU (`libx264`). Scheitert A, folgt B.
+  `probe()` prüft Quick Sync einmal je Start mit zwei Sekunden `testsrc2`.
+- **ffmpeg** läuft nur, wenn Kriterion root ist, unter der Nummer 65534 mit der
+  Gruppe von `/dev/dri/renderD128` und mit leerer Umgebung. Es liest das
+  Original über `http://127.0.0.1:<Port>/<Marke>`, Port und Marke je Lauf;
+  `originalServer()` entschlüsselt Stück für Stück. Es schreibt in ein
+  Verzeichnis unter `/tmp` mit den Rechten 0700. Ohne `tmpfs` unter `/tmp`
+  wandelt Kriterion nicht um.
+- **Danach** verschlüsselt `sealProxy()` die Ausgabe wie einen Upload nach
+  `data/files/proxy/` und löscht das Verzeichnis. Abbruch nach der Dauer des
+  Videos mal 4 plus 10 Minuten, beim Ausschalten und beim Beenden.
+- **Auslieferung:** `?size=proxy` an `/raw` über `sendDiskFile()`; fehlt die
+  Datei oder lässt sie sich nicht entschlüsseln, fällt die Zeile weg, und das
+  Video wartet wieder. `proxyFilesThere()` tut dasselbe beim Start für Zeilen
+  ohne Datei, etwa nach dem Zurückspielen eines Backups.
+- **Die vier Endungen** `mkv`, `avi`, `wmv` und `flv` analysiert die
+  Warteschlange; als Video gelten sie erst mit fertigem Proxy
+  (`playsAsVideo()`).
+
+Im Prüfstand ersetzt `test/ffmpeg.js` ffmpeg: es liest das Original über die
+Adresse und schreibt eine kleine MP4 mit dem SHA-256 des Originals, der
+Umgebung, der Priorität und den Argumenten.
 
 ## Bildablage
 
@@ -313,6 +358,16 @@ Für die Dateien auf der Platte, nur in `server.js`:
 | `clock=<s>` | die Uhr der Uploads geht so viele Sekunden vor |
 | `hold=<ms>` | Halt vor dem Schreiben unter `upload/` und vor jeder Kopie des Backups |
 | `run=<ms>` | Abstand der Läufe statt einer Stunde |
+| `checkwait=<ms>` | Wartezeit von `GET /api/maintenance` auf die Prüfung der Datenbank statt 20 s |
+| `ffmpeg=1` | `test/ffmpeg.js` statt ffmpeg, ohne root und ohne `tmpfs` |
+
+Für `test/ffmpeg.js`:
+
+| Wert | Wirkung |
+|---|---|
+| `qsv=1` | Quick Sync kodiert; `qsv=2` nur ohne feste Bitrate; ohne Wert startet der Treiber nicht |
+| `ffmpegfail=1` | jede Umwandlung scheitert; `ffmpegfail=2` nur Weg A |
+| `ffmpeghold=<ms>` | Halt vor dem Schreiben |
 
 Ein gesetzter Schalter steht beim Start im Protokoll (`TEST SWITCH ACTIVE`).
 

@@ -733,8 +733,8 @@ async function run() {
     const u = buildDom(JSDOM, { settings: { filters: null, userCount: 2, isAdmin: false, isOwner: false } });
     await until(u.w, ready, 2000, 'die Uebersicht').catch(() => {});
     await D.sysSection(u.w, 'inventory');
-    check('Ohne Adminrechte fehlt das Feld',
-      !u.w.document.getElementById('partial-share') && !!u.w.document.getElementById('mcrits'), 'Feld');
+    check('Ohne Adminrechte fehlen das Feld und die Karte',
+      !u.w.document.getElementById('partial-share') && !u.w.document.getElementById('mcrits'), 'Feld');
     u.w.close();
   }
 

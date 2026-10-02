@@ -545,7 +545,7 @@ async function run() {
       const dm = buildDom(JSDOM, {});
       const w = dm.w;
       await until(w, (x) => x.document.getElementById('count') && openRequests(x) === 0, 2000, 'die Uebersicht');
-      await sysSection(w, 'database');
+      await sysSection(w, 'backup');
       const cards = w.document.querySelector('.sys-grid')?.textContent.replace(/\s+/g, ' ') || '';
       check('Die Karte „Export und Import" nennt, was fehlt',
         cards.includes('Er enthält nur die Einträge, keine Benutzer und keine Einstellungen.'), cards.slice(0, 160));
@@ -659,7 +659,8 @@ async function run() {
       'services:', '  kriterion:', '    build: .', '    container_name: kriterion',
       '    restart: unless-stopped', '    env_file: .env', '    ports:', '      - "3100:3000"',
       '    volumes:', '      - ./data:/app/data', '      - ./kriterion-backup:/app/backup',
-      '    environment:', '      - PORT=3000', '      - TZ=Europe/Berlin', '      - BACKUP_DIR=/app/backup']),
+      '    environment:', '      - PORT=3000', '      - TZ=Europe/Berlin', '      - BACKUP_DIR=/app/backup',
+      '    tmpfs:', '      - /tmp:size=2g']),
       lines.join(' | ').slice(0, 200));
   }
 
@@ -707,10 +708,10 @@ async function run() {
       /lauf change "\$\{ENV_ARGUMENTE\[@\]\}" --by "\$WER" --yes/.test(sh), 'Faelle oder Aufruf weichen ab');
     const app = readText('public/app.js');
     const keys = [...app.matchAll(/^  \{ key: '([a-z]+)',\s+section: '/gm)].map(m => m[1]);
-    check('Die Kartenschluessel im Systembereich sind englisch', equal(keys, ['myaccount', 'sessions',
-      'appearance', 'mydocuments', 'categories', 'tags', 'criteria', 'potentialcriteria', 'vocabulary', 'links',
-      'searchengines', 'trash', 'accounts', 'requests', 'log', 'mail', 'stats', 'imagestore', 'limits', 'backup',
-      'cleanup', 'export', 'titles', 'languages', 'documents']), keys.join(' '));
+    check('Die Kartenschluessel im Systembereich sind englisch', equal(keys, ['myaccount', 'twofactor', 'sessions',
+      'appearance', 'mydocuments', 'categories', 'tags', 'criteria', 'potentialcriteria', 'trash', 'accounts',
+      'requests', 'log', 'mail', 'stats', 'storage', 'imagestore', 'limits', 'backup', 'cleanup', 'export', 'titles',
+      'languages', 'vocabulary', 'searchengines', 'documents', 'proxy', 'version']), keys.join(' '));
     fs.rmSync(toolDir, { recursive: true, force: true });
   }
 
@@ -859,7 +860,10 @@ async function run() {
     await until(adminView.w, (x) => x.document.getElementById('count') && openRequests(x) === 0, 2000, 'die Uebersicht');
     await sysSection(adminView.w, 'database');
     const adminField = adminView.w.document.getElementById('limit-photo');
-    check('Der Admin sieht die Grenzen, aendern kann er sie nicht', !!adminField && adminField.disabled, adminField ? 'bedienbar' : 'keine Karte');
+    const adminCard = [...adminView.w.document.querySelectorAll('.sys-card')]
+      .find(c => c.querySelector('h3')?.textContent.trim() === DE['card.uploadLimits']);
+    check('Der Admin sieht die Grenzen als Text, aendern kann er sie nicht',
+      !adminField && /20 MB/.test(adminCard?.textContent || ''), adminField ? 'bedienbar' : 'kein Feld');
     adminView.w.close();
   }
 }

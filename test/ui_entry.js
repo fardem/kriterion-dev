@@ -690,22 +690,9 @@ async function run() {
   await sysSection(eSysUser.w, 'inventory');
   check('Ohne Adminrolle gibt es kein Anlegefeld',
     !eSysUser.w.document.getElementById('newcrit'));
-  check('Und die Zeilen tragen weder Griff noch ✎ noch ✕',
-    [...eSysUser.w.document.querySelectorAll('#mcrits .mrow')].length === 3 &&
-    ![...eSysUser.w.document.querySelectorAll('#mcrits .mrow')]
-      .some(z => z.querySelector('.grip') || z.querySelector('.ed') || z.querySelector('.rm')),
-    `${eSysUser.w.document.querySelectorAll('#mcrits .mrow .mact').length} Knoepfe`);
-  check('Die Kriterien selbst bleiben sichtbar',
-    /Zuerst/.test(eSysUser.w.document.getElementById('mcrits')?.textContent || ''));
-  check('Tags und Kategorien tragen seit 0.8.5 dasselbe Muster',
-    [...eSysUser.w.document.querySelectorAll('#mtags .mrow')].length > 0 &&
-    ![...eSysUser.w.document.querySelectorAll('#mtags .mrow')]
-      .some(z => z.querySelector('.ed') || z.querySelector('.rm')),
-    `${eSysUser.w.document.querySelectorAll('#mtags .mrow .mact').length} Knoepfe`);
-  check('Die Tagnamen selbst bleiben sichtbar',
-    [...eSysUser.w.document.querySelectorAll('#mtags .mrow .mname')]
-      .some(z => (z.textContent || '').trim().length > 0),
-    eSysUser.w.document.getElementById('mtags')?.textContent);
+  check('Und die Listen der Kriterien, Tags und Kategorien sieht er nicht',
+    !eSysUser.w.document.getElementById('mcrits') && !eSysUser.w.document.getElementById('mtags') &&
+    !eSysUser.w.document.getElementById('mcats'), eSysUser.w.location.hash);
   eSysUser.w.close();
 
   /* ---- Karte Zugaenge ---- */
@@ -870,8 +857,7 @@ async function run() {
   check('Umschalten wird serverseitig gespeichert',
     zlSent?.body.timeline === true, JSON.stringify(zlSent?.body));
 
-  /* Linkzeilen und Suchanbieter stehen im Abschnitt „Bestand". */
-  await sysSection(sysZl.w, 'inventory');
+  /* Die Linkzeilen stehen in „Darstellung", die Suchmaschinen unter „Installation". */
   const lzLevels = [...sysZl.w.document.querySelectorAll('#lrows .pill')];
   check('Und es gibt Stufen für die sichtbaren Linkzeilen', lzLevels.length === 4, `${lzLevels.length}`);
   check('Die gespeicherte Stufe ist hervorgehoben',
@@ -884,6 +870,7 @@ async function run() {
   check('Eine andere Stufe wird gespeichert', lzSent?.body.linkRows === 3,
     JSON.stringify(lzSent?.body));
 
+  await sysSection(sysZl.w, 'installation');
   const anbRows = [...sysZl.w.document.querySelectorAll('#engines .engine')];
   check('Die Verwaltungskarte zeigt alle neun Plätze', anbRows.length === 9, `${anbRows.length}`);
   check('Jede Zeile trägt Häkchen und Startknopf',
@@ -952,6 +939,7 @@ async function run() {
     (eigSent?.body.searchOwn || []).length === 3,
     JSON.stringify(eigSent?.body.searchOwn));
 
+  await sysSection(sysZl.w, 'personal');
   const namesLevels = [...sysZl.w.document.querySelectorAll('#snames .pill')];
   check('Es gibt vier Stufen für die Zahl der Namen', namesLevels.length === 4, `${namesLevels.length}`);
   check('Die eingestellte Stufe ist hervorgehoben',

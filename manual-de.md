@@ -44,7 +44,7 @@ Freiwillig, je Account, ab Werk aus. Niemand kann ihn für einen anderen ein-
 oder ausschalten, auch der Eigentümer-Admin nicht. Der Code kommt aus einer App auf
 dem Telefon; Kriterion verschickt keine Codes.
 
-Einschalten in der Karte „Mein Account":
+Einschalten in der Karte „Zweiter Faktor“ unter „Persönlich“:
 
 1. Eine TOTP-App installieren, etwa Google Authenticator, Aegis, 1Password
    oder die Passwörter-App von iOS.
@@ -61,7 +61,7 @@ verlangt.
 **Wiederherstellungscodes:** Beim Einschalten erscheinen acht Codes. Sie werden
 nur einmal angezeigt und gelten je einmal anstelle eines App-Codes. **Getrennt
 vom Telefon aufbewahren.** Ohne sie ist ein verlorenes Telefon ein verlorener
-Account. Neue Codes gibt es in „Mein Account" gegen Passwort und Code; die alten
+Account. Neue Codes gibt es in „Zweiter Faktor“ gegen Passwort und Code; die alten
 verfallen dann.
 
 Sind Telefon und Codes weg, schaltet der Eigentümer-Admin den zweiten Faktor auf dem
@@ -349,12 +349,14 @@ geht direkt dort.
   letzten Stück (5 %, mindestens 10 Sekunden) merkt sich Kriterion nichts; das
   Video beginnt dann von vorn. Das gilt auch für Videos unter „Dateien“ und in
   Kommentaren.
-- **Video ganz laden:** Spielt ein Video im Vollbild, lädt der Browser die ganze
-  Datei, am Rechner bis 2 GB, am Telefon bis 500 MB. Oben steht „geladen 45 %“.
-  Danach stockt das Video nicht mehr, und Springen braucht kein Laden. Größere
-  Videos und Videos bei eingeschaltetem Datensparen lädt der Browser wie bisher
-  stückweise. Nach dem Schließen bleibt nichts auf dem Gerät. Das gilt auch für
-  Videos unter „Dateien“ und in Kommentaren.
+- **Video ganz laden:** Im Vollbild steht oben bei einem Video „Ganz laden“,
+  am Rechner bis 2 GB, am Telefon bis 500 MB. Der Knopf hält das Video an und
+  lädt die Datei einmal ganz; oben steht „geladen 45 %“. Danach spielt das
+  Video an derselben Stelle weiter, und Springen braucht kein Laden. Ein
+  zweiter Druck bricht ab. Die Kopie bleibt, bis die Seite neu geladen oder ein
+  anderes Video ganz geladen wird. Ohne den Knopf lädt der Browser das Video
+  wie gewohnt stückweise. Das gilt auch für Videos unter „Dateien“ und in
+  Kommentaren.
 - **Auswählen:** „Auswählen“ über der Bildleiste setzt ein Kästchen an jedes
   Foto und Video; Klick oder Leertaste wählt. Die Leiste darunter nennt die
   Zahl und bietet „Löschen“ mit einer Rückfrage, „Alle auswählen“ und
@@ -481,6 +483,14 @@ unverändert.
   Bild als Vorschaubild“ das gezeigte Bild. Das darf nur, wer das Video
   hochgeladen hat. Kann der Browser ein Video nicht abspielen, etwa
   HEVC in Firefox, stehen dort ein Satz und „Herunterladen“.
+- **Proxy:** Ein Video unter „Dateien“ spielt seinen Proxy, sobald er fertig
+  ist: eine kleinere Fassung in H.264 (README, „Proxys für Videos“). Im
+  Vollbild wechselt „Original“ zum Original, nur für dieses Abspielen; beim
+  nächsten Öffnen spielt wieder der Proxy. Die Stelle gilt für beide.
+  „Herunterladen“ liefert immer das Original. Videos mit den Endungen `mkv`,
+  `avi`, `wmv` und `flv` spielt kein Browser; sie spielen erst mit ihrem
+  Proxy, und das Vorschaubild entsteht aus ihm. Fehlt ein Proxy oder lässt er
+  sich nicht lesen, spielt das Original, und Kriterion legt ihn neu an.
 - **Vorschaubild eines Dokuments:** Text, Markdown, CSV und Log zeigen auf der
   Kachel ihre ersten Zeilen. Word-, Excel- und PowerPoint-Dateien, ihre
   OpenDocument-Gegenstücke und PDF zeigen die erste Seite, wenn der Admin
@@ -517,7 +527,8 @@ unverändert.
   steht dort nur „Ort in der Datei: ja“; Koordinaten speichert Kriterion nicht.
   Mit einer Aufnahmezeit aus EXIF entfällt bei Bildern „Aufnahmedatum“ unter
   „Allgemein“. Bilder von vor dem Update liest Kriterion nach dem Start einmal
-  nach. Was die Datei nicht angibt, fehlt.
+  nach. Braucht ein Video einen Proxy, nennt die Gruppe „Proxy“ Zustand,
+  Auflösung und Größe. Was die Datei nicht angibt, fehlt.
 - **Infos:** „Infos“ im Menü ⋯ einer Word-, Excel-, PowerPoint- oder PDF-Datei
   und ihrer OpenDocument-Gegenstücke zeigt zwei Gruppen. „In Kriterion“:
   hochgeladen von und am, geändert vor dem Hochladen (die Zeit der Datei auf
@@ -693,27 +704,66 @@ eigene Adresse. Abschnitte ohne sichtbare Karte erscheinen nicht.
 
 | Abschnitt | Karten |
 |---|---|
-| Persönlich | Mein Account, Meine Sitzungen, Darstellung, Dokumente |
-| Bestand | Kategorien, Tags, Bewertung: Kriterien, Potenzial: Kriterien, Vokabular, Links, Suchmaschinen, Papierkorb |
+| Persönlich | Mein Account, Zweiter Faktor, Meine Sitzungen, Darstellung, Dokumente |
+| Bestand | Kategorien, Tags, Bewertung: Kriterien, Potenzial: Kriterien, Papierkorb |
 | Benutzer | Benutzer, Anfragen, Sicherheitsprotokoll, Mailversand |
-| Datenbank | Kennzahlen, Bildformate, Grenzen beim Hochladen, Backup, Alte Backups, Export und Import |
-| Installation | Titel, Sprachen, Dokumente |
+| Datenbank | Kennzahlen, Speicher und Wartung, Bildformate, Grenzen beim Hochladen |
+| Backup | Backup, Alte Backups, Export und Import |
+| Installation | Titel, Sprachen, Vokabular, Suchmaschinen, Dokumente, Proxy, Version und Verschlüsselung |
 
-Ein Benutzer sieht seine eigenen Karten und die Listen der Kategorien, Tags
-und Kriterien ohne Bearbeitung. Alles Weitere sieht der Admin; Export, Import,
-Backup und Sicherheitsprotokoll nur der Eigentümer-Admin.
+Ein Benutzer sieht nur „Persönlich“. Alles Weitere sieht der Admin; was er nicht
+ändern darf, steht als Text da. Den Abschnitt „Backup“, die Karten „Sprachen“,
+„Sicherheitsprotokoll“ und „Mailversand“ und die Befehle für den Server sieht
+nur der Eigentümer-Admin. Alle anderen lesen anstelle eines Befehls: „Wende dich
+an einen Admin, der dir dabei helfen kann.“
 
 | Karte | Inhalt |
 |---|---|
 | Titel | Titel vor der Anmeldung (für jeden sichtbar, zurückhaltend wählen) und Titel nach der Anmeldung |
 | Dokumente | Anzeige und Bearbeiten über einen Document Server ein- und ausschalten; „Bearbeiten durch alle“: Startwert, solange ein Account keinen eigenen gesetzt hat; die Karte prüft die Verbindung. Adressen und Secret stehen in der `.env`, siehe README |
-| Kennzahlen | Umfang des Bestands, Datenbankgröße, Dateien auf der Platte (davon über „Anhang“ und im Papierkorb), Uploads, freier Platz, Version, Fingerprint, Verschlüsselungsverfahren; für den Eigentümer-Admin der Schlüsselwert. Nur wenn es welche gibt: Dateien, die noch in der Datenbank auf die Umlagerung warten, fehlende Dateien, Dateien, die auf das Löschen warten, und Dateien ohne Verweis. Diese löscht der Eigentümer-Admin mit „Löschen“, aber nur, wenn im Backup-Ordner eine Kopie gleicher Länge liegt |
+| Proxy | Proxys für Videos unter „Dateien“ ein- und ausschalten, nur der Eigentümer-Admin, Vorgabe aus; ob Quick Sync kodiert oder die CPU umwandelt und warum; ob `/tmp` im RAM liegt und wie viel frei ist; fertige, wartende und fehlgeschlagene Proxys. Siehe README, „Proxys für Videos“ |
+| Kennzahlen | Umfang des Bestands: Einträge, Fotos, Videos, Kommentare, Links und Testtage |
+| Speicher und Wartung | Datenbankgröße, Papierkorb, Dateien auf der Platte (davon über „Anhang“ und im Papierkorb), Uploads, freier Platz. Nur wenn es welche gibt: freier Platz in der Datenbank („davon frei“), Dateien, die noch in der Datenbank auf die Umlagerung warten, fehlende Dateien, Dateien, die auf das Löschen warten, und Dateien ohne Verweis. Für den Eigentümer-Admin der „Abgleich“, siehe unten |
+| Version und Verschlüsselung | Version, Fingerprint, Verschlüsselungsverfahren; für den Eigentümer-Admin der Schlüsselwert, solange der Schlüssel neben der Datenbank liegt |
 | Kategorien, Tags | anlegen, umbenennen, löschen; ein Häkchen legt fest, ob jeder neue Namen am Eintrag anlegen darf |
 | Bewertung: Kriterien, Potenzial: Kriterien | anlegen, umbenennen, sortieren, gewichten (0,2 bis 2, Vorgabe 1); in „Bewertung: Kriterien“ die Schwelle für „Teilweise“ in den Filtern der Übersicht (1 bis 100 %, Vorgabe 80) |
 | Suchmaschinen | sechs eingebaute und bis zu drei eigene (`%s` als Platzhalter); eine ist Standard |
-| Links | Zahl der sichtbaren Linkzeilen, persönlich |
-| Darstellung | Farbschema, Sprache, Schriftgröße, Größe der Vorschaubilder, Zeitleiste, Anordnung der Blöcke; persönlich |
+| Zweiter Faktor | ein- und ausschalten, neue Wiederherstellungscodes; persönlich, siehe „Zweiter Faktor“ |
+| Darstellung | Farbschema, Sprache, Schriftgröße, Größe der Vorschaubilder, Zeitleiste, Zahl der sichtbaren Linkzeilen und Anbieternamen, Anordnung der Blöcke; persönlich |
 | Dokumente (persönlich) | Darstellung im Document Server (Wie Kriterion, Modern Hell, Modern Dunkel) und die Vorgabe „Bearbeiten durch alle“ für die eigenen neuen Dateien. Nur mit eingeschaltetem Document Server |
+
+### Abgleich
+
+„Abgleich“ in der Karte „Speicher und Wartung“ sieht nur der Eigentümer-Admin.
+Er vergleicht `data/files/` mit der Datenbank und prüft die Datenbank. Gelöscht
+oder zurückgeholt wird erst nach einer Bestätigung.
+
+Als Dateien ohne Verweis zählen Dateien, Verzeichnisse und symbolische Links in
+`data/files/`, die die Datenbank nicht kennt, mit jedem Namen; `upload/` zählt
+nicht dazu. Die Liste nennt Größe, Datum und Grund. Eine davon lässt sich
+löschen, wenn einer dieser Fälle gilt:
+
+| Fall | Grund in der Liste |
+|---|---|
+| Den Namen legt Kriterion nicht an, oder es ist ein Verzeichnis oder ein symbolischer Link | Diesen Namen legt Kriterion nicht an. |
+| Der Backup-Ordner enthält die Datei mit gleicher Länge | Der Backup-Ordner enthält sie mit gleicher Länge. |
+| Kein Backup im Backup-Ordner nennt den Namen. Den Schlüssel einer Datei hat nur ihre Zeile in der Datenbank; ohne sie ist die Datei nicht lesbar | Kein Backup nennt sie; ohne ihre Zeile ist sie nicht lesbar. |
+
+Alles andere bleibt: eine Datei, die ein Backup nennt, wenn der Backup-Ordner
+sie nicht enthält; jede Datei mit einem Namen von Kriterion, solange ein Backup
+keine Dateiliste hat oder kein Backup-Ordner erreichbar ist. Ein Verzeichnis
+wird mit Inhalt gelöscht, ein symbolischer Link als Link und nie sein Ziel.
+Während ein Backup läuft, wird nichts gelöscht.
+
+Fehlende Dateien fehlen auf der Platte oder haben eine falsche Länge. Die Liste
+nennt Eintrag, Ordner und Dateiname, auch für Dateien im Papierkorb und vorige
+Fassungen. Enthält der Backup-Ordner die Datei mit gleicher Länge, holt
+„Zurückholen“ sie zurück; sonst lässt sie sich im Eintrag löschen. Unter
+„Dateien“ zeigt eine fehlende Datei „fehlt“.
+
+Die Prüfung der Datenbank (`quick_check` und `foreign_key_check` von SQLite)
+läuft in einem eigenen Thread; Kriterion bleibt bedienbar. Sie meldet nur und
+repariert nichts. Meldet sie Fehler: README, „Backup zurückspielen“.
 
 ### Grenzen beim Hochladen
 

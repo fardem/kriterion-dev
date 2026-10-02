@@ -6,16 +6,19 @@ Betreibers ein Video der A6700 in einen Proxy umwandelt: mit Quick Sync und nur
 mit der CPU. Dazu prüft die Messung, ob die Intel-Treiber aus Debian auf dem
 N100 kodieren. Kriterion ist dabei nicht beteiligt.
 
-Ziel der Umwandlung (F8, F16, F17 und V10 im Auftrag):
+Ziel der Umwandlung (F8, F16, F21 und V10 im Auftrag):
 
-- höchstens 1080 Zeilen; das Seitenverhältnis bleibt, ein Video mit weniger
-  Zeilen behält seine Höhe
+- die kürzere Seite höchstens 1080 Pixel; das Seitenverhältnis bleibt, ein
+  kleineres Video behält seine Größe. Ein Hochkant-Video bleibt so gespeichert
+  wie das Original, die Drehung bleibt als Metadatum im Proxy
 - die Bildrate des Originals
-- H.264 mit 5 Mbit/s bis 30 Bilder je Sekunde, 8 Mbit/s bis 60 und 16 Mbit/s
-  darüber; ein Keyframe alle 2 Sekunden
+- H.264 mit 0,23 Mbit je Bild, höchstens 7,5 Mbit/s: 24p 5,52, 25p 5,75,
+  30p 6,9 Mbit/s, ab 50p 7,5 Mbit/s; ein Keyframe alle 2 Sekunden
 - Ton AAC mit 128 kbit/s, MP4 mit der `moov`-Box vorn
 
-Das ergibt je Stunde 2,3, 3,7 oder 7,3 GB.
+Das ergibt je Stunde 2,5 GB bei 24p, 3,2 GB bei 30p und 3,4 GB ab 50p. Bis
+zum 2. Oktober 2026 galten 5, 8 oder 16 Mbit/s nach der Bildrate (F17) und
+damit 2,3, 3,7 oder 7,3 GB; F21 hat die Regel ersetzt.
 
 Die erste Fassung vom 30. September setzte 30 Bilder je Sekunde fest. Bei 25p
 und 50p, wie bei einer A6700 in Europa üblich, hätte der Proxy geruckelt. Seit
@@ -55,6 +58,32 @@ Endet der Befehl ohne Fehler, kodiert Quick Sync H.264 mit fester Bitrate.
 Gelingt er nur ohne `-b:v 5M -maxrate 5M -bufsize 10M`, lädt der Host
 vermutlich die HuC-Firmware nicht; die Wege A und B brauchen sie.
 
+Kodiert Quick Sync nicht, zeigen drei Befehle auf dem Host die Ursache:
+
+```sh
+grep -E 'DRIVER|PCI_ID' /sys/class/drm/renderD128/device/uevent
+ls /lib/firmware/i915/ | grep -E 'adlp_guc|tgl_huc'
+dmesg | grep -i -E 'i915|guc|huc|wedged'
+```
+
+- `DRIVER=i915` und eine `PCI_ID` mit `8086:` zeigen die Intel-Grafik am
+  Kernel-Treiber. Der N100 hat `8086:46D1`.
+- Fehlt `/lib/firmware/i915/`, fehlt die Firmware für GuC und HuC. Der
+  Intel-Mediatreiber meldet dann `iHD_drv_video.so init failed`, ffmpeg
+  `Input/output error`. Nach der Installation den Host neu starten.
+
+| System | Paket mit der Firmware für `i915` |
+|---|---|
+| Debian 12 | `firmware-misc-nonfree` (20230210-5) |
+| Debian 12 mit Firmware aus `bookworm-backports` | `firmware-intel-graphics` (20250410-2~bpo12+1) |
+| Debian 13 | `firmware-intel-graphics` (20250410-2) |
+| Ubuntu | `linux-firmware` (nicht geprüft) |
+
+Seit den Firmware-Paketen von 2025 enthält `firmware-misc-nonfree` keine Datei
+für `i915` mehr. Geprüft am 1. Oktober 2026 im Inhalt der Pakete. Gefunden auf
+dem N100 des Betreibers: OpenMediaVault auf Debian 12, Kernel 6.12.95 aus den
+Backports, installiert nur `firmware-misc-nonfree` 20250410-2~bpo12+1.
+
 ---
 
 ## 3. Das Aufnahmeformat
@@ -72,17 +101,30 @@ vermutlich die HuC-Firmware nicht; die Wege A und B brauchen sie.
 
 ## 4. Umwandeln
 
-`MBIT` und `GOP` folgen aus der Bildrate. `MBIT` ist 5 bis 30 Bilder je
-Sekunde, 8 bis 60 und 16 darüber. `GOP` ist die Zahl der Bilder in 2 Sekunden,
-bei 50p also 100.
+`KW` und `KH` begrenzen die kürzere Seite auf 1080 Pixel:
+
+```sh
+KW="'if(gt(iw,ih),-2,min(1080,iw))'"
+KH="'if(gt(iw,ih),min(1080,ih),-2)'"
+```
+
+`-noautorotate` lässt ein Hochkant-Video so liegen, wie es gespeichert ist.
+Ohne die Option dreht ffmpeg das Bild zuerst; ein Hochkant-Video in 1080p wurde
+dann zu 608×1080. Geprüft am 1. Oktober 2026 mit einem Proxy der A6700
+(1920×1080, Drehung −90°): mit der Option 1920×1080, Drehung −90°.
+
+`MBIT`, `BUF` und `GOP` folgen aus der Bildrate. `MBIT` ist 0,23 je Bild,
+höchstens 7,5; `BUF` ist doppelt so groß. `GOP` ist die Zahl der Bilder in
+2 Sekunden. Bei 25p also `MBIT=5.75 BUF=11.5 GOP=50`, bei 50p
+`MBIT=7.5 BUF=15 GOP=100`.
 
 **A — Quick Sync**, Dekodieren und Kodieren in der Grafik, für HEVC und H.264
 mit 8 Bit und 4:2:0:
 
 ```sh
 ffmpeg -hwaccel vaapi -hwaccel_device /dev/dri/renderD128 -hwaccel_output_format vaapi \
-  -i C0001.MP4 -vf "scale_vaapi=w=-2:h='min(1080,ih)':format=nv12" \
-  -c:v h264_vaapi -b:v ${MBIT}M -maxrate ${MBIT}M -bufsize $((2 * MBIT))M -g $GOP \
+  -noautorotate -i C0001.MP4 -vf "scale_vaapi=w=$KW:h=$KH:format=nv12" \
+  -c:v h264_vaapi -b:v ${MBIT}M -maxrate ${MBIT}M -bufsize ${BUF}M -g $GOP \
   -c:a aac -b:a 128k -movflags +faststart C0001.proxy-A.mp4
 ```
 
@@ -91,16 +133,16 @@ kodiert:
 
 ```sh
 ffmpeg -init_hw_device vaapi=va:/dev/dri/renderD128 -filter_hw_device va \
-  -i C0001.MP4 -vf "scale=-2:'min(1080,ih)',format=nv12,hwupload" \
-  -c:v h264_vaapi -b:v ${MBIT}M -maxrate ${MBIT}M -bufsize $((2 * MBIT))M -g $GOP \
+  -noautorotate -i C0001.MP4 -vf "scale=$KW:$KH,format=nv12,hwupload" \
+  -c:v h264_vaapi -b:v ${MBIT}M -maxrate ${MBIT}M -bufsize ${BUF}M -g $GOP \
   -c:a aac -b:a 128k -movflags +faststart C0001.proxy-B.mp4
 ```
 
 **C — nur die CPU**, für jede Datei:
 
 ```sh
-ffmpeg -i C0001.MP4 -vf "scale=-2:'min(1080,ih)',format=yuv420p" \
-  -c:v libx264 -preset veryfast -b:v ${MBIT}M -maxrate ${MBIT}M -bufsize $((2 * MBIT))M -g $GOP \
+ffmpeg -noautorotate -i C0001.MP4 -vf "scale=$KW:$KH,format=yuv420p" \
+  -c:v libx264 -preset veryfast -b:v ${MBIT}M -maxrate ${MBIT}M -bufsize ${BUF}M -g $GOP \
   -c:a aac -b:a 128k -movflags +faststart C0001.proxy-C.mp4
 ```
 
@@ -114,8 +156,9 @@ Das Skript schreibt eine Tafel mit diesen Spalten:
 
 | Spalte | Inhalt |
 |---|---|
-| Format | `codec_name` und `pix_fmt` aus Abschnitt 3, dazu HLG oder PQ |
-| Pixel, Bilder/s, Mbit/s, Dauer | das Original |
+| Format | `codec_name` und `pix_fmt` aus Abschnitt 3, dazu HLG oder PQ und „hochkant“ |
+| Pixel, Bilder/s, Dauer | das Original, Pixel wie gespeichert |
+| Video Mbit/s | Bitrate des Videos im Original, ohne Ton und Metadaten; Sony schreibt eine eigene Spur `rtmd` |
 | Weg | A, B oder C aus Abschnitt 4 |
 | Ziel | Bitrate des Proxys |
 | Zeit | Dauer der Umwandlung |
@@ -131,16 +174,29 @@ Wärme.
 „Am Telefon“: jeden Proxy auf dem Telefon öffnen, ansehen, springen. Stimmen
 Bild, Ton, Seitenverhältnis und Bewegung, bei HLG auch die Farben?
 
-Was schnell genug ist, entscheidet der Betreiber mit den Zahlen (F1).
+Was schnell genug ist, hat der Betreiber mit den Zahlen entschieden (F1, F20).
 
 ---
 
 ## 6. Das Skript
 
+Das Skript liegt in `Doku/messung.sh`.
+
 1. Die Videos in den leeren Ordner kopieren.
-2. Das Skript unten als `messung.sh` in denselben Ordner legen.
+2. Das Skript in denselben Ordner legen. Aus einem Klon des Repositorys holt
+   `git show <Branch>:Doku/messung.sh > <Ordner>/messung.sh` es, ohne den
+   Arbeitsstand des Klons zu ändern.
 3. Im Ordner `bash messung.sh | tee messung.txt` aufrufen. Braucht Docker
-   `sudo`, dann `sudo bash messung.sh | tee messung.txt`.
+   `sudo`, dann `sudo bash messung.sh | tee messung.txt`. Die Proxys entstehen
+   im Ordner, in dem das Skript aufgerufen wird.
+
+`MBIT=7.5 bash messung.sh | tee messung.txt` setzt eine Bitrate für alle Videos
+(V13). Ohne `MBIT` gilt F21: 0,23 Mbit je Bild, höchstens 7,5 Mbit/s.
+
+`FFMPEG=schlank bash messung.sh | tee messung.txt` misst mit dem
+schlanken ffmpeg aus Abschnitt 7 statt mit ffmpeg aus Debian und nennt die
+Dauer des Baus. Das Image aus Debian mit dem freien Treiber baut es weiter,
+nur für `ffprobe`. `FFVER` wählt die Version: 9.0.2 (Vorgabe) oder 7.1.5.
 
 Das Skript
 
@@ -161,226 +217,49 @@ Sync und der Rückfall auf `linuxserver/ffmpeg`. Die Wege A und B laufen erst au
 dem N100.
 
 Danach entfernt
-`docker image rm kriterion-messung:intel-media-va-driver kriterion-messung:intel-media-va-driver-non-free`
-die beiden Images; `linuxserver/ffmpeg` ebenso, wenn das Skript es geladen hat.
+`docker image rm kriterion-messung:intel-media-va-driver kriterion-messung:intel-media-va-driver-non-free kriterion-messung:schlank`
+die Images; `linuxserver/ffmpeg` ebenso, wenn das Skript es geladen hat.
 
-```bash
-#!/bin/bash
-# Misst die Umwandlung in Proxys für Kriterion. Aufruf im Ordner mit den Videos:
-#   bash messung.sh | tee messung.txt
-DRI=${DRI:-/dev/dri/renderD128}
-LSIO=linuxserver/ffmpeg:latest
-NPROC=$(nproc)
-TMP=$(mktemp -d)
-trap 'rm -rf "$TMP"' EXIT
-: >"$TMP/fehler"
-: >"$TMP/dauerlast"
 
-say() { printf '%s\n' "$*" >&2; }
+---
 
-# Basis-Image von Kriterion mit ffmpeg und einem der beiden Intel-Treiber aus Debian.
-bau() {
-  docker build -q -t "kriterion-messung:$1" --build-arg TREIBER="$1" - >"$TMP/bau.log" 2>&1 <<'EOF'
-FROM node:22-bookworm-slim
-ARG TREIBER
-RUN sed -i 's/^Components: main$/Components: main non-free/' /etc/apt/sources.list.d/debian.sources \
- && apt-get update \
- && apt-get install -y --no-install-recommends ffmpeg "$TREIBER" \
- && rm -rf /var/lib/apt/lists/*
-EOF
-}
+## 7. Probebau: schlankes ffmpeg
 
-ff() {
-  local img=$1; shift
-  docker run --rm "${HW[@]}" --user "$(id -u):$(id -g)" -v "$PWD:/work" -w /work \
-    --entrypoint ffmpeg "$img" -hide_banner -nostdin "$@"
-}
+Für F19 im Auftrag gemessen am 1. und 2. Oktober 2026, in der Sitzung von
+Claude. Das Skript holt das Archiv von `ffmpeg.org` mit `ADD --checksum`; das
+braucht BuildKit, das Docker ab Version 23 unter Linux von selbst nimmt.
 
-version() { docker run --rm --entrypoint ffmpeg "$1" -version 2>/dev/null | sed -n '1s/^ffmpeg version \([^ ]*\).*/\1/p'; }
+| Version | erschienen | SHA-256 | geprüft |
+|---|---|---|---|
+| 7.1.5 | 20. Juni 2026 | `de668509…` | bitgleich mit `ffmpeg_7.1.5.orig.tar.xz` aus Debian 13 |
+| 9.0.2 | 18. September 2026 | `8c385028…` | Signatur gültig, Release-Schlüssel `FCF9 86EA 15E6 E293 A564 4F10 B432 2F04 D676 58D8` |
 
-qs() {
-  local img=$1; shift
-  ff "$img" -v verbose -init_hw_device vaapi=va:"$DRI" -filter_hw_device va \
-    -f lavfi -i testsrc2=duration=2:size=1920x1080:rate=30 \
-    -vf format=nv12,hwupload -c:v h264_vaapi "$@" -f null - >"$TMP/qs.log" 2>&1
-}
+| Version | Bau in der Sitzung | Image | Weg C | Quick Sync auf dem N100 |
+|---|---|---|---|---|
+| 7.1.5 | 3:19 mit dem Herunterladen | 263 MB | geprüft | gemessen: Bau 4:39, 264 MB, Weg A 10 bis 25 % schneller als 5.1.9 |
+| 9.0.2 | 3:23 mit dem Herunterladen | 264 MB | geprüft, so schnell wie 7.1.5 | nicht gemessen |
 
-# Weg A und B brauchen eine feste Bitrate; ohne HuC-Firmware kodiert der N100 nur mit fester Qualität.
-pruefe() {
-  if qs "$1" -b:v 5M -maxrate 5M -bufsize 10M; then
-    echo "- $2: Quick Sync kodiert H.264 ($(sed -n 's/.*VAAPI driver: \(.*\)\.$/\1/p' "$TMP/qs.log" | head -n1))"
-    return 0
-  fi
-  if qs "$1"; then
-    echo "- $2: Quick Sync kodiert nur ohne feste Bitrate; vermutlich lädt der Host die HuC-Firmware nicht"
-  else
-    echo "- $2: Quick Sync kodiert nicht"
-  fi
-  grep -v '^ *$' "$TMP/qs.log" | tail -n 3 | sed 's/^/    /'
-  return 1
-}
+Das `Changelog` von 9.0.2 nennt für die Teile, die Kriterion benutzt, drei
+neue Grenzprüfungen im Leser für MP4 und MOV (`keys`, `trun`, `sgpd`),
+Korrekturen an den Decodern für H.264 und HEVC und ein Leck in dav1d. Die
+neuen Funktionen von 8.0 bis 9.0 (VVC über VA-API, APV, ProRes RAW, D3D12,
+Vulkan, NVENC) betreffen die Proxys nicht.
 
-wandle() {
-  local weg=$1 img=$2 f=$3 mbit=$4 gop=$5 aus vf dec=() enc=()
-  aus="${f%.*}.proxy-$weg.mp4"
-  case $weg in
-    A) dec=(-hwaccel vaapi -hwaccel_device "$DRI" -hwaccel_output_format vaapi)
-       vf="scale_vaapi=w=-2:h='min(1080,ih)':format=nv12"; enc=(-c:v h264_vaapi) ;;
-    B) dec=(-init_hw_device vaapi=va:"$DRI" -filter_hw_device va)
-       vf="scale=-2:'min(1080,ih)',format=nv12,hwupload"; enc=(-c:v h264_vaapi) ;;
-    C) vf="scale=-2:'min(1080,ih)',format=yuv420p"; enc=(-c:v libx264 -preset veryfast) ;;
-  esac
-  say "  Weg $weg: $f"
-  local t0=$SECONDS
-  ff "$img" -benchmark -nostats -progress pipe:1 -stats_period 1 -y "${dec[@]}" -i "$f" \
-    -vf "$vf" "${enc[@]}" -b:v "${mbit}M" -maxrate "${mbit}M" -bufsize "$((2 * mbit))M" -g "$gop" \
-    -c:a aac -b:a 128k -movflags +faststart "$aus" 2>"$TMP/lauf.log" |
-    while IFS= read -r z; do
-      case $z in out_time_us=*) echo "$SECONDS ${z#out_time_us=}" ;; esac
-    done >"$TMP/zeit"
-  if [ "${PIPESTATUS[0]}" != 0 ]; then
-    { echo "$f, Weg $weg:"; grep -v -e '^ *$' -e '^bench:' "$TMP/lauf.log" | tail -n 3 | sed 's/^/    /'; } >>"$TMP/fehler"
-    rm -f "$aus"
-    return 1
-  fi
-  read -r UT ST RT < <(sed -n 's/^bench: utime=\([0-9.]*\)s stime=\([0-9.]*\)s rtime=\([0-9.]*\)s.*/\1 \2 \3/p' "$TMP/lauf.log")
-  [ -n "$RT" ] || { UT=0 ST=0 RT=$((SECONDS - t0 + 1)); }
-  BYTES=$(stat -c %s "$aus")
-}
+| Image | Größe |
+|---|---|
+| `node:22-bookworm-slim` | 227 MB |
+| mit `ffmpeg` und `intel-media-va-driver` aus Debian | 705 MB |
+| mit diesem schlanken ffmpeg und `intel-media-va-driver` | 263 MB |
+| mit `jellyfin-ffmpeg8` 8.1.3 und seinem Intel-Treiber 26.3.5 | rund 525 MB |
 
-# Tempo in der ersten und in der letzten Minute des Laufs, aus den Zeilen out_time_us von -progress.
-minuten() {
-  awk '{ t[NR] = $1; o[NR] = $2 + 0 }
-    END {
-      if (NR < 2) exit
-      for (i = 2; i <= NR && t[i] - t[1] < 60; i++) ;
-      if (i > NR) exit
-      e = NR; while (e > 1 && o[e] <= o[e - 1]) e--
-      for (j = e - 1; j > 1 && t[e] - t[j] < 60; j--) ;
-      if (t[e] - t[j] < 60) exit
-      s = sprintf("erste Minute %.1f-fach, letzte Minute %.1f-fach",
-                  (o[i] - o[1]) / 1e6 / (t[i] - t[1]), (o[e] - o[j]) / 1e6 / (t[e] - t[j]))
-      gsub(/\./, ",", s); print s
-    }' "$TMP/zeit"
-}
+Das `Dockerfile` steht im Skript in der Funktion `bau_schlank()`.
 
-echo "# Messung vom $(date '+%d.%m.%Y %H:%M')"
-echo
-echo "- CPU: $(sed -n 's/^model name[[:space:]]*: //p' /proc/cpuinfo | head -n1), $NPROC Kerne; Kernel $(uname -r)"
-HW=()
-if [ -c "$DRI" ]; then
-  HW=(--device "$DRI:$DRI" --group-add "$(stat -c %g "$DRI")")
-else
-  echo "- $DRI fehlt: nur Weg C"
-fi
+| ffmpeg | mit `-noautorotate` | gemessen |
+|---|---|---|
+| 5.1.9 aus Debian 12 | die Drehung bleibt | Weg C und, beim Betreiber, Weg A |
+| 7.1.5, schlank | die Drehung bleibt | Weg C |
+| 8.1.3 aus `jellyfin-ffmpeg8` | die Drehung geht verloren | Weg C |
+| 9.0 aus `linuxserver/ffmpeg` | die Drehung bleibt | Weg C |
 
-HWIMG= CPUIMG=
-for t in intel-media-va-driver intel-media-va-driver-non-free; do
-  say "Baue das Image mit ffmpeg und $t ..."
-  if ! bau "$t"; then
-    echo "- Debian mit $t: Bau fehlgeschlagen"
-    grep -v '^ *$' "$TMP/bau.log" | tail -n 3 | sed 's/^/    /'
-    continue
-  fi
-  [ -z "$CPUIMG" ] && CPUIMG=kriterion-messung:$t
-  [ ${#HW[@]} = 0 ] && break
-  pruefe "kriterion-messung:$t" "Debian mit $t" && [ -z "$HWIMG" ] && HWIMG=kriterion-messung:$t
-done
-if [ ${#HW[@]} != 0 ] && [ -z "$HWIMG" ]; then
-  say "Lade $LSIO ..."
-  docker pull -q "$LSIO" >/dev/null 2>&1 && pruefe "$LSIO" "$LSIO" && HWIMG=$LSIO
-fi
-if [ -z "$CPUIMG" ]; then
-  docker pull -q "$LSIO" >/dev/null 2>&1 && CPUIMG=$LSIO
-fi
-if [ -z "$CPUIMG" ]; then
-  echo "Kein Image mit ffmpeg; Abbruch."
-  exit 1
-fi
-echo "- Weg A und B: ${HWIMG:-keiner}${HWIMG:+, ffmpeg $(version "$HWIMG")}"
-echo "- Weg C: $CPUIMG, ffmpeg $(version "$CPUIMG")"
-echo
-echo "| Datei | Format | Pixel | Bilder/s | Mbit/s | Dauer | Weg | Ziel | Zeit | Faktor | CPU | Größe |"
-echo "|---|---|---|---|---|---|---|---|---|---|---|---|"
-
-for f in *; do
-  case ${f,,} in
-    *.proxy-[abc].mp4) continue ;;
-    *.mp4 | *.mov | *.m4v | *.mts | *.m2ts | *.mkv | *.avi | *.wmv | *.flv | *.webm) ;;
-    *) continue ;;
-  esac
-  codec= pix= w= h= rate= trc= dur= br=
-  while IFS='=' read -r k v; do
-    case $k in
-      codec_name) codec=$v ;; pix_fmt) pix=$v ;; width) w=$v ;; height) h=$v ;;
-      r_frame_rate) rate=$v ;; color_transfer) trc=$v ;; duration) dur=$v ;; bit_rate) br=$v ;;
-    esac
-  done < <(docker run --rm -v "$PWD:/work" -w /work --entrypoint ffprobe "$CPUIMG" -v error \
-             -select_streams v:0 \
-             -show_entries stream=codec_name,pix_fmt,width,height,r_frame_rate,color_transfer:format=duration,bit_rate \
-             -of default=nw=1 "$f" 2>/dev/null)
-  if [ -z "$codec" ]; then
-    echo "| $f | kein Video | | | | | | | | | | |"
-    continue
-  fi
-  n=${rate%/*} d=${rate#*/}
-  case "$n/$d" in *[!0-9/]* | /* | */ | 0/* | */0) n=30 d=1 ;; esac
-  mbit=5
-  [ "$n" -gt $((30 * d)) ] && mbit=8
-  [ "$n" -gt $((60 * d)) ] && mbit=16
-  gop=$(((2 * n + d - 1) / d))
-  fmt="$codec $pix"
-  case $trc in arib-std-b67) fmt="$fmt HLG" ;; smpte2084) fmt="$fmt PQ" ;; esac
-  fps=$(awk -v n="$n" -v d="$d" 'BEGIN { s = sprintf("%.2f", n / d); sub(/\.?0+$/, "", s); sub(/\./, ",", s); print s }')
-  quelle=$(awk -v b="${br:-0}" 'BEGIN { printf "%d", b / 1e6 + 0.5 }')
-  laenge=$(awk -v s="${dur:-0}" 'BEGIN { s = int(s + 0.5); printf "%d:%02d", s / 60, s % 60 }')
-  hw=
-  if [ -n "$HWIMG" ]; then
-    case "$codec/$pix" in
-      hevc/* | vp9/* | av1/* | h264/yuv420p | h264/yuvj420p) hw=A ;;
-      *) hw=B ;;
-    esac
-  fi
-  if awk -v x="${dur:-0}" 'BEGIN { exit !(x >= 600) }'; then
-    wege="${hw:-C}"; lang=1
-  else
-    wege="$hw C"; lang=0
-  fi
-  say "$f: $fmt, ${w}×${h}, $fps Bilder/s"
-  for weg in $wege; do
-    img=$CPUIMG
-    [ "$weg" != C ] && img=$HWIMG
-    if ! wandle "$weg" "$img" "$f" "$mbit" "$gop"; then
-      echo "| $f | $fmt | ${w}×${h} | $fps | $quelle | $laenge | $weg | $mbit Mbit/s | Fehler | | | |"
-      [ "$weg" = A ] || continue
-      weg=B
-      if ! wandle B "$img" "$f" "$mbit" "$gop"; then
-        echo "| $f | $fmt | ${w}×${h} | $fps | $quelle | $laenge | B | $mbit Mbit/s | Fehler | | | |"
-        continue
-      fi
-    fi
-    werte=$(awk -v ut="$UT" -v st="$ST" -v rt="$RT" -v d="$dur" -v n="$NPROC" -v b="$BYTES" 'BEGIN {
-      z = int(rt + 0.5)
-      printf "%d:%02d | %.1f | %d %% | %d MB", z / 60, z % 60, d / rt, (ut + st) / rt / n * 100 + 0.5, b / 1e6 + 0.5 }')
-    echo "| $f | $fmt | ${w}×${h} | $fps | $quelle | $laenge | $weg | $mbit Mbit/s | ${werte//./,} |"
-    if [ "$lang" = 1 ]; then
-      m=$(minuten)
-      echo "$f, Weg $weg: ${m:-Lauf kürzer als zwei Minuten}" >>"$TMP/dauerlast"
-    fi
-  done
-done
-
-if [ -s "$TMP/dauerlast" ]; then
-  echo
-  echo "Dauerlast:"
-  sed 's/^/- /' "$TMP/dauerlast"
-fi
-if [ -s "$TMP/fehler" ]; then
-  echo
-  echo "Fehler:"
-  cat "$TMP/fehler"
-fi
-say ""
-say "Fertig. Die Proxys liegen als *.proxy-A.mp4, *.proxy-B.mp4 und *.proxy-C.mp4 neben den Videos."
-say "Images entfernen: docker image rm kriterion-messung:intel-media-va-driver kriterion-messung:intel-media-va-driver-non-free"
-```
+Gemessen mit dem Proxy der A6700 hochkant (1920×1080, Drehung −90°).
+`jellyfin-ffmpeg8` ohne `-noautorotate` dreht die Pixel und liefert 1080×1920.

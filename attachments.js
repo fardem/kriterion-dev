@@ -15,7 +15,7 @@ const IMAGE_TYPES = {
   webp: 'image/webp', avif: 'image/avif', bmp: 'image/bmp'
 };
 
-// Videos der Bildleiste und unter „Dateien"; .avi, .mkv, .wmv und .flv bleiben ohne Vorschau.
+// Videos der Bildleiste und unter „Dateien".
 const VIDEO_TYPES = {
   mp4: 'video/mp4', m4v: 'video/mp4', webm: 'video/webm', mov: 'video/quicktime'
 };
@@ -51,6 +51,10 @@ const extension = (name) => {
   const m = String(name || '').toLowerCase().match(/\.([a-z0-9]+)$/);
   return m ? m[1] : '';
 };
+
+// Kein Browser spielt sie ab; unter „Dateien" spielen sie ueber ihren Proxy (videoproxy.js).
+const PROXY_ONLY = ['mkv', 'avi', 'wmv', 'flv'];
+const proxyOnly = (filename) => PROXY_ONLY.includes(extension(filename));
 
 /* ---- Auslieferung ---- */
 
@@ -358,7 +362,8 @@ async function sealInto(file, f, first, plain, { fresh = false } = {}) {
 }
 
 /* ---- Erweiterte Infos zu Bildern und Videos ---- */
-const mediaKind = (filename) => (['image', 'video'].includes(previewKind(filename)) ? previewKind(filename) : null);
+const mediaKind = (filename) => (proxyOnly(filename) ? 'video'
+  : ['image', 'video'].includes(previewKind(filename)) ? previewKind(filename) : null);
 const mediaNumber = (v) => (v === undefined || v === null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
 const mediaText = (v) => (v === undefined || v === null || v === '' ? null : String(v).slice(0, 80));
 const HDR_TRANSFERS = ['PQ', 'HLG'];
@@ -608,5 +613,5 @@ module.exports = {
   typeFromBytes, setImageHeader, rangeOut,
   textPreview, textTileSvg, TEXT_TILE_BYTES: TEXT_TILE.bytes, docxPreview, VIDEO_TYPES, INLINE_ALLOWED, outType,
   CHUNK, TAG, encLen, sealChunk, openChunk, chunkCount, chunkPlain, chunkAt,
-  readChunk, readChunkSync, openWholeSync, sealInto, mediaKind, mediaFacts, isDocument, documentFacts
+  readChunk, readChunkSync, openWholeSync, sealInto, mediaKind, mediaFacts, isDocument, documentFacts, proxyOnly
 };

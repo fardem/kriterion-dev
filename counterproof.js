@@ -4043,16 +4043,15 @@ const REGRESSIONS = [
   {
     nr: '561', name: 'Die Karte „Alte Sicherungen" faellt aus dem Systembereich',
     file: 'public/app.js',
-    search: "  { key: 'cleanup',      section: 'database', visible: () => OWNER,\n" +
-           "    markup: cardCleanup,   wireUp: setUpCleanupOut },",
+    search: "  { key: 'cleanup',      section: 'backup', visible: () => OWNER,\n    markup: cardCleanup,   wireUp: setUpCleanupOut },",
     replacement: "",
     expected: 'Der Systembereich nach Rolle'
   },
   {
     nr: '562', name: 'Die Karte „Alte Sicherungen" steht schon beim Admin',
     file: 'public/app.js',
-    search: "  { key: 'cleanup',      section: 'database', visible: () => OWNER,",
-    replacement: "  { key: 'cleanup',      section: 'database', sichtbar: () => ADMIN,",
+    search: "  { key: 'cleanup',      section: 'backup', visible: () => OWNER,",
+    replacement: "  { key: 'cleanup',      section: 'backup', visible: () => ADMIN,",
     expected: 'Der Systembereich nach Rolle'
   },
   {
@@ -4391,7 +4390,7 @@ const REGRESSIONS = [
   {
     nr: 'W14', name: 'Die Dateiliste des Sprachwaechters verliert die neuen Dateien',
     file: 'test/source.js',
-    search: "                          'images.js', 'batchrun.js', 'mail.js', 'docserver.js',\n                          'schema.js', 'backup.js', 'backuptool.js'];",
+    search: "                          'images.js', 'batchrun.js', 'mail.js', 'docserver.js',\n                          'schema.js', 'backup.js', 'backuptool.js', 'videoproxy.js'];",
     replacement: "                          ];",
     expected: 'Der Sprachwaechter'
   },
@@ -4690,15 +4689,15 @@ const REGRESSIONS = [
   {
     nr: '639', name: 'Der Klartextschluessel steht wieder vor dem Admin',
     file: 'public/app.js',
-    search: "          : (OWNER\n            ? `<div class=\"warn-box\">${tH('card.keyBesideHint')}",
-    replacement: "          : (ADMIN\n            ? `<div class=\"warn-box\">${tH('card.keyBesideHint')}",
+    search: "          : (OWNER\n            ? `<div class=\"warn-box\" style=\"margin-top:14px\">${tH('card.keyBesideHint')}",
+    replacement: "          : (ADMIN\n            ? `<div class=\"warn-box\" style=\"margin-top:14px\">${tH('card.keyBesideHint')}",
     expected: 'Die Rollenweichen — 0.22.0'
   },
   {
-    nr: '640', name: 'Die Karte Kategorien erklaert dem Benutzer wieder die Werkzeuge des Admins',
+    nr: '640', name: "Benutzer sehen die Karte „Kategorien“ wieder",
     file: 'public/app.js',
-    search: "        <p class=\"desc\">${ADMIN\n          ? tH('card.categoriesHint')",
-    replacement: "        <p class=\"desc\">${true\n          ? tH('card.categoriesHint')",
+    search: "  { key: 'categories',   section: 'inventory', visible: () => ADMIN,",
+    replacement: "  { key: 'categories',   section: 'inventory', visible: () => true,",
     expected: 'Die Rollenweichen — 0.22.0'
   },
   {
@@ -5514,11 +5513,11 @@ const REGRESSIONS = [
     expected: 'Die kleinen Fehler fallen — 0.26.0'
   },
   {
-    nr: '801', name: 'Der Gewichtssatz erklaert dem Benutzer wieder den Knopf des Admins',
+    nr: '801', name: "Benutzer sehen die Karte „Potenzial: Kriterien“ wieder",
     file: 'public/app.js',
-    search: "            : t('card.weightSystemDefault')}</p>",
-    replacement: "            : t('card.weightRangeHint')}</p>",
-    expected: 'Die kleinen Fehler fallen — 0.26.0'
+    search: "  { key: 'potentialcriteria', section: 'inventory', visible: () => ADMIN,",
+    replacement: "  { key: 'potentialcriteria', section: 'inventory', visible: () => true,",
+    expected: "Der Systembereich nach Rolle"
   },
   {
     nr: '802', name: 'Der Strich vor den Summen kommt wieder aus einer toten Regel',
@@ -9101,8 +9100,8 @@ const REGRESSIONS = [
   {
     nr: '1317', name: "Das Standbild setzt auch der Admin",
     file: 'server.js',
-    search: "  if (!selfOnly(req, a.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});\n  if (!isVideoFile(a.filename))",
-    replacement: "  if (!mayChange(req, a.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});\n  if (!isVideoFile(a.filename))",
+    search: "  if (!selfOnly(req, a.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});\n  if (!playsAsVideo(req.params.id, a.filename))",
+    replacement: "  if (!mayChange(req, a.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});\n  if (!playsAsVideo(req.params.id, a.filename))",
     expected: "Videos unter Dateien: Vorschauart, Range und Standbild am Server"
   },
   {
@@ -9569,17 +9568,17 @@ const REGRESSIONS = [
     expected: "Platte: Dateien ohne Verweis loeschen"
   },
   {
-    nr: '1395', name: "Dateien ohne Verweis: die Kopie wird nicht geprueft",
+    nr: '1395', name: "Dateien ohne Verweis: die Freigabe des Abgleichs wird nicht geprueft",
     file: 'server.js',
-    search: "    for (const f of unknownFiles().filter(z => z.copy)) {",
-    replacement: "    for (const f of unknownFiles()) {",
+    search: "    for (const f of unknownScan().filter(z => z.free && wanted.has(z.name))) {",
+    replacement: "    for (const f of unknownScan().filter(z => wanted.has(z.name))) {",
     expected: "Platte: Dateien ohne Verweis loeschen"
   },
   {
     nr: '1396', name: "Dateien ohne Verweis: die Laenge der Kopie wird nicht verglichen",
     file: 'server.js',
-    search: "    try { copy = !!copies && fs.statSync(path.join(copies, name)).size === size; } catch {}",
-    replacement: "    try { copy = !!copies && fs.statSync(path.join(copies, name)).size > 0; } catch {}",
+    search: "    else if (folder && backup.copyPresent(folder, { name: f.name, length: f.size })) why = 'copied';",
+    replacement: "    else if (folder && fs.existsSync(path.join(folder, COPY_DIR, f.name))) why = 'copied';",
     expected: "Platte: Dateien ohne Verweis loeschen"
   },
   {
@@ -9597,16 +9596,16 @@ const REGRESSIONS = [
     expected: "Platte: Dateien ohne Verweis loeschen"
   },
   {
-    nr: '1399', name: "Dateien ohne Verweis: upload/ wird mit durchsucht",
+    nr: '1399', name: "Dateien ohne Verweis: upload/ gilt als fremdes Verzeichnis",
     file: 'server.js',
-    search: "  try { names = fs.readdirSync(FILES_DIR); } catch {}\n  const known = new Set([...qDiskNames.all(), ...qGone.all()].map(z => z.name));\n  const place = backupState().input ? checkPlace(getSetting('backupPlace', '')) : { error: true };\n  const copies = place.error ? null : path.join(place.filePath, COPY_DIR);\n  const out = [];\n  for (const name of names) {\n    if (!DISK_NAME.test(name) || known.has(name)) continue;\n    const file = diskPath(name);",
-    replacement: "  try { names = [...fs.readdirSync(FILES_DIR), ...fs.readdirSync(UPLOAD_DIR).map(n => `upload/${n}`)]; } catch {}\n  const known = new Set([...qDiskNames.all(), ...qGone.all()].map(z => z.name));\n  const place = backupState().input ? checkPlace(getSetting('backupPlace', '')) : { error: true };\n  const copies = place.error ? null : path.join(place.filePath, COPY_DIR);\n  const out = [];\n  for (const listed of names) {\n    const name = listed.replace('upload/', '');\n    if (!DISK_NAME.test(name) || known.has(name)) continue;\n    const file = diskPath(name, listed.startsWith('upload/'));",
+    search: "    if (st.isDirectory() && OWN_DIRS.has(name)) continue;\n",
+    replacement: "",
     expected: "Platte: Dateien ohne Verweis loeschen"
   },
   {
     nr: '1400', name: "Dateien ohne Verweis: die Sperre des Backups wird nicht genommen",
     file: 'server.js',
-    search: "  const lock = takeBackupLock(place.filePath);\n  if (!lock) return res.status(409).json({ error: t(localeOf(req), 'server.backupRunning')});\n",
+    search: "  const lock = folder ? takeBackupLock(folder) : null;\n  if (folder ? !lock : BACKUP_BUSY) return res.status(409).json({ error: t(localeOf(req), 'server.backupRunning')});\n",
     replacement: "  const lock = null;\n",
     expected: "Platte: Dateien ohne Verweis loeschen"
   },
@@ -9627,8 +9626,8 @@ const REGRESSIONS = [
   {
     nr: '1403', name: "Der Lauf liest die Namen im Speicher nicht",
     file: 'server.js',
-    search: "    if (!DISK_NAME.test(name) || known.has(name) || DISK_WRITING.has(name)) continue;",
-    replacement: "    if (!DISK_NAME.test(name) || known.has(name)) continue;",
+    search: "  const known = new Set([...qUploadNames.all(), ...qDiskNames.all()].map(z => z.name));\n  for (const name of names) {\n    if (!DISK_NAME.test(name) || known.has(name) || DISK_WRITING.has(name)) continue;",
+    replacement: "  const known = new Set([...qUploadNames.all(), ...qDiskNames.all()].map(z => z.name));\n  for (const name of names) {\n    if (!DISK_NAME.test(name) || known.has(name)) continue;",
     expected: "Platte: Lauf und upload/"
   },
   {
@@ -9928,8 +9927,8 @@ const REGRESSIONS = [
   {
     nr: '1447', name: "Das Image hat keine Schrift",
     file: 'Dockerfile',
-    search: "# Schrift fuer das Vorschaubild von Textdateien; ohne sie zeichnet sharp nur Kaesten.\nRUN apt-get update \\\n && apt-get install -y --no-install-recommends fonts-dejavu-core \\\n && rm -rf /var/lib/apt/lists/*\n",
-    replacement: "",
+    search: " && apt-get install -y --no-install-recommends fonts-dejavu-core libx264-164",
+    replacement: " && apt-get install -y --no-install-recommends libx264-164",
     expected: "Dateien: Stilblatt, Dockerfile und Quelltext"
   },
   {
@@ -10111,7 +10110,7 @@ const REGRESSIONS = [
   {
     nr: '1473', name: "Eine Datei ohne Video nimmt eine Stelle an",
     file: 'server.js',
-    search: "  if (!target || (b.kind === 'file' && !isVideoFile(target.filename)))",
+    search: "  if (!target || (b.kind === 'file' && !playsAsVideo(id, target.filename)))",
     replacement: "  if (!target)",
     expected: "Stelle im Video: Regeln am Server"
   },
@@ -10524,8 +10523,8 @@ const REGRESSIONS = [
   {
     nr: '1532', name: "Erweiterte Infos auch fuer Textdateien",
     file: 'attachments.js',
-    search: "const mediaKind = (filename) => (['image', 'video'].includes(previewKind(filename)) ? previewKind(filename) : null);",
-    replacement: "const mediaKind = (filename) => previewKind(filename);",
+    search: "  : ['image', 'video'].includes(previewKind(filename)) ? previewKind(filename) : null);",
+    replacement: "  : previewKind(filename));",
     expected: "Erweiterte Infos: Warteschlange nach dem Upload und Route"
   },
   {
@@ -10699,7 +10698,7 @@ const REGRESSIONS = [
   {
     nr: '1557', name: "Erweiterte Infos stehen an jeder Datei",
     file: 'public/app.js',
-    search: "    if (a.preview === 'image' || a.preview === 'video')\n      pass.push(",
+    search: "    if (a.preview === 'image' || kindOf(a) === 'video')\n      pass.push(",
     replacement: "    if (true)\n      pass.push(",
     expected: "Menü „…\" in fünf Gruppen"
   },
@@ -10774,10 +10773,10 @@ const REGRESSIONS = [
     expected: "Erweiterte Infos: Dialog und Codec am Vorschaubild"
   },
   {
-    nr: '1568', name: "Das Video laedt nie ganz",
+    nr: '1568', name: "Das Video laedt wieder beim Abspielen statt auf Knopfdruck",
     file: 'public/app.js',
-    search: "  player.addEventListener('play', loadWhole);",
-    replacement: "  player.addEventListener('loadstart', loadWhole);",
+    search: "  wholeButton.onclick = () => (loading ? stopLoading(true) : loadWhole());",
+    replacement: "  wholeButton.onclick = () => (loading ? stopLoading(true) : loadWhole());\n  player.addEventListener('play', loadWhole);",
     expected: "Video ganz laden"
   },
   {
@@ -10797,22 +10796,22 @@ const REGRESSIONS = [
   {
     nr: '1571', name: "Nach dem Wechsel beginnt das Video von vorn",
     file: 'public/app.js',
-    search: "      player.src = mine.url;\n      player.currentTime = at;\n",
-    replacement: "      player.src = mine.url;\n      player.currentTime = 0;\n",
+    search: "      player.src = wholeCopy.url;\n      player.currentTime = mine.at;\n",
+    replacement: "      player.src = wholeCopy.url;\n      player.currentTime = 0;\n",
     expected: "Video ganz laden"
   },
   {
-    nr: '1572', name: "Der Blob bleibt nach dem Schliessen",
+    nr: '1572', name: "Die Kopie geht beim Schliessen verloren",
     file: 'public/app.js',
-    search: "    if (whole.url) URL.revokeObjectURL(whole.url);\n",
-    replacement: "",
+    search: "    stopLoading(false);\n  };",
+    replacement: "    stopLoading(false);\n    if (wholeCopy) { URL.revokeObjectURL(wholeCopy.url); wholeCopy = null; }\n  };",
     expected: "Video ganz laden"
   },
   {
     nr: '1573', name: "Schliessen bricht den Abruf nicht ab",
     file: 'public/app.js',
-    search: "    whole.stop.abort();\n    if (whole.url)",
-    replacement: "    if (whole.url)",
+    search: "    loading = null;\n    was.stop.abort();\n",
+    replacement: "    loading = null;\n",
     expected: "Video ganz laden"
   },
   {
@@ -10823,10 +10822,10 @@ const REGRESSIONS = [
     expected: "Video ganz laden"
   },
   {
-    nr: '1575', name: "Datensparen laedt trotzdem ganz",
+    nr: '1575', name: "Bei Datensparen fehlt der Knopf",
     file: 'public/app.js',
-    search: "    if (whole || !source || navigator.connection?.saveData || p.size > limit) return;",
-    replacement: "    if (whole || !source || p.size > limit) return;",
+    search: "    wholeButton.hidden = player.hidden || !note.hidden || playBytes(photos[i], original) > WHOLE_BYTES() ||",
+    replacement: "    wholeButton.hidden = player.hidden || !note.hidden || !!navigator.connection?.saveData || playBytes(photos[i], original) > WHOLE_BYTES() ||",
     expected: "Video ganz laden"
   },
   {
@@ -10844,10 +10843,10 @@ const REGRESSIONS = [
     expected: "Video ganz laden"
   },
   {
-    nr: '1578', name: "Jedes Abspielen holt die Datei neu",
+    nr: '1578', name: "Die zweite Kopie gibt die erste nicht frei",
     file: 'public/app.js',
-    search: "    if (whole || !source || navigator.connection?.saveData",
-    replacement: "    if (!source || navigator.connection?.saveData",
+    search: "      if (wholeCopy) URL.revokeObjectURL(wholeCopy.url);\n",
+    replacement: "",
     expected: "Video ganz laden"
   },
   {
@@ -11420,8 +11419,8 @@ const REGRESSIONS = [
   {
     nr: '1660', name: "Das Feld fuer die Schwelle steht auch ohne Adminrechte da",
     file: 'public/app.js',
-    search: "        ${!before && ADMIN ? `<p class=\"desc\" style=\"margin:16px 0 8px\">${tH('card.partialShareHint')}</p>",
-    replacement: "        ${!before ? `<p class=\"desc\" style=\"margin:16px 0 8px\">${tH('card.partialShareHint')}</p>",
+    search: "  { key: 'criteria',     section: 'inventory', visible: () => ADMIN,",
+    replacement: "  { key: 'criteria',     section: 'inventory', visible: () => true,",
     expected: "Filter nach Potenzial und Bewertung: Leiste und Einstellung"
   },
   {
@@ -11500,6 +11499,727 @@ const REGRESSIONS = [
     search: "  { key: 'users',        name: () => t('card.users') },",
     replacement: "  { key: 'users',        name: () => t('card.user') },",
     expected: "Anleitung, README und Namen"
+  },
+  {
+    nr: '1672', name: "Der Player behaelt waehrend des Ladens seine Quelle",
+    file: 'public/app.js',
+    search: "    player.removeAttribute('src');\n    player.load();\n    markWhole();",
+    replacement: "    markWhole();",
+    expected: "Video ganz laden"
+  },
+  {
+    nr: '1673', name: "Abbrechen gibt die Adresse nicht zurueck",
+    file: 'public/app.js',
+    search: "    if (backToAddress) {\n      player.src = was.source;",
+    replacement: "    if (false) {\n      player.src = was.source;",
+    expected: "Video ganz laden"
+  },
+  {
+    nr: '1674', name: "Dasselbe Video laedt nach dem Schliessen wieder aus dem Netz",
+    file: 'public/app.js',
+    search: "      player.src = wholeCopy?.source === address ? wholeCopy.url : address;",
+    replacement: "      player.src = address;",
+    expected: "Video ganz laden"
+  },
+  {
+    nr: '1675', name: "Nach dem Laden spielt das Video nicht weiter",
+    file: 'public/app.js',
+    search: "      if (mine.playing) player.play()?.catch?.(() => {});\n      loaded.hidden = true;",
+    replacement: "      loaded.hidden = true;",
+    expected: "Video ganz laden"
+  },
+  {
+    nr: '1676', name: "Der Abschnitt „Backup“ fehlt",
+    file: 'public/app.js',
+    search: "  { key: 'backup',       name: () => t('card.backupSection') },\n",
+    replacement: "",
+    expected: "Der Systembereich nach Rolle"
+  },
+  {
+    nr: '1677', name: "Die Karte „Zweiter Faktor“ fehlt",
+    file: 'public/app.js',
+    search: "  { key: 'twofactor',    section: 'personal', visible: () => true,\n    markup: cardTwoFactor,  wireUp: setUpTwoFactorOut },\n",
+    replacement: "",
+    expected: "Die Karte „Zugang“: der zweite Faktor"
+  },
+  {
+    nr: '1678', name: "Die Leiste der Abschnitte steht auch mit nur einem Abschnitt",
+    file: 'public/app.js',
+    search: "    ${visibleOnes.length > 1 ? `<button class=\"btn btn-sm sys-toggle\" id=\"sys-toggle\"",
+    replacement: "    ${visibleOnes.length > 0 ? `<button class=\"btn btn-sm sys-toggle\" id=\"sys-toggle\"",
+    expected: "Der Systembereich nach Rolle"
+  },
+  {
+    nr: '1679', name: "In „Mein Account“ fehlt der Hinweis auf einen Admin",
+    file: 'public/app.js',
+    search: " ||\n          `<p class=\"desc\" style=\"margin:0 0 10px\">${tH('card.passwordAskAdmin')}</p>`}",
+    replacement: "}",
+    expected: "Der Systembereich nach Rolle"
+  },
+  {
+    nr: '1680', name: "Bei den Wiederherstellungscodes fehlt der Hinweis auf einen Admin",
+    file: 'public/app.js',
+    search: " ||\n        `<p class=\"desc\" style=\"margin:8px 0 0\">${tH('card.twoFactorAskAdmin')}</p>`}`;",
+    replacement: "}`;",
+    expected: "Der Systembereich nach Rolle"
+  },
+  {
+    nr: '1681', name: "Admins sehen die Grenzen wieder als Felder",
+    file: 'public/app.js',
+    search: "          if (!OWNER) return `<div class=\"kv\"><span class=\"k\">${tH(label)}</span><span class=\"v\">${",
+    replacement: "          if (false) return `<div class=\"kv\"><span class=\"k\">${tH(label)}</span><span class=\"v\">${",
+    expected: "Die Bildablage in der Oberflaeche"
+  },
+  {
+    nr: '1682', name: "Der Hinweis zum Schluessel steht wieder beim Admin",
+    file: 'public/app.js',
+    search: "              ${serverBox(t('card.restartHint'), 'docker compose up -d')}\n            </div>` : '')}",
+    replacement: "              ${serverBox(t('card.restartHint'), 'docker compose up -d')}\n            </div>` : `<div class=\"warn-box\">${tH('card.keyBesideHint')}</div>`)}",
+    expected: "Die Rollenweichen — 0.22.0"
+  },
+  {
+    nr: '1683', name: "„Vokabular“ ist wieder eine schmale Karte",
+    file: 'public/app.js',
+    search: "function cardVocabulary() {\n  return `<div class=\"sys-card wide\">",
+    replacement: "function cardVocabulary() {\n  return `<div class=\"sys-card\">",
+    expected: "Der Systembereich nach Rolle"
+  },
+  {
+    nr: '1684', name: "Ohne Mailversand steht der Schalter wieder da",
+    file: 'public/app.js',
+    search: "        ${requests.an || requests.deliveryReady ? `<div class=\"row-in\" style=\"margin-top:10px\">",
+    replacement: "        ${true ? `<div class=\"row-in\" style=\"margin-top:10px\">",
+    expected: "Die Karte „Anfragen“"
+  },
+  {
+    nr: '1685', name: "Die Linkzeilen fehlen in „Darstellung“",
+    file: 'public/app.js',
+    search: "  drawStrip();\n  drawLinkRows();\n  drawSearchNames();\n",
+    replacement: "  drawStrip();\n",
+    expected: "Der Systembereich nach Rolle"
+  },
+  {
+    nr: '1686', name: "Die Karte „Speicher und Wartung“ fehlt",
+    file: 'public/app.js',
+    search: "  { key: 'storage',      section: 'database', visible: () => ADMIN,\n    markup: cardStorage,  wireUp: setUpStorageOut },\n",
+    replacement: "",
+    expected: "Der Systembereich nach Rolle"
+  },
+  {
+    nr: '1687', name: "Den Modus „Potenzial“ sieht der Admin wieder als gesperrtes Kaestchen",
+    file: 'public/app.js',
+    search: "          ${OWNER ? `<label class=\"ex-files\"><input type=\"checkbox\" id=\"pot-mode\">",
+    replacement: "          ${ADMIN ? `<label class=\"ex-files\"><input type=\"checkbox\" id=\"pot-mode\" disabled>",
+    expected: "Der Systembereich nach Rolle"
+  },
+  {
+    nr: '1688', name: "Ein Benutzer holt die Kategorien wieder, ohne die Karte zu sehen",
+    file: 'public/app.js',
+    search: "      ADMIN ? api('GET', '/api/product-categories') : null, ADMIN ? api('GET', '/api/tags') : null,",
+    replacement: "      api('GET', '/api/product-categories'), ADMIN ? api('GET', '/api/tags') : null,",
+    expected: "Der Systembereich nach Rolle"
+  },
+  {
+    nr: '1689', name: "Den Abgleich ruft jeder Admin",
+    file: 'server.js',
+    search: "app.get('/api/maintenance', ownerOnly, async (req, res, next) => {",
+    replacement: "app.get('/api/maintenance', adminOnly, async (req, res, next) => {",
+    expected: "Wartung: der Abgleich nennt jeden Eintrag ohne Verweis"
+  },
+  {
+    nr: '1690', name: "Der Abgleich kennt wieder nur Namen aus 32 Hexzeichen",
+    file: 'server.js',
+    search: "    if (known.has(name)) continue;\n    const file = path.join(FILES_DIR, name);",
+    replacement: "    if (known.has(name) || !DISK_NAME.test(name)) continue;\n    const file = path.join(FILES_DIR, name);",
+    expected: "Wartung: der Abgleich nennt jeden Eintrag ohne Verweis"
+  },
+  {
+    nr: '1691', name: "Ein Verzeichnis zaehlt seinen Inhalt nicht",
+    file: 'server.js',
+    search: "    if (kind === 'dir') try { tree = treeSize(file); } catch { tree = { files: 0, bytes: 0 }; }",
+    replacement: "    if (kind === 'dir') tree = null;",
+    expected: "Wartung: der Abgleich nennt jeden Eintrag ohne Verweis"
+  },
+  {
+    nr: '1692', name: "Eine Datei, die kein Backup nennt, darf nicht weg",
+    file: 'server.js',
+    search: "const FREE_WHY = new Set(['foreign', 'copied', 'unnamed']);",
+    replacement: "const FREE_WHY = new Set(['foreign', 'copied']);",
+    expected: "Wartung: der Abgleich nennt jeden Eintrag ohne Verweis"
+  },
+  {
+    nr: '1693', name: "Ein Backup ohne Dateiliste zaehlt nicht",
+    file: 'server.js',
+    search: "    if (!list) { unlisted++; continue; }",
+    replacement: "    if (!list) continue;",
+    expected: "Wartung: ohne Backup-Ordner und mit einem Backup ohne Liste"
+  },
+  {
+    nr: '1694', name: "Ohne Backup-Ordner nennt kein Backup den Namen",
+    file: 'server.js',
+    search: "  const files = folder ? backup.backupList(folder) : null;\n  if (!files) return null;",
+    replacement: "  const files = folder ? backup.backupList(folder) : [];\n  if (!files) return null;",
+    expected: "Wartung: ohne Backup-Ordner und mit einem Backup ohne Liste"
+  },
+  {
+    nr: '1695', name: "Ein Verzeichnis wird nur leer geloescht",
+    file: 'server.js',
+    search: "        if (f.kind === 'dir') fs.rmSync(f.file, { recursive: true, force: true });",
+    replacement: "        if (f.kind === 'dir') fs.rmdirSync(f.file);",
+    expected: "Wartung: Loeschen nach Namen"
+  },
+  {
+    nr: '1696', name: "Geloescht wird das Ziel eines symbolischen Links",
+    file: 'server.js',
+    search: "        else fs.unlinkSync(f.file);",
+    replacement: "        else fs.unlinkSync(f.kind === 'link' ? fs.realpathSync(f.file) : f.file);",
+    expected: "Wartung: Loeschen nach Namen"
+  },
+  {
+    nr: '1697', name: "Geloescht wird jeder freie Eintrag, auch ungewaehlt",
+    file: 'server.js',
+    search: "    for (const f of unknownScan().filter(z => z.free && wanted.has(z.name))) {",
+    replacement: "    for (const f of unknownScan().filter(z => z.free)) {",
+    expected: "Wartung: Loeschen nach Namen"
+  },
+  {
+    nr: '1698', name: "Das Server-Log nennt die geloeschten Namen nicht",
+    file: 'server.js',
+    search: "  if (removed) logLine(`Disk files without a reference removed: ${removed} (${bytes} bytes): ${gone.join(', ')}.`);",
+    replacement: "  if (removed) logLine(`Disk files without a reference removed: ${removed} (${bytes} bytes).`);",
+    expected: "Wartung: Loeschen nach Namen"
+  },
+  {
+    nr: '1699', name: "Der Abgleich prueft die Dateien nicht neu",
+    file: 'server.js',
+    search: "    findMissing();\n    if (!CHECK || CHECK.delivered) {",
+    replacement: "    if (!CHECK || CHECK.delivered) {",
+    expected: "Wartung: fehlende Dateien"
+  },
+  {
+    nr: '1700', name: "Zurueckholen nimmt eine Kopie anderer Laenge",
+    file: 'server.js',
+    search: "      if (!r || !backup.copyPresent(folder, { name, length })) continue;",
+    replacement: "      if (!r || !fs.existsSync(path.join(folder, COPY_DIR, name))) continue;",
+    expected: "Wartung: fehlende Dateien"
+  },
+  {
+    nr: '1701', name: "Zurueckholen laeuft auch waehrend eines Backups",
+    file: 'server.js',
+    search: "  const lock = takeBackupLock(folder);\n  if (!lock) return res.status(409).json({ error: t(locale, 'server.backupRunning') });\n  const wanted = pickedNames(req.body);",
+    replacement: "  const lock = takeBackupLock(folder) || path.join(folder, COPY_DIR, '.gestellt');\n  const wanted = pickedNames(req.body);",
+    expected: "Wartung: waehrend eines Backups"
+  },
+  {
+    nr: '1702', name: "Die Pruefung liest die Fremdschluessel nicht",
+    file: 'batchrun.js',
+    search: "  for (const z of db.pragma('foreign_key_check')) {",
+    replacement: "  for (const z of []) {",
+    expected: "Wartung: Pruefung der Datenbank"
+  },
+  {
+    nr: '1703', name: "Ein verletzter Fremdschluessel gilt als in Ordnung",
+    file: 'server.js',
+    search: "      done({ ...r, ok: r.quick.length === 1 && r.quick[0] === 'ok' && !r.keys.length, ms: Date.now() - started });",
+    replacement: "      done({ ...r, ok: r.quick[0] === 'ok', ms: Date.now() - started });",
+    expected: "Wartung: Pruefung der Datenbank"
+  },
+  {
+    nr: '1704', name: "Die Kennzahlen nennen die freien Seiten nicht",
+    file: 'server.js',
+    search: "    dbBytes, dbFree: dbFreeBytes(), photoCount: p.n, photoBytes: p.o,",
+    replacement: "    dbBytes, dbFree: 0, photoCount: p.n, photoBytes: p.o,",
+    expected: "Wartung: Pruefung der Datenbank"
+  },
+  {
+    nr: '1705', name: "Den Knopf „Abgleich“ sieht jeder Admin",
+    file: 'public/app.js',
+    search: "        ${OWNER ? `<div class=\"sys-part\"></div>\n        <p class=\"desc\">${tH('card.maintHint')}</p>",
+    replacement: "        ${ADMIN ? `<div class=\"sys-part\"></div>\n        <p class=\"desc\">${tH('card.maintHint')}</p>",
+    expected: "Wartung: die Karte"
+  },
+  {
+    nr: '1706', name: "Die Karte schickt alle Namen statt der gewaehlten",
+    file: 'public/app.js',
+    search: "    const names = chosen('maint-pick');",
+    replacement: "    const names = unknown.map(f => f.name);",
+    expected: "Wartung: die Karte"
+  },
+  {
+    nr: '1707', name: "Eine Datei, die bleibt, ist in der Karte waehlbar",
+    file: 'public/app.js',
+    search: "          f.free ? '' : ' disabled'}>",
+    replacement: "          ''}>",
+    expected: "Wartung: die Karte"
+  },
+  {
+    nr: '1708', name: "Eine fehlende Datei zeigt nichts an",
+    file: 'public/app.js',
+    search: "    const missing = a.missing ? t('entry.fileMissing') : '';",
+    replacement: "    const missing = '';",
+    expected: "Wartung: „fehlt“ an der Datei"
+  },
+  {
+    nr: '1709', name: "Der Abgleich zeigt die Pruefung der Datenbank nicht",
+    file: 'public/app.js',
+    search: "      MAINT_CHECK = m.check;",
+    replacement: "      MAINT_CHECK = null;",
+    expected: "Wartung: die Karte"
+  },
+  {
+    nr: '1710', name: "Die Route wartet auf die Pruefung, so lange sie dauert",
+    file: 'server.js',
+    search: "    await Promise.race([mine.done, new Promise(ok => { clock = setTimeout(ok, CHECK_WAIT_MS); })]);",
+    replacement: "    await mine.done;",
+    expected: "Wartung: Pruefung der Datenbank"
+  },
+  {
+    nr: '1711', name: "Ein neuer Abgleich bekommt die alte Pruefung",
+    file: 'server.js',
+    search: "    if (mine.result) mine.delivered = true;\n",
+    replacement: "",
+    expected: "Wartung: Pruefung der Datenbank"
+  },
+  {
+    nr: '1712', name: "Die Karte fragt nicht nach, solange die Pruefung laeuft",
+    file: 'public/app.js',
+    search: "        if (!m.check || !m.check.running || !out.isConnected) break;",
+    replacement: "        break;",
+    expected: "Wartung: die Karte"
+  },
+  {
+    nr: '1713', name: "Ein Video ueber 1080 Pixel bekommt keinen Proxy",
+    file: 'videoproxy.js',
+    search: "  if (Math.min(v.width || 0, v.height || 0) > SHORT_SIDE) return true;\n",
+    replacement: "",
+    expected: "Proxy: Auswahl, Bitrate und Weg"
+  },
+  {
+    nr: '1714', name: "Ton in PCM bekommt keinen Proxy",
+    file: 'videoproxy.js',
+    search: "  if ((info.audio || []).some(a => !PLAIN_AUDIO.includes(a.format))) return true;\n",
+    replacement: "",
+    expected: "Proxy: Auswahl, Bitrate und Weg"
+  },
+  {
+    nr: '1715', name: "Ueber 12 Mbit/s bekommt keinen Proxy",
+    file: 'videoproxy.js',
+    search: "  return (v.bitRate || 0) > MAX_VIDEO_BPS;",
+    replacement: "  return false;",
+    expected: "Proxy: Auswahl, Bitrate und Weg"
+  },
+  {
+    nr: '1716', name: "mkv, avi, wmv und flv bekommen keinen Proxy",
+    file: 'videoproxy.js',
+    search: "  if (proxyOnly(filename)) return true;\n",
+    replacement: "",
+    expected: "Proxy: Auswahl, Bitrate und Weg"
+  },
+  {
+    nr: '1717', name: "Die Bitrate hat keine Obergrenze",
+    file: 'videoproxy.js',
+    search: "  return Math.round(Math.min(7.5e6, 0.23e6 * rate));",
+    replacement: "  return Math.round(0.23e6 * rate);",
+    expected: "Proxy: Auswahl, Bitrate und Weg"
+  },
+  {
+    nr: '1718', name: "HEVC geht ueber Weg B",
+    file: 'videoproxy.js',
+    search: "  return plainH264(v) || HW_DECODE.includes(v.format) ? 'A' : 'B';",
+    replacement: "  return plainH264(v) ? 'A' : 'B';",
+    expected: "Proxy: Auswahl, Bitrate und Weg"
+  },
+  {
+    nr: '1719', name: "ffmpeg dreht ein Hochkant-Video",
+    file: 'videoproxy.js',
+    search: "...decode, '-noautorotate',",
+    replacement: "...decode,",
+    expected: "Proxy: Auswahl, Bitrate und Weg"
+  },
+  {
+    nr: '1720', name: "Der Puffer ist so gross wie die Bitrate",
+    file: 'videoproxy.js',
+    search: "'-bufsize', String(2 * bps)",
+    replacement: "'-bufsize', String(bps)",
+    expected: "Proxy: Auswahl, Bitrate und Weg"
+  },
+  {
+    nr: '1721', name: "Eine ungerade Hoehe bleibt ungerade",
+    file: 'videoproxy.js',
+    search: "min(1080,trunc(ih/2)*2)",
+    replacement: "min(1080,ih)",
+    expected: "Proxy: Auswahl, Bitrate und Weg"
+  },
+  {
+    nr: '1722', name: "Ein Keyframe nur alle 250 Bilder",
+    file: 'videoproxy.js',
+    search: "  const gop = Math.max(1, Math.round(2 * (Number(frameRate) > 0 ? Number(frameRate) : 30)));",
+    replacement: "  const gop = 250;",
+    expected: "Proxy: Auswahl, Bitrate und Weg"
+  },
+  {
+    nr: '1723', name: "ffmpeg laeuft unter der Nummer von Kriterion",
+    file: 'videoproxy.js',
+    search: "ids: { uid: FFMPEG_UID, gid }",
+    replacement: "ids: {}",
+    expected: "Proxy: Auswahl, Bitrate und Weg"
+  },
+  {
+    nr: '1724', name: "ffmpeg erbt die Umgebung von Kriterion",
+    file: 'videoproxy.js',
+    search: "{ cwd, env: {}, stdio:",
+    replacement: "{ cwd, env: process.env, stdio:",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1725', name: "ffmpeg laeuft mit normaler Prioritaet",
+    file: 'videoproxy.js',
+    search: "if (bench) return { file: nice, prefix: ['-n', '19', process.execPath, ...bench], ids: {} };",
+    replacement: "if (bench) return { file: process.execPath, prefix: bench, ids: {} };",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1726', name: "Das Arbeitsverzeichnis behaelt die Rechte von mkdtemp nicht",
+    file: 'videoproxy.js',
+    search: "  fs.chmodSync(dir, 0o700);",
+    replacement: "  fs.chmodSync(dir, 0o755);",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1727', name: "Ohne HuC-Firmware nennt die Karte keinen Grund",
+    file: 'videoproxy.js',
+    search: "reason: free.code === 0 ? 'huc' : firmware ? 'firmware' : 'failed',",
+    replacement: "reason: firmware ? 'firmware' : 'failed',",
+    expected: "Proxy: ohne Quick Sync, ohne Firmware und Schalter aus"
+  },
+  {
+    nr: '1728', name: "Die fehlende Firmware fuer i915 wird nicht erkannt",
+    file: 'videoproxy.js',
+    search: "  const firmware = /iHD_drv_video\\.so init failed/.test(fixed.log);",
+    replacement: "  const firmware = false;",
+    expected: "Proxy: ohne Quick Sync, ohne Firmware und Schalter aus"
+  },
+  {
+    nr: '1729', name: "Proxys sind von Anfang an eingeschaltet",
+    file: 'server.js',
+    search: "const proxyOn = () => getSetting('proxyOn', false) === true;",
+    replacement: "const proxyOn = () => getSetting('proxyOn', true) === true;",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1730', name: "Den Schalter setzt auch ein Admin",
+    file: 'server.js',
+    search: "                                'uploadLimits', 'proxyOn'];",
+    replacement: "                                'uploadLimits'];",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1731', name: "GET /api/settings nennt den Schalter nicht",
+    file: 'server.js',
+    search: "  proxyOn: proxyOn(),\n",
+    replacement: "",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1732', name: "Der Server des Originals fragt die Marke nicht ab",
+    file: 'server.js',
+    search: "    if (req.url !== `/${mark}` || (req.method !== 'GET' && req.method !== 'HEAD'))",
+    replacement: "    if (req.method !== 'GET' && req.method !== 'HEAD')",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1733', name: "Das Arbeitsverzeichnis bleibt unter /tmp",
+    file: 'server.js',
+    search: "  } finally { fs.rmSync(dir, { recursive: true, force: true }); }",
+    replacement: "  } finally { }",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1734', name: "Der Proxy liegt unverschluesselt auf der Platte",
+    file: 'server.js',
+    search: "      await attachments.sealInto(path.join(PROXY_DIR, p.name), p, first, block.subarray(0, bytesRead), { fresh: at === 0 });",
+    replacement: "      await fs.promises.appendFile(path.join(PROXY_DIR, p.name), block.subarray(0, bytesRead));",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1735', name: "Die Tabelle nennt die Pixel des Originals",
+    file: 'server.js',
+    search: "  if (w > h) { const ph = Math.min(1080, 2 * Math.floor(h / 2));",
+    replacement: "  if (w > h) { const ph = 2 * Math.floor(h / 2);",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1736', name: "Die Liste nennt keinen Proxy",
+    file: 'server.js',
+    search: "      proxy: proxyReady ? { size: a2.proxy_size, width: a2.proxy_width, height: a2.proxy_height } : null,",
+    replacement: "      proxy: null,",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1737', name: "Der Proxy kommt als Download",
+    file: 'server.js',
+    search: "{ inline: !!out.filename || req.query.inline === '1' }",
+    replacement: "{ inline: req.query.inline === '1' }",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1738', name: "Erweiterte Infos nennen keinen Proxy",
+    file: 'server.js',
+    search: "    const proxy = proxyInfo(a.id, facts, a.filename);",
+    replacement: "    const proxy = null;",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1739', name: "?size=proxy liefert das Original",
+    file: 'server.js',
+    search: "    if (req.query.size === 'proxy') return await sendProxy(req, res);\n",
+    replacement: "",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1740', name: "mkv wird nicht analysiert",
+    file: 'attachments.js',
+    search: "const mediaKind = (filename) => (proxyOnly(filename) ? 'video'",
+    replacement: "const mediaKind = (filename) => (false ? 'video'",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1741', name: "Ein neues Video wartet bis zum naechsten Lauf",
+    file: 'server.js',
+    search: "  if (facts.video.length) proxySoon([id], { front: true });\n",
+    replacement: "",
+    expected: "Proxy: die vier Endungen, Pixel und Auswahl im Server"
+  },
+  {
+    nr: '1742', name: "mkv bleibt auch mit Proxy ohne Vorschau",
+    file: 'server.js',
+    search: "    const kind = proxyReady && attachments.proxyOnly(a2.filename) ? 'video' : attachments.previewKind(a2.filename);",
+    replacement: "    const kind = attachments.previewKind(a2.filename);",
+    expected: "Proxy: die vier Endungen, Pixel und Auswahl im Server"
+  },
+  {
+    nr: '1743', name: "Fuer mkv nimmt der Server kein Standbild an",
+    file: 'server.js',
+    search: "  if (!playsAsVideo(req.params.id, a.filename)) return",
+    replacement: "  if (!isVideoFile(a.filename)) return",
+    expected: "Proxy: die vier Endungen, Pixel und Auswahl im Server"
+  },
+  {
+    nr: '1744', name: "Nach Weg A folgt kein Weg B",
+    file: 'server.js',
+    search: "  for (const way of first === 'A' ? ['A', 'B'] : [first]) {",
+    replacement: "  for (const way of [first]) {",
+    expected: "Proxy: Fehler, Neustart und fehlende Datei"
+  },
+  {
+    nr: '1745', name: "Der Start versucht einen Fehlschlag nicht neu",
+    file: 'server.js',
+    search: "      if (r.state === 'failed' && !start) continue;",
+    replacement: "      if (r.state === 'failed') continue;",
+    expected: "Proxy: Fehler, Neustart und fehlende Datei"
+  },
+  {
+    nr: '1746', name: "Nach dem Start fehlen Proxys ohne Datei weiter",
+    file: 'server.js',
+    search: "    .then(r => { PROXY_HW = r; proxyFilesThere(); proxySoon(null, { start: true }); });",
+    replacement: "    .then(r => { PROXY_HW = r; proxySoon(null, { start: true }); });",
+    expected: "Proxy: Fehler, Neustart und fehlende Datei"
+  },
+  {
+    nr: '1747', name: "Ein verlorener Proxy entsteht nicht neu",
+    file: 'server.js',
+    search: "  if (d) dropProxy().run(d.id);\n  proxySoon([id], { front: true });",
+    replacement: "  if (d) dropProxy().run(d.id);",
+    expected: "Proxy: Fehler, Neustart und fehlende Datei"
+  },
+  {
+    nr: '1748', name: "Dateien ohne Zeile bleiben in data/files/proxy/",
+    file: 'server.js',
+    search: "    sweepUploadDir();\n    sweepProxyDir();",
+    replacement: "    sweepUploadDir();",
+    expected: "Proxy: Fehler, Neustart und fehlende Datei"
+  },
+  {
+    nr: '1749', name: "Der Abgleich nennt data/files/proxy/",
+    file: 'server.js',
+    search: "const OWN_DIRS = new Set(['upload', 'proxy']);",
+    replacement: "const OWN_DIRS = new Set(['upload']);",
+    expected: "Proxy: Fehler, Neustart und fehlende Datei"
+  },
+  {
+    nr: '1750', name: "Die Zeile haengt nicht mehr an disk_files",
+    file: 'schema.js',
+    search: "  disk_file_id INTEGER PRIMARY KEY REFERENCES disk_files(id) ON DELETE CASCADE,",
+    replacement: "  disk_file_id INTEGER PRIMARY KEY REFERENCES disk_files(id),",
+    expected: "Proxy: Papierkorb, Backup und Export"
+  },
+  {
+    nr: '1751', name: "Der Trigger meldet den Proxy nicht zum Loeschen",
+    file: 'db.js',
+    search: "  INSERT OR IGNORE INTO disk_files_gone (name) VALUES ('proxy/' || old.name);",
+    replacement: "  SELECT 1;",
+    expected: "Proxy: Papierkorb, Backup und Export"
+  },
+  {
+    nr: '1752', name: "Der Lauf loescht keinen Proxy",
+    file: 'server.js',
+    search: "      : name.startsWith('proxy/') && DISK_NAME.test(name.slice(6)) ? path.join(PROXY_DIR, name.slice(6)) : null;",
+    replacement: "      : null;",
+    expected: "Proxy: Papierkorb, Backup und Export"
+  },
+  {
+    nr: '1753', name: "Ausschalten haelt ffmpeg nicht an",
+    file: 'server.js',
+    search: "  PROXY_WAITING.clear();\n  if (proxyStop) proxyStop();",
+    replacement: "  PROXY_WAITING.clear();",
+    expected: "Proxy: ohne Quick Sync, ohne Firmware und Schalter aus"
+  },
+  {
+    nr: '1754', name: "Ein abgebrochener Lauf gilt als fehlgeschlagen",
+    file: 'server.js',
+    search: "    if (!proxyOn()) return 'stopped';\n",
+    replacement: "",
+    expected: "Proxy: ohne Quick Sync, ohne Firmware und Schalter aus"
+  },
+  {
+    nr: '1755', name: "Die laufende Umwandlung zaehlt nicht als wartend",
+    file: 'server.js',
+    search: "waiting: PROXY_WAITING.size + (proxyRunning ? 1 : 0) };",
+    replacement: "waiting: PROXY_WAITING.size };",
+    expected: "Proxy: ohne Quick Sync, ohne Firmware und Schalter aus"
+  },
+  {
+    nr: '1756', name: "Die Laufzeit ist kuerzer begrenzt",
+    file: 'server.js',
+    search: "(seconds * 4 + 600) * 1000",
+    replacement: "(seconds * 2 + 600) * 1000",
+    expected: "Proxy: ohne Quick Sync, ohne Firmware und Schalter aus"
+  },
+  {
+    nr: '1757', name: "Der freie RAM unter /tmp zaehlt nicht",
+    file: 'server.js',
+    search: "  if (tmp.free != null && need > tmp.free) return proxyFailed(r, 'tmpSpace');\n",
+    replacement: "",
+    expected: "Proxy: ohne Quick Sync, ohne Firmware und Schalter aus"
+  },
+  {
+    nr: '1758', name: "Der freie Platz auf der Platte zaehlt nicht",
+    file: 'server.js',
+    search: "  if (spaceShort(encLen(need))) return proxyFailed(r, 'space');\n",
+    replacement: "",
+    expected: "Proxy: ohne Quick Sync, ohne Firmware und Schalter aus"
+  },
+  {
+    nr: '1759', name: "Ohne tmpfs wandelt Kriterion trotzdem um",
+    file: 'server.js',
+    search: " ||\n  (!PROXY_BENCH && !videoproxy.tmpState().tmpfs);",
+    replacement: ";",
+    expected: "Proxy: ohne Quick Sync, ohne Firmware und Schalter aus"
+  },
+  {
+    nr: '1760', name: "Beim Beenden laeuft ffmpeg weiter",
+    file: 'server.js',
+    search: "    if (proxyStop) proxyStop();\n    try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); } catch {}",
+    replacement: "    try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); } catch {}",
+    expected: "Proxy: ohne Quick Sync, ohne Firmware und Schalter aus"
+  },
+  {
+    nr: '1761', name: "Der Player spielt immer das Original",
+    file: 'public/app.js',
+    search: "  ? proxySource(p) : `/api/attachments/${Number(p.id)}/raw?inline=1`);",
+    replacement: "  ? `/api/attachments/${Number(p.id)}/raw?inline=1` : `/api/attachments/${Number(p.id)}/raw?inline=1`);",
+    expected: "Proxy: Abspielen und Umschalter"
+  },
+  {
+    nr: '1762', name: "Der Proxy hat keine Adresse je Fassung",
+    file: 'public/app.js',
+    search: "raw?size=proxy&v=${Number(a.proxy.size)}`;",
+    replacement: "raw?size=proxy`;",
+    expected: "Proxy: Abspielen und Umschalter"
+  },
+  {
+    nr: '1763', name: "Der Umschalter springt an den Anfang",
+    file: 'public/app.js',
+    search: "    player.currentTime = at;\n    if (playing) player.play()?.catch?.(() => {});\n    markOriginal();",
+    replacement: "    if (playing) player.play()?.catch?.(() => {});\n    markOriginal();",
+    expected: "Proxy: Abspielen und Umschalter"
+  },
+  {
+    nr: '1764', name: "Das Original bleibt ueber das Abspielen hinaus",
+    file: 'public/app.js',
+    search: "      original = false;\n      const address = playSource(photos[i]);",
+    replacement: "      const address = playSource(photos[i]);",
+    expected: "Proxy: Abspielen und Umschalter"
+  },
+  {
+    nr: '1765', name: "Ein kaputter Proxy zeigt die Meldung statt des Originals",
+    file: 'public/app.js',
+    search: "    if (photos[i].source === 'file' && photos[i].proxy && !original) return switchFile(true);\n",
+    replacement: "",
+    expected: "Proxy: Abspielen und Umschalter"
+  },
+  {
+    nr: '1766', name: "Ganz laden misst am Original",
+    file: 'public/app.js',
+    search: "|| playBytes(photos[i], original) > WHOLE_BYTES() ||",
+    replacement: "|| photos[i].size > WHOLE_BYTES() ||",
+    expected: "Proxy: Abspielen und Umschalter"
+  },
+  {
+    nr: '1767', name: "Das Standbild entsteht aus dem Original",
+    file: 'public/app.js',
+    search: "    source: a.proxy ? proxySource(a) : `/api/attachments/${Number(a.id)}/raw?inline=1` });",
+    replacement: "    source: `/api/attachments/${Number(a.id)}/raw?inline=1` });",
+    expected: "Proxy: Standbild, die vier Endungen und Erweiterte Infos"
+  },
+  {
+    nr: '1768', name: "mkv und avi heissen nicht Video",
+    file: 'public/app.js',
+    search: "  mkv: 'video', avi: 'video', wmv: 'video', flv: 'video' };",
+    replacement: "  };",
+    expected: "Proxy: Standbild, die vier Endungen und Erweiterte Infos"
+  },
+  {
+    nr: '1769', name: "avi ohne Proxy hat keine Erweiterten Infos",
+    file: 'public/app.js',
+    search: "    if (a.preview === 'image' || kindOf(a) === 'video')\n      pass.push(",
+    replacement: "    if (a.preview === 'image' || a.preview === 'video')\n      pass.push(",
+    expected: "Proxy: Standbild, die vier Endungen und Erweiterte Infos"
+  },
+  {
+    nr: '1770', name: "Erweiterte Infos ohne Gruppe Proxy",
+    file: 'public/app.js',
+    search: "    imageGroup(f), shotGroup(shot), proxyGroup(f.proxy)",
+    replacement: "    imageGroup(f), shotGroup(shot)",
+    expected: "Proxy: Standbild, die vier Endungen und Erweiterte Infos"
+  },
+  {
+    nr: '1771', name: "Die Karte Proxy fehlt",
+    file: 'public/app.js',
+    search: "  { key: 'proxy',        section: 'installation', visible: () => ADMIN,\n    markup: cardProxy,        wireUp: setUpProxyOut },\n",
+    replacement: "",
+    expected: "Proxy: die Karte"
+  },
+  {
+    nr: '1772', name: "Den Schalter sieht jeder Admin",
+    file: 'public/app.js',
+    search: "        ${OWNER ? `<label class=\"ex-files\"><input type=\"checkbox\" id=\"proxy-on\">",
+    replacement: "        ${ADMIN ? `<label class=\"ex-files\"><input type=\"checkbox\" id=\"proxy-on\">",
+    expected: "Proxy: die Karte"
+  },
+  {
+    nr: '1773', name: "Die Karte nennt keinen Grund",
+    file: 'public/app.js',
+    search: ": tH(PROXY_REASONS[p.reason] || 'card.proxyCpu')}",
+    replacement: ": tH('card.proxyCpu')}",
+    expected: "Proxy: die Karte"
+  },
+  {
+    nr: '1774', name: "Im Container startet ffmpeg ohne nice, mit Prioritaet 0",
+    file: 'videoproxy.js',
+    search: "  return { file: nice, prefix: ['-n', '19', file], ids: { uid: FFMPEG_UID, gid } };",
+    replacement: "  return { file, prefix: [], ids: { uid: FFMPEG_UID, gid } };",
+    expected: "Proxy: Auswahl, Bitrate und Weg"
   }
 
 ];

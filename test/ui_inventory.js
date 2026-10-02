@@ -244,10 +244,8 @@ async function run() {
   const gwNDoc = gwOnlyRead.w.document;
   check('Ohne Adminrecht steht kein Eingabefeld da',
     gwNDoc.querySelectorAll('#mcrits .mweight-field').length === 0);
-  check('Das Gewicht selbst steht trotzdem an der Zeile',
-    equal([...gwNDoc.querySelectorAll('#mcrits .mweight-fixed')].map(z => z.textContent),
-           ['×1,5', '×1', '×0,5']),
-    JSON.stringify([...gwNDoc.querySelectorAll('#mcrits .mweight-fixed')].map(z => z.textContent)));
+  check('Und die Kriterienkarte sieht er gar nicht',
+    !gwNDoc.getElementById('mcrits'), gwOnlyRead.w.location.hash);
   gwOnlyRead.w.close();
 
   group('Der Umschalter der Vergleichsansicht');
@@ -1179,7 +1177,7 @@ async function run() {
     const d = buildDom(JSDOM, { statsExport,
       settings: { filters: null, isAdmin: true, isOwner: true } });
     await until(d.w, listReady, 2000, 'die Uebersicht');
-    await sysSection(d.w, 'database');
+    await sysSection(d.w, 'backup');
     await until(d.w, (x) => x.document.getElementById('ex-yes') && openRequests(x) === 0, 2000,
       'die Exportkarte');
     return d;
@@ -1214,6 +1212,7 @@ async function run() {
     exW.exportSum(undefined, { withPhotos: true }) === 0,
     `${exW.exportSum(null, { withPhotos: true })}`);
 
+  await sysSection(exW, 'database');
   const exKv = [...exW.document.querySelectorAll('.sys-card .kv')]
     .map(z => [z.querySelector('.k')?.textContent, z.querySelector('.v')?.textContent]);
   const exRow = (name) => (exKv.find(z => z[0] === name) || [])[1];
@@ -1226,6 +1225,7 @@ async function run() {
     JSON.stringify([exRow('Datenbank'), exRow('Exportgröße (alles)')]));
   check('Und die Kommentarbilder haben endlich ihre eigene Zeile',
     /^3 · /.test(exRow('Kommentarbilder') || ''), exRow('Kommentarbilder'));
+  await sysSection(exW, 'backup');
 
   check('Der Knopf „Mit Fotos" nennt seine Groesse',
     exText('ex-gr-yes') === exW.fmtBytes(11 * MB), exText('ex-gr-yes'));

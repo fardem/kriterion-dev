@@ -176,7 +176,7 @@ async function run() {
     `${sent.filter(s => s.url === '/api/criteria/order').length} Aufrufe`);
 
   /* ---- Persoenliche Schalter, mit zugestelltem Klick ---- */
-  // „Darstellung" steht im Abschnitt „Persoenlich", die Linkzeilen in „Bestand".
+  // „Darstellung" mit den Linkzeilen steht im Abschnitt „Persoenlich".
   await sysSection(w, 'personal');
   const fontButtons = [...w.document.querySelectorAll('#fsize .pill')];
   const targetFont = fontButtons.find(b => b.textContent === '120 %');
@@ -198,7 +198,7 @@ async function run() {
     parseFloat(w.document.documentElement.style.fontSize) === 18,
     w.document.documentElement.style.fontSize);
 
-  await sysSection(w, 'inventory');
+  await sysSection(w, 'personal');
   const rowsButtons = [...w.document.querySelectorAll('#lrows .pill')];
   rowsButtons.find(b => b.textContent === '12 Zeilen')
     ?.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
@@ -357,7 +357,7 @@ async function run() {
   const three = buildDom(JSDOM, { settings: own });
   const w3 = three.w;
   await until(w3, overviewReady, 2000, 'die Uebersicht');
-  await sysSection(w3, 'inventory');
+  await sysSection(w3, 'installation');
 
   const fields = ['v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12','v13','v14','v15']
     .map(id => w3.document.getElementById(id));
@@ -426,13 +426,15 @@ async function run() {
     const usPills = (boxId) => [...((w4.document.getElementById(boxId) || {})
       .querySelectorAll ? w4.document.getElementById(boxId).querySelectorAll('.pill') : [])]
       .map(b => pillName(b) + (b.className.includes('on') ? '*' : ''));
-    const US_BOXES = ['vlang', 'ncatlang', 'mcrits-lang', 'mpcrits-lang'];
+    const usRows = Object.fromEntries(['ncatlang', 'mcrits-lang', 'mpcrits-lang'].map(id => [id, usPills(id)]));
+    await sysSection(w4, 'installation');
+    usRows.vlang = usPills('vlang');
     check('Umschalterprobe: alle vier Kacheln tragen ihre Sprachzeile',
-      US_BOXES.every(id => usPills(id).length === 3),
-      US_BOXES.map(id => `${id}=${usPills(id).length}`).join(' '));
+      Object.values(usRows).every(p => p.length === 3),
+      Object.entries(usRows).map(([id, p]) => `${id}=${p.length}`).join(' '));
     check('Und jede steht auf der Sprache des Lesers',
-      US_BOXES.every(id => usPills(id)[0] === 'Deutsch*'),
-      US_BOXES.map(id => usPills(id).join('|')).join(' · '));
+      Object.values(usRows).every(p => p[0] === 'Deutsch*'),
+      Object.values(usRows).map(p => p.join('|')).join(' · '));
     const usField = (n) => (w4.document.getElementById(`v${n}`) || {}).value;
     const usHint = (n) => ((w4.document.querySelector(`label[for=v${n}] .hint`) || {}).textContent || '').trim();
     check('Und die deutsche Kachel zeigt in den Feldern NICHT das englische Wort',
@@ -504,7 +506,7 @@ async function run() {
                   { code: 'en', name: 'English', isDefault: false, active: true }] } });
     const wSt = stDom.w;
     await until(wSt, overviewReady, 2000, 'die Uebersicht');
-    await sysSection(wSt, 'inventory');
+    await sysSection(wSt, 'installation');
     const stSide = wSt.document.scrollingElement || wSt.document.documentElement;
     stSide.scrollTop = 640;
     check('Der Aufbau steht: die Seite ist heruntergerollt',
@@ -600,7 +602,16 @@ async function run() {
             equal(npRows(wNp, box), npWant[pill][box]),
             `steht: ${JSON.stringify(npRows(wNp, box))} — soll: ${JSON.stringify(npWant[pill][box])}`);
         }
-        /* Vergleich: die Kachel „Vokabular" im selben Abschnitt hat dieselbe Bauform. */
+      }
+      const npHeads = { de: 'Kategorien', en: 'Categories', tr: 'Kategoriler' };
+      check(`Und der Kopf der Karte bleibt beim Leser (${readerName})`,
+        [...wNp.document.querySelectorAll('.sys-card h3')]
+          .some(z => z.textContent.trim() === npHeads[reader]),
+        [...wNp.document.querySelectorAll('.sys-card h3')].map(z => z.textContent.trim()).join(' | '));
+      /* Vergleich: die Kachel „Vokabular" unter „Installation" hat dieselbe Bauform. */
+      await sysSection(wNp, 'installation');
+      for (const pill of ['de', 'en', 'tr']) {
+        const pillLabel = npLanguages.find(a => a.code === pill).name;
         await npPress(wNp, 'vlang', pillLabel);
         npComparisons++;
         check(`Vergleichszelle: Leser ${readerName}, Pille ${pillLabel}, Kachel „Vokabular"`,
@@ -608,11 +619,6 @@ async function run() {
           `steht: ${JSON.stringify((wNp.document.getElementById('v1') || {}).value)} — ` +
           `soll: ${JSON.stringify(npVocabularyOwn[pill].entryOne)}`);
       }
-      const npHeads = { de: 'Kategorien', en: 'Categories', tr: 'Kategoriler' };
-      check(`Und der Kopf der Karte bleibt beim Leser (${readerName})`,
-        [...wNp.document.querySelectorAll('.sys-card h3')]
-          .some(z => z.textContent.trim() === npHeads[reader]),
-        [...wNp.document.querySelectorAll('.sys-card h3')].map(z => z.textContent.trim()).join(' | '));
       wNp.close();
     }
     check('Die Tafel hat wirklich 27 Zellen — drei Sprachen, drei Pillen, drei Karten',
@@ -757,14 +763,14 @@ async function run() {
       const wRo = roDom.w;
       await until(wRo, overviewReady, 2000, 'die Uebersicht');
       await sysSection(wRo, 'inventory');
-      check('Rollenprobe: der gewoehnliche Benutzer sieht keine Sprachzeile',
-        ['ncatlang', 'mcrits-lang', 'mpcrits-lang', 'vlang']
+      check('Rollenprobe: der gewoehnliche Benutzer sieht weder Sprachzeile noch Liste',
+        ['ncatlang', 'mcrits-lang', 'mpcrits-lang', 'vlang', 'mcats']
           .every(id => !wRo.document.getElementById(id)),
-        ['ncatlang', 'mcrits-lang', 'mpcrits-lang', 'vlang']
+        ['ncatlang', 'mcrits-lang', 'mpcrits-lang', 'vlang', 'mcats']
           .filter(id => wRo.document.getElementById(id)).join(' '));
-      /* Gegenprobe: sonst bestuende die Pruefung darueber auch ohne die Karte. */
-      check('Und er sieht die Liste trotzdem — in seiner eigenen Sprache',
-        equal(npRows(wRo, 'mcats'), npWant.tr.mcats), JSON.stringify(npRows(wRo, 'mcats')));
+      /* Gegenprobe: sonst bestuende die Pruefung darueber auch ohne gezeichnete Seite. */
+      check('Und er landet unter „Persönlich", mit seiner eigenen Sprachzeile',
+        !!wRo.document.getElementById('lang'), 'keine Sprachzeile in der Karte „Darstellung"');
       wRo.close();
     }
   }
@@ -804,9 +810,11 @@ async function run() {
   await until(w4, detailReady, 2000, 'die Detailansicht');
   check('Detailansicht macht aus dem Vokabular kein HTML',
     !w4.document.getElementById('boese') && !w4.document.getElementById('boese3'));
-  await sysSection(w4, 'inventory');
-  check('Systembereich macht aus dem Vokabular kein HTML',
-    !w4.document.getElementById('boese2') && !w4.document.getElementById('boese3'));
+  for (const key of ['inventory', 'installation']) {
+    await sysSection(w4, key);
+    check(`Systembereich macht aus dem Vokabular kein HTML (${key})`,
+      !w4.document.getElementById('boese2') && !w4.document.getElementById('boese3'));
+  }
   w4.close();
 
   /* ---- Rueckfallprobe: Liste, Eintrag und Anmeldung ---- */
@@ -1093,7 +1101,7 @@ async function run() {
       });
       const wVg = vgDom.w;
       await until(wVg, overviewReady, 2000, 'die Uebersicht');
-      await sysSection(wVg, 'inventory');
+      await sysSection(wVg, 'installation');
       /* Fuenfzehn Woerter, eines eingetragen: Deutsch fehlen vierzehn, den beiden
          anderen alle fuenfzehn. */
       check('Vokabelprobe: Punkt und Zahl stehen auch an der Kachel „Vokabular"',
@@ -1122,7 +1130,7 @@ async function run() {
       });
       const wVf = vfDom.w;
       await until(wVf, overviewReady, 2000, 'die Uebersicht');
-      await sysSection(wVf, 'inventory');
+      await sysSection(wVf, 'installation');
       check('Und eine vollstaendige Kachel „Vokabular" traegt Punkte und keinen Rahmen',
         axMarks(wVf, 'vlang') === 'Deutsch:● English:● Türkçe:●' && !axFramed(wVf, 'vlang'),
         `${axMarks(wVf, 'vlang')} · Rahmen=${axFramed(wVf, 'vlang')}`);
@@ -1392,7 +1400,7 @@ async function run() {
       /* Die eingeschaltete Pille einer Reihe. */
       const alRow = (boxId) => axPills(wAl, boxId)
         .filter(b => b.classList.contains('on')).map(b => pillName(b)).join(',');
-      const alAll = () => ['ncatlang', 'mcrits-lang', 'mpcrits-lang', 'vlang']
+      const alAll = () => ['ncatlang', 'mcrits-lang', 'mpcrits-lang']
         .map(id => `${id}=${alRow(id)}`).join(' ');
       /* Nur wenn der Leser anders liest, als die Zeilen angelegt sind, setzt der
          Server Vermerke; sonst belegte die Gruppe nichts. */
@@ -1435,13 +1443,18 @@ async function run() {
       /* ---- Die vier Umschalter laufen synchron ---- */
       /* Geschaltet wird auf eine Sprache, die nicht die des Lesers ist. */
       await axPress(wAl, 'ncatlang', 'Deutsch');
+      const alThree = alAll();
+      await sysSection(wAl, 'installation');
       check('Gleichlaufprobe: ein Klick an der Kategorienkachel zieht alle vier Reihen mit',
-        ['ncatlang', 'mcrits-lang', 'mpcrits-lang', 'vlang']
-          .every(id => alRow(id) === 'Deutsch'), alAll());
+        alThree === 'ncatlang=Deutsch mcrits-lang=Deutsch mpcrits-lang=Deutsch' &&
+        alRow('vlang') === 'Deutsch', `${alThree} vlang=${alRow('vlang')}`);
       await axPress(wAl, 'vlang', 'English');
+      const alVocabulary = alRow('vlang');
+      await sysSection(wAl, 'inventory');
       check('Und andersherum: ein Klick an der Vokabelkachel zieht die drei Namenskarten mit',
-        ['ncatlang', 'mcrits-lang', 'mpcrits-lang', 'vlang']
-          .every(id => alRow(id) === 'English'), alAll());
+        alVocabulary === 'English' &&
+        alAll() === 'ncatlang=English mcrits-lang=English mpcrits-lang=English',
+        `vlang=${alVocabulary} ${alAll()}`);
       wAl.close();
 
       const alSource = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
