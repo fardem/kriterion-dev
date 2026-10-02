@@ -11965,7 +11965,7 @@ const REGRESSIONS = [
   {
     nr: '1738', name: "Erweiterte Infos nennen keinen Proxy",
     file: 'server.js',
-    search: "    const proxy = proxyInfo(a.id, facts, a.filename);",
+    search: "    const proxy = await proxyInfo(a.id, facts, a.filename);",
     replacement: "    const proxy = null;",
     expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
   },
@@ -12220,6 +12220,48 @@ const REGRESSIONS = [
     search: "  return { file: nice, prefix: ['-n', '19', file], ids: { uid: FFMPEG_UID, gid } };",
     replacement: "  return { file, prefix: [], ids: { uid: FFMPEG_UID, gid } };",
     expected: "Proxy: Auswahl, Bitrate und Weg"
+  },
+  {
+    nr: '1775', name: "Der Knopf nennt wieder das Ziel statt dessen, was spielt",
+    file: 'public/app.js',
+    search: "    originalButton.textContent = original ? t('entry.playOriginal') : t('entry.playProxy');",
+    replacement: "    originalButton.textContent = original ? t('entry.playProxy') : t('entry.playOriginal');",
+    expected: "Proxy: Abspielen und Umschalter"
+  },
+  {
+    nr: '1776', name: "Der Knopf ist beim Original wieder gedrueckt",
+    file: 'public/app.js',
+    search: "    originalButton.title = original ? t('entry.playProxyTitle') : t('entry.playOriginalTitle');\n  }",
+    replacement: "    originalButton.title = original ? t('entry.playProxyTitle') : t('entry.playOriginalTitle');\n    originalButton.setAttribute('aria-pressed', String(original));\n  }",
+    expected: "Proxy: Abspielen und Umschalter"
+  },
+  {
+    nr: '1777', name: "Das Stilblatt faerbt den Knopf Original wieder orange",
+    file: 'public/style.css',
+    search: '.lb-btn.whole[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }',
+    replacement: '.lb-btn.whole[aria-pressed="true"], .lb-btn.original[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }',
+    expected: "Proxy: Abspielen und Umschalter"
+  },
+  {
+    nr: '1778', name: "Die Gruppe Proxy nennt keine Bitraten",
+    file: 'public/app.js',
+    search: ",\n    ['entry.proxyVideoRate', bitRateText(p.videoBitRate)], ['entry.proxyAudioRate', bitRateText(p.audioBitRate)]]);",
+    replacement: "]);",
+    expected: "Proxy: Standbild, die vier Endungen und Erweiterte Infos"
+  },
+  {
+    nr: '1779', name: "Der Server misst die Bitraten am Proxy nicht",
+    file: 'server.js',
+    search: "  const rates = await inMediaTurn(() => proxyRates(p));",
+    replacement: "  const rates = null;",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1780', name: "Die Bitraten von Video und Audio sind vertauscht",
+    file: 'server.js',
+    search: "    return { video: m.video[0]?.bitRate ?? null, audio: m.audio[0]?.bitRate ?? null };",
+    replacement: "    return { video: m.audio[0]?.bitRate ?? null, audio: m.video[0]?.bitRate ?? null };",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
   }
 
 ];

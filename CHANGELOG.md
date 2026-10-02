@@ -7,6 +7,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 > A box above the changes of a version means there is something to do when updating.
 > Yanked versions are marked `[YANKED]`.
 
+## [0.55.1] - 2026-10-02
+
+Fingerprint `cc298c6f` — previously `064133fa`.
+
+### Added
+
+- "Extended info" shows in the group "Proxy" the bit rates of video and audio, measured on the proxy.
+
+### Changed
+
+- In full screen, the proxy button names what plays, "Proxy" or "Original", and has no highlight.
+
 ## [0.55.0] - 2026-10-02
 
 Fingerprint `064133fa` — previously `6402677f`.
@@ -1137,277 +1149,37 @@ Fingerprint `5297965e` — previously `1f76adac`.
 - Only files named `kriterion-….sqlite` are touched; copies from before a key change have their own button.
 - Every deleted copy is logged under "Inventory" in the "Security log"; deleted Backups cannot be restored.
 
-## [0.19.6] - 2026-09-03
-
-### Fixed
-
-- Leaving an entry right after saving a crop, deleting or uploading showed a false red error; the crop was saved anyway.
-
-## [0.19.5] - 2026-09-03
-
-### Changed
-
-- The first start recreates all thumbnails in the background, square and cropped; the database usually shrinks.
-
-### Fixed
-
-- Cropped tiles, strips and video tiles are sharp and show the crop; a changed crop shows at once.
-
-## [0.19.4] - 2026-09-03
-
-### Changed
-
-- The first start recreates all photo thumbnails at the size tiles need; the database grows, videos keep their tiles.
-
-### Fixed
-
-- Tiles and image strips were blurry because thumbnails were upscaled.
-
-## [0.19.3] - 2026-09-02
-
-### Changed
-
-- `GET /api/items` no longer returns tags and author per test day; the entry itself still has them.
-- Image conversion and thumbnail backfill run in their own thread and no longer block the server.
-
-## [0.19.2] - 2026-09-02
-
-### Fixed
-
-- "Settings" now loads at once and the overview faster; a tight crop can be moved in every direction.
-
-## [0.19.1] - 2026-09-02
-
-> Without a `docker-compose.yml`, create it once: `cp docker-compose.example.yml docker-compose.yml`.
-> The repository now ships only the example, so updates keep your own file.
-
-### Changed
-
-- "Image formats" is its own card under "Database"; image processing uses at most half the CPU cores.
-
-### Fixed
-
-- "Settings" loads fast again; the interface responds during image conversion; confirmations show in full screen.
-
-## [0.19.0] - 2026-09-01
-
-> Make a Backup first: the first start adds the column `photos.zoom`; export format 12.
-> The button "Convert all PNG to WebP" overwrites PNG originals; only a Backup brings them back.
-
-### Added
-
-- Pasted screenshots are stored as lossless WebP, about two thirds smaller; the switch is in "Metrics" (owner admin).
-- "Convert all PNG to WebP" converts existing images after asking for the password; "Metrics" lists photos by format.
-- The crop can be tighter, set with a slider in crop mode.
-
-### Changed
-
-- JPEG, GIF and WebP stay as they are; a PNG stays PNG if WebP would be larger. Import converts nothing.
-
-## [0.18.1] - 2026-09-01
-
-### Fixed
-
-- "My sessions" showed five sign-ins instead of ten.
-
-## [0.18.0] - 2026-09-01
-
-### Added
-
-- While searching, each tile shows where the term was found, with a snippet and the number of further sources.
-- The term is highlighted on tiles, in link lists and comments; the address of an opened hit keeps it.
-
-## [0.17.5] - 2026-08-31
-
-### Fixed
-
-- Cards with short or empty lists were far too tall; names in the "Security log" were not aligned.
-
-## [0.17.4] - 2026-08-31
-
-### Changed
-
-- Cards in a row have the same height again; the "Security log" shows 15 rows before it scrolls.
-
-## [0.17.3] - 2026-08-31
-
-### Added
-
-- "Reset filters" in the sort row, shown with a count when filters are set.
-
-### Changed
-
-- The "Mail delivery" card shows only the status; the settings are entered in a dialog.
-
-## [0.17.2] - 2026-08-31
-
-### Changed
-
-- The number of votes after an average shows only from two votes on.
-
-### Removed
-
-- The bell no longer reports your own contributions.
-
-## [0.17.1] - 2026-08-30
-
-### Changed
-
-- The German term "Anlage" is now "Instanz"; bookmarks to `#/system/anlage` still work.
-
-### Fixed
-
-- A video restarted from the beginning when switched to full screen.
-
-## [0.17.0] - 2026-08-30
-
-### Added
-
-- The bell panel says what is new and from whom ("3 comments · 4 ratings").
-
-### Removed
-
-- The filter pill "New since …"; the bell replaces it, and saved views still load.
-
-### Fixed
-
-- The criteria list broke with exactly one account; the sign-in page misjudged its height on phones.
-
-## [0.16.0] - 2026-08-29
-
-> Make a Backup of the data folder first: this version changes the database.
-
-### Added
-
-- "Settings" has five sections with their own addresses; a bell in the header shows news and open tasks.
-- "Metrics" shows version, Fingerprint and the methods used; the score opens its calculation.
-- Photos can be deleted from full screen; ratings store their time.
-
-### Changed
-
-- Export and Import share one card.
-
-## [0.15.1] - 2026-08-29
-
-### Fixed
-
-- The rejection reason and its field showed on entries that are not rejected.
-
-## [0.15.0] - 2026-08-29
-
-### Added
-
-- The status row filters "Rejected" and "Not rejected"; ✎ and ✕ on the rejection reason.
-
-### Security
-
-- Anyone who may edit an entry can remove a rejection reason; only its author can rewrite it.
-
-## [0.14.0] - 2026-08-29
-
-> Make a Backup of the data folder first: this version changes the database.
-
-### Added
-
-- A rejection records date, reason and author, shown as one sentence; only its author may change the reason.
-
-### Fixed
-
-- A foreign cookie with a percent sign in its value locked a browser out.
-
-## [0.13.2] - 2026-08-29
-
-### Fixed
-
-- A pinned comment had one edge in a different colour.
-
-## [0.13.1] - 2026-08-29
-
-### Fixed
-
-- The label and toggle of the filter row sat lower than the rest of the row.
-
-## [0.13.0] - 2026-08-28
-
-### Added
-
-- Kriterion is reachable over HTTPS and from the home network with the same settings.
-- Filters for the "Security log"; its names link to the account; deleted accounts have their own window.
-- The category filter takes several categories at once.
-
-### Changed
-
-- The delete dialog offers the reversible way: lock instead of delete.
-
-### Fixed
-
-- The export in parts failed with a second factor and was not logged.
-
-### Security
-
-- The home network gets its own cookie name; switching `HINTER_PROXY` signs out everyone using HTTPS.
-
-## [0.12.4] - 2026-08-28
-
-### Added
-
-- "Export in parts" (50 to 300 MB each): import part 1 with "Replace", the rest with "Merge".
-
-## [0.12.3] - 2026-08-28
-
-### Added
-
-- The export card shows the expected file size; the Import asks before reading a file.
-
-### Fixed
-
-- A too-large export failed without a message; it is now refused beforehand.
-
-## [0.12.2] - 2026-08-28
-
-### Fixed
-
-- The preview row left an empty strip on phones.
-
-## [0.12.1] - 2026-08-28
-
-### Changed
-
-- The image area's buttons sit in one row at the top right; on touch screens, preview tiles have no delete cross.
-
-## [0.12.0] - 2026-08-28
-
-### Added
-
-- Kriterion works on phones and tablets: menu, filter toggle, swiping through images, dialogs from the bottom.
-
-## [0.11.0] - 2026-08-27
-
-### Added
-
-- Search runs on the server and also finds comments, links and test days; saved views; a warning about duplicates.
-
-### Fixed
-
-- A remembered filter for a deleted category showed an empty list.
-
-## [0.10.0] - 2026-08-26
-
-> Make a Backup of the data folder first: this version changes the database.
-
-### Added
-
-- Optional second factor per account with an authenticator app and eight one-time recovery codes, shown once.
-- `node zugang.js zweifaktor <name>` turns it off on the host if phone and codes are lost.
-
-### Changed
-
-- Versions follow Semantic Versioning, and this file follows Keep a Changelog.
-
-### Security
-
-- The reset link no longer bypasses the second factor, and the secret never leaves the server once confirmed.
-- Locking and unlocking keep an account's second factor; only the correct password reveals that one exists.
+## Older versions — 0.10.0 to 0.19.6
+
+- 0.19.6: Leaving an entry right after a crop, a delete or an upload no longer shows a false error.
+- 0.19.5: Thumbnails are recreated square and cropped; cropped tiles and strips are sharp.
+- 0.19.4: Photo thumbnails are recreated at the size tiles need; tiles were blurry before.
+- 0.19.3: `GET /api/items` returns no tags per test day; image conversion runs in its own thread.
+- 0.19.2: "Settings" and the overview load faster; a tight crop can be moved in every direction.
+- 0.19.1: Only `docker-compose.example.yml` ships; "Image formats" is its own card.
+- 0.19.0: Pasted screenshots become lossless WebP; "Convert all PNG to WebP"; tighter crops (`photos.zoom`).
+- 0.18.1: "My sessions" shows ten sign-ins again.
+- 0.18.0: Search hits show where the term was found, with a snippet; the term is highlighted.
+- 0.17.5: Cards with short lists are no longer too tall; the "Security log" is aligned.
+- 0.17.4: Cards in a row have the same height; the "Security log" shows 15 rows before it scrolls.
+- 0.17.3: "Reset filters" in the sort row; mail delivery is set up in a dialog.
+- 0.17.2: Vote counts show from two votes on; the bell no longer reports your own contributions.
+- 0.17.1: "Anlage" became "Instanz"; a video no longer restarts when switched to full screen.
+- 0.17.0: The bell says what is new and from whom and replaces the filter "New since …".
+- 0.16.0: "Settings" has five sections; a bell for news and open tasks; ratings store their time.
+- 0.15.1: The rejection reason no longer shows on entries that are not rejected.
+- 0.15.0: Filters "Rejected" and "Not rejected"; only the author of a rejection reason rewrites it.
+- 0.14.0: A rejection records date, reason and author; a cookie with `%` no longer locks a browser out.
+- 0.13.2: A pinned comment had one edge in a different colour.
+- 0.13.1: Label and toggle of the filter row are aligned.
+- 0.13.0: HTTPS and the home network with the same settings; filters for the "Security log".
+- 0.12.4: "Export in parts" with 50 to 300 MB each.
+- 0.12.3: The export card shows the expected size; a too-large export is refused beforehand.
+- 0.12.2: The preview row no longer leaves an empty strip on phones.
+- 0.12.1: The buttons of the image area sit in one row at the top right.
+- 0.12.0: Kriterion works on phones and tablets.
+- 0.11.0: Search runs on the server and also finds comments, links and test days; saved views.
+- 0.10.0: Optional second factor with an authenticator app; Semantic Versioning and Keep a Changelog.
 
 ## 0.9.1 — Self-registration
 

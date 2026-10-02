@@ -422,8 +422,9 @@ async function run() {
     row.size === got.bytes.length && sealed.length === got.bytes.length + 16 * Math.ceil(got.bytes.length / 1048576) &&
     sealed.indexOf('proxy ') < 0 && (fs.statSync(proxyDir).mode & 0o777) === 0o700, `${sealed.length} ${row.size}`);
   const clipInfo = await as('zweit', 'GET', `/api/attachments/${clipId}/info`);
-  check('„Erweiterte Infos“ nennt Zustand, Pixel und Groesse des Proxys',
-    equal(clipInfo.content?.proxy, { state: 'ready', width: 1920, height: 1080, size: got.bytes.length, reason: null }),
+  check('„Erweiterte Infos“ nennt Zustand, Pixel und Groesse des Proxys und die Bitraten, die MediaInfo am Proxy misst',
+    equal(clipInfo.content?.proxy, { state: 'ready', width: 1920, height: 1080, size: got.bytes.length, reason: null,
+      videoBitRate: VP.videoBitRate(facts.video[0].frameRate), audioBitRate: 128000 }),
     JSON.stringify(clipInfo.content?.proxy));
   const proxyStats = (await as('dritt', 'GET', '/api/stats')).content?.proxy || {};
   check('Die Kennzahlen nennen Quick Sync mit Treiber, fertige Proxys und ihre Groesse',
@@ -735,17 +736,18 @@ async function run() {
     const esc = () => w.document.body.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
     const PROXY = `/api/attachments/80/raw?size=proxy&v=${40 * MB}`, ORIGINAL = '/api/attachments/80/raw?inline=1';
     let x = open1('f80');
-    check('Mit fertigem Proxy spielt der Proxy; der Umschalter bietet das Original an',
-      x.player?.getAttribute('src') === PROXY && x.swap?.hidden === false && x.swap.textContent === DE['entry.playOriginal'] &&
-      x.swap.title === DE['entry.playOriginalTitle'] && x.swap.getAttribute('aria-pressed') === 'false',
+    check('Mit fertigem Proxy spielt der Proxy; der Knopf nennt „Proxy“, sein Titel das Original',
+      x.player?.getAttribute('src') === PROXY && x.swap?.hidden === false && x.swap.textContent === DE['entry.playProxy'] &&
+      x.swap.title === DE['entry.playOriginalTitle'] && !x.swap.hasAttribute('aria-pressed'),
       `${x.player?.getAttribute('src')} ${x.swap?.hidden} ${x.swap?.textContent}`);
     check('„Ganz laden“ misst am Proxy: 40 MB statt 3 GB', x.whole?.hidden === false, String(x.whole?.hidden));
     x.player.currentTime = 17;
     x.swap.click();
-    check('Der Umschalter spielt das Original an derselben Stelle weiter',
+    check('Der Umschalter spielt das Original an derselben Stelle weiter; der Knopf nennt „Original“ und bleibt grau',
       x.player.getAttribute('src') === ORIGINAL && x.player.currentTime === 17 && played === 1 &&
-      x.swap.textContent === DE['entry.playProxy'] && x.swap.getAttribute('aria-pressed') === 'true' && x.whole.hidden === true,
-      `${x.player.getAttribute('src')} ${x.player.currentTime} ${played} ${x.whole.hidden}`);
+      x.swap.textContent === DE['entry.playOriginal'] && x.swap.title === DE['entry.playProxyTitle'] &&
+      !x.swap.hasAttribute('aria-pressed') && !/\.lb-btn\.original\[aria-pressed/.test(read('public/style.css')) &&
+      x.whole.hidden === true, `${x.player.getAttribute('src')} ${x.player.currentTime} ${played} ${x.swap.textContent}`);
     x.swap.click();
     check('Und zurueck zum Proxy, ebenfalls an der Stelle', x.player.getAttribute('src') === PROXY && x.player.currentTime === 17,
       `${x.player.getAttribute('src')} ${x.player.currentTime}`);
@@ -753,12 +755,12 @@ async function run() {
     w.document.querySelector('.lightbox .lb-nav.next')?.click();
     w.document.querySelector('.lightbox .lb-nav.prev')?.click();
     check('Nach dem Blaettern zurueck spielt wieder der Proxy', x.player.getAttribute('src') === PROXY &&
-      x.swap.getAttribute('aria-pressed') === 'false', x.player.getAttribute('src'));
+      x.swap.textContent === DE['entry.playProxy'], x.player.getAttribute('src'));
     x.swap.click();
     esc();
     x = open1('f80');
     check('Beim naechsten Oeffnen spielt wieder der Proxy', x.player?.getAttribute('src') === PROXY &&
-      x.swap?.getAttribute('aria-pressed') === 'false', x.player?.getAttribute('src'));
+      x.swap?.textContent === DE['entry.playProxy'], x.player?.getAttribute('src'));
     x.player.dispatchEvent(new w.Event('error'));
     check('Laesst sich der Proxy nicht spielen, spielt das Original ohne Meldung',
       x.player.getAttribute('src') === ORIGINAL && x.player.hidden === false && x.notice.hidden === true,
@@ -804,7 +806,7 @@ async function run() {
       return Promise.resolve({ ok: true, status: 200, json: async () => ({ general: { format: 'Matroska', duration: 10 },
         video: [{ format: 'AVC', width: 640, height: 360 }], audio: [], image: [],
         proxy: url.includes('/91/') ? { state: 'failed', reason: 'tmpSpace', width: null, height: null, size: null }
-          : { state: 'ready', reason: null, width: 640, height: 360, size: 2048 } }) });
+          : { state: 'ready', reason: null, width: 640, height: 360, size: 2048, videoBitRate: 5750000, audioBitRate: 128000 } }) });
     };
     const infoOf = async (k) => {
       tile(k)?.querySelector('.amore')?.click();
@@ -818,10 +820,11 @@ async function run() {
       return out;
     };
     const ready = await infoOf('f90');
-    check('„Erweiterte Infos“ hat die Gruppe „Proxy“ mit Zustand, Pixeln und Groesse',
+    check('„Erweiterte Infos“ hat die Gruppe „Proxy“ mit Zustand, Pixeln, Groesse und den Bitraten von Video und Audio',
       ready.offered && ready.heads.includes(DE['entry.mediaProxy']) &&
       [`${DE['entry.mediaProxyState']}: ${DE['entry.proxyReady']}`, `${DE['entry.mediaResolution']}: 640 × 360`,
-        `${DE['entry.mediaFileSize']}: ${w.eval('fmtBytes(2048)')}`].every(x => ready.rows.includes(x)), ready.rows.join(' | '));
+        `${DE['entry.mediaFileSize']}: ${w.eval('fmtBytes(2048)')}`, `${DE['entry.proxyVideoRate']}: 5,8 Mbit/s`,
+        `${DE['entry.proxyAudioRate']}: 128 kbit/s`].every(x => ready.rows.includes(x)), ready.rows.join(' | '));
     const failed = await infoOf('f91');
     check('Auch eine Datei .avi ohne Proxy hat „Erweiterte Infos“; ein Fehlschlag nennt den Grund',
       failed.offered && failed.rows.includes(`${DE['entry.mediaProxyState']}: ${DE['entry.proxyFailed']}: ${DE['entry.proxyTmpSpace']}`),

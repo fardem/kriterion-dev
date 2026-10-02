@@ -1038,6 +1038,8 @@
   "entry.mediaPlace": "Ort in der Datei",
   "entry.mediaProxy": "Proxy",
   "entry.mediaProxyState": "Zustand",
+  "entry.proxyVideoRate": "Bitrate Video",
+  "entry.proxyAudioRate": "Bitrate Audio",
   "entry.proxyReady": "fertig",
   "entry.proxyWaiting": "wartet",
   "entry.proxyFailed": "fehlgeschlagen",

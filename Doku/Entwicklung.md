@@ -277,13 +277,18 @@ ffmpeg läuft unter einer anderen Nummer.
   Datei oder lässt sie sich nicht entschlüsseln, fällt die Zeile weg, und das
   Video wartet wieder. `proxyFilesThere()` tut dasselbe beim Start für Zeilen
   ohne Datei, etwa nach dem Zurückspielen eines Backups.
+- **Erweiterte Infos:** `proxyInfo()` misst bei jedem Aufruf die Bitraten von
+  Video und Audio am fertigen Proxy: `proxyRates()` liest ihn mit
+  `sealedReader()` wie `readPartsOf()` eine Datei und gibt ihn an MediaInfo,
+  in der Reihe der Analysen (`inMediaTurn()`). Gespeichert wird nichts.
 - **Die vier Endungen** `mkv`, `avi`, `wmv` und `flv` analysiert die
   Warteschlange; als Video gelten sie erst mit fertigem Proxy
   (`playsAsVideo()`).
 
 Im Prüfstand ersetzt `test/ffmpeg.js` ffmpeg: es liest das Original über die
 Adresse und schreibt eine kleine MP4 mit dem SHA-256 des Originals, der
-Umgebung, der Priorität und den Argumenten.
+Umgebung, der Priorität und den Argumenten. Ihr `moov` gibt in `stsz` die
+Größen an, aus denen MediaInfo die verlangten `-b:v` und `-b:a` errechnet.
 
 ## Bildablage
 

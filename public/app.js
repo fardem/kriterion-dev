@@ -4600,7 +4600,7 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
       <div class="lb-tools">
         <span class="lb-loaded" hidden></span>
         <button class="lb-btn whole" hidden aria-pressed="false">${tH('entry.loadWhole')}</button>
-        <button class="lb-btn original" hidden aria-pressed="false"></button>
+        <button class="lb-btn original" hidden></button>
         <span class="lb-count"></span>
         ${info ? `<button class="lb-btn info" title="${esc(t('entry.mediaInfo'))}" aria-label="${esc(t('entry.mediaInfo'))}">${ICON_INFO}</button>` : ''}
         ${linkOf ? `<button class="lb-btn copy" title="${esc(t('entry.copyLink'))}">${ICON_LINK}</button>` : ''}
@@ -4698,14 +4698,13 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
   }
   wholeButton.onclick = () => (loading ? stopLoading(true) : loadWhole());
 
-  // Das Original nur fuer dieses Abspielen: show() setzt `original` zurueck. Die Stelle gilt fuer beide.
+  // Das Original nur fuer dieses Abspielen (show() setzt zurueck). Aufschrift: was spielt; Titel: wohin der Klick wechselt.
   const originalButton = lb.querySelector('.original');
   function markOriginal() {
     const p = photos[i];
     originalButton.hidden = player.hidden || !(p.source === 'file' && p.proxy);
-    originalButton.textContent = original ? t('entry.playProxy') : t('entry.playOriginal');
+    originalButton.textContent = original ? t('entry.playOriginal') : t('entry.playProxy');
     originalButton.title = original ? t('entry.playProxyTitle') : t('entry.playOriginalTitle');
-    originalButton.setAttribute('aria-pressed', String(original));
   }
   function switchFile(toOriginal) {
     const at = player.currentTime || 0, playing = !player.paused;
@@ -5120,7 +5119,8 @@ function proxyGroup(p) {
   const why = p.state === 'failed' && p.reason ? (PROXY_FAILURES[p.reason] ? t(PROXY_FAILURES[p.reason]) : p.reason) : '';
   return mediaGroup(t('entry.mediaProxy'), [['entry.mediaProxyState',
     [t(PROXY_STATES[p.state] || 'entry.proxyWaiting'), why].filter(Boolean).join(': ')],
-    ['entry.mediaResolution', pixelText(p.width, p.height)], ['entry.mediaFileSize', p.size ? fmtBytes(p.size) : '']]);
+    ['entry.mediaResolution', pixelText(p.width, p.height)], ['entry.mediaFileSize', p.size ? fmtBytes(p.size) : ''],
+    ['entry.proxyVideoRate', bitRateText(p.videoBitRate)], ['entry.proxyAudioRate', bitRateText(p.audioBitRate)]]);
 }
 function mediaInfoHtml(f) {
   const g = f.general || {}, video = f.video || [], audio = f.audio || [], shot = f.exif || {};
