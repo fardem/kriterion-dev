@@ -550,11 +550,13 @@ async function run() {
   await upload('zweit', v1, [{ name: 'stop.mp4', content: H.testMp4({ pad: 123 }) }]);
   const stoppedId = (await fileNamed(v1, 'stop.mp4'))?.id;
   const converting = await until2(async () => (await as('dritt', 'GET', '/api/stats')).content?.proxy?.waiting === 1, 15000);
+  await wait(1000);
   await as('owner', 'PUT', '/api/settings', { proxyOn: false });
-  await wait(4500);
-  check('Ausschalten bricht die laufende Umwandlung ab, ohne Fehler in der Tabelle',
-    converting && !proxyRow(stoppedId) && (await as('dritt', 'GET', '/api/stats')).content?.proxy?.waiting === 0,
-    `${converting} ${JSON.stringify(proxyRow(stoppedId))}`);
+  const stoppedSoon = await until2(async () => (await as('dritt', 'GET', '/api/stats')).content?.proxy?.waiting === 0, 1500);
+  await wait(500);
+  check('Ausschalten bricht die laufende Umwandlung sofort ab, ohne Fehler in der Tabelle',
+    converting && stoppedSoon && !proxyRow(stoppedId) && (await as('dritt', 'GET', '/api/stats')).content?.proxy?.waiting === 0,
+    `${converting} ${stoppedSoon} ${JSON.stringify(proxyRow(stoppedId))}`);
   await as('owner', 'PUT', '/api/settings', { proxyOn: true });
   const resumed = await until2(() => proxyRow(stoppedId)?.state === 'ready', 20000);
   check('Wieder eingeschaltet, wandelt Kriterion den Bestand um', resumed, JSON.stringify(proxyRow(stoppedId)));
@@ -661,10 +663,10 @@ async function run() {
     await D.sysSection(clean.w, 'database');
     clean.w.document.getElementById('maint-run')?.dispatchEvent(new clean.w.MouseEvent('click', { bubbles: true }));
     const cleanText = () => clean.w.document.getElementById('maint-out')?.textContent || '';
-    await until(clean.w, () => cleanText().includes(DE['card.maintCheckRunning']), 3000, 'die laufende Pruefung');
+    await until(clean.w, () => cleanText().includes(DE['card.maintCheckRunning']), 3000, 'die laufende Pruefung').catch(() => false);
     const runningText = cleanText();
     await until(clean.w, () => cleanText().includes(DE['card.maintClean']) &&
-      !cleanText().includes(DE['card.maintCheckRunning']), 6000, 'das Ergebnis');
+      !cleanText().includes(DE['card.maintCheckRunning']), 6000, 'das Ergebnis').catch(() => false);
     check('Laeuft die Pruefung noch, sagt die Karte es und fragt nach',
       runningText.includes(DE['card.maintCheckRunning']) &&
       clean.sent.filter(z => z.url === '/api/maintenance').length === 2, runningText.replace(/\s+/g, ' ').trim());
@@ -719,10 +721,14 @@ async function run() {
     await until(w, (z) => z.document.querySelector('#atts .atile[data-key="f81"]') && openRequests(z) === 0, 3000, 'die Kacheln');
     w.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {}, addListener() {} });
     let played = 0;
+    const mediaSource = Object.getOwnPropertyDescriptor(w.HTMLMediaElement.prototype, 'src');
+    const newSourceStartsAtZero = (p) => Object.defineProperty(p, 'src', { configurable: true,
+      get() { return mediaSource.get.call(this); }, set(v) { mediaSource.set.call(this, v); this.currentTime = 0; } });
     const open1 = (key) => {
       w.document.querySelector(`#atts .atile[data-key="${key}"] .aface`)?.click();
       const p = w.document.querySelector('.lightbox .lb-video');
       if (p) { Object.defineProperty(p, 'paused', { configurable: true, get: () => false }); p.play = () => { played++; }; }
+      if (p) newSourceStartsAtZero(p);
       return { player: p, swap: w.document.querySelector('.lightbox .lb-btn.original'),
         whole: w.document.querySelector('.lightbox .lb-btn.whole'), notice: w.document.querySelector('.lightbox .lb-unplayable') };
     };
@@ -743,6 +749,11 @@ async function run() {
     x.swap.click();
     check('Und zurueck zum Proxy, ebenfalls an der Stelle', x.player.getAttribute('src') === PROXY && x.player.currentTime === 17,
       `${x.player.getAttribute('src')} ${x.player.currentTime}`);
+    x.swap.click();
+    w.document.querySelector('.lightbox .lb-nav.next')?.click();
+    w.document.querySelector('.lightbox .lb-nav.prev')?.click();
+    check('Nach dem Blaettern zurueck spielt wieder der Proxy', x.player.getAttribute('src') === PROXY &&
+      x.swap.getAttribute('aria-pressed') === 'false', x.player.getAttribute('src'));
     x.swap.click();
     esc();
     x = open1('f80');

@@ -757,13 +757,22 @@ async function run() {
     trackMoved && nudgeMoved && nudged.status === 200 && trackSurvived && trackBack && byRun &&
     (await rawOf('uploader', trackId)).buf.equals(track) && (await rawOf('uploader', nudge.id)).buf.equals(text('Anstoss')),
     `${nudged.status} ${trackSurvived} ${trackBack} ${byRun}`);
-  await start({ run: 300, hold: 1500 });
   const writing = byName((await upload('uploader', item, [{ name: 'schreibt.txt', content: text('schreibt') }])).content)['schreibt.txt'];
-  const writeMove = await as('uploader', 'PUT', `/api/attachments/${writing.id}/folder`, { folderId: north.id });
-  await wait(700);
-  check('Ein Name, den der Server gerade schreibt, uebersteht den Lauf',
-    writeMove.status === 200 && !!diskRow(writing.id) && onDisk(diskRow(writing.id)?.name || '-') &&
-    (await rawOf('uploader', writing.id)).buf.equals(text('schreibt')), `${writeMove.status} ${!!diskRow(writing.id)}`);
+  const writingBefore = diskRow(writing.id)?.name;
+  await B.stop();
+  B = null;
+  inDb(d => {
+    d.exec('DROP TRIGGER IF EXISTS disk_files_kept');
+    d.prepare('UPDATE attachments SET data = ? WHERE id = ?').run(text('schreibt'), writing.id);
+    d.prepare('DELETE FROM disk_files WHERE attachment_id = ?').run(writing.id);
+    d.prepare('INSERT INTO disk_files_gone (name) VALUES (?)').run(writingBefore);
+  });
+  await start({ run: 300, hold: 1500 });
+  const relocated = await until2(() => dataLength(writing.id) === 0 && !!diskRow(writing.id), 8000);
+  await wait(300);
+  check('Ein Name, den der Server gerade schreibt, uebersteht den Lauf: eine Datei aus der Tabelle, die der Start umlagert',
+    relocated && onDisk(diskRow(writing.id)?.name || '-') && (await rawOf('uploader', writing.id)).buf.equals(text('schreibt')),
+    `${relocated} ${diskRow(writing.id)?.name}`);
 
   group('Platte: Checkpoint und FULL');
   await start();
