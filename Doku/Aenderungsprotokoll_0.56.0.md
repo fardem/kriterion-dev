@@ -23,6 +23,8 @@ Abhängigkeit.
 | 2. Oktober 2026 | Fragetafel, eigene Antwort: „Proxy wenn vorhanden.. Wenn nicht vorhanden nichts anzeigen“ |
 | 2. Oktober 2026 | Fragetafel: „Ganz laden“ bleibt (Empfehlung); 0.56.0 sofort bauen; das Gerät ist ein Telefon mit Android, hochkant; dazu drei Bildschirmfotos |
 | 2. Oktober 2026 | Fragetafel: Proxys aus 0.55 nach dem Update im Hintergrund ersetzen (Empfehlung); die Leiste oben „Ist ganz da“; der Browser ist Chrome |
+| 2. Oktober 2026 | Drei Bildschirmfotos aus Chrome auf Android; daraus die Ursache am Telefon (Abschnitt 3) |
+| 2. Oktober 2026 | Fragetafel beim Push: die zwei Commits direkt auf 0.55.1 (`b3b5879`) pushen, ohne den Branch neu auf `main` aufzusetzen (Empfehlung). Das Neu-Aufsetzen hatte die automatische Freigabe abgelehnt; 0.55.1 ist über #280 schon in `main` |
 
 ---
 
@@ -191,6 +193,16 @@ Mit einem eingefügten Element von 900 px: Layoutbreite 901 px, im Vollbild
 
 Der volle Lauf vor dem Push: **8.264 von 8.264** Prüfungen bestanden.
 
+**GitHub.** Lauf 1204 auf dem Branch (`8674d64`): 8.252 von 8.258 bestanden,
+**6 rot**. Derselbe Stand auf `main` (`330ff7f`, Lauf 1205) und als `v0.56.0`
+(Lauf 1206): grün. Die 6 roten stehen vor der Gruppe „Zeitleiste abschaltbar“
+in `ui_entry`, also in `roundtrip`, `source`, `ui_overview` oder den ersten
+vier Gruppen von `ui_entry`; je rote Prüfung steht eine Hinweiszeile mehr im
+Log. Das Werkzeug für GitHub liest nur die letzten 5.000 von 9.721 Zeilen. Vom
+Start des Prüfstands bis zur Gruppe „Linkliste und Aktionszeichen“ vergingen
+rund 137 s, in Lauf 1205 rund 114 s. Die fünf Module von `roundtrip` bis
+`ui_system` dreimal parallel hier: alle grün.
+
 ---
 
 ## 6. Nicht geprüft und offen
@@ -201,3 +213,5 @@ Der volle Lauf vor dem Push: **8.264 von 8.264** Prüfungen bestanden.
   Auf dem N100 dauerte eine Stunde 4K mit 60 Bildern je Sekunde mit Quick Sync
   rund 30 Minuten, mit der CPU zwei bis zweieinhalb Stunden.
 - Die türkischen Texte hat kein Muttersprachler gelesen.
+- Die 6 roten Prüfungen aus Lauf 1204 (Abschnitt 5): Namen und Ursache sind
+  nicht bekannt.
