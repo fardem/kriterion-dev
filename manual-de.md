@@ -44,7 +44,7 @@ Freiwillig, je Account, ab Werk aus. Niemand kann ihn für einen anderen ein-
 oder ausschalten, auch der Eigentümer-Admin nicht. Der Code kommt aus einer App auf
 dem Telefon; Kriterion verschickt keine Codes.
 
-Einschalten in der Karte „Mein Account":
+Einschalten in der Karte „Zweiter Faktor“ unter „Persönlich“:
 
 1. Eine TOTP-App installieren, etwa Google Authenticator, Aegis, 1Password
    oder die Passwörter-App von iOS.
@@ -61,7 +61,7 @@ verlangt.
 **Wiederherstellungscodes:** Beim Einschalten erscheinen acht Codes. Sie werden
 nur einmal angezeigt und gelten je einmal anstelle eines App-Codes. **Getrennt
 vom Telefon aufbewahren.** Ohne sie ist ein verlorenes Telefon ein verlorener
-Account. Neue Codes gibt es in „Mein Account" gegen Passwort und Code; die alten
+Account. Neue Codes gibt es in „Zweiter Faktor“ gegen Passwort und Code; die alten
 verfallen dann.
 
 Sind Telefon und Codes weg, schaltet der Eigentümer-Admin den zweiten Faktor auf dem
@@ -695,26 +695,31 @@ eigene Adresse. Abschnitte ohne sichtbare Karte erscheinen nicht.
 
 | Abschnitt | Karten |
 |---|---|
-| Persönlich | Mein Account, Meine Sitzungen, Darstellung, Dokumente |
-| Bestand | Kategorien, Tags, Bewertung: Kriterien, Potenzial: Kriterien, Vokabular, Links, Suchmaschinen, Papierkorb |
+| Persönlich | Mein Account, Zweiter Faktor, Meine Sitzungen, Darstellung, Dokumente |
+| Bestand | Kategorien, Tags, Bewertung: Kriterien, Potenzial: Kriterien, Papierkorb |
 | Benutzer | Benutzer, Anfragen, Sicherheitsprotokoll, Mailversand |
-| Datenbank | Kennzahlen, Bildformate, Grenzen beim Hochladen, Backup, Alte Backups, Export und Import |
-| Installation | Titel, Sprachen, Dokumente |
+| Datenbank | Kennzahlen, Speicher und Wartung, Bildformate, Grenzen beim Hochladen |
+| Backup | Backup, Alte Backups, Export und Import |
+| Installation | Titel, Sprachen, Vokabular, Suchmaschinen, Dokumente, Version und Verschlüsselung |
 
-Ein Benutzer sieht seine eigenen Karten und die Listen der Kategorien, Tags
-und Kriterien ohne Bearbeitung. Alles Weitere sieht der Admin; Export, Import,
-Backup und Sicherheitsprotokoll nur der Eigentümer-Admin.
+Ein Benutzer sieht nur „Persönlich“. Alles Weitere sieht der Admin; was er nicht
+ändern darf, steht als Text da. Den Abschnitt „Backup“, die Karten „Sprachen“,
+„Sicherheitsprotokoll“ und „Mailversand“ und die Befehle für den Server sieht
+nur der Eigentümer-Admin. Alle anderen lesen anstelle eines Befehls: „Wende dich
+an einen Admin, der dir dabei helfen kann.“
 
 | Karte | Inhalt |
 |---|---|
 | Titel | Titel vor der Anmeldung (für jeden sichtbar, zurückhaltend wählen) und Titel nach der Anmeldung |
 | Dokumente | Anzeige und Bearbeiten über einen Document Server ein- und ausschalten; „Bearbeiten durch alle“: Startwert, solange ein Account keinen eigenen gesetzt hat; die Karte prüft die Verbindung. Adressen und Secret stehen in der `.env`, siehe README |
-| Kennzahlen | Umfang des Bestands, Datenbankgröße, Dateien auf der Platte (davon über „Anhang“ und im Papierkorb), Uploads, freier Platz, Version, Fingerprint, Verschlüsselungsverfahren; für den Eigentümer-Admin der Schlüsselwert. Nur wenn es welche gibt: Dateien, die noch in der Datenbank auf die Umlagerung warten, fehlende Dateien, Dateien, die auf das Löschen warten, und Dateien ohne Verweis. Diese löscht der Eigentümer-Admin mit „Löschen“, aber nur, wenn im Backup-Ordner eine Kopie gleicher Länge liegt |
+| Kennzahlen | Umfang des Bestands: Einträge, Fotos, Videos, Kommentare, Links und Testtage |
+| Speicher und Wartung | Datenbankgröße, Papierkorb, Dateien auf der Platte (davon über „Anhang“ und im Papierkorb), Uploads, freier Platz. Nur wenn es welche gibt: Dateien, die noch in der Datenbank auf die Umlagerung warten, fehlende Dateien, Dateien, die auf das Löschen warten, und Dateien ohne Verweis. Diese löscht der Eigentümer-Admin mit „Löschen“, aber nur, wenn im Backup-Ordner eine Kopie gleicher Länge liegt |
+| Version und Verschlüsselung | Version, Fingerprint, Verschlüsselungsverfahren; für den Eigentümer-Admin der Schlüsselwert, solange der Schlüssel neben der Datenbank liegt |
 | Kategorien, Tags | anlegen, umbenennen, löschen; ein Häkchen legt fest, ob jeder neue Namen am Eintrag anlegen darf |
 | Bewertung: Kriterien, Potenzial: Kriterien | anlegen, umbenennen, sortieren, gewichten (0,2 bis 2, Vorgabe 1); in „Bewertung: Kriterien“ die Schwelle für „Teilweise“ in den Filtern der Übersicht (1 bis 100 %, Vorgabe 80) |
 | Suchmaschinen | sechs eingebaute und bis zu drei eigene (`%s` als Platzhalter); eine ist Standard |
-| Links | Zahl der sichtbaren Linkzeilen, persönlich |
-| Darstellung | Farbschema, Sprache, Schriftgröße, Größe der Vorschaubilder, Zeitleiste, Anordnung der Blöcke; persönlich |
+| Zweiter Faktor | ein- und ausschalten, neue Wiederherstellungscodes; persönlich, siehe „Zweiter Faktor“ |
+| Darstellung | Farbschema, Sprache, Schriftgröße, Größe der Vorschaubilder, Zeitleiste, Zahl der sichtbaren Linkzeilen und Anbieternamen, Anordnung der Blöcke; persönlich |
 | Dokumente (persönlich) | Darstellung im Document Server (Wie Kriterion, Modern Hell, Modern Dunkel) und die Vorgabe „Bearbeiten durch alle“ für die eigenen neuen Dateien. Nur mit eingeschaltetem Document Server |
 
 ### Grenzen beim Hochladen

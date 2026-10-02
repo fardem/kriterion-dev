@@ -45,7 +45,7 @@ geçerli değil. Yöneticiden yeni bir tane iste.”
 başkası için açamaz ya da kapatamaz, sahip yönetici de. Kod telefondaki bir
 uygulamadan gelir; Kriterion kod göndermez.
 
-“Hesabım” kartında açmak için:
+“Kişisel” altındaki “İki adımlı doğrulama” kartında açmak için:
 
 1. Bir TOTP uygulaması kur, örneğin Google Authenticator, Aegis, 1Password
    ya da iOS'un Parolalar uygulaması.
@@ -62,7 +62,7 @@ kullanılırken istenir.
 **Kurtarma kodları:** İki adımlı doğrulamayı açarken sekiz kod görünür. Kodlar
 yalnızca bir kez gösterilir ve her biri bir kez, uygulama kodunun yerine
 geçerlidir. **Onları telefondan ayrı sakla.** Kodlar olmadan telefon kaybolursa
-hesap da kaybolur. Yeni kodları “Hesabım” kartında parola ve kodla alırsın;
+hesap da kaybolur. Yeni kodları “İki adımlı doğrulama” kartında parola ve kodla alırsın;
 eski kodlar o zaman geçersiz olur.
 
 Telefon ve kodlar yoksa, sahip yönetici iki adımlı doğrulamayı sunucuda kapatır
@@ -683,26 +683,31 @@ Görünür kartı olmayan bölümler görünmez.
 
 | Bölüm | Kartlar |
 |---|---|
-| Kişisel | Hesabım, Oturumlarım, Görünüm, Belgeler |
-| Veriler | Kategoriler, Etiketler, Değerlendirme: ölçütler, Potansiyel: ölçütler, Sözcükler, Bağlantılar, Arama motorları, Çöp kutusu |
+| Kişisel | Hesabım, İki adımlı doğrulama, Oturumlarım, Görünüm, Belgeler |
+| Veriler | Kategoriler, Etiketler, Değerlendirme: ölçütler, Potansiyel: ölçütler, Çöp kutusu |
 | Kullanıcı | Kullanıcı, Başvurular, Güvenlik günlüğü, Posta gönderimi |
-| Veritabanı | Sayılar, Resim biçimleri, Yükleme sınırları, Yedekleme, Eski yedeklemeler, Dışa ve içe aktarma |
-| Kurulum | Başlık, Diller, Belgeler |
+| Veritabanı | Sayılar, Depolama ve bakım, Resim biçimleri, Yükleme sınırları |
+| Yedekleme | Yedekleme, Eski yedeklemeler, Dışa ve içe aktarma |
+| Kurulum | Başlık, Diller, Sözcükler, Arama motorları, Belgeler, Sürüm ve şifreleme |
 
-Bir kullanıcı kendi kartlarını ve kategori, etiket ve ölçüt listelerini
-düzenleyemeden görür. Geri kalan her şeyi yönetici görür; dışa aktarma, içe
-aktarma, yedekleme ve güvenlik günlüğünü yalnızca sahip yönetici görür.
+Bir kullanıcı yalnızca “Kişisel” bölümünü görür. Geri kalan her şeyi yönetici
+görür; değiştiremediği şeyler metin olarak durur. “Yedekleme” bölümünü,
+“Diller”, “Güvenlik günlüğü” ve “Posta gönderimi” kartlarını ve sunucu
+komutlarını yalnızca sahip yönetici görür. Diğer herkes bir komut yerine sana
+yardım edebilecek bir yöneticiye başvurmasını söyleyen bir cümle okur.
 
 | Kart | İçerik |
 |---|---|
 | Başlık | giriş öncesi başlık (herkese görünür; az bilgi veren bir başlık seç) ve giriş sonrası başlık |
 | Belgeler | Document Server üzerinden görüntülemeyi ve düzenlemeyi açma ve kapatma; “Herkes düzenleyebilir”: bir hesap kendi değerini belirlemediği sürece başlangıç değeri; kart bağlantıyı denetler. Adresler ve secret `.env` dosyasında durur, bkz. README |
-| Sayılar | verinin kapsamı, veritabanı boyutu, diskteki dosyalar (bunlardan “Ek” sınırını aşanlar ve çöp kutusundakiler), yüklemeler, boş alan, sürüm, parmak izi, şifreleme yöntemleri; sahip yönetici için anahtar değeri. Yalnızca varsa: hâlâ veritabanında olup diske taşınmayı bekleyen dosyalar, eksik dosyalar, silinmeyi bekleyen dosyalar ve başvurusuz dosyalar. Başvurusuz dosyaları sahip yönetici “Sil” ile siler, ama yalnızca yedekleme klasöründe aynı boyutta bir kopya varsa |
+| Sayılar | verinin kapsamı: öğeler, fotoğraflar, videolar, yorumlar, bağlantılar ve test günleri |
+| Depolama ve bakım | veritabanı boyutu, çöp kutusu, diskteki dosyalar (bunlardan “Ek” sınırını aşanlar ve çöp kutusundakiler), yüklemeler, boş alan. Yalnızca varsa: hâlâ veritabanında olup diske taşınmayı bekleyen dosyalar, eksik dosyalar, silinmeyi bekleyen dosyalar ve başvurusuz dosyalar. Başvurusuz dosyaları sahip yönetici “Sil” ile siler, ama yalnızca yedekleme klasöründe aynı boyutta bir kopya varsa |
+| Sürüm ve şifreleme | sürüm, parmak izi, şifreleme yöntemleri; anahtar veritabanının yanında durduğu sürece sahip yönetici için anahtar değeri |
 | Kategoriler, Etiketler | oluşturma, yeniden adlandırma, silme; bir işaret, herkesin öğede yeni ad oluşturup oluşturamayacağını belirler |
 | Değerlendirme: ölçütler, Potansiyel: ölçütler | oluşturma, yeniden adlandırma, sıralama, ağırlık verme (0,2 ile 2 arası, varsayılan 1); “Değerlendirme: ölçütler” kartında genel bakış filtrelerindeki “Kısmen” eşiği (1 ile 100 arası %, varsayılan 80) |
 | Arama motorları | altı yerleşik ve en çok üç özel arama motoru (yer tutucu olarak `%s`); biri varsayılandır |
-| Bağlantılar | görünür bağlantı satırlarının sayısı, kişisel |
-| Görünüm | renk şeması, dil, yazı boyutu, küçük resimlerin boyutu, zaman çizgisi, blokların düzeni; kişisel |
+| İki adımlı doğrulama | açma ve kapatma, yeni kurtarma kodları; kişisel, bkz. “İki adımlı doğrulama” |
+| Görünüm | renk şeması, dil, yazı boyutu, küçük resimlerin boyutu, zaman çizgisi, görünür bağlantı satırlarının ve arama motoru adlarının sayısı, blokların düzeni; kişisel |
 | Belgeler (kişisel) | Document Server'daki görünüm (Kriterion gibi, Modern açık, Modern koyu) ve kendi yeni dosyaların için “Herkes düzenleyebilir” varsayılanı. Yalnızca Document Server açıkken |
 
 ### Yükleme sınırları

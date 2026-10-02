@@ -1353,7 +1353,7 @@ function takeVocabulary(r) {
   if (r.vocabularyDefaults) VOCABULARY_DEFAULTS = r.vocabularyDefaults;
   if (r.vocabulary) V = { ...V, ...r.vocabulary };
 }
-/* Sprache, die „Bestand" fuer die drei Namenskarten und das Vokabular zeigt. */
+/* Sprache der drei Namenskarten unter „Bestand" und des Vokabulars unter „Installation". */
 let NAMES_SHOWN = null;
 /* Namen aller Sprachen, ohne Zwischenspeicher. */
 let NAMES_ALL = { cats: {}, crits: {} };
@@ -8728,6 +8728,7 @@ const SYS_SECTIONS = [
   // Der Schluessel steht in der Adresse und bleibt, auch wenn der Text wechselt.
   { key: 'users',        name: () => t('card.users') },
   { key: 'database',     name: () => t('card.database') },
+  { key: 'backup',       name: () => t('card.backupSection') },
   { key: 'installation', name: () => t('card.installation') }
 ];
 
@@ -9023,6 +9024,8 @@ async function renderFileView(itemId, fileId, editWanted = false) {
 const SYS_CARDS = [
   { key: 'myaccount',    section: 'personal', visible: () => true,
     markup: cardUser,       wireUp: setUpUserOut },
+  { key: 'twofactor',    section: 'personal', visible: () => true,
+    markup: cardTwoFactor,  wireUp: setUpTwoFactorOut },
   { key: 'sessions',     section: 'personal', visible: () => true,
     markup: cardSessions,    wireUp: setUpSessionsOut },
   { key: 'appearance',   section: 'personal', visible: () => true,
@@ -9030,22 +9033,16 @@ const SYS_CARDS = [
   { key: 'mydocuments',  section: 'personal', visible: () => !!DOC_SETTINGS,
     markup: cardMyDocuments, wireUp: setUpMyDocumentsOut },
 
-  { key: 'categories',   section: 'inventory', visible: () => true,
+  { key: 'categories',   section: 'inventory', visible: () => ADMIN,
     markup: cardCategories,   wireUp: setUpCategoriesOut },
-  { key: 'tags',         section: 'inventory', visible: () => true,
+  { key: 'tags',         section: 'inventory', visible: () => ADMIN,
     markup: cardTags,         wireUp: setUpTagsOut },
-  { key: 'criteria',     section: 'inventory', visible: () => true,
+  { key: 'criteria',     section: 'inventory', visible: () => ADMIN,
     markup: () => cardCriteria('after'),
     wireUp: (g) => setUpCriteriaOut(g, 'after') },
-  { key: 'potentialcriteria', section: 'inventory', visible: () => true,
+  { key: 'potentialcriteria', section: 'inventory', visible: () => ADMIN,
     markup: () => cardCriteria('before'),
     wireUp: (g) => setUpCriteriaOut(g, 'before') },
-  { key: 'vocabulary',   section: 'inventory', visible: () => ADMIN,
-    markup: cardVocabulary,    wireUp: setUpVocabularyOut },
-  { key: 'links',        section: 'inventory', visible: () => true,
-    markup: cardLinks,        wireUp: setUpLinksOut },
-  { key: 'searchengines', section: 'inventory', visible: () => ADMIN,
-    markup: cardSearchProvider, wireUp: setUpSearchProviderOut },
   { key: 'trash',        section: 'inventory', visible: () => ADMIN,
     markup: cardTrash,   wireUp: setUpTrashOut },
 
@@ -9059,26 +9056,35 @@ const SYS_CARDS = [
     markup: cardMailDelivery,  wireUp: setUpMailDeliveryOut },
 
   { key: 'stats',        section: 'database', visible: () => ADMIN,
-    markup: cardStats,    wireUp: setUpStatsOut },
+    markup: cardStats },
+  { key: 'storage',      section: 'database', visible: () => ADMIN,
+    markup: cardStorage,  wireUp: setUpStorageOut },
   { key: 'imagestore',   section: 'database', visible: () => ADMIN,
     markup: cardImageStore,   wireUp: setUpImageStoreOut },
   // Admins sehen die Grenzen, aendern kann sie der Eigentuemer.
   { key: 'limits',       section: 'database', visible: () => ADMIN,
     markup: cardLimits,       wireUp: setUpLimitsOut },
-  { key: 'backup',       section: 'database', visible: () => OWNER,
+
+  { key: 'backup',       section: 'backup', visible: () => OWNER,
     markup: cardBackup,    wireUp: setUpBackupOut },
   // Direkt hinter "Backup": die eine Karte legt Backups an, die andere raeumt sie weg.
-  { key: 'cleanup',      section: 'database', visible: () => OWNER,
+  { key: 'cleanup',      section: 'backup', visible: () => OWNER,
     markup: cardCleanup,   wireUp: setUpCleanupOut },
-  { key: 'export',       section: 'database', visible: () => OWNER,
+  { key: 'export',       section: 'backup', visible: () => OWNER,
     markup: cardExport,       wireUp: setUpExportOut },
 
   { key: 'titles',       section: 'installation', visible: () => ADMIN,
     markup: cardTitle,        wireUp: setUpTitleOut },
   { key: 'languages',    section: 'installation', visible: () => OWNER,
     markup: cardLanguages,    wireUp: setUpLanguagesOut },
+  { key: 'vocabulary',   section: 'installation', visible: () => ADMIN,
+    markup: cardVocabulary,    wireUp: setUpVocabularyOut },
+  { key: 'searchengines', section: 'installation', visible: () => ADMIN,
+    markup: cardSearchProvider, wireUp: setUpSearchProviderOut },
   { key: 'documents',    section: 'installation', visible: () => ADMIN,
-    markup: cardDocuments,    wireUp: setUpDocumentsOut }
+    markup: cardDocuments,    wireUp: setUpDocumentsOut },
+  { key: 'version',      section: 'installation', visible: () => ADMIN,
+    markup: cardVersion,      wireUp: setUpVersionOut }
 ];
 
 /* Abschnitte mit mindestens einer sichtbaren Karte. */
@@ -9099,8 +9105,9 @@ async function renderSystem({ keepScroll = false } = {}) {
     [fetched.stats, fetched.titles, fetched.cats, fetched.tags, fetched.crits, fetched.account,
      fetched.trash, fetched.backup, fetched.sessions, fetched.log,
      fetched.mailStatus, fetched.requests, fetched.documents] = await Promise.all([
-      ADMIN ? api('GET', '/api/stats') : null, api('GET', '/api/titles'),
-      api('GET', '/api/product-categories'), api('GET', '/api/tags'), api('GET', '/api/criteria'),
+      ADMIN ? api('GET', '/api/stats') : null, ADMIN ? api('GET', '/api/titles') : null,
+      ADMIN ? api('GET', '/api/product-categories') : null, ADMIN ? api('GET', '/api/tags') : null,
+      ADMIN ? api('GET', '/api/criteria') : null,
       api('GET', '/api/account'), ADMIN ? api('GET', '/api/trash') : null,
       OWNER ? api('GET', '/api/backup') : null, api('GET', '/api/sessions'),
       OWNER ? api('GET', '/api/security-log') : null,
@@ -9127,13 +9134,13 @@ async function renderSystem({ keepScroll = false } = {}) {
       ? tH('card.settingsHintAll')
       : tH('card.settingsHint')}</p>
     ${/* Nur auf dem Telefon sichtbar, wie der Filterschalter der Uebersicht. */''}
-    <button class="btn btn-sm sys-toggle" id="sys-toggle"
+    ${visibleOnes.length > 1 ? `<button class="btn btn-sm sys-toggle" id="sys-toggle"
       aria-expanded="false" aria-controls="sys-tabs">${tH('card.sections')}<span class="fcount">${esc(open.name())}</span></button>
     <nav class="sys-tabs" id="sys-tabs" aria-label="${esc(t('card.sectionsHint'))}">
       ${visibleOnes.map(a => `<a class="sys-tab${a === open ? ' on' : ''}"
         href="${esc(sysUrl(a.key))}"${
         a === open ? ' aria-current="page"' : ''}>${esc(a.name())}</a>`).join('')}
-    </nav>
+    </nav>` : ''}
     <div class="sys-grid">
       ${cardMarkup}
     </div></div>`;
@@ -9353,10 +9360,9 @@ function cardUser(fetched) {
         <p class="desc" style="margin:0 0 10px">${SIGNUP
           ? `${tH('card.addressRequiredHint')} `
           : ''}${tH('card.resetMailHint')}</p>
-        ${serverBox(t('card.forgotPasswordHint'), 'docker compose exec kriterion node usertool.js password <name>')}
+        ${serverBox(t('card.forgotPasswordHint'), 'docker compose exec kriterion node usertool.js password <name>') ||
+          `<p class="desc" style="margin:0 0 10px">${tH('card.passwordAskAdmin')}</p>`}
         <button class="btn btn-accent btn-sm" id="acc-save" style="margin-top:10px">${tH('dialog.save')}</button>
-
-        <div class="two-factor-block" id="two-factor-block"></div>
       </div>`;
 }
 function setUpUserOut(fetched) {
@@ -9382,6 +9388,16 @@ function setUpUserOut(fetched) {
       renderSystem();   // leert die Passwortfelder
     } catch (e) { toast(e.message, true); }
   };
+}
+
+/* ---- Karte „Zweiter Faktor" — Abschnitt „Persönlich" ---- */
+function cardTwoFactor() {
+  return `<div class="sys-card">
+        <h3>${tH('card.twoFactorTitle')}</h3>
+        <div class="two-factor-block" id="two-factor-block"></div>
+      </div>`;
+}
+function setUpTwoFactorOut(fetched) {
   drawTwoFactor(fetched.account.twoFactor);
 }
 
@@ -9491,7 +9507,8 @@ function setUpUserOut(fetched) {
       ${tH('card.recoveryCodesHint')}
       <div class="two-factor-codes">${codes.map(c => `<span>${esc(c)}</span>`).join('')}</div>
       <p class="desc" style="margin:8px 0 0">${tH('card.allCodesUsed')}</p>
-      ${serverBox(t('card.twoFactorOffUser'), 'docker compose exec kriterion node usertool.js twofactor <name>')}`;
+      ${serverBox(t('card.twoFactorOffUser'), 'docker compose exec kriterion node usertool.js twofactor <name>') ||
+        `<p class="desc" style="margin:8px 0 0">${tH('card.twoFactorAskAdmin')}</p>`}`;
     box.appendChild(boxId);
   }
 
@@ -9596,6 +9613,12 @@ function cardAppearance() {
         <p class="desc" style="margin:16px 0 8px">${tH('card.timelineHint')}</p>
         <label class="ex-files"><input type="checkbox" id="timeline-on"> ${tH('card.showTimeline')}</label>
 
+        <p class="desc" style="margin:16px 0 8px">${tH('card.linkRowsHint')}</p>
+        <div class="pills" id="lrows"></div>
+        <p class="desc" style="margin:16px 0 0">${tH('card.linkListHint')}</p>
+        <p class="desc" style="margin:0 0 8px">${tH('card.engineCountHint')}</p>
+        <div class="pills" id="snames"></div>
+
         <p class="desc" style="margin:16px 0 8px">${tH('card.blocksHint')}</p>
         <button class="btn btn-ghost btn-sm" id="breset">${tH('card.restoreLayout')}</button>
       </div>`;
@@ -9625,6 +9648,8 @@ function setUpAppearanceOut() {
   drawTheme();
   drawFont();
   drawStrip();
+  drawLinkRows();
+  drawSearchNames();
   const zl = document.getElementById('timeline-on');
   zl.checked = TIMELINE_ON;
   zl.onchange = async () => {
@@ -9686,17 +9711,15 @@ function setUpAppearanceOut() {
 function cardCategories() {
   return `<div class="sys-card">
         <h3>${tH('card.categories')}</h3>
-        <p class="desc">${ADMIN
-          ? tH('card.categoriesHint')
-          : t('card.categoriesAdminHint')}</p>
-        ${ADMIN && LANGUAGES.filter(a => a.active).length > 1
+        <p class="desc">${tH('card.categoriesHint')}</p>
+        ${LANGUAGES.filter(a => a.active).length > 1
           ? `<div class="pills" id="ncatlang" style="margin-bottom:12px"></div>` : ''}
-        ${ADMIN ? `<div class="namegap" id="nunknown" hidden></div>` : ''}
+        <div class="namegap" id="nunknown" hidden></div>
         <div class="manage-list" id="mcats"></div>
         ${manageCreate('cat')}
-        ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">${tH('card.adminOnlyCategory')}</p>
+        <p class="desc" style="margin:16px 0 8px">${tH('card.adminOnlyCategory')}</p>
         <label class="ex-files"><input type="checkbox" id="cat-free">
-          ${tH('card.anyoneNewCategory')}</label>` : ''}
+          ${tH('card.anyoneNewCategory')}</label>
       </div>`;
 }
 function setUpCategoriesOut(fetched) {
@@ -9711,15 +9734,13 @@ function setUpCategoriesOut(fetched) {
 function cardTags() {
   return `<div class="sys-card">
         <h3>${tH('list.tags')}</h3>
-        <p class="desc">${ADMIN
-          ? tH('card.tagsHint')
-          : t('card.tagsAdminHint')}</p>
+        <p class="desc">${tH('card.tagsHint')}</p>
         <div class="manage-list" id="mtags"></div>
         ${/* Ohne dieses Feld entsteht ein Tag nur an einem Eintrag. */''}
         ${manageCreate('tag')}
-        ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">${tH('card.adminOnlyTag')}</p>
+        <p class="desc" style="margin:16px 0 8px">${tH('card.adminOnlyTag')}</p>
         <label class="ex-files"><input type="checkbox" id="tag-free">
-          ${tH('card.anyoneNewTag')}</label>` : ''}
+          ${tH('card.anyoneNewTag')}</label>
       </div>`;
 }
 function setUpTagsOut(fetched) {
@@ -9740,18 +9761,14 @@ function cardCriteria(phase) {
   return `<div class="sys-card">
         <h3>${tH('card.criteriaLabel', { label: before ? V.potential : V.ratingOne })}</h3>
         ${before ? `<p class="desc">${tH('card.potentialStarsHint')}
-             ${ADMIN ? t('card.criteriaHint') : t('card.listAdminHint')}</p>
-           ${ADMIN ? more(tH('card.criteriaTip')) : ''}`
-          : `<p class="desc">${ADMIN
-          ? t('card.criteriaHintDelete')
-          : tH('card.criteriaAdminHint')}</p>
-           ${ADMIN ? more(tH('card.orderAppliesNote')) : ''}`}
-        ${ADMIN && LANGUAGES.filter(a => a.active).length > 1
+             ${t('card.criteriaHint')}</p>
+           ${more(tH('card.criteriaTip'))}`
+          : `<p class="desc">${t('card.criteriaHintDelete')}</p>
+           ${more(tH('card.orderAppliesNote'))}`}
+        ${LANGUAGES.filter(a => a.active).length > 1
           ? `<div class="pills" id="${k.list}-lang" style="margin-bottom:12px"></div>` : ''}
         <div class="manage-list${before && !POTENTIAL_MODE ? ' list-quiet' : ''}" id="${k.list}"></div>
-        <p class="desc" style="margin:10px 0 0">${tH('card.weightExplainHint')} ${ADMIN
-            ? t('card.weightRangeHint')
-            : t('card.weightSystemDefault')}</p>
+        <p class="desc" style="margin:10px 0 0">${tH('card.weightExplainHint')} ${t('card.weightRangeHint')}</p>
         <!-- Ein Textfeld MIT Vorschlagsliste, kein Auswahlfeld: feste Stufen decken 0,2 bis 2 nicht
              ab, und ein Eintrag "anderer Wert ..." waere ein Moduswechsel -- erst waehlen, dann
              tippen, zwei Bedienformen fuer dieselbe Sache. Dasselbe Muster wie die Tageingabe am
@@ -9765,19 +9782,18 @@ function cardCriteria(phase) {
         ${before ? '' : `<datalist id="weightsug">
           <option value="0,5"><option value="0,8"><option value="1"><option value="1,2"><option value="1,5">
         </datalist>`}
-        ${ADMIN ? `<div class="row-in" style="margin-top:12px">
+        <div class="row-in" style="margin-top:12px">
           <input class="input input-sm" id="${k.field}" placeholder="${esc(t('card.newCriterion'))}" style="padding:8px 11px">
           <button class="btn btn-sm" id="${k.button}">${tH('entry.create')}</button>
-        </div>` : ''}
-        ${!before && ADMIN ? `<p class="desc" style="margin:16px 0 8px">${tH('card.partialShareHint')}</p>
+        </div>
+        ${!before ? `<p class="desc" style="margin:16px 0 8px">${tH('card.partialShareHint')}</p>
           <label class="ex-files" for="partial-share">${tH('card.partialShare')}<input class="input input-sm share-in"
             id="partial-share" type="number" min="1" max="100" step="1" value="${Number(PARTIAL_SHARE)}"> %</label>` : ''}
         ${before ? `${!POTENTIAL_MODE
             ? `<p class="desc" id="pot-off" style="margin:16px 0 0">${tH('card.potentialModeOff')}</p>` : ''}
-          ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">${tH('card.potentialModeHint')}</p>
-          <label class="ex-files"><input type="checkbox" id="pot-mode"${OWNER ? '' : ' disabled'}>
-            ${tH('card.potentialModeLabel')}</label>
-          ${OWNER ? '' : `<p class="desc">${tH('card.potentialModeOwner')}</p>`}` : ''}` : ''}
+          <p class="desc" style="margin:16px 0 8px">${tH('card.potentialModeHint')}</p>
+          ${OWNER ? `<label class="ex-files"><input type="checkbox" id="pot-mode">
+            ${tH('card.potentialModeLabel')}</label>` : `<p class="desc">${tH('card.potentialModeOwner')}</p>`}` : ''}
       </div>`;
 }
 function critRows(fetched, phase) {
@@ -10047,9 +10063,9 @@ function setUpCriteriaOut(fetched, phase) {
   }
 
 
-/* ---- Karte „Vokabular" — Abschnitt „Bestand" ---- */
+/* ---- Karte „Vokabular" — Abschnitt „Installation" ---- */
 function cardVocabulary() {
-  return `<div class="sys-card">
+  return `<div class="sys-card wide">
         <h3>${tH('card.vocabulary')}</h3>
         <p class="desc">${tH('card.vocabularyHint')}</p>
         ${LANGUAGES.filter(a => a.active).length > 1
@@ -10082,7 +10098,7 @@ const VOCABULARY_FIELDS = [
   ['v14', 'ratingMany', () => t('card.ratingMany')],
   ['v15', 'grade', () => t('card.grade')]
 ];
-/* Die Sprache der Namen und des Vokabulars im Abschnitt „Bestand". */
+/* Die Sprache der Namen und des Vokabulars. */
 const namesLanguage = () => {
   const ok = LANGUAGES.some(a => a.active && a.code === NAMES_SHOWN);
   return ok ? NAMES_SHOWN : LANGUAGE;
@@ -10245,7 +10261,7 @@ function setUpVocabularyOut() {
         : '<span class="dot" aria-hidden="true">●</span>');
       b.title = gaps ? t('card.wordsMissing', { n: gaps }) : t('card.languageComplete');
       b.onclick = () => {
-        /* NAMES_SHOWN gilt fuer den ganzen Abschnitt „Bestand". */
+        /* NAMES_SHOWN gilt auch fuer die drei Namenskarten unter „Bestand". */
         NAMES_SHOWN = a.code;
         renderSystem({ keepScroll: true });
       };
@@ -10284,23 +10300,6 @@ function setUpVocabularyOut() {
 }
 
 
-/* ---- Karte „Links" — Abschnitt „Bestand" ---- */
-function cardLinks() {
-  return `<div class="sys-card">
-        <h3>${tH('dialog.links')}</h3>
-        <p class="desc">${tH('card.linkRowsHint')}</p>
-        <div class="pills" id="lrows"></div>
-
-        <p class="desc sys-part">${tH('card.linkListHint')}</p>
-        <p class="desc" style="margin:0 0 8px">${tH('card.engineCountHint')}</p>
-        <div class="pills" id="snames"></div>
-      </div>`;
-}
-function setUpLinksOut() {
-  drawLinkRows();
-  drawSearchNames();
-}
-
   /* Ohne apply: die Zahl der Zeilen wirkt beim naechsten Zeichnen der Linkliste,
      die Zahl der Namen beim naechsten Aufbau. */
   function drawLinkRows() { pillRow({ boxId: 'lrows', levels: LINK_ROW_LEVELS,
@@ -10311,7 +10310,7 @@ function setUpLinksOut() {
     key: 'searchNames' }); }
 
 
-/* ---- Karte „Suchmaschinen" — Abschnitt „Bestand" ---- */
+/* ---- Karte „Suchmaschinen" — Abschnitt „Installation" ---- */
 function cardSearchProvider() {
   return `<div class="sys-card">
         <h3>${tH('card.searchEngines')}</h3>
@@ -10831,11 +10830,10 @@ function cardRequests(fetched) {
         ${!requests.an && !requests.deliveryReady ? `<p class="desc" id="signup-notready">
           <strong>${tH('card.needsMailHint')}</strong>
           ${esc(requests.deliveryReason)}</p>` : ''}
-        <div class="row-in" style="margin-top:10px">
-          <button class="btn btn-sm${requests.an ? '' : ' btn-accent'}" id="signup-toggle"${
-            !requests.an && !requests.deliveryReady ? ' disabled' : ''}>${
+        ${requests.an || requests.deliveryReady ? `<div class="row-in" style="margin-top:10px">
+          <button class="btn btn-sm${requests.an ? '' : ' btn-accent'}" id="signup-toggle">${
             requests.an ? t('card.turnSignupOff') : t('card.turnSignupOn')}</button>
-        </div>
+        </div>` : ''}
         <div class="manage-list" id="mrequests" style="margin-top:14px"></div>
         <div id="signup-link"></div>
       </div>`;
@@ -10871,7 +10869,7 @@ function setUpRequestsOut(fetched) {
     const toggle = document.getElementById('signup-toggle');
     if (toggle) {
       toggle.textContent = status.an ? t('card.turnSignupOff') : t('card.turnSignupOn');
-      toggle.disabled = !status.an && !status.deliveryReady;
+      toggle.hidden = !status.an && !status.deliveryReady;
     }
     box.innerHTML = '';
     if (!status.requests.length) {
@@ -11352,16 +11350,34 @@ function cardStats(fetched) {
         <div class="kv"><span class="k">${tH('list.photos')}</span><span class="v">${stats.photoCount} · ${fmtBytes(stats.photoBytes)}</span></div>
         <div class="kv"><span class="k">${tH('list.videos')}</span><span class="v">${stats.videoCount} · ${fmtBytes(stats.videoBytes)}</span></div>
         <div class="kv"><span class="k">${tH('dialog.comments')}</span><span class="v">${stats.commentCount}</span></div>
+        <div class="kv"><span class="k">${tH('card.commentImages')}</span><span class="v">${stats.commentImageCount || 0} · ${fmtBytes(stats.commentImageBytes)}</span></div>
         <div class="kv"><span class="k">${tH('dialog.links')}</span><span class="v">${stats.linkCount}</span></div>
         <div class="kv"><span class="k">${esc(V.dayMany)}</span><span class="v">${stats.testDayCount}</span></div>
-        ${stats.attachmentCount ? `<div class="kv"><span class="k">${tH('card.diskPending')}</span><span class="v">${stats.attachmentCount} · ${fmtBytes(stats.attachmentBytes)}</span></div>` : ''}
-        ${diskRows(stats.disk)}
+        ${exportTotal(stats) ? `<div class="kv"><span class="k">${tH('card.exportSizeAll')}</span><span class="v">≈ ${fmtBytes(exportTotal(stats))}</span></div>` : ''}
+      </div>`;
+}
+
+/* ---- Karte „Speicher und Wartung" — Abschnitt „Datenbank" ---- */
+function cardStorage(fetched) {
+  const { stats } = fetched;
+  return `<div class="sys-card">
+        <h3>${tH('card.storage')}</h3>
+        <p class="desc">${tH('card.storageHint')}</p>
+        <div class="kv"><span class="k">${tH('card.database')}</span><span class="v">${fmtBytes(stats.dbBytes)}</span></div>
         ${/* Papierkorb als eigene Zeile: sonst wirkt die Datenbank nach dem Aufraeumen
              groesser als vorher. */''}
-        <div class="kv"><span class="k">${tH('card.commentImages')}</span><span class="v">${stats.commentImageCount || 0} · ${fmtBytes(stats.commentImageBytes)}</span></div>
         <div class="kv"><span class="k">${tH('card.trash')}</span><span class="v">${stats.trashCount || 0} · ${fmtBytes(stats.trashBytes)}</span></div>
-        <div class="kv"><span class="k">${tH('card.database')}</span><span class="v">${fmtBytes(stats.dbBytes)}</span></div>
-        ${exportTotal(stats) ? `<div class="kv"><span class="k">${tH('card.exportSizeAll')}</span><span class="v">≈ ${fmtBytes(exportTotal(stats))}</span></div>` : ''}
+        ${stats.attachmentCount ? `<div class="kv"><span class="k">${tH('card.diskPending')}</span><span class="v">${stats.attachmentCount} · ${fmtBytes(stats.attachmentBytes)}</span></div>` : ''}
+        ${diskRows(stats.disk)}
+      </div>`;
+}
+
+/* ---- Karte „Version und Verschlüsselung" — Abschnitt „Installation" ---- */
+function cardVersion(fetched) {
+  const { stats } = fetched;
+  return `<div class="sys-card">
+        <h3>${tH('card.versionTitle')}</h3>
+        <p class="desc">${tH('card.versionHint')}</p>
         ${/* Der Fingerprint zeigt, ob die laufenden Dateien zusammengehoeren; die
              Version zeigt das nicht. */''}
         <div class="kv"><span class="k">${tH('card.version')}</span><span class="v">${esc(stats.version || '—')}</span></div>
@@ -11372,23 +11388,19 @@ function cardStats(fetched) {
             aria-controls="fp-list">${tH('card.showFiles')}</button></div>
         <div class="fp-list" id="fp-list" hidden>${stats.fingerprintFiles.map(z =>
           `<div class="fp-row"><span class="fp-name">${esc(z.name)}</span><code>${esc(z.hash)}</code></div>`).join('')}</div>` : ''}
-        ${/* Den Schluessel im Klartext sieht nur der Eigentuemer. */''}
-        <div style="margin-top:14px">${stats.keyFromEnv
-          ? `<div class="ok-box">${tMarks('card.keyFromSetting', {
+        ${/* Den Schluessel und den Hinweis, dass er neben der Datenbank liegt, sieht nur der Eigentuemer. */''}
+        ${stats.keyFromEnv
+          ? `<div class="ok-box" style="margin-top:14px">${tMarks('card.keyFromSetting', {
               word: '<code>ENCRYPTION_KEY</code>',
               word2: '<code>.env</code>', word3: '<code>data/</code>' })}</div>`
           : (OWNER
-            ? `<div class="warn-box">${tH('card.keyBesideHint')}
+            ? `<div class="warn-box" style="margin-top:14px">${tH('card.keyBesideHint')}
               <p style="margin:9px 0 6px">${tMarks('card.keyIntoEnv', { word: '<code>.env</code>' })}</p>
               <code class="keyline" id="keyline">ENCRYPTION_KEY=${esc(stats.keyHex || '')}</code>
               ${serverBox(t('card.restartHint'), 'docker compose up -d')}
-            </div>`
-            : `<div class="warn-box">${tMarks('card.keyStillBeside', { word: '<code>ENCRYPTION_KEY</code>' })}</div>`)}
-        </div>
+            </div>` : '')}
         ${stats.method ? `<div class="sys-part"></div>
         <h4 class="sys-sub">${tH('card.techMethods')}</h4>
-        ${/* Beschriftung „Verschlüsselung": „Datenbank" steht in dieser Karte schon
-             fuer die Groesse. */''}
         <div class="kv"><span class="k">${tH('card.encryption')}</span><span class="v">${esc(stats.method.cipher || '—')}</span></div>
         <div class="kv"><span class="k">${tH('card.key')}</span><span class="v">${
           stats.method.keyBits ? t('card.keyBits', { keyBits: stats.method.keyBits }) : '—'}</span></div>
@@ -11419,7 +11431,7 @@ function diskRows(d) {
   ].join('');
 }
 
-function setUpStatsOut() {
+function setUpStorageOut() {
   atElement('disk-unknown-delete', b => b.onclick = async () => {
     const n = Number(b.dataset.n);
     const ask = t('card.unknownDeleteAsk', { n, bytes: fmtBytes(Number(b.dataset.bytes)) });
@@ -11430,6 +11442,8 @@ function setUpStatsOut() {
       renderSystem({ keepScroll: true });
     } catch (e) { toast(e.message, true); }
   });
+}
+function setUpVersionOut() {
   const button = document.getElementById('fp-files');
   const list = document.getElementById('fp-list');
   // Ohne Liste kein Knopf: die Karte zeichnet beide oder keinen von beiden.
@@ -11500,14 +11514,16 @@ function cardLimits() {
         <p class="desc">${tH('card.uploadLimitsHint')}</p>
         ${LIMIT_KINDS.map(([kind, label]) => {
           const g = UPLOAD_LIMIT_RANGES[kind] || {};
+          if (!OWNER) return `<div class="kv"><span class="k">${tH(label)}</span><span class="v">${
+            Number(UPLOAD_LIMITS[kind])} MB</span></div>`;
           return `<div class="field"><label for="limit-${kind}">${tH(label)}</label>
           ${kind === 'attachment' ? `<p class="desc" style="margin:0 0 4px">${tH('card.limitAttachmentHint')}</p>` : ''}
           <p class="desc" style="margin:0 0 6px">${tH('card.limitRange', { min: g.min, max: g.max })}</p>
           <input class="input" id="limit-${kind}" type="number" inputmode="numeric" data-limit="${kind}"
-            min="${Number(g.min)}" max="${Number(g.max)}" step="1" value="${Number(UPLOAD_LIMITS[kind])}"${
-            OWNER ? '' : ' disabled'}></div>`;
+            min="${Number(g.min)}" max="${Number(g.max)}" step="1" value="${Number(UPLOAD_LIMITS[kind])}"></div>`;
         }).join('')}
-        <p class="hint hint-sm" style="margin:6px 2px 0">${tH('card.proxyBodyHint')}</p>
+        ${OWNER ? `<p class="hint hint-sm" style="margin:6px 2px 0">${tH('card.proxyBodyHint')}</p>`
+          : `<p class="desc" style="margin:10px 0 0">${tH('card.limitsOwner')}</p>`}
       </div>`;
 }
 function setUpLimitsOut() {
@@ -11603,7 +11619,7 @@ function setUpImageStoreOut(fetched) {
 
 const COMPOSE_FILE = 'docker-compose.yml';
 
-/* ---- Karte „Backup" — Abschnitt „Datenbank" ---- */
+/* ---- Karte „Backup" — Abschnitt „Backup" ---- */
 function cardBackup() {
   return `<div class="sys-card">
         <h3>${tH('card.backup')}</h3>
@@ -11742,7 +11758,7 @@ function followBackup(fetched) {
   }, 2000);
 }
 
-/* ---- Karte „Alte Backups" — Abschnitt „Datenbank" ---- */
+/* ---- Karte „Alte Backups" — Abschnitt „Backup" ---- */
 // Namen der gewaehlten Backups; null ausserhalb der Auswahl.
 let CLEANUP_PICK = null;
 function cardCleanup() {
@@ -12006,7 +12022,7 @@ function setUpCleanupOut(fetched) {
   }
 
 
-/* ---- Karte „Export und Import" — Abschnitt „Datenbank" ---- */
+/* ---- Karte „Export und Import" — Abschnitt „Backup" ---- */
 function cardExport(fetched) {
   const { stats } = fetched;
   return `<div class="sys-card">

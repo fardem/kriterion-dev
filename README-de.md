@@ -177,8 +177,8 @@ und Schlüssel zusammen.
 
 **Schlüssel in die `.env` übernehmen:**
 
-1. In der Oberfläche den Wert aus der Karte „Kennzahlen" kopieren (nur für den
-   Eigentümer-Admin sichtbar).
+1. In der Oberfläche den Wert aus der Karte „Version und Verschlüsselung“
+   kopieren (nur für den Eigentümer-Admin sichtbar).
 2. `ENCRYPTION_KEY=<Wert>` in die `.env` eintragen.
 3. `docker compose up -d`
 4. Im Protokoll prüfen: `Key loaded from ENCRYPTION_KEY.`
@@ -374,7 +374,7 @@ docker compose up -d
 
 Die Schleife holt die Dateien, die die Liste des Backups nennt, und übergeht
 ihre Kopfzeilen. Sie löscht keine; Dateien des neueren Stands bleiben liegen,
-und „Kennzahlen" nennt sie als Dateien ohne Verweis.
+und „Speicher und Wartung“ nennt sie als Dateien ohne Verweis.
 
 ## Update
 
@@ -415,7 +415,8 @@ Daten, obwohl `ENCRYPTION_KEY` gesetzt war, wurde die `.env` nicht gelesen:
 sofort anhalten.
 
 Liegen noch Dateien in der Datenbank, legt Kriterion sie nach dem Start im
-Hintergrund unter `data/files/` ab; „Kennzahlen“ nennt, wie viele noch warten.
+Hintergrund unter `data/files/` ab; „Speicher und Wartung“ nennt, wie viele
+noch warten.
 **Reicht der freie Platz nicht für diese Dateien und 1 GB Reserve, startet
 Kriterion nicht.** Das Protokoll nennt Bedarf und freien Platz.
 
@@ -427,8 +428,8 @@ vergleichen: `diff docker-compose.example.yml docker-compose.yml`.
 Die Versionsnummer (`curl -s http://localhost:3100/api/config`) sagt nur,
 welche `package.json` läuft. Ob alle Dateien dazu passen, zeigt der
 Fingerprint: eine Prüfsumme über alles, was der Server lädt und ausliefert. Er
-steht in der Karte „Kennzahlen"; der Sollwert steht im `CHANGELOG.md` beim
-Eintrag der Version.
+steht in der Karte „Version und Verschlüsselung“; der Sollwert steht im
+`CHANGELOG.md` beim Eintrag der Version.
 
 Weicht er ab, findet diese Schleife die Datei, im Projektordner oder im
 Container (`docker compose exec kriterion sh`):
@@ -440,7 +441,8 @@ for f in attachments.js auth.js backup.js batchrun.js docserver.js images.js db.
 done
 ```
 
-Dieselbe Liste zeigt die Karte „Kennzahlen" unter „Dateien zeigen". Eine
+Dieselbe Liste zeigt die Karte „Version und Verschlüsselung“ unter „Dateien
+zeigen“. Eine
 abweichende oder überzählige Datei ersetzen bzw. löschen, dann
 `docker compose up -d --build`.
 

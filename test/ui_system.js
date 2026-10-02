@@ -143,10 +143,9 @@ async function run() {
   check('Ein Benutzer bekommt die Haken gar nicht erst zu sehen',
     !wSysU.document.getElementById('tag-free') && !wSysU.document.getElementById('cat-free'),
     'ein Haken steht auch ohne Adminrolle da');
-  // Ansehen darf jeder, nur die Bedienelemente fehlen.
-  check('Die Karten selbst bleiben ihm',
-    !!wSysU.document.getElementById('mtags') && !!wSysU.document.getElementById('mcats'),
-    'die Karten sind verschwunden');
+  check('Und die Karten selbst sieht er nicht',
+    !wSysU.document.getElementById('mtags') && !wSysU.document.getElementById('mcats'),
+    'die Karten stehen beim Benutzer');
   wSysU.close();
 
   group('Der Systembereich nach Rolle');
@@ -185,16 +184,16 @@ async function run() {
     `${dEig.text.length} · ${dAdm.text.length} · ${dUser.text.length} Zeichen`);
 
   const ALL_CARDS = [
-    ACCOUNT_CARD, 'Meine Sitzungen', 'Darstellung',
-    'Kategorien', 'Tags', 'Bewertung: Kriterien', 'Potenzial: Kriterien',
-    'Vokabular', 'Links', 'Suchmaschinen', 'Papierkorb',
+    ACCOUNT_CARD, 'Zweiter Faktor', 'Meine Sitzungen', 'Darstellung',
+    'Kategorien', 'Tags', 'Bewertung: Kriterien', 'Potenzial: Kriterien', 'Papierkorb',
     'Benutzer', 'Anfragen', 'Sicherheitsprotokoll', 'Mailversand',
-    'Kennzahlen', 'Bildformate', 'Grenzen beim Hochladen', 'Backup', 'Alte Backups', 'Export und Import',
-    'Titel', 'Sprachen', 'Dokumente'];
-  check('Die Eigentuemerin sieht alle vierundzwanzig Karten',
+    'Kennzahlen', 'Speicher und Wartung', 'Bildformate', 'Grenzen beim Hochladen',
+    'Backup', 'Alte Backups', 'Export und Import',
+    'Titel', 'Sprachen', 'Vokabular', 'Suchmaschinen', 'Dokumente', 'Version und Verschlüsselung'];
+  check('Die Eigentuemerin sieht alle sechsundzwanzig Karten',
     equal(kEig, ALL_CARDS), kEig.join(' · '));
   // Prueft auch ALL_CARDS selbst: eine aus der Liste gestrichene Karte fiele sonst nicht auf.
-  check('Und es sind wirklich vierundzwanzig', ALL_CARDS.length === 24 && kEig.length === 24,
+  check('Und es sind wirklich sechsundzwanzig', ALL_CARDS.length === 26 && kEig.length === 26,
     `${ALL_CARDS.length} erwartet, ${kEig.length} gezeichnet`);
   /* `equal(kEig, ALL_CARDS)` schlaegt auch bei einer Verschiebung an; diese
      Pruefung nennt, welche Nachbarschaft verletzt ist. */
@@ -212,21 +211,23 @@ async function run() {
   /* ---- Abschnitte ---- */
   const tabWords = (d) => [...d.w.document.querySelectorAll('.sys-tab')]
     .map(a => a.textContent.trim());
-  check('Die Eigentuemerin bekommt fuenf Abschnitte',
-    equal(tabWords(rEig), ['Persönlich', 'Bestand', 'Benutzer', 'Datenbank', 'Installation']),
+  check('Die Eigentuemerin bekommt sechs Abschnitte',
+    equal(tabWords(rEig), ['Persönlich', 'Bestand', 'Benutzer', 'Datenbank', 'Backup', 'Installation']),
     tabWords(rEig).join(' · '));
-  check('Ein gewoehnlicher Benutzer bekommt nur die zwei, die etwas zu zeigen haben',
-    equal(tabWords(rUser), ['Persönlich', 'Bestand']), tabWords(rUser).join(' · '));
-  check('Und kein Abschnitt ist dabei leer',
-    dUser.tab.length === 2 && kUser.length === 8,
-    `${dUser.tab.length} Reiter, ${kUser.length} Karten`);
+  check('Der Admin bekommt fuenf, ohne „Backup“',
+    equal(tabWords(rAdm), ['Persönlich', 'Bestand', 'Benutzer', 'Datenbank', 'Installation']),
+    tabWords(rAdm).join(' · '));
+  check('Ein gewoehnlicher Benutzer bekommt nur „Persönlich“ und keine Leiste der Abschnitte',
+    tabWords(rUser).length === 0 && !rUser.w.document.getElementById('sys-tabs') &&
+    !rUser.w.document.getElementById('sys-toggle') && kUser.length === 4,
+    `${tabWords(rUser).join(' · ')} · ${kUser.length} Karten`);
   // Ohne eigene Adresse laesst sich kein Abschnitt verlinken, und die Zurueck-Taste bricht.
   check('Jeder Reiter traegt seine eigene Adresse',
     equal(dEig.tab, ['#/system/personal', '#/system/inventory', '#/system/users',
-                         '#/system/database', '#/system/installation']),
+                         '#/system/database', '#/system/backup', '#/system/installation']),
     dEig.tab.join(' · '));
   check('Und er ist ein Verweis und kein Knopf',
-    [...rEig.w.document.querySelectorAll('.sys-tab')].length === 5 &&
+    [...rEig.w.document.querySelectorAll('.sys-tab')].length === 6 &&
     [...rEig.w.document.querySelectorAll('.sys-tab')].every(a => a.tagName === 'A'),
     [...rEig.w.document.querySelectorAll('.sys-tab')].map(a => a.tagName).join(' · '));
   await sysSection(rUser.w, 'database');
@@ -238,28 +239,38 @@ async function run() {
   check('Und die Adresse wird dabei nachgezogen',
     rUser.w.location.hash === '#/system/personal', rUser.w.location.hash);
   /* Ohne diese Gegenlage belegte die Pruefung darueber nichts. */
-  await sysSection(rUser.w, 'inventory');
+  await sysSection(rAdm.w, 'inventory');
   check('Eine Adresse auf einen sichtbaren Abschnitt bleibt dagegen stehen',
-    rUser.w.location.hash === '#/system/inventory', rUser.w.location.hash);
+    rAdm.w.location.hash === '#/system/inventory', rAdm.w.location.hash);
+  await sysSection(rUser.w, 'inventory');
+  check('Und „Bestand“ ist fuer einen Benutzer unsichtbar',
+    rUser.w.location.hash === '#/system/personal', rUser.w.location.hash);
   /* `#/system` setzt der Knopf in der Kopfzeile. */
-  rUser.w.history.replaceState(null, '', '#/system');
-  await rUser.w.renderSystem();
-  await until(rUser.w, (x) => x.document.querySelector('.sys-tab.on')?.getAttribute('href') ===
+  rAdm.w.history.replaceState(null, '', '#/system');
+  await rAdm.w.renderSystem();
+  await until(rAdm.w, (x) => x.document.querySelector('.sys-tab.on')?.getAttribute('href') ===
     '#/system/personal' && openRequests(x) === 0, 2000, 'der erste Abschnitt');
   check('Und `#/system` ohne Abschnitt loest sich auf den ersten auf',
-    rUser.w.location.hash === '#/system/personal', rUser.w.location.hash);
+    rAdm.w.location.hash === '#/system/personal', rAdm.w.location.hash);
 
-  /* Mein Account, Meine Sitzungen, Darstellung und Links sind persoenlich; die
-     vier Listen sieht jeder, bedienen darf sie nur der Admin. */
-  check('Ein gewoehnlicher Benutzer sieht acht -- vier persoenliche, vier zum Nachsehen',
-    equal(kUser, [ACCOUNT_CARD, 'Meine Sitzungen', 'Darstellung',
-                   'Kategorien', 'Tags', 'Bewertung: Kriterien', 'Potenzial: Kriterien', 'Links']),
+  check('Ein gewoehnlicher Benutzer sieht vier Karten, alle persoenlich',
+    equal(kUser, [ACCOUNT_CARD, 'Zweiter Faktor', 'Meine Sitzungen', 'Darstellung']),
     kUser.join(' · '));
+  const afterOverview = rUser.sent.length;
+  await sysSection(rUser.w, 'personal');
+  const userGets = rUser.sent.slice(afterOverview)
+    .filter(g => (g.method || 'GET') === 'GET').map(g => g.url);
+  check('Und er holt dafuer keine Titel, Kategorien, Tags und Kriterien',
+    userGets.includes('/api/account') &&
+    !['/api/titles', '/api/product-categories', '/api/tags', '/api/criteria']
+      .some(u => userGets.includes(u)),
+    userGets.join(' · '));
 
   /* Je Karte eine Pruefung, damit die fehlende mit Namen gemeldet wird. */
   /* „Papierkorb": ansehen darf der Admin, handeln nur der Eigentuemer. */
-  for (const card of ['Titel', 'Kennzahlen', 'Vokabular', 'Benutzer', 'Suchmaschinen', 'Papierkorb',
-                       'Anfragen']) {
+  for (const card of ['Titel', 'Kennzahlen', 'Speicher und Wartung', 'Version und Verschlüsselung',
+                       'Vokabular', 'Benutzer', 'Suchmaschinen', 'Papierkorb', 'Anfragen',
+                       'Kategorien', 'Tags', 'Bewertung: Kriterien', 'Potenzial: Kriterien']) {
     check(`Die Karte "${card}" steht nur beim Admin`,
       kAdm.includes(card) && !kUser.includes(card),
       `Admin: ${kAdm.includes(card)} · Benutzer: ${kUser.includes(card)}`);
@@ -276,14 +287,12 @@ async function run() {
   const kOut = (await sysPass(rOut)).cards;
   check('Ist die Selbstanmeldung aus und nichts offen, steht die Karte "Anfragen" trotzdem',
     kOut.includes('Anfragen'), kOut.join(' · '));
-  check('Und es sind auch dann vierundzwanzig', kOut.length === 24 && equal(kOut, ALL_CARDS),
+  check('Und es sind auch dann sechsundzwanzig', kOut.length === 26 && equal(kOut, ALL_CARDS),
     `${kOut.length} gezeichnet`);
   await sysSection(rOut.w, 'users');
-  check('Und der Schalter steht darin -- sonst kaeme man nie an ihn heran',
-    Boolean(rOut.w.document.getElementById('signup-toggle')), 'der Schalter fehlt');
-  check('Er bietet das Einschalten an',
-    /einschalten/.test(rOut.w.document.getElementById('signup-toggle')?.textContent || ''),
-    rOut.w.document.getElementById('signup-toggle')?.textContent || '');
+  check('Ohne Mailversand steht statt eines gesperrten Schalters der Grund darin',
+    !rOut.w.document.getElementById('signup-toggle') && !!rOut.w.document.getElementById('signup-notready'),
+    `${!!rOut.w.document.getElementById('signup-toggle')} ${!!rOut.w.document.getElementById('signup-notready')}`);
   check('Die Liste bleibt dabei leer, statt eine Zeile zu erfinden',
     (rOut.w.document.getElementById('mrequests')?.textContent || '').trim() === '',
     rOut.w.document.getElementById('mrequests')?.textContent || '');
@@ -292,11 +301,14 @@ async function run() {
       requests: [{ id: 11, username: 'neuling', email: 'neuling@beispiel.de',
                    created_at: '2026-08-20 09:00:00', confirmed_at: '2026-08-20 09:05:00' }] });
   await sysSection(rOutIncludingRows.w, 'users');
+  check('Mit Mailversand steht der Schalter darin und bietet das Einschalten an',
+    /einschalten/.test(rOutIncludingRows.w.document.getElementById('signup-toggle')?.textContent || ''),
+    rOutIncludingRows.w.document.getElementById('signup-toggle')?.textContent || '(kein Schalter)');
   check('Bei ausgeschaltetem Schalter mit offenen Anfragen steht die Liste darin',
     [...rOutIncludingRows.w.document.querySelectorAll('#mrequests .mrow')].length === 1,
     `${[...rOutIncludingRows.w.document.querySelectorAll('#mrequests .mrow')].length} Zeilen`);
 
-  for (const card of [ACCOUNT_CARD, 'Meine Sitzungen', 'Darstellung', 'Links']) {
+  for (const card of [ACCOUNT_CARD, 'Zweiter Faktor', 'Meine Sitzungen', 'Darstellung']) {
     check(`Die Karte "${card}" steht jedem, auch ohne Rolle`,
       kUser.includes(card) && kEig.includes(card), kUser.join(' · '));
   }
@@ -312,10 +324,10 @@ async function run() {
     rUser.w.document.getElementById('app')?.textContent?.slice(0, 80));
 
   const statsCard = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
-    .find(c => c.querySelector('h3')?.textContent.trim() === 'Kennzahlen');
-  await sysSection(rAdm.w, 'database');
+    .find(c => c.querySelector('h3')?.textContent.trim() === 'Version und Verschlüsselung');
+  await sysSection(rAdm.w, 'installation');
   const admCard = statsCard(rAdm);
-  check('Die Karte Kennzahlen ist für den Admin überhaupt da', !!admCard,
+  check('Die Karte „Version und Verschlüsselung“ ist für den Admin überhaupt da', !!admCard,
     kAdm.join(' · '));
   check('Sie trägt eine Zeile mit der Beschriftung Fingerprint',
     [...(admCard?.querySelectorAll('.kv') || [])]
@@ -332,8 +344,8 @@ async function run() {
 
   const rVok = await buildSystem({ isAdmin: false, isOwner: false,
     vocabulary: { entryMany: 'Geräte' } });
-  /* Die Karte „Kategorien" im Abschnitt „Bestand" nennt die Mehrzahl aus dem Vokabular. */
-  await sysSection(rVok.w, 'inventory');
+  /* „Darstellung" nennt die Mehrzahl aus dem Vokabular. */
+  await sysSection(rVok.w, 'personal');
   check('Das Vokabular wird trotzdem ausgeliefert und benutzt',
     /Geräte/.test(rVok.w.document.getElementById('app')?.textContent || ''),
     'die Beschriftung folgt dem Vokabular nicht');
@@ -356,9 +368,9 @@ async function run() {
   check('Und der Druck speichert sie wirklich',
     rSent?.body?.font === 120, JSON.stringify(rSent));
 
-  /* Karte „Links": die persoenliche Haelfte bleibt, die Haelfte fuer den Admin fehlt. */
-  await sysSection(rUser.w, 'inventory');
-  await sysSection(rAdm.w, 'inventory');
+  /* Die Linkzeilen stehen in „Darstellung"; die Suchmaschinen nur beim Admin. */
+  await sysSection(rUser.w, 'personal');
+  await sysSection(rAdm.w, 'installation');
   check('Die Zahl der Anbieternamen bleibt dem Benutzer',
     !!rUser.w.document.getElementById('snames') &&
     rUser.w.document.querySelectorAll('#snames .pill').length > 0);
@@ -386,6 +398,14 @@ async function run() {
   check('Sondern der Satz, der ihm wirklich hilft',
     !!rUserCard && /Link zum Zurücksetzen des Passworts geschickt werden/.test(rUserCard.textContent || ''),
     rUserCard?.textContent?.slice(0, 300));
+  check('Und statt des Befehls der Hinweis auf einen Admin',
+    !!rUserCard && D.shows(rUserCard.textContent, 'card.passwordAskAdmin'),
+    rUserCard?.textContent?.slice(-220));
+  rUser.w.showAgainCodes(['1111-2222', '3333-4444']);
+  const rCodes = rUser.w.document.getElementById('two-factor-codebox');
+  check('Bei den Wiederherstellungscodes ebenso: der Hinweis statt des Befehls',
+    !!rCodes && D.shows(rCodes.textContent, 'card.twoFactorAskAdmin') && !/usertool\.js/.test(rCodes.textContent),
+    rCodes?.textContent?.slice(-220) || '(kein Kasten)');
   {
     await sysSection(rEig.w, 'personal');
     const eigUser = [...rEig.w.document.querySelectorAll('.sys-card')]
@@ -414,6 +434,18 @@ async function run() {
   check('Als eine von genau vieren, und alle vier namentlich',
     equal(rWidth, ['Benutzer', 'Anfragen', 'Sicherheitsprotokoll', 'Mailversand']),
     JSON.stringify(rWidth));
+  await sysSection(rEig.w, 'installation');
+  check('Unter „Installation“ ist „Vokabular“ die breite Karte',
+    equal([...rEig.w.document.querySelectorAll('.sys-grid > .sys-card.wide')]
+      .map(k => k.querySelector('h3')?.textContent.trim()), ['Vokabular']),
+    [...rEig.w.document.querySelectorAll('.sys-grid > .sys-card.wide h3')].map(h => h.textContent).join(' · '));
+  await sysSection(rAdm.w, 'inventory');
+  check('Den Modus „Potenzial“ sieht der Admin als Satz, ohne gesperrtes Kaestchen',
+    !rAdm.w.document.getElementById('pot-mode') &&
+    D.shows(rAdm.w.document.getElementById('app')?.textContent, 'card.potentialModeOwner'),
+    String(!!rAdm.w.document.getElementById('pot-mode')));
+  await sysSection(rAdm.w, 'installation');
+  await sysSection(rEig.w, 'users');
   const rNarrow = [...rEig.w.document.querySelectorAll('.sys-grid > .sys-card')]
     .filter(k => !k.classList.contains('wide'))
     .map(k => k.querySelector('h3')?.textContent.trim());
@@ -440,11 +472,7 @@ async function run() {
     'die breite Kachel ist ans Ende gewandert');
 
   /* ---- Trennlinien in den Linkkarten ---- */
-  await sysSection(rUser.w, 'inventory');
-  check('Die Karte "Links" traegt einen abgesetzten Abschnitt',
-    rUser.w.document.querySelectorAll('.sys-card .sys-part').length > 0,
-    `${rUser.w.document.querySelectorAll('.sys-card .sys-part').length} Abschnitte`);
-  check('Und die Karte "Suchmaschinen" ebenfalls',
+  check('Die Karte "Suchmaschinen" traegt einen abgesetzten Abschnitt',
     [...rAdm.w.document.querySelectorAll('.sys-card')]
       .filter(k => k.querySelector('h3')?.textContent.trim() === 'Suchmaschinen')
       .some(k => k.querySelector('.sys-part')),
@@ -931,13 +959,13 @@ async function run() {
   await until(zkOut.w, (x) => x.document.querySelector('.sys-grid') && openRequests(x) === 0,
     2000, 'der neu gezeichnete Systembereich');
   const zkBlock = () => zkOut.w.document.getElementById('two-factor-block');
-  check('Der Block steht in der Karte "Mein Account" und nicht in einer eigenen',
-    Boolean(zkBlock()) && zkBlock().closest('.sys-card')?.querySelector('h3')?.textContent === ACCOUNT_CARD,
+  check('Der Block steht in der eigenen Karte „Zweiter Faktor“',
+    Boolean(zkBlock()) && zkBlock().closest('.sys-card')?.querySelector('h3')?.textContent === 'Zweiter Faktor',
     zkBlock()?.closest('.sys-card')?.querySelector('h3')?.textContent || '(kein Block)');
   /* sysPass zaehlt ueber alle Abschnitte; sichtbar ist immer nur einer. */
   const zkAll = (await sysPass(zkOut)).cards;
-  check('Und die Zahl der Karten bleibt bei vierundzwanzig',
-    zkAll.length === 24, `${zkAll.length}: ${zkAll.join(' · ')}`);
+  check('Und die Zahl der Karten bleibt bei sechsundzwanzig',
+    zkAll.length === 26, `${zkAll.length}: ${zkAll.join(' · ')}`);
   await sysSection(zkOut.w, 'personal');
   check('Der Zustand "aus" steht ohne Klick da',
     /Zweiter Faktor: aus/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 90));
@@ -1301,8 +1329,8 @@ async function run() {
     cap: 20, hours: 24, requests: [
       { id: 11, username: 'neuling', email: 'neuling@beispiel.de',
         created_at: '2026-08-20 09:00:00', confirmed_at: '2026-08-20 09:05:00' }] });
-  check('Ohne Versand ist der Einschaltknopf gesperrt',
-    kNotReady.w.document.getElementById('signup-toggle')?.disabled === true,
+  check('Ohne Versand steht kein Einschaltknopf da, auch kein gesperrter',
+    !kNotReady.w.document.getElementById('signup-toggle'),
     String(kNotReady.w.document.getElementById('signup-toggle')?.disabled));
   check('Und die Karte sagt, was dafuer fehlt',
     /Mailzugang/.test(kNotReady.w.document.getElementById('signup-notready')?.textContent || ''),
@@ -2006,7 +2034,7 @@ async function run() {
      geprueft wird bis zum Dialog und der Abbruch. */
   {
     const d = await ziSystem({ isAdmin: true, isOwner: true });
-    await sysSection(d.w, 'database');
+    await sysSection(d.w, 'backup');
     const exNo = d.w.document.getElementById('ex-no');
     exNo?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await until(d.w, (x) => !exNo || x.document.querySelector('.backdrop'), 2000, 'der Hinweis auf den Lauf');
@@ -2036,7 +2064,7 @@ async function run() {
   }
   {
     const d = await ziSystem({ isAdmin: true, isOwner: true });
-    await sysSection(d.w, 'database');
+    await sysSection(d.w, 'backup');
     const exNo = d.w.document.getElementById('ex-no');
     exNo?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await until(d.w, (x) => !exNo || x.document.querySelector('.backdrop'), 2000, 'der Hinweis auf den Lauf');
@@ -2744,16 +2772,20 @@ async function run() {
 
   {
     await sysSection(pkuEig.w, 'database');
-    const card = [...pkuEig.w.document.querySelectorAll('.sys-grid > .sys-card')]
-      .find(c => c.querySelector('h3')?.textContent.trim() === 'Kennzahlen');
-    check('Die Karte Kennzahlen ist ueberhaupt da', !!card);
-    const row = [...(card?.querySelectorAll('.kv') || [])]
+    const storage = [...pkuEig.w.document.querySelectorAll('.sys-grid > .sys-card')]
+      .find(c => c.querySelector('h3')?.textContent.trim() === 'Speicher und Wartung');
+    check('Die Karte „Speicher und Wartung“ ist ueberhaupt da', !!storage);
+    const row = [...(storage?.querySelectorAll('.kv') || [])]
       .find(z => z.querySelector('.k')?.textContent.trim() === 'Papierkorb');
     check('Sie traegt eine Zeile mit der Beschriftung Papierkorb', !!row,
-      [...(card?.querySelectorAll('.kv .k') || [])].map(k => k.textContent.trim()).join(' · '));
+      [...(storage?.querySelectorAll('.kv .k') || [])].map(k => k.textContent.trim()).join(' · '));
     check('Und darin stehen Zahl und Groesse aus der Antwort',
       /^2 · 2,5 KB$/.test(row?.querySelector('.v')?.textContent?.trim() || ''),
       row?.querySelector('.v')?.textContent);
+
+    await sysSection(pkuEig.w, 'installation');
+    const card = [...pkuEig.w.document.querySelectorAll('.sys-grid > .sys-card')]
+      .find(c => c.querySelector('h3')?.textContent.trim() === 'Version und Verschlüsselung');
 
     const kvRow = (k) => [...(card?.querySelectorAll('.kv') || [])]
       .find(z => z.querySelector('.k')?.textContent.trim() === k);
@@ -2799,9 +2831,9 @@ async function run() {
     /* Ohne Angaben vom Server fehlt der Abschnitt, statt vier Zeilen mit Gedankenstrichen. */
     const withoutVerf = await pkSystem({ isAdmin: true, isOwner: true },
       { statsMethod: null });
-    await sysSection(withoutVerf.w, 'database');
+    await sysSection(withoutVerf.w, 'installation');
     const kWithout = [...withoutVerf.w.document.querySelectorAll('.sys-grid > .sys-card')]
-      .find(c => c.querySelector('h3')?.textContent.trim() === 'Kennzahlen');
+      .find(c => c.querySelector('h3')?.textContent.trim() === 'Version und Verschlüsselung');
     check('Ohne Verfahrensangaben steht der Abschnitt gar nicht da',
       !!kWithout && ![...kWithout.querySelectorAll('.sys-sub')]
         .some(u => u.textContent.trim() === 'Verfahren'),
@@ -3058,6 +3090,12 @@ async function run() {
       baRows(baCard(baAdm)).join(' · '));
     check('Aber keinen Schalter', !baAdm.w.document.getElementById('convert-images'));
     check('Und keinen Knopf', !baAdm.w.document.getElementById('convert-run'));
+    const baLimits = [...baAdm.w.document.querySelectorAll('.sys-grid > .sys-card')]
+      .find(c => c.querySelector('h3')?.textContent.trim() === 'Grenzen beim Hochladen');
+    check('Die Grenzen beim Hochladen stehen fuer den Admin als Text, ohne gesperrtes Feld',
+      !baAdm.w.document.querySelector('[data-limit]') && (baLimits?.querySelectorAll('.kv').length || 0) === 6 &&
+      D.shows(baLimits?.textContent, 'card.limitsOwner'),
+      `${baLimits?.querySelectorAll('.kv').length} Zeilen, Feld: ${!!baAdm.w.document.querySelector('[data-limit]')}`);
     baAdm.w.close();
   }
 
@@ -3065,7 +3103,7 @@ async function run() {
 
   const siSystem = async (roles, opt = {}) => {
     const d = await pkSystem(roles, opt);
-    await sysSection(d.w, 'database');
+    await sysSection(d.w, 'backup');
     return d;
   };
   const siCard = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]

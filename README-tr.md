@@ -175,8 +175,8 @@ klasörünü kopyalayan kişi, verileri ve anahtarı birlikte kopyalamış olur.
 
 **Anahtarı `.env` dosyasına taşı:**
 
-1. Arayüzde “Sayılar” kartındaki değeri kopyala (yalnızca sahip yönetici
-   görür).
+1. Arayüzde “Sürüm ve şifreleme” kartındaki değeri kopyala (yalnızca sahip
+   yönetici görür).
 2. `ENCRYPTION_KEY=<Wert>` satırını `.env` dosyasına yaz.
 3. `docker compose up -d`
 4. Günlükte denetle: `Key loaded from ENCRYPTION_KEY.`
@@ -371,7 +371,7 @@ docker compose up -d
 
 Döngü, yedeklemenin listesinde adı geçen dosyaları getirir ve listenin başlık
 satırlarını atlar. Hiçbir dosyayı silmez; daha yeni durumun dosyaları yerinde
-kalır ve “Sayılar” onları “başvurusuz” dosyalar olarak gösterir.
+kalır ve “Depolama ve bakım” onları “başvurusuz” dosyalar olarak gösterir.
 
 ## Güncelleme
 
@@ -413,7 +413,8 @@ yanındaki bir anahtar dosyası hakkında uyarı varsa, `.env` okunmamıştır: 
 durdur.
 
 Veritabanında hâlâ dosya varsa, Kriterion başlatmadan sonra bunları arka
-planda `data/files/` altına koyar; “Sayılar” kaç dosyanın beklediğini gösterir.
+planda `data/files/` altına koyar; “Depolama ve bakım” kaç dosyanın
+beklediğini gösterir.
 **Boş yer bu dosyalara ve ayrıca 1 GB'a yetmezse Kriterion başlamaz.** Günlük
 gereken ve boş yeri gösterir.
 
@@ -425,7 +426,7 @@ gereken ve boş yeri gösterir.
 Sürüm numarası (`curl -s http://localhost:3100/api/config`) yalnızca hangi
 `package.json` dosyasının çalıştığını söyler. Bütün dosyaların buna uyup
 uymadığını parmak izi gösterir: sunucunun yüklediği ve sunduğu her şeyin
-sağlaması. Parmak izi “Sayılar” kartında durur; beklenen değer
+sağlaması. Parmak izi “Sürüm ve şifreleme” kartında durur; beklenen değer
 `CHANGELOG.md` içinde o sürümün girdisinde yazar.
 
 Parmak izi farklıysa bu döngü dosyayı bulur, proje klasöründe ya da
@@ -438,7 +439,7 @@ for f in attachments.js auth.js backup.js batchrun.js docserver.js images.js db.
 done
 ```
 
-Aynı listeyi “Sayılar” kartı “Dosyaları göster” altında gösterir. Farklı bir
+Aynı listeyi “Sürüm ve şifreleme” kartı “Dosyaları göster” altında gösterir. Farklı bir
 dosyayı doğrusuyla değiştir, fazladan bir dosyayı sil, sonra
 `docker compose up -d --build`.
 

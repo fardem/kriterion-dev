@@ -175,8 +175,8 @@ the data and the key together.
 
 **Moving the key into `.env`:**
 
-1. In the interface, copy the value from the “Metrics” card (visible only to
-   the owner admin).
+1. In the interface, copy the value from the “Version and encryption” card
+   (visible only to the owner admin).
 2. Enter `ENCRYPTION_KEY=<Wert>` in `.env`.
 3. `docker compose up -d`
 4. Check the log: `Key loaded from ENCRYPTION_KEY.`
@@ -369,8 +369,8 @@ docker compose up -d
 ```
 
 The loop fetches the files that the backup's list names and skips its header
-lines. It deletes none; files of the newer state stay in place, and “Metrics”
-lists them as files without a reference.
+lines. It deletes none; files of the newer state stay in place, and “Storage
+and maintenance” lists them as files without a reference.
 
 ## Update
 
@@ -411,8 +411,8 @@ loaded. If it shows a warning about a key file next to the data although
 `ENCRYPTION_KEY` was set, `.env` was not read: stop at once.
 
 If files are still stored in the database, Kriterion moves them to
-`data/files/` in the background after the start; “Metrics” shows how many are
-still waiting. **If the free space is not enough for these files plus 1 GB of
+`data/files/` in the background after the start; “Storage and maintenance”
+shows how many are still waiting. **If the free space is not enough for these files plus 1 GB of
 reserve, Kriterion does not start.** The log states the space needed and the
 free space.
 
@@ -424,8 +424,8 @@ If `docker-compose.example.yml` has changed, compare your own file with it:
 The version number (`curl -s http://localhost:3100/api/config`) only tells
 which `package.json` is running. Whether all files match it is shown by the
 fingerprint: a checksum over everything the server loads and delivers. It
-appears in the “Metrics” card; the expected value is in `CHANGELOG.md` at the
-entry for the version.
+appears in the “Version and encryption” card; the expected value is in
+`CHANGELOG.md` at the entry for the version.
 
 If it differs, this loop finds the file, in the project folder or in the
 container (`docker compose exec kriterion sh`):
@@ -437,7 +437,7 @@ for f in attachments.js auth.js backup.js batchrun.js docserver.js images.js db.
 done
 ```
 
-The “Metrics” card shows the same list under “Show files”. Replace a differing
+The “Version and encryption” card shows the same list under “Show files”. Replace a differing
 file or delete a surplus one, then `docker compose up -d --build`.
 
 ## Behind a reverse proxy

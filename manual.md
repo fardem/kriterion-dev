@@ -44,7 +44,7 @@ Optional, per account, off by default. Nobody can switch it on or off for
 someone else, not even the owner admin. The code comes from an app on the
 phone; Kriterion does not send codes.
 
-Switch it on in the “My account” card:
+Switch it on in the “Second factor” card under “Personal”:
 
 1. Install a TOTP app, such as Google Authenticator, Aegis, 1Password or the
    Passwords app of iOS.
@@ -61,7 +61,7 @@ someone else's password.
 **Recovery codes:** When the second factor is switched on, eight codes appear.
 They are shown only once, and each one works once in place of an app code.
 **Keep them separate from the phone.** Without them, a lost phone is a lost
-account. New codes are available in “My account” in exchange for password and
+account. New codes are available in “Second factor” in exchange for password and
 code; the old ones then expire.
 
 If the phone and the codes are gone, the owner admin switches the second
@@ -678,26 +678,31 @@ Sections without a visible card do not appear.
 
 | Section | Cards |
 |---|---|
-| Personal | My account, My sessions, Appearance, Documents |
-| Inventory | Categories, Tags, Rating: criteria, Potential: criteria, Vocabulary, Links, Search engines, Trash |
+| Personal | My account, Second factor, My sessions, Appearance, Documents |
+| Inventory | Categories, Tags, Rating: criteria, Potential: criteria, Trash |
 | Users | Users, Requests, Security log, Mail delivery |
-| Database | Metrics, Image formats, Upload limits, Backup, Old backups, Export and import |
-| Installation | Title, Languages, Documents |
+| Database | Metrics, Storage and maintenance, Image formats, Upload limits |
+| Backup | Backup, Old backups, Export and import |
+| Installation | Title, Languages, Vocabulary, Search engines, Documents, Version and encryption |
 
-A user sees their own cards and the lists of categories, tags and criteria,
-without editing. The admin sees everything else; export, import, backup and
-security log only the owner admin.
+A user sees only “Personal”. The admin sees everything else; what they may not
+change is shown as text. Only the owner admin sees the “Backup” section, the
+“Languages”, “Security log” and “Mail delivery” cards and the commands for the
+server. Everyone else reads instead of a command: “ask an admin who can help
+you with it.”
 
 | Card | Content |
 |---|---|
 | Title | title before signing in (visible to everyone, choose with care) and title after signing in |
 | Documents | switch viewing and editing through a Document Server on and off; “Editable by all”: start value as long as an account has not set its own; the card checks the connection. URLs and secret are in the `.env`, see README |
-| Metrics | size of the inventory, database size, files on disk (of which above “Attachment” and in the trash), uploads, free space, version, fingerprint, encryption methods; for the owner admin the key value. Only when there are any: files still in the database waiting to be moved to disk, missing files, files waiting to be deleted and files without a reference. The owner admin deletes the files without a reference with “Delete”, but only if a copy of the same length is in the backup folder |
+| Metrics | size of the inventory: entries, photos, videos, comments, links and test days |
+| Storage and maintenance | database size, trash, files on disk (of which above “Attachment” and in the trash), uploads, free space. Only when there are any: files still in the database waiting to be moved to disk, missing files, files waiting to be deleted and files without a reference. The owner admin deletes the files without a reference with “Delete”, but only if a copy of the same length is in the backup folder |
+| Version and encryption | version, fingerprint, encryption methods; for the owner admin the key value, as long as the key lies next to the database |
 | Categories, Tags | create, rename, delete; a tick sets whether anyone may create new names on an entry |
 | Rating: criteria, Potential: criteria | create, rename, sort, weight (0.2 to 2, default 1); in “Rating: criteria” the threshold for “Partial” in the overview filters (1 to 100 %, default 80) |
 | Search engines | six built-in and up to three custom ones (`%s` as placeholder); one is the default |
-| Links | number of visible link rows, personal |
-| Appearance | colour scheme, language, font size, thumbnail size, timeline, block layout; personal |
+| Second factor | switch on and off, new recovery codes; personal, see “Second factor” |
+| Appearance | colour scheme, language, font size, thumbnail size, timeline, number of visible link rows and engine names, block layout; personal |
 | Documents (personal) | appearance in the Document Server (Like Kriterion, Modern light, Modern dark) and the default “Editable by all” for the user's own new files. Only with the Document Server switched on |
 
 ### Upload limits

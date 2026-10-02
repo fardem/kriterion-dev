@@ -420,7 +420,7 @@ async function run() {
     const d = buildDom(JSDOM, {
       settings: { filters: null, isAdmin: true, isOwner: true } });
     await until(d.w, listDrawn, 2000, 'die Uebersicht');
-    await sysSection(d.w, 'database');
+    await sysSection(d.w, 'backup');
     const cards = [...d.w.document.querySelectorAll('.sys-grid > .sys-card')];
     const ex = cards.find(k => k.querySelector('h3')?.textContent.trim() === 'Export und Import');
     check('Die Karte heisst „Export und Import"', !!ex,

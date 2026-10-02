@@ -4043,16 +4043,15 @@ const REGRESSIONS = [
   {
     nr: '561', name: 'Die Karte „Alte Sicherungen" faellt aus dem Systembereich',
     file: 'public/app.js',
-    search: "  { key: 'cleanup',      section: 'database', visible: () => OWNER,\n" +
-           "    markup: cardCleanup,   wireUp: setUpCleanupOut },",
+    search: "  { key: 'cleanup',      section: 'backup', visible: () => OWNER,\n    markup: cardCleanup,   wireUp: setUpCleanupOut },",
     replacement: "",
     expected: 'Der Systembereich nach Rolle'
   },
   {
     nr: '562', name: 'Die Karte „Alte Sicherungen" steht schon beim Admin',
     file: 'public/app.js',
-    search: "  { key: 'cleanup',      section: 'database', visible: () => OWNER,",
-    replacement: "  { key: 'cleanup',      section: 'database', sichtbar: () => ADMIN,",
+    search: "  { key: 'cleanup',      section: 'backup', visible: () => OWNER,",
+    replacement: "  { key: 'cleanup',      section: 'backup', visible: () => ADMIN,",
     expected: 'Der Systembereich nach Rolle'
   },
   {
@@ -4690,15 +4689,15 @@ const REGRESSIONS = [
   {
     nr: '639', name: 'Der Klartextschluessel steht wieder vor dem Admin',
     file: 'public/app.js',
-    search: "          : (OWNER\n            ? `<div class=\"warn-box\">${tH('card.keyBesideHint')}",
-    replacement: "          : (ADMIN\n            ? `<div class=\"warn-box\">${tH('card.keyBesideHint')}",
+    search: "          : (OWNER\n            ? `<div class=\"warn-box\" style=\"margin-top:14px\">${tH('card.keyBesideHint')}",
+    replacement: "          : (ADMIN\n            ? `<div class=\"warn-box\" style=\"margin-top:14px\">${tH('card.keyBesideHint')}",
     expected: 'Die Rollenweichen — 0.22.0'
   },
   {
-    nr: '640', name: 'Die Karte Kategorien erklaert dem Benutzer wieder die Werkzeuge des Admins',
+    nr: '640', name: "Benutzer sehen die Karte „Kategorien“ wieder",
     file: 'public/app.js',
-    search: "        <p class=\"desc\">${ADMIN\n          ? tH('card.categoriesHint')",
-    replacement: "        <p class=\"desc\">${true\n          ? tH('card.categoriesHint')",
+    search: "  { key: 'categories',   section: 'inventory', visible: () => ADMIN,",
+    replacement: "  { key: 'categories',   section: 'inventory', visible: () => true,",
     expected: 'Die Rollenweichen — 0.22.0'
   },
   {
@@ -5514,11 +5513,11 @@ const REGRESSIONS = [
     expected: 'Die kleinen Fehler fallen — 0.26.0'
   },
   {
-    nr: '801', name: 'Der Gewichtssatz erklaert dem Benutzer wieder den Knopf des Admins',
+    nr: '801', name: "Benutzer sehen die Karte „Potenzial: Kriterien“ wieder",
     file: 'public/app.js',
-    search: "            : t('card.weightSystemDefault')}</p>",
-    replacement: "            : t('card.weightRangeHint')}</p>",
-    expected: 'Die kleinen Fehler fallen — 0.26.0'
+    search: "  { key: 'potentialcriteria', section: 'inventory', visible: () => ADMIN,",
+    replacement: "  { key: 'potentialcriteria', section: 'inventory', visible: () => true,",
+    expected: "Der Systembereich nach Rolle"
   },
   {
     nr: '802', name: 'Der Strich vor den Summen kommt wieder aus einer toten Regel',
@@ -11420,8 +11419,8 @@ const REGRESSIONS = [
   {
     nr: '1660', name: "Das Feld fuer die Schwelle steht auch ohne Adminrechte da",
     file: 'public/app.js',
-    search: "        ${!before && ADMIN ? `<p class=\"desc\" style=\"margin:16px 0 8px\">${tH('card.partialShareHint')}</p>",
-    replacement: "        ${!before ? `<p class=\"desc\" style=\"margin:16px 0 8px\">${tH('card.partialShareHint')}</p>",
+    search: "  { key: 'criteria',     section: 'inventory', visible: () => ADMIN,",
+    replacement: "  { key: 'criteria',     section: 'inventory', visible: () => true,",
     expected: "Filter nach Potenzial und Bewertung: Leiste und Einstellung"
   },
   {
@@ -11528,6 +11527,97 @@ const REGRESSIONS = [
     search: "      if (mine.playing) player.play()?.catch?.(() => {});\n      loaded.hidden = true;",
     replacement: "      loaded.hidden = true;",
     expected: "Video ganz laden"
+  },
+  {
+    nr: '1676', name: "Der Abschnitt „Backup“ fehlt",
+    file: 'public/app.js',
+    search: "  { key: 'backup',       name: () => t('card.backupSection') },\n",
+    replacement: "",
+    expected: "Der Systembereich nach Rolle"
+  },
+  {
+    nr: '1677', name: "Die Karte „Zweiter Faktor“ fehlt",
+    file: 'public/app.js',
+    search: "  { key: 'twofactor',    section: 'personal', visible: () => true,\n    markup: cardTwoFactor,  wireUp: setUpTwoFactorOut },\n",
+    replacement: "",
+    expected: "Die Karte „Zugang“: der zweite Faktor"
+  },
+  {
+    nr: '1678', name: "Die Leiste der Abschnitte steht auch mit nur einem Abschnitt",
+    file: 'public/app.js',
+    search: "    ${visibleOnes.length > 1 ? `<button class=\"btn btn-sm sys-toggle\" id=\"sys-toggle\"",
+    replacement: "    ${visibleOnes.length > 0 ? `<button class=\"btn btn-sm sys-toggle\" id=\"sys-toggle\"",
+    expected: "Der Systembereich nach Rolle"
+  },
+  {
+    nr: '1679', name: "In „Mein Account“ fehlt der Hinweis auf einen Admin",
+    file: 'public/app.js',
+    search: " ||\n          `<p class=\"desc\" style=\"margin:0 0 10px\">${tH('card.passwordAskAdmin')}</p>`}",
+    replacement: "}",
+    expected: "Der Systembereich nach Rolle"
+  },
+  {
+    nr: '1680', name: "Bei den Wiederherstellungscodes fehlt der Hinweis auf einen Admin",
+    file: 'public/app.js',
+    search: " ||\n        `<p class=\"desc\" style=\"margin:8px 0 0\">${tH('card.twoFactorAskAdmin')}</p>`}`;",
+    replacement: "}`;",
+    expected: "Der Systembereich nach Rolle"
+  },
+  {
+    nr: '1681', name: "Admins sehen die Grenzen wieder als Felder",
+    file: 'public/app.js',
+    search: "          if (!OWNER) return `<div class=\"kv\"><span class=\"k\">${tH(label)}</span><span class=\"v\">${",
+    replacement: "          if (false) return `<div class=\"kv\"><span class=\"k\">${tH(label)}</span><span class=\"v\">${",
+    expected: "Die Bildablage in der Oberflaeche"
+  },
+  {
+    nr: '1682', name: "Der Hinweis zum Schluessel steht wieder beim Admin",
+    file: 'public/app.js',
+    search: "              ${serverBox(t('card.restartHint'), 'docker compose up -d')}\n            </div>` : '')}",
+    replacement: "              ${serverBox(t('card.restartHint'), 'docker compose up -d')}\n            </div>` : `<div class=\"warn-box\">${tH('card.keyBesideHint')}</div>`)}",
+    expected: "Die Rollenweichen — 0.22.0"
+  },
+  {
+    nr: '1683', name: "„Vokabular“ ist wieder eine schmale Karte",
+    file: 'public/app.js',
+    search: "function cardVocabulary() {\n  return `<div class=\"sys-card wide\">",
+    replacement: "function cardVocabulary() {\n  return `<div class=\"sys-card\">",
+    expected: "Der Systembereich nach Rolle"
+  },
+  {
+    nr: '1684', name: "Ohne Mailversand steht der Schalter wieder da",
+    file: 'public/app.js',
+    search: "        ${requests.an || requests.deliveryReady ? `<div class=\"row-in\" style=\"margin-top:10px\">",
+    replacement: "        ${true ? `<div class=\"row-in\" style=\"margin-top:10px\">",
+    expected: "Die Karte „Anfragen“"
+  },
+  {
+    nr: '1685', name: "Die Linkzeilen fehlen in „Darstellung“",
+    file: 'public/app.js',
+    search: "  drawStrip();\n  drawLinkRows();\n  drawSearchNames();\n",
+    replacement: "  drawStrip();\n",
+    expected: "Der Systembereich nach Rolle"
+  },
+  {
+    nr: '1686', name: "Die Karte „Speicher und Wartung“ fehlt",
+    file: 'public/app.js',
+    search: "  { key: 'storage',      section: 'database', visible: () => ADMIN,\n    markup: cardStorage,  wireUp: setUpStorageOut },\n",
+    replacement: "",
+    expected: "Der Systembereich nach Rolle"
+  },
+  {
+    nr: '1687', name: "Den Modus „Potenzial“ sieht der Admin wieder als gesperrtes Kaestchen",
+    file: 'public/app.js',
+    search: "          ${OWNER ? `<label class=\"ex-files\"><input type=\"checkbox\" id=\"pot-mode\">",
+    replacement: "          ${ADMIN ? `<label class=\"ex-files\"><input type=\"checkbox\" id=\"pot-mode\" disabled>",
+    expected: "Der Systembereich nach Rolle"
+  },
+  {
+    nr: '1688', name: "Ein Benutzer holt die Kategorien wieder, ohne die Karte zu sehen",
+    file: 'public/app.js',
+    search: "      ADMIN ? api('GET', '/api/product-categories') : null, ADMIN ? api('GET', '/api/tags') : null,",
+    replacement: "      api('GET', '/api/product-categories'), ADMIN ? api('GET', '/api/tags') : null,",
+    expected: "Der Systembereich nach Rolle"
   }
 
 ];

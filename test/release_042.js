@@ -469,8 +469,8 @@ async function run() {
     await sysSection(cm.w, 'installation');
     await until(cm.w, (x) => x.document.querySelector('#doc-check .ok-box') && openRequests(x) === 0, 2000, 'die Pruefung');
     const card = cardOf(cm.w);
-    check('Die Karte steht unter Installation hinter „Sprachen"',
-      !!card && card.previousElementSibling?.querySelector('h3')?.textContent.trim() === DE['card.languages'],
+    check('Die Karte steht unter Installation hinter „Suchmaschinen“',
+      !!card && card.previousElementSibling?.querySelector('h3')?.textContent.trim() === DE['card.searchEngines'],
       card ? card.previousElementSibling?.querySelector('h3')?.textContent : 'keine Karte');
     check('Sie zeigt das Ergebnis der Pruefung und den Ersatz fuer INTERNAL_ADDRESS',
       card?.querySelector('#doc-check .ok-box')?.textContent === deText('server.docReady', { address: 'https://kriterion.invalid' }) &&

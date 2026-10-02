@@ -1386,7 +1386,8 @@ async function sysPass(d) {
   const cards = [], pieces = [];
   const tab = [...d.w.document.querySelectorAll('.sys-tab')]
     .map(a => a.getAttribute('href'));
-  for (const address of tab) {
+  // Mit nur einem Abschnitt fehlt die Leiste; dann zaehlt der gezeigte.
+  for (const address of tab.length ? tab : [d.w.location.hash]) {
     d.w.history.replaceState(null, '', address);
     await d.w.renderSystem();
     await until(d.w, (x) => openRequests(x) === 0, 3000, `die Karten unter ${address}`);
