@@ -149,7 +149,8 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
   documentServer = null, documentServerCheck = null,
   /* Antwort von GET /api/maintenance; Loeschen und Zurueckholen nehmen die Namen heraus.
      Die ersten `maintenanceRunning` Antworten melden die Pruefung als laufend. */
-  maintenance = null, maintenanceRunning = 0 } = {}) {
+  maintenance = null, maintenanceRunning = 0,
+  statsProxy = null } = {}) {
   // Kommt aus dem jsdom-Paket des Aufrufers; require liest nur den Modulcache.
   const { VirtualConsole } = require('jsdom');
   settings = { searchProviders: DOM_PROVIDER, searchNames: 3, ...settings };
@@ -1222,7 +1223,10 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
         method: statsMethod === undefined
           ? { cipher: 'sqlcipher', keyBits: 256, journal: 'WAL', passwords: 'scrypt' }
           : statsMethod,
-        keyFromEnv: false, keyHex: 'ab'.repeat(32) });
+        keyFromEnv: false, keyHex: 'ab'.repeat(32),
+        proxy: statsProxy || { checked: true, quickSync: true, driver: 'Intel iHD driver - 25.2.3', reason: null,
+          detail: null, tmpfs: true, tmpTotal: 2147483648, tmpFree: 1610612736, ready: 3, failed: 0, bytes: 31457280,
+          waiting: 1 } });
     }
     return give({});
   };

@@ -1,5 +1,5 @@
-/* Kriterion — Pruefstand: Wartung mit Abgleich, Loeschen nach Namen, fehlende Dateien, Pruefung der
-   Datenbank und die Karte „Speicher und Wartung“. */
+/* Kriterion — Pruefstand: Proxys fuer Videos mit test/ffmpeg.js statt ffmpeg; Wartung mit Abgleich,
+   Loeschen nach Namen, fehlende Dateien, Pruefung der Datenbank und die Karte „Speicher und Wartung“. */
 const H = require('./frame.js');
 const D = require('./dom.js');
 const { buildDom, until, openRequests, placeConfirm } = D;
@@ -302,6 +302,271 @@ async function run() {
   check('Die Wartezeit ist kuerzer als die 60 s eines Reverse Proxy',
     /const CHECK_WAIT_MS = BENCH\.checkwait \|\| 20000;/.test(read('server.js')), 'keine Grenze von 20 s');
 
+  /* ---- Proxys ---- */
+  group('Proxy: Auswahl, Bitrate und Weg');
+  const VP = require(path.join(__dirname, 'videoproxy.js'));
+  {
+    const v = (more) => ({ format: 'AVC', width: 1920, height: 1080, frameRate: 30, bitRate: 10e6, bitDepth: 8, chroma: '4:2:0', ...more });
+    const info = (video, audio = [{ format: 'AAC' }], seconds = 60) =>
+      ({ general: { duration: seconds }, video: video ? [video] : [], audio });
+    const no = [VP.needsProxy(info(v()), 'a.mp4'), VP.needsProxy(info(v(), [{ format: 'MPEG Audio' }]), 'a.mov'),
+      VP.needsProxy(info(v({ width: 1080, height: 1920 }), [{ format: 'Opus' }]), 'hoch.mp4'), VP.needsProxy(info(null), 'ton.mp4'),
+      VP.needsProxy(info(v({ bitDepth: null, chroma: null }), []), 'a.mp4')];
+    const yes = [VP.needsProxy(info(v({ width: 3840, height: 2160 })), 'a.mp4'), VP.needsProxy(info(v({ format: 'HEVC' })), 'a.mp4'),
+      VP.needsProxy(info(v({ bitDepth: 10 })), 'a.mp4'), VP.needsProxy(info(v({ chroma: '4:2:2' })), 'a.mp4'),
+      VP.needsProxy(info(v(), [{ format: 'PCM' }]), 'a.mp4'), VP.needsProxy(info(v({ bitRate: 12e6 + 1 })), 'a.mp4'),
+      VP.needsProxy(info(v()), 'a.mkv'), VP.needsProxy(info(v()), 'A.AVI'), VP.needsProxy(info(v()), 'a.wmv'),
+      VP.needsProxy(info(v()), 'a.flv')];
+    check('Kein Proxy fuer H.264 bis 1080 mit 8 Bit und 4:2:0, Ton in AAC, MP3 oder Opus, bis 12 Mbit/s; keiner ohne Bild',
+      no.every(x => x === false), JSON.stringify(no));
+    check('Ein Proxy bei 4K, HEVC, 10 Bit, 4:2:2, Ton in PCM, ueber 12 Mbit/s und bei mkv, avi, wmv und flv',
+      yes.every(x => x === true), JSON.stringify(yes));
+    const rates = [24, 25, 30, 50, 59.94, 0].map(r => VP.videoBitRate(r));
+    check('Bitrate: 0,23 Mbit je Bild, hoechstens 7,5 Mbit/s; ohne Bildrate wie bei 30',
+      equal(rates, [5520000, 5750000, 6900000, 7500000, 7500000, 6900000]), JSON.stringify(rates));
+    const ways = [VP.wayOf(info(v()), false), VP.wayOf(info(v()), true), VP.wayOf(info(v({ format: 'HEVC', bitDepth: 10 })), true),
+      VP.wayOf(info(v({ format: 'AV1' })), true), VP.wayOf(info(v({ bitDepth: 10 })), true),
+      VP.wayOf(info(v({ chroma: '4:2:2' })), true), VP.wayOf(info(v({ format: 'MPEG-4 Visual' })), true)];
+    const vpSource = read('videoproxy.js');
+    check('ffmpeg laeuft im Container unter der Nummer 65534 mit der Gruppe von /dev/dri und nur als root',
+      /const FFMPEG_UID = 65534;/.test(vpSource) && /gid = fs\.statSync\(DRI\)\.gid;/.test(vpSource) &&
+      /ids: \{ uid: FFMPEG_UID, gid \}/.test(vpSource) && /process\.getuid\(\) !== 0\) return \{ error: 'notRoot' \}/.test(vpSource),
+      'Nummer, Gruppe oder Pruefung auf root fehlt');
+    check('Weg: ohne Quick Sync C; H.264 mit 8 Bit, HEVC und AV1 A; H.264 mit 10 Bit oder 4:2:2 und andere Codecs B',
+      ways.join('') === 'CAAABBB', ways.join(''));
+    const a = VP.ffmpegArgs('A', 'http://127.0.0.1:1/x', '/tmp/o.mp4', 30).join(' ');
+    const b = VP.ffmpegArgs('B', 'http://127.0.0.1:1/x', '/tmp/o.mp4', 25).join(' ');
+    const c = VP.ffmpegArgs('C', 'http://127.0.0.1:1/x', '/tmp/o.mp4', 59.94).join(' ');
+    check('Weg A dekodiert und verkleinert mit Quick Sync, B laedt das Bild hoch, C kodiert mit libx264',
+      a.includes('-hwaccel vaapi -hwaccel_device /dev/dri/renderD128') && a.includes('-vf scale_vaapi=') &&
+      a.includes('-c:v h264_vaapi') && b.includes('-init_hw_device vaapi=va:/dev/dri/renderD128') &&
+      b.includes(',format=nv12,hwupload') && b.includes('-c:v h264_vaapi') &&
+      c.includes('-c:v libx264 -preset veryfast') && !c.includes('vaapi'), [a, b, c].join(' | '));
+    check('Alle Wege: Drehung als Metadatum, kuerzere Seite hoechstens 1080 und gerade, AAC mit 128 kbit/s',
+      [a, b, c].every(z => z.includes('-noautorotate -i http://127.0.0.1:1/x') &&
+        z.includes("w='if(gt(iw,ih),-2,min(1080,trunc(iw/2)*2))':h='if(gt(iw,ih),min(1080,trunc(ih/2)*2),-2)'") &&
+        z.includes('-c:a aac -b:a 128000') && z.endsWith('-movflags +faststart /tmp/o.mp4')), c);
+    check('Bitrate mit -maxrate gleich und -bufsize doppelt, ein Keyframe alle 2 Sekunden',
+      a.includes('-b:v 6900000 -maxrate 6900000 -bufsize 13800000 -g 60') && b.includes('-b:v 5750000 -maxrate 5750000 -bufsize 11500000 -g 50') &&
+      c.includes('-b:v 7500000 -maxrate 7500000 -bufsize 15000000 -g 120'), [a, b, c].join(' | '));
+    const need = VP.expectedBytes(info(v({ frameRate: 25 }), [{ format: 'AAC' }], 100));
+    check('Der Platz im RAM folgt aus Dauer und Bitrate, mit einem Zehntel Spielraum',
+      need === Math.ceil(100 * (5750000 + 128000) / 8 * 1.1), String(need));
+  }
+
+  group('Proxy: Umwandlung mit dem Ersatz fuer ffmpeg');
+  const benchProxy = (more = '') => `pruefstand:scrypt=1024:mail=40:brake=10:ffmpeg=1${more}`;
+  await restart({ BACKUP_DIR: backupRoot, KRITERION_TESTBENCH: benchProxy(':qsv=1') });
+  const proxyDir = path.join(filesDir, 'proxy');
+  const proxyRow = (id) => inDb(d => d.prepare(`SELECT p.disk_file_id, p.name, p.size, p.width, p.height, p.state, p.reason
+    FROM proxy_files p JOIN disk_files f ON f.id = p.disk_file_id WHERE f.attachment_id = ?`).get(id));
+  const analysed = (id) => until2(() => inDb(d => !!d.prepare('SELECT 1 FROM attachment_media WHERE attachment_id = ?').get(id)), 15000);
+  const proxyOf = async (who, id, headers = {}) => {
+    const a = await fetch(`${B.base}/api/attachments/${id}/raw?size=proxy`, { headers: withCsrf(cookies[who], headers) });
+    return { status: a.status, headers: a.headers, bytes: Buffer.from(await a.arrayBuffer()) };
+  };
+  // Die Zeile, die test/ffmpeg.js an den Anfang der Daten schreibt.
+  const benchLine = (bytes) => { const at = bytes.indexOf('proxy '); return at < 0 ? '' : bytes.toString('latin1', at, bytes.indexOf('\n', at)); };
+  const v1 = await newItem('Eintrag V');
+  const clip = H.testMp4({ pad: 5000 });
+  const oddEnding = H.testMp4({ sample: 'avc1', width: 640, height: 360, sounds: [] });
+  await upload('zweit', v1, [{ name: 'clip.mp4', content: clip }, { name: 'alt.mkv', content: oddEnding }]);
+  const clipId = (await fileNamed(v1, 'clip.mp4'))?.id, mkvId = (await fileNamed(v1, 'alt.mkv'))?.id;
+  const bothRead = await analysed(clipId) && await analysed(mkvId);
+  await wait(300);
+  const mkvBefore = await fileNamed(v1, 'alt.mkv');
+  const mkvInfo = await as('zweit', 'GET', `/api/attachments/${mkvId}/info`);
+  check('Vorgabe aus: nach der Analyse entsteht kein Proxy, die Liste nennt keinen',
+    bothRead && !proxyRow(clipId) && !proxyRow(mkvId) && (await fileNamed(v1, 'clip.mp4'))?.proxy === null,
+    `${bothRead} ${JSON.stringify(proxyRow(clipId))}`);
+  check('Eine Datei .mkv wird analysiert und hat „Erweiterte Infos“; bis zum Proxy bleibt sie ohne Vorschau',
+    mkvInfo.status === 200 && mkvInfo.content?.video?.[0]?.width === 640 && mkvInfo.content?.proxy === undefined &&
+    mkvBefore?.preview !== 'video', `${mkvInfo.status} ${mkvBefore?.preview}`);
+  const switchByAdmin = await as('dritt', 'PUT', '/api/settings', { proxyOn: true });
+  const switchByOwner = await as('owner', 'PUT', '/api/settings', { proxyOn: true });
+  const settingNow = (await as('dritt', 'GET', '/api/settings')).content?.proxyOn;
+  check('Einschalten darf nur der Eigentuemer-Admin; GET /api/settings nennt den Zustand',
+    switchByAdmin.status === 403 && switchByOwner.status === 200 && settingNow === true, `${switchByAdmin.status} ${switchByOwner.status} ${settingNow}`);
+  const bothMade = await until2(() => proxyRow(clipId)?.state === 'ready' && proxyRow(mkvId)?.state === 'ready', 20000);
+  const row = proxyRow(clipId) || {};
+  const listed = await fileNamed(v1, 'clip.mp4');
+  check('Nach dem Einschalten entsteht der Proxy: 1920 × 1080 aus 3840 × 2160; die Liste nennt Groesse und Pixel',
+    bothMade && row.width === 1920 && row.height === 1080 && row.reason === null &&
+    equal(listed?.proxy, { size: row.size, width: 1920, height: 1080 }), JSON.stringify([row, listed?.proxy]));
+  const got = await proxyOf('zweit', clipId);
+  const line = benchLine(got.bytes);
+  const facts = inDb(d => JSON.parse(d.prepare('SELECT info FROM attachment_media WHERE attachment_id = ?').get(clipId).info));
+  check('Der Proxy kommt als MP4 zum Abspielen, mit dem Namen des Originals',
+    got.status === 200 && got.headers.get('content-type') === 'video/mp4' && got.bytes.toString('latin1', 4, 8) === 'ftyp' &&
+    /^inline/.test(got.headers.get('content-disposition') || '') && /clip\.mp4/.test(got.headers.get('content-disposition') || ''),
+    `${got.status} ${got.headers.get('content-type')} ${got.headers.get('content-disposition')}`);
+  check('ffmpeg las das ganze Original ueber 127.0.0.1 und eine Marke, ohne die Umgebung von Kriterion',
+    line.includes(crypto.createHash('sha256').update(clip).digest('hex')) && / env= /.test(line) &&
+    /-i http:\/\/127\.0\.0\.1:\d+\/[0-9a-f]{32} /.test(line), line.slice(0, 200));
+  check('Ohne die Marke liefert der Server des Originals nichts', / bare=404 /.test(line), line.slice(0, 200));
+  check('ffmpeg laeuft mit Prioritaet 19 in einem Verzeichnis mit den Rechten 0700',
+    / nice=19 /.test(line) && / mode=700 /.test(line), line.slice(0, 200));
+  check('Weg A mit Quick Sync und der Bitrate aus der Bildrate, die MediaInfo nennt',
+    line.includes('-hwaccel vaapi') && line.includes('-noautorotate') &&
+    line.includes(`-b:v ${VP.videoBitRate(facts.video[0].frameRate)} `), line.slice(0, 300));
+  const workDir = (/ cwd=(\S+)/.exec(line) || [])[1];
+  check('Das Verzeichnis der Umwandlung unter /tmp ist danach geloescht',
+    !!workDir && workDir.startsWith(path.join(os.tmpdir(), 'kriterion-video-')) && !fs.existsSync(workDir), String(workDir));
+  const part = await proxyOf('zweit', clipId, { range: 'bytes=10-109' });
+  check('Bereiche wie beim Original', part.status === 206 && part.bytes.equals(got.bytes.subarray(10, 110)) &&
+    part.headers.get('content-range') === `bytes 10-109/${got.bytes.length}`, `${part.status} ${part.headers.get('content-range')}`);
+  const sealed = fs.readFileSync(path.join(proxyDir, row.name || 'fehlt'));
+  check('Auf der Platte liegt er verschluesselt unter data/files/proxy/ mit den Rechten 0700',
+    row.size === got.bytes.length && sealed.length === got.bytes.length + 16 * Math.ceil(got.bytes.length / 1048576) &&
+    sealed.indexOf('proxy ') < 0 && (fs.statSync(proxyDir).mode & 0o777) === 0o700, `${sealed.length} ${row.size}`);
+  const clipInfo = await as('zweit', 'GET', `/api/attachments/${clipId}/info`);
+  check('„Erweiterte Infos“ nennt Zustand, Pixel und Groesse des Proxys',
+    equal(clipInfo.content?.proxy, { state: 'ready', width: 1920, height: 1080, size: got.bytes.length, reason: null }),
+    JSON.stringify(clipInfo.content?.proxy));
+  const proxyStats = (await as('dritt', 'GET', '/api/stats')).content?.proxy || {};
+  check('Die Kennzahlen nennen Quick Sync mit Treiber, fertige Proxys und ihre Groesse',
+    proxyStats.checked === true && proxyStats.quickSync === true && /iHD/.test(proxyStats.driver || '') && proxyStats.ready === 2 &&
+    proxyStats.waiting === 0 && proxyStats.failed === 0 && proxyStats.bytes === row.size + (proxyRow(mkvId)?.size || 0),
+    JSON.stringify(proxyStats));
+  check('Das Server-Log nennt je Proxy den Weg', B.log().includes(`Proxy for file ${clipId} made in `) &&
+    B.log().includes('(way A).'), B.log().split('\n').filter(z => z.includes('Proxy')).join(' | '));
+
+  group('Proxy: die vier Endungen, Pixel und Auswahl im Server');
+  const mkvAfter = await fileNamed(v1, 'alt.mkv');
+  const mkvRow = proxyRow(mkvId) || {};
+  check('Mit fertigem Proxy gilt die Datei .mkv als Video; „Herunterladen“ liefert das Original',
+    mkvAfter?.preview === 'video' && mkvRow.width === 640 && mkvRow.height === 360 &&
+    (await raw('zweit', mkvId)).equals(oddEnding), `${mkvAfter?.preview} ${JSON.stringify(mkvRow)}`);
+  const stillForm = new FormData();
+  stillForm.append('duration', '10');
+  const stillTry = await fetch(`${B.base}/api/attachments/${mkvId}/still`,
+    { method: 'PUT', body: stillForm, headers: withCsrf(cookies['zweit'], {}) });
+  const stillAnswer = (await stillTry.json().catch(() => null))?.error;
+  check('Fuer die Datei .mkv nimmt der Server ein Standbild an', stillTry.status === 400 && stillAnswer === deText('server.noFile'),
+    `${stillTry.status} ${stillAnswer}`);
+  await upload('zweit', v1, [{ name: 'flach.mp4', content: H.testMp4({ sample: 'avc1', width: 1920, height: 1080, sounds: [] }) },
+    { name: 'hoch.mp4', content: H.testMp4({ width: 1080, height: 1920, sounds: [] }) },
+    { name: 'schmal.mp4', content: H.testMp4({ width: 1280, height: 720, sounds: [] }) }]);
+  const flatId = (await fileNamed(v1, 'flach.mp4'))?.id, tallId = (await fileNamed(v1, 'hoch.mp4'))?.id;
+  const smallId = (await fileNamed(v1, 'schmal.mp4'))?.id;
+  await until2(() => proxyRow(tallId)?.state === 'ready' && proxyRow(smallId)?.state === 'ready', 20000);
+  await analysed(flatId);
+  await wait(500);
+  const flatInfo = await as('zweit', 'GET', `/api/attachments/${flatId}/info`);
+  check('H.264 in 1080p ohne Ton und unter 12 Mbit/s bekommt keinen Proxy und keine Gruppe „Proxy“',
+    !proxyRow(flatId) && flatInfo.status === 200 && flatInfo.content?.proxy === undefined, JSON.stringify(proxyRow(flatId)));
+  check('Hochkant bleibt hochkant mit 1080 Pixeln an der kuerzeren Seite; ein kleineres Video behaelt seine Groesse',
+    proxyRow(tallId)?.width === 1080 && proxyRow(tallId)?.height === 1920 && proxyRow(smallId)?.width === 1280 &&
+    proxyRow(smallId)?.height === 720, JSON.stringify([proxyRow(tallId), proxyRow(smallId)]));
+
+  group('Proxy: Fehler, Neustart und fehlende Datei');
+  await restart({ BACKUP_DIR: backupRoot, KRITERION_TESTBENCH: benchProxy(':qsv=1:ffmpegfail=1') });
+  await upload('zweit', v1, [{ name: 'kaputt.mp4', content: H.testMp4({ pad: 77 }) }]);
+  const brokenId = (await fileNamed(v1, 'kaputt.mp4'))?.id;
+  const failed = await until2(() => proxyRow(brokenId)?.state === 'failed', 20000);
+  const brokenInfo = await as('zweit', 'GET', `/api/attachments/${brokenId}/info`);
+  check('Scheitert ffmpeg auf Weg A und B, steht „fehlgeschlagen“ mit der letzten Zeile in der Tabelle',
+    failed && proxyRow(brokenId)?.reason === 'Conversion failed!' && proxyRow(brokenId)?.name === null &&
+    (B.log().match(new RegExp(`Proxy for file ${brokenId} failed \\(way [AB]\\)`, 'g')) || []).length === 2,
+    JSON.stringify(proxyRow(brokenId)));
+  check('Ohne Proxy liefert ?size=proxy 404; Liste und Infos nennen den Zustand',
+    (await proxyOf('zweit', brokenId)).status === 404 && (await fileNamed(v1, 'kaputt.mp4'))?.proxy === null &&
+    equal(brokenInfo.content?.proxy, { state: 'failed', width: null, height: null, size: null, reason: 'Conversion failed!' }),
+    JSON.stringify(brokenInfo.content?.proxy));
+  const tallName = proxyRow(tallId)?.name;
+  fs.rmSync(path.join(proxyDir, tallName));
+  const strayName = hex();
+  fs.writeFileSync(path.join(proxyDir, strayName), 'ohne Zeile');
+  await restart({ BACKUP_DIR: backupRoot, KRITERION_TESTBENCH: benchProxy(':qsv=1:ffmpegfail=2') });
+  const retried = await until2(() => proxyRow(brokenId)?.state === 'ready', 20000);
+  const brokenLine = benchLine((await proxyOf('zweit', brokenId)).bytes);
+  check('Der naechste Start versucht es einmal neu; scheitert Weg A, folgt Weg B',
+    retried && brokenLine.includes('-init_hw_device vaapi=va:/dev/dri/renderD128') && brokenLine.includes('hwupload') &&
+    B.log().includes(`Proxy for file ${brokenId} failed (way A)`) && B.log().includes(`Proxy for file ${brokenId} made in `),
+    brokenLine.slice(0, 200));
+  const tallAgain = await until2(() => proxyRow(tallId)?.state === 'ready' && proxyRow(tallId)?.name !== tallName, 20000);
+  check('Fehlt beim Start die Datei eines Proxys, entsteht er neu', tallAgain, JSON.stringify(proxyRow(tallId)));
+  const clipName = proxyRow(clipId)?.name;
+  fs.rmSync(path.join(proxyDir, clipName));
+  const lost = await proxyOf('zweit', clipId);
+  const remade = await until2(() => proxyRow(clipId)?.state === 'ready' && proxyRow(clipId)?.name !== clipName, 20000);
+  check('Fehlt die Datei beim Abspielen: 404, und der Proxy entsteht im Hintergrund neu',
+    lost.status === 404 && remade && (await proxyOf('zweit', clipId)).status === 200, `${lost.status} ${remade}`);
+  const swept = !fs.existsSync(path.join(proxyDir, strayName));
+  const scanned = (await scan()).unknown || [];
+  check('Eine Datei in data/files/proxy/ ohne Zeile loescht der Lauf beim Start; der Abgleich nennt das Verzeichnis nicht',
+    swept && !scanned.some(f => f.name === 'proxy'), `${swept} ${scanned.map(f => f.name).join(' ')}`);
+
+  group('Proxy: Papierkorb, Backup und Export');
+  const keptName = proxyRow(clipId)?.name;
+  const binned = await as('zweit', 'DELETE', `/api/attachments/${clipId}`);
+  const binRow = ((await as('owner', 'GET', '/api/trash')).content?.rows || []).find(z => z.title === 'clip.mp4');
+  check('Im Papierkorb bleibt der Proxy beim Original',
+    binned.status === 200 && inDb(d => d.prepare('SELECT state FROM proxy_files WHERE name = ?').get(keptName)?.state) === 'ready' &&
+    fs.existsSync(path.join(proxyDir, keptName)), `${binned.status} ${JSON.stringify(binRow)}`);
+  const restored = await as('owner', 'POST', `/api/trash/${binRow?.id}/restore`);
+  const backId = (await fileNamed(v1, 'clip.mp4'))?.id;
+  const backProxy = await proxyOf('zweit', backId);
+  check('Nach dem Wiederherstellen ist er sofort da', restored.status === 200 && proxyRow(backId)?.name === keptName &&
+    backProxy.status === 200 && backProxy.bytes.equals(got.bytes) === false && benchLine(backProxy.bytes).length > 0,
+    `${restored.status} ${backProxy.status}`);
+  const copyFile = await backupNow();
+  const copyList = fs.readFileSync(path.join(backupRoot, copyFile.replace(/\.sqlite$/, '.files')), 'utf8');
+  const proxyNames = inDb(d => d.prepare('SELECT name FROM proxy_files WHERE name IS NOT NULL').all().map(z => z.name));
+  check('Ein Backup nimmt keinen Proxy mit', proxyNames.length >= 4 &&
+    proxyNames.every(n => !copyList.includes(n) && !fs.existsSync(path.join(copyDir, n))), String(proxyNames.length));
+  await as('owner', 'POST', '/api/confirm', { password: pw('owner'), purpose: 'export' });
+  const exported = await fetch(`${B.base}/api/export?photos=1&files=1`, { headers: withCsrf(cookies.owner, {}) });
+  const exportText = await exported.text();
+  check('Ein Export nimmt keinen Proxy mit', exported.status === 200 && exportText.includes(clip.toString('base64').slice(0, 40)) &&
+    !exportText.includes(backProxy.bytes.toString('base64').slice(0, 40)) && !/"proxy"/.test(exportText),
+    `${exported.status} ${exportText.length}`);
+  await as('zweit', 'DELETE', `/api/attachments/${backId}`);
+  const binAgain = ((await as('owner', 'GET', '/api/trash')).content?.rows || []).find(z => z.title === 'clip.mp4');
+  await as('owner', 'DELETE', `/api/trash/${binAgain?.id}`);
+  const purged = await until2(() => !fs.existsSync(path.join(proxyDir, keptName)), 8000);
+  check('Endgueltig geloescht: Zeile und Datei des Proxys sind weg, die Loeschliste ist leer',
+    purged && !inDb(d => d.prepare('SELECT 1 FROM proxy_files WHERE name = ?').get(keptName)) &&
+    !inDb(d => d.prepare("SELECT 1 FROM disk_files_gone WHERE name LIKE 'proxy/%'").get()), `${purged}`);
+
+  group('Proxy: ohne Quick Sync, ohne Firmware und Schalter aus');
+  await restart({ BACKUP_DIR: backupRoot, KRITERION_TESTBENCH: benchProxy() });
+  await until2(async () => (await as('dritt', 'GET', '/api/stats')).content?.proxy?.checked === true, 8000);
+  const cpuStats = (await as('dritt', 'GET', '/api/stats')).content?.proxy || {};
+  await upload('zweit', v1, [{ name: 'cpu.mp4', content: H.testMp4({ pad: 99 }) }]);
+  const cpuId = (await fileNamed(v1, 'cpu.mp4'))?.id;
+  await until2(() => proxyRow(cpuId)?.state === 'ready', 20000);
+  const cpuLine = benchLine((await proxyOf('zweit', cpuId)).bytes);
+  check('Startet der Intel-Treiber nicht, nennt die Karte die Firmware, und die CPU wandelt ueber Weg C um',
+    cpuStats.quickSync === false && cpuStats.reason === 'firmware' && cpuLine.includes('-c:v libx264') &&
+    !cpuLine.includes('vaapi'), `${JSON.stringify(cpuStats)} ${cpuLine.slice(0, 120)}`);
+  await restart({ BACKUP_DIR: backupRoot, KRITERION_TESTBENCH: benchProxy(':qsv=2:ffmpeghold=4000') });
+  await until2(async () => (await as('dritt', 'GET', '/api/stats')).content?.proxy?.checked === true, 8000);
+  const hucStats = (await as('dritt', 'GET', '/api/stats')).content?.proxy || {};
+  check('Kodiert Quick Sync nur ohne feste Bitrate, nennt die Karte die HuC-Firmware',
+    hucStats.quickSync === false && hucStats.reason === 'huc', JSON.stringify(hucStats));
+  await upload('zweit', v1, [{ name: 'stop.mp4', content: H.testMp4({ pad: 123 }) }]);
+  const stoppedId = (await fileNamed(v1, 'stop.mp4'))?.id;
+  const converting = await until2(async () => (await as('dritt', 'GET', '/api/stats')).content?.proxy?.waiting === 1, 15000);
+  await as('owner', 'PUT', '/api/settings', { proxyOn: false });
+  await wait(4500);
+  check('Ausschalten bricht die laufende Umwandlung ab, ohne Fehler in der Tabelle',
+    converting && !proxyRow(stoppedId) && (await as('dritt', 'GET', '/api/stats')).content?.proxy?.waiting === 0,
+    `${converting} ${JSON.stringify(proxyRow(stoppedId))}`);
+  await as('owner', 'PUT', '/api/settings', { proxyOn: true });
+  const resumed = await until2(() => proxyRow(stoppedId)?.state === 'ready', 20000);
+  check('Wieder eingeschaltet, wandelt Kriterion den Bestand um', resumed, JSON.stringify(proxyRow(stoppedId)));
+  const serverSource = read('server.js');
+  check('Die Grenze der Laufzeit: Dauer mal 4 plus 10 Minuten',
+    /setTimeout\(\(\) => \{ late = true; job\.stop\(\); \}, \(seconds \* 4 \+ 600\) \* 1000\)/.test(serverSource),
+    'keine Grenze');
+  check('Vor jedem Lauf: Platz im RAM unter /tmp und auf der Platte; ohne tmpfs keine Umwandlung',
+    /if \(tmp\.free != null && need > tmp\.free\) return proxyFailed\(r, 'tmpSpace'\);/.test(serverSource) &&
+    /if \(spaceShort\(encLen\(need\)\)\) return proxyFailed\(r, 'space'\);/.test(serverSource) &&
+    /\(!PROXY_BENCH && !videoproxy\.tmpState\(\)\.tmpfs\)/.test(serverSource), 'eine Pruefung fehlt');
+  check('Beim Beenden von Kriterion endet auch ffmpeg',
+    /process\.on\(signal, \(\) => \{[\s\S]{0,300}?if \(proxyStop\) proxyStop\(\);/.test(serverSource), 'proxyStop fehlt im Beenden');
+
   await B.stop();
   fs.rmSync(root, { recursive: true, force: true });
 
@@ -436,6 +701,157 @@ async function run() {
       !here?.querySelector('.astate') && here?.querySelector('.anote')?.textContent === '' &&
       !here?.querySelector('.ameta')?.textContent.includes(DE['entry.fileMissing']), here ? here.textContent : 'keine Kachel');
     e.w.close();
+  }
+
+  group('Proxy: Abspielen und Umschalter');
+  {
+    const MB = 1024 * 1024;
+    const vChefin = { id: 1, name: 'chefin', deleted: false };
+    const video = (id, filename, more = {}) => ({ id, filename, mime_type: 'video/mp4', size: 3000, sort_order: id,
+      preview: 'video', still: 1234, duration: 42, codec: 'HEVC', created_at: '2026-10-02 08:00:00', mine: true,
+      author: vChefin, folder: null, ...more });
+    const m = buildDom(JSDOM, { hash: '#/item/1', settings: { filters: null, userCount: 1 },
+      extraAttachments: [video(80, 'clip.mp4', { size: 3 * 1024 * MB, proxy: { size: 40 * MB, width: 1920, height: 1080 } }),
+        video(81, 'ohne.mp4', { proxy: null })] });
+    const w = m.w;
+    await until(w, (z) => z.document.querySelector('#atts .atile[data-key="f81"]') && openRequests(z) === 0, 3000, 'die Kacheln');
+    w.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {}, addListener() {} });
+    let played = 0;
+    const open1 = (key) => {
+      w.document.querySelector(`#atts .atile[data-key="${key}"] .aface`)?.click();
+      const p = w.document.querySelector('.lightbox .lb-video');
+      if (p) { Object.defineProperty(p, 'paused', { configurable: true, get: () => false }); p.play = () => { played++; }; }
+      return { player: p, swap: w.document.querySelector('.lightbox .lb-btn.original'),
+        whole: w.document.querySelector('.lightbox .lb-btn.whole'), notice: w.document.querySelector('.lightbox .lb-unplayable') };
+    };
+    const esc = () => w.document.body.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    const PROXY = `/api/attachments/80/raw?size=proxy&v=${40 * MB}`, ORIGINAL = '/api/attachments/80/raw?inline=1';
+    let x = open1('f80');
+    check('Mit fertigem Proxy spielt der Proxy; der Umschalter bietet das Original an',
+      x.player?.getAttribute('src') === PROXY && x.swap?.hidden === false && x.swap.textContent === DE['entry.playOriginal'] &&
+      x.swap.title === DE['entry.playOriginalTitle'] && x.swap.getAttribute('aria-pressed') === 'false',
+      `${x.player?.getAttribute('src')} ${x.swap?.hidden} ${x.swap?.textContent}`);
+    check('„Ganz laden“ misst am Proxy: 40 MB statt 3 GB', x.whole?.hidden === false, String(x.whole?.hidden));
+    x.player.currentTime = 17;
+    x.swap.click();
+    check('Der Umschalter spielt das Original an derselben Stelle weiter',
+      x.player.getAttribute('src') === ORIGINAL && x.player.currentTime === 17 && played === 1 &&
+      x.swap.textContent === DE['entry.playProxy'] && x.swap.getAttribute('aria-pressed') === 'true' && x.whole.hidden === true,
+      `${x.player.getAttribute('src')} ${x.player.currentTime} ${played} ${x.whole.hidden}`);
+    x.swap.click();
+    check('Und zurueck zum Proxy, ebenfalls an der Stelle', x.player.getAttribute('src') === PROXY && x.player.currentTime === 17,
+      `${x.player.getAttribute('src')} ${x.player.currentTime}`);
+    x.swap.click();
+    esc();
+    x = open1('f80');
+    check('Beim naechsten Oeffnen spielt wieder der Proxy', x.player?.getAttribute('src') === PROXY &&
+      x.swap?.getAttribute('aria-pressed') === 'false', x.player?.getAttribute('src'));
+    x.player.dispatchEvent(new w.Event('error'));
+    check('Laesst sich der Proxy nicht spielen, spielt das Original ohne Meldung',
+      x.player.getAttribute('src') === ORIGINAL && x.player.hidden === false && x.notice.hidden === true,
+      `${x.player.getAttribute('src')} ${x.notice.hidden}`);
+    x.player.dispatchEvent(new w.Event('error'));
+    check('Erst wenn auch das Original scheitert, steht der Hinweis da', x.notice.hidden === false && x.swap.hidden === true,
+      `${x.notice.hidden} ${x.swap.hidden}`);
+    esc();
+    x = open1('f81');
+    check('Ohne Proxy spielt das Original, und es gibt keinen Umschalter',
+      x.player?.getAttribute('src') === '/api/attachments/81/raw?inline=1' && x.swap?.hidden === true,
+      `${x.player?.getAttribute('src')} ${x.swap?.hidden}`);
+    esc();
+    w.close();
+  }
+
+  group('Proxy: Standbild, die vier Endungen und Erweiterte Infos');
+  {
+    const vChefin = { id: 1, name: 'chefin', deleted: false };
+    const file = (id, filename, more = {}) => ({ id, filename, mime_type: 'application/octet-stream', size: 3000,
+      sort_order: id, preview: 'keine', created_at: '2026-10-02 08:00:00', mine: true, author: vChefin, folder: null, ...more });
+    const m = buildDom(JSDOM, { hash: '#/item/1', settings: { filters: null, userCount: 1 },
+      extraAttachments: [file(90, 'alt.mkv', { preview: 'video', still: null, proxy: { size: 2000, width: 640, height: 360 } }),
+        file(91, 'roh.avi'), file(92, 'clip.mp4', { mime_type: 'video/mp4', preview: 'video', still: null, proxy: null })] });
+    const w = m.w;
+    const stills = [];
+    w.__still = (from) => { stills.push(from); return Promise.reject(new Error('probe')); };
+    w.eval('stillFrame = (from, share) => window.__still(from, share)');
+    await until(w, (z) => z.document.querySelector('#atts .atile[data-key="f92"]') && openRequests(z) === 0, 3000, 'die Kacheln');
+    await until(w, () => stills.length === 2, 2000, 'die Standbilder').catch(() => {});
+    check('Das Standbild entsteht aus dem Proxy, ohne Proxy aus dem Original',
+      equal(stills, ['/api/attachments/90/raw?size=proxy&v=2000', '/api/attachments/92/raw?inline=1']), JSON.stringify(stills));
+    const tile = (k) => w.document.querySelector(`#atts .atile[data-key="${k}"]`);
+    check('mkv und avi heissen Video; ohne Proxy ohne ▶',
+      ['f90', 'f91'].every(k => tile(k)?.querySelector('.akind')?.textContent === DE['entry.kindVideo']) &&
+      !!tile('f90')?.querySelector('.play-badge') && !tile('f91')?.querySelector('.play-badge'),
+      ['f90', 'f91'].map(k => tile(k)?.querySelector('.akind')?.textContent).join(' · '));
+    const base = w.fetch;
+    const asked = [];
+    w.fetch = (url, opt) => {
+      if (!/\/info$/.test(url)) return base(url, opt);
+      asked.push(url);
+      return Promise.resolve({ ok: true, status: 200, json: async () => ({ general: { format: 'Matroska', duration: 10 },
+        video: [{ format: 'AVC', width: 640, height: 360 }], audio: [], image: [],
+        proxy: url.includes('/91/') ? { state: 'failed', reason: 'tmpSpace', width: null, height: null, size: null }
+          : { state: 'ready', reason: null, width: 640, height: 360, size: 2048 } }) });
+    };
+    const infoOf = async (k) => {
+      tile(k)?.querySelector('.amore')?.click();
+      const item = [...w.document.querySelectorAll('.fmenu-item')].find(e => e.textContent === DE['entry.mediaInfo']);
+      item?.click();
+      await until(w, () => w.document.querySelector('.modal.minfo .kv'), 1000, 'die Angaben').catch(() => {});
+      const modal = w.document.querySelector('.modal.minfo');
+      const out = { offered: !!item, heads: [...(modal?.querySelectorAll('.minfo-head') || [])].map(e => e.textContent),
+        rows: [...(modal?.querySelectorAll('.kv') || [])].map(r => `${r.querySelector('.k').textContent}: ${r.querySelector('.v').textContent}`) };
+      w.document.body.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      return out;
+    };
+    const ready = await infoOf('f90');
+    check('„Erweiterte Infos“ hat die Gruppe „Proxy“ mit Zustand, Pixeln und Groesse',
+      ready.offered && ready.heads.includes(DE['entry.mediaProxy']) &&
+      [`${DE['entry.mediaProxyState']}: ${DE['entry.proxyReady']}`, `${DE['entry.mediaResolution']}: 640 × 360`,
+        `${DE['entry.mediaFileSize']}: ${w.eval('fmtBytes(2048)')}`].every(x => ready.rows.includes(x)), ready.rows.join(' | '));
+    const failed = await infoOf('f91');
+    check('Auch eine Datei .avi ohne Proxy hat „Erweiterte Infos“; ein Fehlschlag nennt den Grund',
+      failed.offered && failed.rows.includes(`${DE['entry.mediaProxyState']}: ${DE['entry.proxyFailed']}: ${DE['entry.proxyTmpSpace']}`),
+      failed.rows.join(' | '));
+    w.close();
+  }
+
+  group('Proxy: die Karte');
+  {
+    const cardOf = (w) => [...w.document.querySelectorAll('.sys-card')]
+      .find(c => c.querySelector('h3')?.textContent === DE['card.proxyTitle']);
+    const owner = buildDom(JSDOM, { settings: { filters: null, proxyOn: false } });
+    await until(owner.w, (z) => z.document.getElementById('count') && openRequests(z) === 0, 3000, 'die Uebersicht');
+    await D.sysSection(owner.w, 'installation');
+    const card = cardOf(owner.w), box = owner.w.document.getElementById('proxy-on');
+    const text = card ? card.textContent.replace(/\s+/g, ' ') : '';
+    const bytes = (n) => owner.w.eval(`fmtBytes(${n})`);
+    check('Unter „Installation“ steht die Karte „Proxy“ mit Schalter; Vorgabe aus',
+      !!card && !!box && box.checked === false && text.includes(DE['card.proxyHint']), text.slice(0, 200));
+    check('Sie nennt Quick Sync mit Treiber, den RAM unter /tmp und die Zahlen',
+      text.includes(deText('card.proxyQuickSync', { driver: 'Intel iHD driver - 25.2.3' })) &&
+      text.includes(deText('card.proxyTmpfs', { free: bytes(1610612736), total: bytes(2147483648) })) &&
+      text.includes(`${DE['card.proxyReady']}3 · ${bytes(31457280)}`) && text.includes(`${DE['card.proxyWaiting']}1`) &&
+      !text.includes(DE['card.proxyFailed']), text);
+    box.checked = true;
+    box.dispatchEvent(new owner.w.Event('change', { bubbles: true }));
+    await until(owner.w, (z) => owner.sent.some(s => s.method === 'PUT' && s.url === '/api/settings') && openRequests(z) === 0,
+      2000, 'das Speichern').catch(() => {});
+    const put = owner.sent.find(s => s.method === 'PUT' && s.url === '/api/settings');
+    check('Der Schalter speichert proxyOn', equal(put?.body, { proxyOn: true }), JSON.stringify(put?.body));
+    owner.w.close();
+    const admin = buildDom(JSDOM, { settings: { filters: null, isAdmin: true, isOwner: false, proxyOn: true },
+      statsProxy: { checked: true, quickSync: false, driver: null, reason: 'firmware', detail: null, tmpfs: false,
+        tmpTotal: null, tmpFree: null, ready: 0, failed: 2, bytes: 0, waiting: 0 } });
+    await until(admin.w, (z) => z.document.getElementById('count') && openRequests(z) === 0, 3000, 'die Uebersicht');
+    await D.sysSection(admin.w, 'installation');
+    const adminText = cardOf(admin.w)?.textContent.replace(/\s+/g, ' ') || '';
+    check('Ein Admin liest den Zustand als Satz, ohne Schalter',
+      !admin.w.document.getElementById('proxy-on') && adminText.includes(DE['card.proxyIsOn']), adminText.slice(0, 200));
+    check('Ohne Quick Sync nennt die Karte den Grund, ohne tmpfs auch das, und die fehlgeschlagenen',
+      adminText.includes(DE['card.proxyFirmware']) && adminText.includes(DE['card.proxyNoTmpfs']) &&
+      adminText.includes(`${DE['card.proxyFailed']}2`), adminText);
+    admin.w.close();
   }
 }
 

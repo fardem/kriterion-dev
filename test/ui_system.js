@@ -189,11 +189,11 @@ async function run() {
     'Benutzer', 'Anfragen', 'Sicherheitsprotokoll', 'Mailversand',
     'Kennzahlen', 'Speicher und Wartung', 'Bildformate', 'Grenzen beim Hochladen',
     'Backup', 'Alte Backups', 'Export und Import',
-    'Titel', 'Sprachen', 'Vokabular', 'Suchmaschinen', 'Dokumente', 'Version und Verschlüsselung'];
-  check('Die Eigentuemerin sieht alle sechsundzwanzig Karten',
+    'Titel', 'Sprachen', 'Vokabular', 'Suchmaschinen', 'Dokumente', 'Proxy', 'Version und Verschlüsselung'];
+  check('Die Eigentuemerin sieht alle siebenundzwanzig Karten',
     equal(kEig, ALL_CARDS), kEig.join(' · '));
   // Prueft auch ALL_CARDS selbst: eine aus der Liste gestrichene Karte fiele sonst nicht auf.
-  check('Und es sind wirklich sechsundzwanzig', ALL_CARDS.length === 26 && kEig.length === 26,
+  check('Und es sind wirklich siebenundzwanzig', ALL_CARDS.length === 27 && kEig.length === 27,
     `${ALL_CARDS.length} erwartet, ${kEig.length} gezeichnet`);
   /* `equal(kEig, ALL_CARDS)` schlaegt auch bei einer Verschiebung an; diese
      Pruefung nennt, welche Nachbarschaft verletzt ist. */
@@ -270,7 +270,7 @@ async function run() {
   /* „Papierkorb": ansehen darf der Admin, handeln nur der Eigentuemer. */
   for (const card of ['Titel', 'Kennzahlen', 'Speicher und Wartung', 'Version und Verschlüsselung',
                        'Vokabular', 'Benutzer', 'Suchmaschinen', 'Papierkorb', 'Anfragen',
-                       'Kategorien', 'Tags', 'Bewertung: Kriterien', 'Potenzial: Kriterien']) {
+                       'Kategorien', 'Tags', 'Bewertung: Kriterien', 'Potenzial: Kriterien', 'Proxy']) {
     check(`Die Karte "${card}" steht nur beim Admin`,
       kAdm.includes(card) && !kUser.includes(card),
       `Admin: ${kAdm.includes(card)} · Benutzer: ${kUser.includes(card)}`);
@@ -287,7 +287,7 @@ async function run() {
   const kOut = (await sysPass(rOut)).cards;
   check('Ist die Selbstanmeldung aus und nichts offen, steht die Karte "Anfragen" trotzdem',
     kOut.includes('Anfragen'), kOut.join(' · '));
-  check('Und es sind auch dann sechsundzwanzig', kOut.length === 26 && equal(kOut, ALL_CARDS),
+  check('Und es sind auch dann siebenundzwanzig', kOut.length === 27 && equal(kOut, ALL_CARDS),
     `${kOut.length} gezeichnet`);
   await sysSection(rOut.w, 'users');
   check('Ohne Mailversand steht statt eines gesperrten Schalters der Grund darin',
@@ -964,8 +964,8 @@ async function run() {
     zkBlock()?.closest('.sys-card')?.querySelector('h3')?.textContent || '(kein Block)');
   /* sysPass zaehlt ueber alle Abschnitte; sichtbar ist immer nur einer. */
   const zkAll = (await sysPass(zkOut)).cards;
-  check('Und die Zahl der Karten bleibt bei sechsundzwanzig',
-    zkAll.length === 26, `${zkAll.length}: ${zkAll.join(' · ')}`);
+  check('Und die Zahl der Karten bleibt bei siebenundzwanzig',
+    zkAll.length === 27, `${zkAll.length}: ${zkAll.join(' · ')}`);
   await sysSection(zkOut.w, 'personal');
   check('Der Zustand "aus" steht ohne Klick da',
     /Zweiter Faktor: aus/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 90));

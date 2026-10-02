@@ -183,7 +183,7 @@ tryIndex('idx_attachments_list', `CREATE INDEX IF NOT EXISTS idx_attachments_lis
            ON attachments(item_id, sort_order, id, filename, mime_type, size, created_at, user_id)`);
 
 /* Verliert eine Datei auf der Platte ihren letzten Besitzer, kommt ihr Name in die
-   Loeschliste; auch am Ende einer Kaskade und aus usertool.js. */
+   Loeschliste; auch am Ende einer Kaskade und aus usertool.js. Ein Proxy als `proxy/<Name>`. */
 const TRIGGERS = {
   disk_files_orphaned: `CREATE TRIGGER disk_files_orphaned AFTER UPDATE OF attachment_id, trash_id, previous_of ON disk_files
   WHEN new.attachment_id IS NULL AND new.trash_id IS NULL AND new.previous_of IS NULL
@@ -198,7 +198,12 @@ END`,
 BEGIN SELECT RAISE(ABORT, 'disk file stays with its attachment'); END`,
   disk_files_kept: `CREATE TRIGGER disk_files_kept BEFORE DELETE ON disk_files
   WHEN old.attachment_id IS NOT NULL OR old.trash_id IS NOT NULL OR old.previous_of IS NOT NULL
-BEGIN SELECT RAISE(ABORT, 'disk file has an owner'); END`
+BEGIN SELECT RAISE(ABORT, 'disk file has an owner'); END`,
+  proxy_files_gone: `CREATE TRIGGER proxy_files_gone AFTER DELETE ON proxy_files
+  WHEN old.name IS NOT NULL
+BEGIN
+  INSERT OR IGNORE INTO disk_files_gone (name) VALUES ('proxy/' || old.name);
+END`
 };
 
 // Ohne Rueckfall wie bei tryIndex: ohne die Trigger blieben Dateien ohne Besitzer liegen.

@@ -1017,7 +1017,7 @@ async function run() {
     const tools = [...doc.querySelectorAll('.lightbox .lb-tools .lb-btn')]
       .map(b => b.className.replace('lb-btn ', ''));
     check('Und er steht vor dem Schliessen, nicht daneben',
-      equal(tools, ['whole', 'info', 'copy', 'download', 'zoom', 'remove', 'close']), JSON.stringify(tools));
+      equal(tools, ['whole', 'original', 'info', 'copy', 'download', 'zoom', 'remove', 'close']), JSON.stringify(tools));
 
     const imagesBefore = [...doc.querySelectorAll('.lightbox .lb-thumb')].length;
     // `?.`: ein Rueckbau kann den Papierkorb entfernen, dann ist `removed()` null.

@@ -53,7 +53,7 @@ This file covers installing and running Kriterion. Using it is covered in the
 | | |
 |---|---|
 | Entries | title, description, category, tags, photos, short videos, files, links |
-| Files | up to 2 GB per file, uploaded in chunks, resumable; as tiles or list, sorted by name, date, size or type, grouped by type, with a thumbnail also for text, Office and PDF; in folders; delete or move several at once; deleted files stay 30 days in the trash and can be fetched back one by one from backups; Extended info on images and videos as in MediaInfo, also for the photos and videos of the entry; videos resume where they were last watched and load in full at the push of a button |
+| Files | up to 2 GB per file, uploaded in chunks, resumable; as tiles or list, sorted by name, date, size or type, grouped by type, with a thumbnail also for text, Office and PDF; in folders; delete or move several at once; deleted files stay 30 days in the trash and can be fetched back one by one from backups; Extended info on images and videos as in MediaInfo, also for the photos and videos of the entry; videos resume where they were last watched and load in full at the push of a button; on request they play through a smaller proxy in H.264, also `mkv`, `avi`, `wmv` and `flv` |
 | Rate | your own criteria with 1 to 5 stars, a weight per criterion, from these a weighted average |
 | Comments | note, report or task with a due date, plus images and videos |
 | Test days | dated entries with score and tags |
@@ -149,6 +149,8 @@ and mail delivery are set up in the interface; see the [manual](manual.md).
 | `docker-compose.yml` | port, the left one in `"3100:3000"` | 3100 |
 | `docker-compose.yml` | backup folder: mount and `BACKUP_DIR` | `./kriterion-backup`, see [Backup](#backup) |
 | `docker-compose.yml` | `TZ`: time zone of the log | `Europe/Berlin` |
+| `docker-compose.yml` | `devices: /dev/dri`: Quick Sync for the proxies | the CPU converts, see [Proxies for videos](#proxies-for-videos) |
+| `docker-compose.yml` | `tmpfs: /tmp`: RAM in which a proxy is created | 2 GB; without `tmpfs` no proxies |
 
 `PUBLIC_ADDRESS` needs a scheme and a host name; a path is allowed, `?` and
 `#` are not. An invalid value appears as a warning in the log; the start
@@ -433,7 +435,7 @@ container (`docker compose exec kriterion sh`):
 
 ```bash
 for f in attachments.js auth.js backup.js batchrun.js docserver.js images.js db.js keys.js \
-         log.js mail.js package.json schema.js server.js twofactor.js public/*; do
+         log.js mail.js package.json schema.js server.js twofactor.js videoproxy.js public/*; do
   printf "%-26s %s\n" "$f" "$(sha256sum "$f" | cut -c1-8)"
 done
 ```
@@ -528,6 +530,77 @@ INTERNAL_ADDRESS=http://kriterion:3000
 Document Server** until it clears the cache, even if nobody views them: it
 fetches each of these files once for the thumbnail. The encryption of the
 database does not apply to this copy.
+
+## Proxies for videos
+
+For videos under “Files”, Kriterion creates a smaller version, the proxy: H.264
+with AAC, at most 1080 pixels on the shorter side, with the frame rate of the
+original and 0.23 Mbit per frame, at most 7.5 Mbit/s. On the computer and on the
+phone the proxy plays as soon as it is ready; “Download” delivers the original.
+The owner admin switches it on under Settings › Installation › “Proxy”; the
+default is off.
+
+A video gets a proxy if one of these applies: the shorter side has more than
+1080 pixels, the video is not H.264 with 8 bit and 4:2:0, the audio is not AAC,
+MP3 or Opus, the video has more than 12 Mbit/s, or the extension is `mkv`,
+`avi`, `wmv` or `flv`. In the container, ffmpeg runs under the number 65534,
+without access to `data/`. Neither the original nor the proxy ever lies
+unencrypted on disk. Backup and export do not take the proxy along; after a
+restore, Kriterion creates it again.
+
+### Memory for ffmpeg
+
+ffmpeg writes the proxy to `/tmp`. `docker-compose.example.yml` puts a `tmpfs`
+of 2 GB there:
+
+```yaml
+    tmpfs:
+      - /tmp:size=2g
+```
+
+Without `tmpfs`, Kriterion does not convert. A proxy that does not fit into the
+free space is not created; at 7.5 Mbit/s, 2 GB last for about 35 minutes. The
+`tmpfs` uses RAM only while a proxy is being created. If the host swaps memory
+to disk, part of the proxy can end up there. From kernel 6.4 on, the option
+`noswap` prevents this: `- /tmp:size=2g,noswap`. With an older kernel the
+container does not start with this option.
+
+### Quick Sync
+
+With an Intel graphics unit, Quick Sync encodes. On the N100, the proxy of one
+hour of 4K with 60 frames per second took about 30 minutes. Without Quick Sync
+the CPU converts, the same hour in two to two and a half hours; it runs at the
+lowest priority.
+
+Add the graphics unit in `docker-compose.yml`:
+
+```yaml
+    devices:
+      - /dev/dri:/dev/dri
+```
+
+No group is needed in the container. On the host, the kernel driver `i915`
+needs its firmware:
+
+| System | Package with the firmware for `i915` |
+|---|---|
+| Debian 12 | `firmware-misc-nonfree` |
+| Debian 12 with firmware from `bookworm-backports` | `firmware-intel-graphics` |
+| Debian 13 | `firmware-intel-graphics` |
+| Ubuntu | `linux-firmware` (not checked) |
+
+Restart the host after the installation. If the “Proxy” card still names no
+driver, three commands on the host show the cause:
+
+```sh
+grep -E 'DRIVER|PCI_ID' /sys/class/drm/renderD128/device/uevent
+ls /lib/firmware/i915/ | grep -E 'adlp_guc|tgl_huc'
+dmesg | grep -i -E 'i915|guc|huc|wedged'
+```
+
+`DRIVER=i915` with a `PCI_ID` starting with `8086:` shows the Intel graphics
+unit on the driver. If `/lib/firmware/i915/` is missing, the firmware is
+missing. On arm64 the image has no Intel driver; there the CPU always converts.
 
 ## Commands on the server
 

@@ -54,7 +54,7 @@ Bu dosya kurulumu ve işletimi anlatır. Kullanımı
 | | |
 |---|---|
 | Öğeler | başlık, açıklama, kategori, etiketler, fotoğraflar, kısa videolar, dosyalar, bağlantılar |
-| Dosyalar | dosya başına 2 GB'a kadar, parçalar halinde yüklenir, yarıda kalırsa kaldığı yerden sürer; döşeme ya da liste olarak, ada, tarihe, boyuta ya da türe göre sıralı, türe göre gruplu, metin, Office ve PDF için de küçük resimli; klasörlerde; birden çok dosya bir kerede silinir ya da taşınır; silinen dosyalar 30 gün çöp kutusunda kalır ve yedeklemelerden tek tek geri alınabilir; resimler ve videolar için MediaInfo'daki gibi “Ayrıntılı bilgi”, öğenin fotoğrafları ve videoları için de; videolar en son izlenen yerden devam eder ve bir düğmeyle tamamen yüklenir |
+| Dosyalar | dosya başına 2 GB'a kadar, parçalar halinde yüklenir, yarıda kalırsa kaldığı yerden sürer; döşeme ya da liste olarak, ada, tarihe, boyuta ya da türe göre sıralı, türe göre gruplu, metin, Office ve PDF için de küçük resimli; klasörlerde; birden çok dosya bir kerede silinir ya da taşınır; silinen dosyalar 30 gün çöp kutusunda kalır ve yedeklemelerden tek tek geri alınabilir; resimler ve videolar için MediaInfo'daki gibi “Ayrıntılı bilgi”, öğenin fotoğrafları ve videoları için de; videolar en son izlenen yerden devam eder ve bir düğmeyle tamamen yüklenir; istenirse H.264 biçiminde daha küçük bir proxy üzerinden oynar, `mkv`, `avi`, `wmv` ve `flv` de |
 | Değerlendirme | 1 ile 5 arası yıldız verilen kendi ölçütlerin, ölçüt başına bir ağırlık, bunlardan ağırlıklı bir ortalama |
 | Yorumlar | not, rapor ya da son tarihli görev, yanında resimler ve videolar |
 | Test günleri | puan ve etiket taşıyan tarihli girdiler |
@@ -150,6 +150,8 @@ gönderimi arayüzde ayarlanır; bkz. [Kılavuz](manual-tr.md).
 | `docker-compose.yml` | port, `"3100:3000"` içindeki soldaki değer | 3100 |
 | `docker-compose.yml` | yedekleme klasörü: bağlama ve `BACKUP_DIR` | `./kriterion-backup`, bkz. [Yedekleme](#yedekleme) |
 | `docker-compose.yml` | `TZ`: günlüğün saat dilimi | `Europe/Berlin` |
+| `docker-compose.yml` | `devices: /dev/dri`: proxy'ler için Quick Sync | dönüştürmeyi işlemci yapar, bkz. [Videolar için proxy](#videolar-için-proxy) |
+| `docker-compose.yml` | `tmpfs: /tmp`: bir proxy'nin oluştuğu RAM | 2 GB; `tmpfs` olmadan proxy yok |
 
 `PUBLIC_ADDRESS` şema ve ana makine adı ister; yol olabilir, `?` ve `#`
 olamaz. Geçersiz bir değer günlükte uyarı olarak görünür; başlatma devam eder.
@@ -436,7 +438,7 @@ container'da (`docker compose exec kriterion sh`):
 
 ```bash
 for f in attachments.js auth.js backup.js batchrun.js docserver.js images.js db.js keys.js \
-         log.js mail.js package.json schema.js server.js twofactor.js public/*; do
+         log.js mail.js package.json schema.js server.js twofactor.js videoproxy.js public/*; do
   printf "%-26s %s\n" "$f" "$(sha256sum "$f" | cut -c1-8)"
 done
 ```
@@ -531,6 +533,76 @@ INTERNAL_ADDRESS=http://kriterion:3000
 durur**, önbellek boşaltılana kadar, kimse onlara bakmasa bile: küçük resim için
 Document Server bu dosyaların her birini bir kez alır. Veritabanının
 şifrelemesi bu kopya için geçerli değildir.
+
+## Videolar için proxy
+
+Kriterion, “Dosyalar” altındaki videolar için daha küçük bir sürüm, proxy
+oluşturur: AAC ile H.264, kısa kenarda en çok 1080 piksel, orijinalin kare hızı
+ile ve kare başına 0,23 Mbit, en çok 7,5 Mbit/s. Proxy hazır olur olmaz
+bilgisayarda ve telefonda o oynar; “İndir” orijinali verir. Ayarlar › Kurulum ›
+“Proxy” altında yalnızca sahip yönetici açar; varsayılan kapalıdır.
+
+Bir video şu durumlardan biri geçerliyse proxy alır: kısa kenar 1080 pikselden
+fazla, video 8 bit ve 4:2:0 ile H.264 değil, ses AAC, MP3 ya da Opus değil,
+video 12 Mbit/s üzerinde ya da uzantı `mkv`, `avi`, `wmv` veya `flv`. ffmpeg
+kapsayıcıda 65534 numarasıyla, `data/` klasörüne erişimi olmadan çalışır.
+Orijinal ve proxy diskte hiçbir zaman şifresiz durmaz. Yedekleme ve dışa
+aktarma proxy'yi almaz; geri yüklemeden sonra Kriterion onu yeniden oluşturur.
+
+### ffmpeg için bellek
+
+ffmpeg proxy'yi `/tmp` içine yazar. `docker-compose.example.yml` orada 2 GB
+büyüklüğünde bir `tmpfs` kurar:
+
+```yaml
+    tmpfs:
+      - /tmp:size=2g
+```
+
+`tmpfs` olmadan Kriterion dönüştürmez. Boş alana sığmayan bir proxy oluşturulmaz;
+7,5 Mbit/s ile 2 GB yaklaşık 35 dakikaya yeter. `tmpfs` yalnızca bir proxy
+oluşurken RAM kullanır. Sunucu belleği diske takas ediyorsa proxy'nin bir kısmı
+oraya düşebilir. Çekirdek 6.4'ten itibaren `noswap` seçeneği bunu önler:
+`- /tmp:size=2g,noswap`. Daha eski bir çekirdekte kapsayıcı bu seçenekle
+başlamaz.
+
+### Quick Sync
+
+Bir Intel grafik biriminde Quick Sync kodlar. N100 üzerinde saniyede 60 kare
+4K bir saatlik videonun proxy'si yaklaşık 30 dakikada oluştu. Quick Sync
+olmadan dönüştürmeyi işlemci yapar, aynı saat için iki ile iki buçuk saat
+arasında; en düşük öncelikle çalışır.
+
+Grafik birimini `docker-compose.yml` içinde bağla:
+
+```yaml
+    devices:
+      - /dev/dri:/dev/dri
+```
+
+Kapsayıcıda bir gruba gerek yoktur. Sunucuda `i915` çekirdek sürücüsünün kendi
+yazılımına (firmware) ihtiyacı vardır:
+
+| Sistem | `i915` yazılımını içeren paket |
+|---|---|
+| Debian 12 | `firmware-misc-nonfree` |
+| `bookworm-backports` yazılımlı Debian 12 | `firmware-intel-graphics` |
+| Debian 13 | `firmware-intel-graphics` |
+| Ubuntu | `linux-firmware` (denetlenmedi) |
+
+Kurulumdan sonra sunucuyu yeniden başlat. “Proxy” kartı yine de bir sürücü
+göstermiyorsa sunucudaki üç komut nedeni gösterir:
+
+```sh
+grep -E 'DRIVER|PCI_ID' /sys/class/drm/renderD128/device/uevent
+ls /lib/firmware/i915/ | grep -E 'adlp_guc|tgl_huc'
+dmesg | grep -i -E 'i915|guc|huc|wedged'
+```
+
+`8086:` ile başlayan bir `PCI_ID` ile birlikte `DRIVER=i915`, Intel grafik
+biriminin sürücüye bağlı olduğunu gösterir. `/lib/firmware/i915/` yoksa yazılım
+eksiktir. arm64 üzerinde imajda Intel sürücüsü yoktur; orada dönüştürmeyi her
+zaman işlemci yapar.
 
 ## Sunucu komutları
 

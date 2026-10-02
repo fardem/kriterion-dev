@@ -4390,7 +4390,7 @@ const REGRESSIONS = [
   {
     nr: 'W14', name: 'Die Dateiliste des Sprachwaechters verliert die neuen Dateien',
     file: 'test/source.js',
-    search: "                          'images.js', 'batchrun.js', 'mail.js', 'docserver.js',\n                          'schema.js', 'backup.js', 'backuptool.js'];",
+    search: "                          'images.js', 'batchrun.js', 'mail.js', 'docserver.js',\n                          'schema.js', 'backup.js', 'backuptool.js', 'videoproxy.js'];",
     replacement: "                          ];",
     expected: 'Der Sprachwaechter'
   },
@@ -9100,8 +9100,8 @@ const REGRESSIONS = [
   {
     nr: '1317', name: "Das Standbild setzt auch der Admin",
     file: 'server.js',
-    search: "  if (!selfOnly(req, a.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});\n  if (!isVideoFile(a.filename))",
-    replacement: "  if (!mayChange(req, a.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});\n  if (!isVideoFile(a.filename))",
+    search: "  if (!selfOnly(req, a.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});\n  if (!playsAsVideo(req.params.id, a.filename))",
+    replacement: "  if (!mayChange(req, a.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});\n  if (!playsAsVideo(req.params.id, a.filename))",
     expected: "Videos unter Dateien: Vorschauart, Range und Standbild am Server"
   },
   {
@@ -9626,8 +9626,8 @@ const REGRESSIONS = [
   {
     nr: '1403', name: "Der Lauf liest die Namen im Speicher nicht",
     file: 'server.js',
-    search: "    if (!DISK_NAME.test(name) || known.has(name) || DISK_WRITING.has(name)) continue;",
-    replacement: "    if (!DISK_NAME.test(name) || known.has(name)) continue;",
+    search: "  const known = new Set([...qUploadNames.all(), ...qDiskNames.all()].map(z => z.name));\n  for (const name of names) {\n    if (!DISK_NAME.test(name) || known.has(name) || DISK_WRITING.has(name)) continue;",
+    replacement: "  const known = new Set([...qUploadNames.all(), ...qDiskNames.all()].map(z => z.name));\n  for (const name of names) {\n    if (!DISK_NAME.test(name) || known.has(name)) continue;",
     expected: "Platte: Lauf und upload/"
   },
   {
@@ -9927,8 +9927,8 @@ const REGRESSIONS = [
   {
     nr: '1447', name: "Das Image hat keine Schrift",
     file: 'Dockerfile',
-    search: "# Schrift fuer das Vorschaubild von Textdateien; ohne sie zeichnet sharp nur Kaesten.\nRUN apt-get update \\\n && apt-get install -y --no-install-recommends fonts-dejavu-core \\\n && rm -rf /var/lib/apt/lists/*\n",
-    replacement: "",
+    search: " && apt-get install -y --no-install-recommends fonts-dejavu-core libx264-164",
+    replacement: " && apt-get install -y --no-install-recommends libx264-164",
     expected: "Dateien: Stilblatt, Dockerfile und Quelltext"
   },
   {
@@ -10110,7 +10110,7 @@ const REGRESSIONS = [
   {
     nr: '1473', name: "Eine Datei ohne Video nimmt eine Stelle an",
     file: 'server.js',
-    search: "  if (!target || (b.kind === 'file' && !isVideoFile(target.filename)))",
+    search: "  if (!target || (b.kind === 'file' && !playsAsVideo(id, target.filename)))",
     replacement: "  if (!target)",
     expected: "Stelle im Video: Regeln am Server"
   },
@@ -10523,8 +10523,8 @@ const REGRESSIONS = [
   {
     nr: '1532', name: "Erweiterte Infos auch fuer Textdateien",
     file: 'attachments.js',
-    search: "const mediaKind = (filename) => (['image', 'video'].includes(previewKind(filename)) ? previewKind(filename) : null);",
-    replacement: "const mediaKind = (filename) => previewKind(filename);",
+    search: "  : ['image', 'video'].includes(previewKind(filename)) ? previewKind(filename) : null);",
+    replacement: "  : previewKind(filename));",
     expected: "Erweiterte Infos: Warteschlange nach dem Upload und Route"
   },
   {
@@ -10698,7 +10698,7 @@ const REGRESSIONS = [
   {
     nr: '1557', name: "Erweiterte Infos stehen an jeder Datei",
     file: 'public/app.js',
-    search: "    if (a.preview === 'image' || a.preview === 'video')\n      pass.push(",
+    search: "    if (a.preview === 'image' || kindOf(a) === 'video')\n      pass.push(",
     replacement: "    if (true)\n      pass.push(",
     expected: "Menü „…\" in fünf Gruppen"
   },
@@ -10824,8 +10824,8 @@ const REGRESSIONS = [
   {
     nr: '1575', name: "Bei Datensparen fehlt der Knopf",
     file: 'public/app.js',
-    search: "    wholeButton.hidden = player.hidden || !note.hidden || photos[i].size > WHOLE_BYTES() ||",
-    replacement: "    wholeButton.hidden = player.hidden || !note.hidden || !!navigator.connection?.saveData || photos[i].size > WHOLE_BYTES() ||",
+    search: "    wholeButton.hidden = player.hidden || !note.hidden || playBytes(photos[i], original) > WHOLE_BYTES() ||",
+    replacement: "    wholeButton.hidden = player.hidden || !note.hidden || !!navigator.connection?.saveData || playBytes(photos[i], original) > WHOLE_BYTES() ||",
     expected: "Video ganz laden"
   },
   {
@@ -11786,6 +11786,433 @@ const REGRESSIONS = [
     search: "        if (!m.check || !m.check.running || !out.isConnected) break;",
     replacement: "        break;",
     expected: "Wartung: die Karte"
+  },
+  {
+    nr: '1713', name: "Ein Video ueber 1080 Pixel bekommt keinen Proxy",
+    file: 'videoproxy.js',
+    search: "  if (Math.min(v.width || 0, v.height || 0) > SHORT_SIDE) return true;\n",
+    replacement: "",
+    expected: "Proxy: Auswahl, Bitrate und Weg"
+  },
+  {
+    nr: '1714', name: "Ton in PCM bekommt keinen Proxy",
+    file: 'videoproxy.js',
+    search: "  if ((info.audio || []).some(a => !PLAIN_AUDIO.includes(a.format))) return true;\n",
+    replacement: "",
+    expected: "Proxy: Auswahl, Bitrate und Weg"
+  },
+  {
+    nr: '1715', name: "Ueber 12 Mbit/s bekommt keinen Proxy",
+    file: 'videoproxy.js',
+    search: "  return (v.bitRate || 0) > MAX_VIDEO_BPS;",
+    replacement: "  return false;",
+    expected: "Proxy: Auswahl, Bitrate und Weg"
+  },
+  {
+    nr: '1716', name: "mkv, avi, wmv und flv bekommen keinen Proxy",
+    file: 'videoproxy.js',
+    search: "  if (proxyOnly(filename)) return true;\n",
+    replacement: "",
+    expected: "Proxy: Auswahl, Bitrate und Weg"
+  },
+  {
+    nr: '1717', name: "Die Bitrate hat keine Obergrenze",
+    file: 'videoproxy.js',
+    search: "  return Math.round(Math.min(7.5e6, 0.23e6 * rate));",
+    replacement: "  return Math.round(0.23e6 * rate);",
+    expected: "Proxy: Auswahl, Bitrate und Weg"
+  },
+  {
+    nr: '1718', name: "HEVC geht ueber Weg B",
+    file: 'videoproxy.js',
+    search: "  return plainH264(v) || HW_DECODE.includes(v.format) ? 'A' : 'B';",
+    replacement: "  return plainH264(v) ? 'A' : 'B';",
+    expected: "Proxy: Auswahl, Bitrate und Weg"
+  },
+  {
+    nr: '1719', name: "ffmpeg dreht ein Hochkant-Video",
+    file: 'videoproxy.js',
+    search: "...decode, '-noautorotate',",
+    replacement: "...decode,",
+    expected: "Proxy: Auswahl, Bitrate und Weg"
+  },
+  {
+    nr: '1720', name: "Der Puffer ist so gross wie die Bitrate",
+    file: 'videoproxy.js',
+    search: "'-bufsize', String(2 * bps)",
+    replacement: "'-bufsize', String(bps)",
+    expected: "Proxy: Auswahl, Bitrate und Weg"
+  },
+  {
+    nr: '1721', name: "Eine ungerade Hoehe bleibt ungerade",
+    file: 'videoproxy.js',
+    search: "min(1080,trunc(ih/2)*2)",
+    replacement: "min(1080,ih)",
+    expected: "Proxy: Auswahl, Bitrate und Weg"
+  },
+  {
+    nr: '1722', name: "Ein Keyframe nur alle 250 Bilder",
+    file: 'videoproxy.js',
+    search: "  const gop = Math.max(1, Math.round(2 * (Number(frameRate) > 0 ? Number(frameRate) : 30)));",
+    replacement: "  const gop = 250;",
+    expected: "Proxy: Auswahl, Bitrate und Weg"
+  },
+  {
+    nr: '1723', name: "ffmpeg laeuft unter der Nummer von Kriterion",
+    file: 'videoproxy.js',
+    search: "ids: { uid: FFMPEG_UID, gid }",
+    replacement: "ids: {}",
+    expected: "Proxy: Auswahl, Bitrate und Weg"
+  },
+  {
+    nr: '1724', name: "ffmpeg erbt die Umgebung von Kriterion",
+    file: 'videoproxy.js',
+    search: "{ cwd, env: {}, stdio:",
+    replacement: "{ cwd, env: process.env, stdio:",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1725', name: "ffmpeg laeuft mit normaler Prioritaet",
+    file: 'videoproxy.js',
+    search: "  try { os.setPriority(child.pid, 19); } catch {}\n",
+    replacement: "",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1726', name: "Das Arbeitsverzeichnis behaelt die Rechte von mkdtemp nicht",
+    file: 'videoproxy.js',
+    search: "  fs.chmodSync(dir, 0o700);",
+    replacement: "  fs.chmodSync(dir, 0o755);",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1727', name: "Ohne HuC-Firmware nennt die Karte keinen Grund",
+    file: 'videoproxy.js',
+    search: "reason: free.code === 0 ? 'huc' : firmware ? 'firmware' : 'failed',",
+    replacement: "reason: firmware ? 'firmware' : 'failed',",
+    expected: "Proxy: ohne Quick Sync, ohne Firmware und Schalter aus"
+  },
+  {
+    nr: '1728', name: "Die fehlende Firmware fuer i915 wird nicht erkannt",
+    file: 'videoproxy.js',
+    search: "  const firmware = /iHD_drv_video\\.so init failed/.test(fixed.log);",
+    replacement: "  const firmware = false;",
+    expected: "Proxy: ohne Quick Sync, ohne Firmware und Schalter aus"
+  },
+  {
+    nr: '1729', name: "Proxys sind von Anfang an eingeschaltet",
+    file: 'server.js',
+    search: "const proxyOn = () => getSetting('proxyOn', false) === true;",
+    replacement: "const proxyOn = () => getSetting('proxyOn', true) === true;",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1730', name: "Den Schalter setzt auch ein Admin",
+    file: 'server.js',
+    search: "                                'uploadLimits', 'proxyOn'];",
+    replacement: "                                'uploadLimits'];",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1731', name: "GET /api/settings nennt den Schalter nicht",
+    file: 'server.js',
+    search: "  proxyOn: proxyOn(),\n",
+    replacement: "",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1732', name: "Der Server des Originals fragt die Marke nicht ab",
+    file: 'server.js',
+    search: "    if (req.url !== `/${mark}` || (req.method !== 'GET' && req.method !== 'HEAD'))",
+    replacement: "    if (req.method !== 'GET' && req.method !== 'HEAD')",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1733', name: "Das Arbeitsverzeichnis bleibt unter /tmp",
+    file: 'server.js',
+    search: "  } finally { fs.rmSync(dir, { recursive: true, force: true }); }",
+    replacement: "  } finally { }",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1734', name: "Der Proxy liegt unverschluesselt auf der Platte",
+    file: 'server.js',
+    search: "      await attachments.sealInto(path.join(PROXY_DIR, p.name), p, first, block.subarray(0, bytesRead), { fresh: at === 0 });",
+    replacement: "      await fs.promises.appendFile(path.join(PROXY_DIR, p.name), block.subarray(0, bytesRead));",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1735', name: "Die Tabelle nennt die Pixel des Originals",
+    file: 'server.js',
+    search: "  if (w > h) { const ph = Math.min(1080, 2 * Math.floor(h / 2));",
+    replacement: "  if (w > h) { const ph = 2 * Math.floor(h / 2);",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1736', name: "Die Liste nennt keinen Proxy",
+    file: 'server.js',
+    search: "      proxy: proxyReady ? { size: a2.proxy_size, width: a2.proxy_width, height: a2.proxy_height } : null,",
+    replacement: "      proxy: null,",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1737', name: "Der Proxy kommt als Download",
+    file: 'server.js',
+    search: "{ inline: !!out.filename || req.query.inline === '1' }",
+    replacement: "{ inline: req.query.inline === '1' }",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1738', name: "Erweiterte Infos nennen keinen Proxy",
+    file: 'server.js',
+    search: "    const proxy = proxyInfo(a.id, facts, a.filename);",
+    replacement: "    const proxy = null;",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1739', name: "?size=proxy liefert das Original",
+    file: 'server.js',
+    search: "    if (req.query.size === 'proxy') return await sendProxy(req, res);\n",
+    replacement: "",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1740', name: "mkv wird nicht analysiert",
+    file: 'attachments.js',
+    search: "const mediaKind = (filename) => (proxyOnly(filename) ? 'video'",
+    replacement: "const mediaKind = (filename) => (false ? 'video'",
+    expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1741', name: "Ein neues Video wartet bis zum naechsten Lauf",
+    file: 'server.js',
+    search: "  if (facts.video.length) proxySoon([id], { front: true });\n",
+    replacement: "",
+    expected: "Proxy: die vier Endungen, Pixel und Auswahl im Server"
+  },
+  {
+    nr: '1742', name: "mkv bleibt auch mit Proxy ohne Vorschau",
+    file: 'server.js',
+    search: "    const kind = proxyReady && attachments.proxyOnly(a2.filename) ? 'video' : attachments.previewKind(a2.filename);",
+    replacement: "    const kind = attachments.previewKind(a2.filename);",
+    expected: "Proxy: die vier Endungen, Pixel und Auswahl im Server"
+  },
+  {
+    nr: '1743', name: "Fuer mkv nimmt der Server kein Standbild an",
+    file: 'server.js',
+    search: "  if (!playsAsVideo(req.params.id, a.filename)) return",
+    replacement: "  if (!isVideoFile(a.filename)) return",
+    expected: "Proxy: die vier Endungen, Pixel und Auswahl im Server"
+  },
+  {
+    nr: '1744', name: "Nach Weg A folgt kein Weg B",
+    file: 'server.js',
+    search: "  for (const way of first === 'A' ? ['A', 'B'] : [first]) {",
+    replacement: "  for (const way of [first]) {",
+    expected: "Proxy: Fehler, Neustart und fehlende Datei"
+  },
+  {
+    nr: '1745', name: "Der Start versucht einen Fehlschlag nicht neu",
+    file: 'server.js',
+    search: "      if (r.state === 'failed' && !start) continue;",
+    replacement: "      if (r.state === 'failed') continue;",
+    expected: "Proxy: Fehler, Neustart und fehlende Datei"
+  },
+  {
+    nr: '1746', name: "Nach dem Start fehlen Proxys ohne Datei weiter",
+    file: 'server.js',
+    search: "    .then(r => { PROXY_HW = r; proxyFilesThere(); proxySoon(null, { start: true }); });",
+    replacement: "    .then(r => { PROXY_HW = r; proxySoon(null, { start: true }); });",
+    expected: "Proxy: Fehler, Neustart und fehlende Datei"
+  },
+  {
+    nr: '1747', name: "Ein verlorener Proxy entsteht nicht neu",
+    file: 'server.js',
+    search: "  if (d) dropProxy().run(d.id);\n  proxySoon([id], { front: true });",
+    replacement: "  if (d) dropProxy().run(d.id);",
+    expected: "Proxy: Fehler, Neustart und fehlende Datei"
+  },
+  {
+    nr: '1748', name: "Dateien ohne Zeile bleiben in data/files/proxy/",
+    file: 'server.js',
+    search: "    sweepUploadDir();\n    sweepProxyDir();",
+    replacement: "    sweepUploadDir();",
+    expected: "Proxy: Fehler, Neustart und fehlende Datei"
+  },
+  {
+    nr: '1749', name: "Der Abgleich nennt data/files/proxy/",
+    file: 'server.js',
+    search: "const OWN_DIRS = new Set(['upload', 'proxy']);",
+    replacement: "const OWN_DIRS = new Set(['upload']);",
+    expected: "Proxy: Fehler, Neustart und fehlende Datei"
+  },
+  {
+    nr: '1750', name: "Die Zeile haengt nicht mehr an disk_files",
+    file: 'schema.js',
+    search: "  disk_file_id INTEGER PRIMARY KEY REFERENCES disk_files(id) ON DELETE CASCADE,",
+    replacement: "  disk_file_id INTEGER PRIMARY KEY REFERENCES disk_files(id),",
+    expected: "Proxy: Papierkorb, Backup und Export"
+  },
+  {
+    nr: '1751', name: "Der Trigger meldet den Proxy nicht zum Loeschen",
+    file: 'db.js',
+    search: "  INSERT OR IGNORE INTO disk_files_gone (name) VALUES ('proxy/' || old.name);",
+    replacement: "  SELECT 1;",
+    expected: "Proxy: Papierkorb, Backup und Export"
+  },
+  {
+    nr: '1752', name: "Der Lauf loescht keinen Proxy",
+    file: 'server.js',
+    search: "      : name.startsWith('proxy/') && DISK_NAME.test(name.slice(6)) ? path.join(PROXY_DIR, name.slice(6)) : null;",
+    replacement: "      : null;",
+    expected: "Proxy: Papierkorb, Backup und Export"
+  },
+  {
+    nr: '1753', name: "Ausschalten haelt ffmpeg nicht an",
+    file: 'server.js',
+    search: "  PROXY_WAITING.clear();\n  if (proxyStop) proxyStop();",
+    replacement: "  PROXY_WAITING.clear();",
+    expected: "Proxy: ohne Quick Sync, ohne Firmware und Schalter aus"
+  },
+  {
+    nr: '1754', name: "Ein abgebrochener Lauf gilt als fehlgeschlagen",
+    file: 'server.js',
+    search: "    if (!proxyOn()) return 'stopped';\n",
+    replacement: "",
+    expected: "Proxy: ohne Quick Sync, ohne Firmware und Schalter aus"
+  },
+  {
+    nr: '1755', name: "Die laufende Umwandlung zaehlt nicht als wartend",
+    file: 'server.js',
+    search: "waiting: PROXY_WAITING.size + (proxyRunning ? 1 : 0) };",
+    replacement: "waiting: PROXY_WAITING.size };",
+    expected: "Proxy: ohne Quick Sync, ohne Firmware und Schalter aus"
+  },
+  {
+    nr: '1756', name: "Die Laufzeit ist kuerzer begrenzt",
+    file: 'server.js',
+    search: "(seconds * 4 + 600) * 1000",
+    replacement: "(seconds * 2 + 600) * 1000",
+    expected: "Proxy: ohne Quick Sync, ohne Firmware und Schalter aus"
+  },
+  {
+    nr: '1757', name: "Der freie RAM unter /tmp zaehlt nicht",
+    file: 'server.js',
+    search: "  if (tmp.free != null && need > tmp.free) return proxyFailed(r, 'tmpSpace');\n",
+    replacement: "",
+    expected: "Proxy: ohne Quick Sync, ohne Firmware und Schalter aus"
+  },
+  {
+    nr: '1758', name: "Der freie Platz auf der Platte zaehlt nicht",
+    file: 'server.js',
+    search: "  if (spaceShort(encLen(need))) return proxyFailed(r, 'space');\n",
+    replacement: "",
+    expected: "Proxy: ohne Quick Sync, ohne Firmware und Schalter aus"
+  },
+  {
+    nr: '1759', name: "Ohne tmpfs wandelt Kriterion trotzdem um",
+    file: 'server.js',
+    search: " ||\n  (!PROXY_BENCH && !videoproxy.tmpState().tmpfs);",
+    replacement: ";",
+    expected: "Proxy: ohne Quick Sync, ohne Firmware und Schalter aus"
+  },
+  {
+    nr: '1760', name: "Beim Beenden laeuft ffmpeg weiter",
+    file: 'server.js',
+    search: "    if (proxyStop) proxyStop();\n    try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); } catch {}",
+    replacement: "    try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); } catch {}",
+    expected: "Proxy: ohne Quick Sync, ohne Firmware und Schalter aus"
+  },
+  {
+    nr: '1761', name: "Der Player spielt immer das Original",
+    file: 'public/app.js',
+    search: "  ? proxySource(p) : `/api/attachments/${Number(p.id)}/raw?inline=1`);",
+    replacement: "  ? `/api/attachments/${Number(p.id)}/raw?inline=1` : `/api/attachments/${Number(p.id)}/raw?inline=1`);",
+    expected: "Proxy: Abspielen und Umschalter"
+  },
+  {
+    nr: '1762', name: "Der Proxy hat keine Adresse je Fassung",
+    file: 'public/app.js',
+    search: "raw?size=proxy&v=${Number(a.proxy.size)}`;",
+    replacement: "raw?size=proxy`;",
+    expected: "Proxy: Abspielen und Umschalter"
+  },
+  {
+    nr: '1763', name: "Der Umschalter springt an den Anfang",
+    file: 'public/app.js',
+    search: "    player.currentTime = at;\n    if (playing) player.play()?.catch?.(() => {});\n    markOriginal();",
+    replacement: "    if (playing) player.play()?.catch?.(() => {});\n    markOriginal();",
+    expected: "Proxy: Abspielen und Umschalter"
+  },
+  {
+    nr: '1764', name: "Das Original bleibt ueber das Abspielen hinaus",
+    file: 'public/app.js',
+    search: "      original = false;\n      const address = playSource(photos[i]);",
+    replacement: "      const address = playSource(photos[i]);",
+    expected: "Proxy: Abspielen und Umschalter"
+  },
+  {
+    nr: '1765', name: "Ein kaputter Proxy zeigt die Meldung statt des Originals",
+    file: 'public/app.js',
+    search: "    if (photos[i].source === 'file' && photos[i].proxy && !original) return switchFile(true);\n",
+    replacement: "",
+    expected: "Proxy: Abspielen und Umschalter"
+  },
+  {
+    nr: '1766', name: "Ganz laden misst am Original",
+    file: 'public/app.js',
+    search: "|| playBytes(photos[i], original) > WHOLE_BYTES() ||",
+    replacement: "|| photos[i].size > WHOLE_BYTES() ||",
+    expected: "Proxy: Abspielen und Umschalter"
+  },
+  {
+    nr: '1767', name: "Das Standbild entsteht aus dem Original",
+    file: 'public/app.js',
+    search: "    source: a.proxy ? proxySource(a) : `/api/attachments/${Number(a.id)}/raw?inline=1` });",
+    replacement: "    source: `/api/attachments/${Number(a.id)}/raw?inline=1` });",
+    expected: "Proxy: Standbild, die vier Endungen und Erweiterte Infos"
+  },
+  {
+    nr: '1768', name: "mkv und avi heissen nicht Video",
+    file: 'public/app.js',
+    search: "  mkv: 'video', avi: 'video', wmv: 'video', flv: 'video' };",
+    replacement: "  };",
+    expected: "Proxy: Standbild, die vier Endungen und Erweiterte Infos"
+  },
+  {
+    nr: '1769', name: "avi ohne Proxy hat keine Erweiterten Infos",
+    file: 'public/app.js',
+    search: "    if (a.preview === 'image' || kindOf(a) === 'video')\n      pass.push(",
+    replacement: "    if (a.preview === 'image' || a.preview === 'video')\n      pass.push(",
+    expected: "Proxy: Standbild, die vier Endungen und Erweiterte Infos"
+  },
+  {
+    nr: '1770', name: "Erweiterte Infos ohne Gruppe Proxy",
+    file: 'public/app.js',
+    search: "    imageGroup(f), shotGroup(shot), proxyGroup(f.proxy)",
+    replacement: "    imageGroup(f), shotGroup(shot)",
+    expected: "Proxy: Standbild, die vier Endungen und Erweiterte Infos"
+  },
+  {
+    nr: '1771', name: "Die Karte Proxy fehlt",
+    file: 'public/app.js',
+    search: "  { key: 'proxy',        section: 'installation', visible: () => ADMIN,\n    markup: cardProxy,        wireUp: setUpProxyOut },\n",
+    replacement: "",
+    expected: "Proxy: die Karte"
+  },
+  {
+    nr: '1772', name: "Den Schalter sieht jeder Admin",
+    file: 'public/app.js',
+    search: "        ${OWNER ? `<label class=\"ex-files\"><input type=\"checkbox\" id=\"proxy-on\">",
+    replacement: "        ${ADMIN ? `<label class=\"ex-files\"><input type=\"checkbox\" id=\"proxy-on\">",
+    expected: "Proxy: die Karte"
+  },
+  {
+    nr: '1773', name: "Die Karte nennt keinen Grund",
+    file: 'public/app.js',
+    search: ": tH(PROXY_REASONS[p.reason] || 'card.proxyCpu')}",
+    replacement: ": tH('card.proxyCpu')}",
+    expected: "Proxy: die Karte"
   }
 
 ];

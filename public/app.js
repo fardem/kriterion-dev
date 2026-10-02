@@ -4472,8 +4472,13 @@ function seekVideo(e) {
   v.currentTime = Math.min(end, Math.max(0, v.currentTime + (e.key === 'ArrowLeft' ? -SEEK_STEP : SEEK_STEP)));
   return true;
 }
-// Eine Datei mit `inline=1`; ohne die Angabe liefert der Server sie als Download aus.
-const playSource = (p) => p.source === 'file' ? `/api/attachments/${Number(p.id)}/raw?inline=1` : imageSource(p, '');
+/* Eine Datei mit `inline=1`; ohne die Angabe liefert der Server sie als Download aus. Der Proxy spielt,
+   sobald er fertig ist; `original` nach dem Umschalter im Vollbild. */
+const playSource = (p, original = false) => (p.source !== 'file' ? imageSource(p, '') : p.proxy && !original
+  ? proxySource(p) : `/api/attachments/${Number(p.id)}/raw?inline=1`);
+// `v`: Ein neu angelegter Proxy bekommt eine neue Adresse; den alten haelt der Browser eine Stunde.
+const proxySource = (a) => `/api/attachments/${Number(a.id)}/raw?size=proxy&v=${Number(a.proxy.size)}`;
+const playBytes = (p, original = false) => (p.source === 'file' && p.proxy && !original ? p.proxy.size : p.size);
 // Kommentarbilder haben kein Original; beim Video gehoert der Klick der Abspielsteuerung.
 const hasOriginal = (p) => p.source !== 'comment' && !isVideo(p);
 // 42 -> "0:42", 130 -> "2:10". Ohne bekannte Dauer steht nichts da.
@@ -4595,6 +4600,7 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
       <div class="lb-tools">
         <span class="lb-loaded" hidden></span>
         <button class="lb-btn whole" hidden aria-pressed="false">${tH('entry.loadWhole')}</button>
+        <button class="lb-btn original" hidden aria-pressed="false"></button>
         <span class="lb-count"></span>
         ${info ? `<button class="lb-btn info" title="${esc(t('entry.mediaInfo'))}" aria-label="${esc(t('entry.mediaInfo'))}">${ICON_INFO}</button>` : ''}
         ${linkOf ? `<button class="lb-btn copy" title="${esc(t('entry.copyLink'))}">${ICON_LINK}</button>` : ''}
@@ -4625,11 +4631,11 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
 
   // Video ganz laden, nur auf Knopfdruck. `loading`: der laufende Abruf mit Stelle und Zustand davor.
   const wholeButton = lb.querySelector('.whole');
-  let loading = null;
+  let loading = null, original = false;
   const shownSource = () => (wholeCopy && player.getAttribute('src') === wholeCopy.url ? wholeCopy.source : player.getAttribute('src'));
   function markWhole() {
     const copied = !!wholeCopy && player.getAttribute('src') === wholeCopy.url;
-    wholeButton.hidden = player.hidden || !note.hidden || photos[i].size > WHOLE_BYTES() ||
+    wholeButton.hidden = player.hidden || !note.hidden || playBytes(photos[i], original) > WHOLE_BYTES() ||
       (!loading && (copied || !player.getAttribute('src')));
     wholeButton.textContent = loading ? t('dialog.cancel') : t('entry.loadWhole');
     wholeButton.title = loading ? t('entry.loadWholeStop') : t('entry.loadWholeTitle');
@@ -4650,7 +4656,7 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
   }
   async function loadWhole() {
     const p = photos[i], source = player.getAttribute('src'), limit = WHOLE_BYTES();
-    if (loading || !source || p.size > limit) return;
+    if (loading || !source || playBytes(p, original) > limit) return;
     const mine = loading = { source, at: player.currentTime, playing: !player.paused, stop: new AbortController() };
     // Ohne Quelle laedt der Player waehrend des Abrufs nichts nach.
     player.pause();
@@ -4691,6 +4697,28 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
     }
   }
   wholeButton.onclick = () => (loading ? stopLoading(true) : loadWhole());
+
+  // Das Original nur fuer dieses Abspielen: show() setzt `original` zurueck. Die Stelle gilt fuer beide.
+  const originalButton = lb.querySelector('.original');
+  function markOriginal() {
+    const p = photos[i];
+    originalButton.hidden = player.hidden || !(p.source === 'file' && p.proxy);
+    originalButton.textContent = original ? t('entry.playProxy') : t('entry.playOriginal');
+    originalButton.title = original ? t('entry.playProxyTitle') : t('entry.playOriginalTitle');
+    originalButton.setAttribute('aria-pressed', String(original));
+  }
+  function switchFile(toOriginal) {
+    const at = player.currentTime || 0, playing = !player.paused;
+    stopLoading(false);
+    original = toOriginal;
+    const address = playSource(photos[i], original);
+    player.src = wholeCopy?.source === address ? wholeCopy.url : address;
+    player.currentTime = at;
+    if (playing) player.play()?.catch?.(() => {});
+    markOriginal();
+    markWhole();
+  }
+  originalButton.onclick = () => switchFile(!original);
 
   /* Ein laufendes Video der Seite spielt im Vollbild an derselben Stelle weiter. */
   const inner = () => (typeof inside === 'function' ? inside() : null) || null;
@@ -4756,6 +4784,7 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
     if (video) {
       const poster = imageSource(photos[i], 'medium');
       if (poster) player.poster = poster; else player.removeAttribute('poster');
+      original = false;
       const address = playSource(photos[i]);
       player.src = wholeCopy?.source === address ? wholeCopy.url : address;
       spot = watchSpot(player, photos[i], stage);
@@ -4783,6 +4812,7 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
     lb.querySelectorAll('.lb-nav').forEach(k => { k.hidden = photos.length < 2; });
     markStrip();
     markWhole();
+    markOriginal();
   }
   function markStrip() {
     if (!strip) return;
@@ -4808,10 +4838,13 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
 
   function unplayable() {
     if (player.hidden || !player.getAttribute('src')) return;
+    // Ohne Meldung zum Original; der Server stellt das Video wieder in die Warteschlange.
+    if (photos[i].source === 'file' && photos[i].proxy && !original) return switchFile(true);
     stopLoading(false);
     player.hidden = true;
     note.hidden = false;
     markWhole();
+    markOriginal();
     const link = note.querySelector('a');
     link.hidden = photos[i].source !== 'file';
     link.href = imageSource(photos[i], '');
@@ -5004,7 +5037,8 @@ const fileKind = (name) => ((/\.([^.\s/\\]{1,5})$/.exec(name || '') || [])[1] ||
 const KIND_OF_EXTENSION = { pdf: 'pdf', doc: 'word', docx: 'word', odt: 'word', rtf: 'word',
   xls: 'excel', xlsx: 'excel', ods: 'excel', ppt: 'powerpoint', pptx: 'powerpoint', odp: 'powerpoint',
   txt: 'text', md: 'text', markdown: 'text', csv: 'text', tsv: 'text', log: 'text', ini: 'text', conf: 'text',
-  zip: 'archive', rar: 'archive', '7z': 'archive', tar: 'archive', gz: 'archive', tgz: 'archive', bz2: 'archive', xz: 'archive' };
+  zip: 'archive', rar: 'archive', '7z': 'archive', tar: 'archive', gz: 'archive', tgz: 'archive', bz2: 'archive', xz: 'archive',
+  mkv: 'video', avi: 'video', wmv: 'video', flv: 'video' };
 // Dateien mit „Infos“; gleich DOCUMENT_READERS in attachments.js.
 const DOCUMENT_KINDS = ['pdf', 'word', 'excel', 'powerpoint'];
 const KIND_WORDS = { video: 'entry.kindVideo', image: 'entry.kindImage', pdf: 'entry.kindPdf', word: 'entry.kindWord',
@@ -5078,6 +5112,16 @@ function imageGroup(f) {
     ['entry.mediaBitDepth', bits(main.bitDepth)], ['entry.mediaColorSpace', main.colorSpace], ['entry.mediaChroma', main.chroma],
     ['entry.mediaThumbs', !thumbs.length ? '' : sizes.length ? `${thumbs.length} (${sizes.join(', ')})` : String(thumbs.length)]]);
 }
+const PROXY_STATES = { ready: 'entry.proxyReady', waiting: 'entry.proxyWaiting', failed: 'entry.proxyFailed' };
+// Gruende aus server.js; sonst die letzte Zeile von ffmpeg.
+const PROXY_FAILURES = { tmpSpace: 'entry.proxyTmpSpace', space: 'entry.proxySpace', timeout: 'entry.proxyTimeout' };
+function proxyGroup(p) {
+  if (!p) return '';
+  const why = p.state === 'failed' && p.reason ? (PROXY_FAILURES[p.reason] ? t(PROXY_FAILURES[p.reason]) : p.reason) : '';
+  return mediaGroup(t('entry.mediaProxy'), [['entry.mediaProxyState',
+    [t(PROXY_STATES[p.state] || 'entry.proxyWaiting'), why].filter(Boolean).join(': ')],
+    ['entry.mediaResolution', pixelText(p.width, p.height)], ['entry.mediaFileSize', p.size ? fmtBytes(p.size) : '']]);
+}
 function mediaInfoHtml(f) {
   const g = f.general || {}, video = f.video || [], audio = f.audio || [], shot = f.exif || {};
   const area = (w, h) => (w && h ? `${w} × ${h}` : '');
@@ -5099,7 +5143,7 @@ function mediaInfoHtml(f) {
       ['entry.mediaCodec', s.format], ['entry.mediaChannels', s.channels ? String(s.channels) : ''],
       ['entry.mediaSamplingRate', s.samplingRate ? t('entry.mediaKhz', { n: number(s.samplingRate / 1000, 0, 1) }) : ''],
       ['entry.mediaBitRate', bitRateText(s.bitRate)], ['entry.mediaLanguage', languageName(s.language)]])),
-    imageGroup(f), shotGroup(shot)
+    imageGroup(f), shotGroup(shot), proxyGroup(f.proxy)
   ].join('');
   return html || `<p>${tH('entry.mediaNone')}</p>`;
 }
@@ -5576,16 +5620,17 @@ function stillAfterUpload(u, data) {
 function catchUpStill(itemId, a) {
   if (STILLS_TRIED.has(a.id) || STILLS_ON_WAY.has(a.id)) return;
   STILLS_TRIED.add(a.id);
-  STILLS_QUEUE.push({ itemId: Number(itemId), fileId: a.id });
+  STILLS_QUEUE.push({ itemId: Number(itemId), fileId: a.id,
+    source: a.proxy ? proxySource(a) : `/api/attachments/${Number(a.id)}/raw?inline=1` });
   catchUpNext();
 }
 
 async function catchUpNext() {
   if (STILL_RUNNING || !STILLS_QUEUE.length) return;
   STILL_RUNNING = true;
-  const { itemId, fileId } = STILLS_QUEUE.shift();
+  const { itemId, fileId, source } = STILLS_QUEUE.shift();
   try {
-    const made = await stillFrame(`/api/attachments/${fileId}/raw?inline=1`, STILL_SHARE);
+    const made = await stillFrame(source, STILL_SHARE);
     const answer = await api('PUT', `/api/attachments/${fileId}/still`, stillForm(made.image, made.duration), true);
     if (UPLOAD_VIEW?.itemId === itemId) UPLOAD_VIEW.took(answer);
   } catch { /* bleibt ohne Standbild bis zur naechsten Sitzung */ }
@@ -7730,7 +7775,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       open.push({ label: t('entry.edit'), run: () => { location.hash = fileAddress(id, a.id, true); } });
     pass.push({ label: t('entry.download'), href: `/api/attachments/${Number(a.id)}/raw` });
     pass.push({ label: t('entry.copyFileLink'), run: () => copyText(fileLink(a), t('card.linkCopied')) });
-    if (a.preview === 'image' || a.preview === 'video')
+    if (a.preview === 'image' || kindOf(a) === 'video')
       pass.push({ label: t('entry.mediaInfo'), own: true, run: () => fileInfo(a, li.querySelector('.amore')) });
     else if (DOCUMENT_KINDS.includes(kindOf(a)))
       pass.push({ label: t('entry.docInfo'), own: true, run: () => documentInfo(a, li.querySelector('.amore')) });
@@ -9085,6 +9130,8 @@ const SYS_CARDS = [
     markup: cardSearchProvider, wireUp: setUpSearchProviderOut },
   { key: 'documents',    section: 'installation', visible: () => ADMIN,
     markup: cardDocuments,    wireUp: setUpDocumentsOut },
+  { key: 'proxy',        section: 'installation', visible: () => ADMIN,
+    markup: cardProxy,        wireUp: setUpProxyOut },
   { key: 'version',      section: 'installation', visible: () => ADMIN,
     markup: cardVersion,      wireUp: setUpVersionOut }
 ];
@@ -11377,6 +11424,32 @@ function cardStorage(fetched) {
         <div class="row-in"><button class="btn btn-sm" id="maint-run">${tH('card.maintRun')}</button></div>
         <div id="maint-out" aria-live="polite"></div>` : ''}
       </div>`;
+}
+
+/* ---- Karte „Proxy" — Abschnitt „Installation" ---- */
+// Warum Quick Sync nicht kodiert oder Kriterion nicht umwandelt; die Gruende nennt videoproxy.probe().
+const PROXY_REASONS = { noDevice: 'card.proxyNoDevice', firmware: 'card.proxyFirmware', huc: 'card.proxyHuc',
+  missing: 'card.proxyMissing', notRoot: 'card.proxyNotRoot' };
+function cardProxy(fetched) {
+  const p = (fetched.stats || {}).proxy || {};
+  const on = SETTINGS.proxyOn === true;
+  const row = (label, value) => `<div class="kv"><span class="k">${tH(label)}</span><span class="v">${esc(value)}</span></div>`;
+  return `<div class="sys-card">
+        <h3>${tH('card.proxyTitle')}</h3>
+        <p class="desc">${tH('card.proxyHint')}</p>
+        ${OWNER ? `<label class="ex-files"><input type="checkbox" id="proxy-on"> ${tH('card.proxyOn')}</label>`
+          : `<p class="desc">${tH(on ? 'card.proxyIsOn' : 'card.proxyIsOff')}</p>`}
+        ${!p.checked ? '' : `<p class="desc">${p.quickSync ? tH('card.proxyQuickSync', { driver: p.driver })
+          : tH(PROXY_REASONS[p.reason] || 'card.proxyCpu')}</p>`}
+        <p class="desc">${p.tmpfs ? tH('card.proxyTmpfs', { free: fmtBytes(p.tmpFree), total: fmtBytes(p.tmpTotal) })
+          : tH('card.proxyNoTmpfs')}</p>
+        ${row('card.proxyReady', `${number(p.ready || 0)} · ${fmtBytes(p.bytes || 0)}`)}
+        ${row('card.proxyWaiting', number(p.waiting || 0))}
+        ${p.failed ? row('card.proxyFailed', number(p.failed)) : ''}
+      </div>`;
+}
+function setUpProxyOut() {
+  createToggle('proxy-on', 'proxyOn', () => SETTINGS.proxyOn === true, v => { SETTINGS.proxyOn = v; });
 }
 
 /* ---- Karte „Version und Verschlüsselung" — Abschnitt „Installation" ---- */

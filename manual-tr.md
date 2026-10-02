@@ -477,6 +477,14 @@ değişmez.
   gösterilen kareyi alır. Bunu yalnızca videoyu yükleyen kişi yapabilir.
   Tarayıcı bir videoyu oynatamazsa, örneğin Firefox'ta HEVC, orada bir cümle ve
   “İndir” durur.
+- **Proxy:** “Dosyalar” altındaki bir video, proxy hazır olur olmaz onu oynatır:
+  H.264 biçiminde daha küçük bir sürüm (README, “Videolar için proxy”). Tam
+  ekranda “Orijinal” yalnızca bu oynatma için orijinale geçer; bir sonraki
+  açılışta yine proxy oynar. Konum ikisi için de geçerlidir. “İndir” her zaman
+  orijinali verir. `mkv`, `avi`, `wmv` ve `flv` uzantılı videoları hiçbir
+  tarayıcı oynatmaz; bunlar ancak proxy ile oynar ve küçük resimleri ondan
+  oluşur. Proxy yoksa ya da okunamıyorsa orijinal oynar ve Kriterion proxy'yi
+  yeniden oluşturur.
 - **Bir belgenin küçük resmi:** Metin, Markdown, CSV ve log dosyaları döşemede
   ilk satırlarını gösterir. Word, Excel ve PowerPoint dosyaları, bunların
   OpenDocument karşılıkları ve PDF, yönetici bir Document Server açtıysa ilk
@@ -511,8 +519,9 @@ değişmez.
   35 mm karşılığıyla. Dosyada bir konum varsa yalnızca “Dosyada konum: evet”
   durur; Kriterion koordinat saklamaz. EXIF'te çekim zamanı varsa görsellerde
   “Genel” altındaki “Kayıt tarihi” görünmez. Güncellemeden önceki görselleri
-  Kriterion başlatmadan sonra bir kez yeniden okur. Dosyanın belirtmediği
-  bilgiler görünmez.
+  Kriterion başlatmadan sonra bir kez yeniden okur. Bir video proxy
+  gerektiriyorsa “Proxy” grubu durumu, çözünürlüğü ve boyutu gösterir.
+  Dosyanın belirtmediği bilgiler görünmez.
 - **Bilgi:** Bir Word, Excel, PowerPoint ya da PDF dosyasının ve bunların
   OpenDocument karşılıklarının ⋯ menüsündeki “Bilgi” iki grup gösterir.
   “Kriterion'da”: yükleyen ve yükleme tarihi, yüklemeden önce değiştirilme
@@ -688,7 +697,7 @@ Görünür kartı olmayan bölümler görünmez.
 | Kullanıcı | Kullanıcı, Başvurular, Güvenlik günlüğü, Posta gönderimi |
 | Veritabanı | Sayılar, Depolama ve bakım, Resim biçimleri, Yükleme sınırları |
 | Yedekleme | Yedekleme, Eski yedeklemeler, Dışa ve içe aktarma |
-| Kurulum | Başlık, Diller, Sözcükler, Arama motorları, Belgeler, Sürüm ve şifreleme |
+| Kurulum | Başlık, Diller, Sözcükler, Arama motorları, Belgeler, Proxy, Sürüm ve şifreleme |
 
 Bir kullanıcı yalnızca “Kişisel” bölümünü görür. Geri kalan her şeyi yönetici
 görür; değiştiremediği şeyler metin olarak durur. “Yedekleme” bölümünü,
@@ -700,6 +709,7 @@ yardım edebilecek bir yöneticiye başvurmasını söyleyen bir cümle okur.
 |---|---|
 | Başlık | giriş öncesi başlık (herkese görünür; az bilgi veren bir başlık seç) ve giriş sonrası başlık |
 | Belgeler | Document Server üzerinden görüntülemeyi ve düzenlemeyi açma ve kapatma; “Herkes düzenleyebilir”: bir hesap kendi değerini belirlemediği sürece başlangıç değeri; kart bağlantıyı denetler. Adresler ve secret `.env` dosyasında durur, bkz. README |
+| Proxy | “Dosyalar” altındaki videolar için proxy'leri açma ve kapatma, yalnızca sahip yönetici, varsayılan kapalı; Quick Sync'in mi kodladığı yoksa işlemcinin mi dönüştürdüğü ve nedeni; `/tmp` RAM içinde mi ve ne kadar boş; hazır, bekleyen ve başarısız proxy'ler. Bkz. README, “Videolar için proxy” |
 | Sayılar | verinin kapsamı: öğeler, fotoğraflar, videolar, yorumlar, bağlantılar ve test günleri |
 | Depolama ve bakım | veritabanı boyutu, çöp kutusu, diskteki dosyalar (bunlardan “Ek” sınırını aşanlar ve çöp kutusundakiler), yüklemeler, boş alan. Yalnızca varsa: veritabanındaki boş alan (“içindeki boş alan”), hâlâ veritabanında olup diske taşınmayı bekleyen dosyalar, eksik dosyalar, silinmeyi bekleyen dosyalar ve başvurusuz dosyalar. Sahip yönetici için “Eşleştir”, bkz. aşağısı |
 | Sürüm ve şifreleme | sürüm, parmak izi, şifreleme yöntemleri; anahtar veritabanının yanında durduğu sürece sahip yönetici için anahtar değeri |

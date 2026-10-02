@@ -407,6 +407,21 @@ CREATE TABLE IF NOT EXISTS disk_files_gone (
   name TEXT PRIMARY KEY
 );
 
+-- Proxy eines Videos unter „Dateien“. Haengt an disk_files und geht so mit in den Papierkorb und zurueck.
+CREATE TABLE IF NOT EXISTS proxy_files (
+  disk_file_id INTEGER PRIMARY KEY REFERENCES disk_files(id) ON DELETE CASCADE,
+  -- Datei unter data/files/proxy/; bei failed NULL.
+  name TEXT UNIQUE,
+  size INTEGER,
+  file_key BLOB,
+  width INTEGER,
+  height INTEGER,
+  -- ready oder failed
+  state TEXT NOT NULL,
+  reason TEXT,
+  made_at TEXT
+);
+
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL

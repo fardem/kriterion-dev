@@ -483,6 +483,14 @@ unverändert.
   Bild als Vorschaubild“ das gezeigte Bild. Das darf nur, wer das Video
   hochgeladen hat. Kann der Browser ein Video nicht abspielen, etwa
   HEVC in Firefox, stehen dort ein Satz und „Herunterladen“.
+- **Proxy:** Ein Video unter „Dateien“ spielt seinen Proxy, sobald er fertig
+  ist: eine kleinere Fassung in H.264 (README, „Proxys für Videos“). Im
+  Vollbild wechselt „Original“ zum Original, nur für dieses Abspielen; beim
+  nächsten Öffnen spielt wieder der Proxy. Die Stelle gilt für beide.
+  „Herunterladen“ liefert immer das Original. Videos mit den Endungen `mkv`,
+  `avi`, `wmv` und `flv` spielt kein Browser; sie spielen erst mit ihrem
+  Proxy, und das Vorschaubild entsteht aus ihm. Fehlt ein Proxy oder lässt er
+  sich nicht lesen, spielt das Original, und Kriterion legt ihn neu an.
 - **Vorschaubild eines Dokuments:** Text, Markdown, CSV und Log zeigen auf der
   Kachel ihre ersten Zeilen. Word-, Excel- und PowerPoint-Dateien, ihre
   OpenDocument-Gegenstücke und PDF zeigen die erste Seite, wenn der Admin
@@ -519,7 +527,8 @@ unverändert.
   steht dort nur „Ort in der Datei: ja“; Koordinaten speichert Kriterion nicht.
   Mit einer Aufnahmezeit aus EXIF entfällt bei Bildern „Aufnahmedatum“ unter
   „Allgemein“. Bilder von vor dem Update liest Kriterion nach dem Start einmal
-  nach. Was die Datei nicht angibt, fehlt.
+  nach. Braucht ein Video einen Proxy, nennt die Gruppe „Proxy“ Zustand,
+  Auflösung und Größe. Was die Datei nicht angibt, fehlt.
 - **Infos:** „Infos“ im Menü ⋯ einer Word-, Excel-, PowerPoint- oder PDF-Datei
   und ihrer OpenDocument-Gegenstücke zeigt zwei Gruppen. „In Kriterion“:
   hochgeladen von und am, geändert vor dem Hochladen (die Zeit der Datei auf
@@ -700,7 +709,7 @@ eigene Adresse. Abschnitte ohne sichtbare Karte erscheinen nicht.
 | Benutzer | Benutzer, Anfragen, Sicherheitsprotokoll, Mailversand |
 | Datenbank | Kennzahlen, Speicher und Wartung, Bildformate, Grenzen beim Hochladen |
 | Backup | Backup, Alte Backups, Export und Import |
-| Installation | Titel, Sprachen, Vokabular, Suchmaschinen, Dokumente, Version und Verschlüsselung |
+| Installation | Titel, Sprachen, Vokabular, Suchmaschinen, Dokumente, Proxy, Version und Verschlüsselung |
 
 Ein Benutzer sieht nur „Persönlich“. Alles Weitere sieht der Admin; was er nicht
 ändern darf, steht als Text da. Den Abschnitt „Backup“, die Karten „Sprachen“,
@@ -712,6 +721,7 @@ an einen Admin, der dir dabei helfen kann.“
 |---|---|
 | Titel | Titel vor der Anmeldung (für jeden sichtbar, zurückhaltend wählen) und Titel nach der Anmeldung |
 | Dokumente | Anzeige und Bearbeiten über einen Document Server ein- und ausschalten; „Bearbeiten durch alle“: Startwert, solange ein Account keinen eigenen gesetzt hat; die Karte prüft die Verbindung. Adressen und Secret stehen in der `.env`, siehe README |
+| Proxy | Proxys für Videos unter „Dateien“ ein- und ausschalten, nur der Eigentümer-Admin, Vorgabe aus; ob Quick Sync kodiert oder die CPU umwandelt und warum; ob `/tmp` im RAM liegt und wie viel frei ist; fertige, wartende und fehlgeschlagene Proxys. Siehe README, „Proxys für Videos“ |
 | Kennzahlen | Umfang des Bestands: Einträge, Fotos, Videos, Kommentare, Links und Testtage |
 | Speicher und Wartung | Datenbankgröße, Papierkorb, Dateien auf der Platte (davon über „Anhang“ und im Papierkorb), Uploads, freier Platz. Nur wenn es welche gibt: freier Platz in der Datenbank („davon frei“), Dateien, die noch in der Datenbank auf die Umlagerung warten, fehlende Dateien, Dateien, die auf das Löschen warten, und Dateien ohne Verweis. Für den Eigentümer-Admin der „Abgleich“, siehe unten |
 | Version und Verschlüsselung | Version, Fingerprint, Verschlüsselungsverfahren; für den Eigentümer-Admin der Schlüsselwert, solange der Schlüssel neben der Datenbank liegt |

@@ -429,6 +429,42 @@ async function sendFiles(base, cookieLine, itemId, files, folderId = null) {
   return last;
 }
 
+/* ---- Ein MP4 aus Kaesten ---- */
+/* MediaInfo liest daraus Codec, Pixel, Dauer 10 s, Datum 30.09.2026 und je Tonspur Sprache und
+   Abtastrate; Bilder enthaelt es keine. `sample` 'hvc1' meldet HEVC, 'avc1' H.264. */
+const mp4Box = (name, ...parts) => {
+  const body = Buffer.concat(parts), head = Buffer.alloc(8);
+  head.writeUInt32BE(8 + body.length);
+  head.write(name, 4, 'latin1');
+  return Buffer.concat([head, body]);
+};
+const mp4Full = (name, flags, ...parts) => { const vf = Buffer.alloc(4); vf.writeUInt32BE(flags); return mp4Box(name, vf, ...parts); };
+const mp4U32 = (...n) => { const b = Buffer.alloc(4 * n.length); n.forEach((x, i) => b.writeUInt32BE(x >>> 0, 4 * i)); return b; };
+const mp4U16 = (...n) => { const b = Buffer.alloc(2 * n.length); n.forEach((x, i) => b.writeUInt16BE(x, 2 * i)); return b; };
+const mp4Language = (s) => ((s.charCodeAt(0) - 0x60) << 10) | ((s.charCodeAt(1) - 0x60) << 5) | (s.charCodeAt(2) - 0x60);
+function testMp4({ pad = 0, sample = 'hvc1', width = 3840, height = 2160, sounds = ['deu', 'eng'] } = {}) {
+  const box = mp4Box, full = mp4Full, u32 = mp4U32, u16 = mp4U16;
+  const created = 3873571200, scale = 1000, length = 10 * scale;
+  const matrix = u32(0x10000, 0, 0, 0, 0x10000, 0, 0, 0, 0x40000000);
+  const mvhd = full('mvhd', 0, u32(created, created, scale, length, 0x10000), u16(0x100, 0), Buffer.alloc(8),
+    matrix, Buffer.alloc(24), u32(2 + sounds.length));
+  const tkhd = (id, w, h, volume) => full('tkhd', 7, u32(created, created, id, 0, length), Buffer.alloc(8),
+    u16(0, 0, volume, 0), matrix, u32(w << 16, h << 16));
+  const mdhd = (l) => full('mdhd', 0, u32(created, created, scale, length), u16(mp4Language(l), 0));
+  const hdlr = (type) => full('hdlr', 0, u32(0), Buffer.from(type), Buffer.alloc(12), Buffer.from('\0'));
+  const tables = (entry) => box('stbl', full('stsd', 0, u32(1), entry), full('stts', 0, u32(1, 1, length)),
+    full('stsc', 0, u32(1, 1, 1, 1)), full('stsz', 0, u32(0, 1, 100)), full('stco', 0, u32(1, 48)));
+  const dinf = box('dinf', full('dref', 0, u32(1), full('url ', 1)));
+  const picture = box(sample, Buffer.alloc(6), u16(1), Buffer.alloc(16), u16(width, height), u32(0x480000, 0x480000, 0),
+    u16(1), Buffer.alloc(32), u16(0x18, 0xffff));
+  const sound = box('mp4a', Buffer.alloc(6), u16(1), Buffer.alloc(8), u16(2, 16, 0, 0), u32(48000 << 16));
+  const track = (id, l, type, head, entry, w, h, volume) => box('trak', tkhd(id, w, h, volume),
+    box('mdia', mdhd(l), hdlr(type), box('minf', head, dinf, tables(entry))));
+  return Buffer.concat([box('ftyp', Buffer.from('mp42'), u32(0), Buffer.from('isommp42')), box('mdat', Buffer.alloc(100 + pad)),
+    box('moov', mvhd, track(1, 'und', 'vide', full('vmhd', 1, Buffer.alloc(8)), picture, width, height, 0),
+      ...sounds.map((l, n) => track(2 + n, l, 'soun', full('smhd', 0, Buffer.alloc(4)), sound, 0, 0, 0x100)))]);
+}
+
 /* Schreibende Routen; hier, weil die Pruefung ueber den Quelltext und die ueber die
    laufende Instanz sie lesen. */
 const F_ROUTES = [
@@ -940,7 +976,7 @@ return {
   SMTP_CASES,
   smtpEmpfaenger, READY_TRIES, READY_STEP, readyFailure, startFurtherServer,
   call, names, confirmNeeded, includingShare, callF, shareMain,
-  csrfFor, withCsrf, jar, sendFiles, F_ROUTES, writingRoutes, F_READ_ROUTES, readingRoutes,
+  csrfFor, withCsrf, jar, sendFiles, testMp4, F_ROUTES, writingRoutes, F_READ_ROUTES, readingRoutes,
   leftovers, sweepLeftovers, parentOf, ourOwn, benchFiles,
   /* was sich waehrend des Laufs aendert und deshalb nicht zerlegt werden darf */
   get cookie() { return cookie; },

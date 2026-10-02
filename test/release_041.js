@@ -659,7 +659,8 @@ async function run() {
       'services:', '  kriterion:', '    build: .', '    container_name: kriterion',
       '    restart: unless-stopped', '    env_file: .env', '    ports:', '      - "3100:3000"',
       '    volumes:', '      - ./data:/app/data', '      - ./kriterion-backup:/app/backup',
-      '    environment:', '      - PORT=3000', '      - TZ=Europe/Berlin', '      - BACKUP_DIR=/app/backup']),
+      '    environment:', '      - PORT=3000', '      - TZ=Europe/Berlin', '      - BACKUP_DIR=/app/backup',
+      '    tmpfs:', '      - /tmp:size=2g']),
       lines.join(' | ').slice(0, 200));
   }
 
@@ -710,7 +711,7 @@ async function run() {
     check('Die Kartenschluessel im Systembereich sind englisch', equal(keys, ['myaccount', 'twofactor', 'sessions',
       'appearance', 'mydocuments', 'categories', 'tags', 'criteria', 'potentialcriteria', 'trash', 'accounts',
       'requests', 'log', 'mail', 'stats', 'storage', 'imagestore', 'limits', 'backup', 'cleanup', 'export', 'titles',
-      'languages', 'vocabulary', 'searchengines', 'documents', 'version']), keys.join(' '));
+      'languages', 'vocabulary', 'searchengines', 'documents', 'proxy', 'version']), keys.join(' '));
     fs.rmSync(toolDir, { recursive: true, force: true });
   }
 

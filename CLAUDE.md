@@ -165,7 +165,7 @@ Datei aus `Doku/`, weder mit Pfad noch mit Namen („Projektstand 5.3",
 „Befund 11"). `Doku/` wird nicht veröffentlicht. Verhalten wird ohne Nummer
 beschrieben: „es wird nicht migriert", nicht „ab 0.33.0 wird nicht migriert".
 
-Ausgeliefert sind: die achtzehn JavaScript-Module, `public/style.css`,
+Ausgeliefert sind: die neunzehn JavaScript-Module, `public/style.css`,
 `public/index.html`, `public/theme.js`, die drei Sprachdateien, `.env.example`,
 `docker-compose.example.yml`, `Dockerfile`, `README.md`, `README-de.md`,
 `README-tr.md`, `manual.md`, `manual-de.md`, `manual-tr.md`.
@@ -173,6 +173,8 @@ Ausgeliefert sind: die achtzehn JavaScript-Module, `public/style.css`,
 Ausnahmen:
 
 - die eigene Version in `package.json` und in der Ausgabe des Servers
+- die Version von ffmpeg in `ARG FFMPEG` im `Dockerfile`; die Prüfsumme in
+  `ADD --checksum` gehört zu ihr
 - `1.1.1970` in `twofactor.js`, die SVG-Pfade `-1.8.3l` und `1.8.3H9` in
   `public/app.js`, `keepachangelog.com/en/1.1.0/` und `14.03.2026` in den
   drei Anleitungen (keine Versionsangaben)

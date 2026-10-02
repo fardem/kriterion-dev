@@ -476,6 +476,14 @@ setting). The original stays unchanged.
   shown. Only the person who uploaded the video may do this. If the browser
   cannot play a video, for example HEVC in Firefox, a sentence and “Download”
   are shown instead.
+- **Proxy:** A video under “Files” plays its proxy as soon as it is ready: a
+  smaller version in H.264 (README, “Proxies for videos”). In full screen,
+  “Original” switches to the original, for this playback only; the next time
+  it opens, the proxy plays again. The position applies to both. “Download”
+  always delivers the original. No browser plays videos with the endings
+  `mkv`, `avi`, `wmv` and `flv`; they play only with their proxy, and their
+  thumbnail is made from it. If a proxy is missing or cannot be read, the
+  original plays, and Kriterion creates the proxy again.
 - **Thumbnail of a document:** Text, Markdown, CSV and log files show their
   first lines on the tile. Word, Excel and PowerPoint files, their OpenDocument
   counterparts and PDF show the first page if the admin has switched on a
@@ -511,8 +519,9 @@ setting). The original stays unchanged.
   it. If the file contains a location, only “Location in the file: yes” is
   shown; Kriterion does not store coordinates. With a time taken from EXIF,
   “Recorded” under “General” is left out for images. Images from before the
-  update are read again once after the start. What the file does not state is
-  left out.
+  update are read again once after the start. If a video needs a proxy, the
+  group “Proxy” states its state, resolution and size. What the file does not
+  state is left out.
 - **Info:** “Info” in the ⋯ menu of a Word, Excel, PowerPoint or PDF file and
   their OpenDocument counterparts shows two groups. “In Kriterion”: uploaded by
   and on, modified before upload (the time of the file on the computer, only
@@ -683,7 +692,7 @@ Sections without a visible card do not appear.
 | Users | Users, Requests, Security log, Mail delivery |
 | Database | Metrics, Storage and maintenance, Image formats, Upload limits |
 | Backup | Backup, Old backups, Export and import |
-| Installation | Title, Languages, Vocabulary, Search engines, Documents, Version and encryption |
+| Installation | Title, Languages, Vocabulary, Search engines, Documents, Proxy, Version and encryption |
 
 A user sees only “Personal”. The admin sees everything else; what they may not
 change is shown as text. Only the owner admin sees the “Backup” section, the
@@ -695,6 +704,7 @@ you with it.”
 |---|---|
 | Title | title before signing in (visible to everyone, choose with care) and title after signing in |
 | Documents | switch viewing and editing through a Document Server on and off; “Editable by all”: start value as long as an account has not set its own; the card checks the connection. URLs and secret are in the `.env`, see README |
+| Proxy | switch proxies for videos under “Files” on and off, only the owner admin, default off; whether Quick Sync encodes or the CPU converts, and why; whether `/tmp` is in RAM and how much is free; ready, waiting and failed proxies. See README, “Proxies for videos” |
 | Metrics | size of the inventory: entries, photos, videos, comments, links and test days |
 | Storage and maintenance | database size, trash, files on disk (of which above “Attachment” and in the trash), uploads, free space. Only when there are any: free space in the database (“of which free”), files still in the database waiting to be moved to disk, missing files, files waiting to be deleted and files without a reference. For the owner admin “Reconcile”, see below |
 | Version and encryption | version, fingerprint, encryption methods; for the owner admin the key value, as long as the key lies next to the database |

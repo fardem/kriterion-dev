@@ -734,8 +734,8 @@ async function sendImport(object, mode, withoutShare = false) {
     `Prüflauf ${workNode}, Image ${imageNode}`);
   // Die Bauphase uebersetzt native Module, die Laufzeit fuehrt sie aus.
   const imageRows = [...dockerText.matchAll(/^FROM node:([^\s]+)/mg)].map(t => t[1]);
-  check('Bauphase und Laufzeit stehen auf demselben Image',
-    imageRows.length === 2 && imageRows[0] === imageRows[1],
+  check('Bauphase, ffmpeg und Laufzeit stehen auf demselben Image',
+    imageRows.length === 3 && imageRows.every(r => r === imageRows[0]),
     imageRows.join(' gegen '));
 
   check('Der Lauf holt die Abhängigkeiten mit npm ci',
@@ -3737,7 +3737,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('OWNER_KEYS traegt `imageStore` und nicht mehr `convertImages`',
       stOwnerKeys.includes('imageStore') && !stOwnerKeys.includes('convertImages'),
       stOwnerKeys.join(' · '));
-    check('Und es sind genau acht Schluessel', stOwnerKeys.length === 8,
+    check('Und es sind genau neun Schluessel', stOwnerKeys.length === 9,
       `${stOwnerKeys.length}: ${stOwnerKeys.join(' · ')}`);
   }
 
@@ -4052,11 +4052,11 @@ async function sendImport(object, mode, withoutShare = false) {
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
       .all().map(z => z.name).sort();
     tzDb.close();
-    check('Die Datenbank traegt genau vierundvierzig Tabellen',
-      tzTables.length === 44 && tzTables.includes('comment_videos') && tzTables.includes('attachment_stills') &&
+    check('Die Datenbank traegt genau fuenfundvierzig Tabellen',
+      tzTables.length === 45 && tzTables.includes('comment_videos') && tzTables.includes('attachment_stills') &&
       tzTables.includes('attachment_media') && tzTables.includes('photo_media') &&
       tzTables.includes('folders') && tzTables.includes('attachment_folders') &&
-      ['uploads', 'disk_files', 'disk_files_gone', 'video_positions', 'folder_open', 'attachment_changes']
+      ['uploads', 'disk_files', 'disk_files_gone', 'video_positions', 'folder_open', 'attachment_changes', 'proxy_files']
         .every(n => tzTables.includes(n)),
       `${tzTables.length}: ${tzTables.join(' ')}`);
     /* login_attempts: in einer Map setzte jeder Neustart die Zaehler auf null. */

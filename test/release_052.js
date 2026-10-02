@@ -19,40 +19,7 @@ async function run() {
     return false;
   };
 
-  /* Ein MP4 aus Kaesten: HEVC 3840 × 2160 und zwei Audiospuren (deu, eng), 10 s, Datum 30.09.2026.
-     MediaInfo liest nur die Kaesten; `pad` legt Bytes vor `moov`, damit es ueber mehrere Stuecke springt. */
-  const box = (name, ...parts) => {
-    const body = Buffer.concat(parts), head = Buffer.alloc(8);
-    head.writeUInt32BE(8 + body.length);
-    head.write(name, 4, 'latin1');
-    return Buffer.concat([head, body]);
-  };
-  const full = (name, flags, ...parts) => { const vf = Buffer.alloc(4); vf.writeUInt32BE(flags); return box(name, vf, ...parts); };
-  const u32 = (...n) => { const b = Buffer.alloc(4 * n.length); n.forEach((x, i) => b.writeUInt32BE(x >>> 0, 4 * i)); return b; };
-  const u16 = (...n) => { const b = Buffer.alloc(2 * n.length); n.forEach((x, i) => b.writeUInt16BE(x, 2 * i)); return b; };
-  const language = (s) => ((s.charCodeAt(0) - 0x60) << 10) | ((s.charCodeAt(1) - 0x60) << 5) | (s.charCodeAt(2) - 0x60);
-  function mp4({ pad = 0 } = {}) {
-    const created = 3873571200, scale = 1000, length = 10 * scale;
-    const matrix = u32(0x10000, 0, 0, 0, 0x10000, 0, 0, 0, 0x40000000);
-    const mvhd = full('mvhd', 0, u32(created, created, scale, length, 0x10000), u16(0x100, 0), Buffer.alloc(8),
-      matrix, Buffer.alloc(24), u32(4));
-    const tkhd = (id, w, h, volume) => full('tkhd', 7, u32(created, created, id, 0, length), Buffer.alloc(8),
-      u16(0, 0, volume, 0), matrix, u32(w << 16, h << 16));
-    const mdhd = (l) => full('mdhd', 0, u32(created, created, scale, length), u16(language(l), 0));
-    const hdlr = (type) => full('hdlr', 0, u32(0), Buffer.from(type), Buffer.alloc(12), Buffer.from('\0'));
-    const tables = (entry) => box('stbl', full('stsd', 0, u32(1), entry), full('stts', 0, u32(1, 1, length)),
-      full('stsc', 0, u32(1, 1, 1, 1)), full('stsz', 0, u32(0, 1, 100)), full('stco', 0, u32(1, 48)));
-    const dinf = box('dinf', full('dref', 0, u32(1), full('url ', 1)));
-    const picture = box('hvc1', Buffer.alloc(6), u16(1), Buffer.alloc(16), u16(3840, 2160), u32(0x480000, 0x480000, 0),
-      u16(1), Buffer.alloc(32), u16(0x18, 0xffff));
-    const sound = box('mp4a', Buffer.alloc(6), u16(1), Buffer.alloc(8), u16(2, 16, 0, 0), u32(48000 << 16));
-    const track = (id, l, type, head, entry, w, h, volume) => box('trak', tkhd(id, w, h, volume),
-      box('mdia', mdhd(l), hdlr(type), box('minf', head, dinf, tables(entry))));
-    return Buffer.concat([box('ftyp', Buffer.from('mp42'), u32(0), Buffer.from('isommp42')), box('mdat', Buffer.alloc(100 + pad)),
-      box('moov', mvhd, track(1, 'und', 'vide', full('vmhd', 1, Buffer.alloc(8)), picture, 3840, 2160, 0),
-        track(2, 'deu', 'soun', full('smhd', 0, Buffer.alloc(4)), sound, 0, 0, 0x100),
-        track(3, 'eng', 'soun', full('smhd', 0, Buffer.alloc(4)), sound, 0, 0, 0x100))]);
-  }
+  const mp4 = H.testMp4;
 
   /* ---- Server und Accounts ---- */
   // Die Basis teilt sich das Modul mit release_041 bis release_051; die Module laufen nacheinander.
