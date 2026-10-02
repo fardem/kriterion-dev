@@ -1,7 +1,7 @@
 #!/bin/bash
 # Misst die Umwandlung in Proxys für Kriterion. Aufruf im Ordner mit den Videos:
 #   bash messung.sh | tee messung.txt
-# MBIT=7.5 setzt eine Bitrate für alle Videos; leer: 5, 8 oder 16 Mbit/s nach Bildrate.
+# MBIT=7.5 setzt eine Bitrate für alle Videos; leer: 0,23 Mbit je Bild, höchstens 7,5 Mbit/s.
 # FFMPEG=schlank baut ffmpeg selbst (FFVER, Vorgabe 9.0.2) und misst damit statt mit ffmpeg aus Debian.
 MBIT=${MBIT:-}
 FFMPEG=${FFMPEG:-debian}
@@ -230,9 +230,7 @@ for f in *; do
   fi
   n=${rate%/*} d=${rate#*/}
   case "$n/$d" in *[!0-9/]* | /* | */ | 0/* | */0) n=30 d=1 ;; esac
-  mbit=5
-  [ "$n" -gt $((30 * d)) ] && mbit=8
-  [ "$n" -gt $((60 * d)) ] && mbit=16
+  mbit=$(awk -v n="$n" -v d="$d" 'BEGIN { m = 0.23 * n / d; if (m > 7.5) m = 7.5; s = sprintf("%.2f", m); sub(/\.?0+$/, "", s); print s }')
   [ -n "$MBIT" ] && mbit=$MBIT
   gop=$(((2 * n + d - 1) / d))
   fmt="$codec $pix"

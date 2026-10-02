@@ -6,17 +6,19 @@ Betreibers ein Video der A6700 in einen Proxy umwandelt: mit Quick Sync und nur
 mit der CPU. Dazu prüft die Messung, ob die Intel-Treiber aus Debian auf dem
 N100 kodieren. Kriterion ist dabei nicht beteiligt.
 
-Ziel der Umwandlung (F8, F16, F17 und V10 im Auftrag):
+Ziel der Umwandlung (F8, F16, F21 und V10 im Auftrag):
 
 - die kürzere Seite höchstens 1080 Pixel; das Seitenverhältnis bleibt, ein
   kleineres Video behält seine Größe. Ein Hochkant-Video bleibt so gespeichert
   wie das Original, die Drehung bleibt als Metadatum im Proxy
 - die Bildrate des Originals
-- H.264 mit 5 Mbit/s bis 30 Bilder je Sekunde, 8 Mbit/s bis 60 und 16 Mbit/s
-  darüber; ein Keyframe alle 2 Sekunden
+- H.264 mit 0,23 Mbit je Bild, höchstens 7,5 Mbit/s: 24p 5,52, 25p 5,75,
+  30p 6,9 Mbit/s, ab 50p 7,5 Mbit/s; ein Keyframe alle 2 Sekunden
 - Ton AAC mit 128 kbit/s, MP4 mit der `moov`-Box vorn
 
-Das ergibt je Stunde 2,3, 3,7 oder 7,3 GB.
+Das ergibt je Stunde 2,5 GB bei 24p, 3,2 GB bei 30p und 3,4 GB ab 50p. Bis
+zum 2. Oktober 2026 galten 5, 8 oder 16 Mbit/s nach der Bildrate (F17) und
+damit 2,3, 3,7 oder 7,3 GB; F21 hat die Regel ersetzt.
 
 Die erste Fassung vom 30. September setzte 30 Bilder je Sekunde fest. Bei 25p
 und 50p, wie bei einer A6700 in Europa üblich, hätte der Proxy geruckelt. Seit
@@ -111,9 +113,10 @@ Ohne die Option dreht ffmpeg das Bild zuerst; ein Hochkant-Video in 1080p wurde
 dann zu 608×1080. Geprüft am 1. Oktober 2026 mit einem Proxy der A6700
 (1920×1080, Drehung −90°): mit der Option 1920×1080, Drehung −90°.
 
-`MBIT` und `GOP` folgen aus der Bildrate. `MBIT` ist 5 bis 30 Bilder je
-Sekunde, 8 bis 60 und 16 darüber. `GOP` ist die Zahl der Bilder in 2 Sekunden,
-bei 50p also 100.
+`MBIT`, `BUF` und `GOP` folgen aus der Bildrate. `MBIT` ist 0,23 je Bild,
+höchstens 7,5; `BUF` ist doppelt so groß. `GOP` ist die Zahl der Bilder in
+2 Sekunden. Bei 25p also `MBIT=5.75 BUF=11.5 GOP=50`, bei 50p
+`MBIT=7.5 BUF=15 GOP=100`.
 
 **A — Quick Sync**, Dekodieren und Kodieren in der Grafik, für HEVC und H.264
 mit 8 Bit und 4:2:0:
@@ -121,7 +124,7 @@ mit 8 Bit und 4:2:0:
 ```sh
 ffmpeg -hwaccel vaapi -hwaccel_device /dev/dri/renderD128 -hwaccel_output_format vaapi \
   -noautorotate -i C0001.MP4 -vf "scale_vaapi=w=$KW:h=$KH:format=nv12" \
-  -c:v h264_vaapi -b:v ${MBIT}M -maxrate ${MBIT}M -bufsize $((2 * MBIT))M -g $GOP \
+  -c:v h264_vaapi -b:v ${MBIT}M -maxrate ${MBIT}M -bufsize ${BUF}M -g $GOP \
   -c:a aac -b:a 128k -movflags +faststart C0001.proxy-A.mp4
 ```
 
@@ -131,7 +134,7 @@ kodiert:
 ```sh
 ffmpeg -init_hw_device vaapi=va:/dev/dri/renderD128 -filter_hw_device va \
   -noautorotate -i C0001.MP4 -vf "scale=$KW:$KH,format=nv12,hwupload" \
-  -c:v h264_vaapi -b:v ${MBIT}M -maxrate ${MBIT}M -bufsize $((2 * MBIT))M -g $GOP \
+  -c:v h264_vaapi -b:v ${MBIT}M -maxrate ${MBIT}M -bufsize ${BUF}M -g $GOP \
   -c:a aac -b:a 128k -movflags +faststart C0001.proxy-B.mp4
 ```
 
@@ -139,7 +142,7 @@ ffmpeg -init_hw_device vaapi=va:/dev/dri/renderD128 -filter_hw_device va \
 
 ```sh
 ffmpeg -noautorotate -i C0001.MP4 -vf "scale=$KW:$KH,format=yuv420p" \
-  -c:v libx264 -preset veryfast -b:v ${MBIT}M -maxrate ${MBIT}M -bufsize $((2 * MBIT))M -g $GOP \
+  -c:v libx264 -preset veryfast -b:v ${MBIT}M -maxrate ${MBIT}M -bufsize ${BUF}M -g $GOP \
   -c:a aac -b:a 128k -movflags +faststart C0001.proxy-C.mp4
 ```
 
@@ -171,7 +174,7 @@ Wärme.
 „Am Telefon“: jeden Proxy auf dem Telefon öffnen, ansehen, springen. Stimmen
 Bild, Ton, Seitenverhältnis und Bewegung, bei HLG auch die Farben?
 
-Was schnell genug ist, entscheidet der Betreiber mit den Zahlen (F1).
+Was schnell genug ist, hat der Betreiber mit den Zahlen entschieden (F1, F20).
 
 ---
 
@@ -188,9 +191,9 @@ Das Skript liegt in `Doku/messung.sh`.
    im Ordner, in dem das Skript aufgerufen wird.
 
 `MBIT=7.5 bash messung.sh | tee messung.txt` setzt eine Bitrate für alle Videos
-(V13, F21). Ohne `MBIT` gelten 5, 8 oder 16 Mbit/s nach der Bildrate.
+(V13). Ohne `MBIT` gilt F21: 0,23 Mbit je Bild, höchstens 7,5 Mbit/s.
 
-`FFMPEG=schlank MBIT=7.5 bash messung.sh | tee messung.txt` misst mit dem
+`FFMPEG=schlank bash messung.sh | tee messung.txt` misst mit dem
 schlanken ffmpeg aus Abschnitt 7 statt mit ffmpeg aus Debian und nennt die
 Dauer des Baus. Das Image aus Debian mit dem freien Treiber baut es weiter,
 nur für `ffprobe`. `FFVER` wählt die Version: 9.0.2 (Vorgabe) oder 7.1.5.

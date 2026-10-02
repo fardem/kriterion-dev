@@ -7,14 +7,13 @@ Messverfahren `Doku/Messverfahren_Umwandlung.md`. F1 bis F14 sind
 am 1. Oktober 2026 in vier Fragetafeln beantwortet, F15 zu B2 am selben Tag in
 einer fünften; die Antwort auf F15 hat der Betreiber danach geändert (V9).
 F16 bis F18 folgen aus V10 und V11 und sind am selben Tag in zwei weiteren
-Tafeln beantwortet. F19 bis F23 sind offen; die Tafel mit F20 bis F23 hat der
-Betreiber am selben Tag weggeklickt.
+Tafeln beantwortet. Die Tafel mit F20 bis F23 hat der Betreiber am selben Tag
+weggeklickt; F19 bis F25 sind am 2. Oktober 2026 in zwei Tafeln beantwortet.
 
 Vorgabe des Betreibers: Weitere Punkte aus der Abnahme von 0.54.0 kommen in
 diese Runde, und gebaut wird, wenn er den Bau startet. Kommen vor dem Start
-Punkte dazu, werden sie hier nachgetragen. B1 wird erst gebaut, wenn die Zahlen
-aus dem Messverfahren vorliegen und der Betreiber mit ihnen entschieden hat
-(F1).
+Punkte dazu, werden sie hier nachgetragen. B1 ist mit den Zahlen aus dem
+Messverfahren freigegeben (F1, F20).
 
 Zeilennummern gelten für `bf925e9` (0.54.0).
 
@@ -43,8 +42,8 @@ Zeilennummern gelten für `bf925e9` (0.54.0).
 | V15 | B1 | „das Problem ist, dass jede Maschine anders ist; wenn ich das veröffentliche und wir brauchen das, muss das gut dokumentiert sein“ |
 | V16 | B1 | „zu Forschungszwecken ist das ja ok, aber wenn wir es veröffentlichen, muss es für alle Menschen, oder meistens Menschen, ein gangbarer Weg sein und nicht ein sehr spezieller, nerdiger Weg“ |
 | V17 | B1 | „Wenn der schlanke Image mit ffmpeg für den User unsichtbar ist, dann können wir das schon machen“ |
+| V18 | B1, B2 | „wenn man ohne die Seite neu zu laden wieder abspielt, wäre es schön, wenn es nicht neu laden muss. Wie lange bleibt es im Cache?“ Antwort: Der Server erlaubt 1 Stunde (`Cache-Control: private, max-age=3600`, `server.js`:4441); ob der Browser die Stücke nimmt, hängt vom Browser ab, nicht gemessen. Daraus F25: Die letzte Kopie aus „Ganz laden“ bleibt bis zum Neuladen der Seite |
 | V19 | B1 | „klar, ich bin für die neuere Version, aber was wäre denn überhaupt der Vorteil“ und „es reicht doch, wenn du das in deiner Umgebung testest … an den Zeiten wird sich da nicht mehr viel tun“: ffmpeg 9.0.2 statt 7.1.5, ohne eigene Messung auf dem N100; Quick Sync und Hochkant prüft die Abnahme |
-| V18 | B1, B2 | „wenn man ohne die Seite neu zu laden wieder abspielt, wäre es schön, wenn es nicht neu laden muss. Wie lange bleibt es im Cache?“ Antwort: Der Server erlaubt 1 Stunde (`Cache-Control: private, max-age=3600`, `server.js`:4441); ob der Browser die Stücke nimmt, hängt vom Browser ab, nicht gemessen. Offen: die Kopie aus „Ganz laden“ bis zum Neuladen der Seite behalten (gegen V5) |
 
 V1, V2 und V7 bis V16 vom 1. Oktober 2026, V17 bis V19 vom 2. Oktober 2026.
 
@@ -58,30 +57,34 @@ V1, V2 und V7 bis V16 vom 1. Oktober 2026, V17 bis V19 vom 2. Oktober 2026.
 | F4 | B1: H.264 mit 4:2:2 oder 10 Bit, das Quick Sync nicht dekodiert? | gemischt: die CPU dekodiert, Quick Sync kodiert (Weg B) · keine Telefonfassung | **gemischt (Weg B)** (Empfehlung) |
 | F5 | B1: Welche Videos? | nur unter „Dateien“ · dazu Videos des Eintrags und in Kommentaren | **nur unter „Dateien“** (Empfehlung) |
 | F6 | B1: Welche Endungen? | `mp4`, `m4v`, `webm`, `mov` wie heute · dazu `mkv`, `avi`, `wmv`, `flv`, die dann über die Telefonfassung abspielen | **dazu `mkv`, `avi`, `wmv`, `flv`** |
-| F7 | B1: Welche dieser Videos bekommen eine Telefonfassung? | nur, die sie brauchen: nicht H.264 mit 8 Bit und 4:2:0, mehr als 1080 Zeilen oder mehr als 10 Mbit/s · jedes Video | **nur, die sie brauchen** (Empfehlung) |
+| F7 | B1: Welche dieser Videos bekommen eine Telefonfassung? | nur, die sie brauchen: nicht H.264 mit 8 Bit und 4:2:0, mehr als 1080 Zeilen oder mehr als 10 Mbit/s · jedes Video | **nur, die sie brauchen** (Empfehlung; ersetzt durch F24) |
 | F8 | B1: Zielformat? | 1080p30, H.264 mit 5 Mbit/s, AAC mit 128 kbit/s, wie gemessen · 720p30 mit 2,5 Mbit/s | **1080p30 mit 5 Mbit/s** (Empfehlung; die Bildrate geändert mit V10, die Bitrate mit F17) |
 | F9 | B1: Videos aus der Zeit vor dem Einschalten? | der ganze Bestand, nach den neuen Videos · nur neue Videos | **der ganze Bestand** (Empfehlung) |
 | F10 | B1: Was spielt das Telefon? | die Telefonfassung, im Vollbild ein Umschalter zum Original · die Telefonfassung ohne Umschalter · das Original, die Telefonfassung über den Umschalter | **die Telefonfassung mit Umschalter** (Empfehlung) |
 | F11 | B1: Ein Rechner, der das Original nicht abspielt (HEVC in Chrome)? | spielt die Telefonfassung; das Standbild entsteht aus ihr · ein Link zum Herunterladen wie heute | **spielt die Telefonfassung** (Empfehlung) |
-| F12 | B1: Backup, Export und Papierkorb? | die Telefonfassung geht nicht mit; nach Zurückspielen und Wiederherstellen wandelt Kriterion neu um · sie geht ins Backup mit | **geht nicht mit** (Empfehlung) |
+| F12 | B1: Backup, Export und Papierkorb? | die Telefonfassung geht nicht mit; nach Zurückspielen und Wiederherstellen wandelt Kriterion neu um · sie geht ins Backup mit | **geht nicht mit** (Empfehlung; ersetzt durch F22) |
 | F13 | B1: Wer schaltet die Telefonfassung ein? | der Eigentümer-Admin, Vorgabe aus · jeder Admin | **der Eigentümer-Admin, Vorgabe aus** (Empfehlung) |
 | F14 | B1: Videos mit HDR, bei der A6700 HLG? | wie andere Videos; ob die Farben stimmen, zeigt die Messung am Telefon · keine Telefonfassung | **wie andere Videos** (Empfehlung) |
 | F15 | B2: Wie soll „Video ganz laden“ künftig arbeiten? | erst laden, wenn das Video stockt, und nur im Stand wechseln · nur auf Knopfdruck · entfällt | **nur auf Knopfdruck** (zuerst „entfällt“, geändert mit V9) |
 | F16 | B1: Die Bildrate bleibt wie im Original (V10). Bleibt es bei 1080p, wenn das Original mehr Zeilen hat? | ja, 1080p: 4K wird auf 1920×1080 verkleinert · nein, Pixel wie im Original, nur die Bitrate sinkt | **ja, 1080p** (Empfehlung) |
-| F17 | B1: Welche Bitrate bekommen Videos mit mehr als 30 Bildern je Sekunde? | steigt mit der Bildrate: 5 Mbit/s bis 30p, 8 Mbit/s bei 50p und 60p, 16 Mbit/s bei 100p und 120p · immer 5 Mbit/s · bis 30p 5, sonst 8 Mbit/s | **steigt mit der Bildrate** (Empfehlung) |
+| F17 | B1: Welche Bitrate bekommen Videos mit mehr als 30 Bildern je Sekunde? | steigt mit der Bildrate: 5 Mbit/s bis 30p, 8 Mbit/s bei 50p und 60p, 16 Mbit/s bei 100p und 120p · immer 5 Mbit/s · bis 30p 5, sonst 8 Mbit/s | **steigt mit der Bildrate** (Empfehlung; ersetzt durch F21) |
 | F18 | B1: Wie heißt die kleine Fassung in Kriterion (V11)? | Proxy · Lowres · Telefonfassung bleibt | **Proxy** (Empfehlung) |
-| F19 | B1: Wie kommt ffmpeg ins Image (F2)? Gemessen in Abschnitt 2.6 | Pakete aus Debian mit dem freien Treiber: 705 MB statt 227 MB, ffmpeg 5.1.9; Updates kommen mit Debian · ffmpeg im ersten Abschnitt des `Dockerfile` selbst übersetzen, nur mit den nötigen Teilen: 264 MB; jede neue Version von ffmpeg trägt jemand im `Dockerfile` nach | offen; Empfehlung: das schlanke ffmpeg 9.0.2 (V17, V19), 7.1.5 als auf dem N100 geprüfte Rückfallversion |
-| F20 | B1: Gehen wir den Weg mit Proxys (B1 bauen)? Messung in Abschnitt 2.7, ohne Quick Sync | ja, Quick Sync parallel klären · erst Quick Sync, dann neu messen · nein, nur B2 | offen (Tafel weggeklickt); Empfehlung: ja |
-| F21 | B1: Welche Bitrate bekommt der Proxy (V13)? Die Bitrate ändert die Dauer nicht (Abschnitt 2.7) | immer 7,5 Mbit/s · ab 7,5 steigend: 12 bei 50p und 60p, 24 bei 100p und 120p · bleibt 5, 8, 16 (F17) | offen (Tafel weggeklickt); Empfehlung: immer 7,5 Mbit/s |
-| F22 | B1: Proxy im Papierkorb, im Backup und im Export (V12, statt F12)? | Papierkorb ja, Backup und Export nein · überall wie das Original · nirgends (F12) | offen (Tafel weggeklickt); Empfehlung: Papierkorb ja, Backup und Export nein |
-| F23 | B1: Darf der Proxy während der Umwandlung unverschlüsselt liegen („gleich verschlüsselt“, V12)? | nur im RAM (tmpfs) · kurz auf der Platte in `/tmp` · fragmentiertes MP4, sofort verschlüsselt, vorher testen | offen (Tafel weggeklickt); Empfehlung: nur im RAM |
+| F19 | B1: Wie kommt ffmpeg ins Image (F2)? Gemessen in Abschnitt 2.6 | Pakete aus Debian mit dem freien Treiber: 705 MB statt 227 MB, ffmpeg 5.1.9; Updates kommen mit Debian · ffmpeg im ersten Abschnitt des `Dockerfile` selbst übersetzen, nur mit den nötigen Teilen: 264 MB; jede neue Version von ffmpeg trägt jemand im `Dockerfile` nach | **schlank, 9.0.2** (Empfehlung; 7.1.5 ist die auf dem N100 geprüfte Rückfallversion) |
+| F20 | B1: Gehen wir den Weg mit Proxys (B1 bauen)? Messung in Abschnitt 2.7, ohne Quick Sync | ja · nein, nur B2 | **ja** (Empfehlung; Messung mit Quick Sync in Abschnitt 2.7) |
+| F21 | B1: Welche Regel gilt für die Bitrate des Proxys (V13)? Die Bitrate ändert die Dauer nicht (Abschnitt 2.7) | immer 7,5 Mbit/s · 0,23 Mbit je Bild, höchstens 7,5 Mbit/s · 0,23 Mbit je Bild bis 30p, 0,20 darüber, ohne Grenze | **0,23 Mbit je Bild, höchstens 7,5 Mbit/s** |
+| F22 | B1: Proxy im Papierkorb, im Backup und im Export (V12, statt F12)? | Papierkorb ja, Backup und Export nein · überall wie das Original · nirgends (F12) | **Papierkorb ja, Backup und Export nein** (Empfehlung) |
+| F23 | B1: Darf der Proxy während der Umwandlung unverschlüsselt liegen („gleich verschlüsselt“, V12)? | nur im RAM (tmpfs) · kurz auf der Platte in `/tmp` | **nur im RAM** (Empfehlung) |
+| F24 | B1: Wann bekommt ein Video einen Proxy (statt F7)? | wenn eines zutrifft: die kürzere Seite über 1080 Pixel; Video nicht H.264 mit 8 Bit und 4:2:0; Ton nicht AAC, MP3 oder Opus; Video über 12 Mbit/s; `mkv`, `avi`, `wmv`, `flv` · dasselbe ohne HEVC bis 1080p und 12 Mbit/s mit AAC · jedes Video | **wenn eines zutrifft** (Empfehlung). Der Kamera-Proxy (HEVC) bekommt dann auch einen. Dazu: „berechnet wird bei Dateien, die kleiner als 1080 sind, immer auf Originalgröße, es wird also nichts hochskaliert. 1080 ist nativ darzustellen, und alles darüber wird auf 1080p herunterskaliert“ |
+| F25 | B2: Bleibt ein ganz geladenes Video im Speicher, bis die Seite neu geladen wird (V18)? | das letzte bleibt, bis ein anderes ganz geladen oder die Seite neu geladen wird · verworfen beim Schließen | **das letzte bleibt** (Empfehlung) |
 
-Anders als empfohlen: F1, F3, F6 und F15. Zu F1: Der Betreiber entscheidet mit
-der ausgefüllten Tafel aus dem Messverfahren, ob B1 gebaut wird. Zu F3: Ohne
+Anders als empfohlen: F1, F3, F6, F15 und F21. Zu F1: Der Betreiber hat mit den
+Zahlen aus dem Messverfahren entschieden; B1 ist freigegeben (F20). Zu F3: Ohne
 Quick Sync wandelt die CPU alle Formate über Weg C um. Zu F6: `mkv`, `avi`,
 `wmv` und `flv` bekommen immer einen Proxy; sie spielen dann am Telefon und am
 Rechner über ihn. Zu F15: Ganz geladen wird nur noch auf Knopfdruck; ohne
-Knopf puffert der Browser selbst, wie vor 0.52.0.
+Knopf puffert der Browser selbst, wie vor 0.52.0. Zu F21: Die Bitrate ist
+0,23 Mbit je Bild, höchstens 7,5 Mbit/s: 24p 5,52, 25p 5,75, 30p 6,9 Mbit/s,
+ab 50p 7,5 Mbit/s.
 
 Die Fragen F1 bis F15 stehen im Wortlaut der Tafeln. Seit F18 heißt die
 Telefonfassung „Proxy“.
@@ -89,7 +92,7 @@ Telefonfassung „Proxy“.
 V12 ersetzt F10 und F11: Am Rechner und am Telefon spielt der Proxy, sobald er
 fertig ist. Der Umschalter zum Original gilt nur für dieses Abspielen. Fehlt der
 Proxy, spielt das Original, ohne Fehlermeldung, und Kriterion legt ihn im
-Hintergrund an (V14).
+Hintergrund an (V14). F21 ersetzt F17, F22 ersetzt F12, F24 ersetzt F7.
 
 ---
 
@@ -97,17 +100,18 @@ Hintergrund an (V14).
 
 Am Rechner und am Telefon spielt ein Video unter „Dateien“ einen Proxy, sobald
 er fertig ist: eine kleinere Fassung in H.264 und AAC, an der kürzeren Seite
-höchstens 1080 Pixel, mit der Bildrate des Originals (V12). ffmpeg erzeugt ihn im Hintergrund,
-mit Quick Sync auf dem N100, ohne Quick Sync mit der CPU. Der Umschalter zeigt
+höchstens 1080 Pixel, mit der Bildrate des Originals (V12). ffmpeg erzeugt ihn
+im Hintergrund, mit Quick Sync auf dem N100, ohne Quick Sync mit der CPU, und
+nie unverschlüsselt auf der Platte (F23). Der Umschalter zeigt
 das Original für ein Abspielen; „Herunterladen“ liefert immer das Original.
 Fehlt ein Proxy, spielt das Original, ohne Fehlermeldung (V14). Videos, die
 kein Browser abspielt (`mkv`, `avi`, `wmv`, `flv`), spielen überall über den
-Proxy. Gebaut wird B1 erst, wenn der Betreiber mit den Zahlen aus der Messung
-entschieden hat (V4, F1, F20).
+Proxy. B1 ist mit den Zahlen aus der Messung freigegeben (V4, F1, F20).
 
 „Video ganz laden“ läuft nur noch auf Knopfdruck: Das Video hält an, lädt
-einmal ganz und spielt dann aus der Kopie weiter. Ohne Knopf lädt der Browser
-die Datei nur einmal, und das Video springt nicht (B2).
+einmal ganz und spielt dann aus der Kopie weiter; die letzte Kopie bleibt, bis
+die Seite neu geladen wird (F25). Ohne Knopf lädt der Browser die Datei nur
+einmal, und das Video springt nicht (B2).
 
 ---
 
@@ -341,9 +345,10 @@ Quick Sync kodiert damit, mit dem freien Treiber 23.1.1 aus Debian.
 | Fassung | Bitrate | je Stunde |
 |---|---|---|
 | Original, XAVC HS mit 100 Mbit/s | 100 Mbit/s | 45 GB |
-| Proxy 1080p, bis 30 Bilder je Sekunde | 5 Mbit/s und 128 kbit/s | 2,3 GB |
-| Proxy 1080p, 50 oder 60 Bilder je Sekunde | 8 Mbit/s und 128 kbit/s | 3,7 GB |
-| Proxy 1080p, 100 oder 120 Bilder je Sekunde | 16 Mbit/s und 128 kbit/s | 7,3 GB |
+| Proxy 1080p, 24 Bilder je Sekunde (F21) | 5,52 Mbit/s und 128 kbit/s | 2,5 GB |
+| Proxy 1080p, 25 Bilder je Sekunde | 5,75 Mbit/s und 128 kbit/s | 2,6 GB |
+| Proxy 1080p, 30 Bilder je Sekunde | 6,9 Mbit/s und 128 kbit/s | 3,2 GB |
+| Proxy 1080p, ab 50 Bildern je Sekunde | 7,5 Mbit/s und 128 kbit/s | 3,4 GB |
 
 ### 2.9 „Video ganz laden“ (B2)
 
@@ -374,7 +379,7 @@ Quick Sync kodiert damit, mit dem freien Treiber 23.1.1 aus Debian.
 
 ### Vorgaben des Betreibers
 
-V1 bis V15 und F1 bis F18 aus Abschnitt 0; F19 bis F23 sind offen.
+V1 bis V19 und F1 bis F25 aus Abschnitt 0.
 
 ### Entschieden in diesem Auftrag
 
@@ -382,9 +387,9 @@ V1 bis V15 und F1 bis F18 aus Abschnitt 0; F19 bis F23 sind offen.
 
 | Frage | Antwort |
 |---|---|
-| Versionsnummer | **0.55.0**, MINOR. Schema: **ja**, eine neue Tabelle `attachment_proxy` und ein Trigger, kein Migrationsblock. Austauschformat: bleibt 22 |
+| Versionsnummer | **0.55.0**, MINOR. Schema: **ja**, eine neue Tabelle `proxy_files` und ein Trigger, kein Migrationsblock. Austauschformat: bleibt 22 |
 | Routen | keine neue. `GET /api/attachments/:id/raw?size=proxy` liefert den Proxy. Der Schalter geht über `PUT /api/settings`, der Zustand kommt mit `GET /api/settings` |
-| Abhängigkeiten | in `package.json` keine neue. Im Image `ffmpeg` und der Intel-Mediatreiber, nach F2 und F19 |
+| Abhängigkeiten | in `package.json` keine neue. Im Image ffmpeg 9.0.2, im ersten Abschnitt des `Dockerfile` übersetzt (F19), dazu `libx264-164`, `libva2`, `libva-drm2`, `libdrm2`, `libdav1d6` und auf amd64 `intel-media-va-driver` aus Debian |
 | Module | neues Modul `videoproxy.js`: Aufruf von ffmpeg, Wahl des Wegs, Test von Quick Sync. Nicht `proxy.js`: „Proxy“ meint im Code schon den Reverse Proxy (`BEHIND_PROXY`, `auth.js`:36). Die ausgelieferten JavaScript-Module werden 19 |
 | Sicherheitsprotokoll | kein neuer Vorgang |
 | Sprachen | jeder neue Text in `de.json`, `en.json` und `tr.json`; README und Anleitung in allen drei Fassungen, das CHANGELOG englisch (`CLAUDE.md`) |
@@ -393,28 +398,28 @@ V1 bis V15 und F1 bis F18 aus Abschnitt 0; F19 bis F23 sind offen.
 
 | Frage | Antwort |
 |---|---|
-| Machbarkeit | Gebaut wird, wenn die Tafel aus dem Messverfahren in Abschnitt 2.7 steht und der Betreiber mit ihr den Bau freigibt (F1). Mit denselben Zahlen entscheidet er über Weg B (F4) und Weg C (F3) |
+| Machbarkeit | freigegeben am 2. Oktober 2026 mit den Zahlen aus Abschnitt 2.7 (F1, F20) |
 | Ort | nach F2 |
 | Benutzer | ffmpeg läuft unter der Nummer 65534 (`nobody`), mit der Gruppe von `/dev/dri/renderD128` und ohne die Umgebung von Kriterion. Das geht nur, weil Kriterion im Container als root läuft (Abschnitt 2.5) |
 | Eingabe | ffmpeg liest das Original über `http://127.0.0.1:<Port>/<Marke>`; Port und Marke gelten nur für einen Lauf. Kriterion entschlüsselt dabei Stück für Stück wie `sendDiskFile()`. Das Original liegt nie unverschlüsselt auf der Platte |
-| Ausgabe | in ein Verzeichnis unter `/tmp`, das nur der Nummer 65534 gehört. Danach verschlüsselt Kriterion die Datei wie beim Hochladen nach `data/files/proxy/` und löscht die Kopie. Während des Laufs liegt der Proxy unverschlüsselt in `/tmp` des Containers; ob das bleibt, entscheidet F23 |
+| Ausgabe | nach F23 nur im RAM: in ein Verzeichnis unter `/tmp`, das nur der Nummer 65534 gehört; `/tmp` ist ein `tmpfs` mit 2 GB (`docker-compose.example.yml`). Danach verschlüsselt Kriterion die Datei wie beim Hochladen nach `data/files/proxy/` und löscht die Kopie. Ist `/tmp` kein `tmpfs`, wandelt Kriterion nicht um; die Karte nennt den Grund. Passt der Proxy nach Dauer und Bitrate nicht in den freien RAM von `/tmp`, bekommt das Video keinen Proxy und spielt das Original. Lagert der Host Arbeitsspeicher aus, kann ein Teil auf die Platte gelangen; die README nennt dafür die Option `noswap` (Kernel ab 6.4) |
 | Wege | aus `attachment_media`: H.264 mit 8 Bit und 4:2:0, HEVC, VP9 und AV1 über Weg A; H.264 mit 4:2:2 oder 10 Bit über Weg B (F4); ohne Quick Sync alles über Weg C (F3). Die Befehle wie im Messverfahren, Abschnitt 4 |
-| Auswahl | nach F5 bis F7 und F14. `mkv`, `avi`, `wmv` und `flv` bekommen immer einen Proxy (F6) |
+| Auswahl | nach F5, F14 und F24: ein Proxy, wenn eines zutrifft: die kürzere Seite über 1080 Pixel; Video nicht H.264 mit 8 Bit und 4:2:0; Ton nicht AAC, MP3 oder Opus (also LPCM der Sony-Kameras); Video über 12 Mbit/s (Bitrate des Videos, nicht der Datei); `mkv`, `avi`, `wmv`, `flv` (F6). Die Angaben kommen aus `attachment_media` |
 | Analyse | `mediaKind()` (`attachments.js`:361) nimmt `mkv`, `avi`, `wmv` und `flv` dazu: Die Warteschlange analysiert sie, „Erweiterte Infos“ zeigt sie (heute 404, `server.js`:4414) |
 | Die vier Endungen | Bis ihr Proxy fertig ist, bleiben sie wie heute ohne Vorschau. Danach gelten sie als Video: Das Standbild entsteht aus dem Proxy, sie spielen über ihn am Telefon und am Rechner; „Herunterladen“ liefert das Original |
-| Ziel | nach F8, F16, F17 und V10: die kürzere Seite höchstens 1080 Pixel; das Seitenverhältnis bleibt; ein kleineres Video behält seine Größe. Ein Hochkant-Video bleibt so gespeichert wie das Original, die Drehung bleibt als Metadatum (`-noautorotate`); ohne die Option wurde ein Hochkant-Video in 1080p zu 608×1080 (Messverfahren, Abschnitt 4). Die Bildrate bleibt wie im Original. H.264 mit 5 Mbit/s bis 30 Bilder je Sekunde, 8 Mbit/s bis 60 und 16 Mbit/s darüber, ein Keyframe alle 2 Sekunden; AAC mit 128 kbit/s |
+| Ziel | nach F8, F16, F21, F24 und V10: die kürzere Seite höchstens 1080 Pixel; das Seitenverhältnis bleibt; ein kleineres Video behält seine Größe, vergrößert wird nie. Ein Hochkant-Video bleibt so gespeichert wie das Original, die Drehung bleibt als Metadatum (`-noautorotate`); ohne die Option wurde ein Hochkant-Video in 1080p zu 608×1080 (Messverfahren, Abschnitt 4). Die Bildrate bleibt wie im Original. H.264 mit 0,23 Mbit je Bild, höchstens 7,5 Mbit/s (F21), `-maxrate` gleich der Bitrate, `-bufsize` doppelt so groß, ein Keyframe alle 2 Sekunden; AAC mit 128 kbit/s |
 | Reihenfolge | eine Umwandlung zugleich, mit Priorität 19 (`os.setPriority()`); neue Videos vor dem Bestand (F9). Erst nach der Analyse mit MediaInfo: ohne Zeile in `attachment_media` keine Umwandlung. Weg C belegt die CPU für die ganze Umwandlung; die Priorität hält Kriterion bedienbar |
 | Abbruch | ffmpeg wird beendet, wenn der Lauf länger dauert als die Dauer des Videos mal 4 plus 10 Minuten, wenn der freie Platz nicht reicht (`spaceShort()`) und beim Beenden von Kriterion |
 | Fehler | Zustand „fehlgeschlagen“ mit dem Grund in der Tabelle. Der nächste Start von Kriterion versucht es einmal neu. Fehlt ein Proxy, ist seine Datei weg oder lässt sie sich nicht entschlüsseln, spielt das Original ohne Fehlermeldung, und Kriterion stellt das Video wieder in die Warteschlange (V14) |
-| Tabelle | `attachment_proxy (attachment_id INTEGER PRIMARY KEY REFERENCES attachments(id) ON DELETE CASCADE, name TEXT UNIQUE, size INTEGER, file_key BLOB, width INTEGER, height INTEGER, state TEXT NOT NULL, reason TEXT, made_at TEXT)` |
-| Verzeichnis | `data/files/proxy/` mit den Rechten 0700. Ein Trigger schreibt beim Löschen einer Zeile ihren Namen nach `disk_files_gone`; `sweepDisk()` löscht die Datei. Dateien in `data/files/proxy/` ohne Zeile löscht der stündliche Lauf; `unknownFiles()` nennt sie nicht |
+| Tabelle | `proxy_files (disk_file_id INTEGER PRIMARY KEY REFERENCES disk_files(id) ON DELETE CASCADE, name TEXT UNIQUE, size INTEGER, file_key BLOB, width INTEGER, height INTEGER, state TEXT NOT NULL, reason TEXT, made_at TEXT)`. Sie hängt an `disk_files`, nicht an `attachments`: Im Papierkorb verschwindet die Zeile in `attachments`, `disk_files` behält die Datei über `trash_id` (`fileIntoTrash()`, `server.js`:6859); beim Wiederherstellen bekommt sie die neue Nummer des Anhangs (`fileFromTrash()`, `server.js`:6916). So geht der Proxy ohne eigenen Code mit (F22). Die vorige Fassung (`previous_of`) behält ihren Proxy ebenso. Geprüft am 2. Oktober 2026 mit `better-sqlite3-multiple-ciphers`: Löscht `disk_files_orphaned` (`db.js`:188) die Zeile in `disk_files`, löscht die Kaskade die Zeile in `proxy_files` und löst deren Trigger aus, auch mit `recursive_triggers` aus; im Papierkorb bleibt die Zeile |
+| Verzeichnis | `data/files/proxy/` mit den Rechten 0700. Ein Trigger `AFTER DELETE` auf `proxy_files` schreibt den Namen nach `disk_files_gone`; `sweepDisk()` löscht die Datei. `DISK_NAME` und `diskPath()` (`server.js`:3842 und 3846) kennen heute nur Namen aus 32 Hexzeichen direkt in `data/files/`; sie bekommen `proxy/` dazu. Dateien in `data/files/proxy/` ohne Zeile löscht der stündliche Lauf; `unknownFiles()` liest nur `data/files/` selbst und nennt sie nicht |
 | Auslieferung | `?size=proxy` an `GET /api/attachments/:id/raw`, mit Bereichen wie `sendDiskFile()`. Ohne fertigen Proxy 404 |
 | Abspielen | nach V12, statt F10 und F11: `playSource()` nimmt am Rechner und am Telefon den Proxy, wenn er fertig ist. Der Umschalter im Vollbild wechselt zum Original, nur für dieses Abspielen; beim nächsten Öffnen spielt wieder der Proxy. Die Stelle, an der das Video stand, gilt für beide Fassungen |
 | Anzeige | „Erweiterte Infos“ bekommt eine Gruppe „Proxy“: Zustand, Pixel, Größe |
-| Karte | Einstellungen › Installation, Karte „Proxy“: Schalter (F13), ob Quick Sync kodiert (Test aus Abschnitt 2 des Messverfahrens) oder die CPU umwandelt (F3); kodiert Quick Sync nicht, nennt sie den Grund in einem Satz, etwa die fehlende Firmware für `i915` (V15); Zahl der fertigen, wartenden und fehlgeschlagenen Proxys, Platz auf der Platte |
-| Backup, Export, Papierkorb | nach F22, offen; bis zur Antwort gilt F12 |
+| Karte | Einstellungen › Installation, Karte „Proxy“: Schalter (F13), ob Quick Sync kodiert (Test aus Abschnitt 2 des Messverfahrens) oder die CPU umwandelt (F3); ob `/tmp` ein `tmpfs` ist und wie viel RAM es hat (F23); kodiert Quick Sync nicht, nennt sie den Grund in einem Satz, etwa die fehlende Firmware für `i915` (V15); Zahl der fertigen, wartenden und fehlgeschlagenen Proxys, Platz auf der Platte |
+| Backup, Export, Papierkorb | nach F22: Im Papierkorb bleibt der Proxy beim Original und ist nach dem Wiederherstellen sofort da (Tabelle). Backup und Export nehmen ihn nicht mit; nach dem Zurückspielen fehlen seine Dateien, Kriterion legt sie im Hintergrund neu an (V14) |
 | Platz | `spaceShort()` gilt vor jedem Lauf |
-| Image | `Dockerfile`: `ffmpeg` und der Intel-Mediatreiber im zweiten Abschnitt, nach F19. Ob der freie Treiber aus Debian auf dem N100 H.264 kodiert oder der aus `non-free` nötig ist, zeigt die Messung (Abschnitt 2.7). `docker-compose.example.yml`: `devices: - /dev/dri:/dev/dri`, auskommentiert |
+| Image | `Dockerfile` nach F19: Der erste Abschnitt übersetzt ffmpeg 9.0.2 aus `https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz` mit `ADD --checksum=sha256:8c385028…` und den Einstellungen aus `bau_schlank()` in `Doku/messung.sh`; der zweite kopiert nur `ffmpeg` und installiert die Bibliotheken aus „Abhängigkeiten“. Der freie Treiber reicht (Abschnitt 2.7). `docker-compose.example.yml`: `devices: - /dev/dri:/dev/dri`, auskommentiert; `tmpfs: - /tmp:size=2g` (F23) |
 | Prüfstand | Statt ffmpeg läuft ein Skript des Prüfstands, das eine kleine MP4 schreibt; der Schalter dafür kommt über `keys.testbenchSwitch()`. Eine echte Umwandlung prüft nur die Abnahme |
 
 #### B2 — „Video ganz laden“ auf Knopfdruck (V7 bis V9, F15)
@@ -423,10 +428,11 @@ V1 bis V15 und F1 bis F18 aus Abschnitt 0; F19 bis F23 sind offen.
 |---|---|
 | Knopf | „Ganz laden“ in der Leiste des Vollbilds, bei Videos bis zur Grenze aus `WHOLE_BYTES`: 2.048 MB am Rechner, 500 MB am Telefon. Spielt das Telefon den Proxy (B1), zählt seine Größe. Der Knopf steht auch bei Datensparen; ihn zu drücken ist eine bewusste Wahl |
 | Ablauf | Ein Druck hält das Video an und lädt die Datei einmal ganz, mit „geladen 45 %“. Während des Ladens lädt der Player nichts nach. Danach spielt das Video aus der Kopie an derselben Stelle weiter, wenn es vorher lief; sonst bleibt es stehen |
-| Abbrechen | ein zweiter Druck, ein anderes Video oder das Schließen des Vollbilds. Das Video spielt danach wieder aus dem Netz |
+| Abbrechen | ein zweiter Druck, ein anderes Video oder das Schließen des Vollbilds, solange es lädt. Das Video spielt danach wieder aus dem Netz |
+| Danach | nach F25: Die fertige Kopie bleibt, bis ein anderes Video ganz geladen oder die Seite neu geladen wird. Wird dasselbe Video wieder geöffnet, spielt es aus der Kopie, ohne zu laden. Es gibt immer höchstens eine Kopie |
 | Ohne Knopf | kein zweiter Abruf und kein Wechsel der Quelle; der Browser puffert selbst, `preload="metadata"` bleibt (V5) |
 | Texte | `entry.videoLoaded` bleibt; neu sind Name und Titel des Knopfs |
-| Prüfstand | Die Gruppe „Video ganz laden“ in `test/release_052.js` prüft künftig: beim Abspielen kein Abruf außer denen des Players; der Knopf lädt einmal, das Video steht dabei, danach spielt es aus der Kopie weiter; Abbrechen. Die Rückbauten 1568 bis 1578 bekommen neue Ziele |
+| Prüfstand | Die Gruppe „Video ganz laden“ in `test/release_052.js` prüft künftig: beim Abspielen kein Abruf außer denen des Players; der Knopf lädt einmal, das Video steht dabei, danach spielt es aus der Kopie weiter; Abbrechen; nach dem Schließen spielt dasselbe Video aus der Kopie, ein zweites ganz geladenes ersetzt sie (F25). Die Rückbauten 1568 bis 1578 bekommen neue Ziele |
 | Anleitung | Der Absatz „Video ganz laden“ beschreibt den Knopf, in allen drei Fassungen |
 | Messung | B2 hängt nicht an der Messung aus BA 1 |
 
@@ -436,39 +442,39 @@ V1 bis V15 und F1 bis F18 aus Abschnitt 0; F19 bis F23 sind offen.
 
 ### BA 1 — Die Messung
 
-Der Betreiber trägt die Tafel aus Abschnitt 5 des Messverfahrens in Abschnitt
-2.7 ein und entscheidet mit ihr über den Bau (F1), über Weg B (F4) und über
-Weg C (F3). Gibt er den Bau nicht frei, endet B1 hier. Nimmt er in HLG auf,
-gehört ein Video in HLG in die Messung (F14). Das Skript aus Abschnitt 6 des
-Messverfahrens misst die Wege A, B und C, die Dauerlast und die Treiber aus
-Debian.
+Erledigt am 1. und 2. Oktober 2026: vier Messungen des Betreibers mit dem
+Skript `Doku/messung.sh`, die Zahlen in Abschnitt 2.7. Freigegeben mit F20.
 
 ### BA 2 — Image und Compose
 
-`ffmpeg` und der Intel-Mediatreiber im `Dockerfile` nach F19, `/dev/dri` in
-`docker-compose.example.yml`. Gemessen: die Größe des Images davor und danach;
-der Test aus Abschnitt 2 des Messverfahrens im Container von Kriterion.
+ffmpeg 9.0.2 im ersten Abschnitt des `Dockerfile` nach F19, die Bibliotheken
+und der Intel-Treiber im zweiten; auf arm64 ohne den Treiber. `/dev/dri`
+(auskommentiert) und `tmpfs` für `/tmp` in `docker-compose.example.yml`.
+Gemessen: die Größe des Images davor und danach, die Dauer des Baus; der Test
+aus Abschnitt 2 des Messverfahrens im Container von Kriterion.
 
 ### BA 3 — Tabelle und Verzeichnis
 
-`attachment_proxy` in `schema.js`, der Trigger in `db.js`,
+`proxy_files` in `schema.js`, der Trigger in `db.js`,
 `data/files/proxy/`, Löschen im stündlichen Lauf, `unknownFiles()`.
 
 ### BA 4 — Die Umwandlung
 
 `videoproxy.js`: Wahl zwischen Weg A, B und C, Aufruf unter der Nummer 65534,
-Eingabe über 127.0.0.1, Ausgabe nach `/tmp`, Verschlüsseln, Abbruch, Test von
-Quick Sync.
+Eingabe über 127.0.0.1, Ausgabe in den `tmpfs` unter `/tmp` (F23), Bitrate nach
+F21, Verschlüsseln, Abbruch, Test von Quick Sync.
 
 ### BA 5 — Die Warteschlange
 
-Auswahl nach F5 bis F7 und F14, `mediaKind()` mit den vier Endungen (F6),
-Reihenfolge nach F9, Fehler, Platz, Neustart.
+Auswahl nach F5, F14 und F24, `mediaKind()` mit den vier Endungen (F6),
+Reihenfolge nach F9, Fehler und fehlende Proxys (V14), Platz im `tmpfs` und
+auf der Platte, Neustart.
 
 ### BA 6 — Auslieferung und Abspielen
 
-`?size=proxy`, `playSource()`, der Umschalter (F10), der Rechner ohne HEVC und
-das Standbild (F11), die vier Endungen als Video (F6).
+`?size=proxy`, `playSource()` am Rechner und am Telefon, der Umschalter für ein
+Abspielen (V12), das Standbild aus dem Proxy, wenn der Browser das Original
+nicht spielt, die vier Endungen als Video (F6).
 
 ### BA 7 — Karte und Erweiterte Infos
 
@@ -477,13 +483,14 @@ Infos“.
 
 ### BA 8 — Löschen, Papierkorb, Backup, Export
 
-Nach F12: Papierkorb, Wiederherstellen, Backup, Zurückspielen mit
-`backuptool.js`, Export und Import.
+Nach F22: Der Proxy geht über `disk_files` mit in den Papierkorb und zurück;
+Backup, Zurückspielen mit `backuptool.js`, Export und Import ohne Proxy.
 
 ### BA 9 — „Video ganz laden“ auf Knopfdruck (B2)
 
 Der Knopf im Vollbild, `loadWhole()` nur über ihn, das Video steht während des
-Ladens, Abbrechen, Texte. Hängt nicht an BA 1.
+Ladens, Abbrechen, die letzte Kopie bleibt bis zum Neuladen der Seite (F25),
+Texte. Hängt nicht an BA 1.
 
 ### BA 10 — Texte
 
@@ -495,7 +502,8 @@ Anleitung und README in drei Sprachen: der Proxy, der Umschalter, die
 Karte; der Absatz „Video ganz laden“ beschreibt den Knopf. README (V15):
 `/dev/dri` und die Gruppe im Container; das Firmware-Paket für `i915` je System
 aus der Tafel im Messverfahren, Abschnitt 2; die drei Befehle zum Prüfen; was
-Kriterion ohne Quick Sync tut; wo der Proxy während der Umwandlung liegt (F23).
+Kriterion ohne Quick Sync tut; der `tmpfs` für `/tmp`, seine Größe und die
+Option `noswap` (F23).
 
 ### BA 12 — Der Prüfstand
 
@@ -510,7 +518,7 @@ gegen ihr Modul gefahren, mit höchstens vier Spuren (`OFFSET_TRACES` in
 
 CHANGELOG englisch, Änderungsprotokoll mit „Vorgaben des Betreibers“,
 `Doku/Fahrplan.md`, `Doku/Entwicklung.md` (Abschnitt „Kurzvideos“ und die
-Tabelle `attachment_proxy`), `CLAUDE.md` (19 Module), `package.json` 0.55.0,
+Tabelle `proxy_files`), `CLAUDE.md` (19 Module), `package.json` 0.55.0,
 Fingerprint. Zahlen am fertigen Stand.
 
 ---
@@ -529,28 +537,37 @@ Fingerprint. Zahlen am fertigen Stand.
 6. Ein Video in HLG am Telefon: nach F14.
 7. „Herunterladen“ liefert das Original in seiner Größe.
 8. Das Video löschen: Der Proxy ist nach dem stündlichen Lauf aus
-   `data/files/proxy/` verschwunden. Wiederherstellen: nach F22.
+   `data/files/proxy/` verschwunden, wenn der Papierkorb geleert ist. Vorher
+   wiederherstellen: Der Proxy ist sofort da (F22).
 9. Ohne `/dev/dri` nennt die Karte die CPU; die Umwandlung läuft über Weg C
    (F3).
 10. Während einer Umwandlung bleibt Kriterion bedienbar, mit und ohne Quick
     Sync.
 11. Eine Datei `.mkv` hochladen: Nach der Umwandlung hat sie ein Vorschaubild
     und spielt am Rechner und am Telefon (F6).
-12. Backup und Export nach F22.
+12. Ein Backup und ein Export enthalten keinen Proxy. Nach dem Zurückspielen
+    spielt das Original, und Kriterion legt den Proxy neu an (F22, V14).
 13. Ein Video am Rechner und am Telefon bis zum Ende abspielen: kein Zucken,
     kein Sprung. Die Netzwerkanalyse des Browsers zeigt nur die Abrufe des
     Players (B2).
 14. „Ganz laden“ drücken: Das Video hält an, „geladen … %“ zählt hoch, danach
     spielt es an derselben Stelle weiter. Springen braucht kein Laden mehr. Ein
-    zweiter Druck während des Ladens bricht ab (B2).
-15. Ein Video der A6700 in 4K mit 50p: Der Proxy hat 1920×1080 und 50 Bilder
-    je Sekunde, die Bitrate nach F21 (V10, F16). Ein Hochkant-Video in 1080p:
+    zweiter Druck während des Ladens bricht ab. Schließen und dasselbe Video
+    wieder öffnen: Es spielt ohne Laden (B2, F25).
+15. Ein Video der A6700 in 4K mit 50p: Der Proxy hat 1920×1080, 50 Bilder je
+    Sekunde und 7,5 Mbit/s; ein Video mit 25p 5,75 Mbit/s (V10, F16, F21). Ein
+    Video unter 1080p behält seine Größe (F24). Ein Hochkant-Video in 1080p:
     Der Proxy ist hochkant und hat 1080 Pixel an der kürzeren Seite.
 16. Ein Video ohne Proxy öffnen, etwa direkt nach dem Hochladen: Es spielt das
     Original, ohne Fehlermeldung; der Proxy entsteht im Hintergrund (V14).
 17. Ohne Firmware für `i915` nennt die Karte den Grund (V15).
 18. Mit ffmpeg 9.0.2 kodiert Quick Sync auf dem N100, und die Proxys der
     Hochkant-Videos aus Weg A stehen aufrecht (V19). Sonst gilt 7.1.5.
+19. Ohne `tmpfs` für `/tmp` wandelt Kriterion nicht um, und die Karte nennt den
+    Grund. Während einer Umwandlung liegt in `data/` und im Image keine
+    unverschlüsselte Fassung (F23).
+20. Ein Video mit H.264, 1080p, AAC und unter 12 Mbit/s bekommt keinen Proxy;
+    eine Sony-Datei mit LPCM bekommt einen (F24).
 
 ---
 
@@ -567,6 +584,10 @@ Fingerprint. Zahlen am fertigen Stand.
 | Videos des Eintrags und in Kommentaren | nach F5 |
 | „Video ganz laden“ von selbst oder erst beim Stocken | F15 |
 | Bildrate senken | V10 |
+| Kleine Videos vergrößern | F24 |
+| Proxy im Backup und im Export | F22 |
+| Proxy unverschlüsselt auf der Platte | F23 |
+| Pakete aus Debian für ffmpeg | F19 |
 
 ---
 
@@ -574,8 +595,7 @@ Fingerprint. Zahlen am fertigen Stand.
 
 1. `npm test` läuft vor jedem Push vollständig durch. Das Ergebnis wird
    genannt.
-2. B1 wird erst gebaut, wenn die Tafel aus Abschnitt 5 des Messverfahrens in
-   Abschnitt 2.7 steht und der Betreiber den Bau startet.
+2. B1 ist freigegeben (F20); gebaut wird, wenn der Betreiber den Bau startet.
 3. Neues Schema nur mit neuen Tabellen, ohne Migrationsblock.
 4. Die Kommentarregel gilt.
 5. Kein Pull Request, wenn keiner verlangt wurde.
