@@ -42,8 +42,10 @@ Zeilennummern gelten für `bf925e9` (0.54.0).
 | V14 | B1 | „wenn wir diesen Weg gehen, sollte es so sein, dass Proxys da sein können, aber wenn sie nicht da sind, darf kein Fehler verursacht werden. Dann wird im Hintergrund einfach einer angelegt … also ein unkomplizierter, smoother Flow“ |
 | V15 | B1 | „das Problem ist, dass jede Maschine anders ist; wenn ich das veröffentliche und wir brauchen das, muss das gut dokumentiert sein“ |
 | V16 | B1 | „zu Forschungszwecken ist das ja ok, aber wenn wir es veröffentlichen, muss es für alle Menschen, oder meistens Menschen, ein gangbarer Weg sein und nicht ein sehr spezieller, nerdiger Weg“ |
+| V17 | B1 | „Wenn der schlanke Image mit ffmpeg für den User unsichtbar ist, dann können wir das schon machen“ |
+| V18 | B1, B2 | „wenn man ohne die Seite neu zu laden wieder abspielt, wäre es schön, wenn es nicht neu laden muss. Wie lange bleibt es im Cache?“ Antwort: Der Server erlaubt 1 Stunde (`Cache-Control: private, max-age=3600`, `server.js`:4441); ob der Browser die Stücke nimmt, hängt vom Browser ab, nicht gemessen. Offen: die Kopie aus „Ganz laden“ bis zum Neuladen der Seite behalten (gegen V5) |
 
-V1, V2 und V7 bis V16 vom 1. Oktober 2026.
+V1, V2 und V7 bis V16 vom 1. Oktober 2026, V17 und V18 vom 2. Oktober 2026.
 
 ### Fragen
 
@@ -217,8 +219,8 @@ die Datei nur einmal, und das Video springt nicht (B2).
 | Weg | Image | Stand |
 |---|---|---|
 | Pakete aus Debian | 705 MB | gemessen; Quick Sync läuft auf dem N100 |
-| schlankes ffmpeg, im ersten Abschnitt des `Dockerfile` übersetzt | 263 MB | gemessen; Weg C geprüft, Quick Sync nicht |
-| `jellyfin-ffmpeg` aus der Paketquelle des Jellyfin-Projekts, mit eigenem Intel-Treiber | nicht gemessen | `repo.jellyfin.org` ist in der Sitzung von Claude gesperrt |
+| schlankes ffmpeg 7.1.5, im ersten Abschnitt des `Dockerfile` übersetzt, Quelle `ffmpeg.org` mit Prüfsumme | 263 MB | gemessen; Bau 3:19 in der Sitzung von Claude; Weg C geprüft, Quick Sync misst `FFMPEG=schlank` im Skript |
+| `jellyfin-ffmpeg8` 8.1.3 aus der Paketquelle des Jellyfin-Projekts, mit eigenem Intel-Treiber 26.3.5 | rund 525 MB (Probebau 573 MB mit der Paketdatei von 47,5 MB in einer eigenen Schicht) | gemessen am 2. Oktober 2026; Weg C geprüft; mit `-noautorotate` geht die Drehung verloren (Messverfahren, Abschnitt 7) |
 | fertige statische Builds, etwa von BtbN | nicht gemessen | fremder Ersteller; in der Sitzung gesperrt |
 | eigener Container neben Kriterion | 227 MB und der zweite, etwa 802 MB | zweiter Dienst in der Compose-Datei; gegen F2 |
 | ffmpeg auf dem Host | – | verworfen: ein eingebundenes Programm des Hosts braucht dessen Bibliotheken; ein Dienst auf dem Host müsste jeder Nutzer installieren (V16); Zugriff auf `/var/run/docker.sock` gäbe Kriterion volle Rechte über den Host |

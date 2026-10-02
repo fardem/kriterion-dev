@@ -185,6 +185,11 @@ Was schnell genug ist, entscheidet der Betreiber mit den Zahlen (F1).
 `MBIT=7.5 bash messung.sh | tee messung.txt` setzt eine Bitrate für alle Videos
 (V13, F21). Ohne `MBIT` gelten 5, 8 oder 16 Mbit/s nach der Bildrate.
 
+`FFMPEG=schlank MBIT=7.5 bash messung.sh | tee messung.txt` misst mit dem
+schlanken ffmpeg aus Abschnitt 7 statt mit ffmpeg aus Debian und nennt die
+Dauer des Baus. Das Image aus Debian mit dem freien Treiber baut es weiter,
+nur für `ffprobe`.
+
 Das Skript
 
 1. baut zwei Images aus `node:22-bookworm-slim`, dem Basis-Image von Kriterion,
@@ -212,7 +217,9 @@ die beiden Images; `linuxserver/ffmpeg` ebenso, wenn das Skript es geladen hat.
 # Misst die Umwandlung in Proxys für Kriterion. Aufruf im Ordner mit den Videos:
 #   bash messung.sh | tee messung.txt
 # MBIT=7.5 setzt eine Bitrate für alle Videos; leer: 5, 8 oder 16 Mbit/s nach Bildrate.
+# FFMPEG=schlank baut ffmpeg 7.1.5 selbst und misst damit statt mit ffmpeg aus Debian.
 MBIT=${MBIT:-}
+FFMPEG=${FFMPEG:-debian}
 DRI=${DRI:-/dev/dri/renderD128}
 LSIO=linuxserver/ffmpeg:latest
 NPROC=$(nproc)
@@ -237,6 +244,35 @@ RUN sed -i 's/^Components: main$/Components: main non-free/' /etc/apt/sources.li
  && apt-get update \
  && apt-get install -y --no-install-recommends ffmpeg "$TREIBER" \
  && rm -rf /var/lib/apt/lists/*
+EOF
+}
+
+# ffmpeg aus den Quellen, nur Lesen aller Formate und Schreiben von H.264 und AAC.
+bau_schlank() {
+  docker build -q -t kriterion-messung:schlank - >"$TMP/bau.log" 2>&1 <<'EOF'
+FROM node:22-bookworm-slim AS ffbuild
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends build-essential nasm pkg-config xz-utils \
+      libx264-dev libva-dev libdrm-dev libdav1d-dev zlib1g-dev \
+ && rm -rf /var/lib/apt/lists/*
+ADD --checksum=sha256:de668509caf9e35e3cd162473441fdb29538c6d96ed080292b3cf9e6fc5d558f \
+    https://ffmpeg.org/releases/ffmpeg-7.1.5.tar.xz /src/
+WORKDIR /src
+RUN tar xf ffmpeg-7.1.5.tar.xz && cd ffmpeg-7.1.5 \
+ && ./configure --prefix=/opt/ff --disable-debug --disable-doc --disable-ffplay --disable-ffprobe \
+      --disable-autodetect --enable-gpl --enable-libx264 --enable-libdav1d --enable-vaapi --enable-libdrm --enable-zlib \
+      --disable-encoders --enable-encoder=libx264,h264_vaapi,aac \
+      --disable-muxers --enable-muxer=mp4,mov,null \
+      --disable-filters --enable-filter=scale,scale_vaapi,format,hwupload,null,anull,aresample,aformat,testsrc2 \
+      --disable-devices --enable-indev=lavfi \
+      --disable-protocols --enable-protocol=file,pipe,http,tcp \
+ && make -j"$(nproc)" && make install && strip /opt/ff/bin/ffmpeg
+
+FROM node:22-bookworm-slim
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends libx264-164 libva2 libva-drm2 libdrm2 libdav1d6 intel-media-va-driver \
+ && rm -rf /var/lib/apt/lists/*
+COPY --from=ffbuild /opt/ff/bin/ffmpeg /usr/local/bin/ffmpeg
 EOF
 }
 
@@ -327,19 +363,36 @@ else
   echo "- $DRI fehlt: nur Weg C"
 fi
 
-HWIMG= CPUIMG=
+HWIMG= CPUIMG= PROBEIMG=
 for t in intel-media-va-driver intel-media-va-driver-non-free; do
+  # Mit FFMPEG=schlank dient das Image aus Debian nur noch ffprobe.
+  [ "$FFMPEG" = schlank ] && [ -n "$PROBEIMG" ] && break
   say "Baue das Image mit ffmpeg und $t ..."
   if ! bau "$t"; then
     echo "- Debian mit $t: Bau fehlgeschlagen"
     grep -v '^ *$' "$TMP/bau.log" | tail -n 3 | sed 's/^/    /'
     continue
   fi
+  [ -z "$PROBEIMG" ] && PROBEIMG=kriterion-messung:$t
+  [ "$FFMPEG" = schlank ] && continue
   [ -z "$CPUIMG" ] && CPUIMG=kriterion-messung:$t
   [ ${#HW[@]} = 0 ] && break
   pruefe "kriterion-messung:$t" "Debian mit $t" && [ -z "$HWIMG" ] && HWIMG=kriterion-messung:$t
 done
-if [ ${#HW[@]} != 0 ] && [ -z "$HWIMG" ]; then
+if [ "$FFMPEG" = schlank ]; then
+  say "Baue das schlanke ffmpeg ..."
+  t0=$SECONDS
+  if bau_schlank; then
+    t1=$((SECONDS - t0))
+    echo "- Schlankes ffmpeg 7.1.5: Bau $((t1 / 60)):$(printf '%02d' $((t1 % 60))), Image $(docker image inspect -f '{{.Size}}' kriterion-messung:schlank | awk '{ printf "%d MB", $1 / 1e6 + 0.5 }')"
+    CPUIMG=kriterion-messung:schlank
+    [ ${#HW[@]} != 0 ] && pruefe kriterion-messung:schlank "schlankes ffmpeg" && HWIMG=kriterion-messung:schlank
+  else
+    echo "- Schlankes ffmpeg: Bau fehlgeschlagen"
+    grep -v '^ *$' "$TMP/bau.log" | tail -n 5 | sed 's/^/    /'
+  fi
+fi
+if [ "$FFMPEG" != schlank ] && [ ${#HW[@]} != 0 ] && [ -z "$HWIMG" ]; then
   say "Lade $LSIO ..."
   docker pull -q "$LSIO" >/dev/null 2>&1 && pruefe "$LSIO" "$LSIO" && HWIMG=$LSIO
 fi
@@ -372,7 +425,7 @@ for f in *; do
       streams_stream_0_bit_rate) vbr=$v ;; streams_stream_0_side_data_list_side_data_*_rotation) rot=$v ;;
       format_duration) dur=$v ;; format_bit_rate) br=$v ;;
     esac
-  done < <(docker run --rm -v "$PWD:/work" -w /work --entrypoint ffprobe "$CPUIMG" -v error \
+  done < <(docker run --rm -v "$PWD:/work" -w /work --entrypoint ffprobe "${PROBEIMG:-$CPUIMG}" -v error \
              -select_streams v:0 \
              -show_entries stream=codec_name,pix_fmt,width,height,r_frame_rate,color_transfer,bit_rate:stream_side_data=rotation:format=duration,bit_rate \
              -of flat=s=_ "$f" 2>/dev/null)
@@ -444,45 +497,35 @@ if [ -s "$TMP/fehler" ]; then
 fi
 say ""
 say "Fertig. Die Proxys liegen als *.proxy-A.mp4, *.proxy-B.mp4 und *.proxy-C.mp4 neben den Videos."
-say "Images entfernen: docker image rm kriterion-messung:intel-media-va-driver kriterion-messung:intel-media-va-driver-non-free"
+say "Images entfernen: docker image rm kriterion-messung:intel-media-va-driver kriterion-messung:intel-media-va-driver-non-free kriterion-messung:schlank"
 ```
 
 ---
 
 ## 7. Probebau: schlankes ffmpeg
 
-Für F19 im Auftrag gemessen am 1. Oktober 2026, in der Sitzung von Claude. Die
-Quellen `ffmpeg_7.1.5.orig.tar.xz` kommen aus Debian 13
-(`apt-get source --download-only ffmpeg` mit `deb-src` für `trixie`) und liegen
-neben dem `Dockerfile`. `docker build -t kriterion-messung:schlank .` baut es.
+Für F19 im Auftrag gemessen am 1. und 2. Oktober 2026, in der Sitzung von
+Claude. Das Archiv `ffmpeg-7.1.5.tar.xz` von `ffmpeg.org` ist bitgleich mit
+`ffmpeg_7.1.5.orig.tar.xz` aus Debian 13 (SHA-256 `de668509…`). Das Skript
+holt es mit `ADD --checksum`; das braucht BuildKit, das Docker ab Version 23
+unter Linux von selbst nimmt. Der Bau dauerte in der Sitzung 3:19 mit dem
+Herunterladen, 2:35 aus der Datei daneben.
 
 | Image | Größe |
 |---|---|
 | `node:22-bookworm-slim` | 227 MB |
 | mit `ffmpeg` und `intel-media-va-driver` aus Debian | 705 MB |
 | mit diesem schlanken ffmpeg und `intel-media-va-driver` | 263 MB |
+| mit `jellyfin-ffmpeg8` 8.1.3 und seinem Intel-Treiber 26.3.5 | rund 525 MB |
 
-```dockerfile
-FROM node:22-bookworm-slim AS ffbuild
-RUN apt-get update \
- && apt-get install -y --no-install-recommends build-essential nasm pkg-config xz-utils \
-      libx264-dev libva-dev libdrm-dev libdav1d-dev zlib1g-dev \
- && rm -rf /var/lib/apt/lists/*
-COPY ffmpeg_7.1.5.orig.tar.xz /src/
-WORKDIR /src
-RUN tar xf ffmpeg_7.1.5.orig.tar.xz && cd ffmpeg-7.1.5 \
- && ./configure --prefix=/opt/ff --disable-debug --disable-doc --disable-ffplay --disable-ffprobe \
-      --disable-autodetect --enable-gpl --enable-libx264 --enable-libdav1d --enable-vaapi --enable-libdrm --enable-zlib \
-      --disable-encoders --enable-encoder=libx264,h264_vaapi,aac \
-      --disable-muxers --enable-muxer=mp4,mov,null \
-      --disable-filters --enable-filter=scale,scale_vaapi,format,hwupload,null,anull,aresample,aformat,testsrc2 \
-      --disable-devices --enable-indev=lavfi \
-      --disable-protocols --enable-protocol=file,pipe,http,tcp \
- && make -j"$(nproc)" && make install && strip /opt/ff/bin/ffmpeg
+Das `Dockerfile` steht im Skript in der Funktion `bau_schlank()`.
 
-FROM node:22-bookworm-slim
-RUN apt-get update \
- && apt-get install -y --no-install-recommends libx264-164 libva2 libva-drm2 libdrm2 libdav1d6 intel-media-va-driver \
- && rm -rf /var/lib/apt/lists/*
-COPY --from=ffbuild /opt/ff/bin/ffmpeg /usr/local/bin/ffmpeg
-```
+| ffmpeg | mit `-noautorotate` | gemessen |
+|---|---|---|
+| 5.1.9 aus Debian 12 | die Drehung bleibt | Weg C und, beim Betreiber, Weg A |
+| 7.1.5, schlank | die Drehung bleibt | Weg C |
+| 8.1.3 aus `jellyfin-ffmpeg8` | die Drehung geht verloren | Weg C |
+| 9.0 aus `linuxserver/ffmpeg` | die Drehung bleibt | Weg C |
+
+Gemessen mit dem Proxy der A6700 hochkant (1920×1080, Drehung −90°).
+`jellyfin-ffmpeg8` ohne `-noautorotate` dreht die Pixel und liefert 1080×1920.
