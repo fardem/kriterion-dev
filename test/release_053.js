@@ -683,8 +683,8 @@ async function run() {
     check('Hoechstens 1.500 Zeilen, Keep a Changelog auf Englisch, keine deutschen Abschnitte',
       log.split('\n').length <= 1500 && /keepachangelog\.com\/en\/1\.1\.0\//.test(log) &&
       !/^### (Hinzugefügt|Geändert|Behoben|Entfernt)/m.test(log), `${log.split('\n').length} Zeilen`);
-    check('Jede Version behaelt Ueberschrift und Fingerprint: 127 Abschnitte, 38 Fingerprints',
-      (log.match(/^## /gm) || []).length === 127 && (log.match(/^Fingerprint `/gm) || []).length === 38,
+    check('Jede Version behaelt Ueberschrift und Fingerprint: 127 Abschnitte, 39 Fingerprints',
+      (log.match(/^## /gm) || []).length === 127 && (log.match(/^Fingerprint `/gm) || []).length === 39,
       `${(log.match(/^## /gm) || []).length} / ${(log.match(/^Fingerprint `/gm) || []).length}`);
   }
 }

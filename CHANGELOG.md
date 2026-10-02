@@ -7,9 +7,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 > A box above the changes of a version means there is something to do when updating.
 > Yanked versions are marked `[YANKED]`.
 
-## [Unreleased]
+## [0.55.0] - 2026-10-02
 
-*Collected here while building.*
+Fingerprint `064133fa` — previously `6402677f`.
+
+> For proxies of videos, add `tmpfs: - /tmp:size=2g` to `docker-compose.yml`, and `devices: - /dev/dri:/dev/dri` for Quick Sync (README, "Proxies for videos").
 
 ### Added
 

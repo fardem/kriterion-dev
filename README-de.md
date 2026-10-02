@@ -445,8 +445,7 @@ done
 ```
 
 Dieselbe Liste zeigt die Karte „Version und Verschlüsselung“ unter „Dateien
-zeigen“. Eine
-abweichende oder überzählige Datei ersetzen bzw. löschen, dann
+zeigen“. Eine abweichende oder überzählige Datei ersetzen bzw. löschen, dann
 `docker compose up -d --build`.
 
 ## Hinter einem Reverse Proxy

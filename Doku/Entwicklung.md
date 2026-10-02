@@ -257,7 +257,9 @@ Ein Video unter „Dateien“ bekommt einen Proxy, wenn `needsProxy()` in
 `videoproxy.js` es verlangt; die Angaben kommen aus `attachment_media`. Die
 Warteschlange `proxySoon()` nimmt frisch analysierte Videos vor den Bestand,
 den Bestand beim Einschalten und stündlich, fehlgeschlagene nur beim Start. Es
-läuft immer eine Umwandlung, mit Priorität 19.
+läuft immer eine Umwandlung, mit Priorität 19 über `nice -n 19`.
+`os.setPriority()` reicht dafür nicht: Docker gibt root kein `CAP_SYS_NICE`, und
+ffmpeg läuft unter einer anderen Nummer.
 
 - **Weg:** A dekodiert und kodiert mit Quick Sync, B dekodiert mit der CPU und
   kodiert mit Quick Sync, C nur mit der CPU (`libx264`). Scheitert A, folgt B.
