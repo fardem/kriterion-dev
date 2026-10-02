@@ -701,7 +701,7 @@ yardım edebilecek bir yöneticiye başvurmasını söyleyen bir cümle okur.
 | Başlık | giriş öncesi başlık (herkese görünür; az bilgi veren bir başlık seç) ve giriş sonrası başlık |
 | Belgeler | Document Server üzerinden görüntülemeyi ve düzenlemeyi açma ve kapatma; “Herkes düzenleyebilir”: bir hesap kendi değerini belirlemediği sürece başlangıç değeri; kart bağlantıyı denetler. Adresler ve secret `.env` dosyasında durur, bkz. README |
 | Sayılar | verinin kapsamı: öğeler, fotoğraflar, videolar, yorumlar, bağlantılar ve test günleri |
-| Depolama ve bakım | veritabanı boyutu, çöp kutusu, diskteki dosyalar (bunlardan “Ek” sınırını aşanlar ve çöp kutusundakiler), yüklemeler, boş alan. Yalnızca varsa: hâlâ veritabanında olup diske taşınmayı bekleyen dosyalar, eksik dosyalar, silinmeyi bekleyen dosyalar ve başvurusuz dosyalar. Başvurusuz dosyaları sahip yönetici “Sil” ile siler, ama yalnızca yedekleme klasöründe aynı boyutta bir kopya varsa |
+| Depolama ve bakım | veritabanı boyutu, çöp kutusu, diskteki dosyalar (bunlardan “Ek” sınırını aşanlar ve çöp kutusundakiler), yüklemeler, boş alan. Yalnızca varsa: veritabanındaki boş alan (“içindeki boş alan”), hâlâ veritabanında olup diske taşınmayı bekleyen dosyalar, eksik dosyalar, silinmeyi bekleyen dosyalar ve başvurusuz dosyalar. Sahip yönetici için “Eşleştir”, bkz. aşağısı |
 | Sürüm ve şifreleme | sürüm, parmak izi, şifreleme yöntemleri; anahtar veritabanının yanında durduğu sürece sahip yönetici için anahtar değeri |
 | Kategoriler, Etiketler | oluşturma, yeniden adlandırma, silme; bir işaret, herkesin öğede yeni ad oluşturup oluşturamayacağını belirler |
 | Değerlendirme: ölçütler, Potansiyel: ölçütler | oluşturma, yeniden adlandırma, sıralama, ağırlık verme (0,2 ile 2 arası, varsayılan 1); “Değerlendirme: ölçütler” kartında genel bakış filtrelerindeki “Kısmen” eşiği (1 ile 100 arası %, varsayılan 80) |
@@ -709,6 +709,39 @@ yardım edebilecek bir yöneticiye başvurmasını söyleyen bir cümle okur.
 | İki adımlı doğrulama | açma ve kapatma, yeni kurtarma kodları; kişisel, bkz. “İki adımlı doğrulama” |
 | Görünüm | renk şeması, dil, yazı boyutu, küçük resimlerin boyutu, zaman çizgisi, görünür bağlantı satırlarının ve arama motoru adlarının sayısı, blokların düzeni; kişisel |
 | Belgeler (kişisel) | Document Server'daki görünüm (Kriterion gibi, Modern açık, Modern koyu) ve kendi yeni dosyaların için “Herkes düzenleyebilir” varsayılanı. Yalnızca Document Server açıkken |
+
+### Eşleştirme
+
+“Depolama ve bakım” kartındaki “Eşleştir” düğmesini yalnızca sahip yönetici
+görür. `data/files/` klasörünü veritabanıyla karşılaştırır ve veritabanını
+denetler. Silme ve geri alma yalnızca bir onaydan sonra yapılır.
+
+Başvurusuz dosyalar, `data/files/` içinde veritabanının tanımadığı dosyalar,
+dizinler ve sembolik bağlantılardır, adları ne olursa olsun; `upload/` bunlara
+dahil değildir. Liste boyutu, tarihi ve nedeni gösterir. Bunlardan biri, şu
+durumlardan biri geçerliyse silinebilir:
+
+| Durum | Listedeki neden |
+|---|---|
+| Adı Kriterion oluşturmaz ya da bu bir dizin veya sembolik bağlantıdır | Kriterion bu adı oluşturmaz. |
+| Yedekleme klasörü dosyayı aynı boyutta içerir | Yedekleme klasörü onu aynı boyutta içeriyor. |
+| Yedekleme klasöründeki hiçbir yedekleme adı anmaz. Bir dosyanın anahtarı yalnızca veritabanındaki satırında durur; satırı olmadan dosya okunamaz | Hiçbir yedekleme onu anmıyor; satırı olmadan okunamaz. |
+
+Geri kalan her şey kalır: bir yedeklemenin andığı ve yedekleme klasörünün
+içermediği bir dosya; bir yedeklemenin dosya listesi olmadığı ya da yedekleme
+klasörüne erişilemediği sürece Kriterion adı taşıyan her dosya. Bir dizin
+içeriğiyle birlikte silinir, sembolik bağlantı bağlantı olarak silinir, hedefi
+asla. Bir yedekleme sürerken hiçbir şey silinmez.
+
+Eksik dosyalar diskte yoktur ya da boyutları yanlıştır. Liste öğeyi, klasörü ve
+dosya adını gösterir; çöp kutusundaki dosyalar ve önceki sürümler için de.
+Yedekleme klasörü dosyayı aynı boyutta içeriyorsa “Geri al” onu geri getirir;
+yoksa dosya öğesinde silinebilir. “Dosyalar” altında eksik bir dosya “eksik”
+gösterir.
+
+Veritabanı denetimi (SQLite'ın `quick_check` ve `foreign_key_check` komutları)
+kendi iş parçacığında çalışır; Kriterion kullanılabilir kalır. Yalnızca bildirir,
+hiçbir şeyi onarmaz. Hata bildirirse: README, “Yedeklemeyi geri yükleme”.
 
 ### Yükleme sınırları
 

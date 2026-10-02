@@ -15,7 +15,7 @@ async function run() {
 
   const gpList = require('./counterproof').REGRESSIONS;
   // Mit jedem neuen Rueckbau in counterproof.js anheben.
-  check(`Es sind genau 1592 Rueckbauten`, gpList.length === 1592, `${gpList.length}`);
+  check(`Es sind genau 1616 Rueckbauten`, gpList.length === 1616, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* Jede Datei nur einmal lesen: ueber tausend Rueckbauten verteilen sich auf
@@ -349,7 +349,7 @@ async function run() {
     const COMMENT_ROWS = [
       ['testbench.js', 29],
       ['test/batchrun.js', 26],
-      ['test/dom.js', 173],
+      ['test/dom.js', 175],
       ['test/firstlogin.js', 12],
       ['test/frame.js', 122],
       ['test/keychange.js', 42],
@@ -363,13 +363,14 @@ async function run() {
       ['test/release_045.js', 6],
       ['test/release_046.js', 6],
       ['test/release_047.js', 14],
-      ['test/release_048.js', 16],
+      ['test/release_048.js', 17],
       ['test/release_049.js', 13],
       ['test/release_050.js', 9],
       ['test/release_051.js', 9],
       ['test/release_052.js', 8],
       ['test/release_053.js', 12],
       ['test/release_054.js', 7],
+      ['test/release_055.js', 4],
       ['test/roundtrip.js', 1313],
       ['test/selfcheck.js', 85],
       ['test/source.js', 216],
@@ -382,14 +383,14 @@ async function run() {
       ['test/ui_system.js', 187],
       ['test/ui_translator.js', 24],
       ['counterproof.js', 337],
-      ['server.js', 1054],
+      ['server.js', 1067],
       ['auth.js', 149],
       ['db.js', 56],
       ['mail.js', 17],
       ['keys.js', 14],
       ['attachments.js', 68],
       ['images.js', 13],
-      ['batchrun.js', 14],
+      ['batchrun.js', 15],
       ['log.js', 3],
       ['usertool.js', 6],
       ['twofactor.js', 14],
@@ -398,15 +399,15 @@ async function run() {
       ['schema.js', 6],
       ['backup.js', 48],
       ['backuptool.js', 29],
-      ['public/app.js', 1189],
+      ['public/app.js', 1192],
       ['public/theme.js', 2],
       ['public/style.css', 514],
     ];
-    const COMMENT_TOTAL = { comment: 7148, code: 86275 };
+    const COMMENT_TOTAL = { comment: 7172, code: 87180 };
     // Ausgelieferte Dateien: Bloecke ueber drei Zeilen und Bloecke mit Betonung in Grossbuchstaben.
     const COMMENT_LIMITS = { longBlocks: 3, emphasis: 6 };
-    check('Der Waechter sieht alle vierundfuenfzig Dateien',
-      crAll.each.length === 54 && COMMENT_ROWS.length === 54,
+    check('Der Waechter sieht alle fuenfundfuenfzig Dateien',
+      crAll.each.length === 55 && COMMENT_ROWS.length === 55,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
     const crWrong = [];
     for (let i = 0; i < COMMENT_ROWS.length; i++) {

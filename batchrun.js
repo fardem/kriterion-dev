@@ -138,6 +138,18 @@ async function refreshOneTile(rows) {
   parentPort.postMessage({ kind: 'refreshed', id, ok });
 }
 
+// Aufgabe `check`: liest nur; quick_check nennt hoechstens 20 Fehler.
+function checkDatabase() {
+  const quick = db.pragma('quick_check(20)').map(z => z.quick_check);
+  const keys = [];
+  for (const z of db.pragma('foreign_key_check')) {
+    const same = keys.find(k => k.table === z.table && k.parent === z.parent);
+    if (same) same.count++;
+    else keys.push({ table: z.table, parent: z.parent, count: 1 });
+  }
+  parentPort.postMessage({ kind: 'check', result: { quick, keys } });
+}
+
 // Gibt freie Seiten an das Dateisystem zurueck.
 function reclaim() {
   try { db.pragma('incremental_vacuum'); db.pragma('wal_checkpoint(TRUNCATE)'); } catch {}
@@ -148,6 +160,7 @@ function reclaim() {
   else if (workerData.task === 'thumbnails') await backfillThumbnails(workerData.rows);
   else if (workerData.task === 'geometry') await refreshTiles(workerData.rows);
   else if (workerData.task === 'crop') await refreshOneTile(workerData.rows);
+  else if (workerData.task === 'check') checkDatabase();
   else throw new Error(`Unbekannte Aufgabe: ${workerData.task}`);
   db.close();
   parentPort.close();

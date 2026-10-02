@@ -541,8 +541,9 @@ const F_ROUTES = [
   ['POST',   '/api/backup/cleanup',      'ownerOnly, zweitbestaetigt'],
   ['POST',   '/api/backup/check',            'ownerOnly'],
   ['POST',   '/api/items/:id/deleted-files',   'ownerOnly'],
-  // Nur der Eigentuemer-Admin, und nur mit Kopie im Backup-Ordner.
-  ['DELETE', '/api/files/unknown',           'ownerOnly']
+  // Geloescht wird nur, was der Abgleich freigibt.
+  ['DELETE', '/api/files/unknown',           'ownerOnly'],
+  ['POST',   '/api/files/missing',           'ownerOnly']
 ];
 
 function writingRoutes(text) {
@@ -636,6 +637,8 @@ const F_READ_ROUTES = [
     'Die offenen Aufgaben ueber alle Eintraege; jede einzelne steht ohnehin am Eintrag.'],
   ['/api/stats',                   'adminOnly',
     'Die Kennzahlen der Installation -- Groesse des Bestands und Belegung der Ablage.'],
+  ['/api/maintenance',             'ownerOnly',
+    'Der Abgleich nennt Dateinamen, Eintraege und Ordner der ganzen Instanz und prueft die Datenbank.'],
   ['/api/export/plan',             'ownerOnly',
     'Was ein Export umfassen wuerde. Dieselbe Zeile wie der Export selbst.'],
   ['/api/export',                  'ownerOnly, zweitbestaetigt',

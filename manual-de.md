@@ -713,7 +713,7 @@ an einen Admin, der dir dabei helfen kann.“
 | Titel | Titel vor der Anmeldung (für jeden sichtbar, zurückhaltend wählen) und Titel nach der Anmeldung |
 | Dokumente | Anzeige und Bearbeiten über einen Document Server ein- und ausschalten; „Bearbeiten durch alle“: Startwert, solange ein Account keinen eigenen gesetzt hat; die Karte prüft die Verbindung. Adressen und Secret stehen in der `.env`, siehe README |
 | Kennzahlen | Umfang des Bestands: Einträge, Fotos, Videos, Kommentare, Links und Testtage |
-| Speicher und Wartung | Datenbankgröße, Papierkorb, Dateien auf der Platte (davon über „Anhang“ und im Papierkorb), Uploads, freier Platz. Nur wenn es welche gibt: Dateien, die noch in der Datenbank auf die Umlagerung warten, fehlende Dateien, Dateien, die auf das Löschen warten, und Dateien ohne Verweis. Diese löscht der Eigentümer-Admin mit „Löschen“, aber nur, wenn im Backup-Ordner eine Kopie gleicher Länge liegt |
+| Speicher und Wartung | Datenbankgröße, Papierkorb, Dateien auf der Platte (davon über „Anhang“ und im Papierkorb), Uploads, freier Platz. Nur wenn es welche gibt: freier Platz in der Datenbank („davon frei“), Dateien, die noch in der Datenbank auf die Umlagerung warten, fehlende Dateien, Dateien, die auf das Löschen warten, und Dateien ohne Verweis. Für den Eigentümer-Admin der „Abgleich“, siehe unten |
 | Version und Verschlüsselung | Version, Fingerprint, Verschlüsselungsverfahren; für den Eigentümer-Admin der Schlüsselwert, solange der Schlüssel neben der Datenbank liegt |
 | Kategorien, Tags | anlegen, umbenennen, löschen; ein Häkchen legt fest, ob jeder neue Namen am Eintrag anlegen darf |
 | Bewertung: Kriterien, Potenzial: Kriterien | anlegen, umbenennen, sortieren, gewichten (0,2 bis 2, Vorgabe 1); in „Bewertung: Kriterien“ die Schwelle für „Teilweise“ in den Filtern der Übersicht (1 bis 100 %, Vorgabe 80) |
@@ -721,6 +721,39 @@ an einen Admin, der dir dabei helfen kann.“
 | Zweiter Faktor | ein- und ausschalten, neue Wiederherstellungscodes; persönlich, siehe „Zweiter Faktor“ |
 | Darstellung | Farbschema, Sprache, Schriftgröße, Größe der Vorschaubilder, Zeitleiste, Zahl der sichtbaren Linkzeilen und Anbieternamen, Anordnung der Blöcke; persönlich |
 | Dokumente (persönlich) | Darstellung im Document Server (Wie Kriterion, Modern Hell, Modern Dunkel) und die Vorgabe „Bearbeiten durch alle“ für die eigenen neuen Dateien. Nur mit eingeschaltetem Document Server |
+
+### Abgleich
+
+„Abgleich“ in der Karte „Speicher und Wartung“ sieht nur der Eigentümer-Admin.
+Er vergleicht `data/files/` mit der Datenbank und prüft die Datenbank. Gelöscht
+oder zurückgeholt wird erst nach einer Bestätigung.
+
+Als Dateien ohne Verweis zählen Dateien, Verzeichnisse und symbolische Links in
+`data/files/`, die die Datenbank nicht kennt, mit jedem Namen; `upload/` zählt
+nicht dazu. Die Liste nennt Größe, Datum und Grund. Eine davon lässt sich
+löschen, wenn einer dieser Fälle gilt:
+
+| Fall | Grund in der Liste |
+|---|---|
+| Den Namen legt Kriterion nicht an, oder es ist ein Verzeichnis oder ein symbolischer Link | Diesen Namen legt Kriterion nicht an. |
+| Der Backup-Ordner enthält die Datei mit gleicher Länge | Der Backup-Ordner enthält sie mit gleicher Länge. |
+| Kein Backup im Backup-Ordner nennt den Namen. Den Schlüssel einer Datei hat nur ihre Zeile in der Datenbank; ohne sie ist die Datei nicht lesbar | Kein Backup nennt sie; ohne ihre Zeile ist sie nicht lesbar. |
+
+Alles andere bleibt: eine Datei, die ein Backup nennt, wenn der Backup-Ordner
+sie nicht enthält; jede Datei mit einem Namen von Kriterion, solange ein Backup
+keine Dateiliste hat oder kein Backup-Ordner erreichbar ist. Ein Verzeichnis
+wird mit Inhalt gelöscht, ein symbolischer Link als Link und nie sein Ziel.
+Während ein Backup läuft, wird nichts gelöscht.
+
+Fehlende Dateien fehlen auf der Platte oder haben eine falsche Länge. Die Liste
+nennt Eintrag, Ordner und Dateiname, auch für Dateien im Papierkorb und vorige
+Fassungen. Enthält der Backup-Ordner die Datei mit gleicher Länge, holt
+„Zurückholen“ sie zurück; sonst lässt sie sich im Eintrag löschen. Unter
+„Dateien“ zeigt eine fehlende Datei „fehlt“.
+
+Die Prüfung der Datenbank (`quick_check` und `foreign_key_check` von SQLite)
+läuft in einem eigenen Thread; Kriterion bleibt bedienbar. Sie meldet nur und
+repariert nichts. Meldet sie Fehler: README, „Backup zurückspielen“.
 
 ### Grenzen beim Hochladen
 

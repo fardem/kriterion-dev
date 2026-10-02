@@ -696,7 +696,7 @@ you with it.”
 | Title | title before signing in (visible to everyone, choose with care) and title after signing in |
 | Documents | switch viewing and editing through a Document Server on and off; “Editable by all”: start value as long as an account has not set its own; the card checks the connection. URLs and secret are in the `.env`, see README |
 | Metrics | size of the inventory: entries, photos, videos, comments, links and test days |
-| Storage and maintenance | database size, trash, files on disk (of which above “Attachment” and in the trash), uploads, free space. Only when there are any: files still in the database waiting to be moved to disk, missing files, files waiting to be deleted and files without a reference. The owner admin deletes the files without a reference with “Delete”, but only if a copy of the same length is in the backup folder |
+| Storage and maintenance | database size, trash, files on disk (of which above “Attachment” and in the trash), uploads, free space. Only when there are any: free space in the database (“of which free”), files still in the database waiting to be moved to disk, missing files, files waiting to be deleted and files without a reference. For the owner admin “Reconcile”, see below |
 | Version and encryption | version, fingerprint, encryption methods; for the owner admin the key value, as long as the key lies next to the database |
 | Categories, Tags | create, rename, delete; a tick sets whether anyone may create new names on an entry |
 | Rating: criteria, Potential: criteria | create, rename, sort, weight (0.2 to 2, default 1); in “Rating: criteria” the threshold for “Partial” in the overview filters (1 to 100 %, default 80) |
@@ -704,6 +704,39 @@ you with it.”
 | Second factor | switch on and off, new recovery codes; personal, see “Second factor” |
 | Appearance | colour scheme, language, font size, thumbnail size, timeline, number of visible link rows and engine names, block layout; personal |
 | Documents (personal) | appearance in the Document Server (Like Kriterion, Modern light, Modern dark) and the default “Editable by all” for the user's own new files. Only with the Document Server switched on |
+
+### Reconcile
+
+Only the owner admin sees “Reconcile” in the “Storage and maintenance” card. It
+compares `data/files/` with the database and checks the database. Nothing is
+deleted or fetched back without a confirmation.
+
+Files without a reference are files, directories and symbolic links in
+`data/files/` that the database does not know, with any name; `upload/` is not
+one of them. The list states size, date and reason. One of them can be deleted if
+one of these cases applies:
+
+| Case | Reason in the list |
+|---|---|
+| Kriterion does not create the name, or it is a directory or a symbolic link | Kriterion does not create this name. |
+| The backup folder contains the file with the same length | The backup folder contains it with the same length. |
+| No backup in the backup folder names it. Only the file's row in the database holds its key; without it the file cannot be read | No backup names it; without its row it cannot be read. |
+
+Everything else stays: a file that a backup names, if the backup folder does
+not contain it; every file with a Kriterion name as long as a backup has no file
+list or no backup folder is reachable. A directory is deleted with its content,
+a symbolic link as a link and never its target. Nothing is deleted while a
+backup is running.
+
+Missing files are missing on disk or have the wrong length. The list states
+entry, folder and file name, also for files in the trash and previous versions.
+If the backup folder contains the file with the same length, “Fetch back”
+restores it; otherwise it can be deleted in its entry. Under “Files”, a missing
+file shows “missing”.
+
+The database check (`quick_check` and `foreign_key_check` of SQLite) runs in a
+thread of its own; Kriterion stays usable. It only reports and repairs nothing.
+If it reports errors: README, “Restoring a backup”.
 
 ### Upload limits
 

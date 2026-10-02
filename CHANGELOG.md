@@ -11,6 +11,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 *Collected here while building.*
 
+### Added
+
+- "Reconcile" in "Storage and maintenance" (owner admin): lists every file, directory and symbolic link in `data/files/` without a reference, with any name, and deletes the chosen ones if the backup folder holds them, no backup names them or Kriterion does not create such a name; lists missing files with entry and folder and fetches them back from the backup folder; checks the database and reports only.
+- A missing file shows "missing" under "Files".
+- "Storage and maintenance" shows the free space inside the database.
+
+### Changed
+
+- "Load whole" in the full-screen view of a video works only on its button: the video pauses, loads once and continues from the copy. Without the button the browser buffers as before 0.52.0.
+- Settings are reorganised: a section "Backup" with "Backup", "Old backups" and "Export and import"; "Metrics" is split into "Metrics", "Storage and maintenance" and "Version and encryption"; "Second factor" is a card of its own; the link rows are in "Appearance"; "Vocabulary" is a wide card.
+- A user sees only "Personal" under Settings. Admins see locked fields as text; only the owner admin sees the hint about the key next to the database.
+- Where the owner admin sees a server command, everyone else reads "ask an admin who can help you with it".
+- Deleting files without a reference moved from a button in the card into "Reconcile".
+
 ## [0.54.0] - 2026-10-01
 
 Fingerprint `6402677f` — previously `5e5fb3c7`.

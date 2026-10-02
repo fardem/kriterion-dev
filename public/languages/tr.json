@@ -178,7 +178,6 @@
   "card.deleteUserHint": "“{username}” silinir; ad yeniden serbest kalır. Bu geri alınamaz.",
   "card.deliveryFailed": "Gönderim başarısız",
   "card.derivativesWebp": "Küçük resimler: her durumda WebP, bu seçimden etkilenmez.",
-  "card.diskCopied": "bunlardan yedekleme klasöründe de olanlar",
   "card.diskFiles": "Diskteki dosyalar",
   "card.diskFree": "boş alan",
   "card.diskGone": "silinmeyi bekliyor",
@@ -186,10 +185,6 @@
   "card.diskMissing": "eksik",
   "card.diskPending": "hâlâ veritabanında",
   "card.diskTrash": "bunların çöp kutusundakileri",
-  "card.diskUncopied": {
-    "one": "Bunların {n} tanesi yedekleme klasöründe yok; silinmez.",
-    "other": "Bunların {n} tanesi yedekleme klasöründe yok; silinmez."
-  },
   "card.diskUnknown": "başvurusuz",
   "card.diskUploads": "Yüklemeler",
   "card.documents": "Belgeler",
@@ -397,6 +392,62 @@
   "card.metricsHint": "Verinin kapsamı.",
   "card.storage": "Depolama ve bakım",
   "card.storageHint": "Veritabanının boyutu, diskteki dosyalar ve boş alan.",
+  "card.dbFree": "içindeki boş alan",
+  "card.maintHint": "Eşleştirme, data/files/ içindeki dosyaları veritabanıyla karşılaştırır ve veritabanını denetler. Silme ve geri alma yalnızca onaydan sonra yapılır.",
+  "card.maintRun": "Eşleştir",
+  "card.maintRunning": "Eşleştiriliyor …",
+  "card.maintClean": "Başvurusuz dosya ve eksik dosya yok.",
+  "card.maintUnknown": {
+    "one": "{n} başvurusuz dosya",
+    "other": "{n} başvurusuz dosya"
+  },
+  "card.maintMissing": {
+    "one": "{n} eksik dosya",
+    "other": "{n} eksik dosya"
+  },
+  "card.maintDir": {
+    "one": "{n} dosya içeren dizin",
+    "other": "{n} dosya içeren dizin"
+  },
+  "card.maintLink": "sembolik bağlantı",
+  "card.maintOther": "özel dosya",
+  "card.maintForeign": "Kriterion bu adı oluşturmaz.",
+  "card.maintCopied": "Yedekleme klasörü onu aynı boyutta içeriyor.",
+  "card.maintUnnamed": "Hiçbir yedekleme onu anmıyor; satırı olmadan okunamaz.",
+  "card.maintNamed": "Bir yedekleme onu anıyor ve yedekleme klasörü onu içermiyor. Kalır.",
+  "card.maintUnlisted": "Dosya listesi olmayan bir yedekleme ona ihtiyaç duyabilir. Kalır.",
+  "card.maintNoFolder": "Erişilebilir bir yedekleme klasörü olmadan bir yedeklemenin ona ihtiyaç duyup duymadığı denetlenemez. Kalır.",
+  "card.maintNoCopy": "Yedekleme klasöründe de yok. Dosya, bağlantı üzerinden “Dosyalar” altında silinir.",
+  "card.maintCopyThere": "yedekleme klasöründe var",
+  "card.maintInTrash": "çöp kutusunda",
+  "card.maintPrevious": "önceki sürüm",
+  "card.maintRestore": "Geri al",
+  "card.maintRestoreAsk": {
+    "one": "{n} dosya yedekleme klasöründen geri alınsın mı?",
+    "other": "{n} dosya yedekleme klasöründen geri alınsın mı?"
+  },
+  "card.maintRestoreHint": "Yedekleme klasöründeki dosya eksik olanın yerini alır.",
+  "card.maintRestored": {
+    "one": "{n} dosya geri alındı.",
+    "other": "{n} dosya geri alındı."
+  },
+  "card.maintDeleteAsk": {
+    "one": "{n} dosya ({bytes}) silinsin mi?",
+    "other": "{n} dosya ({bytes}) silinsin mi?"
+  },
+  "card.maintDeleteHint": "data/files/ içinden silinirler, dizinler içerikleriyle birlikte. Bu geri alınamaz.",
+  "card.maintDeleted": {
+    "one": "{n} dosya silindi ({bytes}).",
+    "other": "{n} dosya silindi ({bytes})."
+  },
+  "card.maintCheck": "Veritabanı denetimi",
+  "card.maintCheckOk": "Sorun yok; denetim {seconds} saniye sürdü.",
+  "card.maintCheckBad": "Denetim hata bildiriyor. Kriterion bunları onarmaz. Denetim {seconds} saniye sürdü.",
+  "card.maintCheckRunning": "Veritabanı denetimi sürüyor …",
+  "card.maintKeys": {
+    "one": "{table}: {n} satır {parent} içinde olmayan bir satıra başvuruyor.",
+    "other": "{table}: {n} satır {parent} içinde olmayan satırlara başvuruyor."
+  },
   "card.minCharsHint": "(en az {minPassword} karakter)",
   "card.minCharsSessions": "En az {minPassword} karakter. Bu kullanıcının bütün oturumları bitirilir.",
   "card.more": "Daha fazla",
@@ -696,15 +747,6 @@
   "card.twoFactorTurnedOn": "İki adımlı doğrulama açıldı",
   "card.twoFactorTitle": "İki adımlı doğrulama",
   "card.typeByHand": "HTTPS olmadan tarayıcı panoya erişim vermez. Anahtar yukarıda.",
-  "card.unknownDeleteAsk": {
-    "one": "{n} dosya ({bytes}) silinsin mi?",
-    "other": "{n} dosya ({bytes}) silinsin mi?"
-  },
-  "card.unknownDeleted": {
-    "one": "{n} dosya silindi ({bytes}).",
-    "other": "{n} dosya silindi ({bytes})."
-  },
-  "card.unknownDeleteHint": "Veritabanı bu dosyaları tanımıyor. Yedekleme klasörü onları aynı boyutta içeriyor.",
   "card.unknownName": "bilinmeyen ad",
   "card.unlock": "Kilidi aç",
   "card.unlocked": "Kilit açıldı",
@@ -883,6 +925,7 @@
   "entry.fileDeleteHint": "“{filename}” ardından {trashDays} gün çöp kutusunda kalır.",
   "entry.fileDropHint": "Buraya sürükle ya da + ile yükle.",
   "entry.fileFailed": "başarısız",
+  "entry.fileMissing": "eksik",
   "entry.fileFull": "{n} / {cap}",
   "entry.fileLimitHint": "dosya başına en fazla {size}, en çok {cap} dosya",
   "entry.fileMenu": "{name} menüsü",

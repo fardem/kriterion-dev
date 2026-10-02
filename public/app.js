@@ -7332,12 +7332,14 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     const length = video ? durationText(a.duration) : '';
     // Bis PUT .../still antwortet, zeigt die Kachel das Standbild aus dem Browser.
     const coming = STILLS_ON_WAY.get(a.id)?.stillUrl || '';
-    fillTile(li, { name: a.filename, size: filesize(a.size), kind, meta: from, duration: length,
+    const missing = a.missing ? t('entry.fileMissing') : '';
+    fillTile(li, { name: a.filename, size: filesize(a.size), kind, meta: [from, missing].filter(Boolean).join(' · '),
+      duration: length, note: missing, corner: a.missing ? { kind: 'fail', text: '⚠' } : null,
       picture: a.preview === 'image' || (video && a.still) || a.thumb ? fileTileSource(a) : coming,
       video: video || /^video\//.test(a.mime_type || ''), badge: a.thumb ? kind : '',
       date: fmtDateOnly(a.created_at), from, kindCell: kindText(a), codec: video || image ? codecName(a.codec) : '',
       label: [a.filename, kind, video ? codecName(a.codec) : image && a.codec ? kindText(a) : '', length,
-        filesize(a.size), from].filter(Boolean).join(', '),
+        filesize(a.size), from, missing].filter(Boolean).join(', '),
       open: openPreview === a.id || lightboxFile === a.id });
     if (video && !a.still && a.mine === true && shown) catchUpStill(id, a);
     if (readable && !isNarrow()) {
@@ -11364,11 +11366,16 @@ function cardStorage(fetched) {
         <h3>${tH('card.storage')}</h3>
         <p class="desc">${tH('card.storageHint')}</p>
         <div class="kv"><span class="k">${tH('card.database')}</span><span class="v">${fmtBytes(stats.dbBytes)}</span></div>
+        ${stats.dbFree ? `<div class="kv"><span class="k">${tH('card.dbFree')}</span><span class="v">${fmtBytes(stats.dbFree)}</span></div>` : ''}
         ${/* Papierkorb als eigene Zeile: sonst wirkt die Datenbank nach dem Aufraeumen
              groesser als vorher. */''}
         <div class="kv"><span class="k">${tH('card.trash')}</span><span class="v">${stats.trashCount || 0} · ${fmtBytes(stats.trashBytes)}</span></div>
         ${stats.attachmentCount ? `<div class="kv"><span class="k">${tH('card.diskPending')}</span><span class="v">${stats.attachmentCount} · ${fmtBytes(stats.attachmentBytes)}</span></div>` : ''}
-        ${diskRows(stats.disk)}
+        <div id="disk-rows">${diskRows(stats.disk)}</div>
+        ${OWNER ? `<div class="sys-part"></div>
+        <p class="desc">${tH('card.maintHint')}</p>
+        <div class="row-in"><button class="btn btn-sm" id="maint-run">${tH('card.maintRun')}</button></div>
+        <div id="maint-out" aria-live="polite"></div>` : ''}
       </div>`;
 }
 
@@ -11414,7 +11421,6 @@ function cardVersion(fetched) {
 function diskRows(d) {
   if (!d) return '';
   const row = (label, value) => `<div class="kv"><span class="k">${label}</span><span class="v">${value}</span></div>`;
-  const without = d.unknownCount - d.copiedCount;
   return [
     row(tH('card.diskFiles'), `${d.count} · ${fmtBytes(d.bytes)}`),
     d.largeCount ? row(tH('card.diskLarge'), `${d.largeCount} · ${fmtBytes(d.largeBytes)}`) : '',
@@ -11422,24 +11428,119 @@ function diskRows(d) {
     row(tH('card.diskUploads'), `${d.uploadCount} · ${fmtBytes(d.uploadBytes)}`),
     d.missing ? row(tH('card.diskMissing'), String(d.missing)) : '',
     d.gone ? row(tH('card.diskGone'), String(d.gone)) : '',
-    d.unknownCount ? row(tH('card.diskUnknown'), `${d.unknownCount} · ${fmtBytes(d.unknownBytes)}`)
-      + row(tH('card.diskCopied'), `${d.copiedCount} · ${fmtBytes(d.copiedBytes)}`)
-      + (without ? `<p class="hint hint-sm" style="margin:4px 2px 0">${tH('card.diskUncopied', { n: without })}</p>` : '')
-      + (OWNER && d.copiedCount ? `<div class="kv kv-act"><button class="btn btn-sm btn-danger" id="disk-unknown-delete"
-          data-n="${Number(d.copiedCount)}" data-bytes="${Number(d.copiedBytes)}">${tH('dialog.delete')}</button></div>` : '') : '',
+    d.unknownCount ? row(tH('card.diskUnknown'), `${d.unknownCount} · ${fmtBytes(d.unknownBytes)}`) : '',
     d.free != null ? row(tH('card.diskFree'), fmtBytes(d.free)) : ''
   ].join('');
 }
 
+/* Die ersten drei duerfen weg, wie FREE_WHY in server.js. */
+const MAINT_WHY = {
+  foreign: 'card.maintForeign', copied: 'card.maintCopied', unnamed: 'card.maintUnnamed',
+  named: 'card.maintNamed', unlisted: 'card.maintUnlisted', noFolder: 'card.maintNoFolder'
+};
+// Die Pruefung der Datenbank bleibt stehen, waehrend Loeschen und Zurueckholen die Listen neu zeichnen.
+let MAINT_CHECK = null;
+
+// Abstand der Nachfrage, solange der Server die Pruefung als laufend meldet.
+const MAINT_POLL_MS = 2000;
 function setUpStorageOut() {
-  atElement('disk-unknown-delete', b => b.onclick = async () => {
-    const n = Number(b.dataset.n);
-    const ask = t('card.unknownDeleteAsk', { n, bytes: fmtBytes(Number(b.dataset.bytes)) });
-    if (!await confirmBox(ask, t('card.unknownDeleteHint'))) return;
+  atElement('maint-run', b => b.onclick = async () => {
+    const out = document.getElementById('maint-out');
+    b.disabled = true;
+    out.innerHTML = `<p class="hint hint-sm">${tH('card.maintRunning')}</p>`;
     try {
-      const r = await api('DELETE', '/api/files/unknown');
-      toast(t('card.unknownDeleted', { n: r.removed, bytes: fmtBytes(r.bytes) }));
-      renderSystem({ keepScroll: true });
+      for (;;) {
+        const m = await api('GET', '/api/maintenance');
+        MAINT_CHECK = m.check;
+        drawMaintenance(m);
+        if (!m.check || !m.check.running || !out.isConnected) break;
+        await new Promise(r => setTimeout(r, MAINT_POLL_MS));
+      }
+    } catch (e) { out.innerHTML = ''; toast(e.message, true); }
+    finally { b.disabled = false; }
+  });
+}
+
+function drawMaintenance(m) {
+  const out = document.getElementById('maint-out');
+  if (!out) return;
+  const check = MAINT_CHECK || {};
+  const unknown = m.unknown || [], missing = m.missing || [];
+  out.innerHTML = `<div class="sys-part"></div>
+    ${!unknown.length && !missing.length ? `<p class="desc">${tH('card.maintClean')}</p>` : ''}
+    ${unknown.length ? `<h4 class="sys-sub">${tH('card.maintUnknown', { n: unknown.length })}</h4>
+      <div class="cleanup-head"><button class="link-btn" id="maint-all"${
+        unknown.some(f => f.free) ? '' : ' hidden'}>${tH('entry.pickAll')}</button></div>
+      <div class="manage-list" id="maint-unknown">${unknown.map(f => `<div class="mrow">
+        <input type="checkbox" class="maint-pick" data-name="${esc(f.name)}" aria-label="${esc(f.name)}"${
+          f.free ? '' : ' disabled'}>
+        <span class="mname">${esc(f.name)}</span>
+        <span class="mcount">${esc(fmtBytes(f.size))} · ${esc(fmtDate(f.at))}</span>
+        <span class="mfiles">${f.kind === 'dir' ? `${tH('card.maintDir', { n: f.files })} · `
+          : f.kind === 'link' ? `${tH('card.maintLink')} · ` : f.kind === 'other' ? `${tH('card.maintOther')} · ` : ''}${
+          tH(MAINT_WHY[f.why] || 'card.maintNamed')}</span></div>`).join('')}</div>
+      <div class="row-in"><button class="btn btn-sm btn-danger" id="maint-delete" disabled>${
+        tH('dialog.delete')}</button></div>` : ''}
+    ${missing.length ? `<h4 class="sys-sub">${tH('card.maintMissing', { n: missing.length })}</h4>
+      <div class="manage-list" id="maint-missing">${missing.map(f => `<div class="mrow">
+        <input type="checkbox" class="maint-back" data-name="${esc(f.name)}" aria-label="${esc(f.filename || f.name)}"${
+          f.copy ? '' : ' disabled'}>
+        <span class="mname">${f.item ? `<a href="#/item/${Number(f.item.id)}">${esc(f.item.title)}</a>`
+          : esc(f.trash || '')}</span>
+        <span class="mcount">${esc(f.filename || f.name)}${f.folder ? ` · ${esc(f.folder)}` : ''}</span>
+        <span class="mfiles">${f.place === 'trash' ? `${tH('card.maintInTrash')} · `
+          : f.place === 'previous' ? `${tH('card.maintPrevious')} · ` : ''}${
+          f.copy ? tH('card.maintCopyThere') : f.why === 'noFolder' ? tH('server.backupDirUnreachable')
+            : tH('card.maintNoCopy')}</span></div>`).join('')}</div>
+      <div class="row-in"><button class="btn btn-sm" id="maint-restore" disabled>${
+        tH('card.maintRestore')}</button></div>` : ''}
+    <h4 class="sys-sub">${tH('card.maintCheck')}</h4>
+    ${check.running ? `<p class="hint hint-sm">${tH('card.maintCheckRunning')}</p>`
+      : check.ok ? `<p class="desc">${tH('card.maintCheckOk', { seconds: number((check.ms || 0) / 1000, 1) })}</p>`
+      : `<div class="warn-box">${tH('card.maintCheckBad', { seconds: number((check.ms || 0) / 1000, 1) })}<ul>${
+        (check.quick || []).filter(z => z !== 'ok').map(z => `<li>${esc(z)}</li>`).join('')}${
+        (check.keys || []).map(k => `<li>${tH('card.maintKeys', { n: k.count, table: k.table, parent: k.parent })}</li>`).join('')
+        }</ul></div>`}`;
+
+  const picks = (cls) => [...out.querySelectorAll(`.${cls}`)].filter(x => !x.disabled);
+  const chosen = (cls) => picks(cls).filter(x => x.checked).map(x => x.dataset.name);
+  const refresh = () => {
+    atElement('maint-delete', x => { x.disabled = !chosen('maint-pick').length; });
+    atElement('maint-restore', x => { x.disabled = !chosen('maint-back').length; });
+    atElement('maint-all', x => {
+      const all = picks('maint-pick');
+      x.textContent = t(all.length && all.every(y => y.checked) ? 'entry.pickNone' : 'entry.pickAll');
+    });
+  };
+  out.querySelectorAll('.maint-pick, .maint-back').forEach(x => { x.onchange = refresh; });
+  atElement('maint-all', x => x.onclick = () => {
+    const all = picks('maint-pick');
+    const on = !all.every(y => y.checked);
+    all.forEach(y => { y.checked = on; });
+    refresh();
+  });
+  const after = (r, note) => {
+    toast(note);
+    atElement('disk-rows', box => { box.innerHTML = diskRows(r.disk); });
+    drawMaintenance(r);
+  };
+  atElement('maint-delete', x => x.onclick = async () => {
+    const names = chosen('maint-pick');
+    const bytes = unknown.filter(f => names.includes(f.name)).reduce((n, f) => n + f.size, 0);
+    if (!names.length || !await confirmBox(t('card.maintDeleteAsk', { n: names.length, bytes: fmtBytes(bytes) }),
+      t('card.maintDeleteHint'))) return;
+    try {
+      const r = await api('DELETE', '/api/files/unknown', { names });
+      after(r, t('card.maintDeleted', { n: r.removed, bytes: fmtBytes(r.bytes) }));
+    } catch (e) { toast(e.message, true); }
+  });
+  atElement('maint-restore', x => x.onclick = async () => {
+    const names = chosen('maint-back');
+    if (!names.length || !await confirmBox(t('card.maintRestoreAsk', { n: names.length }),
+      t('card.maintRestoreHint'), t('card.maintRestore'), 'accent')) return;
+    try {
+      const r = await api('POST', '/api/files/missing', { names });
+      after(r, t('card.maintRestored', { n: r.restored }));
     } catch (e) { toast(e.message, true); }
   });
 }

@@ -5483,7 +5483,7 @@ app.get('/api/stats', adminOnly, (req, res) => {
     fingerprint: FINGERPRINT.value,
     fingerprintFiles: FINGERPRINT.files,
     method: { ...method(), passwords: 'scrypt' },
-    dbBytes, photoCount: p.n, photoBytes: p.o,
+    dbBytes, dbFree: dbFreeBytes(), photoCount: p.n, photoBytes: p.o,
     videoCount: vi.n, videoBytes: vi.o,
     attachmentCount: an.n, attachmentBytes: an.o,
     trashCount: pk.n, trashBytes: pk.o,
@@ -5521,54 +5521,230 @@ const qDiskCount = db.prepare(`SELECT COUNT(*) AS n, COALESCE(SUM(size),0) AS o,
 const qUploadSum = db.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(received),0) AS o FROM uploads');
 const qGoneCount = db.prepare('SELECT COUNT(*) AS n FROM disk_files_gone');
 
-// `copy`: unter kriterion-files/ am Ablageort liegt eine Kopie gleicher Laenge.
+/* ---- Wartung: Dateien ohne Verweis, fehlende Dateien, Pruefung der Datenbank ---- */
+// Eigene Verzeichnisse unter data/files/; ein neues auch hier eintragen.
+const OWN_DIRS = new Set(['upload']);
+
+// Folgt keinem symbolischen Link.
+function treeSize(dir) {
+  let files = 0, bytes = 0;
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) { const t = treeSize(p); files += t.files; bytes += t.bytes; }
+    else { files++; try { bytes += fs.lstatSync(p).size; } catch {} }
+  }
+  return { files, bytes };
+}
+
 function unknownFiles() {
   let names = [];
   try { names = fs.readdirSync(FILES_DIR); } catch {}
   const known = new Set([...qDiskNames.all(), ...qGone.all()].map(z => z.name));
-  const place = backupState().input ? checkPlace(getSetting('backupPlace', '')) : { error: true };
-  const copies = place.error ? null : path.join(place.filePath, COPY_DIR);
   const out = [];
   for (const name of names) {
-    if (!DISK_NAME.test(name) || known.has(name)) continue;
-    const file = diskPath(name);
-    let size;
-    try { const st = fs.lstatSync(file); if (!st.isFile()) continue; size = st.size; } catch { continue; }
-    let copy = false;
-    try { copy = !!copies && fs.statSync(path.join(copies, name)).size === size; } catch {}
-    out.push({ name, file, size, copy });
+    if (known.has(name)) continue;
+    const file = path.join(FILES_DIR, name);
+    let st;
+    try { st = fs.lstatSync(file); } catch { continue; }
+    if (st.isDirectory() && OWN_DIRS.has(name)) continue;
+    const kind = st.isSymbolicLink() ? 'link' : st.isDirectory() ? 'dir' : st.isFile() ? 'file' : 'other';
+    let tree = null;
+    if (kind === 'dir') try { tree = treeSize(file); } catch { tree = { files: 0, bytes: 0 }; }
+    out.push({ name, file, kind, size: tree ? tree.bytes : st.size, files: tree ? tree.files : null,
+               at: st.mtimeMs });
   }
   return out;
+}
+
+function backupFolder() {
+  const place = backupState().input ? checkPlace(getSetting('backupPlace', '')) : { error: true };
+  return place.error ? null : place.filePath;
+}
+
+// null, wenn der Ordner fehlt oder nicht lesbar ist; `unlisted` zaehlt Backups ohne Dateiliste.
+function backupNames(folder) {
+  const files = folder ? backup.backupList(folder) : null;
+  if (!files) return null;
+  const named = new Set();
+  let unlisted = 0;
+  for (const d of files) {
+    const list = backup.readList(folder, d.name);
+    if (!list) { unlisted++; continue; }
+    for (const z of list.rows) named.add(z.name);
+  }
+  return { named, unlisted };
+}
+
+/* Frei: ein Name, den Kriterion nicht anlegt; eine Kopie gleicher Laenge im Backup-Ordner; kein
+   Backup nennt den Namen. Den Schluessel hat nur die Zeile; ohne sie ist die Datei nicht lesbar. */
+const FREE_WHY = new Set(['foreign', 'copied', 'unnamed']);
+function unknownScan() {
+  const folder = backupFolder();
+  let names = null;
+  try { names = backupNames(folder); } catch {}
+  return unknownFiles().map(f => {
+    let why;
+    if (f.kind !== 'file' || !DISK_NAME.test(f.name)) why = 'foreign';
+    else if (folder && backup.copyPresent(folder, { name: f.name, length: f.size })) why = 'copied';
+    else if (!names) why = 'noFolder';
+    else if (names.named.has(f.name)) why = 'named';
+    else if (names.unlisted) why = 'unlisted';
+    else why = 'unnamed';
+    return { ...f, why, free: FREE_WHY.has(why) };
+  });
 }
 
 function diskStats() {
   const d = qDiskCount.get(), u = qUploadSum.get();
   const unknown = unknownFiles();
-  const copied = unknown.filter(f => f.copy);
   return {
     count: d.n, bytes: d.o, largeCount: d.ln, largeBytes: d.lo, trashCount: d.tn, trashBytes: d.tbytes,
     uploadCount: u.n, uploadBytes: u.o, missing: DISK_MISSING.size, gone: qGoneCount.get().n,
     unknownCount: unknown.length, unknownBytes: unknown.reduce((n, f) => n + f.size, 0),
-    copiedCount: copied.length, copiedBytes: copied.reduce((n, f) => n + f.size, 0),
     free: diskFree()
   };
 }
 
+// Wie beim Start, nimmt aber keinen Namen heraus: eine Datei richtiger Laenge kann beschaedigt sein.
+function findMissing() {
+  for (const z of qDiskSizes.all()) {
+    if (DISK_WRITING.has(z.name)) continue;
+    let size = -1;
+    try { size = fs.statSync(diskPath(z.name)).size; } catch {}
+    if (size !== encLen(z.size, z.chunk)) DISK_MISSING.add(z.name);
+  }
+}
+
+// Eine Datei im Papierkorb hat keinen Anhang mehr; ihr Eintrag steht in trash.title.
+const qMissingOf = db.prepare(`SELECT d.name, d.size, d.chunk,
+    CASE WHEN d.trash_id IS NOT NULL THEN 'trash' WHEN d.attachment_id IS NULL THEN 'previous' ELSE 'entry' END AS place,
+    a.filename, i.id AS item_id, i.title, f.name AS folder, t.title AS trash_title
+  FROM disk_files d LEFT JOIN attachments a ON a.id = COALESCE(d.attachment_id, d.previous_of)
+    LEFT JOIN items i ON i.id = a.item_id
+    LEFT JOIN attachment_folders af ON af.attachment_id = a.id
+    LEFT JOIN folders f ON f.id = af.folder_id
+    LEFT JOIN trash t ON t.id = d.trash_id
+  WHERE d.name = ?`);
+
+function missingScan() {
+  const folder = backupFolder();
+  const out = [];
+  for (const name of DISK_MISSING) {
+    const r = qMissingOf.get(name);
+    if (!r) continue;
+    const copy = !!folder && backup.copyPresent(folder, { name, length: encLen(r.size, r.chunk) });
+    out.push({ name, place: r.place, filename: r.filename, folder: r.folder,
+               item: r.item_id == null ? null : { id: r.item_id, title: r.title },
+               trash: r.trash_title, size: r.size, copy, why: copy ? null : folder ? 'noCopy' : 'noFolder' });
+  }
+  return out.sort((a, b) => String(a.item?.title ?? a.trash ?? '').localeCompare(String(b.item?.title ?? b.trash ?? ''))
+    || String(a.filename ?? '').localeCompare(String(b.filename ?? '')));
+}
+
+const maintenanceLists = () => ({
+  unknown: unknownScan().sort((a, b) => a.name.localeCompare(b.name))
+    .map(({ file, at, ...f }) => ({ ...f, at: sqlTime(at) })),
+  missing: missingScan(), dbFree: dbFreeBytes(), folder: !!backupFolder()
+});
+
+const dbFreeBytes = () => db.pragma('freelist_count', { simple: true }) * db.pragma('page_size', { simple: true });
+
+// In batchrun.js mit eigener Verbindung; Kriterion bleibt waehrenddessen bedienbar.
+function databaseCheck() {
+  return new Promise((done) => {
+    const started = Date.now();
+    let result = null;
+    const w = new Worker(BATCHRUN, { workerData: { task: 'check' } });
+    batchThreads.add(w);
+    w.on('message', (m) => { if (m && m.kind === 'check') result = m.result; });
+    w.on('error', (e) => { result = { quick: [e.message], keys: [] }; });
+    w.on('exit', () => {
+      batchThreads.delete(w);
+      const r = result || { quick: ['no result'], keys: [] };
+      done({ ...r, ok: r.quick.length === 1 && r.quick[0] === 'ok' && !r.keys.length, ms: Date.now() - started });
+    });
+  });
+}
+
+/* Ein Reverse Proxy bricht eine Anfrage meist nach 60 s ab; die Antwort wartet hoechstens 20 s.
+   Laeuft die Pruefung dann noch, antwortet die Route `running`, und die Karte fragt nach. */
+const CHECK_WAIT_MS = BENCH.checkwait || 20000;
+// Die laufende oder die letzte, noch nicht ausgelieferte Pruefung; Abrufe zugleich teilen sie sich.
+let CHECK = null;
+app.get('/api/maintenance', ownerOnly, async (req, res, next) => {
+  if (DATABASE_INCOMPLETE) return res.status(409).json({ error: t(localeOf(req), 'server.databaseIncomplete') });
+  try {
+    findMissing();
+    if (!CHECK || CHECK.delivered) {
+      const fresh = CHECK = { result: null, delivered: false };
+      fresh.done = databaseCheck().then(r => (fresh.result = r));
+    }
+    const mine = CHECK;
+    let clock;
+    await Promise.race([mine.done, new Promise(ok => { clock = setTimeout(ok, CHECK_WAIT_MS); })]);
+    clearTimeout(clock);
+    if (mine.result) mine.delivered = true;
+    res.json({ ...maintenanceLists(), check: mine.result || { running: true } });
+  } catch (e) { next(e); }
+});
+
+const pickedNames = (body) => new Set(Array.isArray(body && body.names)
+  ? body.names.filter(n => typeof n === 'string') : []);
+
 app.delete('/api/files/unknown', ownerOnly, (req, res) => {
   if (DATABASE_INCOMPLETE) return res.status(409).json({ error: t(localeOf(req), 'server.databaseIncomplete')});
-  const place = backupState().input ? checkPlace(getSetting('backupPlace', '')) : { error: true };
-  if (place.error) return res.json({ removed: 0, bytes: 0, disk: diskStats() });
-  const lock = takeBackupLock(place.filePath);
-  if (!lock) return res.status(409).json({ error: t(localeOf(req), 'server.backupRunning')});
+  const wanted = pickedNames(req.body);
+  const folder = backupFolder();
+  // Ohne Backup-Ordner gibt es keine Sperre; BACKUP_BUSY gilt trotzdem.
+  const lock = folder ? takeBackupLock(folder) : null;
+  if (folder ? !lock : BACKUP_BUSY) return res.status(409).json({ error: t(localeOf(req), 'server.backupRunning')});
   let removed = 0, bytes = 0;
+  const gone = [];
   try {
-    for (const f of unknownFiles().filter(z => z.copy)) {
-      try { fs.unlinkSync(f.file); removed++; bytes += f.size; }
-      catch (e) { logFail(`Unknown disk file ${f.name} not removed: ${e.code || e.message}`); }
+    for (const f of unknownScan().filter(z => z.free && wanted.has(z.name))) {
+      try {
+        if (f.kind === 'dir') fs.rmSync(f.file, { recursive: true, force: true });
+        else fs.unlinkSync(f.file);
+        removed++; bytes += f.size; gone.push(f.name);
+      } catch (e) { logFail(`Unknown disk file ${f.name} not removed: ${e.code || e.message}`); }
     }
-  } finally { dropBackupLock(lock); }
-  if (removed) logLine(`Disk files without a reference removed: ${removed} (${bytes} bytes).`);
-  res.json({ removed, bytes, disk: diskStats() });
+  } finally { if (lock) dropBackupLock(lock); }
+  if (removed) logLine(`Disk files without a reference removed: ${removed} (${bytes} bytes): ${gone.join(', ')}.`);
+  res.json({ removed, bytes, ...maintenanceLists(), disk: diskStats() });
+});
+
+// Wie fileFromBackup(): unter upload/ kopiert, dann an seinen Platz umbenannt.
+app.post('/api/files/missing', ownerOnly, async (req, res, next) => {
+  const locale = localeOf(req);
+  if (DATABASE_INCOMPLETE) return res.status(409).json({ error: t(locale, 'server.databaseIncomplete') });
+  const folder = backupFolder();
+  if (!folder) return res.status(409).json({ error: t(locale, 'server.backupDirUnreachable') });
+  const lock = takeBackupLock(folder);
+  if (!lock) return res.status(409).json({ error: t(locale, 'server.backupRunning') });
+  const wanted = pickedNames(req.body);
+  let restored = 0;
+  const back = [];
+  try {
+    for (const name of [...wanted].filter(n => DISK_NAME.test(n) && DISK_MISSING.has(n))) {
+      const r = qMissingOf.get(name);
+      const length = r ? encLen(r.size, r.chunk) : 0;
+      if (!r || !backup.copyPresent(folder, { name, length })) continue;
+      if (spaceShort(length)) { logFail(`Disk file ${name} not restored: not enough space.`); continue; }
+      DISK_WRITING.add(name);
+      try {
+        await backup.copySynced(path.join(folder, COPY_DIR, name), diskPath(name, true));
+        fs.renameSync(diskPath(name, true), diskPath(name));
+        DISK_MISSING.delete(name);
+        restored++; back.push(name);
+      } catch (e) {
+        logFail(`Disk file ${name} not restored: ${e.code || e.message}`);
+        for (const rest of [diskPath(name, true), diskPath(name, true) + '.part']) fs.rmSync(rest, { force: true });
+      } finally { DISK_WRITING.delete(name); }
+    }
+  } catch (e) { return next(e); }
+  finally { dropBackupLock(lock); }
+  if (restored) logLine(`Disk files restored from the backup folder: ${restored}: ${back.join(', ')}.`);
+  res.json({ restored, ...maintenanceLists(), disk: diskStats() });
 });
 
 /* Vorhandene Fotos umstellen, Knopf im Reiter „Datenbank". */

@@ -146,7 +146,10 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
   /* Ordner unter „Dateien", neueste oben wie am Server. */
   folders = [],
   /* Die Karte „Dokumente": Zustand und Ergebnis der Pruefung. */
-  documentServer = null, documentServerCheck = null } = {}) {
+  documentServer = null, documentServerCheck = null,
+  /* Antwort von GET /api/maintenance; Loeschen und Zurueckholen nehmen die Namen heraus.
+     Die ersten `maintenanceRunning` Antworten melden die Pruefung als laufend. */
+  maintenance = null, maintenanceRunning = 0 } = {}) {
   // Kommt aus dem jsdom-Paket des Aufrufers; require liest nur den Modulcache.
   const { VirtualConsole } = require('jsdom');
   settings = { searchProviders: DOM_PROVIDER, searchNames: 3, ...settings };
@@ -1176,6 +1179,24 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       rows: [], secret: false, setup: 'server.docNoAddress', on: false });
     if (url === '/api/document-server/check')
       return give(documentServerCheck || { key: 'server.docNoAddress', values: {} });
+    if (url === '/api/maintenance' && maintenance)
+      return give(maintenanceRunning-- > 0 ? { ...maintenance, check: { running: true } } : maintenance);
+    if (url === '/api/files/unknown' && opt.method === 'DELETE' && maintenance) {
+      const names = JSON.parse(opt.body || '{}').names || [];
+      const gone = maintenance.unknown.filter(f => f.free && names.includes(f.name));
+      maintenance = { ...maintenance, unknown: maintenance.unknown.filter(f => !gone.includes(f)) };
+      return give({ removed: gone.length, bytes: gone.reduce((n, f) => n + f.size, 0), ...maintenance,
+        disk: { count: 4, bytes: 6144, uploadCount: 0, uploadBytes: 0, missing: 0, gone: 0,
+                unknownCount: maintenance.unknown.length, unknownBytes: 0, free: null } });
+    }
+    if (url === '/api/files/missing' && opt.method === 'POST' && maintenance) {
+      const names = JSON.parse(opt.body || '{}').names || [];
+      const back = maintenance.missing.filter(f => f.copy && names.includes(f.name));
+      maintenance = { ...maintenance, missing: maintenance.missing.filter(f => !back.includes(f)) };
+      return give({ restored: back.length, ...maintenance,
+        disk: { count: 4, bytes: 6144, uploadCount: 0, uploadBytes: 0, missing: maintenance.missing.length,
+                gone: 0, unknownCount: 0, unknownBytes: 0, free: null } });
+    }
     if (url === '/api/stats') {
       if (settings.isAdmin === false)
         return give({ error: 'Das verwaltet nur der Admin.' }, 403);

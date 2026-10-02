@@ -331,7 +331,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const csAddress = (filePath) => filePath.replace(/:[A-Za-z]+/g, '7');
   const csGuarded = H.F_ROUTES.filter(([m, p]) => !csFree.has(`${m} ${p}`));
   check('Dreiundachtzig der einundneunzig Routen stehen hinter dem Schutz',
-    csGuarded.length === 83 && H.F_ROUTES.length === 91,
+    csGuarded.length === 84 && H.F_ROUTES.length === 92,
     `${csGuarded.length} von ${H.F_ROUTES.length}`);
   const csThrough = [];
   for (const [method, filePath] of csGuarded) {
@@ -1720,7 +1720,7 @@ async function sendImport(object, mode, withoutShare = false) {
       /app\.get\('\/api\/manifest\.json'/.test(serverCode)
       && !/app\.(post|put|delete)\('\/api\/manifest\.json'/.test(serverCode));
     check('Und die Zahl der lesenden Routen steht',
-      (serverCode.match(/^app\.get\('/gm) || []).length === 38,
+      (serverCode.match(/^app\.get\('/gm) || []).length === 39,
       String((serverCode.match(/^app\.get\('/gm) || []).length));
 
     // Die Pruefungen danach rechnen mit dem alten Titel.

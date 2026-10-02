@@ -34,7 +34,7 @@ async function run() {
     `ohne Entscheidung: ${fUnknown.join(' · ') || '—'} · verschwunden: ${fGone.join(' · ') || '—'}`);
   // Die feste Zahl macht jede neue Route in F_ROUTES sichtbar.
   check('Und es sind jetzt genau 91 schreibende Routen',
-    F_ROUTES.length === 91 && fFound.length === 91,
+    F_ROUTES.length === 92 && fFound.length === 92,
     `${F_ROUTES.length} erwartet, ${fFound.length} gefunden`);
   /* Gelesen werden die geladenen Listen aus auth.js, nicht ihr Quelltext;
      ein Textvergleich schluege auch bei Kommentaren an. */
@@ -107,7 +107,7 @@ async function run() {
     `ohne Eintrag: ${fReadUnknown.join(' · ') || '—'} · verschwunden: ${fReadGone.join(' · ') || '—'}`);
   // Die 38 ergibt auch ein Zaehlen der GET-Routen am Zeilenanfang von server.js.
   check('Und es sind genau 38 lesende Routen',
-    F_READ_ROUTES.length === 38 && fRead.length === 38,
+    F_READ_ROUTES.length === 39 && fRead.length === 39,
     `${F_READ_ROUTES.length} erwartet, ${fRead.length} gefunden`);
   check('Und jede Zeile des Verzeichnisses sagt, warum sie dort sitzt',
     F_READ_ROUTES.every(([, , why]) => typeof why === 'string' && why.trim().length > 30),
@@ -1050,7 +1050,7 @@ async function run() {
         if (part.kind === CODE)
           for (const m of part.value.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) benchNames.add(m[0]);
     check('Der Waechter sieht wirklich den ganzen Pruefstand',
-      benchNames.size > 2000 && BENCH.length === 35,
+      benchNames.size > 2000 && BENCH.length === 36,
       `${benchNames.size} Bezeichner aus ${BENCH.length} Dateien`);
 
     /* Keine Benennungen, sondern Gegenstaende von Pruefungen: abgelegte
@@ -1088,8 +1088,8 @@ async function run() {
     const readShipped = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
     const stWord = 'Stolper' + 'stein';
     const stAll = [...BENCH, ...SHIPPED];
-    check('Der Waechter sieht alle vierundfuenfzig Dateien',
-      stAll.length === 54, `${stAll.length} Dateien`);
+    check('Der Waechter sieht alle fuenfundfuenfzig Dateien',
+      stAll.length === 55, `${stAll.length} Dateien`);
     /* Die SQL-Kommentare im SCHEMA von schema.js stehen in einem Template-String,
        den segment() als Text liefert; hier zaehlen sie als Kommentar. */
     const stSqlRow = /^\s*--/;
@@ -1621,7 +1621,7 @@ async function run() {
         : part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('/'));
     // Auf leeren Mengen waeren die Pruefungen darunter immer gruen.
     check('Der Waechter sieht beide Seiten',
-      rrRoutes.length === 129 && rrBrowser.length > 100000,
+      rrRoutes.length === 131 && rrBrowser.length > 100000,
       `${rrRoutes.length} Routen, ${rrBrowser.length} Zeichen im Browser`);
     /* Die Verwaltungstafel baut diese Adressen aus ihrem Feld `url`; eine
        Suche, die das faende, faende jede Adresse. */
@@ -1981,8 +1981,8 @@ async function run() {
     // Feste Zahl: auf einer leeren Menge waere die Pruefung darueber immer gruen.
     const zpCount = zpFiles.reduce((n, f) =>
       n + (zpRead(f).match(/\blog(?:Line|Warn|Fail)\(/g) || []).length, 0);
-    check('Und es sind 76 Protokollzeilen in den sieben Dateien',
-      zpCount === 76, `${zpCount} Zeilen`);
+    check('Und es sind 79 Protokollzeilen in den sieben Dateien',
+      zpCount === 79, `${zpCount} Zeilen`);
     // Ohne TZ laeuft der Container auf UTC, und der Versatz waere immer +00:00.
     const zpCompose = fs.readFileSync(
       path.join(__dirname, 'docker-compose.example.yml'), 'utf8');
@@ -2241,7 +2241,7 @@ async function run() {
   const hAll = assignments(hSource);
   // Feste Zahl: ueber null Zuweisungen waere die Pruefung immer gruen.
   check('Der Waechter sieht alle Zuweisungen an innerHTML',
-    hAll.length === 196, `${hAll.length} Zuweisungen`);
+    hAll.length === 200, `${hAll.length} Zuweisungen`);
   const hNaked = [];
   const hUsed = new Set();
   for (const one of hAll)

@@ -178,7 +178,6 @@
   "card.deleteUserHint": "„{username}“ wird gelöscht; der Name wird frei. Das lässt sich nicht rückgängig machen.",
   "card.deliveryFailed": "Versand fehlgeschlagen",
   "card.derivativesWebp": "Vorschaubilder: in jedem Fall WebP, von dieser Wahl unberührt.",
-  "card.diskCopied": "davon auch im Backup-Ordner",
   "card.diskFiles": "Dateien auf der Platte",
   "card.diskFree": "freier Platz",
   "card.diskGone": "warten auf Löschen",
@@ -186,10 +185,6 @@
   "card.diskMissing": "fehlen",
   "card.diskPending": "noch in der Datenbank",
   "card.diskTrash": "davon im Papierkorb",
-  "card.diskUncopied": {
-    "one": "{n} davon fehlt im Backup-Ordner und wird nicht gelöscht.",
-    "other": "{n} davon fehlen im Backup-Ordner und werden nicht gelöscht."
-  },
   "card.diskUnknown": "ohne Verweis",
   "card.diskUploads": "Uploads",
   "card.documents": "Dokumente",
@@ -397,6 +392,62 @@
   "card.metricsHint": "Umfang des Bestands.",
   "card.storage": "Speicher und Wartung",
   "card.storageHint": "Größe der Datenbank, Dateien auf der Platte und freier Platz.",
+  "card.dbFree": "davon frei",
+  "card.maintHint": "Der Abgleich vergleicht die Dateien in data/files/ mit der Datenbank und prüft die Datenbank. Gelöscht oder zurückgeholt wird erst nach einer Bestätigung.",
+  "card.maintRun": "Abgleich",
+  "card.maintRunning": "Abgleich läuft …",
+  "card.maintClean": "Keine Datei ohne Verweis und keine fehlende Datei.",
+  "card.maintUnknown": {
+    "one": "{n} Datei ohne Verweis",
+    "other": "{n} Dateien ohne Verweis"
+  },
+  "card.maintMissing": {
+    "one": "{n} fehlende Datei",
+    "other": "{n} fehlende Dateien"
+  },
+  "card.maintDir": {
+    "one": "Verzeichnis mit {n} Datei",
+    "other": "Verzeichnis mit {n} Dateien"
+  },
+  "card.maintLink": "symbolischer Link",
+  "card.maintOther": "Sonderdatei",
+  "card.maintForeign": "Diesen Namen legt Kriterion nicht an.",
+  "card.maintCopied": "Der Backup-Ordner enthält sie mit gleicher Länge.",
+  "card.maintUnnamed": "Kein Backup nennt sie; ohne ihre Zeile ist sie nicht lesbar.",
+  "card.maintNamed": "Ein Backup nennt sie, und der Backup-Ordner enthält sie nicht. Sie bleibt.",
+  "card.maintUnlisted": "Ein Backup ohne Dateiliste könnte sie brauchen. Sie bleibt.",
+  "card.maintNoFolder": "Ohne erreichbaren Backup-Ordner lässt sich nicht prüfen, ob ein Backup sie braucht. Sie bleibt.",
+  "card.maintNoCopy": "Fehlt auch im Backup-Ordner. Gelöscht wird die Datei unter „Dateien“, über den Link.",
+  "card.maintCopyThere": "im Backup-Ordner vorhanden",
+  "card.maintInTrash": "im Papierkorb",
+  "card.maintPrevious": "vorige Fassung",
+  "card.maintRestore": "Zurückholen",
+  "card.maintRestoreAsk": {
+    "one": "{n} Datei aus dem Backup-Ordner zurückholen?",
+    "other": "{n} Dateien aus dem Backup-Ordner zurückholen?"
+  },
+  "card.maintRestoreHint": "Die Datei aus dem Backup-Ordner ersetzt die fehlende.",
+  "card.maintRestored": {
+    "one": "{n} Datei zurückgeholt.",
+    "other": "{n} Dateien zurückgeholt."
+  },
+  "card.maintDeleteAsk": {
+    "one": "{n} Datei ({bytes}) löschen?",
+    "other": "{n} Dateien ({bytes}) löschen?"
+  },
+  "card.maintDeleteHint": "Sie werden aus data/files/ gelöscht, Verzeichnisse mit ihrem Inhalt. Das lässt sich nicht rückgängig machen.",
+  "card.maintDeleted": {
+    "one": "{n} Datei gelöscht ({bytes}).",
+    "other": "{n} Dateien gelöscht ({bytes})."
+  },
+  "card.maintCheck": "Prüfung der Datenbank",
+  "card.maintCheckOk": "In Ordnung, geprüft in {seconds} Sekunden.",
+  "card.maintCheckBad": "Die Prüfung meldet Fehler. Kriterion repariert sie nicht. Geprüft in {seconds} Sekunden.",
+  "card.maintCheckRunning": "Die Prüfung der Datenbank läuft …",
+  "card.maintKeys": {
+    "one": "{table}: {n} Zeile verweist auf eine fehlende Zeile in {parent}.",
+    "other": "{table}: {n} Zeilen verweisen auf fehlende Zeilen in {parent}."
+  },
   "card.minCharsHint": "(mindestens {minPassword} Zeichen)",
   "card.minCharsSessions": "Mindestens {minPassword} Zeichen. Alle Sitzungen dieses Benutzers werden beendet.",
   "card.more": "Mehr",
@@ -696,15 +747,6 @@
   "card.twoFactorTurnedOn": "Zweiter Faktor eingeschaltet",
   "card.twoFactorTitle": "Zweiter Faktor",
   "card.typeByHand": "Ohne HTTPS gibt der Browser die Zwischenablage nicht frei. Der Schlüssel steht oben.",
-  "card.unknownDeleteAsk": {
-    "one": "{n} Datei ({bytes}) löschen?",
-    "other": "{n} Dateien ({bytes}) löschen?"
-  },
-  "card.unknownDeleted": {
-    "one": "{n} Datei gelöscht ({bytes}).",
-    "other": "{n} Dateien gelöscht ({bytes})."
-  },
-  "card.unknownDeleteHint": "Die Datenbank kennt diese Dateien nicht. Der Backup-Ordner enthält sie mit gleicher Länge.",
   "card.unknownName": "unbekannter Name",
   "card.unlock": "Entsperren",
   "card.unlocked": "Entsperrt",
@@ -883,6 +925,7 @@
   "entry.fileDeleteHint": "„{filename}“ liegt danach {trashDays} Tage im Papierkorb.",
   "entry.fileDropHint": "Hierher ziehen oder mit + hochladen.",
   "entry.fileFailed": "fehlgeschlagen",
+  "entry.fileMissing": "fehlt",
   "entry.fileFull": "{n} von {cap}",
   "entry.fileLimitHint": "bis {size} je Datei, höchstens {cap} Dateien",
   "entry.fileMenu": "Menü zu {name}",

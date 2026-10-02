@@ -54,7 +54,7 @@ Diese Datei beschreibt Installation und Betrieb. Die Bedienung steht im
 | | |
 |---|---|
 | Einträge | Titel, Beschreibung, Kategorie, Tags, Fotos, Kurzvideos, Dateien, Links |
-| Dateien | bis 2 GB je Datei, hochgeladen in Stücken, fortsetzbar; als Kacheln oder Liste, nach Name, Datum, Größe oder Typ sortiert, nach Typ gruppiert, mit Vorschaubild auch für Text, Office und PDF; in Ordnern; mehrere auf einmal löschen oder verschieben; gelöschte Dateien 30 Tage im Papierkorb und einzeln aus Backups zurückzuholen; Erweiterte Infos zu Bildern und Videos wie in MediaInfo, auch zu Fotos und Videos des Eintrags; Videos spielen an der zuletzt gesehenen Stelle weiter und laden beim Abspielen ganz |
+| Dateien | bis 2 GB je Datei, hochgeladen in Stücken, fortsetzbar; als Kacheln oder Liste, nach Name, Datum, Größe oder Typ sortiert, nach Typ gruppiert, mit Vorschaubild auch für Text, Office und PDF; in Ordnern; mehrere auf einmal löschen oder verschieben; gelöschte Dateien 30 Tage im Papierkorb und einzeln aus Backups zurückzuholen; Erweiterte Infos zu Bildern und Videos wie in MediaInfo, auch zu Fotos und Videos des Eintrags; Videos spielen an der zuletzt gesehenen Stelle weiter und laden auf Knopfdruck ganz |
 | Bewerten | eigene Kriterien mit 1 bis 5 Sternen, je Kriterium ein Gewicht, daraus ein gewichteter Schnitt |
 | Kommentare | Notiz, Bericht oder Aufgabe mit Fälligkeitsdatum, dazu Bilder und Videos |
 | Testtage | datierte Einträge mit Note und Tags |
@@ -374,7 +374,8 @@ docker compose up -d
 
 Die Schleife holt die Dateien, die die Liste des Backups nennt, und übergeht
 ihre Kopfzeilen. Sie löscht keine; Dateien des neueren Stands bleiben liegen,
-und „Speicher und Wartung“ nennt sie als Dateien ohne Verweis.
+und „Speicher und Wartung“ nennt sie als Dateien ohne Verweis. „Abgleich“ in
+derselben Karte zeigt, welche davon sich löschen lassen (Anleitung, „Abgleich“).
 
 ## Update
 

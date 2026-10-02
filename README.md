@@ -53,7 +53,7 @@ This file covers installing and running Kriterion. Using it is covered in the
 | | |
 |---|---|
 | Entries | title, description, category, tags, photos, short videos, files, links |
-| Files | up to 2 GB per file, uploaded in chunks, resumable; as tiles or list, sorted by name, date, size or type, grouped by type, with a thumbnail also for text, Office and PDF; in folders; delete or move several at once; deleted files stay 30 days in the trash and can be fetched back one by one from backups; Extended info on images and videos as in MediaInfo, also for the photos and videos of the entry; videos resume where they were last watched and load in full during playback |
+| Files | up to 2 GB per file, uploaded in chunks, resumable; as tiles or list, sorted by name, date, size or type, grouped by type, with a thumbnail also for text, Office and PDF; in folders; delete or move several at once; deleted files stay 30 days in the trash and can be fetched back one by one from backups; Extended info on images and videos as in MediaInfo, also for the photos and videos of the entry; videos resume where they were last watched and load in full at the push of a button |
 | Rate | your own criteria with 1 to 5 stars, a weight per criterion, from these a weighted average |
 | Comments | note, report or task with a due date, plus images and videos |
 | Test days | dated entries with score and tags |
@@ -370,7 +370,8 @@ docker compose up -d
 
 The loop fetches the files that the backup's list names and skips its header
 lines. It deletes none; files of the newer state stay in place, and “Storage
-and maintenance” lists them as files without a reference.
+and maintenance” lists them as files without a reference. “Reconcile” in the
+same card shows which of them can be deleted (manual, “Reconcile”).
 
 ## Update
 

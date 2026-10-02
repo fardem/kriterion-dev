@@ -178,7 +178,6 @@
   "card.deleteUserHint": "“{username}” is deleted; the name becomes available again. This cannot be undone.",
   "card.deliveryFailed": "Delivery failed",
   "card.derivativesWebp": "Thumbnails: always WebP, unaffected by this choice.",
-  "card.diskCopied": "of which also in the backup folder",
   "card.diskFiles": "Files on disk",
   "card.diskFree": "free space",
   "card.diskGone": "waiting to be deleted",
@@ -186,10 +185,6 @@
   "card.diskMissing": "missing",
   "card.diskPending": "still in the database",
   "card.diskTrash": "of which in the trash",
-  "card.diskUncopied": {
-    "one": "{n} of them is missing from the backup folder and is not deleted.",
-    "other": "{n} of them are missing from the backup folder and are not deleted."
-  },
   "card.diskUnknown": "without a reference",
   "card.diskUploads": "Uploads",
   "card.documents": "Documents",
@@ -397,6 +392,62 @@
   "card.metricsHint": "Size of the inventory.",
   "card.storage": "Storage and maintenance",
   "card.storageHint": "Size of the database, files on disk and free space.",
+  "card.dbFree": "of which free",
+  "card.maintHint": "Reconcile compares the files in data/files/ with the database and checks the database. Nothing is deleted or fetched back without a confirmation.",
+  "card.maintRun": "Reconcile",
+  "card.maintRunning": "Reconciling …",
+  "card.maintClean": "No file without a reference and no missing file.",
+  "card.maintUnknown": {
+    "one": "{n} file without a reference",
+    "other": "{n} files without a reference"
+  },
+  "card.maintMissing": {
+    "one": "{n} missing file",
+    "other": "{n} missing files"
+  },
+  "card.maintDir": {
+    "one": "directory with {n} file",
+    "other": "directory with {n} files"
+  },
+  "card.maintLink": "symbolic link",
+  "card.maintOther": "special file",
+  "card.maintForeign": "Kriterion does not create this name.",
+  "card.maintCopied": "The backup folder contains it with the same length.",
+  "card.maintUnnamed": "No backup names it; without its row it cannot be read.",
+  "card.maintNamed": "A backup names it, and the backup folder does not contain it. It stays.",
+  "card.maintUnlisted": "A backup without a file list might need it. It stays.",
+  "card.maintNoFolder": "Without a reachable backup folder it cannot be checked whether a backup needs it. It stays.",
+  "card.maintNoCopy": "Also missing from the backup folder. The file is deleted under “Files”, via the link.",
+  "card.maintCopyThere": "present in the backup folder",
+  "card.maintInTrash": "in the trash",
+  "card.maintPrevious": "previous version",
+  "card.maintRestore": "Fetch back",
+  "card.maintRestoreAsk": {
+    "one": "Fetch back {n} file from the backup folder?",
+    "other": "Fetch back {n} files from the backup folder?"
+  },
+  "card.maintRestoreHint": "The file from the backup folder replaces the missing one.",
+  "card.maintRestored": {
+    "one": "{n} file fetched back.",
+    "other": "{n} files fetched back."
+  },
+  "card.maintDeleteAsk": {
+    "one": "Delete {n} file ({bytes})?",
+    "other": "Delete {n} files ({bytes})?"
+  },
+  "card.maintDeleteHint": "They are deleted from data/files/, directories with their content. This cannot be undone.",
+  "card.maintDeleted": {
+    "one": "{n} file deleted ({bytes}).",
+    "other": "{n} files deleted ({bytes})."
+  },
+  "card.maintCheck": "Database check",
+  "card.maintCheckOk": "In order, checked in {seconds} seconds.",
+  "card.maintCheckBad": "The check found errors. Kriterion does not repair them. Checked in {seconds} seconds.",
+  "card.maintCheckRunning": "The database check is running …",
+  "card.maintKeys": {
+    "one": "{table}: {n} row refers to a missing row in {parent}.",
+    "other": "{table}: {n} rows refer to missing rows in {parent}."
+  },
   "card.minCharsHint": "(at least {minPassword} characters)",
   "card.minCharsSessions": "At least {minPassword} characters. Every session of this user is ended.",
   "card.more": "More",
@@ -696,15 +747,6 @@
   "card.twoFactorTurnedOn": "Second factor switched on",
   "card.twoFactorTitle": "Second factor",
   "card.typeByHand": "Without HTTPS the browser does not release the clipboard. The key is shown above.",
-  "card.unknownDeleteAsk": {
-    "one": "Delete {n} file ({bytes})?",
-    "other": "Delete {n} files ({bytes})?"
-  },
-  "card.unknownDeleted": {
-    "one": "{n} file deleted ({bytes}).",
-    "other": "{n} files deleted ({bytes})."
-  },
-  "card.unknownDeleteHint": "The database does not know these files. The backup folder contains them with the same length.",
   "card.unknownName": "unknown name",
   "card.unlock": "Unlock",
   "card.unlocked": "Unlocked",
@@ -883,6 +925,7 @@
   "entry.fileDeleteHint": "“{filename}” then stays in the trash for {trashDays} days.",
   "entry.fileDropHint": "Drag here or upload with +.",
   "entry.fileFailed": "failed",
+  "entry.fileMissing": "missing",
   "entry.fileFull": "{n} of {cap}",
   "entry.fileLimitHint": "up to {size} per file, at most {cap} files",
   "entry.fileMenu": "Menu for {name}",

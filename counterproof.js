@@ -9568,17 +9568,17 @@ const REGRESSIONS = [
     expected: "Platte: Dateien ohne Verweis loeschen"
   },
   {
-    nr: '1395', name: "Dateien ohne Verweis: die Kopie wird nicht geprueft",
+    nr: '1395', name: "Dateien ohne Verweis: die Freigabe des Abgleichs wird nicht geprueft",
     file: 'server.js',
-    search: "    for (const f of unknownFiles().filter(z => z.copy)) {",
-    replacement: "    for (const f of unknownFiles()) {",
+    search: "    for (const f of unknownScan().filter(z => z.free && wanted.has(z.name))) {",
+    replacement: "    for (const f of unknownScan().filter(z => wanted.has(z.name))) {",
     expected: "Platte: Dateien ohne Verweis loeschen"
   },
   {
     nr: '1396', name: "Dateien ohne Verweis: die Laenge der Kopie wird nicht verglichen",
     file: 'server.js',
-    search: "    try { copy = !!copies && fs.statSync(path.join(copies, name)).size === size; } catch {}",
-    replacement: "    try { copy = !!copies && fs.statSync(path.join(copies, name)).size > 0; } catch {}",
+    search: "    else if (folder && backup.copyPresent(folder, { name: f.name, length: f.size })) why = 'copied';",
+    replacement: "    else if (folder && fs.existsSync(path.join(folder, COPY_DIR, f.name))) why = 'copied';",
     expected: "Platte: Dateien ohne Verweis loeschen"
   },
   {
@@ -9596,16 +9596,16 @@ const REGRESSIONS = [
     expected: "Platte: Dateien ohne Verweis loeschen"
   },
   {
-    nr: '1399', name: "Dateien ohne Verweis: upload/ wird mit durchsucht",
+    nr: '1399', name: "Dateien ohne Verweis: upload/ gilt als fremdes Verzeichnis",
     file: 'server.js',
-    search: "  try { names = fs.readdirSync(FILES_DIR); } catch {}\n  const known = new Set([...qDiskNames.all(), ...qGone.all()].map(z => z.name));\n  const place = backupState().input ? checkPlace(getSetting('backupPlace', '')) : { error: true };\n  const copies = place.error ? null : path.join(place.filePath, COPY_DIR);\n  const out = [];\n  for (const name of names) {\n    if (!DISK_NAME.test(name) || known.has(name)) continue;\n    const file = diskPath(name);",
-    replacement: "  try { names = [...fs.readdirSync(FILES_DIR), ...fs.readdirSync(UPLOAD_DIR).map(n => `upload/${n}`)]; } catch {}\n  const known = new Set([...qDiskNames.all(), ...qGone.all()].map(z => z.name));\n  const place = backupState().input ? checkPlace(getSetting('backupPlace', '')) : { error: true };\n  const copies = place.error ? null : path.join(place.filePath, COPY_DIR);\n  const out = [];\n  for (const listed of names) {\n    const name = listed.replace('upload/', '');\n    if (!DISK_NAME.test(name) || known.has(name)) continue;\n    const file = diskPath(name, listed.startsWith('upload/'));",
+    search: "    if (st.isDirectory() && OWN_DIRS.has(name)) continue;\n",
+    replacement: "",
     expected: "Platte: Dateien ohne Verweis loeschen"
   },
   {
     nr: '1400', name: "Dateien ohne Verweis: die Sperre des Backups wird nicht genommen",
     file: 'server.js',
-    search: "  const lock = takeBackupLock(place.filePath);\n  if (!lock) return res.status(409).json({ error: t(localeOf(req), 'server.backupRunning')});\n",
+    search: "  const lock = folder ? takeBackupLock(folder) : null;\n  if (folder ? !lock : BACKUP_BUSY) return res.status(409).json({ error: t(localeOf(req), 'server.backupRunning')});\n",
     replacement: "  const lock = null;\n",
     expected: "Platte: Dateien ohne Verweis loeschen"
   },
@@ -11618,6 +11618,174 @@ const REGRESSIONS = [
     search: "      ADMIN ? api('GET', '/api/product-categories') : null, ADMIN ? api('GET', '/api/tags') : null,",
     replacement: "      api('GET', '/api/product-categories'), ADMIN ? api('GET', '/api/tags') : null,",
     expected: "Der Systembereich nach Rolle"
+  },
+  {
+    nr: '1689', name: "Den Abgleich ruft jeder Admin",
+    file: 'server.js',
+    search: "app.get('/api/maintenance', ownerOnly, async (req, res, next) => {",
+    replacement: "app.get('/api/maintenance', adminOnly, async (req, res, next) => {",
+    expected: "Wartung: der Abgleich nennt jeden Eintrag ohne Verweis"
+  },
+  {
+    nr: '1690', name: "Der Abgleich kennt wieder nur Namen aus 32 Hexzeichen",
+    file: 'server.js',
+    search: "    if (known.has(name)) continue;\n    const file = path.join(FILES_DIR, name);",
+    replacement: "    if (known.has(name) || !DISK_NAME.test(name)) continue;\n    const file = path.join(FILES_DIR, name);",
+    expected: "Wartung: der Abgleich nennt jeden Eintrag ohne Verweis"
+  },
+  {
+    nr: '1691', name: "Ein Verzeichnis zaehlt seinen Inhalt nicht",
+    file: 'server.js',
+    search: "    if (kind === 'dir') try { tree = treeSize(file); } catch { tree = { files: 0, bytes: 0 }; }",
+    replacement: "    if (kind === 'dir') tree = null;",
+    expected: "Wartung: der Abgleich nennt jeden Eintrag ohne Verweis"
+  },
+  {
+    nr: '1692', name: "Eine Datei, die kein Backup nennt, darf nicht weg",
+    file: 'server.js',
+    search: "const FREE_WHY = new Set(['foreign', 'copied', 'unnamed']);",
+    replacement: "const FREE_WHY = new Set(['foreign', 'copied']);",
+    expected: "Wartung: der Abgleich nennt jeden Eintrag ohne Verweis"
+  },
+  {
+    nr: '1693', name: "Ein Backup ohne Dateiliste zaehlt nicht",
+    file: 'server.js',
+    search: "    if (!list) { unlisted++; continue; }",
+    replacement: "    if (!list) continue;",
+    expected: "Wartung: ohne Backup-Ordner und mit einem Backup ohne Liste"
+  },
+  {
+    nr: '1694', name: "Ohne Backup-Ordner nennt kein Backup den Namen",
+    file: 'server.js',
+    search: "  const files = folder ? backup.backupList(folder) : null;\n  if (!files) return null;",
+    replacement: "  const files = folder ? backup.backupList(folder) : [];\n  if (!files) return null;",
+    expected: "Wartung: ohne Backup-Ordner und mit einem Backup ohne Liste"
+  },
+  {
+    nr: '1695', name: "Ein Verzeichnis wird nur leer geloescht",
+    file: 'server.js',
+    search: "        if (f.kind === 'dir') fs.rmSync(f.file, { recursive: true, force: true });",
+    replacement: "        if (f.kind === 'dir') fs.rmdirSync(f.file);",
+    expected: "Wartung: Loeschen nach Namen"
+  },
+  {
+    nr: '1696', name: "Geloescht wird das Ziel eines symbolischen Links",
+    file: 'server.js',
+    search: "        else fs.unlinkSync(f.file);",
+    replacement: "        else fs.unlinkSync(f.kind === 'link' ? fs.realpathSync(f.file) : f.file);",
+    expected: "Wartung: Loeschen nach Namen"
+  },
+  {
+    nr: '1697', name: "Geloescht wird jeder freie Eintrag, auch ungewaehlt",
+    file: 'server.js',
+    search: "    for (const f of unknownScan().filter(z => z.free && wanted.has(z.name))) {",
+    replacement: "    for (const f of unknownScan().filter(z => z.free)) {",
+    expected: "Wartung: Loeschen nach Namen"
+  },
+  {
+    nr: '1698', name: "Das Server-Log nennt die geloeschten Namen nicht",
+    file: 'server.js',
+    search: "  if (removed) logLine(`Disk files without a reference removed: ${removed} (${bytes} bytes): ${gone.join(', ')}.`);",
+    replacement: "  if (removed) logLine(`Disk files without a reference removed: ${removed} (${bytes} bytes).`);",
+    expected: "Wartung: Loeschen nach Namen"
+  },
+  {
+    nr: '1699', name: "Der Abgleich prueft die Dateien nicht neu",
+    file: 'server.js',
+    search: "    findMissing();\n    if (!CHECK || CHECK.delivered) {",
+    replacement: "    if (!CHECK || CHECK.delivered) {",
+    expected: "Wartung: fehlende Dateien"
+  },
+  {
+    nr: '1700', name: "Zurueckholen nimmt eine Kopie anderer Laenge",
+    file: 'server.js',
+    search: "      if (!r || !backup.copyPresent(folder, { name, length })) continue;",
+    replacement: "      if (!r || !fs.existsSync(path.join(folder, COPY_DIR, name))) continue;",
+    expected: "Wartung: fehlende Dateien"
+  },
+  {
+    nr: '1701', name: "Zurueckholen laeuft auch waehrend eines Backups",
+    file: 'server.js',
+    search: "  const lock = takeBackupLock(folder);\n  if (!lock) return res.status(409).json({ error: t(locale, 'server.backupRunning') });\n  const wanted = pickedNames(req.body);",
+    replacement: "  const lock = takeBackupLock(folder) || path.join(folder, COPY_DIR, '.gestellt');\n  const wanted = pickedNames(req.body);",
+    expected: "Wartung: waehrend eines Backups"
+  },
+  {
+    nr: '1702', name: "Die Pruefung liest die Fremdschluessel nicht",
+    file: 'batchrun.js',
+    search: "  for (const z of db.pragma('foreign_key_check')) {",
+    replacement: "  for (const z of []) {",
+    expected: "Wartung: Pruefung der Datenbank"
+  },
+  {
+    nr: '1703', name: "Ein verletzter Fremdschluessel gilt als in Ordnung",
+    file: 'server.js',
+    search: "      done({ ...r, ok: r.quick.length === 1 && r.quick[0] === 'ok' && !r.keys.length, ms: Date.now() - started });",
+    replacement: "      done({ ...r, ok: r.quick[0] === 'ok', ms: Date.now() - started });",
+    expected: "Wartung: Pruefung der Datenbank"
+  },
+  {
+    nr: '1704', name: "Die Kennzahlen nennen die freien Seiten nicht",
+    file: 'server.js',
+    search: "    dbBytes, dbFree: dbFreeBytes(), photoCount: p.n, photoBytes: p.o,",
+    replacement: "    dbBytes, dbFree: 0, photoCount: p.n, photoBytes: p.o,",
+    expected: "Wartung: Pruefung der Datenbank"
+  },
+  {
+    nr: '1705', name: "Den Knopf „Abgleich“ sieht jeder Admin",
+    file: 'public/app.js',
+    search: "        ${OWNER ? `<div class=\"sys-part\"></div>\n        <p class=\"desc\">${tH('card.maintHint')}</p>",
+    replacement: "        ${ADMIN ? `<div class=\"sys-part\"></div>\n        <p class=\"desc\">${tH('card.maintHint')}</p>",
+    expected: "Wartung: die Karte"
+  },
+  {
+    nr: '1706', name: "Die Karte schickt alle Namen statt der gewaehlten",
+    file: 'public/app.js',
+    search: "    const names = chosen('maint-pick');",
+    replacement: "    const names = unknown.map(f => f.name);",
+    expected: "Wartung: die Karte"
+  },
+  {
+    nr: '1707', name: "Eine Datei, die bleibt, ist in der Karte waehlbar",
+    file: 'public/app.js',
+    search: "          f.free ? '' : ' disabled'}>",
+    replacement: "          ''}>",
+    expected: "Wartung: die Karte"
+  },
+  {
+    nr: '1708', name: "Eine fehlende Datei zeigt nichts an",
+    file: 'public/app.js',
+    search: "    const missing = a.missing ? t('entry.fileMissing') : '';",
+    replacement: "    const missing = '';",
+    expected: "Wartung: „fehlt“ an der Datei"
+  },
+  {
+    nr: '1709', name: "Der Abgleich zeigt die Pruefung der Datenbank nicht",
+    file: 'public/app.js',
+    search: "      MAINT_CHECK = m.check;",
+    replacement: "      MAINT_CHECK = null;",
+    expected: "Wartung: die Karte"
+  },
+  {
+    nr: '1710', name: "Die Route wartet auf die Pruefung, so lange sie dauert",
+    file: 'server.js',
+    search: "    await Promise.race([mine.done, new Promise(ok => { clock = setTimeout(ok, CHECK_WAIT_MS); })]);",
+    replacement: "    await mine.done;",
+    expected: "Wartung: Pruefung der Datenbank"
+  },
+  {
+    nr: '1711', name: "Ein neuer Abgleich bekommt die alte Pruefung",
+    file: 'server.js',
+    search: "    if (mine.result) mine.delivered = true;\n",
+    replacement: "",
+    expected: "Wartung: Pruefung der Datenbank"
+  },
+  {
+    nr: '1712', name: "Die Karte fragt nicht nach, solange die Pruefung laeuft",
+    file: 'public/app.js',
+    search: "        if (!m.check || !m.check.running || !out.isConnected) break;",
+    replacement: "        break;",
+    expected: "Wartung: die Karte"
   }
 
 ];

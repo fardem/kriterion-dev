@@ -54,7 +54,7 @@ Bu dosya kurulumu ve işletimi anlatır. Kullanımı
 | | |
 |---|---|
 | Öğeler | başlık, açıklama, kategori, etiketler, fotoğraflar, kısa videolar, dosyalar, bağlantılar |
-| Dosyalar | dosya başına 2 GB'a kadar, parçalar halinde yüklenir, yarıda kalırsa kaldığı yerden sürer; döşeme ya da liste olarak, ada, tarihe, boyuta ya da türe göre sıralı, türe göre gruplu, metin, Office ve PDF için de küçük resimli; klasörlerde; birden çok dosya bir kerede silinir ya da taşınır; silinen dosyalar 30 gün çöp kutusunda kalır ve yedeklemelerden tek tek geri alınabilir; resimler ve videolar için MediaInfo'daki gibi “Ayrıntılı bilgi”, öğenin fotoğrafları ve videoları için de; videolar en son izlenen yerden devam eder ve oynatılırken tamamen yüklenir |
+| Dosyalar | dosya başına 2 GB'a kadar, parçalar halinde yüklenir, yarıda kalırsa kaldığı yerden sürer; döşeme ya da liste olarak, ada, tarihe, boyuta ya da türe göre sıralı, türe göre gruplu, metin, Office ve PDF için de küçük resimli; klasörlerde; birden çok dosya bir kerede silinir ya da taşınır; silinen dosyalar 30 gün çöp kutusunda kalır ve yedeklemelerden tek tek geri alınabilir; resimler ve videolar için MediaInfo'daki gibi “Ayrıntılı bilgi”, öğenin fotoğrafları ve videoları için de; videolar en son izlenen yerden devam eder ve bir düğmeyle tamamen yüklenir |
 | Değerlendirme | 1 ile 5 arası yıldız verilen kendi ölçütlerin, ölçüt başına bir ağırlık, bunlardan ağırlıklı bir ortalama |
 | Yorumlar | not, rapor ya da son tarihli görev, yanında resimler ve videolar |
 | Test günleri | puan ve etiket taşıyan tarihli girdiler |
@@ -371,7 +371,9 @@ docker compose up -d
 
 Döngü, yedeklemenin listesinde adı geçen dosyaları getirir ve listenin başlık
 satırlarını atlar. Hiçbir dosyayı silmez; daha yeni durumun dosyaları yerinde
-kalır ve “Depolama ve bakım” onları “başvurusuz” dosyalar olarak gösterir.
+kalır ve “Depolama ve bakım” onları “başvurusuz” dosyalar olarak gösterir. Aynı
+karttaki “Eşleştir”, bunlardan hangilerinin silinebileceğini gösterir
+(kılavuz, “Eşleştirme”).
 
 ## Güncelleme
 
