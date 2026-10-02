@@ -393,7 +393,9 @@ değişmez.
   “Boyut” ya da “Tarih” üzerine bir tıklama ona göre sıralar, ikinci tıklama
   yönü ters çevirir; sıralanan sütunda ▲ ya da ▼ durur. Her satırın sonunda ✎
   (düzenle; yalnızca düzenleme iznin olan bir dosyada) ve 🔗 (dosyanın
-  bağlantısını kopyala) durur; telefonda ikisi de yalnızca menüdedir.
+  bağlantısını kopyala) durur; telefonda ikisi de yalnızca menüdedir. Bir
+  videonun proxy'si varsa önlerinde “Proxy” durur; proxy'nin pikselleri ve
+  boyutu fareyle üzerine gelince görünür.
 - **Sıralama:** “Döşeme” ve “Liste” yanındaki seçim alanı “Ad”, “Tarih”,
   “Boyut” ya da “Tür” seçeneğine göre sıralar. Yanındaki düğme yönü ters
   çevirir: “A → Z” ve “Z → A”, “eski → yeni” ve “yeni → eski”, “küçük → büyük”
@@ -485,7 +487,8 @@ değişmez.
   orijinali verir. `mkv`, `avi`, `wmv` ve `flv` uzantılı videoları hiçbir
   tarayıcı oynatmaz; bunlar ancak proxy ile oynar ve küçük resimleri ondan
   oluşur. Proxy yoksa ya da okunamıyorsa orijinal oynar ve Kriterion proxy'yi
-  yeniden oluşturur.
+  yeniden oluşturur. Bit hızı değiştikten sonra yenisi hazır olana kadar eski
+  proxy oynar; o sırada oynatılan bir video önce sıraya girer.
 - **Bir belgenin küçük resmi:** Metin, Markdown, CSV ve log dosyaları döşemede
   ilk satırlarını gösterir. Word, Excel ve PowerPoint dosyaları, bunların
   OpenDocument karşılıkları ve PDF, yönetici bir Document Server açtıysa ilk
@@ -711,7 +714,7 @@ yardım edebilecek bir yöneticiye başvurmasını söyleyen bir cümle okur.
 |---|---|
 | Başlık | giriş öncesi başlık (herkese görünür; az bilgi veren bir başlık seç) ve giriş sonrası başlık |
 | Belgeler | Document Server üzerinden görüntülemeyi ve düzenlemeyi açma ve kapatma; “Herkes düzenleyebilir”: bir hesap kendi değerini belirlemediği sürece başlangıç değeri; kart bağlantıyı denetler. Adresler ve secret `.env` dosyasında durur, bkz. README |
-| Proxy | “Dosyalar” altındaki videolar için proxy'leri açma ve kapatma, yalnızca sahip yönetici, varsayılan kapalı; Quick Sync'in mi kodladığı yoksa işlemcinin mi dönüştürdüğü ve nedeni; `/tmp` RAM içinde mi ve ne kadar boş; hazır, bekleyen ve başarısız proxy'ler. Bkz. README, “Videolar için proxy” |
+| Proxy | “Dosyalar” altındaki videolar için proxy'leri açma ve kapatma ve 1080p30 için bit hızını ayarlama, 1 ile 8 Mbit/s arası, yalnızca sahip yönetici, varsayılan kapalı ve 5 Mbit/s; Quick Sync'in mi kodladığı yoksa işlemcinin mi dönüştürdüğü ve nedeni; `/tmp` RAM içinde mi ve ne kadar boş; hazır proxy'ler, eski bit hızıyla olanlar, bekleyen ve başarısız olanlar. Bkz. README, “Videolar için proxy” |
 | Sayılar | verinin kapsamı: öğeler, fotoğraflar, videolar, yorumlar, bağlantılar ve test günleri |
 | Depolama ve bakım | veritabanı boyutu, çöp kutusu, diskteki dosyalar (bunlardan “Ek” sınırını aşanlar ve çöp kutusundakiler), yüklemeler, boş alan. Yalnızca varsa: veritabanındaki boş alan (“içindeki boş alan”), hâlâ veritabanında olup diske taşınmayı bekleyen dosyalar, eksik dosyalar, silinmeyi bekleyen dosyalar ve başvurusuz dosyalar. Sahip yönetici için “Eşleştir”, bkz. aşağısı |
 | Sürüm ve şifreleme | sürüm, parmak izi, şifreleme yöntemleri; anahtar veritabanının yanında durduğu sürece sahip yönetici için anahtar değeri |

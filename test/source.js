@@ -1050,7 +1050,7 @@ async function run() {
         if (part.kind === CODE)
           for (const m of part.value.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) benchNames.add(m[0]);
     check('Der Waechter sieht wirklich den ganzen Pruefstand',
-      benchNames.size > 2000 && BENCH.length === 37,
+      benchNames.size > 2000 && BENCH.length === 38,
       `${benchNames.size} Bezeichner aus ${BENCH.length} Dateien`);
 
     /* Keine Benennungen, sondern Gegenstaende von Pruefungen: abgelegte
@@ -1088,8 +1088,8 @@ async function run() {
     const readShipped = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
     const stWord = 'Stolper' + 'stein';
     const stAll = [...BENCH, ...SHIPPED];
-    check('Der Waechter sieht alle siebenundfuenfzig Dateien',
-      stAll.length === 57, `${stAll.length} Dateien`);
+    check('Der Waechter sieht alle achtundfuenfzig Dateien',
+      stAll.length === 58, `${stAll.length} Dateien`);
     /* Die SQL-Kommentare im SCHEMA von schema.js stehen in einem Template-String,
        den segment() als Text liefert; hier zaehlen sie als Kommentar. */
     const stSqlRow = /^\s*--/;
@@ -1578,18 +1578,16 @@ async function run() {
     check('Und die Trennung greift: die Adresse des Browsers traegt q und c',
       qpHash.has('q') && qpHash.has('c') && !qpHash.has('group') && qpAsk.has('group'),
       `Browseradresse: ${[...qpHash].sort().join(' ')}`);
-    // `v` an der Kacheladresse umgeht den Browsercache und wird nicht gelesen.
-    const QP_UNREAD = ['v'];
-    const qpOrphan = [...qpAsk].filter(n => !qpRead.has(n) && !QP_UNREAD.includes(n));
+    const qpOrphan = [...qpAsk].filter(n => !qpRead.has(n));
     check('Und jeder Parameter einer Anfrage wird am Server gelesen',
       qpOrphan.length === 0, qpOrphan.sort().join(' ') || 'alle gelesen');
     // Eigene Pruefung, weil `q` sonst ueber die Volltextsuche des Servers als gelesen gilt.
     const qpLost = [...qpHash].filter(n => !qpHashRead.has(n));
     check('Und jeder Parameter der Browseradresse hat im Browser einen Leser',
       qpLost.length === 0, qpLost.sort().join(' ') || 'alle gelesen');
-    check('Die eine Ausnahme ist `v` — die Kachelversion, die niemand liest',
-      QP_UNREAD.length === 1 && qpAsk.has('v') && !qpRead.has('v') && !qpHash.has('v'),
-      QP_UNREAD.join(' '));
+    // An den Kacheln umgeht `v` nur den Browsercache; am Proxy waehlt der Server damit die Datei.
+    check('Auch `v` liest der Server, am Proxy',
+      qpAsk.has('v') && qpRead.has('v') && !qpHash.has('v'), [...qpRead].sort().join(' '));
     check('Und der Waechter faengt einen Parameter ohne Leser',
       !qpRead.has('gibtesnicht') && !qpHashRead.has('gibtesnicht')
       && /#\//.test(qpExpression(qpApp.indexOf('c=${Number(comment)}')))
@@ -1854,8 +1852,8 @@ async function run() {
       }
       if (has) ssCode++;
     }
-    check('Und es stehen genau 2005 Regelzeilen da',
-      ssCode === 2005, `${ssCode} Zeilen`);
+    check('Und es stehen genau 2016 Regelzeilen da',
+      ssCode === 2016, `${ssCode} Zeilen`);
     // Laenger als drei Zeilen darf nur eine Tabelle gemessener Werte sein.
     const ssLines = ssBlocks.map(b => b.split('\n').length);
     const ssOver = ssLines.filter(n => n > 3).length;
@@ -1982,8 +1980,8 @@ async function run() {
     // Feste Zahl: auf einer leeren Menge waere die Pruefung darueber immer gruen.
     const zpCount = zpFiles.reduce((n, f) =>
       n + (zpRead(f).match(/\blog(?:Line|Warn|Fail)\(/g) || []).length, 0);
-    check('Und es sind 82 Protokollzeilen in den sieben Dateien',
-      zpCount === 82, `${zpCount} Zeilen`);
+    check('Und es sind 83 Protokollzeilen in den sieben Dateien',
+      zpCount === 83, `${zpCount} Zeilen`);
     // Ohne TZ laeuft der Container auf UTC, und der Versatz waere immer +00:00.
     const zpCompose = fs.readFileSync(
       path.join(__dirname, 'docker-compose.example.yml'), 'utf8');

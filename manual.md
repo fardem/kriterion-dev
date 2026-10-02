@@ -391,7 +391,8 @@ setting). The original stays unchanged.
   “Name”, “Type”, “Size” or “Date” sorts by it, a second click reverses the
   direction; ▲ or ▼ marks the sorted column. At the end of each row are ✎
   (Edit, only on a file the user may edit) and 🔗 (copy the link to the
-  file); on the phone, both are only in the menu.
+  file); on the phone, both are only in the menu. If a video has a proxy,
+  “Proxy” stands before them; pixels and size of the proxy appear on hover.
 - **Sorting:** the selection next to “Tiles” and “List” sorts by “Name”,
   “Date”, “Size” or “Type”. The button next to it reverses the direction:
   “A → Z” and “Z → A”, “old → new” and “new → old”, “small → large” and
@@ -484,7 +485,9 @@ setting). The original stays unchanged.
   always delivers the original. No browser plays videos with the endings
   `mkv`, `avi`, `wmv` and `flv`; they play only with their proxy, and their
   thumbnail is made from it. If a proxy is missing or cannot be read, the
-  original plays, and Kriterion creates the proxy again.
+  original plays, and Kriterion creates the proxy again. After a change of the
+  bit rate, the old proxy plays until the new one is ready; a video that is
+  being played comes first.
 - **Thumbnail of a document:** Text, Markdown, CSV and log files show their
   first lines on the tile. Word, Excel and PowerPoint files, their OpenDocument
   counterparts and PDF show the first page if the admin has switched on a
@@ -706,7 +709,7 @@ you with it.”
 |---|---|
 | Title | title before signing in (visible to everyone, choose with care) and title after signing in |
 | Documents | switch viewing and editing through a Document Server on and off; “Editable by all”: start value as long as an account has not set its own; the card checks the connection. URLs and secret are in the `.env`, see README |
-| Proxy | switch proxies for videos under “Files” on and off, only the owner admin, default off; whether Quick Sync encodes or the CPU converts, and why; whether `/tmp` is in RAM and how much is free; ready, waiting and failed proxies. See README, “Proxies for videos” |
+| Proxy | switch proxies for videos under “Files” on and off and set the bit rate at 1080p30, 1 to 8 Mbit/s, only the owner admin, default off and 5 Mbit/s; whether Quick Sync encodes or the CPU converts, and why; whether `/tmp` is in RAM and how much is free; ready proxies, those with an old bit rate, waiting and failed ones. See README, “Proxies for videos” |
 | Metrics | size of the inventory: entries, photos, videos, comments, links and test days |
 | Storage and maintenance | database size, trash, files on disk (of which above “Attachment” and in the trash), uploads, free space. Only when there are any: free space in the database (“of which free”), files still in the database waiting to be moved to disk, missing files, files waiting to be deleted and files without a reference. For the owner admin “Reconcile”, see below |
 | Version and encryption | version, fingerprint, encryption methods; for the owner admin the key value, as long as the key lies next to the database |

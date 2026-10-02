@@ -4780,6 +4780,7 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
     img.hidden = video;
     player.hidden = !video;
     note.hidden = true;
+    fitPlayer();
     if (video) {
       const poster = imageSource(photos[i], 'medium');
       if (poster) player.poster = poster; else player.removeAttribute('poster');
@@ -4817,7 +4818,9 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
     if (!strip) return;
     strip.hidden = photos.length < 2;
     [...strip.children].forEach((tile, n) => tile.classList.toggle('on', n === i));
-    strip.children[i]?.scrollIntoView?.({ block: 'nearest', inline: 'center' });
+    // Nur den Streifen rollen: scrollIntoView() verschiebt auf dem Telefon auch eine zu breite Seite dahinter.
+    const on = strip.children[i]?.getBoundingClientRect(), box = strip.getBoundingClientRect();
+    if (on) strip.scrollLeft += on.left + on.width / 2 - (box.left + box.width / 2);
   }
   /* Eigene Funktion, weil der Streifen nach dem Loeschen neu gebaut wird. */
   function buildStrip() {
@@ -4852,8 +4855,23 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
   // HEVC in Chrome: Ton ohne Bild, videoWidth bleibt 0.
   player.addEventListener('loadedmetadata', () => { if (!player.videoWidth) unplayable(); });
 
+  // Chrome auf Android zeigt ein 4K-Video mit max-width und max-height allein groesser als die Buehne.
+  function fitPlayer() {
+    const w = player.videoWidth, h = player.videoHeight;
+    const scale = Math.min(stage.clientWidth / w, stage.clientHeight / h, 1);
+    const fits = !player.hidden && w > 0 && h > 0 && scale > 0;
+    player.style.width = fits ? `${Math.floor(w * scale)}px` : '';
+    player.style.height = fits ? `${Math.floor(h * scale)}px` : '';
+  }
+  // `resize` am Video: andere Abmessungen nach dem Wechsel zwischen Proxy und Original.
+  player.addEventListener('loadedmetadata', fitPlayer);
+  player.addEventListener('resize', fitPlayer);
+  const stageWatch = typeof ResizeObserver === 'function' ? new ResizeObserver(fitPlayer) : null;
+  stageWatch?.observe(stage);
+
   const close = () => {
     spot?.stop();
+    stageWatch?.disconnect();
     hold();
     restore();
     shown?.(null);
@@ -7299,7 +7317,8 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       + `<span class="aname"></span><span class="ameta"></span><span class="akind"></span><span class="asize"></span>`
       + `<span class="adate"></span><span class="afrom"></span><span class="anote"></span>`
       + `<span class="acheck" aria-hidden="true"></span></button>`
-      + (adds ? '' : `<span class="aacts"><button type="button" class="aact aedit" hidden>${ICON_PEN}</button>`
+      + (adds ? '' : `<span class="aacts"><span class="aproxy" hidden></span>`
+        + `<button type="button" class="aact aedit" hidden>${ICON_PEN}</button>`
         + `<button type="button" class="aact alink" hidden>${ICON_LINK}</button></span>`
         + `<button type="button" class="amore" aria-haspopup="menu" aria-expanded="false">⋯</button>`);
     const face = li.querySelector('.aface');
@@ -7402,6 +7421,11 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     edit.title = t('entry.edit');
     edit.setAttribute('aria-label', t('entry.editNamed', { name: a.filename }));
     edit.onclick = () => { location.hash = fileAddress(id, a.id, true); };
+    const mark = li.querySelector('.aproxy');
+    mark.hidden = !a.proxy;
+    mark.textContent = t('entry.proxyMark');
+    mark.title = a.proxy ? [t('entry.proxyMark'), a.proxy.width && a.proxy.height ? `${a.proxy.width} × ${a.proxy.height}` : '',
+      filesize(a.proxy.size)].filter(Boolean).join(' · ') : '';
     const link = li.querySelector('.alink');
     link.hidden = !!filesPicked;
     link.title = t('entry.copyFileLink');
@@ -7637,6 +7661,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     if (filesPicked) for (const x of [...filesPicked])
       if (!list.some(a => a.id === x && mayDeleteFile(a))) filesPicked.delete(x);
     attsBox.classList.toggle('picking', !!filesPicked);
+    attsBox.classList.toggle('aproxy-on', list.some(a => a.proxy));
     document.getElementById('apick-start').hidden = !!filesPicked || !list.some(mayDeleteFile);
     filePickBar.hidden = !filesPicked;
     if (filesPicked) {
@@ -11433,23 +11458,38 @@ const PROXY_REASONS = { noDevice: 'card.proxyNoDevice', firmware: 'card.proxyFir
 function cardProxy(fetched) {
   const p = (fetched.stats || {}).proxy || {};
   const on = SETTINGS.proxyOn === true;
+  const rate = Number(SETTINGS.proxyRate) || 5;
   const row = (label, value) => `<div class="kv"><span class="k">${tH(label)}</span><span class="v">${esc(value)}</span></div>`;
   return `<div class="sys-card">
         <h3>${tH('card.proxyTitle')}</h3>
         <p class="desc">${tH('card.proxyHint')}</p>
-        ${OWNER ? `<label class="ex-files"><input type="checkbox" id="proxy-on"> ${tH('card.proxyOn')}</label>`
-          : `<p class="desc">${tH(on ? 'card.proxyIsOn' : 'card.proxyIsOff')}</p>`}
+        ${OWNER ? `<label class="ex-files"><input type="checkbox" id="proxy-on"> ${tH('card.proxyOn')}</label>
+          <p class="desc" style="margin:16px 0 8px">${tH('card.proxyRateHint')}</p>
+          <label class="ex-files" for="proxy-rate">${tH('card.proxyRate')}<input class="input input-sm share-in"
+            id="proxy-rate" type="number" min="1" max="8" step="0.1" value="${rate}"></label>`
+          : `<p class="desc">${tH(on ? 'card.proxyIsOn' : 'card.proxyIsOff')}</p>
+          ${row('card.proxyRate', number(rate, 0, 1))}`}
         ${!p.checked ? '' : `<p class="desc">${p.quickSync ? tH('card.proxyQuickSync', { driver: p.driver })
           : tH(PROXY_REASONS[p.reason] || 'card.proxyCpu')}</p>`}
         <p class="desc">${p.tmpfs ? tH('card.proxyTmpfs', { free: fmtBytes(p.tmpFree), total: fmtBytes(p.tmpTotal) })
           : tH('card.proxyNoTmpfs')}</p>
         ${row('card.proxyReady', `${number(p.ready || 0)} · ${fmtBytes(p.bytes || 0)}`)}
+        ${p.stale ? row('card.proxyStale', number(p.stale)) : ''}
         ${row('card.proxyWaiting', number(p.waiting || 0))}
         ${p.failed ? row('card.proxyFailed', number(p.failed)) : ''}
       </div>`;
 }
 function setUpProxyOut() {
   createToggle('proxy-on', 'proxyOn', () => SETTINGS.proxyOn === true, v => { SETTINGS.proxyOn = v; });
+  const rateField = document.getElementById('proxy-rate');
+  if (rateField) rateField.onchange = async () => {
+    try {
+      const saved = await api('PUT', '/api/settings', { proxyRate: Number(rateField.value) });
+      if (typeof saved.proxyRate === 'number') SETTINGS.proxyRate = saved.proxyRate;
+      toast(t('list.saved'));
+    } catch (e) { toast(e.message, true); }
+    rateField.value = String(Number(SETTINGS.proxyRate) || 5);
+  };
 }
 
 /* ---- Karte „Version und Verschlüsselung" — Abschnitt „Installation" ---- */

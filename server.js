@@ -460,7 +460,7 @@ const PERSONAL_KEYS = ['documentTheme', 'filesEditAll', 'filesView',
 const OWNER_KEYS = ['imageStore',
                                 'backupCleanup', 'backupKeep', 'backupDays',
                                 'languageDefault', 'languageOn', 'potentialMode',
-                                'uploadLimits', 'proxyOn'];
+                                'uploadLimits', 'proxyOn', 'proxyRate'];
 
 // better-sqlite3 bindet ein fehlendes Argument als NULL, und
 // `WHERE user_id = NULL` ist nie wahr.
@@ -1787,6 +1787,7 @@ app.get('/api/settings', (req, res) => res.json({
   imageStore: imageStore(),
   imageStores: Object.keys(IMAGE_STORES),
   proxyOn: proxyOn(),
+  proxyRate: proxyRate(),
   /* Ob die zweite Bestaetigung bei diesem Zugang auch den Code verlangt. */
   twoFactor: auth.twoFactorOn(req.user.id),
   // Auch hier, nicht nur in GET /api/trash: den Loeschdialog sieht jeder, die
@@ -1860,6 +1861,12 @@ app.put('/api/settings', (req, res) => {
         if (!Number.isInteger(n) || n < PARTIAL_SHARE.min || n > PARTIAL_SHARE.max)
           refuse('server.partialShare', { min: PARTIAL_SHARE.min, max: PARTIAL_SHARE.max });
         shareWanted = n;
+      }
+
+      let rateWanted = null;
+      if (req.body.proxyRate !== undefined) {
+        if (!proxyRateOk(req.body.proxyRate)) refuse('server.proxyRate', { min: PROXY_RATE.min, max: PROXY_RATE.max });
+        rateWanted = Math.round(req.body.proxyRate * 10) / 10;
       }
 
       /* Bildablage: hier geprueft, unten mit den uebrigen globalen Schaltern
@@ -1997,6 +2004,7 @@ app.put('/api/settings', (req, res) => {
       if (req.body.backupCleanup !== undefined)
         putSetting.run('backupCleanup', JSON.stringify(!!req.body.backupCleanup));
       if (req.body.proxyOn !== undefined) putSetting.run('proxyOn', JSON.stringify(!!req.body.proxyOn));
+      if (rateWanted !== null) putSetting.run('proxyRate', JSON.stringify(rateWanted));
       for (const [k, v] of Object.entries(ruleValues)) putSetting.run(k, JSON.stringify(v));
       if (limitsWanted) putSetting.run('uploadLimits', JSON.stringify(limitsWanted));
       const languagesTouched =
@@ -2027,7 +2035,7 @@ app.put('/api/settings', (req, res) => {
                  ...(isAdmin(req) && languagesTouched
                    ? { categoryNames: categoryNamesAll(), criterionNames: criterionNamesAll() } : {}),
                  imageStore: imageStore(), imageStores: Object.keys(IMAGE_STORES),
-                 uploadLimits: uploadLimits() };
+                 uploadLimits: uploadLimits(), proxyRate: proxyRate() };
 
     })();
   } catch (e) {
@@ -2038,7 +2046,8 @@ app.put('/api/settings', (req, res) => {
     throw e;
   }
   if (req.body.documentServer === true) docTilesAgain();
-  if (req.body.proxyOn !== undefined) proxySwitched();
+  if (req.body.proxyRate !== undefined) PROXY_KEPT.clear();
+  if (req.body.proxyOn !== undefined || req.body.proxyRate !== undefined) proxySwitched();
   res.json(answer);
 });
 
@@ -5773,48 +5782,69 @@ const PROXY_DIR = path.join(FILES_DIR, 'proxy');
 // Nur im Pruefstand: test/ffmpeg.js statt ffmpeg, mit den Schaltern als erstem Argument.
 const PROXY_BENCH = BENCH.ffmpeg ? [path.join(__dirname, 'test', 'ffmpeg.js'), process.env.KRITERION_TESTBENCH] : null;
 const proxyOn = () => getSetting('proxyOn', false) === true;
+// Mbit/s fuer 1920 × 1080 bei 30 Bildern je Sekunde, eine Stelle nach dem Komma.
+const PROXY_RATE = { min: 1, max: 8, fallback: 5 };
+const proxyRateOk = (n) => typeof n === 'number' && n >= PROXY_RATE.min && n <= PROXY_RATE.max &&
+  Math.abs(n * 10 - Math.round(n * 10)) < 1e-9;
+const proxyRate = () => {
+  const v = getSetting('proxyRate', PROXY_RATE.fallback);
+  return proxyRateOk(v) ? v : PROXY_RATE.fallback;
+};
+const proxyBase = () => Math.round(proxyRate() * 1e6);
 // Ergebnis von videoproxy.probe(); null, solange der Test laeuft.
 let PROXY_HW = null;
 const PROXY_WAITING = new Set();
-let proxyRunning = null, proxyStop = null;
+// Veraltete Proxys, deren Ersatz fehlschlug; erst ein Neustart oder eine neue Bitrate versucht es wieder.
+const PROXY_KEPT = new Set();
+// Ersetzte Proxys je Datei, siehe holdFormer(); so lange wie max-age in sendDiskFile().
+const PROXY_FORMER = new Map();
+const PROXY_HOLD_MS = BENCH.proxyhold || HOUR_MS;
+let proxyRunning = null, proxyStop = null, proxyNow = null;
 
-const qProxySource = lateStatement(`SELECT a.id, a.filename, d.id AS disk_id, m.info, p.state
+const qProxySource = lateStatement(`SELECT a.id, a.filename, d.id AS disk_id, m.info, p.state, r.video_bps
   FROM attachments a JOIN disk_files d ON d.attachment_id = a.id
   JOIN attachment_media m ON m.attachment_id = a.id
-  LEFT JOIN proxy_files p ON p.disk_file_id = d.id WHERE a.id = ?`);
-const qProxyBacklog = lateStatement(`SELECT a.id, a.filename, m.info, p.state FROM attachments a
+  LEFT JOIN proxy_files p ON p.disk_file_id = d.id LEFT JOIN proxy_rates r ON r.disk_file_id = d.id WHERE a.id = ?`);
+const qProxyBacklog = lateStatement(`SELECT a.id, a.filename, m.info, p.state, r.video_bps FROM attachments a
   JOIN disk_files d ON d.attachment_id = a.id JOIN attachment_media m ON m.attachment_id = a.id
-  LEFT JOIN proxy_files p ON p.disk_file_id = d.id
-  WHERE p.disk_file_id IS NULL OR p.state = 'failed' ORDER BY a.id DESC`);
-const qProxyFile = lateStatement(`SELECT p.name, p.size, p.file_key, p.width, p.height, p.state, p.reason
+  LEFT JOIN proxy_files p ON p.disk_file_id = d.id LEFT JOIN proxy_rates r ON r.disk_file_id = d.id
+  WHERE json_type(m.info, '$.video[0]') IS NOT NULL ORDER BY a.id DESC`);
+const qProxyFile = lateStatement(`SELECT p.disk_file_id, p.name, p.size, p.file_key, p.width, p.height, p.state, p.reason
   FROM proxy_files p JOIN disk_files d ON d.id = p.disk_file_id WHERE d.attachment_id = ?`);
 const putProxy = lateStatement(`INSERT INTO proxy_files (disk_file_id, name, size, file_key, width, height, state,
     reason, made_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
   ON CONFLICT(disk_file_id) DO UPDATE SET name = excluded.name, size = excluded.size, file_key = excluded.file_key,
     width = excluded.width, height = excluded.height, state = excluded.state, reason = excluded.reason,
     made_at = excluded.made_at`);
+const putProxyRate = lateStatement(`INSERT INTO proxy_rates (disk_file_id, video_bps) VALUES (?, ?)
+  ON CONFLICT(disk_file_id) DO UPDATE SET video_bps = excluded.video_bps`);
 const dropProxy = lateStatement('DELETE FROM proxy_files WHERE disk_file_id = ?');
 const qProxyCounts = lateStatement(`SELECT COUNT(CASE WHEN state = 'ready' THEN 1 END) AS ready,
     COUNT(CASE WHEN state = 'failed' THEN 1 END) AS failed, COALESCE(SUM(CASE WHEN state = 'ready' THEN size END), 0) AS bytes
   FROM proxy_files`);
 const qProxyNames = lateStatement('SELECT disk_file_id, name FROM proxy_files WHERE name IS NOT NULL');
 
-// Wie die Skalierung in videoproxy.js: die kuerzere Seite hoechstens 1080 und gerade.
-function proxyPixels(v) {
-  const w = v.width || 0, h = v.height || 0;
-  if (!w || !h) return { width: null, height: null };
-  const even = (n) => 2 * Math.round(n / 2);
-  if (w > h) { const ph = Math.min(1080, 2 * Math.floor(h / 2)); return { width: even(w * ph / h), height: ph }; }
-  const pw = Math.min(1080, 2 * Math.floor(w / 2));
-  return { width: pw, height: even(h * pw / w) };
-}
-
 // Ohne ffmpeg, ohne root oder ohne tmpfs wandelt Kriterion nicht um; die Karte nennt den Grund.
 const proxyBlocked = () => !PROXY_HW || PROXY_HW.reason === 'missing' || PROXY_HW.reason === 'notRoot' ||
   (!PROXY_BENCH && !videoproxy.tmpState().tmpfs);
 
-/* `front`: frisch analysierte Videos vor dem Bestand. Ohne `ids` der Bestand; die fehlgeschlagenen
-   nur mit `start`, also einmal je Start. */
+const proxyStale = (r, info, base = proxyBase()) =>
+  r.state === 'ready' && r.video_bps !== videoproxy.videoBitRate(base, info.video[0]);
+
+function proxyBacklog() {
+  const base = proxyBase(), out = { missing: [], failed: [], stale: [] };
+  for (const r of qProxyBacklog().all()) {
+    const info = JSON.parse(r.info);
+    if (!videoproxy.needsProxy(info, r.filename)) continue;
+    if (!r.state) out.missing.push(r.id);
+    else if (r.state === 'failed') out.failed.push(r.id);
+    else if (proxyStale(r, info, base)) out.stale.push(r.id);
+  }
+  return out;
+}
+
+/* `front`: frisch analysierte und gerade abgespielte Videos vor dem Bestand. Ohne `ids` der Bestand,
+   die veralteten zuletzt; die fehlgeschlagenen nur mit `start`, also einmal je Start. */
 function proxySoon(ids, { front = false, start = false } = {}) {
   if (DATABASE_INCOMPLETE || !proxyOn()) return;
   if (ids) {
@@ -5822,10 +5852,9 @@ function proxySoon(ids, { front = false, start = false } = {}) {
     if (front) PROXY_WAITING.clear();
     for (const id of [...ids, ...rest]) PROXY_WAITING.add(Number(id));
   } else {
-    for (const r of qProxyBacklog().all()) {
-      if (r.state === 'failed' && !start) continue;
-      if (videoproxy.needsProxy(JSON.parse(r.info), r.filename)) PROXY_WAITING.add(r.id);
-    }
+    const b = proxyBacklog();
+    for (const id of [...b.missing, ...(start ? b.failed : []), ...b.stale.filter(z => !PROXY_KEPT.has(z))])
+      if (id !== proxyNow) PROXY_WAITING.add(id);
   }
   startProxy();
 }
@@ -5834,12 +5863,12 @@ function startProxy() {
   if (proxyRunning || !PROXY_WAITING.size || proxyBlocked()) return;
   proxyRunning = (async () => {
     while (PROXY_WAITING.size && proxyOn()) {
-      const id = PROXY_WAITING.values().next().value;
+      const id = proxyNow = PROXY_WAITING.values().next().value;
       PROXY_WAITING.delete(id);
       await makeProxy(id);
     }
   })().catch(e => logFail(`Proxy: ${e.message}`))
-    .finally(() => { proxyRunning = null; startProxy(); });
+    .finally(() => { proxyRunning = proxyNow = null; startProxy(); });
 }
 
 // Liefert das Original entschluesselt an ffmpeg, mit Bereichen; nur ueber 127.0.0.1 und nur unter der Marke.
@@ -5887,27 +5916,35 @@ async function sealProxy(out, p) {
 
 const proxyFailed = (r, reason) => putProxy().run(r.disk_id, null, null, null, null, null, 'failed', reason);
 
+function proxyKept(r, reason) {
+  PROXY_KEPT.add(r.id);
+  logWarn(`Proxy for file ${r.id} not replaced, the old one stays: ${reason}`);
+}
+
 async function makeProxy(id) {
   const r = qProxySource().get(id);
-  if (!r || r.state === 'ready') return;
+  if (!r) return;
   const info = JSON.parse(r.info);
-  if (!videoproxy.needsProxy(info, r.filename)) return;
+  const base = proxyBase();
+  if (!videoproxy.needsProxy(info, r.filename) || (r.state === 'ready' && !proxyStale(r, info, base))) return;
+  // Bis der neue fertig ist, spielt der alte Proxy; schlaegt der neue fehl, bleibt der alte.
+  const failed = (reason) => r.state === 'ready' ? proxyKept(r, reason) : proxyFailed(r, reason);
   const tmp = videoproxy.tmpState();
-  const need = videoproxy.expectedBytes(info);
-  if (tmp.free != null && need > tmp.free) return proxyFailed(r, 'tmpSpace');
-  if (spaceShort(encLen(need))) return proxyFailed(r, 'space');
+  const need = videoproxy.expectedBytes(info, base);
+  if (tmp.free != null && need > tmp.free) return failed('tmpSpace');
+  if (spaceShort(encLen(need))) return failed('space');
   const first = videoproxy.wayOf(info, PROXY_HW.quickSync);
   // Dekodiert Quick Sync ein Format doch nicht, folgt auf Weg A Weg B.
   let failure = null;
   for (const way of first === 'A' ? ['A', 'B'] : [first]) {
-    failure = await convert(r, info, way);
+    failure = await convert(r, info, way, base);
     if (!failure || failure === 'stopped') return;
   }
-  proxyFailed(r, failure);
+  failed(failure);
 }
 
 // null nach Erfolg, 'stopped' nach dem Ausschalten oder ohne Original, sonst der Grund des Fehlers.
-async function convert(r, info, way) {
+async function convert(r, info, way, base) {
   const v = info.video[0];
   const f = diskFileOf(r.id);
   if (!f) return 'stopped';
@@ -5916,7 +5953,7 @@ async function convert(r, info, way) {
     const out = path.join(dir, 'proxy.mp4');
     const input = await originalServer(f);
     const started = Date.now();
-    const job = videoproxy.run(PROXY_BENCH, videoproxy.ffmpegArgs(way, input.url, out, v.frameRate), { cwd: dir });
+    const job = videoproxy.run(PROXY_BENCH, videoproxy.ffmpegArgs(way, input.url, out, v, base), { cwd: dir });
     // Auch beim Beenden: ohne Neustart des Containers bliebe das Verzeichnis sonst unter /tmp.
     proxyStop = () => { job.stop(); fs.rmSync(dir, { recursive: true, force: true }); };
     let late = false;
@@ -5933,12 +5970,18 @@ async function convert(r, info, way) {
       logWarn(`Proxy for file ${r.id} failed (way ${way}): ${reason}`);
       return reason.slice(0, 200);
     }
-    const p = { name: freshName(), size, chunk: CHUNK, key: crypto.randomBytes(32), ...proxyPixels(v) };
+    const p = { name: freshName(), size, chunk: CHUNK, key: crypto.randomBytes(32), ...videoproxy.proxyPixels(v) };
     DISK_WRITING.add(p.name);
     try {
       await sealProxy(out, p);
-      putProxy().run(r.disk_id, p.name, p.size, p.key, p.width, p.height, 'ready', null);
-      logLine(`Proxy for file ${r.id} made in ${Math.round((Date.now() - started) / 1000)} s (way ${way}).`);
+      const old = qProxyFile().get(r.id);
+      const replaced = old?.state === 'ready' && old.disk_file_id === r.disk_id;
+      db.transaction(() => {
+        putProxy().run(r.disk_id, p.name, p.size, p.key, p.width, p.height, 'ready', null);
+        putProxyRate().run(r.disk_id, videoproxy.videoBitRate(base, v));
+      })();
+      if (replaced) holdFormer(r.id, old);
+      logLine(`Proxy for file ${r.id} ${replaced ? 'replaced' : 'made'} in ${Math.round((Date.now() - started) / 1000)} s (way ${way}).`);
     } catch (e) {
       fs.rmSync(path.join(PROXY_DIR, p.name), { force: true });
       // Die Datei wurde waehrenddessen endgueltig geloescht.
@@ -5948,12 +5991,12 @@ async function convert(r, info, way) {
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 }
 
-// Ohne Zeile in proxy_files; ein Name, den der Server gerade schreibt, bleibt.
+// Ohne Zeile in proxy_files; ein Name, den der Server gerade schreibt, und ein ersetzter Proxy bleiben.
 function sweepProxyDir() {
   if (SWEEP_HELD || DATABASE_INCOMPLETE) return;
   let names;
   try { names = fs.readdirSync(PROXY_DIR); } catch { return; }
-  const known = new Set(qProxyNames().all().map(z => z.name));
+  const known = new Set([...qProxyNames().all(), ...PROXY_FORMER.values()].map(z => z.name));
   for (const name of names) {
     if (!DISK_NAME.test(name) || known.has(name) || DISK_WRITING.has(name)) continue;
     try { fs.unlinkSync(path.join(PROXY_DIR, name)); } catch {}
@@ -5974,14 +6017,32 @@ function proxyLost(id) {
   proxySoon([id], { front: true });
 }
 
+// Ein laufendes Abspielen fragt weiter mit dem `v` des ersetzten Proxys; die neue Datei passt nicht zu dem Gelesenen.
+function holdFormer(id, old) {
+  clearTimeout(PROXY_FORMER.get(id)?.timer);
+  const timer = setTimeout(() => { PROXY_FORMER.delete(id); sweepProxyDir(); }, PROXY_HOLD_MS);
+  timer.unref();
+  PROXY_FORMER.set(id, { ...old, timer });
+}
+
+function proxyPlayed(id) {
+  if (PROXY_KEPT.has(id) || proxyNow === id || PROXY_WAITING.values().next().value === id) return;
+  const r = qProxySource().get(id);
+  if (r && proxyStale(r, JSON.parse(r.info))) proxySoon([id], { front: true });
+}
+
 // Wie das Original ueber sendDiskFile(), aus data/files/proxy/ und immer zum Abspielen.
 async function sendProxy(req, res) {
   const id = Number(req.params.id);
   const p = qProxyFile().get(id);
   if (!p || p.state !== 'ready') return res.status(404).end();
+  const former = PROXY_FORMER.get(id);
+  const f = former && former.size !== p.size && Number(req.query.v) === former.size ? former : p;
+  proxyPlayed(id);
   const a = db.prepare('SELECT filename FROM attachments WHERE id = ?').get(id);
-  return sendDiskFile(req, res, { name: p.name, size: p.size, chunk: CHUNK, key: p.file_key },
-    { file: path.join(PROXY_DIR, p.name), filename: a.filename.replace(/\.[^.]*$/, '') + '.mp4', lost: () => proxyLost(id) });
+  return sendDiskFile(req, res, { name: f.name, size: f.size, chunk: CHUNK, key: f.file_key },
+    { file: path.join(PROXY_DIR, f.name), filename: a.filename.replace(/\.[^.]*$/, '') + '.mp4',
+      lost: f === p ? () => proxyLost(id) : () => {} });
 }
 
 // Fuer „Erweiterte Infos“; ohne Zeile wartet ein Video, das einen Proxy braucht. Bitraten bei jedem Aufruf gemessen.
@@ -6011,7 +6072,8 @@ function proxyStats() {
   const hw = PROXY_HW || {};
   return { checked: !!PROXY_HW, quickSync: !!hw.quickSync, driver: hw.driver || null, reason: hw.reason || null,
     detail: hw.detail || null, tmpfs: tmp.tmpfs, tmpTotal: tmp.total, tmpFree: tmp.free,
-    ready: c.ready, failed: c.failed, bytes: c.bytes, waiting: PROXY_WAITING.size + (proxyRunning ? 1 : 0) };
+    ready: c.ready, failed: c.failed, bytes: c.bytes, waiting: PROXY_WAITING.size + (proxyRunning ? 1 : 0),
+    stale: proxyBacklog().stale.length };
 }
 
 function proxySwitched() {

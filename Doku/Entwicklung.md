@@ -137,6 +137,11 @@ annehmen.
   neue Nummer des Anhangs. `ON DELETE CASCADE` löscht die Zeile mit der Datei;
   der Trigger `proxy_files_gone` trägt den Namen in die Löschliste ein. Nicht im
   Backup und nicht im Export.
+- `proxy_rates`: das `-b:v`, mit dem ein Proxy entstand, Schlüssel ist
+  `disk_file_id` von `proxy_files` mit `ON DELETE CASCADE`. Eine eigene Tabelle,
+  weil eine neue Spalte in `proxy_files` eine Datenbank aus 0.55 unvollständig
+  machte. Fehlt die Zeile oder weicht der Wert von `videoBitRate()` ab, gilt der
+  Proxy als veraltet.
 
 **Trigger auf `disk_files`**, beim Start angelegt und bei abweichendem Text
 ersetzt: `disk_files_orphaned` trägt eine Zeile ohne Besitzer in die Löschliste
@@ -255,12 +260,25 @@ liest. Ausgeliefert wird in Ranges.
 
 Ein Video unter „Dateien“ bekommt einen Proxy, wenn `needsProxy()` in
 `videoproxy.js` es verlangt; die Angaben kommen aus `attachment_media`. Die
-Warteschlange `proxySoon()` nimmt frisch analysierte Videos vor den Bestand,
-den Bestand beim Einschalten und stündlich, fehlgeschlagene nur beim Start. Es
-läuft immer eine Umwandlung, mit Priorität 19 über `nice -n 19`.
+Warteschlange `proxySoon()` nimmt frisch analysierte und gerade abgespielte
+Videos vor den Bestand, den Bestand beim Einschalten, nach einer neuen Bitrate
+und stündlich, fehlgeschlagene nur beim Start. Im Bestand kommen veraltete
+Proxys nach den fehlenden. Es läuft immer eine Umwandlung, mit Priorität 19
+über `nice -n 19`.
 `os.setPriority()` reicht dafür nicht: Docker gibt root kein `CAP_SYS_NICE`, und
 ffmpeg läuft unter einer anderen Nummer.
 
+- **Bitrate:** `videoBitRate(base, v)` rechnet aus der Einstellung `proxyRate`
+  (Mbit/s für 1920 × 1080 bei 30 Bildern je Sekunde, 1 bis 8, Vorgabe 5) mit
+  Pixeln des Proxys und Bildrate im Verhältnis, höchstens 10 Mbit/s.
+  `proxyPixels()` steht in `videoproxy.js` neben der Skalierung `SCALE`.
+- **Ersatz:** Ein veralteter Proxy spielt weiter, bis der neue fertig ist.
+  Schlägt der neue fehl, bleibt der alte, und `PROXY_KEPT` hält das Video bis
+  zum Neustart oder zur nächsten Bitrate aus der Warteschlange; in die Tabelle
+  kommt kein Fehler. Nach dem Tausch hält `holdFormer()` den alten Proxy eine
+  Stunde für Anfragen mit seinem `v`: Ein laufendes Abspielen läse sonst ab der
+  nächsten Anfrage die neue Datei hinter dem `moov` der alten. Danach löscht ihn
+  `sweepProxyDir()`, nach einem Neustart sofort.
 - **Weg:** A dekodiert und kodiert mit Quick Sync, B dekodiert mit der CPU und
   kodiert mit Quick Sync, C nur mit der CPU (`libx264`). Scheitert A, folgt B.
   `probe()` prüft Quick Sync einmal je Start mit zwei Sekunden `testsrc2`.
@@ -289,6 +307,24 @@ Im Prüfstand ersetzt `test/ffmpeg.js` ffmpeg: es liest das Original über die
 Adresse und schreibt eine kleine MP4 mit dem SHA-256 des Originals, der
 Umgebung, der Priorität und den Argumenten. Ihr `moov` gibt in `stsz` die
 Größen an, aus denen MediaInfo die verlangten `-b:v` und `-b:a` errechnet.
+
+## Telefon: Breite der Seite
+
+Ist ein Element breiter als der Bildschirm, wird am Telefon die ganze Seite so
+breit. Chrome legt dann auch `position: fixed` in dieser Breite an, das Vollbild
+eingeschlossen; man sieht nur einen Ausschnitt. Gefunden mit der Knopfzeile im
+Kopf von „Dateien“ (707 px, Seite 719 statt 412 px). Seither:
+
+- Zeilen mit Knöpfen brechen um (`flex-wrap`), statt `flex-shrink: 0` zu tragen.
+- Solange das Vollbild offen ist, rollt auch `html` nicht
+  (`html:has(> body.lb-open)`); nur `html` und `body` zusammen halten die
+  Breite bei der des Bildschirms.
+- Im Vollbild rollt der Streifen nur sich selbst; `scrollIntoView()` rollte
+  auch die Seite.
+
+Prüfen in Chromium mit `Emulation.setDeviceMetricsOverride` (412 × 915,
+`mobile: true`): `innerWidth` und `document.documentElement.scrollWidth` müssen
+412 sein.
 
 ## Bildablage
 

@@ -15,7 +15,7 @@ async function run() {
 
   const gpList = require('./counterproof').REGRESSIONS;
   // Mit jedem neuen Rueckbau in counterproof.js anheben.
-  check(`Es sind genau 1684 Rueckbauten`, gpList.length === 1684, `${gpList.length}`);
+  check(`Es sind genau 1726 Rueckbauten`, gpList.length === 1726, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* Jede Datei nur einmal lesen: ueber tausend Rueckbauten verteilen sich auf
@@ -349,7 +349,7 @@ async function run() {
     const COMMENT_ROWS = [
       ['testbench.js', 29],
       ['test/batchrun.js', 26],
-      ['test/dom.js', 175],
+      ['test/dom.js', 176],
       ['test/ffmpeg.js', 5],
       ['test/firstlogin.js', 12],
       ['test/frame.js', 125],
@@ -372,6 +372,7 @@ async function run() {
       ['test/release_053.js', 12],
       ['test/release_054.js', 7],
       ['test/release_055.js', 6],
+      ['test/release_056.js', 5],
       ['test/roundtrip.js', 1313],
       ['test/selfcheck.js', 85],
       ['test/source.js', 217],
@@ -384,7 +385,7 @@ async function run() {
       ['test/ui_system.js', 187],
       ['test/ui_translator.js', 24],
       ['counterproof.js', 337],
-      ['server.js', 1089],
+      ['server.js', 1093],
       ['auth.js', 149],
       ['db.js', 56],
       ['mail.js', 17],
@@ -400,16 +401,16 @@ async function run() {
       ['schema.js', 6],
       ['backup.js', 48],
       ['backuptool.js', 29],
-      ['videoproxy.js', 24],
-      ['public/app.js', 1199],
+      ['videoproxy.js', 25],
+      ['public/app.js', 1202],
       ['public/theme.js', 2],
-      ['public/style.css', 514],
+      ['public/style.css', 518],
     ];
-    const COMMENT_TOTAL = { comment: 7235, code: 88678 };
+    const COMMENT_TOTAL = { comment: 7253, code: 89458 };
     // Ausgelieferte Dateien: Bloecke ueber drei Zeilen und Bloecke mit Betonung in Grossbuchstaben.
     const COMMENT_LIMITS = { longBlocks: 3, emphasis: 6 };
-    check('Der Waechter sieht alle siebenundfuenfzig Dateien',
-      crAll.each.length === 57 && COMMENT_ROWS.length === 57,
+    check('Der Waechter sieht alle achtundfuenfzig Dateien',
+      crAll.each.length === 58 && COMMENT_ROWS.length === 58,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
     const crWrong = [];
     for (let i = 0; i < COMMENT_ROWS.length; i++) {

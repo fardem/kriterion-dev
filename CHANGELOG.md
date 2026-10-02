@@ -7,6 +7,28 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 > A box above the changes of a version means there is something to do when updating.
 > Yanked versions are marked `[YANKED]`.
 
+## [0.56.0] - 2026-10-02
+
+Fingerprint `a161550c` — previously `cc298c6f`.
+
+### Added
+
+- The owner admin sets the proxy bit rate in the card "Proxy": 1 to 8 Mbit/s for 1080p30, default 5.
+- In the list view under "Files", a computer shows "Proxy" before Edit and Link for a video with a proxy.
+
+### Changed
+
+- The proxy bit rate follows pixels and frame rate, at most 10 Mbit/s; before, 0.23 Mbit per frame up to 7.5 Mbit/s.
+- After the update and after each change of the bit rate, proxies are replaced in the background, played videos first.
+- The old proxy plays until the new one is ready; a replacement that fails keeps it until the next start.
+
+### Fixed
+
+- On a phone, an entry with files was 719 instead of 412 px wide: the buttons in the header of "Files" did not wrap.
+- Full screen on a phone showed only part of a video: Chrome laid it out as wide as the page. It now fits the screen.
+- The strip in full screen scrolls only itself, no longer the page behind it.
+- Full screen on a phone: the buttons at the top wrap; with "Load whole" and "Proxy" shown, "Close" was off-screen.
+
 ## [0.55.1] - 2026-10-02
 
 Fingerprint `cc298c6f` — previously `064133fa`.

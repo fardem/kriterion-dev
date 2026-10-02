@@ -396,7 +396,8 @@ unverändert.
   „Name“, „Typ“, „Größe“ oder „Datum“ sortiert danach, ein zweiter kehrt die Richtung
   um; ▲ oder ▼ steht an der sortierten Spalte. Am Ende jeder Zeile stehen ✎
   (Bearbeiten, nur an einer Datei, die man bearbeiten darf) und 🔗 (Link auf
-  die Datei kopieren); auf dem Telefon beides nur im Menü.
+  die Datei kopieren); auf dem Telefon beides nur im Menü. Hat ein Video einen
+  Proxy, steht davor „Proxy“; Pixel und Größe des Proxys stehen am Mauszeiger.
 - **Sortieren:** die Auswahl neben „Kacheln“ und „Liste“ ordnet nach „Name“,
   „Datum“, „Größe“ oder „Typ“. Der Knopf daneben kehrt die Richtung um: „A → Z“
   und „Z → A“, „alt → neu“ und „neu → alt“, „klein → groß“ und „groß → klein“.
@@ -491,7 +492,9 @@ unverändert.
   „Herunterladen“ liefert immer das Original. Videos mit den Endungen `mkv`,
   `avi`, `wmv` und `flv` spielt kein Browser; sie spielen erst mit ihrem
   Proxy, und das Vorschaubild entsteht aus ihm. Fehlt ein Proxy oder lässt er
-  sich nicht lesen, spielt das Original, und Kriterion legt ihn neu an.
+  sich nicht lesen, spielt das Original, und Kriterion legt ihn neu an. Nach
+  einer Änderung der Bitrate spielt der alte Proxy, bis der neue fertig ist;
+  ein Video, das gerade spielt, kommt dabei zuerst an die Reihe.
 - **Vorschaubild eines Dokuments:** Text, Markdown, CSV und Log zeigen auf der
   Kachel ihre ersten Zeilen. Word-, Excel- und PowerPoint-Dateien, ihre
   OpenDocument-Gegenstücke und PDF zeigen die erste Seite, wenn der Admin
@@ -723,7 +726,7 @@ an einen Admin, der dir dabei helfen kann.“
 |---|---|
 | Titel | Titel vor der Anmeldung (für jeden sichtbar, zurückhaltend wählen) und Titel nach der Anmeldung |
 | Dokumente | Anzeige und Bearbeiten über einen Document Server ein- und ausschalten; „Bearbeiten durch alle“: Startwert, solange ein Account keinen eigenen gesetzt hat; die Karte prüft die Verbindung. Adressen und Secret stehen in der `.env`, siehe README |
-| Proxy | Proxys für Videos unter „Dateien“ ein- und ausschalten, nur der Eigentümer-Admin, Vorgabe aus; ob Quick Sync kodiert oder die CPU umwandelt und warum; ob `/tmp` im RAM liegt und wie viel frei ist; fertige, wartende und fehlgeschlagene Proxys. Siehe README, „Proxys für Videos“ |
+| Proxy | Proxys für Videos unter „Dateien“ ein- und ausschalten und die Bitrate bei 1080p30 einstellen, 1 bis 8 Mbit/s, nur der Eigentümer-Admin, Vorgabe aus und 5 Mbit/s; ob Quick Sync kodiert oder die CPU umwandelt und warum; ob `/tmp` im RAM liegt und wie viel frei ist; fertige Proxys, solche mit alter Bitrate, wartende und fehlgeschlagene. Siehe README, „Proxys für Videos“ |
 | Kennzahlen | Umfang des Bestands: Einträge, Fotos, Videos, Kommentare, Links und Testtage |
 | Speicher und Wartung | Datenbankgröße, Papierkorb, Dateien auf der Platte (davon über „Anhang“ und im Papierkorb), Uploads, freier Platz. Nur wenn es welche gibt: freier Platz in der Datenbank („davon frei“), Dateien, die noch in der Datenbank auf die Umlagerung warten, fehlende Dateien, Dateien, die auf das Löschen warten, und Dateien ohne Verweis. Für den Eigentümer-Admin der „Abgleich“, siehe unten |
 | Version und Verschlüsselung | Version, Fingerprint, Verschlüsselungsverfahren; für den Eigentümer-Admin der Schlüsselwert, solange der Schlüssel neben der Datenbank liegt |

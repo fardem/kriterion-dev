@@ -11818,9 +11818,9 @@ const REGRESSIONS = [
   {
     nr: '1717', name: "Die Bitrate hat keine Obergrenze",
     file: 'videoproxy.js',
-    search: "  return Math.round(Math.min(7.5e6, 0.23e6 * rate));",
-    replacement: "  return Math.round(0.23e6 * rate);",
-    expected: "Proxy: Auswahl, Bitrate und Weg"
+    search: "  return Math.round(Math.min(MAX_PROXY_BPS, base * frameRateOf(v) / 30 * pixels / (1920 * 1080)));",
+    replacement: "  return Math.round(base * frameRateOf(v) / 30 * pixels / (1920 * 1080));",
+    expected: "Proxy: Bitrate aus Basis, Bildrate und Pixeln"
   },
   {
     nr: '1718', name: "HEVC geht ueber Weg B",
@@ -11853,7 +11853,7 @@ const REGRESSIONS = [
   {
     nr: '1722', name: "Ein Keyframe nur alle 250 Bilder",
     file: 'videoproxy.js',
-    search: "  const gop = Math.max(1, Math.round(2 * (Number(frameRate) > 0 ? Number(frameRate) : 30)));",
+    search: "  const gop = Math.max(1, Math.round(2 * frameRateOf(v)));",
     replacement: "  const gop = 250;",
     expected: "Proxy: Auswahl, Bitrate und Weg"
   },
@@ -11909,8 +11909,8 @@ const REGRESSIONS = [
   {
     nr: '1730', name: "Den Schalter setzt auch ein Admin",
     file: 'server.js',
-    search: "                                'uploadLimits', 'proxyOn'];",
-    replacement: "                                'uploadLimits'];",
+    search: "                                'uploadLimits', 'proxyOn', 'proxyRate'];",
+    replacement: "                                'uploadLimits', 'proxyRate'];",
     expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
   },
   {
@@ -11943,8 +11943,8 @@ const REGRESSIONS = [
   },
   {
     nr: '1735', name: "Die Tabelle nennt die Pixel des Originals",
-    file: 'server.js',
-    search: "  if (w > h) { const ph = Math.min(1080, 2 * Math.floor(h / 2));",
+    file: 'videoproxy.js',
+    search: "  if (w > h) { const ph = Math.min(SHORT_SIDE, 2 * Math.floor(h / 2));",
     replacement: "  if (w > h) { const ph = 2 * Math.floor(h / 2);",
     expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
   },
@@ -12014,8 +12014,8 @@ const REGRESSIONS = [
   {
     nr: '1745', name: "Der Start versucht einen Fehlschlag nicht neu",
     file: 'server.js',
-    search: "      if (r.state === 'failed' && !start) continue;",
-    replacement: "      if (r.state === 'failed') continue;",
+    search: "    for (const id of [...b.missing, ...(start ? b.failed : []), ...b.stale.filter(z => !PROXY_KEPT.has(z))])",
+    replacement: "    for (const id of [...b.missing, ...b.stale.filter(z => !PROXY_KEPT.has(z))])",
     expected: "Proxy: Fehler, Neustart und fehlende Datei"
   },
   {
@@ -12084,8 +12084,8 @@ const REGRESSIONS = [
   {
     nr: '1755', name: "Die laufende Umwandlung zaehlt nicht als wartend",
     file: 'server.js',
-    search: "waiting: PROXY_WAITING.size + (proxyRunning ? 1 : 0) };",
-    replacement: "waiting: PROXY_WAITING.size };",
+    search: "waiting: PROXY_WAITING.size + (proxyRunning ? 1 : 0),",
+    replacement: "waiting: PROXY_WAITING.size,",
     expected: "Proxy: ohne Quick Sync, ohne Firmware und Schalter aus"
   },
   {
@@ -12098,14 +12098,14 @@ const REGRESSIONS = [
   {
     nr: '1757', name: "Der freie RAM unter /tmp zaehlt nicht",
     file: 'server.js',
-    search: "  if (tmp.free != null && need > tmp.free) return proxyFailed(r, 'tmpSpace');\n",
+    search: "  if (tmp.free != null && need > tmp.free) return failed('tmpSpace');\n",
     replacement: "",
     expected: "Proxy: ohne Quick Sync, ohne Firmware und Schalter aus"
   },
   {
     nr: '1758', name: "Der freie Platz auf der Platte zaehlt nicht",
     file: 'server.js',
-    search: "  if (spaceShort(encLen(need))) return proxyFailed(r, 'space');\n",
+    search: "  if (spaceShort(encLen(need))) return failed('space');\n",
     replacement: "",
     expected: "Proxy: ohne Quick Sync, ohne Firmware und Schalter aus"
   },
@@ -12262,6 +12262,300 @@ const REGRESSIONS = [
     search: "    return { video: m.video[0]?.bitRate ?? null, audio: m.audio[0]?.bitRate ?? null };",
     replacement: "    return { video: m.audio[0]?.bitRate ?? null, audio: m.video[0]?.bitRate ?? null };",
     expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
+  },
+  {
+    nr: '1781', name: "Die Bitrate kennt die Pixel des Proxys nicht",
+    file: 'videoproxy.js',
+    search: "  const pixels = width && height ? width * height : 1920 * 1080;",
+    replacement: "  const pixels = 1920 * 1080;",
+    expected: "Proxy: Bitrate aus Basis, Bildrate und Pixeln"
+  },
+  {
+    nr: '1782', name: "Die Bitrate kennt die Bildrate nicht",
+    file: 'videoproxy.js',
+    search: "base * frameRateOf(v) / 30 * pixels / (1920 * 1080)",
+    replacement: "base * pixels / (1920 * 1080)",
+    expected: "Proxy: Bitrate aus Basis, Bildrate und Pixeln"
+  },
+  {
+    nr: '1783', name: "ffmpeg bekommt immer die Vorgabe",
+    file: 'videoproxy.js',
+    search: "  const bps = videoBitRate(base, v);",
+    replacement: "  const bps = videoBitRate(5e6, v);",
+    expected: "Proxy: Bitrate aus Basis, Bildrate und Pixeln"
+  },
+  {
+    nr: '1784', name: "Der Platz im RAM rechnet mit der Vorgabe",
+    file: 'videoproxy.js',
+    search: "videoBitRate(base, info.video[0]) + AUDIO_BPS",
+    replacement: "videoBitRate(5e6, info.video[0]) + AUDIO_BPS",
+    expected: "Proxy: Bitrate aus Basis, Bildrate und Pixeln"
+  },
+  {
+    nr: '1785', name: "Die Bitrate setzt auch ein Admin",
+    file: 'server.js',
+    search: "                                'uploadLimits', 'proxyOn', 'proxyRate'];",
+    replacement: "                                'uploadLimits', 'proxyOn'];",
+    expected: "Proxy: die Bitrate in den Einstellungen"
+  },
+  {
+    nr: '1786', name: "Zwei Stellen nach dem Komma gelten",
+    file: 'server.js',
+    search: "  Math.abs(n * 10 - Math.round(n * 10)) < 1e-9;",
+    replacement: "  true;",
+    expected: "Proxy: die Bitrate in den Einstellungen"
+  },
+  {
+    nr: '1787', name: "Die Bitrate wird nicht gespeichert",
+    file: 'server.js',
+    search: "      if (rateWanted !== null) putSetting.run('proxyRate', JSON.stringify(rateWanted));\n",
+    replacement: "",
+    expected: "Proxy: die Bitrate in den Einstellungen"
+  },
+  {
+    nr: '1788', name: "GET /api/settings nennt die Bitrate nicht",
+    file: 'server.js',
+    search: "  proxyRate: proxyRate(),\n",
+    replacement: "",
+    expected: "Proxy: die Bitrate in den Einstellungen"
+  },
+  {
+    nr: '1789', name: "Eine neue Bitrate stoesst den Ersatz nicht an",
+    file: 'server.js',
+    search: "  if (req.body.proxyOn !== undefined || req.body.proxyRate !== undefined) proxySwitched();",
+    replacement: "  if (req.body.proxyOn !== undefined) proxySwitched();",
+    expected: "Proxy: Ersatz im Hintergrund"
+  },
+  {
+    nr: '1790', name: "Ein fertiger Proxy gilt nie als veraltet",
+    file: 'server.js',
+    search: "  r.state === 'ready' && r.video_bps !== videoproxy.videoBitRate(base, info.video[0]);",
+    replacement: "  false;",
+    expected: "Proxy: Ersatz im Hintergrund"
+  },
+  {
+    nr: '1791', name: "Die Bitrate eines Proxys wird nicht gemerkt",
+    file: 'server.js',
+    search: "        putProxyRate().run(r.disk_id, videoproxy.videoBitRate(base, v));\n",
+    replacement: "",
+    expected: "Proxy: Ersatz im Hintergrund"
+  },
+  {
+    nr: '1792', name: "Die Karte zaehlt die veralteten nicht",
+    file: 'server.js',
+    search: "    stale: proxyBacklog().stale.length };",
+    replacement: "    stale: 0 };",
+    expected: "Proxy: Ersatz im Hintergrund"
+  },
+  {
+    nr: '1793', name: "Der laufende Ersatz kommt beim Abspielen noch einmal in die Warteschlange",
+    file: 'server.js',
+    search: "  if (PROXY_KEPT.has(id) || proxyNow === id || PROXY_WAITING.values().next().value === id) return;",
+    replacement: "  if (PROXY_KEPT.has(id) || PROXY_WAITING.values().next().value === id) return;",
+    expected: "Proxy: Ersatz im Hintergrund"
+  },
+  {
+    nr: '1794', name: "Der stuendliche Lauf stellt den laufenden noch einmal an",
+    file: 'server.js',
+    search: "      if (id !== proxyNow) PROXY_WAITING.add(id);",
+    replacement: "      PROXY_WAITING.add(id);",
+    expected: "Proxy: Ersatz im Hintergrund"
+  },
+  {
+    nr: '1795', name: "Der ersetzte Proxy wird nicht gehalten",
+    file: 'server.js',
+    search: "      if (replaced) holdFormer(r.id, old);\n",
+    replacement: "",
+    expected: "Proxy: Ersatz im Hintergrund"
+  },
+  {
+    nr: '1796', name: "Das alte `v` bekommt den neuen Proxy",
+    file: 'server.js',
+    search: "  const f = former && former.size !== p.size && Number(req.query.v) === former.size ? former : p;",
+    replacement: "  const f = p;",
+    expected: "Proxy: Ersatz im Hintergrund"
+  },
+  {
+    nr: '1797', name: "Der Lauf ueber data/files/proxy/ loescht den gehaltenen Proxy",
+    file: 'server.js',
+    search: "  const known = new Set([...qProxyNames().all(), ...PROXY_FORMER.values()].map(z => z.name));",
+    replacement: "  const known = new Set(qProxyNames().all().map(z => z.name));",
+    expected: "Proxy: Ersatz im Hintergrund"
+  },
+  {
+    nr: '1798', name: "Das Log nennt den Ersatz nicht",
+    file: 'server.js',
+    search: "`Proxy for file ${r.id} ${replaced ? 'replaced' : 'made'} in",
+    replacement: "`Proxy for file ${r.id} made in",
+    expected: "Proxy: Ersatz im Hintergrund"
+  },
+  {
+    nr: '1799', name: "Ein abgespieltes Video kommt nicht nach vorn",
+    file: 'server.js',
+    search: "  proxyPlayed(id);\n",
+    replacement: "",
+    expected: "Proxy: abgespielte zuerst, Fehlschlag und Neustart"
+  },
+  {
+    nr: '1800', name: "Ein fehlgeschlagener Ersatz loescht den alten Proxy",
+    file: 'server.js',
+    search: "  const failed = (reason) => r.state === 'ready' ? proxyKept(r, reason) : proxyFailed(r, reason);",
+    replacement: "  const failed = (reason) => proxyFailed(r, reason);",
+    expected: "Proxy: abgespielte zuerst, Fehlschlag und Neustart"
+  },
+  {
+    nr: '1801', name: "Nach einem Fehlschlag versucht es das Abspielen wieder",
+    file: 'server.js',
+    search: "  if (PROXY_KEPT.has(id) || proxyNow === id || PROXY_WAITING.values().next().value === id) return;",
+    replacement: "  if (proxyNow === id || PROXY_WAITING.values().next().value === id) return;",
+    expected: "Proxy: abgespielte zuerst, Fehlschlag und Neustart"
+  },
+  {
+    nr: '1802', name: "Nach einem Fehlschlag versucht es der stuendliche Lauf wieder",
+    file: 'server.js',
+    search: "...b.stale.filter(z => !PROXY_KEPT.has(z))])",
+    replacement: "...b.stale])",
+    expected: "Proxy: abgespielte zuerst, Fehlschlag und Neustart"
+  },
+  {
+    nr: '1803', name: "Eine neue Bitrate versucht einen Fehlschlag nicht wieder",
+    file: 'server.js',
+    search: "  if (req.body.proxyRate !== undefined) PROXY_KEPT.clear();\n",
+    replacement: "",
+    expected: "Proxy: abgespielte zuerst, Fehlschlag und Neustart"
+  },
+  {
+    nr: '1804', name: "Ohne gemerkte Bitrate gilt ein Proxy als aktuell",
+    file: 'server.js',
+    search: "  r.state === 'ready' && r.video_bps !== videoproxy.videoBitRate(base, info.video[0]);",
+    replacement: "  r.state === 'ready' && r.video_bps != null && r.video_bps !== videoproxy.videoBitRate(base, info.video[0]);",
+    expected: "Proxy: Bestand ohne gemerkte Bitrate"
+  },
+  {
+    nr: '1805', name: "Die gemerkte Bitrate haengt nicht am Proxy",
+    file: 'schema.js',
+    search: "  disk_file_id INTEGER PRIMARY KEY REFERENCES proxy_files(disk_file_id) ON DELETE CASCADE,\n  video_bps",
+    replacement: "  disk_file_id INTEGER PRIMARY KEY,\n  video_bps",
+    expected: "Proxy: Bestand ohne gemerkte Bitrate"
+  },
+  {
+    nr: '1806', name: "Die Karte zeigt die veralteten nicht",
+    file: 'public/app.js',
+    search: "        ${p.stale ? row('card.proxyStale', number(p.stale)) : ''}\n",
+    replacement: "",
+    expected: "Proxy: Bitrate in der Karte"
+  },
+  {
+    nr: '1807', name: "Das Feld schickt die Bitrate als Text",
+    file: 'public/app.js',
+    search: "{ proxyRate: Number(rateField.value) }",
+    replacement: "{ proxyRate: rateField.value }",
+    expected: "Proxy: Bitrate in der Karte"
+  },
+  {
+    nr: '1808', name: "Nach einer Absage bleibt der falsche Wert im Feld",
+    file: 'public/app.js',
+    search: "    rateField.value = String(Number(SETTINGS.proxyRate) || 5);\n",
+    replacement: "",
+    expected: "Proxy: Bitrate in der Karte"
+  },
+  {
+    nr: '1809', name: "Ein Admin bekommt das Feld",
+    file: 'public/app.js',
+    search: "          : `<p class=\"desc\">${tH(on ? 'card.proxyIsOn' : 'card.proxyIsOff')}</p>\n          ${row('card.proxyRate', number(rate, 0, 1))}`}",
+    replacement: "          : `<p class=\"desc\">${tH(on ? 'card.proxyIsOn' : 'card.proxyIsOff')}</p>\n          <input id=\"proxy-rate\" type=\"number\" value=\"${rate}\">`}",
+    expected: "Proxy: Bitrate in der Karte"
+  },
+  {
+    nr: '1810', name: "Die Liste zeigt „Proxy“ auch ohne Proxy",
+    file: 'public/app.js',
+    search: "    mark.hidden = !a.proxy;",
+    replacement: "    mark.hidden = false;",
+    expected: "Proxy in der Liste"
+  },
+  {
+    nr: '1811', name: "Die Liste bekommt keine Spalte fuer den Proxy",
+    file: 'public/app.js',
+    search: "    attsBox.classList.toggle('aproxy-on', list.some(a => a.proxy));\n",
+    replacement: "",
+    expected: "Proxy in der Liste"
+  },
+  {
+    nr: '1812', name: "Der Titel nennt die Pixel des Proxys nicht",
+    file: 'public/app.js',
+    search: "    mark.title = a.proxy ? [t('entry.proxyMark'), a.proxy.width && a.proxy.height ? `${a.proxy.width} × ${a.proxy.height}` : '',",
+    replacement: "    mark.title = a.proxy ? [t('entry.proxyMark'), '',",
+    expected: "Proxy in der Liste"
+  },
+  {
+    nr: '1813', name: "Die Spalte fuer den Proxy hat keine Breite",
+    file: 'public/style.css',
+    search: ".alist .aproxy-on .aacts { grid-template-columns: 44px 36px 36px; }",
+    replacement: ".alist .aproxy-on .aacts { grid-template-columns: 36px 36px; }",
+    expected: "Proxy in der Liste"
+  },
+  {
+    nr: '1814', name: "Das Video behaelt die Groesse aus dem Stilblatt",
+    file: 'public/app.js',
+    search: "  player.addEventListener('loadedmetadata', fitPlayer);\n",
+    replacement: "",
+    expected: "Vollbild: Groesse des Videos und Knopfleiste"
+  },
+  {
+    nr: '1815', name: "Ein Wechsel der Abmessungen aendert die Groesse nicht",
+    file: 'public/app.js',
+    search: "  player.addEventListener('resize', fitPlayer);\n",
+    replacement: "",
+    expected: "Vollbild: Groesse des Videos und Knopfleiste"
+  },
+  {
+    nr: '1816', name: "Ein kleines Video wird vergroessert",
+    file: 'public/app.js',
+    search: "    const scale = Math.min(stage.clientWidth / w, stage.clientHeight / h, 1);",
+    replacement: "    const scale = Math.min(stage.clientWidth / w, stage.clientHeight / h);",
+    expected: "Vollbild: Groesse des Videos und Knopfleiste"
+  },
+  {
+    nr: '1817', name: "Die Buehne wird nicht beobachtet",
+    file: 'public/app.js',
+    search: "  stageWatch?.observe(stage);\n",
+    replacement: "",
+    expected: "Vollbild: Groesse des Videos und Knopfleiste"
+  },
+  {
+    nr: '1818', name: "Schliessen beendet die Beobachtung nicht",
+    file: 'public/app.js',
+    search: "    stageWatch?.disconnect();\n",
+    replacement: "",
+    expected: "Vollbild: Groesse des Videos und Knopfleiste"
+  },
+  {
+    nr: '1819', name: "Die Knoepfe oben brechen nicht um",
+    file: 'public/style.css',
+    search: ".lb-tools { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }",
+    replacement: ".lb-tools { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }",
+    expected: "Vollbild: Groesse des Videos und Knopfleiste"
+  },
+  {
+    nr: '1820', name: "Der Kopf von „Dateien“ bricht nicht um",
+    file: 'public/style.css',
+    search: ".ahead-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; min-width: 0; }",
+    replacement: ".ahead-acts { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }",
+    expected: "Vollbild: Groesse des Videos und Knopfleiste"
+  },
+  {
+    nr: '1821', name: "Im Vollbild bleibt das Wurzelelement rollbar",
+    file: 'public/style.css',
+    search: "html:has(> body.lb-open) { overflow: hidden; }\n",
+    replacement: "",
+    expected: "Vollbild: Groesse des Videos und Knopfleiste"
+  },
+  {
+    nr: '1822', name: "Der Streifen rollt mit scrollIntoView() auch die Seite",
+    file: 'public/app.js',
+    search: "    const on = strip.children[i]?.getBoundingClientRect(), box = strip.getBoundingClientRect();\n    if (on) strip.scrollLeft += on.left + on.width / 2 - (box.left + box.width / 2);",
+    replacement: "    strip.children[i]?.scrollIntoView?.({ block: 'nearest', inline: 'center' });",
+    expected: "Vollbild: Groesse des Videos und Knopfleiste"
   }
 
 ];
