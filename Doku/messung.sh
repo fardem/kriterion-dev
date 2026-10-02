@@ -2,9 +2,17 @@
 # Misst die Umwandlung in Proxys für Kriterion. Aufruf im Ordner mit den Videos:
 #   bash messung.sh | tee messung.txt
 # MBIT=7.5 setzt eine Bitrate für alle Videos; leer: 5, 8 oder 16 Mbit/s nach Bildrate.
-# FFMPEG=schlank baut ffmpeg 7.1.5 selbst und misst damit statt mit ffmpeg aus Debian.
+# FFMPEG=schlank baut ffmpeg selbst (FFVER, Vorgabe 9.0.2) und misst damit statt mit ffmpeg aus Debian.
 MBIT=${MBIT:-}
 FFMPEG=${FFMPEG:-debian}
+FFVER=${FFVER:-9.0.2}
+# SHA-256 der Archive von ffmpeg.org; die Signaturen sind mit dem Release-Schlüssel geprüft.
+case $FFVER in
+  7.1.5) FFSHA=de668509caf9e35e3cd162473441fdb29538c6d96ed080292b3cf9e6fc5d558f ;;
+  9.0.2) FFSHA=8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e ;;
+  *) echo "FFVER=$FFVER: keine Prüfsumme bekannt" >&2; exit 1 ;;
+esac
+SCHLANK=kriterion-messung:schlank-$FFVER
 DRI=${DRI:-/dev/dri/renderD128}
 LSIO=linuxserver/ffmpeg:latest
 NPROC=$(nproc)
@@ -34,16 +42,16 @@ EOF
 
 # ffmpeg aus den Quellen, nur Lesen aller Formate und Schreiben von H.264 und AAC.
 bau_schlank() {
-  docker build -q -t kriterion-messung:schlank - >"$TMP/bau.log" 2>&1 <<'EOF'
+  docker build -q -t "$SCHLANK" - >"$TMP/bau.log" 2>&1 <<EOF
 FROM node:22-bookworm-slim AS ffbuild
 RUN apt-get update \
  && apt-get install -y --no-install-recommends build-essential nasm pkg-config xz-utils \
       libx264-dev libva-dev libdrm-dev libdav1d-dev zlib1g-dev \
  && rm -rf /var/lib/apt/lists/*
-ADD --checksum=sha256:de668509caf9e35e3cd162473441fdb29538c6d96ed080292b3cf9e6fc5d558f \
-    https://ffmpeg.org/releases/ffmpeg-7.1.5.tar.xz /src/
+ADD --checksum=sha256:$FFSHA \
+    https://ffmpeg.org/releases/ffmpeg-$FFVER.tar.xz /src/
 WORKDIR /src
-RUN tar xf ffmpeg-7.1.5.tar.xz && cd ffmpeg-7.1.5 \
+RUN tar xf ffmpeg-$FFVER.tar.xz && cd ffmpeg-$FFVER \
  && ./configure --prefix=/opt/ff --disable-debug --disable-doc --disable-ffplay --disable-ffprobe \
       --disable-autodetect --enable-gpl --enable-libx264 --enable-libdav1d --enable-vaapi --enable-libdrm --enable-zlib \
       --disable-encoders --enable-encoder=libx264,h264_vaapi,aac \
@@ -51,7 +59,7 @@ RUN tar xf ffmpeg-7.1.5.tar.xz && cd ffmpeg-7.1.5 \
       --disable-filters --enable-filter=scale,scale_vaapi,format,hwupload,null,anull,aresample,aformat,testsrc2 \
       --disable-devices --enable-indev=lavfi \
       --disable-protocols --enable-protocol=file,pipe,http,tcp \
- && make -j"$(nproc)" && make install && strip /opt/ff/bin/ffmpeg
+ && make -j"\$(nproc)" && make install && strip /opt/ff/bin/ffmpeg
 
 FROM node:22-bookworm-slim
 RUN apt-get update \
@@ -169,9 +177,9 @@ if [ "$FFMPEG" = schlank ]; then
   t0=$SECONDS
   if bau_schlank; then
     t1=$((SECONDS - t0))
-    echo "- Schlankes ffmpeg 7.1.5: Bau $((t1 / 60)):$(printf '%02d' $((t1 % 60))), Image $(docker image inspect -f '{{.Size}}' kriterion-messung:schlank | awk '{ printf "%d MB", $1 / 1e6 + 0.5 }')"
-    CPUIMG=kriterion-messung:schlank
-    [ ${#HW[@]} != 0 ] && pruefe kriterion-messung:schlank "schlankes ffmpeg" && HWIMG=kriterion-messung:schlank
+    echo "- Schlankes ffmpeg $FFVER: Bau $((t1 / 60)):$(printf '%02d' $((t1 % 60))), Image $(docker image inspect -f '{{.Size}}' "$SCHLANK" | awk '{ printf "%d MB", $1 / 1e6 + 0.5 }')"
+    CPUIMG=$SCHLANK
+    [ ${#HW[@]} != 0 ] && pruefe "$SCHLANK" "schlankes ffmpeg $FFVER" && HWIMG=$SCHLANK
   else
     echo "- Schlankes ffmpeg: Bau fehlgeschlagen"
     grep -v '^ *$' "$TMP/bau.log" | tail -n 5 | sed 's/^/    /'
@@ -282,4 +290,4 @@ if [ -s "$TMP/fehler" ]; then
 fi
 say ""
 say "Fertig. Die Proxys liegen als *.proxy-A.mp4, *.proxy-B.mp4 und *.proxy-C.mp4 neben den Videos."
-say "Images entfernen: docker image rm kriterion-messung:intel-media-va-driver kriterion-messung:intel-media-va-driver-non-free kriterion-messung:schlank"
+say "Images entfernen: docker image rm kriterion-messung:intel-media-va-driver kriterion-messung:intel-media-va-driver-non-free $SCHLANK"

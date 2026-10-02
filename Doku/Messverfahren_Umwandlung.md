@@ -193,7 +193,7 @@ Das Skript liegt in `Doku/messung.sh`.
 `FFMPEG=schlank MBIT=7.5 bash messung.sh | tee messung.txt` misst mit dem
 schlanken ffmpeg aus Abschnitt 7 statt mit ffmpeg aus Debian und nennt die
 Dauer des Baus. Das Image aus Debian mit dem freien Treiber baut es weiter,
-nur für `ffprobe`.
+nur für `ffprobe`. `FFVER` wählt die Version: 9.0.2 (Vorgabe) oder 7.1.5.
 
 Das Skript
 
@@ -223,11 +223,24 @@ die Images; `linuxserver/ffmpeg` ebenso, wenn das Skript es geladen hat.
 ## 7. Probebau: schlankes ffmpeg
 
 Für F19 im Auftrag gemessen am 1. und 2. Oktober 2026, in der Sitzung von
-Claude. Das Archiv `ffmpeg-7.1.5.tar.xz` von `ffmpeg.org` ist bitgleich mit
-`ffmpeg_7.1.5.orig.tar.xz` aus Debian 13 (SHA-256 `de668509…`). Das Skript
-holt es mit `ADD --checksum`; das braucht BuildKit, das Docker ab Version 23
-unter Linux von selbst nimmt. Der Bau dauerte in der Sitzung 3:19 mit dem
-Herunterladen, 2:35 aus der Datei daneben.
+Claude. Das Skript holt das Archiv von `ffmpeg.org` mit `ADD --checksum`; das
+braucht BuildKit, das Docker ab Version 23 unter Linux von selbst nimmt.
+
+| Version | erschienen | SHA-256 | geprüft |
+|---|---|---|---|
+| 7.1.5 | 20. Juni 2026 | `de668509…` | bitgleich mit `ffmpeg_7.1.5.orig.tar.xz` aus Debian 13 |
+| 9.0.2 | 18. September 2026 | `8c385028…` | Signatur gültig, Release-Schlüssel `FCF9 86EA 15E6 E293 A564 4F10 B432 2F04 D676 58D8` |
+
+| Version | Bau in der Sitzung | Image | Weg C | Quick Sync auf dem N100 |
+|---|---|---|---|---|
+| 7.1.5 | 3:19 mit dem Herunterladen | 263 MB | geprüft | gemessen: Bau 4:39, 264 MB, Weg A 10 bis 25 % schneller als 5.1.9 |
+| 9.0.2 | 3:23 mit dem Herunterladen | 264 MB | geprüft, so schnell wie 7.1.5 | nicht gemessen |
+
+Das `Changelog` von 9.0.2 nennt für die Teile, die Kriterion benutzt, drei
+neue Grenzprüfungen im Leser für MP4 und MOV (`keys`, `trun`, `sgpd`),
+Korrekturen an den Decodern für H.264 und HEVC und ein Leck in dav1d. Die
+neuen Funktionen von 8.0 bis 9.0 (VVC über VA-API, APV, ProRes RAW, D3D12,
+Vulkan, NVENC) betreffen die Proxys nicht.
 
 | Image | Größe |
 |---|---|

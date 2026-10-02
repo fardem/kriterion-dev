@@ -43,9 +43,10 @@ Zeilennummern gelten für `bf925e9` (0.54.0).
 | V15 | B1 | „das Problem ist, dass jede Maschine anders ist; wenn ich das veröffentliche und wir brauchen das, muss das gut dokumentiert sein“ |
 | V16 | B1 | „zu Forschungszwecken ist das ja ok, aber wenn wir es veröffentlichen, muss es für alle Menschen, oder meistens Menschen, ein gangbarer Weg sein und nicht ein sehr spezieller, nerdiger Weg“ |
 | V17 | B1 | „Wenn der schlanke Image mit ffmpeg für den User unsichtbar ist, dann können wir das schon machen“ |
+| V19 | B1 | „klar, ich bin für die neuere Version, aber was wäre denn überhaupt der Vorteil“ und „es reicht doch, wenn du das in deiner Umgebung testest … an den Zeiten wird sich da nicht mehr viel tun“: ffmpeg 9.0.2 statt 7.1.5, ohne eigene Messung auf dem N100; Quick Sync und Hochkant prüft die Abnahme |
 | V18 | B1, B2 | „wenn man ohne die Seite neu zu laden wieder abspielt, wäre es schön, wenn es nicht neu laden muss. Wie lange bleibt es im Cache?“ Antwort: Der Server erlaubt 1 Stunde (`Cache-Control: private, max-age=3600`, `server.js`:4441); ob der Browser die Stücke nimmt, hängt vom Browser ab, nicht gemessen. Offen: die Kopie aus „Ganz laden“ bis zum Neuladen der Seite behalten (gegen V5) |
 
-V1, V2 und V7 bis V16 vom 1. Oktober 2026, V17 und V18 vom 2. Oktober 2026.
+V1, V2 und V7 bis V16 vom 1. Oktober 2026, V17 bis V19 vom 2. Oktober 2026.
 
 ### Fragen
 
@@ -69,7 +70,7 @@ V1, V2 und V7 bis V16 vom 1. Oktober 2026, V17 und V18 vom 2. Oktober 2026.
 | F16 | B1: Die Bildrate bleibt wie im Original (V10). Bleibt es bei 1080p, wenn das Original mehr Zeilen hat? | ja, 1080p: 4K wird auf 1920×1080 verkleinert · nein, Pixel wie im Original, nur die Bitrate sinkt | **ja, 1080p** (Empfehlung) |
 | F17 | B1: Welche Bitrate bekommen Videos mit mehr als 30 Bildern je Sekunde? | steigt mit der Bildrate: 5 Mbit/s bis 30p, 8 Mbit/s bei 50p und 60p, 16 Mbit/s bei 100p und 120p · immer 5 Mbit/s · bis 30p 5, sonst 8 Mbit/s | **steigt mit der Bildrate** (Empfehlung) |
 | F18 | B1: Wie heißt die kleine Fassung in Kriterion (V11)? | Proxy · Lowres · Telefonfassung bleibt | **Proxy** (Empfehlung) |
-| F19 | B1: Wie kommt ffmpeg ins Image (F2)? Gemessen in Abschnitt 2.6 | Pakete aus Debian mit dem freien Treiber: 705 MB statt 227 MB, ffmpeg 5.1.9; Updates kommen mit Debian · ffmpeg 7.1 im ersten Abschnitt des `Dockerfile` selbst übersetzen, nur mit den nötigen Teilen: 263 MB; jede neue Version von ffmpeg trägt jemand im `Dockerfile` nach | offen; Empfehlung: Pakete aus Debian, der Standardweg (V16) |
+| F19 | B1: Wie kommt ffmpeg ins Image (F2)? Gemessen in Abschnitt 2.6 | Pakete aus Debian mit dem freien Treiber: 705 MB statt 227 MB, ffmpeg 5.1.9; Updates kommen mit Debian · ffmpeg im ersten Abschnitt des `Dockerfile` selbst übersetzen, nur mit den nötigen Teilen: 264 MB; jede neue Version von ffmpeg trägt jemand im `Dockerfile` nach | offen; Empfehlung: das schlanke ffmpeg 9.0.2 (V17, V19), 7.1.5 als auf dem N100 geprüfte Rückfallversion |
 | F20 | B1: Gehen wir den Weg mit Proxys (B1 bauen)? Messung in Abschnitt 2.7, ohne Quick Sync | ja, Quick Sync parallel klären · erst Quick Sync, dann neu messen · nein, nur B2 | offen (Tafel weggeklickt); Empfehlung: ja |
 | F21 | B1: Welche Bitrate bekommt der Proxy (V13)? Die Bitrate ändert die Dauer nicht (Abschnitt 2.7) | immer 7,5 Mbit/s · ab 7,5 steigend: 12 bei 50p und 60p, 24 bei 100p und 120p · bleibt 5, 8, 16 (F17) | offen (Tafel weggeklickt); Empfehlung: immer 7,5 Mbit/s |
 | F22 | B1: Proxy im Papierkorb, im Backup und im Export (V12, statt F12)? | Papierkorb ja, Backup und Export nein · überall wie das Original · nirgends (F12) | offen (Tafel weggeklickt); Empfehlung: Papierkorb ja, Backup und Export nein |
@@ -220,6 +221,7 @@ die Datei nur einmal, und das Video springt nicht (B2).
 |---|---|---|
 | Pakete aus Debian | 705 MB | gemessen; Quick Sync läuft auf dem N100 |
 | schlankes ffmpeg 7.1.5, im ersten Abschnitt des `Dockerfile` übersetzt, Quelle `ffmpeg.org` mit Prüfsumme | 263 MB, auf dem N100 264 MB | gemessen; Bau 3:19 in der Sitzung von Claude, 4:39 auf dem N100; Quick Sync läuft auf dem N100, Weg A 10 bis 25 % schneller als mit 5.1.9 (Abschnitt 2.7) |
+| schlankes ffmpeg 9.0.2, ebenso | 264 MB | gemessen in der Sitzung von Claude: Bau 3:23, Weg C so schnell wie 7.1.5, die Drehung bleibt; Quick Sync nicht gemessen (V19). Signatur des Archivs gültig; das `Changelog` nennt Korrekturen im Leser für MP4 und MOV und in den Decodern für H.264 und HEVC (Messverfahren, Abschnitt 7) |
 | `jellyfin-ffmpeg8` 8.1.3 aus der Paketquelle des Jellyfin-Projekts, mit eigenem Intel-Treiber 26.3.5 | rund 525 MB (Probebau 573 MB mit der Paketdatei von 47,5 MB in einer eigenen Schicht) | gemessen am 2. Oktober 2026; Weg C geprüft; mit `-noautorotate` geht die Drehung verloren (Messverfahren, Abschnitt 7) |
 | fertige statische Builds, etwa von BtbN | nicht gemessen | fremder Ersteller; in der Sitzung gesperrt |
 | eigener Container neben Kriterion | 227 MB und der zweite, etwa 802 MB | zweiter Dienst in der Compose-Datei; gegen F2 |
@@ -547,6 +549,8 @@ Fingerprint. Zahlen am fertigen Stand.
 16. Ein Video ohne Proxy öffnen, etwa direkt nach dem Hochladen: Es spielt das
     Original, ohne Fehlermeldung; der Proxy entsteht im Hintergrund (V14).
 17. Ohne Firmware für `i915` nennt die Karte den Grund (V15).
+18. Mit ffmpeg 9.0.2 kodiert Quick Sync auf dem N100, und die Proxys der
+    Hochkant-Videos aus Weg A stehen aufrecht (V19). Sonst gilt 7.1.5.
 
 ---
 
