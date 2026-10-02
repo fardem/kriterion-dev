@@ -707,11 +707,33 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und färbt den Rückgabewert trotzdem nicht rot', stillRed.code === 0,
     `Code ${stillRed.code}`);
   check('Er taucht auch in keiner Zeile mit einem Namen auf',
-    !/✗/.test(stillRed.text), stillRed.text.split('\n').filter(z => /✗/.test(z)).join(' | '));
+    !/✗|übergangen und rot/.test(stillRed.text),
+    stillRed.text.split('\n').filter(z => /✗|übergangen und rot/.test(z)).join(' | '));
 
   const shownRed = frameProbe('rot-gezeigt', 'Rechte');
   check('Ein Fehlschlag im Gezeigten macht den Lauf rot',
     shownRed.code === 1 && /1 GESCHEITERT/.test(shownRed.text), `Code ${shownRed.code}`);
+  const shownEnd = shownRed.text.slice(shownRed.text.indexOf('Pruefungen bestanden'));
+  check('Und die Liste nach der Summe nennt ihn mit seiner Gruppe',
+    /\n {2}ROT:\n {4}Rechte am Eintrag › gezeigt und rot\n/.test(shownEnd), JSON.stringify(shownEnd.slice(0, 160)));
+
+  /* Ein Modul meldet seine roten Pruefungen ueber counters(), der Treiber nimmt sie mit addCounters(). */
+  const relay = require('child_process').spawnSync(process.execPath, ['-e', `
+    const H = require('./test/frame.js');
+    H.group('Gestellt'); H.check('rot im Modul', false);
+    const red = JSON.stringify(H.counters().red);
+    H.addCounters({ passedCount: 0, failed: 1, skipped: 0, stillPassed: 0, stillFailed: 0, groupsShown: 0,
+      groupsStill: 0, times: [], red: [{ group: 'Modul gestellt', name: 'aus der Meldung' }] });
+    H.endBlock();
+    require('fs').rmSync(H.DATA, { recursive: true, force: true });
+    console.log(red);`], { cwd: __dirname, encoding: 'utf8', timeout: 30000 });
+  const relayText = relay.stdout || '';
+  check('Die Meldung eines Moduls traegt seine roten Pruefungen',
+    relayText.trim().endsWith('[{"group":"Gestellt","name":"rot im Modul"}]'),
+    JSON.stringify(relayText.trim().split('\n').pop()));
+  check('Und der Treiber setzt die gemeldeten hinter die eigenen',
+    /\n {2}ROT:\n {4}Gestellt › rot im Modul\n {4}Modul gestellt › aus der Meldung\n/.test(relayText),
+    JSON.stringify(relayText.slice(relayText.indexOf('ROT:'), relayText.indexOf('ROT:') + 120)));
 
   const outside = frameProbe('1', 'Gibtesnicht');
   check('Ein Filter ohne Treffer meldet keinen Erfolg',

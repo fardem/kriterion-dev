@@ -57,6 +57,9 @@ let passedCount = 0, failed = 0, skipped = 0;
 let stillPassed = 0, stillFailed = 0;
 let groupsShown = 0, groupsStill = 0;
 let silent = false;
+// Wiederholt am Ende: von einem langen Log auf GitHub liest das Werkzeug nur die letzten Zeilen.
+const RED = [];
+let groupName = '(vor der ersten Gruppe)';
 
 /* ---- Zeitmessung ---- */
 const TIMES = [];
@@ -88,7 +91,7 @@ function timeTable(rows, wholeMs, top = 10) {
 
 const group = (name) => {
   closeTime();
-  timeName = name; timeStart = Date.now();
+  timeName = groupName = name; timeStart = Date.now();
   silent = FILTER !== '' && !name.toLowerCase().includes(FILTER.toLowerCase());
   timeSilent = silent;
   if (silent) { groupsStill++; return; }
@@ -100,7 +103,11 @@ function check(name, condition, hint = '') {
   // Zeile weg, nicht die Arbeit.
   if (silent) { if (condition) stillPassed++; else stillFailed++; return; }
   if (condition) { passedCount++; console.log(`  ✓ ${name}`); }
-  else { failed++; console.log(`  ✗ ${name}${hint ? `\n      ${hint}` : ''}`); }
+  else {
+    failed++;
+    RED.push({ group: groupName, name });
+    console.log(`  ✗ ${name}${hint ? `\n      ${hint}` : ''}`);
+  }
 }
 // Gefilterter und voller Lauf enden hier gleich.
 function endBlock() {
@@ -113,6 +120,10 @@ function endBlock() {
   else console.log(`  ${passedCount} von ${sum} Pruefungen bestanden` +
               (skipped ? `, ${skipped} uebersprungen` : '') +
               (failed ? `  —  ${failed} GESCHEITERT` : '  —  alles in Ordnung'));
+  if (RED.length) {
+    console.log('\n  ROT:');
+    for (const r of RED) console.log(`    ${r.group} › ${r.name}`);
+  }
   if (FILTER) {
     console.log(`\n  GEFILTERTER LAUF nach "${FILTER}" — KEIN VOLLSTAENDIGER BELEG.`);
     if (!groupsShown)
@@ -857,7 +868,7 @@ function counters() {
      benutzten. */
   return {
     passedCount, failed, skipped, stillPassed, stillFailed, groupsShown, groupsStill,
-    times: TIMES,
+    times: TIMES, red: RED,
     cases: CASES.map(l => ({ base: l.base, port: l.port, pid: l.kind.pid,
       open: l.kind.exitCode === null && l.kind.signalCode === null })),
     smtp: SMTP_CASES.map(l => ({ base: l.base, port: l.port, kind: l.kind,
@@ -870,6 +881,7 @@ function addCounters(z) {
   stillPassed += z.stillPassed; stillFailed += z.stillFailed;
   groupsShown += z.groupsShown; groupsStill += z.groupsStill;
   for (const r of z.times || []) TIMES.push(r);
+  for (const r of z.red || []) RED.push(r);
 }
 
 /* Ein Teillauf startet nur die Module, die er zeigt; die Gruppen der uebrigen

@@ -25,6 +25,7 @@ Abhängigkeit.
 | 2. Oktober 2026 | Fragetafel: Proxys aus 0.55 nach dem Update im Hintergrund ersetzen (Empfehlung); die Leiste oben „Ist ganz da“; der Browser ist Chrome |
 | 2. Oktober 2026 | Drei Bildschirmfotos aus Chrome auf Android; daraus die Ursache am Telefon (Abschnitt 3) |
 | 2. Oktober 2026 | Fragetafel beim Push: die zwei Commits direkt auf 0.55.1 (`b3b5879`) pushen, ohne den Branch neu auf `main` aufzusetzen (Empfehlung). Das Neu-Aufsetzen hatte die automatische Freigabe abgelehnt; 0.55.1 ist über #280 schon in `main` |
+| 2. Oktober 2026 | Fragetafel nach dem roten Lauf 1204: Der Prüfstand listet am Ende jedes Laufs die roten Prüfungen mit ihrer Gruppe (Empfehlung); Nachtrag und Liste kommen über einen neuen Pull Request nach `main` (Empfehlung) |
 
 ---
 
@@ -203,6 +204,20 @@ Start des Prüfstands bis zur Gruppe „Linkliste und Aktionszeichen“ verginge
 rund 137 s, in Lauf 1205 rund 114 s. Die fünf Module von `roundtrip` bis
 `ui_system` dreimal parallel hier: alle grün.
 
+**Nachtrag: die roten Prüfungen am Ende.** `test/frame.js` merkt sich jede rote
+Prüfung mit ihrer Gruppe, gibt sie in der Meldung eines Moduls weiter und
+nennt sie im Schlussblock unter „ROT:“, direkt nach der Summenzeile.
+`testbench.js` trägt dort auch seine eigenen Fehler ein, mit „Modul <Name>“ als
+Gruppe. Übergangene Gruppen eines gefilterten Laufs kommen nicht in die Liste.
+Die Zeilen der Liste tragen kein ✗; `counterproof.js` liest rote Prüfungen
+weiter nur aus den Zeilen mit ✗. Neu sind drei Prüfungen in `test/roundtrip.js`
+(„Der Gruppenfilter“) und eine in `test/selfcheck.js` („Der Treiber sieht den
+Rueckgabewert — 0.34.4“); eine bestehende prüft zusätzlich, dass der übergangene
+Fehlschlag in keiner Zeile steht. Rückbauten 1823 bis 1829 neu: **7 von 7
+rot**. 1062 hat einen neuen Suchtext, weil die Zeile in `testbench.js` keine
+Klammer mehr trägt; rot. Der volle Lauf mit der Liste: **8.268 von 8.268**
+Prüfungen bestanden, 1.733 Rückbauten.
+
 ---
 
 ## 6. Nicht geprüft und offen
@@ -214,4 +229,4 @@ rund 137 s, in Lauf 1205 rund 114 s. Die fünf Module von `roundtrip` bis
   rund 30 Minuten, mit der CPU zwei bis zweieinhalb Stunden.
 - Die türkischen Texte hat kein Muttersprachler gelesen.
 - Die 6 roten Prüfungen aus Lauf 1204 (Abschnitt 5): Namen und Ursache sind
-  nicht bekannt.
+  nicht bekannt. Ein künftiger roter Lauf nennt sie am Ende des Logs.
