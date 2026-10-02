@@ -683,9 +683,11 @@ async function run() {
     check('Hoechstens 1.500 Zeilen, Keep a Changelog auf Englisch, keine deutschen Abschnitte',
       log.split('\n').length <= 1500 && /keepachangelog\.com\/en\/1\.1\.0\//.test(log) &&
       !/^### (Hinzugefügt|Geändert|Behoben|Entfernt)/m.test(log), `${log.split('\n').length} Zeilen`);
-    check('Jede Version behaelt Ueberschrift und Fingerprint: 127 Abschnitte, 39 Fingerprints',
-      (log.match(/^## /gm) || []).length === 127 && (log.match(/^Fingerprint `/gm) || []).length === 39,
-      `${(log.match(/^## /gm) || []).length} / ${(log.match(/^Fingerprint `/gm) || []).length}`);
+    const older = ((log.match(/^## Older versions — 0\.10\.0 to 0\.19\.6\n\n((?:- 0\.1\d\.\d+: .*\n)+)/m) || [])[1] || '')
+      .split('\n').filter(Boolean);
+    check('Ab 0.20.0 behaelt jede Version Ueberschrift und Fingerprint, 0.10.0 bis 0.19.6 stehen je in einer Zeile: 100 Abschnitte',
+      (log.match(/^## /gm) || []).length === 100 && (log.match(/^Fingerprint `/gm) || []).length === 40 && older.length === 29,
+      `${(log.match(/^## /gm) || []).length} / ${(log.match(/^Fingerprint `/gm) || []).length} / ${older.length}`);
   }
 }
 
