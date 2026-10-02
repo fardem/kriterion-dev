@@ -219,7 +219,7 @@ die Datei nur einmal, und das Video springt nicht (B2).
 | Weg | Image | Stand |
 |---|---|---|
 | Pakete aus Debian | 705 MB | gemessen; Quick Sync läuft auf dem N100 |
-| schlankes ffmpeg 7.1.5, im ersten Abschnitt des `Dockerfile` übersetzt, Quelle `ffmpeg.org` mit Prüfsumme | 263 MB | gemessen; Bau 3:19 in der Sitzung von Claude; Weg C geprüft, Quick Sync misst `FFMPEG=schlank` im Skript |
+| schlankes ffmpeg 7.1.5, im ersten Abschnitt des `Dockerfile` übersetzt, Quelle `ffmpeg.org` mit Prüfsumme | 263 MB, auf dem N100 264 MB | gemessen; Bau 3:19 in der Sitzung von Claude, 4:39 auf dem N100; Quick Sync läuft auf dem N100, Weg A 10 bis 25 % schneller als mit 5.1.9 (Abschnitt 2.7) |
 | `jellyfin-ffmpeg8` 8.1.3 aus der Paketquelle des Jellyfin-Projekts, mit eigenem Intel-Treiber 26.3.5 | rund 525 MB (Probebau 573 MB mit der Paketdatei von 47,5 MB in einer eigenen Schicht) | gemessen am 2. Oktober 2026; Weg C geprüft; mit `-noautorotate` geht die Drehung verloren (Messverfahren, Abschnitt 7) |
 | fertige statische Builds, etwa von BtbN | nicht gemessen | fremder Ersteller; in der Sitzung gesperrt |
 | eigener Container neben Kriterion | 227 MB und der zweite, etwa 802 MB | zweiter Dienst in der Compose-Datei; gegen F2 |
@@ -316,6 +316,23 @@ und der Bitrate des Videos:
 - Alle Proxys der Hochkant-Videos stehen aufrecht, aus Weg A und aus Weg C
   (Betreiber, 2. Oktober 2026). `-noautorotate` ist damit auch mit Quick Sync
   bestätigt.
+
+Vierte Messung des Betreibers am 2. Oktober 2026, 10:48, mit
+`FFMPEG=schlank MBIT=7.5`: das schlanke ffmpeg 7.1.5 aus Abschnitt 7 des
+Messverfahrens. Der Bau dauerte auf dem N100 4:39, das Image hat 264 MB.
+Quick Sync kodiert damit, mit dem freien Treiber 23.1.1 aus Debian.
+
+| Datei | Weg A: Zeit | Faktor | CPU | zum Vergleich mit 5.1.9 | Weg C: Zeit | Faktor | CPU | Größe |
+|---|---|---|---|---|---|---|---|---|
+| 20260718_C3524.MP4 | 0:13 | 6,6 | 20 % | 0:16, 5,3, 12 % | 0:59 | 1,5 | 84 % | 82 MB |
+| 20260718_C3619.MP4 | 0:26 | 2,2 | 20 % | 0:29, 2,0, 16 % | 2:12 | 0,4 | 90 % | 56 MB |
+| 20260923_C3762.MP4 | 0:29 | 2,2 | 20 % | 0:35, 1,9, 15 % | 2:16 | 0,5 | 85 % | 62 MB |
+| IMG_2618.MOV | 0:28 | 4,9 | 17 % | 0:31, 4,4, 11 % | 2:56 | 0,8 | 89 % | 132 MB |
+
+- Weg A ist mit 7.1.5 um 10 bis 25 % schneller und braucht etwas mehr CPU.
+  Weg C und die Größen bleiben gleich.
+- Ob die Proxys der Hochkant-Videos aus Weg A mit 7.1.5 aufrecht stehen, prüft
+  der Betreiber; Weg C mit 7.1.5 ist in der Sitzung von Claude geprüft.
 
 ### 2.8 Größen
 
