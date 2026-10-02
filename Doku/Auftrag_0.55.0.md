@@ -230,6 +230,12 @@ die Datei nur einmal, und das Video springt nicht (B2).
   Auf dem Host braucht Quick Sync in jedem Weg nur den Kernel-Treiber `i915`
   mit Firmware. Der Intel-Treiber 23.1.1 aus Debian 12 kann den N100; ob er
   neuere Intel-Generationen kann, ist nicht geprüft.
+- Ein Rezept für alle Rechner: Das `Dockerfile` baut überall dasselbe ffmpeg;
+  welcher Weg läuft, entscheidet Kriterion beim Start mit dem Test aus
+  Abschnitt 2 des Messverfahrens. Debian 12 hat `intel-media-va-driver` nur
+  für amd64, libx264, libva und dav1d auch für arm64 (geprüft am
+  2. Oktober 2026). Auf arm64 lässt das `Dockerfile` den Intel-Treiber weg;
+  dort gilt Weg C.
 
 ### 2.7 Quick Sync und die Messung
 
