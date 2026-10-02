@@ -71,9 +71,9 @@ function expectedBytes(info) {
 }
 
 /* ---- Umgebung ---- */
-function findFfmpeg() {
+function findTool(name) {
   for (const dir of String(process.env.PATH || '/usr/local/bin:/usr/bin:/bin').split(':')) {
-    const file = path.join(dir || '.', 'ffmpeg');
+    const file = path.join(dir || '.', name);
     try { fs.accessSync(file, fs.constants.X_OK); return file; } catch {}
   }
   return null;
@@ -103,13 +103,16 @@ function tmpState() {
 /* `bench`: Skript des Pruefstands und seine Argumente statt ffmpeg; es laeuft unter derselben
    Nummer wie Kriterion. Sonst nur als root, unter FFMPEG_UID mit der Gruppe von /dev/dri. */
 function launcher(bench) {
-  if (bench) return { file: process.execPath, prefix: bench, ids: {} };
-  const file = findFfmpeg();
+  // nice statt os.setPriority(): Docker gibt root kein CAP_SYS_NICE fuer einen Prozess unter FFMPEG_UID.
+  const nice = findTool('nice');
+  if (!nice) return { error: 'missing' };
+  if (bench) return { file: nice, prefix: ['-n', '19', process.execPath, ...bench], ids: {} };
+  const file = findTool('ffmpeg');
   if (!file) return { error: 'missing' };
   if (typeof process.getuid !== 'function' || process.getuid() !== 0) return { error: 'notRoot' };
   let gid = FFMPEG_UID;
   try { gid = fs.statSync(DRI).gid; } catch {}
-  return { file, prefix: [], ids: { uid: FFMPEG_UID, gid } };
+  return { file: nice, prefix: ['-n', '19', file], ids: { uid: FFMPEG_UID, gid } };
 }
 
 /* Startet ffmpeg mit Prioritaet 19. `onProgress(seconds)` je Fortschrittszeile.
@@ -118,7 +121,6 @@ function run(bench, args, { cwd, onProgress } = {}) {
   const how = launcher(bench);
   if (how.error) return { done: Promise.resolve({ code: -1, log: how.error }), stop: () => {} };
   const child = spawn(how.file, [...how.prefix, ...args], { cwd, env: {}, stdio: ['ignore', 'pipe', 'pipe'], ...how.ids });
-  try { os.setPriority(child.pid, 19); } catch {}
   let log = '', rest = '';
   child.stderr.on('data', d => { log = (log + d).slice(-4000); });
   child.stdout.on('data', d => {

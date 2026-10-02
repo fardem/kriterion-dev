@@ -332,6 +332,8 @@ async function run() {
       /const FFMPEG_UID = 65534;/.test(vpSource) && /gid = fs\.statSync\(DRI\)\.gid;/.test(vpSource) &&
       /ids: \{ uid: FFMPEG_UID, gid \}/.test(vpSource) && /process\.getuid\(\) !== 0\) return \{ error: 'notRoot' \}/.test(vpSource),
       'Nummer, Gruppe oder Pruefung auf root fehlt');
+    check('Im Container startet ffmpeg ueber nice -n 19; os.setPriority() fehlt dort das Recht CAP_SYS_NICE',
+      /return \{ file: nice, prefix: \['-n', '19', file\], ids: \{ uid: FFMPEG_UID, gid \} \};/.test(vpSource), 'ffmpeg ohne nice');
     check('Weg: ohne Quick Sync C; H.264 mit 8 Bit, HEVC und AV1 A; H.264 mit 10 Bit oder 4:2:2 und andere Codecs B',
       ways.join('') === 'CAAABBB', ways.join(''));
     const a = VP.ffmpegArgs('A', 'http://127.0.0.1:1/x', '/tmp/o.mp4', 30).join(' ');

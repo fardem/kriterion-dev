@@ -11874,8 +11874,8 @@ const REGRESSIONS = [
   {
     nr: '1725', name: "ffmpeg laeuft mit normaler Prioritaet",
     file: 'videoproxy.js',
-    search: "  try { os.setPriority(child.pid, 19); } catch {}\n",
-    replacement: "",
+    search: "if (bench) return { file: nice, prefix: ['-n', '19', process.execPath, ...bench], ids: {} };",
+    replacement: "if (bench) return { file: process.execPath, prefix: bench, ids: {} };",
     expected: "Proxy: Umwandlung mit dem Ersatz fuer ffmpeg"
   },
   {
@@ -12213,6 +12213,13 @@ const REGRESSIONS = [
     search: ": tH(PROXY_REASONS[p.reason] || 'card.proxyCpu')}",
     replacement: ": tH('card.proxyCpu')}",
     expected: "Proxy: die Karte"
+  },
+  {
+    nr: '1774', name: "Im Container startet ffmpeg ohne nice, mit Prioritaet 0",
+    file: 'videoproxy.js',
+    search: "  return { file: nice, prefix: ['-n', '19', file], ids: { uid: FFMPEG_UID, gid } };",
+    replacement: "  return { file, prefix: [], ids: { uid: FFMPEG_UID, gid } };",
+    expected: "Proxy: Auswahl, Bitrate und Weg"
   }
 
 ];
