@@ -13,6 +13,7 @@ const FFMPEG_UID = 65534;
 const HW_DECODE = ['HEVC', 'VP9', 'AV1'];
 const SHORT_SIDE = 1080;
 const MAX_VIDEO_BPS = 12e6;
+const MAX_PROXY_BPS = 10e6;
 const PLAIN_AUDIO = ['AAC', 'MPEG Audio', 'Opus'];
 const AUDIO_BPS = 128000;
 
@@ -32,11 +33,7 @@ function needsProxy(info, filename) {
   return (v.bitRate || 0) > MAX_VIDEO_BPS;
 }
 
-// 0,23 Mbit je Bild, hoechstens 7,5 Mbit/s; ohne Bildrate wie 30 Bilder je Sekunde.
-function videoBitRate(frameRate) {
-  const rate = Number(frameRate) > 0 ? Number(frameRate) : 30;
-  return Math.round(Math.min(7.5e6, 0.23e6 * rate));
-}
+const frameRateOf = (v) => Number(v.frameRate) > 0 ? Number(v.frameRate) : 30;
 
 // A: Quick Sync dekodiert und kodiert; B: die CPU dekodiert, Quick Sync kodiert; C: nur die CPU.
 function wayOf(info, quickSync) {
@@ -49,9 +46,26 @@ function wayOf(info, quickSync) {
 // ein Hochkant-Video liegend.
 const SCALE = "w='if(gt(iw,ih),-2,min(1080,trunc(iw/2)*2))':h='if(gt(iw,ih),min(1080,trunc(ih/2)*2),-2)'";
 
-function ffmpegArgs(way, input, output, frameRate) {
-  const bps = videoBitRate(frameRate);
-  const gop = Math.max(1, Math.round(2 * (Number(frameRate) > 0 ? Number(frameRate) : 30)));
+// Breite und Hoehe, die SCALE ergibt.
+function proxyPixels(v) {
+  const w = v.width || 0, h = v.height || 0;
+  if (!w || !h) return { width: null, height: null };
+  const even = (n) => 2 * Math.round(n / 2);
+  if (w > h) { const ph = Math.min(SHORT_SIDE, 2 * Math.floor(h / 2)); return { width: even(w * ph / h), height: ph }; }
+  const pw = Math.min(SHORT_SIDE, 2 * Math.floor(w / 2));
+  return { width: pw, height: even(h * pw / w) };
+}
+
+// `base` in bit/s gilt fuer 1920 × 1080 bei 30 Bildern je Sekunde; Pixel des Proxys und Bildrate im Verhaeltnis.
+function videoBitRate(base, v) {
+  const { width, height } = proxyPixels(v);
+  const pixels = width && height ? width * height : 1920 * 1080;
+  return Math.round(Math.min(MAX_PROXY_BPS, base * frameRateOf(v) / 30 * pixels / (1920 * 1080)));
+}
+
+function ffmpegArgs(way, input, output, v, base) {
+  const bps = videoBitRate(base, v);
+  const gop = Math.max(1, Math.round(2 * frameRateOf(v)));
   const decode = way === 'A' ? ['-hwaccel', 'vaapi', '-hwaccel_device', DRI, '-hwaccel_output_format', 'vaapi']
     : way === 'B' ? ['-init_hw_device', `vaapi=va:${DRI}`, '-filter_hw_device', 'va'] : [];
   const filter = way === 'A' ? `scale_vaapi=${SCALE}:format=nv12`
@@ -64,10 +78,9 @@ function ffmpegArgs(way, input, output, frameRate) {
 }
 
 // Groesse des Proxys in Bytes, mit einem Zehntel Spielraum; `duration` in Sekunden.
-function expectedBytes(info) {
-  const v = info.video[0];
+function expectedBytes(info, base) {
   const seconds = Number(info.general && info.general.duration) || 0;
-  return Math.ceil(seconds * (videoBitRate(v.frameRate) + AUDIO_BPS) / 8 * 1.1);
+  return Math.ceil(seconds * (videoBitRate(base, info.video[0]) + AUDIO_BPS) / 8 * 1.1);
 }
 
 /* ---- Umgebung ---- */
@@ -168,5 +181,5 @@ async function probe(bench) {
     detail: fixed.log.split('\n').filter(z => /libva|vaapi|fail|error/i.test(z)).slice(-3).join(' ').slice(0, 300) };
 }
 
-module.exports = { needsProxy, videoBitRate, wayOf, ffmpegArgs, expectedBytes, tmpState, run,
+module.exports = { needsProxy, proxyPixels, videoBitRate, wayOf, ffmpegArgs, expectedBytes, tmpState, run,
   workDir, probe, launcher };

@@ -538,9 +538,16 @@ Document Server bu dosyaların her birini bir kez alır. Veritabanının
 
 Kriterion, “Dosyalar” altındaki videolar için daha küçük bir sürüm, proxy
 oluşturur: AAC ile H.264, kısa kenarda en çok 1080 piksel, orijinalin kare hızı
-ile ve kare başına 0,23 Mbit, en çok 7,5 Mbit/s. Proxy hazır olur olmaz
-bilgisayarda ve telefonda o oynar; “İndir” orijinali verir. Ayarlar › Kurulum ›
-“Proxy” altında yalnızca sahip yönetici açar; varsayılan kapalıdır.
+ile. Proxy hazır olur olmaz bilgisayarda ve telefonda o oynar; “İndir” orijinali
+verir. Ayarlar › Kurulum › “Proxy” altında yalnızca sahip yönetici açar;
+varsayılan kapalıdır.
+
+Bit hızını da sahip yönetici orada ayarlar: saniyede 30 kare ile 1920 × 1080
+için 1 ile 8 Mbit/s arası, varsayılan 5. Diğer boyutlar ve kare hızları orantılı
+bir bit hızı alır, en çok 10 Mbit/s: Varsayılanla saniyede 60 kare ile 4K,
+10 Mbit/s ile 1080 piksel olur. Bir değişiklikten sonra Kriterion mevcut
+proxy'leri arka planda yeniler, önce oynatılan videoları; o zamana kadar eski
+proxy oynar.
 
 Bir video şu durumlardan biri geçerliyse proxy alır: kısa kenar 1080 pikselden
 fazla, video 8 bit ve 4:2:0 ile H.264 değil, ses AAC, MP3 ya da Opus değil,
@@ -560,8 +567,8 @@ büyüklüğünde bir `tmpfs` kurar:
 ```
 
 `tmpfs` olmadan Kriterion dönüştürmez. Boş alana sığmayan bir proxy oluşturulmaz;
-7,5 Mbit/s ile 2 GB yaklaşık 35 dakikaya yeter. `tmpfs` yalnızca bir proxy
-oluşurken RAM kullanır. Sunucu belleği diske takas ediyorsa proxy'nin bir kısmı
+2 GB, 5 Mbit/s ile yaklaşık 50 dakikaya, 10 Mbit/s ile yaklaşık 25 dakikaya
+yeter. `tmpfs` yalnızca bir proxy oluşurken RAM kullanır. Sunucu belleği diske takas ediyorsa proxy'nin bir kısmı
 oraya düşebilir. Çekirdek 6.4'ten itibaren `noswap` seçeneği bunu önler:
 `- /tmp:size=2g,noswap`. Daha eski bir çekirdekte kapsayıcı bu seçenekle
 başlamaz.

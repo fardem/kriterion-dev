@@ -3737,7 +3737,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('OWNER_KEYS traegt `imageStore` und nicht mehr `convertImages`',
       stOwnerKeys.includes('imageStore') && !stOwnerKeys.includes('convertImages'),
       stOwnerKeys.join(' · '));
-    check('Und es sind genau neun Schluessel', stOwnerKeys.length === 9,
+    check('Und es sind genau zehn Schluessel', stOwnerKeys.length === 10,
       `${stOwnerKeys.length}: ${stOwnerKeys.join(' · ')}`);
   }
 
@@ -4052,12 +4052,12 @@ async function sendImport(object, mode, withoutShare = false) {
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
       .all().map(z => z.name).sort();
     tzDb.close();
-    check('Die Datenbank traegt genau fuenfundvierzig Tabellen',
-      tzTables.length === 45 && tzTables.includes('comment_videos') && tzTables.includes('attachment_stills') &&
+    check('Die Datenbank traegt genau sechsundvierzig Tabellen',
+      tzTables.length === 46 && tzTables.includes('comment_videos') && tzTables.includes('attachment_stills') &&
       tzTables.includes('attachment_media') && tzTables.includes('photo_media') &&
       tzTables.includes('folders') && tzTables.includes('attachment_folders') &&
-      ['uploads', 'disk_files', 'disk_files_gone', 'video_positions', 'folder_open', 'attachment_changes', 'proxy_files']
-        .every(n => tzTables.includes(n)),
+      ['uploads', 'disk_files', 'disk_files_gone', 'video_positions', 'folder_open', 'attachment_changes', 'proxy_files',
+        'proxy_rates'].every(n => tzTables.includes(n)),
       `${tzTables.length}: ${tzTables.join(' ')}`);
     /* login_attempts: in einer Map setzte jeder Neustart die Zaehler auf null. */
     check('Und die neue heisst login_attempts',

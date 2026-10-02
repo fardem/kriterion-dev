@@ -535,10 +535,16 @@ database does not apply to this copy.
 
 For videos under “Files”, Kriterion creates a smaller version, the proxy: H.264
 with AAC, at most 1080 pixels on the shorter side, with the frame rate of the
-original and 0.23 Mbit per frame, at most 7.5 Mbit/s. On the computer and on the
-phone the proxy plays as soon as it is ready; “Download” delivers the original.
-The owner admin switches it on under Settings › Installation › “Proxy”; the
-default is off.
+original. On the computer and on the phone the proxy plays as soon as it is
+ready; “Download” delivers the original. The owner admin switches it on under
+Settings › Installation › “Proxy”; the default is off.
+
+The owner admin sets the bit rate there as well: 1 to 8 Mbit/s for 1920 × 1080
+at 30 frames per second, default 5. Other sizes and frame rates get a bit rate
+in proportion, at most 10 Mbit/s: with the default, 4K at 60 frames per second
+becomes 1080 pixels at 10 Mbit/s. After a change, Kriterion replaces the
+existing proxies in the background, videos being played first; until then the
+old proxy plays.
 
 A video gets a proxy if one of these applies: the shorter side has more than
 1080 pixels, the video is not H.264 with 8 bit and 4:2:0, the audio is not AAC,
@@ -559,8 +565,9 @@ of 2 GB there:
 ```
 
 Without `tmpfs`, Kriterion does not convert. A proxy that does not fit into the
-free space is not created; at 7.5 Mbit/s, 2 GB last for about 35 minutes. The
-`tmpfs` uses RAM only while a proxy is being created. If the host swaps memory
+free space is not created; 2 GB last for about 50 minutes at 5 Mbit/s and for
+about 25 minutes at 10 Mbit/s. The `tmpfs` uses RAM only while a proxy is being
+created. If the host swaps memory
 to disk, part of the proxy can end up there. From kernel 6.4 on, the option
 `noswap` prevents this: `- /tmp:size=2g,noswap`. With an older kernel the
 container does not start with this option.

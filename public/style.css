@@ -1520,8 +1520,10 @@ mark {
 .lb-unplayable a:hover { border-color: var(--accent); color: var(--accent-text); }
 /* `safe-area-inset`, sonst liegt der Schliessknopf unter der Uhr des Telefons. */
 .lb-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; padding-top: calc(14px + env(safe-area-inset-top)); padding-left: max(18px, env(safe-area-inset-left)); padding-right: max(18px, env(safe-area-inset-right)); flex-shrink: 0; }
-.lb-title { font-size: .93rem; color: var(--text-2); font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lb-tools { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+/* Fehlt der Platz, weicht zuerst der Titel, dann brechen die Knoepfe um; sonst laege der Schliessknopf
+   am Telefon ausserhalb des Bildschirms. */
+.lb-title { font-size: .93rem; color: var(--text-2); font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 100; }
+.lb-tools { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
 .lb-count, .lb-loaded { font-family: var(--mono); font-size: .8rem; color: var(--muted); }
 .lb-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); display: flex; align-items: center; justify-content: center; color: var(--text-2); font-size: 1rem; transition: all .15s var(--ease); }
 .lb-btn:hover { background: var(--surface-3); color: var(--text); border-color: var(--line-hover-2); }
@@ -1547,6 +1549,8 @@ mark {
 .lb-thumb.on { opacity: 1; border-color: var(--accent); }
 .lb-thumb:hover { opacity: 1; }
 body.lb-open { overflow: hidden; }
+/* Auch am Wurzelelement: Ist die Seite breiter als der Bildschirm, legt Chrome auf Android das Vollbild sonst ebenso breit an. */
+html:has(> body.lb-open) { overflow: hidden; }
 
 /* ---------- Dialoge ---------- */
 /* Kein `backdrop-filter: blur`; `--scrim` ist dafuer etwas dichter. */
@@ -1868,7 +1872,9 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
 .thumbs.picking .thumb { cursor: pointer; }
 .thumbs.picking .thumb:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* ---- Kacheln oder Liste ---- */
-.ahead-acts { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
+/* Am Telefon brechen Sortierung, Ansicht und Knoepfe um; sonst ist die Seite breiter als der Bildschirm. */
+.block-head:has(> .ahead-acts) { flex-wrap: wrap; }
+.ahead-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; min-width: 0; }
 .aview { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
 .aview-btn {
   padding: 4px 10px; border: 0; background: none; color: var(--muted);
@@ -1922,11 +1928,20 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
 .aact:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .aedit { grid-column: 1; }
 .alink { grid-column: 2; }
-/* 11px: Rand und Innenabstand von .agroup; 116px: .aacts und .amore. */
+.aproxy { display: none; }
+.alist .aproxy-on .aacts { grid-template-columns: 44px 36px 36px; }
+.alist .aproxy {
+  display: flex; align-items: center; justify-content: center; grid-column: 1;
+  font-family: var(--mono); font-size: .66rem; color: var(--muted);
+}
+.aproxy-on .aedit { grid-column: 2; }
+.aproxy-on .alink { grid-column: 3; }
+/* 11px: Rand und Innenabstand von .agroup; 116px: .aacts und .amore, mit Proxy 160px. */
 .acols { display: none; }
 .alist .acols { display: flex; align-items: center; padding: 0 11px; }
 .acols-face { flex: 1 1 auto; display: grid; grid-template-columns: var(--acols); column-gap: 12px; padding: 0 6px; }
 .acols-rest { flex-shrink: 0; width: 116px; }
+.alist .aproxy-on .acols-rest { width: 160px; }
 .acol {
   min-width: 0; padding: 4px 0; border: 0; background: none; text-align: left; white-space: nowrap;
   font-family: var(--mono); font-size: .66rem; color: var(--faint);

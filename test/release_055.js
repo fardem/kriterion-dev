@@ -321,9 +321,9 @@ async function run() {
       no.every(x => x === false), JSON.stringify(no));
     check('Ein Proxy bei 4K, HEVC, 10 Bit, 4:2:2, Ton in PCM, ueber 12 Mbit/s und bei mkv, avi, wmv und flv',
       yes.every(x => x === true), JSON.stringify(yes));
-    const rates = [24, 25, 30, 50, 59.94, 0].map(r => VP.videoBitRate(r));
-    check('Bitrate: 0,23 Mbit je Bild, hoechstens 7,5 Mbit/s; ohne Bildrate wie bei 30',
-      equal(rates, [5520000, 5750000, 6900000, 7500000, 7500000, 6900000]), JSON.stringify(rates));
+    const rates = [24, 25, 30, 50, 59.94, 0].map(r => VP.videoBitRate(5e6, v({ width: 3840, height: 2160, frameRate: r })));
+    check('Bitrate bei 5 Mbit/s fuer 1080p30: im Verhaeltnis zur Bildrate, hoechstens 10 Mbit/s; ohne Bildrate wie bei 30',
+      equal(rates, [4000000, 4166667, 5000000, 8333333, 9990000, 5000000]), JSON.stringify(rates));
     const ways = [VP.wayOf(info(v()), false), VP.wayOf(info(v()), true), VP.wayOf(info(v({ format: 'HEVC', bitDepth: 10 })), true),
       VP.wayOf(info(v({ format: 'AV1' })), true), VP.wayOf(info(v({ bitDepth: 10 })), true),
       VP.wayOf(info(v({ chroma: '4:2:2' })), true), VP.wayOf(info(v({ format: 'MPEG-4 Visual' })), true)];
@@ -336,9 +336,9 @@ async function run() {
       /return \{ file: nice, prefix: \['-n', '19', file\], ids: \{ uid: FFMPEG_UID, gid \} \};/.test(vpSource), 'ffmpeg ohne nice');
     check('Weg: ohne Quick Sync C; H.264 mit 8 Bit, HEVC und AV1 A; H.264 mit 10 Bit oder 4:2:2 und andere Codecs B',
       ways.join('') === 'CAAABBB', ways.join(''));
-    const a = VP.ffmpegArgs('A', 'http://127.0.0.1:1/x', '/tmp/o.mp4', 30).join(' ');
-    const b = VP.ffmpegArgs('B', 'http://127.0.0.1:1/x', '/tmp/o.mp4', 25).join(' ');
-    const c = VP.ffmpegArgs('C', 'http://127.0.0.1:1/x', '/tmp/o.mp4', 59.94).join(' ');
+    const a = VP.ffmpegArgs('A', 'http://127.0.0.1:1/x', '/tmp/o.mp4', v({ frameRate: 30 }), 5e6).join(' ');
+    const b = VP.ffmpegArgs('B', 'http://127.0.0.1:1/x', '/tmp/o.mp4', v({ frameRate: 25 }), 5e6).join(' ');
+    const c = VP.ffmpegArgs('C', 'http://127.0.0.1:1/x', '/tmp/o.mp4', v({ frameRate: 59.94 }), 5e6).join(' ');
     check('Weg A dekodiert und verkleinert mit Quick Sync, B laedt das Bild hoch, C kodiert mit libx264',
       a.includes('-hwaccel vaapi -hwaccel_device /dev/dri/renderD128') && a.includes('-vf scale_vaapi=') &&
       a.includes('-c:v h264_vaapi') && b.includes('-init_hw_device vaapi=va:/dev/dri/renderD128') &&
@@ -349,11 +349,11 @@ async function run() {
         z.includes("w='if(gt(iw,ih),-2,min(1080,trunc(iw/2)*2))':h='if(gt(iw,ih),min(1080,trunc(ih/2)*2),-2)'") &&
         z.includes('-c:a aac -b:a 128000') && z.endsWith('-movflags +faststart /tmp/o.mp4')), c);
     check('Bitrate mit -maxrate gleich und -bufsize doppelt, ein Keyframe alle 2 Sekunden',
-      a.includes('-b:v 6900000 -maxrate 6900000 -bufsize 13800000 -g 60') && b.includes('-b:v 5750000 -maxrate 5750000 -bufsize 11500000 -g 50') &&
-      c.includes('-b:v 7500000 -maxrate 7500000 -bufsize 15000000 -g 120'), [a, b, c].join(' | '));
-    const need = VP.expectedBytes(info(v({ frameRate: 25 }), [{ format: 'AAC' }], 100));
+      a.includes('-b:v 5000000 -maxrate 5000000 -bufsize 10000000 -g 60') && b.includes('-b:v 4166667 -maxrate 4166667 -bufsize 8333334 -g 50') &&
+      c.includes('-b:v 9990000 -maxrate 9990000 -bufsize 19980000 -g 120'), [a, b, c].join(' | '));
+    const need = VP.expectedBytes(info(v({ frameRate: 25 }), [{ format: 'AAC' }], 100), 5e6);
     check('Der Platz im RAM folgt aus Dauer und Bitrate, mit einem Zehntel Spielraum',
-      need === Math.ceil(100 * (5750000 + 128000) / 8 * 1.1), String(need));
+      need === Math.ceil(100 * (4166667 + 128000) / 8 * 1.1), String(need));
   }
 
   group('Proxy: Umwandlung mit dem Ersatz fuer ffmpeg');
@@ -410,7 +410,7 @@ async function run() {
     / nice=19 /.test(line) && / mode=700 /.test(line), line.slice(0, 200));
   check('Weg A mit Quick Sync und der Bitrate aus der Bildrate, die MediaInfo nennt',
     line.includes('-hwaccel vaapi') && line.includes('-noautorotate') &&
-    line.includes(`-b:v ${VP.videoBitRate(facts.video[0].frameRate)} `), line.slice(0, 300));
+    line.includes(`-b:v ${VP.videoBitRate(5e6, facts.video[0])} `), line.slice(0, 300));
   const workDir = (/ cwd=(\S+)/.exec(line) || [])[1];
   check('Das Verzeichnis der Umwandlung unter /tmp ist danach geloescht',
     !!workDir && workDir.startsWith(path.join(os.tmpdir(), 'kriterion-video-')) && !fs.existsSync(workDir), String(workDir));
@@ -424,7 +424,7 @@ async function run() {
   const clipInfo = await as('zweit', 'GET', `/api/attachments/${clipId}/info`);
   check('„Erweiterte Infos“ nennt Zustand, Pixel und Groesse des Proxys und die Bitraten, die MediaInfo am Proxy misst',
     equal(clipInfo.content?.proxy, { state: 'ready', width: 1920, height: 1080, size: got.bytes.length, reason: null,
-      videoBitRate: VP.videoBitRate(facts.video[0].frameRate), audioBitRate: 128000 }),
+      videoBitRate: VP.videoBitRate(5e6, facts.video[0]), audioBitRate: 128000 }),
     JSON.stringify(clipInfo.content?.proxy));
   const proxyStats = (await as('dritt', 'GET', '/api/stats')).content?.proxy || {};
   check('Die Kennzahlen nennen Quick Sync mit Treiber, fertige Proxys und ihre Groesse',
@@ -566,8 +566,8 @@ async function run() {
     /setTimeout\(\(\) => \{ late = true; job\.stop\(\); \}, \(seconds \* 4 \+ 600\) \* 1000\)/.test(serverSource),
     'keine Grenze');
   check('Vor jedem Lauf: Platz im RAM unter /tmp und auf der Platte; ohne tmpfs keine Umwandlung',
-    /if \(tmp\.free != null && need > tmp\.free\) return proxyFailed\(r, 'tmpSpace'\);/.test(serverSource) &&
-    /if \(spaceShort\(encLen\(need\)\)\) return proxyFailed\(r, 'space'\);/.test(serverSource) &&
+    /if \(tmp\.free != null && need > tmp\.free\) return failed\('tmpSpace'\);/.test(serverSource) &&
+    /if \(spaceShort\(encLen\(need\)\)\) return failed\('space'\);/.test(serverSource) &&
     /\(!PROXY_BENCH && !videoproxy\.tmpState\(\)\.tmpfs\)/.test(serverSource), 'eine Pruefung fehlt');
   check('Beim Beenden von Kriterion endet auch ffmpeg',
     /process\.on\(signal, \(\) => \{[\s\S]{0,300}?if \(proxyStop\) proxyStop\(\);/.test(serverSource), 'proxyStop fehlt im Beenden');

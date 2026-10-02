@@ -336,7 +336,7 @@ async function run() {
       ['f41', 'f42', 'f43', 'f44', 'f48', 'f49'].map(kindOfRow).join(' | '));
     const acts = (key) => tileOf(w, key)?.querySelector('.aacts');
     check('Jede Zeile traegt die Spalte mit ✎ und 🔗, auch ohne Bearbeiten',
-      ['f41', 'f42', 'f43', 'f44', 'f48', 'f49'].every(k => acts(k)?.children.length === 2) &&
+      ['f41', 'f42', 'f43', 'f44', 'f48', 'f49'].every(k => acts(k)?.querySelectorAll('.aact').length === 2) &&
       acts('f49')?.querySelector('.aedit')?.hidden === false && acts('f41')?.querySelector('.aedit')?.hidden === true &&
       ['f41', 'f49'].every(k => acts(k)?.querySelector('.alink')?.hidden === false),
       ['f41', 'f49'].map(k => acts(k)?.outerHTML.slice(0, 80)).join(' | '));

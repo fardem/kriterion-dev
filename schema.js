@@ -422,6 +422,13 @@ CREATE TABLE IF NOT EXISTS proxy_files (
   made_at TEXT
 );
 
+-- -b:v, mit dem ein Proxy entstand. Weicht er von videoBitRate() in videoproxy.js ab oder fehlt
+-- die Zeile, wird der Proxy ersetzt.
+CREATE TABLE IF NOT EXISTS proxy_rates (
+  disk_file_id INTEGER PRIMARY KEY REFERENCES proxy_files(disk_file_id) ON DELETE CASCADE,
+  video_bps INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL

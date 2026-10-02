@@ -537,10 +537,16 @@ Datenbank gilt für diese Kopie nicht.
 
 Für Videos unter „Dateien“ legt Kriterion eine kleinere Fassung an, den Proxy:
 H.264 mit AAC, an der kürzeren Seite höchstens 1080 Pixel, mit der Bildrate des
-Originals und 0,23 Mbit je Bild, höchstens 7,5 Mbit/s. Am Rechner und am Telefon
-spielt der Proxy, sobald er fertig ist; „Herunterladen“ liefert das Original.
-Eingeschaltet wird er unter Einstellungen › Installation › „Proxy“, nur vom
-Eigentümer-Admin; die Vorgabe ist aus.
+Originals. Am Rechner und am Telefon spielt der Proxy, sobald er fertig ist;
+„Herunterladen“ liefert das Original. Eingeschaltet wird er unter Einstellungen
+› Installation › „Proxy“, nur vom Eigentümer-Admin; die Vorgabe ist aus.
+
+Dort stellt der Eigentümer-Admin auch die Bitrate ein: 1 bis 8 Mbit/s für
+1920 × 1080 bei 30 Bildern je Sekunde, Vorgabe 5. Andere Größen und Bildraten
+bekommen eine Bitrate im Verhältnis, höchstens 10 Mbit/s: Mit der Vorgabe wird
+4K mit 60 Bildern je Sekunde zu 1080 Pixeln mit 10 Mbit/s. Nach einer Änderung
+ersetzt Kriterion die vorhandenen Proxys im Hintergrund, abgespielte Videos
+zuerst; bis dahin spielt der alte Proxy.
 
 Einen Proxy bekommt ein Video, wenn eines zutrifft: die kürzere Seite hat mehr
 als 1080 Pixel, das Video ist nicht H.264 mit 8 Bit und 4:2:0, der Ton ist nicht
@@ -561,8 +567,9 @@ einen `tmpfs` mit 2 GB an:
 ```
 
 Ohne `tmpfs` wandelt Kriterion nicht um. Ein Proxy, der nicht in den freien
-Platz passt, entsteht nicht; bei 7,5 Mbit/s reichen 2 GB für rund 35 Minuten.
-RAM belegt der `tmpfs` nur, solange ein Proxy entsteht. Lagert der Host
+Platz passt, entsteht nicht; 2 GB reichen bei 5 Mbit/s für rund 50 Minuten, bei
+10 Mbit/s für rund 25 Minuten. RAM belegt der `tmpfs` nur, solange ein Proxy
+entsteht. Lagert der Host
 Arbeitsspeicher auf die Platte aus, kann ein Teil des Proxys dort landen. Ab
 Kernel 6.4 verhindert das die Option `noswap`: `- /tmp:size=2g,noswap`. Mit
 einem älteren Kernel startet der Container mit dieser Option nicht.

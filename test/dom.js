@@ -792,6 +792,13 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
         }
         return give({ uploadLimits: { ...uploadLimitsMock } });
       }
+      // Die Bitrate der Proxys: dieselbe Spanne und dieselbe Absage wie am Server.
+      if (sentBody.proxyRate !== undefined) {
+        const n = sentBody.proxyRate;
+        if (typeof n !== 'number' || n < 1 || n > 8 || Math.abs(n * 10 - Math.round(n * 10)) > 1e-9)
+          return give({ error: DE_TEXTS['server.proxyRate'].replace('{min}', '1').replace('{max}', '8') }, 400);
+        return give({ proxyRate: Math.round(n * 10) / 10 });
+      }
       /* Antwort in der neuen Sprache wie am Server: `localeOf(req)` liest den
          Schluessel aus derselben Anfrage. */
       if (typeof sentBody.language === 'string' && sentBody.language) {
