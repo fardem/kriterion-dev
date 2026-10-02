@@ -347,13 +347,14 @@ Görevler doğrudan orada tamamlandı olarak işaretlenir.
   “Devam: 3:12” ve “Baştan” görünür. 10 saniyenin altında ve son bölümde (%5,
   en az 10 saniye) Kriterion hiçbir şey hatırlamaz; video o zaman baştan
   başlar. Bu, “Dosyalar” altındaki ve yorumlardaki videolar için de geçerlidir.
-- **Videonun tamamını yükleme:** Bir video tam ekranda oynarken tarayıcı
-  dosyanın tamamını yükler; bilgisayarda 2 GB'a, telefonda 500 MB'a kadar.
-  Üstte “%45 yüklendi” yazar. Ondan sonra video takılmaz ve atlamak için
-  yükleme gerekmez. Daha büyük videoları ve veri tasarrufu açıkken videoları
-  tarayıcı her zamanki gibi parça parça yükler. Kapattıktan sonra cihazda hiçbir
-  şey kalmaz. Bu, “Dosyalar” altındaki ve yorumlardaki videolar için de
-  geçerlidir.
+- **Videonun tamamını yükleme:** Tam ekranda bir videonun üstünde “Tamamını
+  yükle” yazar; bilgisayarda 2 GB'a, telefonda 500 MB'a kadar. Düğme videoyu
+  durdurur ve dosyanın tamamını bir kez yükler; üstte “%45 yüklendi” yazar.
+  Sonra video aynı yerden devam eder ve atlamak için yükleme gerekmez. Tekrar
+  basmak yüklemeyi durdurur. Kopya, sayfa yeniden yüklenene ya da başka bir
+  video tamamen yüklenene kadar kalır. Düğme olmadan tarayıcı videoyu her
+  zamanki gibi parça parça yükler. Bu, “Dosyalar” altındaki ve yorumlardaki
+  videolar için de geçerlidir.
 - **Seçme:** Resim şeridinin üstündeki “Seç” her fotoğrafa ve videoya bir
   kutucuk koyar; tıklama ya da boşluk tuşu seçer. Alttaki çubuk sayıyı gösterir
   ve onay sorusuyla “Sil”, “Tümünü seç” ve “İptal” sunar; Esc seçimi bitirir.

@@ -513,18 +513,20 @@ async function run() {
   group('Video ganz laden');
   {
     const MB = 1024 * 1024;
+    const NET = '/api/attachments/48/raw?inline=1';
     // Der Mock liefert den Rumpf in Stuecken, die der Pruefstand von Hand freigibt.
     const open2 = async ({ size = 3000, narrow = false, saveData = false, length = 1000, broken = false } = {}) => {
-      const m = buildDom(JSDOM, { hash: '#/item/1', extraAttachments: [video(48, 'clip.mp4', { size })],
+      const m = buildDom(JSDOM, { hash: '#/item/1',
+        extraAttachments: [video(48, 'clip.mp4', { size }), video(49, 'zweiter.mp4')],
         settings: { filters: null, userCount: 1 } });
       const w = m.w;
-      await settle(w, 6);
+      await settle(w, 7);
       phone(w, narrow);
       if (saveData) Object.defineProperty(w.navigator, 'connection', { configurable: true, value: { saveData: true } });
-      const calls = [], revoked = [];
+      const calls = [], revoked = [], made = [];
       let feed = null;
       w.Response = broken ? class extends Response { blob() { return super.blob().then(b => b.slice(1)); } } : Response;
-      w.URL.createObjectURL = () => 'blob:probe-1';
+      w.URL.createObjectURL = () => { made.push(`blob:probe-${made.length + 1}`); return made[made.length - 1]; };
       w.URL.revokeObjectURL = (u) => revoked.push(u);
       const base = w.fetch;
       w.fetch = (url, opt) => {
@@ -534,45 +536,86 @@ async function run() {
         return Promise.resolve(new Response(body, { status: 200,
           headers: { 'Content-Length': String(length), 'Content-Type': 'video/mp4' } }));
       };
-      faceOf(w, 'f48')?.click();
-      const player = w.document.querySelector('.lightbox .lb-video');
-      const loaded = w.document.querySelector('.lightbox .lb-loaded');
-      return { w, player, loaded, calls, revoked, push: (n) => feed.enqueue(new Uint8Array(n)), end: () => feed.close() };
+      const x = { w, calls, revoked, push: (n) => feed.enqueue(new Uint8Array(n)), end: () => feed.close() };
+      x.show = (key, { playing = false } = {}) => {
+        faceOf(w, key)?.click();
+        x.player = w.document.querySelector('.lightbox .lb-video');
+        x.loaded = w.document.querySelector('.lightbox .lb-loaded');
+        x.button = w.document.querySelector('.lightbox .lb-btn.whole');
+        x.resumed = 0;
+        if (!x.player) return x;
+        Object.defineProperty(x.player, 'paused', { configurable: true, get: () => !playing });
+        x.player.play = () => { x.resumed++; };
+        return x;
+      };
+      return x.show('f48');
     };
     const play = (x) => x.player.dispatchEvent(new x.w.Event('play'));
     const a = await open2();
-    const before = a.calls.length;
     play(a);
+    await wait(30);
+    check('Abspielen holt nichts; oben steht der Knopf „Ganz laden“',
+      a.calls.length === 0 && a.button?.hidden === false && a.button.textContent === deText('entry.loadWhole') &&
+      a.button.getAttribute('aria-pressed') === 'false', `${a.calls.length} ${a.button?.hidden} ${a.button?.textContent}`);
+    a.show('f48', { playing: true });
+    a.player.currentTime = 12;
+    a.button.click();
     await until(a.w, () => a.calls.length === 1, 1000, 'den Abruf').catch(() => {});
-    check('Erst beim Abspielen holt der Browser die ganze Datei, ohne Cache',
-      before === 0 && a.calls.length === 1 && a.calls[0].url === '/api/attachments/48/raw?inline=1' && a.calls[0].cache === 'no-store',
-      JSON.stringify(a.calls.map(c => [c.url, c.cache])));
+    check('Der Knopf haelt das Video an und holt die ganze Datei einmal, ohne Cache; der Player hat keine Quelle',
+      a.calls.length === 1 && a.calls[0].url === NET && a.calls[0].cache === 'no-store' &&
+      a.player.getAttribute('src') === null && a.button.getAttribute('aria-pressed') === 'true' &&
+      a.button.textContent === deText('dialog.cancel'),
+      `${JSON.stringify(a.calls.map(c => [c.url, c.cache]))} ${a.player.getAttribute('src')} ${a.button.textContent}`);
     a.push(450);
     await until(a.w, () => a.loaded.hidden === false, 1000, 'die Anzeige').catch(() => {});
-    check('Waehrend des Ladens steht „geladen 45 %" am Video; die Quelle ist noch die Adresse',
-      a.loaded.hidden === false && a.loaded.textContent === deText('entry.videoLoaded', { n: 45 }) &&
-      a.player.getAttribute('src') === '/api/attachments/48/raw?inline=1', `${a.loaded.hidden} ${a.loaded.textContent}`);
-    a.player.currentTime = 12;
+    check('Waehrend des Ladens steht „geladen 45 %“ am Video',
+      a.loaded.hidden === false && a.loaded.textContent === deText('entry.videoLoaded', { n: 45 }),
+      `${a.loaded.hidden} ${a.loaded.textContent}`);
     a.push(550);
     a.end();
     await until(a.w, () => a.player.getAttribute('src') === 'blob:probe-1', 1000, 'den Wechsel').catch(() => {});
-    check('Ist der Blob fertig, wechselt die Quelle; die Stelle bleibt, die Anzeige geht',
-      a.player.getAttribute('src') === 'blob:probe-1' && a.player.currentTime === 12 && a.loaded.hidden === true,
-      `${a.player.getAttribute('src')} ${a.player.currentTime} ${a.loaded.hidden}`);
-    play(a);
-    check('Ein zweites Abspielen holt nichts mehr', a.calls.length === 1, String(a.calls.length));
+    check('Danach spielt das Video aus der Kopie an derselben Stelle weiter; Anzeige und Knopf gehen',
+      a.player.getAttribute('src') === 'blob:probe-1' && a.player.currentTime === 12 && a.resumed === 1 &&
+      a.loaded.hidden === true && a.button.hidden === true,
+      `${a.player.getAttribute('src')} ${a.player.currentTime} ${a.resumed} ${a.loaded.hidden} ${a.button.hidden}`);
     press(a.w.document.body, 'Escape');
-    check('Schliessen gibt den Blob frei', equal(a.revoked, ['blob:probe-1']), JSON.stringify(a.revoked));
+    a.show('f48');
+    check('Nach dem Schliessen spielt dasselbe Video aus der Kopie, ohne zu laden',
+      a.revoked.length === 0 && a.player.getAttribute('src') === 'blob:probe-1' && a.calls.length === 1,
+      `${JSON.stringify(a.revoked)} ${a.player.getAttribute('src')} ${a.calls.length}`);
+    press(a.w.document.body, 'Escape');
+    a.show('f49');
+    a.button.click();
+    await until(a.w, () => a.calls.length === 2, 1000, 'den zweiten Abruf').catch(() => {});
+    a.push(1000);
+    a.end();
+    await until(a.w, () => a.player.getAttribute('src') === 'blob:probe-2', 1000, 'die zweite Kopie').catch(() => {});
+    const second = a.player.getAttribute('src');
+    press(a.w.document.body, 'Escape');
+    a.show('f48');
+    check('Eine zweite ganz geladene Kopie ersetzt die erste; das erste Video spielt wieder aus dem Netz',
+      second === 'blob:probe-2' && equal(a.revoked, ['blob:probe-1']) && a.player.getAttribute('src') === NET,
+      `${second} ${JSON.stringify(a.revoked)} ${a.player.getAttribute('src')}`);
+    press(a.w.document.body, 'Escape');
     a.w.close();
 
     const b = await open2();
-    play(b);
+    b.show('f48', { playing: true });
+    b.player.currentTime = 30;
+    b.button.click();
     await until(b.w, () => b.calls.length === 1, 1000, 'den Abruf').catch(() => {});
     b.push(300);
     await until(b.w, () => b.loaded.hidden === false, 1000, 'die Anzeige').catch(() => {});
+    b.button.click();
+    check('Ein zweiter Druck bricht ab; das Video spielt aus dem Netz an derselben Stelle weiter',
+      b.calls[0]?.signal?.aborted === true && b.player.getAttribute('src') === NET && b.player.currentTime === 30 &&
+      b.resumed === 1 && b.loaded.hidden === true && b.button.getAttribute('aria-pressed') === 'false',
+      `${b.calls[0]?.signal?.aborted} ${b.player.getAttribute('src')} ${b.player.currentTime} ${b.resumed}`);
+    b.button.click();
+    await until(b.w, () => b.calls.length === 2, 1000, 'den neuen Abruf').catch(() => {});
     press(b.w.document.body, 'Escape');
-    check('Schliessen waehrend des Ladens bricht den Abruf ab',
-      b.calls[0]?.signal?.aborted === true && b.revoked.length === 0, String(b.calls[0]?.signal?.aborted));
+    check('Schliessen waehrend des Ladens bricht den Abruf ab; es bleibt keine Kopie',
+      b.calls[1]?.signal?.aborted === true && b.revoked.length === 0, String(b.calls[1]?.signal?.aborted));
     b.w.close();
 
     const results = [];
@@ -580,30 +623,29 @@ async function run() {
       ['Rechner, ueber 2 GB', { size: 2048 * MB + 1 }], ['Telefon, ueber 500 MB', { size: 500 * MB + 1, narrow: true }],
       ['Datensparen', { saveData: true }]]) {
       const x = await open2(options);
-      play(x);
-      await wait(30);
-      results.push(`${what}: ${x.calls.length}`);
+      results.push(`${what}: ${x.button?.hidden === false ? 'Knopf' : 'kein Knopf'}`);
       press(x.w.document.body, 'Escape');
       x.w.close();
     }
-    check('Grenzen: am Rechner bis 2 GB, am Telefon bis 500 MB; mit Datensparen nie',
-      equal(results, ['Rechner, 2 GB: 1', 'Telefon, 500 MB: 1', 'Rechner, ueber 2 GB: 0', 'Telefon, ueber 500 MB: 0', 'Datensparen: 0']),
-      results.join(' · '));
+    check('Grenzen: am Rechner bis 2 GB, am Telefon bis 500 MB; bei Datensparen steht der Knopf auch',
+      equal(results, ['Rechner, 2 GB: Knopf', 'Telefon, 500 MB: Knopf', 'Rechner, ueber 2 GB: kein Knopf',
+        'Telefon, ueber 500 MB: kein Knopf', 'Datensparen: Knopf']), results.join(' · '));
     const c = await open2({ size: undefined, length: 501 * MB, narrow: true });
-    play(c);
+    c.button.click();
     await until(c.w, () => c.calls[0]?.signal?.aborted, 1000, 'den Abbruch').catch(() => {});
-    check('Ohne bekannte Groesse entscheidet Content-Length; darueber bricht der Abruf gleich ab',
-      c.calls.length === 1 && c.calls[0].signal?.aborted === true && c.loaded.hidden === true, String(c.calls[0]?.signal?.aborted));
+    check('Ohne bekannte Groesse entscheidet Content-Length; darueber bricht der Abruf ab, die Adresse kommt zurueck',
+      c.calls.length === 1 && c.calls[0].signal?.aborted === true && c.loaded.hidden === true &&
+      c.player.getAttribute('src') === NET, `${c.calls[0]?.signal?.aborted} ${c.player.getAttribute('src')}`);
     press(c.w.document.body, 'Escape');
     c.w.close();
     const d = await open2({ broken: true });
-    play(d);
+    d.button.click();
     await until(d.w, () => d.calls.length === 1, 1000, 'den Abruf').catch(() => {});
     d.push(1000);
     d.end();
     await wait(50);
-    check('Ist der Blob kuerzer als die Datei, bleibt die Quelle; die Anzeige geht',
-      d.player.getAttribute('src') === '/api/attachments/48/raw?inline=1' && d.loaded.hidden === true,
+    check('Ist der Blob kuerzer als die Datei, kommt die Adresse zurueck; die Anzeige geht',
+      d.player.getAttribute('src') === NET && d.loaded.hidden === true && d.revoked.length === 0,
       `${d.player.getAttribute('src')} ${d.loaded.hidden}`);
     press(d.w.document.body, 'Escape');
     d.w.close();

@@ -4576,6 +4576,8 @@ function centerStage(stage) {
 
 // Der Blob liegt im Speicher des Browsers; bei 100 Mbit/s 40 s Video am Telefon, 2 min 40 s am Rechner.
 const WHOLE_BYTES = () => (isNarrow() ? 500 : 2048) * 1024 * 1024;
+// Hoechstens eine ganz geladene Kopie; sie gilt bis zum Neuladen der Seite oder bis zur naechsten.
+let wholeCopy = null;
 
 /* Ohne `remove` kein Papierkorb, ohne `linkOf` kein Link kopieren; `inside` liefert den Abspieler
    der Seite fuer die Uebergabe eines laufenden Videos. `removable(p)` und `still.may(p)` blenden
@@ -4592,6 +4594,7 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
       <span class="lb-title">${esc(title || '')}</span>
       <div class="lb-tools">
         <span class="lb-loaded" hidden></span>
+        <button class="lb-btn whole" hidden aria-pressed="false">${tH('entry.loadWhole')}</button>
         <span class="lb-count"></span>
         ${info ? `<button class="lb-btn info" title="${esc(t('entry.mediaInfo'))}" aria-label="${esc(t('entry.mediaInfo'))}">${ICON_INFO}</button>` : ''}
         ${linkOf ? `<button class="lb-btn copy" title="${esc(t('entry.copyLink'))}">${ICON_LINK}</button>` : ''}
@@ -4620,20 +4623,40 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
   const loaded = lb.querySelector('.lb-loaded');
   let spot = null;
 
-  // Video ganz laden. `url`: der fertige Blob; `source`: die Adresse, die er ersetzt.
-  let whole = null;
-  const shownSource = () => (whole?.url && player.getAttribute('src') === whole.url ? whole.source : player.getAttribute('src'));
-  function dropWhole() {
-    if (!whole) return;
-    whole.stop.abort();
-    if (whole.url) URL.revokeObjectURL(whole.url);
-    whole = null;
+  // Video ganz laden, nur auf Knopfdruck. `loading`: der laufende Abruf mit Stelle und Zustand davor.
+  const wholeButton = lb.querySelector('.whole');
+  let loading = null;
+  const shownSource = () => (wholeCopy && player.getAttribute('src') === wholeCopy.url ? wholeCopy.source : player.getAttribute('src'));
+  function markWhole() {
+    const copied = !!wholeCopy && player.getAttribute('src') === wholeCopy.url;
+    wholeButton.hidden = player.hidden || !note.hidden || photos[i].size > WHOLE_BYTES() ||
+      (!loading && (copied || !player.getAttribute('src')));
+    wholeButton.textContent = loading ? t('dialog.cancel') : t('entry.loadWhole');
+    wholeButton.title = loading ? t('entry.loadWholeStop') : t('entry.loadWholeTitle');
+    wholeButton.setAttribute('aria-pressed', String(!!loading));
+  }
+  function stopLoading(backToAddress) {
+    const was = loading;
+    if (!was) return;
+    loading = null;
+    was.stop.abort();
     loaded.hidden = true;
+    if (backToAddress) {
+      player.src = was.source;
+      player.currentTime = was.at;
+      if (was.playing) player.play()?.catch?.(() => {});
+    }
+    markWhole();
   }
   async function loadWhole() {
     const p = photos[i], source = player.getAttribute('src'), limit = WHOLE_BYTES();
-    if (whole || !source || navigator.connection?.saveData || p.size > limit) return;
-    const mine = whole = { source, stop: new AbortController(), url: null };
+    if (loading || !source || p.size > limit) return;
+    const mine = loading = { source, at: player.currentTime, playing: !player.paused, stop: new AbortController() };
+    // Ohne Quelle laedt der Player waehrend des Abrufs nichts nach.
+    player.pause();
+    player.removeAttribute('src');
+    player.load();
+    markWhole();
     try {
       const r = await fetch(source, { credentials: 'same-origin', cache: 'no-store', signal: mine.stop.signal });
       const total = Number(r.headers.get('Content-Length'));
@@ -4654,18 +4677,20 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
       // Chromium ohne Profil haelt knapp 2 GB; darueber meldet der Blob seine Groesse, liest aber nicht.
       if (ready.size !== total) throw new Error('not whole');
       await ready.slice(total - 1).arrayBuffer();
-      if (whole !== mine || player.getAttribute('src') !== source) return;
-      mine.url = URL.createObjectURL(ready);
-      const at = player.currentTime, playing = !player.paused;
-      player.src = mine.url;
-      player.currentTime = at;
-      if (playing) player.play()?.catch?.(() => {});
+      if (loading !== mine) return;
+      loading = null;
+      if (wholeCopy) URL.revokeObjectURL(wholeCopy.url);
+      wholeCopy = { source, url: URL.createObjectURL(ready) };
+      player.src = wholeCopy.url;
+      player.currentTime = mine.at;
+      if (mine.playing) player.play()?.catch?.(() => {});
       loaded.hidden = true;
+      markWhole();
     } catch {
-      if (whole === mine) dropWhole();
+      if (loading === mine) stopLoading(true);
     }
   }
-  player.addEventListener('play', loadWhole);
+  wholeButton.onclick = () => (loading ? stopLoading(true) : loadWhole());
 
   /* Ein laufendes Video der Seite spielt im Vollbild an derselben Stelle weiter. */
   const inner = () => (typeof inside === 'function' ? inside() : null) || null;
@@ -4684,15 +4709,15 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
   /* Beim Blaettern und Schliessen anhalten; die Stelle merkt sich `handover`. */
   const hold = () => {
     if (!player.hidden || player.src) {
-      if (handover && shownSource() === handover.source) {
-        handover.position = player.currentTime || 0;
-        handover.wasPlaying = !player.paused;
+      if (handover && (loading ? loading.source : shownSource()) === handover.source) {
+        handover.position = loading ? loading.at : player.currentTime || 0;
+        handover.wasPlaying = loading ? loading.playing : !player.paused;
       }
       player.pause();
       player.removeAttribute('src');
       player.load();
     }
-    dropWhole();
+    stopLoading(false);
   };
 
   /* Beim Schliessen Quelle und Stelle an den Abspieler der Seite zurueckgeben. */
@@ -4731,10 +4756,11 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
     if (video) {
       const poster = imageSource(photos[i], 'medium');
       if (poster) player.poster = poster; else player.removeAttribute('poster');
-      player.src = playSource(photos[i]);
+      const address = playSource(photos[i]);
+      player.src = wholeCopy?.source === address ? wholeCopy.url : address;
       spot = watchSpot(player, photos[i], stage);
       /* Die uebernommene Stelle gilt nur beim Oeffnen. */
-      if (handover && handover.open && player.getAttribute('src') === handover.source) {
+      if (handover && handover.open && shownSource() === handover.source) {
         handover.open = false;
         player.currentTime = handover.position;
         if (handover.wasPlaying) player.play()?.catch?.(() => {});
@@ -4756,6 +4782,7 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
     /* Nach dem Loeschen bis auf eines verschwinden Pfeile und Streifen. */
     lb.querySelectorAll('.lb-nav').forEach(k => { k.hidden = photos.length < 2; });
     markStrip();
+    markWhole();
   }
   function markStrip() {
     if (!strip) return;
@@ -4781,9 +4808,10 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
 
   function unplayable() {
     if (player.hidden || !player.getAttribute('src')) return;
-    dropWhole();
+    stopLoading(false);
     player.hidden = true;
     note.hidden = false;
+    markWhole();
     const link = note.querySelector('a');
     link.hidden = photos[i].source !== 'file';
     link.href = imageSource(photos[i], '');

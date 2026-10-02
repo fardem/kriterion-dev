@@ -10774,10 +10774,10 @@ const REGRESSIONS = [
     expected: "Erweiterte Infos: Dialog und Codec am Vorschaubild"
   },
   {
-    nr: '1568', name: "Das Video laedt nie ganz",
+    nr: '1568', name: "Das Video laedt wieder beim Abspielen statt auf Knopfdruck",
     file: 'public/app.js',
-    search: "  player.addEventListener('play', loadWhole);",
-    replacement: "  player.addEventListener('loadstart', loadWhole);",
+    search: "  wholeButton.onclick = () => (loading ? stopLoading(true) : loadWhole());",
+    replacement: "  wholeButton.onclick = () => (loading ? stopLoading(true) : loadWhole());\n  player.addEventListener('play', loadWhole);",
     expected: "Video ganz laden"
   },
   {
@@ -10797,22 +10797,22 @@ const REGRESSIONS = [
   {
     nr: '1571', name: "Nach dem Wechsel beginnt das Video von vorn",
     file: 'public/app.js',
-    search: "      player.src = mine.url;\n      player.currentTime = at;\n",
-    replacement: "      player.src = mine.url;\n      player.currentTime = 0;\n",
+    search: "      player.src = wholeCopy.url;\n      player.currentTime = mine.at;\n",
+    replacement: "      player.src = wholeCopy.url;\n      player.currentTime = 0;\n",
     expected: "Video ganz laden"
   },
   {
-    nr: '1572', name: "Der Blob bleibt nach dem Schliessen",
+    nr: '1572', name: "Die Kopie geht beim Schliessen verloren",
     file: 'public/app.js',
-    search: "    if (whole.url) URL.revokeObjectURL(whole.url);\n",
-    replacement: "",
+    search: "    stopLoading(false);\n  };",
+    replacement: "    stopLoading(false);\n    if (wholeCopy) { URL.revokeObjectURL(wholeCopy.url); wholeCopy = null; }\n  };",
     expected: "Video ganz laden"
   },
   {
     nr: '1573', name: "Schliessen bricht den Abruf nicht ab",
     file: 'public/app.js',
-    search: "    whole.stop.abort();\n    if (whole.url)",
-    replacement: "    if (whole.url)",
+    search: "    loading = null;\n    was.stop.abort();\n",
+    replacement: "    loading = null;\n",
     expected: "Video ganz laden"
   },
   {
@@ -10823,10 +10823,10 @@ const REGRESSIONS = [
     expected: "Video ganz laden"
   },
   {
-    nr: '1575', name: "Datensparen laedt trotzdem ganz",
+    nr: '1575', name: "Bei Datensparen fehlt der Knopf",
     file: 'public/app.js',
-    search: "    if (whole || !source || navigator.connection?.saveData || p.size > limit) return;",
-    replacement: "    if (whole || !source || p.size > limit) return;",
+    search: "    wholeButton.hidden = player.hidden || !note.hidden || photos[i].size > WHOLE_BYTES() ||",
+    replacement: "    wholeButton.hidden = player.hidden || !note.hidden || !!navigator.connection?.saveData || photos[i].size > WHOLE_BYTES() ||",
     expected: "Video ganz laden"
   },
   {
@@ -10844,10 +10844,10 @@ const REGRESSIONS = [
     expected: "Video ganz laden"
   },
   {
-    nr: '1578', name: "Jedes Abspielen holt die Datei neu",
+    nr: '1578', name: "Die zweite Kopie gibt die erste nicht frei",
     file: 'public/app.js',
-    search: "    if (whole || !source || navigator.connection?.saveData",
-    replacement: "    if (!source || navigator.connection?.saveData",
+    search: "      if (wholeCopy) URL.revokeObjectURL(wholeCopy.url);\n",
+    replacement: "",
     expected: "Video ganz laden"
   },
   {
@@ -11500,6 +11500,34 @@ const REGRESSIONS = [
     search: "  { key: 'users',        name: () => t('card.users') },",
     replacement: "  { key: 'users',        name: () => t('card.user') },",
     expected: "Anleitung, README und Namen"
+  },
+  {
+    nr: '1672', name: "Der Player behaelt waehrend des Ladens seine Quelle",
+    file: 'public/app.js',
+    search: "    player.removeAttribute('src');\n    player.load();\n    markWhole();",
+    replacement: "    markWhole();",
+    expected: "Video ganz laden"
+  },
+  {
+    nr: '1673', name: "Abbrechen gibt die Adresse nicht zurueck",
+    file: 'public/app.js',
+    search: "    if (backToAddress) {\n      player.src = was.source;",
+    replacement: "    if (false) {\n      player.src = was.source;",
+    expected: "Video ganz laden"
+  },
+  {
+    nr: '1674', name: "Dasselbe Video laedt nach dem Schliessen wieder aus dem Netz",
+    file: 'public/app.js',
+    search: "      player.src = wholeCopy?.source === address ? wholeCopy.url : address;",
+    replacement: "      player.src = address;",
+    expected: "Video ganz laden"
+  },
+  {
+    nr: '1675', name: "Nach dem Laden spielt das Video nicht weiter",
+    file: 'public/app.js',
+    search: "      if (mine.playing) player.play()?.catch?.(() => {});\n      loaded.hidden = true;",
+    replacement: "      loaded.hidden = true;",
+    expected: "Video ganz laden"
   }
 
 ];

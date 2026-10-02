@@ -346,12 +346,14 @@ off right there.
   (5 %, at least 10 seconds), Kriterion stores nothing; the video then starts
   from the beginning. This also applies to videos under “Files” and in
   comments.
-- **Loading the whole video:** When a video plays in full screen, the browser
-  loads the whole file, up to 2 GB on a computer and up to 500 MB on a phone.
-  At the top, “loaded 45 %” is shown. After that, the video no longer stalls,
-  and jumping needs no loading. The browser still loads larger videos, and
-  videos while data saving is on, in pieces. Nothing stays on the device after
-  closing. This also applies to videos under “Files” and in comments.
+- **Loading the whole video:** In full screen, a video shows “Load whole” at
+  the top, up to 2 GB on a computer and up to 500 MB on a phone. The button
+  pauses the video and loads the whole file once; “loaded 45 %” is shown at
+  the top. The video then continues at the same point, and jumping needs no
+  loading. Pressing it again cancels. The copy stays until the page is
+  reloaded or another video is loaded whole. Without the button, the browser
+  loads the video in pieces as usual. This also applies to videos under
+  “Files” and in comments.
 - **Selecting:** “Select” above the image strip puts a checkbox on every photo
   and video; a click or the space bar selects. The bar below shows the number
   and offers “Delete” with a confirmation, “Select all” and “Cancel”; Esc ends

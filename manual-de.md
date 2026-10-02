@@ -349,12 +349,14 @@ geht direkt dort.
   letzten Stück (5 %, mindestens 10 Sekunden) merkt sich Kriterion nichts; das
   Video beginnt dann von vorn. Das gilt auch für Videos unter „Dateien“ und in
   Kommentaren.
-- **Video ganz laden:** Spielt ein Video im Vollbild, lädt der Browser die ganze
-  Datei, am Rechner bis 2 GB, am Telefon bis 500 MB. Oben steht „geladen 45 %“.
-  Danach stockt das Video nicht mehr, und Springen braucht kein Laden. Größere
-  Videos und Videos bei eingeschaltetem Datensparen lädt der Browser wie bisher
-  stückweise. Nach dem Schließen bleibt nichts auf dem Gerät. Das gilt auch für
-  Videos unter „Dateien“ und in Kommentaren.
+- **Video ganz laden:** Im Vollbild steht oben bei einem Video „Ganz laden“,
+  am Rechner bis 2 GB, am Telefon bis 500 MB. Der Knopf hält das Video an und
+  lädt die Datei einmal ganz; oben steht „geladen 45 %“. Danach spielt das
+  Video an derselben Stelle weiter, und Springen braucht kein Laden. Ein
+  zweiter Druck bricht ab. Die Kopie bleibt, bis die Seite neu geladen oder ein
+  anderes Video ganz geladen wird. Ohne den Knopf lädt der Browser das Video
+  wie gewohnt stückweise. Das gilt auch für Videos unter „Dateien“ und in
+  Kommentaren.
 - **Auswählen:** „Auswählen“ über der Bildleiste setzt ein Kästchen an jedes
   Foto und Video; Klick oder Leertaste wählt. Die Leiste darunter nennt die
   Zahl und bietet „Löschen“ mit einer Rückfrage, „Alle auswählen“ und
