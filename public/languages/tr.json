@@ -1038,6 +1038,8 @@
   "entry.mediaPlace": "Dosyada konum",
   "entry.mediaProxy": "Proxy",
   "entry.mediaProxyState": "Durum",
+  "entry.proxyVideoRate": "Video bit hızı",
+  "entry.proxyAudioRate": "Ses bit hızı",
   "entry.proxyReady": "hazır",
   "entry.proxyWaiting": "bekliyor",
   "entry.proxyFailed": "başarısız",

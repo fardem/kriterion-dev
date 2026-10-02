@@ -4071,8 +4071,20 @@ let mediaTurn = Promise.resolve();
 const inMediaTurn = (work) => (mediaTurn = mediaTurn.then(work, work));
 const unreadable = (why) => Object.assign(new Error(`media file unreadable: ${why}`), { damaged: true });
 
-/* Stueckweise wie sendDiskFile(); das zuletzt entschluesselte Stueck bleibt fuer den naechsten Abruf.
-   `work(size, read)` wie attachments.mediaFacts(). */
+// Stueckweise wie sendDiskFile(); das zuletzt entschluesselte Stueck bleibt fuer den naechsten Abruf.
+function sealedReader(handle, f) {
+  let at = -1, plain = null;
+  return async (length, offset) => {
+    const end = Math.min(f.size, offset + length), parts = [];
+    for (let i = Math.floor(offset / f.chunk); i * f.chunk < end; i++) {
+      if (i !== at) { plain = await attachments.readChunk(handle, f, i); at = i; }
+      parts.push(plain.subarray(Math.max(0, offset - i * f.chunk), end - i * f.chunk));
+    }
+    return Buffer.concat(parts);
+  };
+}
+
+// `work(size, read)` wie attachments.mediaFacts().
 async function readPartsOf(a, work) {
   const f = diskFileOf(a.id);
   if (!f) return work(a.size, (length, offset) => {
@@ -4088,16 +4100,8 @@ async function readPartsOf(a, work) {
     DISK_MISSING.add(f.name);
     throw unreadable('missing');
   }
-  let at = -1, plain = null;
   try {
-    return await work(f.size, async (length, offset) => {
-      const end = Math.min(f.size, offset + length), parts = [];
-      for (let i = Math.floor(offset / f.chunk); i * f.chunk < end; i++) {
-        if (i !== at) { plain = await attachments.readChunk(handle, f, i); at = i; }
-        parts.push(plain.subarray(Math.max(0, offset - i * f.chunk), end - i * f.chunk));
-      }
-      return Buffer.concat(parts);
-    });
+    return await work(f.size, sealedReader(handle, f));
   } catch (e) {
     if (e.damaged) DISK_MISSING.add(f.name);
     throw e;
@@ -4427,7 +4431,7 @@ app.get('/api/attachments/:id/info', async (req, res, next) => {
     const facts = await inMediaTurn(() => makeMedia(a.id));
     if (facts === null) return res.status(404).json({ error: t(localeOf(req), 'server.fileGone') });
     if (facts === undefined) return res.status(500).json({ error: t(localeOf(req), 'server.mediaUnreadable') });
-    const proxy = proxyInfo(a.id, facts, a.filename);
+    const proxy = await proxyInfo(a.id, facts, a.filename);
     res.json(proxy ? { ...facts, proxy } : facts);
   } catch (e) { next(e); }
 });
@@ -5980,11 +5984,25 @@ async function sendProxy(req, res) {
     { file: path.join(PROXY_DIR, p.name), filename: a.filename.replace(/\.[^.]*$/, '') + '.mp4', lost: () => proxyLost(id) });
 }
 
-// Fuer „Erweiterte Infos“; ohne Zeile wartet ein Video, das einen Proxy braucht.
-function proxyInfo(id, facts, filename) {
+// Fuer „Erweiterte Infos“; ohne Zeile wartet ein Video, das einen Proxy braucht. Bitraten bei jedem Aufruf gemessen.
+async function proxyInfo(id, facts, filename) {
   const p = qProxyFile().get(id);
-  if (p) return { state: p.state, width: p.width, height: p.height, size: p.size, reason: p.reason };
-  return proxyOn() && videoproxy.needsProxy(facts, filename) ? { state: 'waiting' } : null;
+  if (!p) return proxyOn() && videoproxy.needsProxy(facts, filename) ? { state: 'waiting' } : null;
+  const info = { state: p.state, width: p.width, height: p.height, size: p.size, reason: p.reason };
+  if (p.state !== 'ready') return info;
+  const rates = await inMediaTurn(() => proxyRates(p));
+  return { ...info, videoBitRate: rates?.video ?? null, audioBitRate: rates?.audio ?? null };
+}
+
+async function proxyRates(p) {
+  const f = { name: p.name, size: p.size, chunk: CHUNK, key: p.file_key };
+  let handle;
+  try { handle = await fs.promises.open(path.join(PROXY_DIR, p.name), 'r'); } catch { return null; }
+  try {
+    const m = await attachments.mediaFacts(f.size, sealedReader(handle, f));
+    return { video: m.video[0]?.bitRate ?? null, audio: m.audio[0]?.bitRate ?? null };
+  } catch { return null; }
+  finally { await handle.close(); }
 }
 
 function proxyStats() {

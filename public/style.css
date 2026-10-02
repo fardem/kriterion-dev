@@ -1527,7 +1527,7 @@ mark {
 .lb-btn:hover { background: var(--surface-3); color: var(--text); border-color: var(--line-hover-2); }
 .lb-btn.download { text-decoration: none; }
 .lb-btn.whole, .lb-btn.original { width: auto; padding: 0 10px; font-size: .8rem; }
-.lb-btn.whole[aria-pressed="true"], .lb-btn.original[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+.lb-btn.whole[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
 /* Abstand zum Papierkorb, damit er nicht direkt neben dem Schliessknopf liegt. */
 .lb-btn.remove { margin-left: 10px; }
 .lb-btn.remove:hover { color: var(--red); border-color: var(--red); background: var(--surface-3); }

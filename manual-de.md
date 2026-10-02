@@ -485,8 +485,9 @@ unverändert.
   HEVC in Firefox, stehen dort ein Satz und „Herunterladen“.
 - **Proxy:** Ein Video unter „Dateien“ spielt seinen Proxy, sobald er fertig
   ist: eine kleinere Fassung in H.264 (README, „Proxys für Videos“). Im
-  Vollbild wechselt „Original“ zum Original, nur für dieses Abspielen; beim
-  nächsten Öffnen spielt wieder der Proxy. Die Stelle gilt für beide.
+  Vollbild nennt der Knopf, was spielt, „Proxy“ oder „Original“; ein Klick
+  wechselt, nur für dieses Abspielen. Beim nächsten Öffnen spielt wieder der
+  Proxy. Die Stelle gilt für beide.
   „Herunterladen“ liefert immer das Original. Videos mit den Endungen `mkv`,
   `avi`, `wmv` und `flv` spielt kein Browser; sie spielen erst mit ihrem
   Proxy, und das Vorschaubild entsteht aus ihm. Fehlt ein Proxy oder lässt er
@@ -528,7 +529,8 @@ unverändert.
   Mit einer Aufnahmezeit aus EXIF entfällt bei Bildern „Aufnahmedatum“ unter
   „Allgemein“. Bilder von vor dem Update liest Kriterion nach dem Start einmal
   nach. Braucht ein Video einen Proxy, nennt die Gruppe „Proxy“ Zustand,
-  Auflösung und Größe. Was die Datei nicht angibt, fehlt.
+  Auflösung und Größe und die am Proxy gemessenen Bitraten von Video und
+  Audio. Was die Datei nicht angibt, fehlt.
 - **Infos:** „Infos“ im Menü ⋯ einer Word-, Excel-, PowerPoint- oder PDF-Datei
   und ihrer OpenDocument-Gegenstücke zeigt zwei Gruppen. „In Kriterion“:
   hochgeladen von und am, geändert vor dem Hochladen (die Zeit der Datei auf

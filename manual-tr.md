@@ -479,8 +479,9 @@ değişmez.
   “İndir” durur.
 - **Proxy:** “Dosyalar” altındaki bir video, proxy hazır olur olmaz onu oynatır:
   H.264 biçiminde daha küçük bir sürüm (README, “Videolar için proxy”). Tam
-  ekranda “Orijinal” yalnızca bu oynatma için orijinale geçer; bir sonraki
-  açılışta yine proxy oynar. Konum ikisi için de geçerlidir. “İndir” her zaman
+  ekranda düğme neyin oynadığını gösterir, “Proxy” ya da “Orijinal”; tıklamak
+  yalnızca bu oynatma için değiştirir. Bir sonraki açılışta yine proxy oynar.
+  Konum ikisi için de geçerlidir. “İndir” her zaman
   orijinali verir. `mkv`, `avi`, `wmv` ve `flv` uzantılı videoları hiçbir
   tarayıcı oynatmaz; bunlar ancak proxy ile oynar ve küçük resimleri ondan
   oluşur. Proxy yoksa ya da okunamıyorsa orijinal oynar ve Kriterion proxy'yi
@@ -520,8 +521,9 @@ değişmez.
   durur; Kriterion koordinat saklamaz. EXIF'te çekim zamanı varsa görsellerde
   “Genel” altındaki “Kayıt tarihi” görünmez. Güncellemeden önceki görselleri
   Kriterion başlatmadan sonra bir kez yeniden okur. Bir video proxy
-  gerektiriyorsa “Proxy” grubu durumu, çözünürlüğü ve boyutu gösterir.
-  Dosyanın belirtmediği bilgiler görünmez.
+  gerektiriyorsa “Proxy” grubu durumu, çözünürlüğü, boyutu ve proxy üzerinde
+  ölçülen video ve ses bit hızlarını gösterir. Dosyanın belirtmediği bilgiler
+  görünmez.
 - **Bilgi:** Bir Word, Excel, PowerPoint ya da PDF dosyasının ve bunların
   OpenDocument karşılıklarının ⋯ menüsündeki “Bilgi” iki grup gösterir.
   “Kriterion'da”: yükleyen ve yükleme tarihi, yüklemeden önce değiştirilme

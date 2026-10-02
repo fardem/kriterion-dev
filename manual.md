@@ -478,8 +478,9 @@ setting). The original stays unchanged.
   are shown instead.
 - **Proxy:** A video under “Files” plays its proxy as soon as it is ready: a
   smaller version in H.264 (README, “Proxies for videos”). In full screen,
-  “Original” switches to the original, for this playback only; the next time
-  it opens, the proxy plays again. The position applies to both. “Download”
+  the button shows what plays, “Proxy” or “Original”; a click switches, for
+  this playback only. The next time it opens, the proxy plays again. The
+  position applies to both. “Download”
   always delivers the original. No browser plays videos with the endings
   `mkv`, `avi`, `wmv` and `flv`; they play only with their proxy, and their
   thumbnail is made from it. If a proxy is missing or cannot be read, the
@@ -520,8 +521,9 @@ setting). The original stays unchanged.
   shown; Kriterion does not store coordinates. With a time taken from EXIF,
   “Recorded” under “General” is left out for images. Images from before the
   update are read again once after the start. If a video needs a proxy, the
-  group “Proxy” states its state, resolution and size. What the file does not
-  state is left out.
+  group “Proxy” states its state, resolution and size and the bit rates of
+  video and audio, measured on the proxy. What the file does not state is left
+  out.
 - **Info:** “Info” in the ⋯ menu of a Word, Excel, PowerPoint or PDF file and
   their OpenDocument counterparts shows two groups. “In Kriterion”: uploaded by
   and on, modified before upload (the time of the file on the computer, only
