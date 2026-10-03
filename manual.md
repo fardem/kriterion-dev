@@ -266,16 +266,17 @@ similar title.
 ### Filters and sort order
 
 - **Status:** All, Tested, Untested. In addition “Rejection” (All, Rejected,
-  Not rejected) and “★ Favourites”. All of them can be combined.
+  Not rejected), “★ Favourites” and “Own values”. All of them can be combined.
 - **Categories:** several can be chosen, always combined with Or. “Without”
   shows entries without a category.
 - **Tags:** several can be chosen. The toggle sets And (default) or Or. Dimmed
   tags would no longer give a match.
-- **Potential and Rating:** each “All”, “None” and “Partial”, measured by the
-  user's own stars. “None”: no own star in that box. “Partial”: fewer own
-  stars than the threshold, by default 80 % of the criteria. For “Rating”, only
-  tested entries count. An admin sets the threshold in the “Rating: criteria”
-  card. If the potential mode is off or a box has no criteria, its group is
+- **Own values:** “None” or “Partial”, measured by the user's own stars; a
+  second click switches it off. Untested entries count by “Potential”, tested
+  ones by “Rating”. “None”: no own star. “Partial”: fewer own stars than the
+  threshold, by default 80 % of the criteria. An admin sets the threshold in
+  the “Rating: criteria” card. If the potential mode is off or a box has no
+  criteria, the entries of that phase drop out. Without criteria, the group is
   missing.
 - **“Reset filters (n)”** appears in the sort row as soon as a filter is set.
   The search term, the sort order and saved views stay.
@@ -334,8 +335,9 @@ off right there.
 - The first item is the main image. Change the order by dragging the
   thumbnails.
 - Browse with ← → or the arrows. A click opens the full screen view, another
-  click zooms to original size, Esc closes it. ↓ in full screen downloads the
-  file. When a video has the focus, for example after a click on it, ← and →
+  click zooms to original size. Esc, ✕ at the top right and Back in the browser
+  close it, with the mouse also a click beside the picture. ↓ in full screen
+  downloads the file. When a video has the focus, for example after a click on it, ← and →
   jump 5 seconds back or forward in it, in the entry as well as in full screen.
 - **Copy link:** the chain icon in full screen copies the URL of the photo or
   video shown. The URL opens the entry and the full screen view at this item.
@@ -896,7 +898,10 @@ The same interface, adapted to screen width and input.
 - On the image, a swipe browses. Deleting is done on the large image, not on
   the thumbnail tile.
 - Sorting by dragging needs a short hold with the finger.
-- In full screen, a double tap zooms.
+- In full screen, a double tap zooms. A swipe browses, on a video only beside
+  the video. A tap beside the picture does not close it; the back button does.
+- In landscape, full screen has no strip of thumbnails; browse with the arrows
+  or by swiping.
 - With “Add to Home Screen” in the browser, Kriterion can be placed on the
   home screen like an app. Without a network, it does not open.
 

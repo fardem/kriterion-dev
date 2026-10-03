@@ -266,17 +266,19 @@ Beim Anlegen zeigt „Ähnliche Titel: …“ vorhandene Einträge mit ähnliche
 ### Filter und Sortierung
 
 - **Status:** Alle, Getestet, Ungetestet. Dazu „Ablehnung" (Alle, Abgelehnt,
-  Nicht abgelehnt) und „★ Favoriten". Alle lassen sich kombinieren.
+  Nicht abgelehnt), „★ Favoriten" und „Eigene Werte". Alle lassen sich
+  kombinieren.
 - **Kategorien:** mehrere wählbar, immer als Oder. „Ohne" zeigt Einträge ohne
   Kategorie.
 - **Tags:** mehrere wählbar. Der Umschalter legt Und (Vorgabe) oder Oder fest.
   Gedämpfte Tags ergäben keinen Treffer mehr.
-- **Potenzial und Bewertung:** je „Alle“, „Keine“ und „Teilweise“, gemessen an
-  den eigenen Sternen. „Keine“: kein eigener Stern in diesem Kasten.
-  „Teilweise“: weniger eigene Sterne als die Schwelle, Vorgabe 80 % der
-  Kriterien. Bei „Bewertung“ zählen nur getestete Einträge. Die Schwelle stellt
-  ein Admin in der Karte „Bewertung: Kriterien“ ein. Ist der Potenzialmodus aus
-  oder hat ein Kasten keine Kriterien, fehlt seine Gruppe.
+- **Eigene Werte:** „Keine“ oder „Teilweise“, gemessen an den eigenen Sternen;
+  ein zweiter Klick schaltet aus. Ungetestete Einträge zählen mit „Potenzial“,
+  getestete mit „Bewertung“. „Keine“: kein eigener Stern. „Teilweise“: weniger
+  eigene Sterne als die Schwelle, Vorgabe 80 % der Kriterien. Die Schwelle
+  stellt ein Admin in der Karte „Bewertung: Kriterien“ ein. Ist der
+  Potenzialmodus aus oder hat ein Kasten keine Kriterien, fallen die Einträge
+  dieser Phase heraus. Ohne Kriterien fehlt die Gruppe.
 - **„Filter zurücksetzen (n)"** steht in der Sortierzeile, sobald ein Filter
   gesetzt ist. Suchbegriff, Sortierung und gespeicherte Ansichten bleiben.
 - **Sortierung:** nach Änderung, Bewertung, Potenzial, Titel, Zahl der
@@ -336,8 +338,9 @@ geht direkt dort.
 - Das erste Element ist das Hauptbild. Reihenfolge durch Ziehen der
   Vorschaubilder.
 - Blättern mit ← → oder den Pfeilen. Ein Klick öffnet das Vollbild, ein
-  weiterer zoomt auf Originalgröße, Esc schließt. ↓ im Vollbild lädt die Datei
-  herunter. Hat ein Video den Fokus, etwa nach einem Klick darauf, springen ←
+  weiterer zoomt auf Originalgröße. Esc, ✕ oben rechts und Zurück im Browser
+  schließen es, mit der Maus auch ein Klick neben das Bild. ↓ im Vollbild lädt
+  die Datei herunter. Hat ein Video den Fokus, etwa nach einem Klick darauf, springen ←
   und → darin 5 Sekunden zurück oder vor, im Eintrag wie im Vollbild.
 - **Link kopieren:** das Zeichen der Kette im Vollbild kopiert die Adresse des
   gezeigten Fotos oder Videos. Die Adresse öffnet den Eintrag und das Vollbild
@@ -915,7 +918,11 @@ Dieselbe Oberfläche, an Breite und Bedienung angepasst.
 - Am Bild blättert ein Wisch. Gelöscht wird am großen Bild, nicht an der
   Vorschaukachel.
 - Sortieren per Ziehen braucht mit dem Finger ein kurzes Halten.
-- Im Vollbild zoomt ein doppeltes Tippen.
+- Im Vollbild zoomt ein doppeltes Tippen. Ein Wisch blättert, bei einem Video
+  nur neben dem Video. Ein Tipp neben das Bild schließt nicht; die Zurück-Taste
+  schließt.
+- Quer fehlt im Vollbild der Streifen mit den Vorschaubildern; geblättert wird
+  mit den Pfeilen oder durch Wischen.
 - Über „Zum Startbildschirm hinzufügen" im Browser lässt sich Kriterion wie
   eine App ablegen. Ohne Netz öffnet es sich nicht.
 

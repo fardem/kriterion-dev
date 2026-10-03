@@ -2384,7 +2384,7 @@ async function run() {
   check('Eine gespeicherte Stellung mit „neu" bleibt lesbar',
     nsTitle(nsOld).length === 4, JSON.stringify(nsTitle(nsOld)));
   check('Und der Schluessel faellt aus der zurechtgerueckten Stellung heraus',
-    !('neu' in nsOld.w.filterNormal({ ...nsDefault, fresh: true })),
+    !('fresh' in nsOld.w.filterNormal({ ...nsDefault, fresh: true })),
     JSON.stringify(nsOld.w.filterNormal({ ...nsDefault, fresh: true })));
   check('Und der Schalter zaehlt ihn nicht als greifenden Filter',
     !/aktiv/.test(nsOld.w.document.querySelector('#filter-toggle .fcount')?.textContent || ''),

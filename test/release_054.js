@@ -663,49 +663,9 @@ async function run() {
       !/`am \$\{|`von \$\{|\} offen`/.test(source) && !/: 'keine'|return 'leer'/.test(source), 'Quelltext');
   }
 
-  group('Filter nach Potenzial und Bewertung: Leiste und Einstellung');
+  group('Filter „Teilweise“: die Schwelle in den Einstellungen');
   {
-    const entry = (id, title, share, more = {}) => ({ id, title, rejected: false, tested: true, favorite: false,
-      category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null, testCount: 0,
-      updated_at: `2026-08-0${id} 10:00:00`, share, ...more });
-    const items = [entry(1, 'Teil', { before: 'partial', after: 'partial' }), entry(2, 'Voll', { before: 'full', after: 'full' }),
-      entry(3, 'Ohne', { before: 'none', after: 'none' }), entry(4, 'Ungetestet', { before: 'none', after: null }, { tested: false })];
     const ready = (x) => !!x.document.getElementById('count') && openRequests(x) === 0;
-    const m = buildDom(JSDOM, { overviewItems: items, settings: { filters: null, userCount: 1, partialShare: 75 } });
-    const w = m.w;
-    await until(w, ready, 2000, 'die Uebersicht').catch(() => {});
-    const pills = (x, key) => [...(x.document.getElementById(`f-${key}`)?.querySelectorAll('.pill') || [])];
-    const row = w.document.getElementById('f-shares');
-    check('Eine Zeile mit „Potenzial“ und „Bewertung“, je „Alle · Keine · Teilweise“; der Titel nennt die Schwelle',
-      equal([...(row?.querySelectorAll('.eyebrow') || [])].map(e => e.textContent), ['Potenzial', 'Bewertung']) &&
-      equal(pills(w, 'potential').map(b => b.textContent), ['Alle', 'Keine', 'Teilweise']) &&
-      equal(pills(w, 'rating').map(b => b.textContent), ['Alle', 'Keine', 'Teilweise']) &&
-      pills(w, 'rating')[2]?.title === 'Weniger als 75 % der Kriterien selbst bewertet', row?.textContent);
-    const shown = () => w.visibleItems().map(i => i.title).sort();
-    pills(w, 'rating')[2]?.click();
-    await until(w, ready, 1000, 'das Filtern').catch(() => {});
-    check('„Bewertung: Teilweise“ zeigt nur den teilweise bewerteten Eintrag, zählt als aktiv und wird gespeichert',
-      equal(shown(), ['Teil']) && w.filterNumber() === 1 &&
-      m.sent.some(x => x.method === 'PUT' && x.url === '/api/settings' && x.body?.filters?.rating === 'partial'), shown().join(' '));
-    pills(w, 'rating')[1]?.click();
-    await until(w, ready, 1000, 'das Filtern').catch(() => {});
-    check('„Bewertung: Keine“: ungetestete Einträge zählen nicht', equal(shown(), ['Ohne']), shown().join(' '));
-    pills(w, 'rating')[0]?.click();
-    await until(w, ready, 1000, 'das Filtern').catch(() => {});
-    pills(w, 'potential')[1]?.click();
-    await until(w, ready, 1000, 'das Filtern').catch(() => {});
-    check('„Potenzial: Keine“ zählt jeden Eintrag, auch den ungetesteten', equal(shown(), ['Ohne', 'Ungetestet']), shown().join(' '));
-    w.close();
-
-    const without = items.map(i => ({ ...i, share: { after: i.share.after } }));
-    const h = buildDom(JSDOM, { overviewItems: without,
-      settings: { filters: { potential: 'partial', rating: 'all' }, userCount: 1 } });
-    await until(h.w, ready, 2000, 'die Uebersicht').catch(() => {});
-    check('Nennt der Server die Phase nicht, fehlt ihre Gruppe, und ein gespeicherter Wert gilt als „Alle“',
-      !h.w.document.getElementById('f-potential') && !!h.w.document.getElementById('f-rating') &&
-      h.w.visibleItems().length === 4 && h.w.filterNumber() === 0, `${h.w.visibleItems().length} ${h.w.filterNumber()}`);
-    h.w.close();
-
     const a = buildDom(JSDOM, { settings: { filters: null, userCount: 1, partialShare: 80 } });
     await until(a.w, ready, 2000, 'die Uebersicht').catch(() => {});
     await D.sysSection(a.w, 'inventory');

@@ -1,5 +1,5 @@
 /* Kriterion — Pruefstand: einstellbare Bitrate der Proxys, Ersatz veralteter Proxys im Hintergrund,
-   „Proxy“ in der Liste, Groesse des Videos und Knopfleiste im Vollbild. */
+   „Proxy“ in der Liste, Groesse des Videos und Knopfleiste im Vollbild; Filter „Eigene Werte“ und Vollbild am Telefon. */
 const H = require('./frame.js');
 const D = require('./dom.js');
 const { buildDom, until, openRequests } = D;
@@ -350,11 +350,194 @@ async function run() {
     const css = read('public/style.css');
     check('Die Knoepfe oben brechen um, zuerst weicht der Titel; die Leiste schrumpft nicht mehr auf null',
       /\.lb-tools \{ display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; \}/.test(css) &&
-      /\.lb-title \{[^}]*flex-shrink: 100; \}/.test(css), 'Regel fehlt');
+      /\.lb-title \{[^}]*flex: 1 1 0; min-width: 0; \}/.test(css), 'Regel fehlt');
     check('Der Kopf von „Dateien“ bricht um, und im Vollbild rollt auch das Wurzelelement nicht: die Seite bleibt so breit wie der Bildschirm',
       /\.block-head:has\(> \.ahead-acts\) \{ flex-wrap: wrap; \}/.test(css) &&
       /\.ahead-acts \{ display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; min-width: 0; \}/.test(css) &&
       /html:has\(> body\.lb-open\) \{ overflow: hidden; \}/.test(css), 'Regel fehlt');
+  }
+
+  const ownEntry = (id, title, tested, share) => ({ id, title, rejected: false, tested, favorite: false,
+    category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null, testCount: 0,
+    updated_at: `2026-08-0${id} 10:00:00`, share });
+  const listReady = (x) => !!x.document.getElementById('count') && openRequests(x) === 0;
+  const detailReady = (x) => !!x.document.querySelector('#viewer img') && openRequests(x) === 0;
+
+  group('Eigene Werte: eine Gruppe in der Statuszeile');
+  {
+    const items = [ownEntry(1, 'U-keine', false, { before: 'none', after: null }),
+      ownEntry(2, 'U-teil', false, { before: 'partial', after: null }),
+      ownEntry(3, 'G-keine', true, { before: 'full', after: 'none' }),
+      ownEntry(4, 'G-teil', true, { before: 'none', after: 'partial' }),
+      ownEntry(5, 'G-voll', true, { before: 'none', after: 'full' })];
+    const m = buildDom(JSDOM, { overviewItems: items, settings: { filters: null, userCount: 1, partialShare: 75 } });
+    const w = m.w;
+    await until(w, listReady, 2000, 'die Uebersicht').catch(() => {});
+    const own = () => w.document.getElementById('f-own');
+    const pills = () => [...(own()?.querySelectorAll('.pill') || [])];
+    const statusRow = () => w.document.getElementById('f-rejected')?.parentElement;
+    const labels = [...(statusRow()?.querySelectorAll(':scope > .eyebrow') || [])].map(e => e.textContent);
+    const counted = deText('list.ownValuesHint', { testedNo: 'Ungetestet', testedYes: 'Getestet', potential: 'Potenzial', ratingOne: 'Bewertung' });
+    check('Die Zeile „Potenzial / Bewertung“ entfaellt; „Eigene Werte: Keine · Teilweise“ steht am Ende der Statuszeile, ohne „Alle“',
+      !w.document.getElementById('f-shares') && !!own() && own().parentElement === statusRow() &&
+      statusRow().lastElementChild === own() && equal(labels, ['Status', 'Ablehnung', 'Eigene Werte']) &&
+      equal(pills().map(b => b.textContent), ['Keine', 'Teilweise']), `${labels.join(' | ')} · ${pills().map(b => b.textContent).join(' ')}`);
+    check('Der Titel der Knoepfe nennt, was zaehlt; bei „Teilweise“ zuerst die Schwelle',
+      pills()[0]?.title === counted && pills()[1]?.title === `${deText('list.sharePartialHint', { share: 75 })}\n${counted}`,
+      JSON.stringify(pills().map(b => b.title)));
+    const shown = () => w.visibleItems().map(i => i.title).sort();
+    const click = async (el) => { el?.click(); await until(w, listReady, 1000, 'das Filtern').catch(() => {}); };
+    await click(pills()[0]);
+    check('„Keine“: ungetestete ohne eigenes Potenzial, getestete ohne eigene Bewertung; ein Filter, gespeichert als `own`',
+      equal(shown(), ['G-keine', 'U-keine']) && w.filterNumber() === 1 &&
+      m.sent.some(x => x.method === 'PUT' && x.url === '/api/settings' && x.body?.filters?.own === 'none' &&
+        !('potential' in x.body.filters) && !('rating' in x.body.filters)), shown().join(' '));
+    await click(pills()[1]);
+    check('„Teilweise“: jeder Eintrag zaehlt mit der Phase, in der er steht', equal(shown(), ['G-teil', 'U-teil']), shown().join(' '));
+    await click(pills()[1]);
+    check('Ein zweiter Klick schaltet aus', shown().length === 5 && w.filterNumber() === 0 &&
+      !pills().some(b => b.classList.contains('on')), `${shown().length} ${w.filterNumber()}`);
+    await click(statusRow()?.querySelector('.pills')?.children[1]);
+    await click(pills()[0]);
+    check('Mit dem Status „Getestet“ zaehlt nur die Bewertung', equal(shown(), ['G-keine']), shown().join(' '));
+    w.close();
+  }
+
+  group('Eigene Werte: alte Filter, ohne Potenzialmodus, ohne Kriterien');
+  {
+    const items = [ownEntry(1, 'U', false, { after: null }), ownEntry(2, 'G-keine', true, { after: 'none' }),
+      ownEntry(3, 'G-voll', true, { after: 'full' })];
+    const m = buildDom(JSDOM, { overviewItems: items, settings: { filters: { potential: 'partial', rating: 'none' }, userCount: 1 } });
+    const w = m.w;
+    await until(w, listReady, 2000, 'die Uebersicht').catch(() => {});
+    const f = w.eval('state.filters');
+    const normal = w.filterNormal({ potential: 'none', rating: 'partial', own: 'partial' });
+    check('Gespeicherte Werte von „Potenzial“ und „Bewertung“ entfallen beim Laden, auch in Ansichten',
+      !('potential' in f) && !('rating' in f) && f.own === 'all' && w.filterNumber() === 0 && w.visibleItems().length === 3 &&
+      !('potential' in normal) && !('rating' in normal) && normal.own === 'partial', `${JSON.stringify(f)} ${JSON.stringify(normal)}`);
+    w.document.getElementById('f-own')?.querySelector('.pill')?.click();
+    await until(w, listReady, 1000, 'das Filtern').catch(() => {});
+    check('Ohne Potenzialmodus fallen ungetestete Eintraege bei „Keine“ heraus',
+      equal(w.visibleItems().map(i => i.title), ['G-keine']), w.visibleItems().map(i => i.title).join(' '));
+    w.close();
+    const n = buildDom(JSDOM, { overviewItems: items.map(i => ({ ...i, share: {} })), settings: { filters: { own: 'none' }, userCount: 1 } });
+    await until(n.w, listReady, 2000, 'die Uebersicht').catch(() => {});
+    check('Ohne Kriterien fehlt die Gruppe, und ein gespeicherter Wert gilt als „Alle“',
+      !n.w.document.getElementById('f-own') && n.w.visibleItems().length === 3 && n.w.filterNumber() === 0,
+      `${n.w.visibleItems().length} ${n.w.filterNumber()}`);
+    n.w.close();
+  }
+
+  group('Vollbild: Zurueck, Fokus und die Seite dahinter');
+  {
+    const d = buildDom(JSDOM, { hash: '#/item/1', settings: { filters: null, userCount: 1 } });
+    const w = d.w, doc = w.document;
+    await until(w, detailReady, 3000, 'die Detailansicht').catch(() => {});
+    const lb = () => doc.querySelector('.lightbox');
+    const opener = doc.querySelector('#viewer .vfocus');
+    opener?.focus();
+    const lengthBefore = w.history.length;
+    doc.querySelector('#viewer img')?.click();
+    const behind = [...doc.body.children].filter(el => el !== lb() && !el.classList.contains('toast'));
+    check('Das Vollbild legt einen Eintrag im Verlauf an; ✕ hat den Fokus, die Seite dahinter ist inert',
+      !!lb() && w.history.length === lengthBefore + 1 && typeof w.history.state?.lightbox === 'number' &&
+      doc.activeElement === lb()?.querySelector('.close') && behind.length > 0 &&
+      behind.every(el => el.hasAttribute('inert')) && !lb()?.hasAttribute('inert'),
+      `${w.history.length - lengthBefore} ${doc.activeElement?.className} ${behind.map(el => `${el.id || el.className}:${el.hasAttribute('inert')}`).join(' ')}`);
+    w.history.back();
+    await until(w, () => !lb(), 1000, 'das Schliessen').catch(() => {});
+    check('Zurueck schliesst das Vollbild; die Adresse bleibt, die Seite ist wieder frei, der Fokus kehrt zurueck',
+      !lb() && w.location.hash === '#/item/1' && !doc.querySelector('[inert]') && !!opener && doc.activeElement === opener,
+      `${!!lb()} ${w.location.hash} ${doc.activeElement?.className}`);
+    doc.querySelector('#viewer img')?.click();
+    const marked = w.history.state?.lightbox;
+    lb()?.querySelector('.close')?.click();
+    await until(w, () => w.history.state === null, 1000, 'der Schritt zurueck').catch(() => {});
+    check('✕ nimmt den eigenen Eintrag im Verlauf zurueck', !lb() && typeof marked === 'number' &&
+      w.history.state === null && w.location.hash === '#/item/1', `${marked} ${JSON.stringify(w.history.state)}`);
+    doc.querySelector('#viewer img')?.click();
+    lb()?.querySelector('.remove')?.click();
+    await until(w, (x) => !!x.document.querySelector('.backdrop'), 1000, 'die Rueckfrage').catch(() => {});
+    check('Ein Dialog ueber dem Vollbild ist nicht inert', !!doc.querySelector('.backdrop') &&
+      !doc.querySelector('.backdrop').closest('[inert]'), doc.querySelector('.backdrop')?.outerHTML.slice(0, 80));
+    doc.querySelector('.backdrop [data-no]')?.click();
+    await until(w, (x) => !x.document.querySelector('.backdrop'), 1000, 'die geschlossene Rueckfrage').catch(() => {});
+    w.location.hash = '#/';
+    await until(w, (x) => !lb() && listReady(x), 2000, 'die Uebersicht').catch(() => {});
+    await wait(50);
+    check('Ein Wechsel der Ansicht schliesst das Vollbild, ohne im Verlauf zurueckzugehen',
+      !lb() && w.location.hash === '#/' && !doc.querySelector('[inert]'), `${!!lb()} ${w.location.hash}`);
+    w.close();
+  }
+
+  group('Vollbild: Wischen und Tipp neben das Bild');
+  {
+    const d = buildDom(JSDOM, { hash: '#/item/1', settings: { filters: null, userCount: 1 } });
+    const w = d.w, doc = w.document;
+    await until(w, detailReady, 3000, 'die Detailansicht').catch(() => {});
+    doc.querySelector('#viewer img')?.click();
+    const lb = () => doc.querySelector('.lightbox');
+    const count = () => lb()?.querySelector('.lb-count')?.textContent;
+    const stage = lb()?.querySelector('.lb-stage');
+    const player = lb()?.querySelector('.lb-video');
+    const touch = (target, type, points) => {
+      const e = new w.Event(type, { bubbles: true });
+      const list = points.map(([x, y]) => ({ clientX: x, clientY: y }));
+      Object.defineProperty(e, 'touches', { value: type === 'touchend' ? [] : list });
+      Object.defineProperty(e, 'changedTouches', { value: type === 'touchend' ? list : [list[list.length - 1]] });
+      target?.dispatchEvent(e);
+    };
+    const swipe = (target) => { touch(target, 'touchstart', [[300, 200]]); touch(target, 'touchend', [[150, 205]]); };
+    swipe(stage);
+    const first = count();
+    swipe(player);
+    const onVideo = count();
+    touch(stage, 'touchstart', [[300, 200]]);
+    touch(stage, 'touchstart', [[300, 200], [340, 260]]);
+    touch(stage, 'touchend', [[150, 205]]);
+    const twoFingers = count();
+    w.visualViewport = { scale: 2 };
+    swipe(stage);
+    const pinched = count();
+    w.visualViewport = undefined;
+    check('Wischen blaettert nur mit einem Finger, nicht auf dem Video und nicht bei gezoomter Seite',
+      first === '2 / 2' && onVideo === '2 / 2' && twoFingers === '2 / 2' && pinched === '2 / 2', `${first} ${onVideo} ${twoFingers} ${pinched}`);
+    swipe(stage);
+    check('Daneben blaettert es weiter', count() === '1 / 2', count());
+    const tap = (type) => {
+      stage?.dispatchEvent(new w.PointerEvent('pointerdown', { pointerType: type, bubbles: true }));
+      stage?.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+    };
+    tap('touch');
+    const afterTouch = !!lb();
+    tap('mouse');
+    check('Ein Tipp mit dem Finger neben das Bild schliesst nicht, ein Klick mit der Maus schon', afterTouch && !lb(),
+      `${afterTouch} ${!!lb()}`);
+    w.close();
+  }
+
+  group('Vollbild: Kopfzeile, quer und deckend');
+  {
+    const d = buildDom(JSDOM, { hash: '#/item/1', settings: { filters: null, userCount: 1 } });
+    const w = d.w, doc = w.document;
+    await until(w, detailReady, 3000, 'die Detailansicht').catch(() => {});
+    doc.querySelector('#viewer img')?.click();
+    const top = doc.querySelector('.lightbox .lb-top');
+    const tools = top?.querySelector('.lb-tools');
+    check('✕ steht ausserhalb der Knopfleiste am Ende der Kopfzeile; 🗑 ist der erste Knopf der Leiste',
+      !!top?.lastElementChild?.classList.contains('close') && !tools?.querySelector('.close') &&
+      !!tools?.firstElementChild?.classList.contains('remove'), tools?.innerHTML.slice(0, 120));
+    w.close();
+    const css = read('public/style.css');
+    check('✕ bleibt oben rechts, auch wenn die Leiste umbricht',
+      /\.lb-top > \.close \{ flex-shrink: 0; align-self: flex-start; \}/.test(css), 'Regel fehlt');
+    const across = (css.match(/@media \(max-height: 500px\) and \(max-width: 960px\) \{[\s\S]*?\n\}/) || [''])[0];
+    check('Am Telefon quer: kein Streifen, die Kopfzeile mit 6 px Abstand oben und unten',
+      /\.lb-strip \{ display: none; \}/.test(across) &&
+      /\.lb-top \{ padding-top: calc\(6px \+ env\(safe-area-inset-top\)\); padding-bottom: 6px; \}/.test(across),
+      across.slice(0, 80) || 'Block fehlt');
+    check('Das Vollbild ist im dunklen Schema deckend',
+      /--lb-bg: rgb\(var\(--scrim-rgb\)\);/.test(css) && !/--lb-bg: rgba\(/.test(css), 'Regel fehlt');
   }
 }
 

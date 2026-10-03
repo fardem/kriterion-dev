@@ -97,10 +97,10 @@
   --edge-on-dark-rgb: 255,255,255;
   /* Schleier hinter Dialog und Vollbild. */
   --scrim-rgb: 6,7,9;
-  /* Fertige Werte statt Alphas: das helle Schema aendert auch die Deckung,
-     und --lb-bg ist dort deckend. */
+  /* Fertige Werte statt Alphas: das helle Schema aendert auch die Deckung. */
   --scrim: rgba(var(--scrim-rgb), .78);
-  --lb-bg: rgba(var(--scrim-rgb), .97);
+  /* Deckend; durchscheinend laege die Seite unter Zaehler und Titel. */
+  --lb-bg: rgb(var(--scrim-rgb));
 
   --r-sm: 7px;
   --r: 11px;
@@ -1520,9 +1520,9 @@ mark {
 .lb-unplayable a:hover { border-color: var(--accent); color: var(--accent-text); }
 /* `safe-area-inset`, sonst liegt der Schliessknopf unter der Uhr des Telefons. */
 .lb-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; padding-top: calc(14px + env(safe-area-inset-top)); padding-left: max(18px, env(safe-area-inset-left)); padding-right: max(18px, env(safe-area-inset-right)); flex-shrink: 0; }
-/* Fehlt der Platz, weicht zuerst der Titel, dann brechen die Knoepfe um; sonst laege der Schliessknopf
-   am Telefon ausserhalb des Bildschirms. */
-.lb-title { font-size: .93rem; color: var(--text-2); font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 100; }
+/* Basis 0: der Titel bekommt nur den Platz, den die Knoepfe uebrig lassen; die Leiste bricht erst um,
+   wenn sie allein nicht passt. */
+.lb-title { font-size: .93rem; color: var(--text-2); font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 0; min-width: 0; }
 .lb-tools { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
 .lb-count, .lb-loaded { font-family: var(--mono); font-size: .8rem; color: var(--muted); }
 .lb-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); display: flex; align-items: center; justify-content: center; color: var(--text-2); font-size: 1rem; transition: all .15s var(--ease); }
@@ -1530,8 +1530,9 @@ mark {
 .lb-btn.download { text-decoration: none; }
 .lb-btn.whole, .lb-btn.original { width: auto; padding: 0 10px; font-size: .8rem; }
 .lb-btn.whole[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
-/* Abstand zum Papierkorb, damit er nicht direkt neben dem Schliessknopf liegt. */
-.lb-btn.remove { margin-left: 10px; }
+/* ✕ steht ausserhalb der Leiste und bleibt oben rechts, auch wenn sie umbricht; der Papierkorb steht vorn. */
+.lb-top > .close { flex-shrink: 0; align-self: flex-start; }
+.lb-btn.remove { margin-right: 10px; }
 .lb-btn.remove:hover { color: var(--red); border-color: var(--red); background: var(--surface-3); }
 /* Pfeile an `.lightbox`, nicht an `.lb-stage`: gezoomt scrollt `.lb-stage`, und die
    Pfeile scrollten mit. */
@@ -2672,4 +2673,11 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
     border-radius: var(--r); padding: 9px 10px 9px 15px;
     justify-content: space-between;
   }
+}
+
+/* ---- Telefon quer ---- */
+/* Der Streifen kostete 92 von 360 px Hoehe; geblaettert wird mit den Pfeilen und durch Wischen. */
+@media (max-height: 500px) and (max-width: 960px) {
+  .lb-strip { display: none; }
+  .lb-top { padding-top: calc(6px + env(safe-area-inset-top)); padding-bottom: 6px; }
 }

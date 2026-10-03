@@ -11396,39 +11396,39 @@ const REGRESSIONS = [
     expected: "Filter nach Potenzial und Bewertung: der Server"
   },
   {
-    nr: '1657', name: "Die Filter „Potenzial“ und „Bewertung“ wirken nicht",
+    nr: '1657', name: "Der Filter „Eigene Werte“ wirkt nicht",
     file: 'public/app.js',
-    search: "    if (wanted !== 'all') out = out.filter(i => i.share?.[SHARE_PHASES[key]] === wanted);\n",
+    search: "  if (own !== 'all') out = out.filter(i => i.share?.[sharePhase(i)] === own);\n",
     replacement: "",
-    expected: "Filter nach Potenzial und Bewertung: Leiste und Einstellung"
+    expected: "Eigene Werte: eine Gruppe in der Statuszeile"
   },
   {
-    nr: '1658', name: "Die beiden Filter zaehlen nicht als aktiv",
+    nr: '1658', name: "Der Filter „Eigene Werte“ zaehlt nicht als aktiv",
     file: 'public/app.js',
-    search: "  for (const key of Object.keys(SHARE_PHASES)) if (shareWanted(f, key) !== 'all') n++;\n",
+    search: "  if (shareWanted(f) !== 'all') n++;\n",
     replacement: "",
-    expected: "Filter nach Potenzial und Bewertung: Leiste und Einstellung"
+    expected: "Eigene Werte: eine Gruppe in der Statuszeile"
   },
   {
     nr: '1659', name: "Eine ausgeblendete Gruppe filtert weiter",
     file: 'public/app.js',
-    search: "const shareWanted = (f, key) => (shareShown(key) ? f[key] : 'all');",
-    replacement: "const shareWanted = (f, key) => f[key];",
-    expected: "Filter nach Potenzial und Bewertung: Leiste und Einstellung"
+    search: "const shareWanted = (f) => (shareShown() ? f.own : 'all');",
+    replacement: "const shareWanted = (f) => f.own;",
+    expected: "Eigene Werte: alte Filter, ohne Potenzialmodus, ohne Kriterien"
   },
   {
     nr: '1660', name: "Das Feld fuer die Schwelle steht auch ohne Adminrechte da",
     file: 'public/app.js',
     search: "  { key: 'criteria',     section: 'inventory', visible: () => ADMIN,",
     replacement: "  { key: 'criteria',     section: 'inventory', visible: () => true,",
-    expected: "Filter nach Potenzial und Bewertung: Leiste und Einstellung"
+    expected: "Filter „Teilweise“: die Schwelle in den Einstellungen"
   },
   {
     nr: '1661', name: "Eine abgelehnte Schwelle bleibt im Feld stehen",
     file: 'public/app.js',
     search: "    } catch (e) { toast(e.message, true); }\n    shareField.value = String(PARTIAL_SHARE);\n",
     replacement: "    } catch (e) { toast(e.message, true); }\n",
-    expected: "Filter nach Potenzial und Bewertung: Leiste und Einstellung"
+    expected: "Filter „Teilweise“: die Schwelle in den Einstellungen"
   },
   {
     nr: '1662', name: "Bilder heissen in der Spalte „Typ“ nur „Bild“",
@@ -12607,6 +12607,146 @@ const REGRESSIONS = [
     search: "times: [], red: [{ group: `Modul ${name}`, name: text }] });",
     replacement: "times: [] });",
     expected: 'Der Treiber sieht den Rueckgabewert — 0.34.4'
+  },
+  {
+    nr: '1830', name: "Jeder Eintrag zaehlt mit dem Potenzial",
+    file: 'public/app.js',
+    search: "const sharePhase = (i) => (i.tested ? 'after' : 'before');",
+    replacement: "const sharePhase = (i) => 'before';",
+    expected: "Eigene Werte: eine Gruppe in der Statuszeile"
+  },
+  {
+    nr: '1831', name: "Ein zweiter Klick schaltet nicht aus",
+    file: 'public/app.js',
+    search: "      b.onclick = () => { f.own = f.own === v ? 'all' : v; redraw(); };",
+    replacement: "      b.onclick = () => { f.own = v; redraw(); };",
+    expected: "Eigene Werte: eine Gruppe in der Statuszeile"
+  },
+  {
+    nr: '1832', name: "Der Titel der Knoepfe nennt nicht, was zaehlt",
+    file: 'public/app.js',
+    search: "    const counted = t('list.ownValuesHint');",
+    replacement: "    const counted = '';",
+    expected: "Eigene Werte: eine Gruppe in der Statuszeile"
+  },
+  {
+    nr: '1833', name: "„Eigene Werte“ steht in einer eigenen Zeile",
+    file: 'public/app.js',
+    search: "    secondLabel(r1, t('list.ownValues'));\n",
+    replacement: "    const r1 = row(t('list.ownValues'));\n",
+    expected: "Eigene Werte: eine Gruppe in der Statuszeile"
+  },
+  {
+    nr: '1834', name: "Alte Werte bleiben in den Filtern",
+    file: 'public/app.js',
+    search: "  delete f.potential; delete f.rating;\n",
+    replacement: "",
+    expected: "Eigene Werte: alte Filter, ohne Potenzialmodus, ohne Kriterien"
+  },
+  {
+    nr: '1835', name: "Ohne Phase zaehlt ein Eintrag als „Keine“",
+    file: 'public/app.js',
+    search: "  if (own !== 'all') out = out.filter(i => i.share?.[sharePhase(i)] === own);\n",
+    replacement: "  if (own !== 'all') out = out.filter(i => (i.share?.[sharePhase(i)] ?? 'none') === own);\n",
+    expected: "Eigene Werte: alte Filter, ohne Potenzialmodus, ohne Kriterien"
+  },
+  {
+    nr: '1836', name: "Im Vollbild weicht der Titel wieder zuletzt",
+    file: 'public/style.css',
+    search: "white-space: nowrap; flex: 1 1 0; min-width: 0; }",
+    replacement: "white-space: nowrap; flex-shrink: 100; }",
+    expected: "Vollbild: Groesse des Videos und Knopfleiste"
+  },
+  {
+    nr: '1837', name: "Quer bleibt der Streifen",
+    file: 'public/style.css',
+    search: "  .lb-strip { display: none; }\n",
+    replacement: "",
+    expected: "Vollbild: Kopfzeile, quer und deckend"
+  },
+  {
+    nr: '1838', name: "Zurueck schliesst das Vollbild nicht",
+    file: 'public/app.js',
+    search: "  window.addEventListener('popstate', back);\n",
+    replacement: "",
+    expected: "Vollbild: Zurueck, Fokus und die Seite dahinter"
+  },
+  {
+    nr: '1839', name: "✕ laesst den eigenen Eintrag im Verlauf stehen",
+    file: 'public/app.js',
+    search: "    if (!historyMoved && history.state?.lightbox === mark) history.back();\n",
+    replacement: "",
+    expected: "Vollbild: Zurueck, Fokus und die Seite dahinter"
+  },
+  {
+    nr: '1840', name: "Das Vollbild legt keinen Eintrag im Verlauf an",
+    file: 'public/app.js',
+    search: "  history.pushState({ lightbox: mark }, '');\n",
+    replacement: "",
+    expected: "Vollbild: Zurueck, Fokus und die Seite dahinter"
+  },
+  {
+    nr: '1841', name: "Wischen auf dem Video blaettert",
+    file: 'public/app.js',
+    search: "e.touches.length === 1 && e.target !== player && ",
+    replacement: "e.touches.length === 1 && ",
+    expected: "Vollbild: Wischen und Tipp neben das Bild"
+  },
+  {
+    nr: '1842', name: "Zwei Finger blaettern",
+    file: 'public/app.js',
+    search: "moved = !zoomed && e.touches.length === 1 && ",
+    replacement: "moved = !zoomed && ",
+    expected: "Vollbild: Wischen und Tipp neben das Bild"
+  },
+  {
+    nr: '1843', name: "Bei gezoomter Seite blaettert ein Wisch",
+    file: 'public/app.js',
+    search: " && !(window.visualViewport?.scale > 1)",
+    replacement: "",
+    expected: "Vollbild: Wischen und Tipp neben das Bild"
+  },
+  {
+    nr: '1844', name: "Ein Tipp neben das Bild schliesst",
+    file: 'public/app.js',
+    search: " && pointer === 'mouse') close(); });",
+    replacement: ") close(); });",
+    expected: "Vollbild: Wischen und Tipp neben das Bild"
+  },
+  {
+    nr: '1845', name: "✕ bleibt beim Umbruch nicht oben rechts",
+    file: 'public/style.css',
+    search: ".lb-top > .close { flex-shrink: 0; align-self: flex-start; }\n",
+    replacement: "",
+    expected: "Vollbild: Kopfzeile, quer und deckend"
+  },
+  {
+    nr: '1846', name: "Die Seite scheint durch das Vollbild",
+    file: 'public/style.css',
+    search: "  --lb-bg: rgb(var(--scrim-rgb));",
+    replacement: "  --lb-bg: rgba(var(--scrim-rgb), .97);",
+    expected: "Vollbild: Kopfzeile, quer und deckend"
+  },
+  {
+    nr: '1847', name: "Die Seite dahinter bleibt fuer Tab und Vorleser offen",
+    file: 'public/app.js',
+    search: "  behind.forEach(el => el.setAttribute('inert', ''));\n",
+    replacement: "",
+    expected: "Vollbild: Zurueck, Fokus und die Seite dahinter"
+  },
+  {
+    nr: '1848', name: "✕ bekommt beim Oeffnen keinen Fokus",
+    file: 'public/app.js',
+    search: "  lb.querySelector('.close').focus({ preventScroll: true });\n",
+    replacement: "",
+    expected: "Vollbild: Zurueck, Fokus und die Seite dahinter"
+  },
+  {
+    nr: '1849', name: "Der Fokus kehrt nach dem Schliessen nicht zurueck",
+    file: 'public/app.js',
+    search: "    if (focusBefore?.isConnected) focusBefore.focus?.({ preventScroll: true });\n",
+    replacement: "",
+    expected: "Vollbild: Zurueck, Fokus und die Seite dahinter"
   }
 
 ];

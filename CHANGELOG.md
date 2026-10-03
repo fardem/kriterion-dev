@@ -7,6 +7,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 > A box above the changes of a version means there is something to do when updating.
 > Yanked versions are marked `[YANKED]`.
 
+## [0.56.1] - 2026-10-03
+
+Fingerprint `a8fe80d0` — previously `a161550c`.
+
+### Changed
+
+- The overview filters own values in one group "Own values: None · Partial" at the end of the status row instead of the row "Potential" and "Rating". Untested entries count by potential, tested ones by rating; a second click switches it off. Saved filters and views drop their old values for potential and rating.
+- Full screen: "Close" stays at the top right, the bin is the first button of the bar.
+- Full screen: on touch, a tap beside the picture no longer closes it; a mouse click still does.
+- Full screen covers the page completely in the dark scheme.
+
+### Fixed
+
+- Full screen on a phone in landscape: no strip and a lower header; on 640 × 360, a 16:9 video gets 544 × 306 instead of 263 × 148 px.
+- Full screen: the buttons at the top wrapped although one row had room.
+- Full screen: Back in the browser or on the phone closes it; before, the page behind changed and full screen stayed open.
+- Full screen: a swipe no longer browses when it starts on a video, uses two fingers or the page is zoomed.
+- Full screen takes the focus and gives it back when closed; Tab and screen readers no longer reach the page behind.
+
 ## [0.56.0] - 2026-10-02
 
 Fingerprint `a161550c` — previously `cc298c6f`.
