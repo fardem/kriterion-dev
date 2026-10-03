@@ -300,7 +300,7 @@ async function run() {
     const asked = ((await R.call('GET', '/api/requests')).content?.requests || []).find(a => a.username === 'clara');
     const approved = await R.call('POST', `/api/requests/${asked?.id}/approve`);
     check('Scheitert der Versand beim Freischalten, nennt die Antwort den Grund',
-      approved.content?.delivery === 'fehlgeschlagen' && String(approved.content?.deliveryReason || '').length > 0,
+      approved.content?.delivery === 'fehlgeschlagen' && /550/.test(String(approved.content?.deliveryReason || '')),
       `${approved.content?.delivery} · ${JSON.stringify(approved.content?.deliveryReason)}`);
     await F.stop();
     await rFree('mail');
