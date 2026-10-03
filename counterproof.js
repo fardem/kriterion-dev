@@ -821,7 +821,7 @@ const REGRESSIONS = [
   {
     nr: '110', name: 'Ausschalten geht ohne Code',
     file: 'server.js',
-    search: "  if (!await ownPasswordMatches(req, res, password)) return;\n  if (!auth.checkTwoFactor(req.user.id, code))\n    return res.status(403).json({ error: t(localeOf(req), auth.TWO_FACTOR_DENIAL)});\n  auth.turnTwoFactorOff(req.user.id, req.user.id);",
+    search: "  if (!await ownPasswordMatches(req, res, password)) return;\n  if (!ownCodeMatches(req, res, code)) return;\n  auth.turnTwoFactorOff(req.user.id, req.user.id);",
     replacement: "  if (!await ownPasswordMatches(req, res, passwort)) return;\n  auth.turnTwoFactorOff(req.user.id, req.user.id);",
     expected: 'Der zweite Faktor: der Rundlauf'
   },
@@ -3885,14 +3885,14 @@ const REGRESSIONS = [
   {
     nr: '541', name: 'Der Bilderstreifen fragt nicht, ob seine Ansicht noch steht',
     file: 'public/app.js',
-    search: "    // Nach einem await kann die Ansicht schon gewechselt haben.\n    if (!box) return;\n",
+    search: "    // Nach einem await kann die Ansicht schon gewechselt haben.\n    if (!box || !here()) return;\n",
     replacement: "    // Nach einem await kann die Ansicht schon gewechselt haben.\n",
     expected: 'Die Ansicht kann fort sein — 0.19.6'
   },
   {
     nr: '542', name: 'Der Betrachter fragt nicht, ob seine Ansicht noch steht',
     file: 'public/app.js',
-    search: "    if (!v) return;\n    // #viewer bleibt dasselbe Element; die Handler des Ausschnittmodus loeschen.",
+    search: "    if (!v || !here()) return;\n    // #viewer bleibt dasselbe Element; die Handler des Ausschnittmodus loeschen.",
     replacement: "    // #viewer bleibt dasselbe Element; die Handler des Ausschnittmodus loeschen.",
     expected: 'Die Ansicht kann fort sein — 0.19.6'
   },
@@ -4059,50 +4059,50 @@ const REGRESSIONS = [
     file: 'public/app.js',
     search: "        el.oninput = previewNew;",
     replacement: "        el.oninput = null;",
-    expected: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
+    expected: 'Die Karte „Alte Backups" in der Oberflaeche'
   },
   {
     nr: '564', name: 'Die Karte schickt die Dateinamen an die Loeschroute mit',
     file: 'public/app.js',
-    search: "      try { r = await api('POST', '/api/backup/cleanup', { kind }); }",
+    search: "      try { r = await api('POST', '/api/backup/cleanup', kind === 'rule' ? { kind, ...values() } : { kind }); }",
     replacement: "      try { r = await api('POST', '/api/backup/cleanup',\n" +
             "        { art, dateien: (a.treffer || []).map(t => t.datei) }); }",
-    expected: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
+    expected: 'Die Karte „Alte Backups" in der Oberflaeche'
   },
   {
     nr: '565', name: 'Der Knopf ist auch ohne Treffer bedienbar',
     file: 'public/app.js',
     search: "id=\"cleanup-run\"${matched.length ? '' : ' disabled'}>${tH('card.deleteNow')}",
     replacement: "id=\"cleanup-run\">${tH('card.deleteNow')}",
-    expected: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
+    expected: 'Die Karte „Alte Backups" in der Oberflaeche'
   },
   {
     nr: '566', name: 'Die Sicherungsliste bekommt keinen Deckel',
     file: 'public/style.css',
     search: '#cleanup-list { flex: none; max-height: 19.58rem; }',
     replacement: '#cleanup-list { flex: none; }',
-    expected: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
+    expected: 'Die Karte „Alte Backups" in der Oberflaeche'
   },
   {
     nr: '567', name: 'Die Karte listet die Sicherungen nicht mehr',
     file: 'public/app.js',
     search: '           <div class="manage-list" id="cleanup-list">${all.map(row).join(\'\')}</div>\n',
     replacement: '           <div class="manage-list" id="cleanup-list"></div>\n',
-    expected: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
+    expected: 'Die Karte „Alte Backups" in der Oberflaeche'
   },
   {
     nr: '568', name: 'Die Nummern laufen von der aeltesten zur juengsten',
     file: 'server.js',
     search: '      ...cleanupRow(d, now), nr: i + 1,',
     replacement: '      ...cleanupRow(d, jetzt), nr: dateien.length - i,',
-    expected: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
+    expected: 'Die Karte „Alte Backups" in der Oberflaeche'
   },
   {
     nr: '569', name: 'Die Zeilen sagen nicht mehr, welche geloescht wird',
     file: 'public/app.js',
     search: "      const mark = z.affected ? `<span class=\"cleanup-badge remove\">${tH('card.deleteLower')}</span>`",
     replacement: "      const marke = z.faellt ? ''",
-    expected: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
+    expected: 'Die Karte „Alte Backups" in der Oberflaeche'
   },
 
   /* ---- Zwei Kaesten, zwei Durchschnitte ---- */
@@ -4703,8 +4703,8 @@ const REGRESSIONS = [
   {
     nr: '641', name: 'Abbrechen im Loeschfenster fuer einen Benutzer bricht nicht ab',
     file: 'public/app.js',
-    search: "    bd.querySelector('[data-no]').onclick = () => done(null);\n    bd.querySelector('[data-yes]').onclick = take;\n    bd.onclick = e => { if (e.target === bd) done(null); };\n    const onKey = e => { if (e.key === 'Escape') done(null); };",
-    replacement: "    bd.querySelector('[data-no]').onclick = nimm;\n    bd.querySelector('[data-yes]').onclick = nimm;\n    bd.onclick = e => { if (e.target === bd) done(null); };\n    const onKey = e => { if (e.key === 'Escape') done(null); };",
+    search: "    bd.querySelector('[data-no]').onclick = () => done(null);\n    bd.querySelector('[data-yes]').onclick = take;\n    bd.onclick = e => { if (fromBackdrop(e, bd)) done(null); };\n    const onKey = e => { if (e.key === 'Escape') done(null); };",
+    replacement: "    bd.querySelector('[data-no]').onclick = nimm;\n    bd.querySelector('[data-yes]').onclick = nimm;\n    bd.onclick = e => { if (fromBackdrop(e, bd)) done(null); };\n    const onKey = e => { if (e.key === 'Escape') done(null); };",
     expected: 'Keine Browserfenster mehr — 0.22.0'
   },
   /* ---- Gesten, Kopfzahl, Bewertungskasten ---- */
@@ -5669,8 +5669,8 @@ const REGRESSIONS = [
   {
     nr: '826', name: 'Der Fehlerweg des Eintrags bleibt ohne Kopfzeile',
     file: 'public/app.js',
-    search: "      app.innerHTML = `<div class=\"shell\">${subhead()}<p class=\"hint\">${tH('server.entryUnknown')}</p></div>`;",
-    replacement: "      app.innerHTML = `<div class=\"shell\"><a href=\"#/\" class=\"back\">${tH('list.backToList')}</a><p class=\"hint\">${tH('server.entryUnknown')}</p></div>`;",
+    search: "      app.innerHTML = `<div class=\"shell\">${subhead()}<p class=\"hint\">${loadFailed(e)}</p></div>`;",
+    replacement: "      app.innerHTML = `<div class=\"shell\"><a href=\"#/\" class=\"back\">${tH('list.backToList')}</a><p class=\"hint\">${loadFailed(e)}</p></div>`;",
     expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
   },
   {
@@ -5706,7 +5706,7 @@ const REGRESSIONS = [
   {
     nr: '831', name: 'Die Pfeile blaettern im ganzen Bestand statt in der Trefferliste',
     file: 'public/app.js',
-    search: "  const list = state.items || [];",
+    search: "  const list = shown.some(x => x.id === id) ? shown : (state.items || []);",
     replacement: "  const list = state.all || [];",
     expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
   },
@@ -5727,8 +5727,8 @@ const REGRESSIONS = [
   {
     nr: '834', name: 'Die Reihenfolge wird im Browser abgelegt',
     file: 'public/app.js',
-    search: "  const list = state.items || [];",
-    replacement: "  const list = state.items || []; try { sessionStorage.setItem('reihe', JSON.stringify(list.map(x => x.id))); } catch {}",
+    search: "  const list = shown.some(x => x.id === id) ? shown : (state.items || []);",
+    replacement: "  const list = shown.some(x => x.id === id) ? shown : (state.items || []); try { sessionStorage.setItem('reihe', JSON.stringify(list.map(x => x.id))); } catch {}",
     expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
   },
   {
@@ -7752,8 +7752,8 @@ const REGRESSIONS = [
   {
     nr: '1125', name: 'Die Ausnahmeliste traegt einen Namen, den es nicht gibt',
     file: 'test/source.js',
-    search: "    'changeBox', 'listBox', 'outdatedBox', 'tooBigBox'",
-    replacement: "    'changeBox', 'listBox', 'outdatedBox', 'tooBigBox', 'gibtEsNicht'",
+    search: "    'changeBox', 'rest', 'ruleText', 'tooBigBox'",
+    replacement: "    'changeBox', 'rest', 'ruleText', 'tooBigBox', 'gibtEsNicht'",
     expected: 'Keine nackte Einsetzung in innerHTML'
   },
   /* ---- npm audit faerbt den Lauf ---- */
@@ -8540,8 +8540,8 @@ const REGRESSIONS = [
   {
     nr: '1233', name: 'route() baut den Betrachter der Ansicht nicht ab',
     file: 'public/app.js',
-    search: "  redrawCloud = null;\n  endFileViewer();\n",
-    replacement: "  redrawCloud = null;\n",
+    search: "  redrawCloud = null;\n  redrawLinks = null;\n  endFileViewer();\n",
+    replacement: "  redrawCloud = null;\n  redrawLinks = null;\n",
     expected: 'Document Server: die eigene Ansicht'
   },
   {
@@ -11426,8 +11426,8 @@ const REGRESSIONS = [
   {
     nr: '1661', name: "Eine abgelehnte Schwelle bleibt im Feld stehen",
     file: 'public/app.js',
-    search: "    } catch (e) { toast(e.message, true); }\n    shareField.value = String(PARTIAL_SHARE);\n",
-    replacement: "    } catch (e) { toast(e.message, true); }\n",
+    search: "    } catch (e) { toast(e.message, true); }\n    for (const id of [CRIT_CARD.after.share, CRIT_CARD.before.share]) {",
+    replacement: "    } catch (e) { toast(e.message, true); }\n    for (const id of []) {",
     expected: "Filter „Teilweise“: die Schwelle in den Einstellungen"
   },
   {
@@ -11706,7 +11706,7 @@ const REGRESSIONS = [
   {
     nr: '1701', name: "Zurueckholen laeuft auch waehrend eines Backups",
     file: 'server.js',
-    search: "  const lock = takeBackupLock(folder);\n  if (!lock) return res.status(409).json({ error: t(locale, 'server.backupRunning') });\n  const wanted = pickedNames(req.body);",
+    search: "  let lock;\n  try { lock = takeBackupLock(folder); } catch (e) { return next(e); }\n  if (!lock) return res.status(409).json({ error: t(locale, 'server.backupRunning') });\n  const wanted = pickedNames(req.body);",
     replacement: "  const lock = takeBackupLock(folder) || path.join(folder, COPY_DIR, '.gestellt');\n  const wanted = pickedNames(req.body);",
     expected: "Wartung: waehrend eines Backups"
   },
@@ -12119,8 +12119,8 @@ const REGRESSIONS = [
   {
     nr: '1760', name: "Beim Beenden laeuft ffmpeg weiter",
     file: 'server.js',
-    search: "    if (proxyStop) proxyStop();\n    try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); } catch {}",
-    replacement: "    try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); } catch {}",
+    search: "    if (proxyStop) proxyStop();\n    if (HELD_LOCK) backup.dropLock(HELD_LOCK);\n    try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); } catch {}",
+    replacement: "    if (HELD_LOCK) backup.dropLock(HELD_LOCK);\n    try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); } catch {}",
     expected: "Proxy: ohne Quick Sync, ohne Firmware und Schalter aus"
   },
   {
@@ -12245,8 +12245,8 @@ const REGRESSIONS = [
   {
     nr: '1778', name: "Die Gruppe Proxy nennt keine Bitraten",
     file: 'public/app.js',
-    search: ",\n    ['entry.proxyVideoRate', bitRateText(p.videoBitRate)], ['entry.proxyAudioRate', bitRateText(p.audioBitRate)]]);",
-    replacement: "]);",
+    search: ",\n    ['entry.proxyVideoRate', bitRateText(p.videoBitRate)], ['entry.proxyAudioRate', bitRateText(p.audioBitRate)]], true);",
+    replacement: "], true);",
     expected: "Proxy: Standbild, die vier Endungen und Erweiterte Infos"
   },
   {
@@ -12625,15 +12625,15 @@ const REGRESSIONS = [
   {
     nr: '1832', name: "Der Titel der Knoepfe nennt nicht, was zaehlt",
     file: 'public/app.js',
-    search: "    const counted = t('list.ownValuesHint');",
+    search: "    const counted = POTENTIAL_MODE ? t('list.ownValuesHint') : t('list.ownRatingHint');",
     replacement: "    const counted = '';",
     expected: "Eigene Werte: eine Gruppe in der Statuszeile"
   },
   {
     nr: '1833', name: "„Eigene Werte“ steht in einer eigenen Zeile",
     file: 'public/app.js',
-    search: "    secondLabel(r1, t('list.ownValues'));\n",
-    replacement: "    const r1 = row(t('list.ownValues'));\n",
+    search: "    secondLabel(r1, POTENTIAL_MODE ? '◆ ★' : '★').title = counted;\n",
+    replacement: "    row(POTENTIAL_MODE ? '◆ ★' : '★').title = counted;\n",
     expected: "Eigene Werte: eine Gruppe in der Statuszeile"
   },
   {
@@ -12754,6 +12754,406 @@ const REGRESSIONS = [
     search: "  \"entry.mediaInfo\": \"Infos\",",
     replacement: "  \"entry.mediaInfo\": \"Erweiterte Infos\",",
     expected: "Infos: ein Name fuer Bilder, Videos und Dokumente"
+  },
+  /* ---- Titel in der Mail, ◆ ★, Fehler aus der Durchsicht ---- */
+  {
+    nr: '1851', name: "Die Einladung bekommt `title` statt `instanceTitle`",
+    file: 'server.js',
+    search: "    instanceTitle: getSetting('title_public', 'Bewertungskatalog'),\n    username: target.username,",
+    replacement: "    title: getSetting('title_public', 'Bewertungskatalog'),\n    username: target.username,",
+    expected: "Mail: der Titel der Installation in Betreff und Text"
+  },
+  {
+    nr: '1852', name: "Die Bestaetigung bekommt `title` statt `instanceTitle`",
+    file: 'server.js',
+    search: "  const letter = mail.mailConfirm(locale, { instanceTitle, username: name,",
+    replacement: "  const letter = mail.mailConfirm(locale, { title: instanceTitle, username: name,",
+    expected: "Mail: der Titel der Installation in Betreff und Text"
+  },
+  {
+    nr: '1853', name: "Die Testmail bekommt `title` statt `instanceTitle`",
+    file: 'server.js',
+    search: "  const letter = mail.mailTest(locale, { instanceTitle: getSetting('title_public', 'Bewertungskatalog'),",
+    replacement: "  const letter = mail.mailTest(locale, { title: getSetting('title_public', 'Bewertungskatalog'),",
+    expected: "Mail: der Titel der Installation in Betreff und Text"
+  },
+  {
+    nr: '1854', name: "Das gespeicherte Mailpasswort gilt auch fuer einen anderen Server",
+    file: 'mail.js',
+    search: "    ? e.password : (sameAccount ? String(old.password || '') : '');",
+    replacement: "    ? e.password : String(old.password || '');",
+    expected: "Mail: das gespeicherte Passwort und der Grund eines Fehlers"
+  },
+  {
+    nr: '1855', name: "Die Karte ueberschreibt den Grund des Versands beim Freischalten",
+    file: 'server.js',
+    search: "  res.json({ ...requestCard(localeOf(req)), ...created, token: token.plain, purpose: token.purpose,\n             days: token.days, minutes: auth.TOKEN_DEADLINE_MINUTES, ...linkInfo(token.plain), ...v });",
+    replacement: "  res.json({ ...created, token: token.plain, purpose: token.purpose,\n             days: token.days, minutes: auth.TOKEN_DEADLINE_MINUTES, ...linkInfo(token.plain), ...v, ...requestCard(localeOf(req)) });",
+    expected: "Mail: das gespeicherte Passwort und der Grund eines Fehlers"
+  },
+  {
+    nr: '1856', name: "Parallele Anmeldungen einer Adresse laufen gleichzeitig",
+    file: 'server.js',
+    search: "app.post('/api/login', async (req, res) => {\n  const ip = auth.clientIp(req);\n  await brakeTurn(res, ip);\n",
+    replacement: "app.post('/api/login', async (req, res) => {\n  const ip = auth.clientIp(req);\n",
+    expected: "Anmeldebremse: parallele Versuche, Kopf nur aus dem eigenen Netz"
+  },
+  {
+    nr: '1857', name: "X-Forwarded-For gilt von jeder Adresse",
+    file: 'auth.js',
+    search: "  if (BEHIND_PROXY && PRIVATE_PEER.test(peer.replace(/^::ffff:/i, ''))) {",
+    replacement: "  if (BEHIND_PROXY) {",
+    expected: "Anmeldebremse: parallele Versuche, Kopf nur aus dem eigenen Netz"
+  },
+  {
+    nr: '1858', name: "Das alte Passwort am eigenen Account ist ungebremst",
+    file: 'server.js',
+    search: "  await brakeTurn(res, ip);\n  if (!await brakeFree(req, res, ip, req.user.username)) return;\n  const { oldPassword",
+    replacement: "  await brakeTurn(res, ip);\n  const { oldPassword",
+    expected: "Anmeldebremse: parallele Versuche, Kopf nur aus dem eigenen Netz"
+  },
+  {
+    nr: '1859', name: "Das Passwort fuer den zweiten Faktor ist ungebremst",
+    file: 'server.js',
+    search: "  await brakeTurn(res, ip);\n  if (!await brakeFree(req, res, ip, req.user.username)) return false;\n  const row",
+    replacement: "  await brakeTurn(res, ip);\n  const row",
+    expected: "Anmeldebremse: parallele Versuche, Kopf nur aus dem eigenen Netz"
+  },
+  {
+    nr: '1860', name: "Der Link der Registrierung setzt den Zaehler der Adresse zurueck",
+    file: 'server.js',
+    search: "      t(localeOf(req), 'server.confirmExpired')});\n  }\n  res.json({ ok: true });",
+    replacement: "      t(localeOf(req), 'server.confirmExpired')});\n  }\n  auth.noteSuccess(ip, null);\n  res.json({ ok: true });",
+    expected: "Anmeldebremse: parallele Versuche, Kopf nur aus dem eigenen Netz"
+  },
+  {
+    nr: '1861', name: "Ein Testtag gilt nur bis zum Datum in UTC",
+    file: 'server.js',
+    search: "  const latest = new Date(Date.now() + 14 * 3600000).toISOString().slice(0, 10);",
+    replacement: "  const latest = new Date(Date.now()).toISOString().slice(0, 10);",
+    expected: "Server: Testtag, Vorschaubild, letzter Eigentuemer"
+  },
+  {
+    nr: '1862', name: "Ohne Vorschaubild liest die Route qPhotoBytes.data",
+    file: 'server.js',
+    search: "    else blob = qPhotoBytes().data.get(req.params.id).bytes;",
+    replacement: "    else blob = qPhotoBytes.data.get(req.params.id).bytes;",
+    expected: "Server: Testtag, Vorschaubild, letzter Eigentuemer"
+  },
+  {
+    nr: '1863', name: "Die Sperre letzter Eigentuemer zaehlt auch gesperrte",
+    file: 'auth.js',
+    search: "  if (u.role === 'owner' && u.status === 'active' && role !== 'owner' && ownerCount() <= 1)",
+    replacement: "  if (u.role === 'owner' && role !== 'owner' && ownerCount() <= 1)",
+    expected: "Server: Testtag, Vorschaubild, letzter Eigentuemer"
+  },
+  {
+    nr: '1864', name: "takeBackupLock() wirft ausserhalb des try",
+    file: 'server.js',
+    search: "  try { lock = takeBackupLock(folder); } catch (e) { return next(e); }\n",
+    replacement: "  lock = takeBackupLock(folder);\n",
+    expected: "Server: Lockfile und Backup-Ordner"
+  },
+  {
+    nr: '1865', name: "Der Start laesst das Lockfile eines abgebrochenen Backups stehen",
+    file: 'server.js',
+    search: "    backup.dropLock(path.join(target.filePath, COPY_DIR, '.lock'));\n",
+    replacement: "",
+    expected: "Server: Lockfile und Backup-Ordner"
+  },
+  {
+    nr: '1866', name: "SIGTERM laesst das Lockfile stehen",
+    file: 'server.js',
+    search: "    if (HELD_LOCK) backup.dropLock(HELD_LOCK);\n",
+    replacement: "",
+    expected: "Server: Lockfile und Backup-Ordner"
+  },
+  {
+    nr: '1867', name: "„Jetzt loeschen“ rechnet mit der gespeicherten Regel",
+    file: 'server.js',
+    search: "    const b = checkRuleValue(req.body?.keep ?? getSetting('backupKeep', CLEANUP_KEEP.fallback),",
+    replacement: "    const b = checkRuleValue(getSetting('backupKeep', CLEANUP_KEEP.fallback),",
+    expected: "Server: Lockfile und Backup-Ordner"
+  },
+  {
+    nr: '1868', name: "untilDrained() wartet auch nach dem Schliessen",
+    file: 'server.js',
+    search: "  if (res.destroyed) return Promise.reject(new Error('the client closed the connection'));\n",
+    replacement: "",
+    expected: "Quelltext: kleine Fehler aus der Durchsicht"
+  },
+  {
+    nr: '1869', name: "Die Kopie faellt auch, wenn das Umbenennen scheitert",
+    file: 'server.js',
+    search: "    if (fs.existsSync(diskPath(f.name))) fs.rmSync(diskPath(f.name, true), { force: true });",
+    replacement: "    fs.rmSync(diskPath(f.name, true), { force: true });",
+    expected: "Quelltext: kleine Fehler aus der Durchsicht"
+  },
+  {
+    nr: '1870', name: "„Standardanordnung“ setzt wieder `zu`",
+    file: 'public/app.js',
+    search: "    BLOCKS = { side: [...BLOCK_DEFAULT.side], bottom: [...BLOCK_DEFAULT.bottom], closed: [] };",
+    replacement: "    BLOCKS = { side: [...BLOCK_DEFAULT.side], bottom: [...BLOCK_DEFAULT.bottom], zu: [] };",
+    expected: "Einstellungen: Schwelle in beiden Karten, Standardanordnung"
+  },
+  {
+    nr: '1871', name: "Die Rolle Eigentuemer-Admin heisst wieder `eigentuemer`",
+    file: 'public/app.js',
+    search: "             <option value=\"owner\"${z.role === 'owner' ? ' selected' : ''}>",
+    replacement: "             <option value=\"eigentuemer\"${z.role === 'owner' ? ' selected' : ''}>",
+    expected: "Mehrbenutzer-Anzeigen in der Oberflaeche"
+  },
+  {
+    nr: '1872', name: "Die Gruppe heisst wieder „Eigene Werte“",
+    file: 'public/app.js',
+    search: "    secondLabel(r1, POTENTIAL_MODE ? '◆ ★' : '★').title = counted;\n",
+    replacement: "    secondLabel(r1, 'Eigene Werte').title = counted;\n",
+    expected: "Uebersicht: ◆ ★ statt „Eigene Werte“, Weiter, Sortierung ohne Potenzialmodus"
+  },
+  {
+    nr: '1873', name: "Die Schwelle steht nur in der eigenen Karte",
+    file: 'public/app.js',
+    search: "    for (const id of [CRIT_CARD.after.share, CRIT_CARD.before.share]) {",
+    replacement: "    for (const id of [k.share]) {",
+    expected: "Einstellungen: Schwelle in beiden Karten, Standardanordnung"
+  },
+  {
+    nr: '1874', name: "Die Vorschau der Aufraeumregel baut die Felder neu",
+    file: 'public/app.js',
+    search: "      drawCleanup(fetched, true);",
+    replacement: "      drawCleanup(fetched);",
+    expected: "Die Karte „Alte Backups\" in der Oberflaeche"
+  },
+  {
+    nr: '1875', name: "„Jetzt loeschen“ schickt die angezeigten Werte nicht mit",
+    file: 'public/app.js',
+    search: "      try { r = await api('POST', '/api/backup/cleanup', kind === 'rule' ? { kind, ...values() } : { kind }); }",
+    replacement: "      try { r = await api('POST', '/api/backup/cleanup', { kind }); }",
+    expected: "Die Karte „Alte Backups\" in der Oberflaeche"
+  },
+  {
+    nr: '1876', name: "Die Detailansicht zeichnet nach einer spaeten Antwort",
+    file: 'public/app.js',
+    search: "  if (!here()) return;\n  let idx = 0;",
+    replacement: "  let idx = 0;",
+    expected: "Detailansicht: spaete Antworten, Kommentar, Anlegen, Dialog"
+  },
+  {
+    nr: '1877', name: "Der Betrachter zeichnet in eine fremde Ansicht",
+    file: 'public/app.js',
+    search: "    if (!v || !here()) return;\n",
+    replacement: "    if (!v) return;\n",
+    expected: "Quelltext: kleine Fehler aus der Durchsicht"
+  },
+  {
+    nr: '1878', name: "„›“ folgt dem Bestand in Serverreihenfolge",
+    file: 'public/app.js',
+    search: "  const shown = state.items ? visibleItems() : [];",
+    replacement: "  const shown = state.items || [];",
+    expected: "Uebersicht: ◆ ★ statt „Eigene Werte“, Weiter, Sortierung ohne Potenzialmodus"
+  },
+  {
+    nr: '1879', name: "Ohne Potenzialmodus sortiert die Liste weiter nach Potenzial",
+    file: 'public/app.js',
+    search: "const sortOf = (sort) => (!POTENTIAL_MODE && /^potential_/.test(sort) ? 'updated_desc' : sort);",
+    replacement: "const sortOf = (sort) => sort;",
+    expected: "Uebersicht: ◆ ★ statt „Eigene Werte“, Weiter, Sortierung ohne Potenzialmodus"
+  },
+  {
+    nr: '1880', name: "Der Editor geht nach dem Bild nicht wieder auf",
+    file: 'public/app.js',
+    search: "          again.click();\n",
+    replacement: "",
+    expected: "Detailansicht: spaete Antworten, Kommentar, Anlegen, Dialog"
+  },
+  {
+    nr: '1881', name: "„Kommentieren“ bleibt waehrend der Anfrage frei",
+    file: 'public/app.js',
+    search: "    commentButton.disabled = true;\n",
+    replacement: "",
+    expected: "Detailansicht: spaete Antworten, Kommentar, Anlegen, Dialog"
+  },
+  {
+    nr: '1882', name: "„Anlegen“ bleibt waehrend der Anfrage frei",
+    file: 'public/app.js',
+    search: "    createButton.disabled = true;\n",
+    replacement: "",
+    expected: "Detailansicht: spaete Antworten, Kommentar, Anlegen, Dialog"
+  },
+  {
+    nr: '1883', name: "Der Hintergrund schliesst auch nach dem Markieren",
+    file: 'public/app.js',
+    search: "const fromBackdrop = (e, bd) => e.target === bd && (DOWN_AT === null || DOWN_AT === bd);",
+    replacement: "const fromBackdrop = (e, bd) => e.target === bd;",
+    expected: "Detailansicht: spaete Antworten, Kommentar, Anlegen, Dialog"
+  },
+  {
+    nr: '1884', name: "Jeder Ladefehler heisst „unbekannt“",
+    file: 'public/app.js',
+    search: "const loadFailed = (e) => (e.status === 404 ? tH('server.entryUnknown') : esc(e.message));",
+    replacement: "const loadFailed = (e) => tH('server.entryUnknown');",
+    expected: "Detailansicht: spaete Antworten, Kommentar, Anlegen, Dialog"
+  },
+  {
+    nr: '1885', name: "Die Anmeldung laesst das Vollbild inert",
+    file: 'public/app.js',
+    search: "  LIGHTBOX_CLOSE?.(true);\n",
+    replacement: "",
+    expected: "Vollbild: Anmeldung, ein einzelnes Element; Infos aufklappbar"
+  },
+  {
+    nr: '1886', name: "Die Pfeiltaste haelt bei einem Element das Video an",
+    file: 'public/app.js',
+    search: "  const step = (d) => { if (photos.length < 2) return; i += d; show(); };",
+    replacement: "  const step = (d) => { i += d; show(); };",
+    expected: "Vollbild: Anmeldung, ein einzelnes Element; Infos aufklappbar"
+  },
+  {
+    nr: '1887', name: "Die Gruppe Video steht offen",
+    file: 'public/app.js',
+    search: "      ['entry.mediaChroma', v.chroma], ['entry.mediaHdr', v.hdr]], true)),",
+    replacement: "      ['entry.mediaChroma', v.chroma], ['entry.mediaHdr', v.hdr]])),",
+    expected: "Vollbild: Anmeldung, ein einzelnes Element; Infos aufklappbar"
+  },
+  {
+    nr: '1888', name: "Wieder „Farbunterabtastung“",
+    file: 'public/languages/de.json',
+    search: "  \"entry.mediaChroma\": \"Chroma Subsampling\",",
+    replacement: "  \"entry.mediaChroma\": \"Farbunterabtastung\",",
+    expected: "Vollbild: Anmeldung, ein einzelnes Element; Infos aufklappbar"
+  },
+  {
+    nr: '1889', name: "Die Exportgroesse zaehlt Kommentarvideos nicht",
+    file: 'public/app.js',
+    search: " + (ex.commentImages || 0) + (ex.commentVideos || 0) : 0);",
+    replacement: " + (ex.commentImages || 0) : 0);",
+    expected: "Quelltext: kleine Fehler aus der Durchsicht"
+  },
+  {
+    nr: '1890', name: "Die Vergleichsleiste bleibt ausserhalb der Uebersicht stehen",
+    file: 'public/app.js',
+    search: "  if (view !== 'list') document.querySelector('.cmp-bar')?.remove();\n",
+    replacement: "",
+    expected: "Quelltext: kleine Fehler aus der Durchsicht"
+  },
+  {
+    nr: '1891', name: "Abgehakte Aufgaben zaehlen als offen",
+    file: 'public/app.js',
+    search: "    const stillOpen = visible.filter(z => !z.done).length;",
+    replacement: "    const stillOpen = visible.length;",
+    expected: "Quelltext: kleine Fehler aus der Durchsicht"
+  },
+  {
+    nr: '1892', name: "„Links“ misst beim Aufklappen nicht neu",
+    file: 'public/app.js',
+    search: "  redrawLinks = limitLinks;\n",
+    replacement: "",
+    expected: "Quelltext: kleine Fehler aus der Durchsicht"
+  },
+  {
+    nr: '1893', name: "Der Ordnerwechsel zeichnet nur die Karte Backup",
+    file: 'public/app.js',
+    search: "        renderSystem({ keepScroll: true });\n      } catch (e) { toast(e.message, true); }\n    };\n    // Der Knopf sperrt sich",
+    replacement: "        drawBackup(fetched);\n      } catch (e) { toast(e.message, true); }\n    };\n    // Der Knopf sperrt sich",
+    expected: "Quelltext: kleine Fehler aus der Durchsicht"
+  },
+  {
+    nr: '1894', name: "Das Ende eines kurzen Laufs bleibt unbemerkt",
+    file: 'public/app.js',
+    search: "    followBatchRun(fetched.stats);",
+    replacement: "    followBatchRun();",
+    expected: "Quelltext: kleine Fehler aus der Durchsicht"
+  },
+  {
+    nr: '1895', name: "Das Zitiermenue liegt unter der Kopfzeile",
+    file: 'public/app.js',
+    search: "above < mastheadHeight() + 4",
+    replacement: "above < 4",
+    expected: "Quelltext: kleine Fehler aus der Durchsicht"
+  },
+  {
+    nr: '1896', name: "Die Benutzerzeile bricht nicht um",
+    file: 'public/style.css',
+    search: "  .mrow.user { flex-wrap: wrap; row-gap: 4px; }\n",
+    replacement: "",
+    expected: "Quelltext: kleine Fehler aus der Durchsicht"
+  },
+  {
+    nr: '1897', name: "„Von vorn“ liegt unter den Werkzeugen",
+    file: 'public/style.css',
+    search: "  .vspot { top: 62px; }\n",
+    replacement: "",
+    expected: "Quelltext: kleine Fehler aus der Durchsicht"
+  },
+  {
+    nr: '1898', name: "Die Upload-Anzeige liegt am Telefon oben",
+    file: 'public/style.css',
+    search: "  .upload-bar { top: auto; bottom: calc(16px + env(safe-area-inset-bottom)); }\n",
+    replacement: "",
+    expected: "Quelltext: kleine Fehler aus der Durchsicht"
+  },
+  {
+    nr: '1899', name: "Die Reiter bleiben nach dem Drehen versteckt",
+    file: 'public/style.css',
+    search: "  .filters.closed, .sys-tabs.closed { display: none; }",
+    replacement: "  .filters.closed { display: none; }\n  }\n  .sys-tabs.closed { display: none; }\n  @media (max-width: 1px) {",
+    expected: "Quelltext: kleine Fehler aus der Durchsicht"
+  },
+  {
+    nr: '1900', name: "keytool.sh: ein gescheitertes cp geht durch",
+    file: 'keytool.sh',
+    search: "    if ! find data -mindepth 1 -maxdepth 1 ! -name files -exec sh -c 'cp -a \"$@\" \"$0\"/' \"$ZIEL\" {} +; then",
+    replacement: "    if ! find data -mindepth 1 -maxdepth 1 ! -name files -exec cp -a {} \"$ZIEL\"/ \\;; then",
+    expected: "Werkzeuge, Image und Texte aus der Durchsicht"
+  },
+  {
+    nr: '1901', name: "keytool.sh: der neue Schluessel steht in den Argumenten",
+    file: 'keytool.sh',
+    search: "    ${NEW_KEY:+-e NEW_KEY} \\",
+    replacement: "    ${NEW_KEY:+-e \"NEW_KEY=$NEW_KEY\"} \\",
+    expected: "Werkzeuge, Image und Texte aus der Durchsicht"
+  },
+  {
+    nr: '1902', name: "keytool.sh: die Logzeile ist wieder deutsch",
+    file: 'keytool.sh',
+    search: "„Key loaded from ENCRYPTION_KEY.“",
+    replacement: "„Schluessel aus ENCRYPTION_KEY geladen.“",
+    expected: "Werkzeuge, Image und Texte aus der Durchsicht"
+  },
+  {
+    nr: '1903', name: "backuptool nennt nach einem Abbruch die Nr.",
+    file: 'backuptool.js',
+    search: "  const again = `Zu Ende führen: ./backuptool.sh restore ${nameTime(chosen.d.name)}`;",
+    replacement: "  const again = `Zu Ende führen: ./backuptool.sh restore ${chosen.nr}`;",
+    expected: "Werkzeuge, Image und Texte aus der Durchsicht"
+  },
+  {
+    nr: '1904', name: "Das Backup der .env kommt ins Image",
+    file: '.dockerignore',
+    search: ".env.before-key-change-*\n",
+    replacement: "",
+    expected: "Werkzeuge, Image und Texte aus der Durchsicht"
+  },
+  {
+    nr: '1905', name: "Der Hinweis zur Suchmaschine nennt wieder „Bestand“",
+    file: 'public/languages/de.json',
+    search: "Keine Suchmaschine eingestellt — siehe Einstellungen › Installation.",
+    replacement: "Keine Suchmaschine eingestellt — siehe Einstellungen › Bestand.",
+    expected: "Werkzeuge, Image und Texte aus der Durchsicht"
+  },
+  {
+    nr: '1906', name: "„(du)“ steht wieder fest im Code",
+    file: 'public/app.js',
+    search: "          self ? ` <span class=\"user-mine\">${tH('card.youMarker')}</span>` : ''}</span>",
+    replacement: "          self ? ' <span class=\"user-mine\">(du)</span>' : ''}</span>",
+    expected: "Werkzeuge, Image und Texte aus der Durchsicht"
+  },
+  {
+    nr: '1907', name: "Die Meldung zur Regel nennt wieder „Löschen ab Alter“",
+    file: 'public/languages/de.json',
+    search: "„Löschen, wenn älter als“ muss eine ganze Zahl",
+    replacement: "„Löschen ab Alter“ muss eine ganze Zahl",
+    expected: "Werkzeuge, Image und Texte aus der Durchsicht"
   }
 
 ];

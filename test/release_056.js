@@ -1,5 +1,6 @@
 /* Kriterion — Pruefstand: einstellbare Bitrate der Proxys, Ersatz veralteter Proxys im Hintergrund,
-   „Proxy“ in der Liste, Groesse des Videos und Knopfleiste im Vollbild; Filter „Eigene Werte“ und Vollbild am Telefon. */
+   „Proxy“ in der Liste, Groesse des Videos und Knopfleiste im Vollbild; Filter „Eigene Werte“ und Vollbild am Telefon;
+   Titel in der Mail und die Fehler aus der Durchsicht. */
 const H = require('./frame.js');
 const D = require('./dom.js');
 const { buildDom, until, openRequests } = D;
@@ -223,6 +224,203 @@ async function run() {
   await B.stop();
   fs.rmSync(root, { recursive: true, force: true });
 
+  /* ---- Fehler aus der Durchsicht: Server ---- */
+  // Hinter dem Proxy: X-Forwarded-For waehlt die Adresse, von der ein Versuch zaehlt.
+  const rRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-0563-'));
+  const rDir = path.join(rRoot, 'data'), rBackup = path.join(rRoot, 'backup');
+  fs.mkdirSync(rDir);
+  fs.mkdirSync(rBackup);
+  const rEnv = (more = '') => ({ BACKUP_DIR: rBackup, BEHIND_PROXY: '1', PUBLIC_ADDRESS: 'https://kriterion.beispiel.de',
+    KRITERION_TESTBENCH: `pruefstand:scrypt=1024:mail=40:brake=10${more}` });
+  const rPw = 'chefin-langes-wort-0563';
+  let R = H.startFurtherServer(rDir, rEnv(), 7340);
+  await R.ready;
+  await R.call('POST', '/api/setup', { user: 'chefin', password: rPw });
+  await R.call('PUT', '/api/settings', { languageDefault: 'de' });
+  const rFree = (purpose, target = null) => R.call('POST', '/api/confirm', { password: rPw, purpose, target });
+  const rPost = async (url, body, address, cookie = '') => {
+    const headers = { 'content-type': 'application/json', ...(address ? { 'x-forwarded-for': address } : {}) };
+    const a = await fetch(R.base + url, { method: 'POST', headers: cookie ? withCsrf(cookie, headers) : headers,
+      body: JSON.stringify(body) });
+    return { status: a.status, content: await a.json().catch(() => null), cookie: jar(cookie, a) };
+  };
+  const rRestart = async (more) => {
+    await R.stop();
+    R = H.startFurtherServer(rDir, rEnv(more), 7340);
+    await R.ready;
+    await R.call('POST', '/api/login', { user: 'chefin', password: rPw });
+  };
+
+  group('Mail: der Titel der Installation in Betreff und Text');
+  const confirmKey = (letter) => (letter.core.match(/#\/confirm\/([0-9a-f]{64})/) || [])[1];
+  const letterTo = (E, address) => E.letters().filter(b => new RegExp(`^To: ${address.replace(/\./g, '\\.')}$`, 'm').test(b.head)).pop();
+  const E = H.smtpEmpfaenger('ok');
+  {
+    await R.call('PUT', '/api/titles', { publicTitle: 'Werkstatt Süd', appTitle: 'Bewertungen' });
+    await rFree('mail');
+    await R.call('PUT', '/api/mail', { provider: 'eigen', server: '127.0.0.1', port: E.port, secure: false,
+      user: 'konto', password: 'geheim-0563', sender: 'kriterion@beispiel.de' });
+    await R.call('PUT', '/api/account', { oldPassword: rPw, username: 'chefin', email: 'chefin@beispiel.de' });
+    await R.call('POST', '/api/mail/test', {});
+    await R.call('POST', '/api/users', { username: 'bert', sendInvite: true, email: 'bert@beispiel.de' });
+    await R.call('PUT', '/api/signup/toggle', { an: true });
+    await rPost('/api/signup', { name: 'clara', address: 'clara@beispiel.de' });
+    await until2(() => ['chefin', 'bert', 'clara'].every(n => letterTo(E, `${n}@beispiel.de`)), 8000);
+    // Betreff nach RFC 2047: =?UTF-8?Q?…?= oder =?UTF-8?B?…?=, auch ueber mehrere Zeilen.
+    const subjectOf = (head) => (head.replace(/\r?\n[ \t]+/g, ' ').split('\n').find(z => /^Subject:/i.test(z)) || '')
+      .replace(/^Subject:\s*/i, '').replace(/=\?utf-8\?([QB])\?([^?]*)\?=\s*/gi, (m, kind, text) => (kind.toUpperCase() === 'B'
+        ? Buffer.from(text, 'base64') : Buffer.from(text.replace(/_/g, ' ')
+          .replace(/=([0-9A-F]{2})/gi, (x, h) => String.fromCharCode(parseInt(h, 16))), 'binary')).toString('utf8'));
+    const seen = ['chefin', 'bert', 'clara'].map(n => {
+      const b = letterTo(E, `${n}@beispiel.de`) || { head: '', core: '' };
+      return { n, subject: subjectOf(b.head), core: b.core };
+    });
+    check('Testmail, Einladung und Bestaetigung nennen den Titel in Betreff und Text; kein Platzhalter bleibt stehen',
+      seen.every(s => s.subject.includes('Werkstatt Süd') && s.core.includes('„Werkstatt Süd“') &&
+        !/\{\w+\}/.test(s.subject + s.core)), seen.map(s => `${s.n}: ${s.subject}`).join(' | '));
+    check('Die drei Aufrufe in server.js uebergeben instanceTitle, den Namen aus den Sprachdateien',
+      (read('server.js').match(/instanceTitle: getSetting\('title_public'|const instanceTitle = getSetting\('title_public'/g) || []).length === 3,
+      'Aufruf');
+  }
+
+  group('Mail: das gespeicherte Passwort und der Grund eines Fehlers');
+  {
+    const F = H.smtpEmpfaenger('fehler');
+    await rFree('mail');
+    const foreign = await R.call('PUT', '/api/mail', { provider: 'eigen', server: 'smtp.fremd.example', port: 25, secure: false,
+      user: 'konto', password: '', sender: 'kriterion@beispiel.de' });
+    await rFree('mail');
+    const same = await R.call('PUT', '/api/mail', { provider: 'eigen', server: '127.0.0.1', port: F.port, secure: false,
+      user: 'konto', password: '', sender: 'kriterion@beispiel.de' });
+    check('Ein leeres Passwort uebernimmt das gespeicherte nur fuer denselben Server',
+      foreign.status === 400 && foreign.content?.error === DE['mail.passwordMissing'] && same.status === 200,
+      `${foreign.status} ${foreign.content?.error} · ${same.status}`);
+    const key = confirmKey(letterTo(E, 'clara@beispiel.de') || { core: '' });
+    await rPost('/api/signup/confirm', { key });
+    const asked = ((await R.call('GET', '/api/requests')).content?.requests || []).find(a => a.username === 'clara');
+    const approved = await R.call('POST', `/api/requests/${asked?.id}/approve`);
+    check('Scheitert der Versand beim Freischalten, nennt die Antwort den Grund',
+      approved.content?.delivery === 'fehlgeschlagen' && String(approved.content?.deliveryReason || '').length > 0,
+      `${approved.content?.delivery} · ${JSON.stringify(approved.content?.deliveryReason)}`);
+    await F.stop();
+    await rFree('mail');
+    await R.call('PUT', '/api/mail', { provider: 'eigen', server: '127.0.0.1', port: E.port, secure: false,
+      user: 'konto', password: '', sender: 'kriterion@beispiel.de' });
+  }
+
+  group('Anmeldebremse: parallele Versuche, Kopf nur aus dem eigenen Netz');
+  {
+    const burst = await Promise.all(Array.from({ length: 15 }, () =>
+      rPost('/api/login', { user: 'chefin', password: 'falsch-falsch-falsch' }, '203.0.113.5')));
+    const n = (s) => burst.filter(a => a.status === s).length;
+    check('15 parallele Fehlversuche von einer Adresse: 10 werden geprueft, 5 gesperrt',
+      n(401) === 10 && n(429) === 5, burst.map(a => a.status).join(' '));
+    const m = read('auth.js').match(/const PRIVATE_PEER =\s*\/(.+)\/i;/);
+    const peer = m ? new RegExp(m[1], 'i') : /$^/;
+    const inside = ['127.0.0.1', '10.1.2.3', '172.16.0.1', '172.31.255.1', '192.168.1.5', '100.64.0.1', '100.127.1.1',
+      '::1', 'fd12::1', 'fc00::2', 'fe80::1'];
+    const outside = ['203.0.113.5', '172.32.0.1', '172.15.0.1', '100.128.0.1', '192.169.0.1', '8.8.8.8', '2001:db8::1', '::ffff:203.0.113.5'];
+    check('X-Forwarded-For gilt nur von Loopback, privaten Netzen, CGNAT, ULA und Link-local',
+      !!m && inside.every(a => peer.test(a)) && !outside.some(a => peer.test(a)) &&
+      /PRIVATE_PEER\.test\(peer\.replace\(\/\^::ffff:\/i, ''\)\)/.test(read('auth.js')),
+      `${inside.filter(a => !peer.test(a)).join(' ')} | ${outside.filter(a => peer.test(a)).join(' ')}`);
+    const dora = await R.call('POST', '/api/users', { username: 'dora', password: 'doras-langes-wort-0563' });
+    const login = await rPost('/api/login', { user: 'dora', password: 'doras-langes-wort-0563' }, '203.0.113.8');
+    const put = async () => {
+      const a = await fetch(R.base + '/api/account', { method: 'PUT',
+        headers: withCsrf(login.cookie, { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.9' }),
+        body: JSON.stringify({ oldPassword: 'falsch-falsch-falsch', username: 'dora' }) });
+      return a.status;
+    };
+    const tries = [];
+    for (let i = 0; i < 11; i++) tries.push(await put());
+    const start = await rPost('/api/two-factor/start', { password: 'falsch-falsch-falsch' }, '203.0.113.9', login.cookie);
+    check('Das alte Passwort am eigenen Account und das Passwort des zweiten Faktors zaehlen wie eine Anmeldung',
+      dora.status === 200 && login.status === 200 && tries.slice(0, 10).every(s => s === 400) && tries[10] === 429 &&
+      start.status === 429, `${tries.join(' ')} · ${start.status}`);
+    await rPost('/api/signup', { name: 'emil', address: 'emil@beispiel.de' });
+    await until2(() => letterTo(E, 'emil@beispiel.de'), 8000);
+    const key = confirmKey(letterTo(E, 'emil@beispiel.de') || { core: '' });
+    for (let i = 0; i < 9; i++) await rPost('/api/login', { user: 'emil', password: 'falsch-falsch-falsch' }, '203.0.113.10');
+    const confirmed = await rPost('/api/signup/confirm', { key }, '203.0.113.10');
+    const tenth = await rPost('/api/login', { user: 'emil', password: 'falsch-falsch-falsch' }, '203.0.113.10');
+    const after = await rPost('/api/login', { user: 'chefin', password: rPw }, '203.0.113.10');
+    check('Der Link der Registrierung setzt den Zaehler der Adresse nicht zurueck',
+      !!key && confirmed.status === 200 && tenth.status === 401 && after.status === 429,
+      `${confirmed.status} ${tenth.status} ${after.status}`);
+  }
+
+  group('Server: Testtag, Vorschaubild, letzter Eigentuemer');
+  {
+    const itemId = (await R.call('POST', '/api/items', { title: 'Eintrag R' })).content?.id;
+    const latest = new Date(Date.now() + 14 * 3600000).toISOString().slice(0, 10);
+    const later = new Date(Date.parse(latest) + 86400000).toISOString().slice(0, 10);
+    const dayOk = await R.call('POST', `/api/items/${itemId}/test-days`, { day: latest, rating: 4 });
+    const dayLate = await R.call('POST', `/api/items/${itemId}/test-days`, { day: later, rating: 4 });
+    check('Ein Testtag darf bis zum Datum in UTC+14 liegen: nach Mitternacht in Deutschland und der Tuerkei kein Fehler',
+      dayOk.status === 201 && dayLate.status === 400 && dayLate.content?.error === DE['server.dateFuture'] &&
+      /Date\.now\(\) \+ 14 \* 3600000/.test(read('server.js')), `${latest} ${dayOk.status} · ${later} ${dayLate.status}`);
+    const login = await rPost('/api/login', { user: 'chefin', password: rPw });
+    const fd = new FormData();
+    const picture = await H.sharp({ create: { width: 320, height: 240, channels: 3, background: '#36c' } }).jpeg().toBuffer();
+    fd.append('photos', new Blob([picture], { type: 'image/jpeg' }), 'foto.jpg');
+    await fetch(`${R.base}/api/items/${itemId}/photos`, { method: 'POST', body: fd, headers: withCsrf(login.cookie, {}) });
+    const photoId = (await R.call('GET', `/api/items/${itemId}`)).content?.photos?.[0]?.id;
+    const d = open(path.join(rDir, 'katalog.sqlite'));
+    d.pragma('busy_timeout = 4000');
+    try { d.prepare('UPDATE photos SET thumb = NULL WHERE id = ?').run(photoId); } finally { d.close(); }
+    const tile = await fetch(`${R.base}/api/photos/${photoId}/raw?size=thumb`, { headers: withCsrf(login.cookie, {}) });
+    const tileBytes = Buffer.from(await tile.arrayBuffer());
+    check('Fehlt das Vorschaubild eines Fotos, liefert ?size=thumb das Original statt 500',
+      tile.status === 200 && tileBytes.equals(picture), `${tile.status} ${tileBytes.length} von ${picture.length}`);
+    const ober = (await R.call('POST', '/api/users', { username: 'ober', password: 'obers-langes-wort-0563', role: 'owner' })).content?.id;
+    const locked = await R.call('PUT', `/api/users/${ober}`, { status: 'locked' });
+    await rFree('role', ober);
+    const demoted = await R.call('PUT', `/api/users/${ober}`, { role: 'user' });
+    await R.call('PUT', `/api/users/${ober}`, { status: 'active' });
+    check('Die Sperre „letzter Eigentuemer“ zaehlt nur aktive: ein gesperrter Eigentuemer laesst sich herabstufen',
+      locked.status === 200 && demoted.status === 200 && demoted.content?.role === 'user',
+      `${locked.status} ${demoted.status} ${demoted.content?.error || ''}`);
+  }
+
+  group('Server: Lockfile und Backup-Ordner');
+  {
+    const lock = path.join(rBackup, 'kriterion-files', '.lock');
+    fs.writeFileSync(path.join(rBackup, 'kriterion-files'), 'eine Datei statt des Ordners');
+    const crash = await R.call('POST', '/api/files/missing', { names: [] }).catch(e => ({ status: 0, content: e.message }));
+    const alive = await fetch(R.base + '/api/config').then(a => a.status).catch(() => 0);
+    check('Laesst sich das Lockfile nicht anlegen, endet „Zurueckholen“ mit 500; der Server laeuft weiter',
+      crash.status === 500 && alive === 200, `${crash.status} ${alive}`);
+    fs.rmSync(path.join(rBackup, 'kriterion-files'), { force: true });
+    await R.stop();
+    fs.mkdirSync(path.dirname(lock), { recursive: true });
+    fs.writeFileSync(lock, 'anderer-rechner 1 2026-10-03T00:00:00.000Z\n');
+    const aborted = path.join(rBackup, 'kriterion-2026-10-03-00-00-00.sqlite.wird');
+    fs.writeFileSync(aborted, '');
+    R = H.startFurtherServer(rDir, rEnv(), 7340);
+    await R.ready;
+    check('Findet der Start ein abgebrochenes Backup, loescht er das Lockfile; sonst sperrte es 24 h',
+      !fs.existsSync(lock), String(fs.existsSync(lock)));
+    fs.rmSync(aborted, { force: true });
+    await rRestart(':hold=4000');
+    await rFree('backup');
+    const rule = await R.call('POST', '/api/backup/cleanup', { kind: 'rule', keep: 0, days: 30 });
+    check('„Jetzt loeschen“ rechnet mit den Werten aus dem Rumpf, nicht mit den gespeicherten',
+      rule.status === 400 && rule.content?.error === deText('server.ruleKeep', { min: 1, max: 20 }),
+      `${rule.status} ${rule.content?.error}`);
+    const itemId = (await R.call('POST', '/api/items', { title: 'Eintrag mit Datei' })).content?.id;
+    const login = await rPost('/api/login', { user: 'chefin', password: rPw });
+    await H.sendFiles(R.base, login.cookie, itemId, [{ name: 'F.txt', content: Buffer.from('x'.repeat(2000)) }], null);
+    await H.nextSecond();
+    const started = await R.call('POST', '/api/backup');
+    const held = await until2(() => fs.existsSync(lock), 3000);
+    await R.stop();
+    check('SIGTERM waehrend der Kopie gibt das Lockfile frei', started.status === 202 && held && !fs.existsSync(lock),
+      `${started.status} ${held} ${fs.existsSync(lock)}`);
+  }
+  await E.stop();
+  fs.rmSync(rRoot, { recursive: true, force: true });
+
   if (!JSDOM) { check('jsdom fehlt: Karte, Liste und Vollbild bleiben ungeprueft', false, 'npm install'); return; }
 
   group('Proxy: Bitrate in der Karte');
@@ -378,9 +576,9 @@ async function run() {
     const statusRow = () => w.document.getElementById('f-rejected')?.parentElement;
     const labels = [...(statusRow()?.querySelectorAll(':scope > .eyebrow') || [])].map(e => e.textContent);
     const counted = deText('list.ownValuesHint', { testedNo: 'Ungetestet', testedYes: 'Getestet', potential: 'Potenzial', ratingOne: 'Bewertung' });
-    check('Die Zeile „Potenzial / Bewertung“ entfaellt; „Eigene Werte: Keine · Teilweise“ steht am Ende der Statuszeile, ohne „Alle“',
+    check('Die Zeile „Potenzial / Bewertung“ entfaellt; „◆ ★: Keine · Teilweise“ steht am Ende der Statuszeile, ohne „Alle“',
       !w.document.getElementById('f-shares') && !!own() && own().parentElement === statusRow() &&
-      statusRow().lastElementChild === own() && equal(labels, ['Status', 'Ablehnung', 'Eigene Werte']) &&
+      statusRow().lastElementChild === own() && equal(labels, ['Status', 'Ablehnung', '◆ ★']) &&
       equal(pills().map(b => b.textContent), ['Keine', 'Teilweise']), `${labels.join(' | ')} · ${pills().map(b => b.textContent).join(' ')}`);
     check('Der Titel der Knoepfe nennt, was zaehlt; bei „Teilweise“ zuerst die Schwelle',
       pills()[0]?.title === counted && pills()[1]?.title === `${deText('list.sharePartialHint', { share: 75 })}\n${counted}`,
@@ -570,6 +768,262 @@ async function run() {
     check('Bild, Video und PDF haben im Menue „Infos“; der Dialog heisst bei Bild und PDF „Infos“',
       equal(has, [true, true, true]) && equal(titles, ['Infos', 'Infos']), `${has.join(' ')} · ${titles.join(' ')}`);
     w.close();
+  }
+
+  /* ---- Fehler aus der Durchsicht: Oberflaeche ---- */
+  const answerWith = (o, status = 200) => ({ ok: status < 400, status, json: async () => o });
+
+  group('Uebersicht: ◆ ★ statt „Eigene Werte“, Weiter, Sortierung ohne Potenzialmodus');
+  {
+    const items = [ownEntry(1, 'U-keine', false, { before: 'none', after: null }),
+      ownEntry(2, 'G-keine', true, { before: 'full', after: 'none' }),
+      ownEntry(3, 'G-teil', true, { before: 'none', after: 'partial' })];
+    const m = buildDom(JSDOM, { overviewItems: items, settings: { filters: null, userCount: 1, partialShare: 75 } });
+    const w = m.w;
+    await until(w, listReady, 2000, 'die Uebersicht').catch(() => {});
+    const own = w.document.getElementById('f-own');
+    const label = own?.previousElementSibling;
+    const counted = deText('list.ownValuesHint', { testedNo: 'Ungetestet', testedYes: 'Getestet', potential: 'Potenzial', ratingOne: 'Bewertung' });
+    check('Die Gruppe heisst „◆ ★“; ihr Titel nennt die Woerter aus dem Vokabular, „Eigene Werte“ steht nirgends',
+      label?.textContent === '◆ ★' && label?.title === counted && !('list.ownValues' in DE) &&
+      !w.document.getElementById('filters')?.textContent.includes('Eigene Werte') &&
+      [...(own?.querySelectorAll('.pill') || [])][1]?.title === `${deText('list.sharePartialHint', { share: 75 })}\n${counted}` &&
+      ['de', 'en', 'tr'].every(l => !/eigene Werte|own values|Kendi değerleriniz/i.test(
+        JSON.parse(read(`public/languages/${l}.json`))['list.sharePartialHint'])), `${label?.textContent} · ${label?.title}`);
+    w.eval("state.filters.sort = 'title_asc'");
+    const nb = w.eval('entryNeighbours(3)');
+    w.eval("state.filters.tested = 'tested'");
+    const outside = w.eval('entryNeighbours(1)');
+    const all = w.eval('state.items.map(i => i.id)'), at = all.indexOf(1);
+    check('„‹“ und „›“ folgen Filter und Sortierung der Uebersicht; faellt der Eintrag heraus, gilt der ganze Bestand',
+      nb.prev === 2 && nb.next === 1 && outside.prev === (all[at - 1] ?? null) && outside.next === (all[at + 1] ?? null),
+      `${JSON.stringify(nb)} ${JSON.stringify(outside)} ${all}`);
+    w.close();
+    const p = buildDom(JSDOM, { overviewItems: items, settings: { filters: { sort: 'potential_desc' }, userCount: 1, potentialMode: false } });
+    await until(p.w, listReady, 2000, 'die Uebersicht').catch(() => {});
+    const quiet = p.w.document.getElementById('f-own')?.previousElementSibling;
+    check('Ohne Potenzialmodus: „★“ mit eigenem Titel; eine Sortierung nach Potenzial gilt als „Geändert“',
+      quiet?.textContent === '★' && quiet?.title === deText('list.ownRatingHint', { testedYes: 'Getestet', ratingOne: 'Bewertung' }) &&
+      equal(p.w.visibleItems().map(i => i.id), [3, 2, 1]) && p.w.document.getElementById('f-sort')?.value === 'updated',
+      `${quiet?.textContent} · ${p.w.visibleItems().map(i => i.id)} · ${p.w.document.getElementById('f-sort')?.value}`);
+    p.w.close();
+  }
+
+  group('Einstellungen: Schwelle in beiden Karten, Standardanordnung');
+  {
+    const a = buildDom(JSDOM, { settings: { filters: null, userCount: 1, partialShare: 80 } });
+    await until(a.w, listReady, 2000, 'die Uebersicht').catch(() => {});
+    await D.sysSection(a.w, 'inventory');
+    const doc = a.w.document;
+    const after = doc.getElementById('partial-share'), before = doc.getElementById('partial-share-before');
+    const cardOf = (el) => el?.closest('.sys-card')?.querySelector('h3')?.textContent;
+    const hint = deText('card.partialShareHint', { potential: 'Potenzial', ratingOne: 'Bewertung' });
+    check('Die Schwelle steht in „Bewertung: Kriterien“ und in „Potenzial: Kriterien“, mit einem Hinweis auf beide',
+      after?.value === '80' && before?.value === '80' && cardOf(after) === 'Bewertung: Kriterien' &&
+      cardOf(before) === 'Potenzial: Kriterien' &&
+      [...doc.querySelectorAll('.sys-card p.desc')].filter(e => e.textContent === hint).length === 2,
+      `${cardOf(after)} ${after?.value} · ${cardOf(before)} ${before?.value}`);
+    const asked = [];
+    const base = a.w.fetch;
+    a.w.fetch = (url, opt) => {
+      const body = opt?.body ? JSON.parse(opt.body) : {};
+      if (url !== '/api/settings' || opt?.method !== 'PUT' || body.partialShare === undefined) return base(url, opt);
+      asked.push(body.partialShare);
+      return Promise.resolve(answerWith({ partialShare: body.partialShare }));
+    };
+    if (before) before.value = '60';
+    before?.dispatchEvent(new a.w.Event('change'));
+    await until(a.w, () => a.w.eval('PARTIAL_SHARE') === 60 && after?.value === '60', 1000, 'das Mitnehmen').catch(() => {});
+    check('Eine Aenderung in einer Karte speichert den einen Wert und steht sofort auch in der anderen',
+      equal(asked, [60]) && after?.value === '60' && before?.value === '60', `${asked} ${after?.value} ${before?.value}`);
+    a.w.fetch = base;
+    await D.sysSection(a.w, 'personal');
+    doc.getElementById('breset')?.click();
+    await until(a.w, (x) => x.document.querySelector('.backdrop [data-yes]'), 1000, 'die Rueckfrage').catch(() => {});
+    doc.querySelector('.backdrop [data-yes]')?.click();
+    await until(a.w, (x) => x.document.querySelector('.toast')?.textContent === DE['card.layoutRestored'] && openRequests(x) === 0,
+      2000, 'das Speichern').catch(() => {});
+    check('„Standardanordnung wiederherstellen“ setzt `closed`; danach laesst sich jeder Block wieder pruefen',
+      a.w.eval('Array.isArray(BLOCKS.closed) && !("zu" in BLOCKS)'), a.w.eval('JSON.stringify(BLOCKS)'));
+    a.w.close();
+  }
+
+  group('Detailansicht: spaete Antworten, Kommentar, Anlegen, Dialog');
+  {
+    const d = buildDom(JSDOM, { settings: { filters: null, userCount: 1 } });
+    const w = d.w, doc = w.document;
+    await until(w, listReady, 2000, 'die Uebersicht').catch(() => {});
+    const base = w.fetch;
+    w.fetch = (url, opt) => (url === '/api/items/1' ? wait(150).then(() => base(url, opt)) : base(url, opt));
+    const late = w.renderDetail(1);
+    w.history.replaceState(null, '', '#/');
+    await w.renderList();
+    await late;
+    w.fetch = base;
+    check('Eine spaete Antwort der Detailansicht zeichnet nicht ueber die neuere Uebersicht',
+      !!doc.getElementById('body') && !doc.getElementById('viewer') && w.location.hash === '#/',
+      `${!!doc.getElementById('body')} ${!!doc.getElementById('viewer')} ${w.location.hash}`);
+    doc.getElementById('new')?.click();
+    const nt = doc.getElementById('nt'), ns = doc.getElementById('ns'), bd = doc.querySelector('.backdrop');
+    nt?.dispatchEvent(new w.Event('pointerdown', { bubbles: true }));
+    bd?.click();
+    const kept = !!bd?.isConnected;
+    if (nt) nt.value = 'Doppelt';
+    ns?.click();
+    ns?.click();
+    nt?.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await until(w, (x) => !x.document.querySelector('.backdrop') && openRequests(x) === 0, 2000, 'das Anlegen').catch(() => {});
+    const created = d.sent.filter(x => x.method === 'POST' && x.url === '/api/items').length;
+    check('Text markieren und neben dem Dialog loslassen schliesst ihn nicht; doppelt geklickt entsteht ein Eintrag',
+      kept && created === 1, `${kept} ${created}`);
+    w.location.hash = '#/item/1';
+    await until(w, detailReady, 3000, 'die Detailansicht').catch(() => {});
+    doc.querySelector('#cmts .cmt[data-comment="61"] .ed')?.click();
+    const ta = doc.querySelector('#cmts .cmt[data-comment="61"] .cmt-edit textarea');
+    if (ta) ta.value = 'Neuer Entwurf';
+    const fresh = await (await base('/api/items/1', {})).json();
+    fresh.comments = fresh.comments.map(c => (c.id === 61 ? { ...c, images: [{ id: 99, filename: 'neu.png', sort_order: 0 }] } : c));
+    w.fetch = (url, opt) => (url === '/api/comments/61/images' ? Promise.resolve(answerWith(fresh)) : base(url, opt));
+    const paste = new w.Event('paste', { bubbles: true, cancelable: true });
+    Object.defineProperty(paste, 'clipboardData', { value: { files: [new w.File(['x'], 'neu.png', { type: 'image/png' })] } });
+    ta?.dispatchEvent(paste);
+    await until(w, (x) => x.document.querySelector('#cmts .cmt[data-comment="61"] .cmt-img') &&
+      x.document.querySelector('#cmts .cmt[data-comment="61"] .cmt-edit textarea'), 2000, 'der Editor').catch(() => {});
+    w.fetch = base;
+    check('Ein Bild am offenen Editor: der Editor bleibt offen, der ungespeicherte Text bleibt stehen',
+      doc.querySelector('#cmts .cmt[data-comment="61"] .cmt-edit textarea')?.value === 'Neuer Entwurf',
+      String(doc.querySelector('#cmts .cmt[data-comment="61"] .cmt-edit textarea')?.value));
+    const ctext = doc.getElementById('ctext');
+    if (ctext) ctext.value = 'Einmal';
+    let posted = 0;
+    w.fetch = (url, opt) => {
+      if (url !== '/api/items/1/comments' || opt?.method !== 'POST') return base(url, opt);
+      posted++;
+      return wait(50).then(() => answerWith(fresh));
+    };
+    doc.getElementById('cadd')?.click();
+    doc.getElementById('cadd')?.click();
+    await until(w, () => ctext?.value === '' && !doc.getElementById('cadd')?.disabled, 2000, 'der Kommentar').catch(() => {});
+    w.fetch = base;
+    check('„Kommentieren“ ist gesperrt, solange die Anfrage laeuft: ein Doppelklick schickt einen Kommentar',
+      posted === 1 && ctext?.value === '', `${posted} ${JSON.stringify(ctext?.value)}`);
+    check('Ein Ladefehler heisst nur bei 404 „unbekannt“; sonst steht der Grund da',
+      w.eval("loadFailed({ status: 500, message: 'Netz weg' })") === 'Netz weg' &&
+      w.eval("loadFailed({ status: 404, message: 'x' })") === deText('server.entryUnknown', { entryOne: 'Eintrag' }),
+      `${w.eval("loadFailed({ status: 500, message: 'Netz weg' })")} · ${w.eval("loadFailed({ status: 404, message: 'x' })")}`);
+    w.close();
+  }
+
+  group('Vollbild: Anmeldung, ein einzelnes Element; Infos aufklappbar');
+  {
+    const d = buildDom(JSDOM, { hash: '#/item/1', settings: { filters: null, userCount: 1 } });
+    const w = d.w, doc = w.document;
+    await until(w, detailReady, 3000, 'die Detailansicht').catch(() => {});
+    doc.querySelector('#viewer img')?.click();
+    const opened = !!doc.querySelector('.lightbox') && !!doc.querySelector('[inert]');
+    w.showLogin();
+    const key = new w.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true });
+    doc.body.dispatchEvent(key);
+    check('Laeuft die Sitzung bei offenem Vollbild ab, ist die Anmeldung frei: kein inert, keine verschluckten Tasten',
+      opened && !doc.querySelector('[inert]') && !doc.querySelector('.lightbox') && !key.defaultPrevented &&
+      w.eval('LIGHTBOX_CLOSE') === null, `${opened} ${doc.querySelectorAll('[inert]').length} ${key.defaultPrevented}`);
+    w.close();
+    const e = buildDom(JSDOM, { hash: '#/item/1', settings: { filters: null, userCount: 1 } });
+    await until(e.w, detailReady, 3000, 'die Detailansicht').catch(() => {});
+    e.w.openLightbox([{ id: 6, mime_type: 'video/mp4', kind: 'video', duration: 42 }], 0, 'Eins');
+    const player = e.w.document.querySelector('.lightbox .lb-video');
+    let paused = 0;
+    if (player) player.pause = () => { paused++; };
+    e.w.document.body.dispatchEvent(new e.w.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+    check('Bei einem einzigen Element tut die Pfeiltaste nichts: das Video laeuft weiter',
+      !!player && paused === 0, `${!!player} ${paused}`);
+    e.w.document.body.dispatchEvent(new e.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    const box = e.w.document.createElement('div');
+    box.innerHTML = e.w.mediaInfoHtml({ general: { format: 'MPEG-4', size: 1000 }, video: [{ format: 'AVC', width: 1920, height: 1080, chroma: '4:2:0' }],
+      audio: [{ format: 'AAC', channels: 2 }], proxy: { state: 'ready', width: 1920, height: 1080 } });
+    const folds = [...box.querySelectorAll('details.minfo-group')];
+    check('Infos: „Allgemein“ steht offen; Video, Audio und Proxy sind beim Oeffnen zugeklappt',
+      equal([...box.querySelectorAll('h3.minfo-head')].map(h => h.textContent), [DE['entry.mediaGeneral']]) &&
+      equal(folds.map(f => f.querySelector('summary.minfo-head')?.textContent), [DE['entry.kindVideo'], DE['entry.mediaAudio'], DE['entry.mediaProxy']]) &&
+      folds.every(f => !f.open) && DE['entry.mediaChroma'] === 'Chroma Subsampling',
+      `${[...box.querySelectorAll('.minfo-head')].map(h => `${h.tagName}:${h.textContent}`).join(' ')}`);
+    e.w.close();
+  }
+
+  group('Quelltext: kleine Fehler aus der Durchsicht');
+  {
+    const app = read('public/app.js'), srv = read('server.js'), css = read('public/style.css');
+    const x = buildDom(JSDOM, { settings: { filters: null, userCount: 1 } });
+    await until(x.w, listReady, 2000, 'die Uebersicht').catch(() => {});
+    check('Die Groesse des Exports mit Dateien zaehlt Kommentarvideos mit',
+      x.w.exportSum({ envelope: 1, attachments: 2, commentImages: 3, commentVideos: 4 }, { withFiles: true }) === 10,
+      String(x.w.exportSum({ envelope: 1, attachments: 2, commentImages: 3, commentVideos: 4 }, { withFiles: true })));
+    x.w.eval('state.compare.add(1); state.compare.add(2); drawCompareBar();');
+    const shown = !!x.w.document.querySelector('.cmp-bar');
+    x.w.document.querySelector('.cmp-bar .btn-x')?.click();
+    const cleared = !x.w.document.querySelector('.cmp-bar');
+    x.w.eval('state.compare.add(1); drawCompareBar();');
+    x.w.location.hash = '#/open';
+    await until(x.w, (z) => openRequests(z) === 0 && !z.document.getElementById('count'), 2000, 'die offenen Aufgaben').catch(() => {});
+    check('Die Vergleichsleiste: ✕ wirkt, und ausserhalb der Uebersicht steht sie nicht',
+      shown && cleared && !x.w.document.querySelector('.cmp-bar'), `${shown} ${cleared} ${!!x.w.document.querySelector('.cmp-bar')}`);
+    x.w.close();
+    check('Upload, Loeschen und Kommentar nach einem await zeichnen nur in der Ansicht, die noch steht',
+      /if \(!v \|\| !here\(\)\) return;/.test(app) && /if \(!box \|\| !here\(\)\) return;/.test(app) &&
+      /function drawComments\(\) \{\n    if \(!here\(\)\) return;/.test(app) &&
+      (app.match(/const run = \+\+VIEW_RUN;/g) || []).length === 6, 'Pruefung fehlt');
+    check('Offene Aufgaben zaehlen nur offene; „Links“ misst beim Aufklappen neu; der Ordnerwechsel laedt die Einstellungen neu',
+      /const stillOpen = visible\.filter\(z => !z\.done\)\.length;/.test(app) &&
+      /\$\{inside\.filter\(z => !z\.done\)\.length\}/.test(app) &&
+      /if \(name === 'links' && closed && redrawLinks\) redrawLinks\(\);/.test(app) && /redrawLinks = limitLinks;/.test(app) &&
+      /await api\('PUT', '\/api\/backup\/dir', \{ place: value \}\);\n        saved\(\);\n[^\n]*\n        renderSystem\(\{ keepScroll: true \}\);/.test(app),
+      'Stelle fehlt');
+    check('Pfeiltaste und Wischen bei einem Element, das Ende der Konvertierung vor der ersten Abfrage, das Zitiermenue unter der Kopfzeile',
+      /const step = \(d\) => \{ if \(photos\.length < 2\) return; i \+= d; show\(\); \};/.test(app) &&
+      /const inFlight = new Set\(BATCH_RUNS\.filter\(l => stats\?\.\[l\.field\]\?\.running\)\.map\(l => l\.field\)\);/.test(app) &&
+      /followBatchRun\(fetched\.stats\);/.test(app) && /above < mastheadHeight\(\) \+ 4/.test(app), 'Stelle fehlt');
+    check('Server: ein geschlossener Browser beendet das Warten auf drain; die Kopie bleibt, wenn das Umbenennen scheitert',
+      /function untilDrained\(res\) \{\n  if \(res\.destroyed\) return Promise\.reject/.test(srv) &&
+      !/res\.once\('drain', r\)/.test(srv) &&
+      /if \(fs\.existsSync\(diskPath\(f\.name\)\)\) fs\.rmSync\(diskPath\(f\.name, true\), \{ force: true \}\);/.test(srv) &&
+      /if \(HELD_LOCK\) backup\.dropLock\(HELD_LOCK\);/.test(srv),
+      'Stelle fehlt');
+    const phone = css.slice(css.indexOf('/* ---- Telefon ---- */'));
+    const folded = css.slice(css.indexOf('/* ---- Eingeklappte Kopfzeile ---- */'), css.indexOf('/* ---- Telefon ---- */'));
+    const narrowCard = css.slice(css.indexOf('@container (max-width: 560px) {'));
+    check('Stilblatt: Benutzerzeile bricht in schmalen Karten um; „Von vorn“ und die Upload-Anzeige am Telefon frei; Reiter nach dem Drehen',
+      /\.mrow\.user \{ flex-wrap: wrap; row-gap: 4px; \}/.test(narrowCard.slice(0, narrowCard.indexOf('\n}'))) &&
+      /\.vspot \{ top: 62px; \}/.test(phone) && /\.upload-bar \{ top: auto; bottom: calc\(16px \+ env\(safe-area-inset-bottom\)\); \}/.test(phone) &&
+      /\.filters\.closed, \.sys-tabs\.closed \{ display: none; \}/.test(folded) && (css.match(/\.sys-tabs\.closed/g) || []).length === 1,
+      'Regel fehlt');
+  }
+
+  group('Werkzeuge, Image und Texte aus der Durchsicht');
+  {
+    const ks = read('keytool.sh'), bt = read('backuptool.js');
+    check('keytool.sh: ein gescheitertes cp bricht ab, der neue Schluessel steht nicht in den Argumenten',
+      /-exec sh -c 'cp -a "\$@" "\$0"\/' "\$ZIEL" \{\} \+; then/.test(ks) && !/-exec cp [^\n]*\;/.test(ks) &&
+      /\$\{NEW_KEY:\+-e NEW_KEY\}/.test(ks) && !/NEW_KEY=\$NEW_KEY/.test(ks) &&
+      /\[ -e data\/encryption\.key \] && \[ ! -r data\/encryption\.key \]/.test(ks), 'Stelle fehlt');
+    check('keytool.sh und .env.example nennen die echte Logzeile und die richtige Karte',
+      ks.includes('„Key loaded from ENCRYPTION_KEY.“') && read('keys.js').includes("logLine('Key loaded from ENCRYPTION_KEY.')") &&
+      read('.env.example').includes(`Karte "${DE['card.versionTitle'].replace('ü', 'ue')}"`), 'Text');
+    check('backuptool nennt nach einem Abbruch das Backup mit der Zeit aus dem Namen, nicht die Nr.',
+      /const again = `Zu Ende führen: \.\/backuptool\.sh restore \$\{nameTime\(chosen\.d\.name\)\}`;/.test(bt) &&
+      !bt.includes('derselben Auswahl'), 'Stelle fehlt');
+    check('Das Backup der .env vom Schluesselwechsel kommt weder ins Image noch ins Repository',
+      read('.dockerignore').split('\n').includes('.env.before-key-change-*') &&
+      read('.gitignore').split('\n').includes('.env.before-key-change-*'), 'Zeile fehlt');
+    const [de, en, tr] = ['de', 'en', 'tr'].map(l => JSON.parse(read(`public/languages/${l}.json`)));
+    const app = read('public/app.js');
+    check('Texte: Suchmaschinen unter „Installation“, „(du)“ und „… eingetragen“ als Schluessel, example.com statt beispiel.de',
+      de['entry.noSearchEngineHint'].includes(de['card.installation']) && en['entry.noSearchEngineHint'].includes(en['card.installation']) &&
+      tr['entry.noSearchEngineHint'].includes(tr['card.installation']) &&
+      [de, en, tr].every(x => x['card.youMarker'] && x['entry.dayAdded']?.includes('{dayOne}') && x['entry.quoted']?.includes('{text}')) &&
+      !/\(du\)|eingetragen`|forum\.beispiel|„\$\{l\.url\}"/.test(app), 'Text');
+    check('Die Meldung zur Aufraeumregel nennt das Feld mit seinem Namen',
+      de['server.ruleDays'].startsWith(`„${de['card.deleteFromAge'].replace(/ \(Tage\)$/, '')}“`) &&
+      tr['server.ruleDays'].startsWith(`“${tr['card.deleteFromAge'].replace(/ \(gün\)$/, '')}”`), `${de['server.ruleDays']} · ${tr['server.ruleDays']}`);
   }
 }
 

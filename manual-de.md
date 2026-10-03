@@ -266,19 +266,20 @@ Beim Anlegen zeigt „Ähnliche Titel: …“ vorhandene Einträge mit ähnliche
 ### Filter und Sortierung
 
 - **Status:** Alle, Getestet, Ungetestet. Dazu „Ablehnung" (Alle, Abgelehnt,
-  Nicht abgelehnt), „★ Favoriten" und „Eigene Werte". Alle lassen sich
-  kombinieren.
+  Nicht abgelehnt), „★ Favoriten" und „◆ ★". Alle lassen sich kombinieren.
 - **Kategorien:** mehrere wählbar, immer als Oder. „Ohne" zeigt Einträge ohne
   Kategorie.
 - **Tags:** mehrere wählbar. Der Umschalter legt Und (Vorgabe) oder Oder fest.
   Gedämpfte Tags ergäben keinen Treffer mehr.
-- **Eigene Werte:** „Keine“ oder „Teilweise“, gemessen an den eigenen Sternen;
-  ein zweiter Klick schaltet aus. Ungetestete Einträge zählen mit „Potenzial“,
-  getestete mit „Bewertung“. „Keine“: kein eigener Stern. „Teilweise“: weniger
-  eigene Sterne als die Schwelle, Vorgabe 80 % der Kriterien. Die Schwelle
-  stellt ein Admin in der Karte „Bewertung: Kriterien“ ein. Ist der
-  Potenzialmodus aus oder hat ein Kasten keine Kriterien, fallen die Einträge
-  dieser Phase heraus. Ohne Kriterien fehlt die Gruppe.
+- **◆ ★:** „Keine“ oder „Teilweise“, gemessen an den eigenen Sternen; ein
+  zweiter Klick schaltet aus. Ungetestete Einträge zählen mit „Potenzial“ (◆),
+  getestete mit „Bewertung“ (★). Der Titel der Gruppe nennt die Wörter aus dem
+  Vokabular. „Keine“: kein eigener Stern. „Teilweise“: weniger eigene Sterne als
+  die Schwelle, Vorgabe 80 % der Kriterien. Die Schwelle stellt ein Admin in
+  „Potenzial: Kriterien“ oder „Bewertung: Kriterien“ ein; beide Karten zeigen
+  denselben Wert. Ist der Potenzialmodus aus, steht nur ★, und ungetestete
+  Einträge fallen heraus; ebenso die Einträge eines Kastens ohne Kriterien.
+  Ohne Kriterien fehlt die Gruppe.
 - **„Filter zurücksetzen (n)"** steht in der Sortierzeile, sobald ein Filter
   gesetzt ist. Suchbegriff, Sortierung und gespeicherte Ansichten bleiben.
 - **Sortierung:** nach Änderung, Bewertung, Potenzial, Titel, Zahl der
@@ -523,11 +524,11 @@ unverändert.
   der Fotos und Videos des Eintrags. Allgemein: bei Videos der Container, sonst
   das Format, dazu Dateigröße, Dauer, Gesamtbitrate, Aufnahmedatum und die Zahl
   der Audiospuren. Video: Codec, Profil, Auflösung, Bildrate, Bitrate,
-  Bittiefe, Farbunterabtastung und HDR. H.264 und H.265 tragen den Namen von
+  Bittiefe, Chroma Subsampling und HDR. H.264 und H.265 tragen den Namen von
   MediaInfo in Klammern, etwa „H.265 (HEVC)“; in der Liste und am Vorschaubild
   steht kurz „H.265“. Je Audiospur: Codec, Kanäle, Abtastrate, Bitrate und
   Sprache. Bild: das Hauptbild mit Format, Auflösung wie angezeigt, Bittiefe,
-  Farbraum und Farbunterabtastung; Vorschaubilder in der Datei, etwa im
+  Farbraum und Chroma Subsampling; Vorschaubilder in der Datei, etwa im
   EXIF-Block, stehen als eine Zeile mit Zahl und Größen. Aufnahme: aus EXIF
   Aufnahmezeit, Kamera, Objektiv, Belichtungszeit, Blende, ISO und Brennweite,
   mit Kleinbild-Angabe, wenn die Datei sie trägt. Steht ein Ort in der Datei,
@@ -536,7 +537,8 @@ unverändert.
   „Allgemein“. Bilder von vor dem Update liest Kriterion nach dem Start einmal
   nach. Braucht ein Video einen Proxy, nennt die Gruppe „Proxy“ Zustand,
   Auflösung und Größe und die am Proxy gemessenen Bitraten von Video und
-  Audio. Was die Datei nicht angibt, fehlt.
+  Audio. Was die Datei nicht angibt, fehlt. Nur „Allgemein“ steht beim Öffnen
+  offen; die übrigen Gruppen klappt ein Klick auf ihre Überschrift auf.
 - **Infos zu Dokumenten:** „Infos“ im Menü ⋯ einer Word-, Excel-, PowerPoint-
   oder PDF-Datei und ihrer OpenDocument-Gegenstücke zeigt zwei Gruppen. „In
   Kriterion“: hochgeladen von und am, geändert vor dem Hochladen (die Zeit der
@@ -914,7 +916,7 @@ Dieselbe Oberfläche, an Breite und Bedienung angepasst.
 - Die Filter sind auf dem Telefon eingeklappt. Der Schalter nennt die Zahl der
   aktiven Filter.
 - „‹ Voriger" und „Nächster ›" am Fuß eines Eintrags blättern in der
-  Reihenfolge der Übersicht.
+  Reihenfolge der Übersicht, mit Filter und Sortierung.
 - Am Bild blättert ein Wisch. Gelöscht wird am großen Bild, nicht an der
   Vorschaukachel.
 - Sortieren per Ziehen braucht mit dem Finger ein kurzes Halten.
@@ -929,8 +931,8 @@ Dieselbe Oberfläche, an Breite und Bedienung angepasst.
 ## Sprache
 
 Deutsch, Englisch und Türkisch. Jeder wählt seine Sprache in „Darstellung";
-der Wechsel wirkt sofort. Ohne eigene Wahl gilt die Sprache des Browsers, sonst
-die Vorgabesprache der Installation. Die Anmeldeseite zeigt die Vorgabesprache.
+der Wechsel wirkt sofort. Ohne eigene Wahl gilt die Vorgabesprache der
+Installation. Die Anmeldeseite zeigt die Vorgabesprache.
 
 Der Eigentümer-Admin legt in „Einstellungen › Installation › Sprachen" die
 Vorgabesprache und die wählbaren Sprachen fest. Eine neue Installation startet

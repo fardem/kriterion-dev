@@ -348,8 +348,10 @@ wird unverändert nach `data/files/` gelegt. Steht eine Datei in einem älteren
 Backup noch in dessen Datenbank, wird sie beim Zurückholen neu verschlüsselt.
 
 Bricht `restore` ab, bleibt die Instanz angehalten, und die Meldung nennt den
-Stand. Ein zweiter Aufruf mit derselben Auswahl führt es zu Ende. Der erste
-Start danach führt Frist und Löschliste des zurückgespielten Stands aus.
+Stand und den Aufruf, der es zu Ende führt. Er nennt das Backup mit der Zeit
+aus dem Namen, weil Schritt 3 ein neues Backup anlegt und sich die Nr. damit
+verschiebt. Der erste Start danach führt Frist und Löschliste des
+zurückgespielten Stands aus.
 
 Ein Backup öffnet sich nur mit dem Schlüssel, mit dem es angelegt wurde. Stammt
 es von vor einem Schlüsselwechsel, vorher den alten Wert als `ENCRYPTION_KEY`
@@ -455,14 +457,16 @@ Nach außen nur über HTTPS, und dann `BEHIND_PROXY=1` in der `.env`.
 | | `BEHIND_PROXY` leer | `BEHIND_PROXY=1` |
 |---|---|---|
 | `X-Forwarded-For`, `X-Forwarded-Proto` | werden ignoriert | werden gelesen |
-| Adresse des Aufrufers | die Verbindung | letzter Eintrag aus `X-Forwarded-For` |
+| Adresse des Aufrufers | die Verbindung | letzter Eintrag aus `X-Forwarded-For`, wenn die Verbindung aus dem eigenen Netz kommt; sonst die Verbindung |
 | `http://` in `PUBLIC_ADDRESS` | zulässig | Warnung beim Start |
 
 Der Start meldet die Lage im Protokoll: `Behind proxy: on` oder `off`.
 
 - Der direkte Weg über `http://<server-ip>:3100` bleibt nutzbar, parallel zum
   Proxy. Fällt der Proxy aus, geht es darüber weiter.
-- **Ist der Port des Containers im Netz erreichbar, kann dort jeder
+- Als eigenes Netz gelten 127.0.0.1, ::1, private Netze (10.x, 172.16–31.x,
+  192.168.x), 100.64.0.0/10, IPv6 `fc00::/7` und `fe80::/10`.
+- **Wer den Port des Containers aus dem eigenen Netz erreicht, kann
   `X-Forwarded-For` setzen und die Anmeldebremse umgehen.** Wer das
   ausschließen will, gibt den Port nur für den Proxy frei.
 - Das Umstellen von `BEHIND_PROXY` meldet alle einmal ab, die über HTTPS

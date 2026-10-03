@@ -724,7 +724,7 @@ async function run() {
     gvRows[1]?.innerHTML.slice(0, 90));
   check('Und kann dort alle drei Rollen vergeben',
     [...(gvRows[1]?.querySelectorAll('.user-role-sel option') || [])].map(o => o.value).join(',')
-      === 'user,admin,eigentuemer');
+      === 'user,admin,owner');
   check('Die Anlegezeile hat Name, Passwort und Rollenwahl',
     !!gvEig.w.document.getElementById('user-name') &&
     !!gvEig.w.document.getElementById('user-pass') &&
@@ -2924,7 +2924,7 @@ async function run() {
   {
     const quApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
     const guard = (id, v) => new RegExp(
-      `const ${v} = document\\.getElementById\\('${id}'\\);[\\s\\S]{0,1200}?if \\(!${v}\\) return;`).test(quApp);
+      `const ${v} = document\\.getElementById\\('${id}'\\);[\\s\\S]{0,1200}?if \\(!${v} \\|\\| !here\\(\\)\\) return;`).test(quApp);
     check('Der Betrachter fragt erst, ob seine Ansicht noch steht', guard('viewer', 'v'));
     check('Und der Bilderstreifen ebenso', guard('thumbs', 'box'));
   }

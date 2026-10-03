@@ -360,8 +360,8 @@ async function check0300() {
     const SENTENCE_EXCEPTIONS = [
       'docker compose exec kriterion node usertool.js password <name>',
       'docker compose exec kriterion node usertool.js twofactor <name>',
-      'https://forum.beispiel.de/suche?q=%s',
-      'site%3Aforum.beispiel.de',
+      'https://forum.example.com/search?q=%s',
+      'site%3Aforum.example.com',
       'Die Sprachdatei fehlt.'
     ];
     const gTexts = screenTextsFrom(gApp);
@@ -393,7 +393,7 @@ async function check0300() {
     check('Und es sind genau fuenf benannte Ausnahmen — zwei Befehle, zwei Adressen, ein Satz',
       SENTENCE_EXCEPTIONS.length === 5 &&
       SENTENCE_EXCEPTIONS.filter(x => x.startsWith('docker')).length === 2 &&
-      SENTENCE_EXCEPTIONS.filter(x => /beispiel\.de/.test(x)).length === 2,
+      SENTENCE_EXCEPTIONS.filter(x => /example\.com/.test(x)).length === 2,
       SENTENCE_EXCEPTIONS.join(' · '));
     check('„an", „aus" und „eingerichtet" kommen jetzt aus der Sprachdatei',
       /tH\('card\.on'\)/.test(gApp) && /tH\('card\.off'\)/.test(gApp) &&

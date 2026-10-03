@@ -344,9 +344,10 @@ still in the database of an older backup, it is encrypted again when it is
 fetched back.
 
 If `restore` aborts, the installation stays stopped and the message states how
-far it got. A second run with the same selection completes it. The first start
-afterwards applies the retention period and the deletion list of the restored
-state.
+far it got and the call that completes it. That call names the backup by the
+time in its name, because step 3 creates a new backup and the numbers shift.
+The first start afterwards applies the retention period and the deletion list
+of the restored state.
 
 A backup opens only with the key it was created with. If it dates from before
 a key change, first enter the old value as `ENCRYPTION_KEY`.
@@ -451,14 +452,16 @@ in `.env`.
 | | `BEHIND_PROXY` empty | `BEHIND_PROXY=1` |
 |---|---|---|
 | `X-Forwarded-For`, `X-Forwarded-Proto` | are ignored | are read |
-| Caller's address | the connection | last entry of `X-Forwarded-For` |
+| Caller's address | the connection | last entry of `X-Forwarded-For` if the connection comes from the own network; otherwise the connection |
 | `http://` in `PUBLIC_ADDRESS` | allowed | warning at start |
 
 At start, the log states the setting: `Behind proxy: on` or `off`.
 
 - Direct access via `http://<server-ip>:3100` stays usable, alongside the
   proxy. If the proxy fails, access continues that way.
-- **If the container's port is reachable on the network, anyone there can set
+- The own network is 127.0.0.1, ::1, private networks (10.x, 172.16–31.x,
+  192.168.x), 100.64.0.0/10, IPv6 `fc00::/7` and `fe80::/10`.
+- **Anyone who reaches the container's port from the own network can set
   `X-Forwarded-For` and get around the sign-in rate limit.** To rule this out,
   open the port to the proxy only.
 - Changing `BEHIND_PROXY` signs out everyone who is signed in over HTTPS,

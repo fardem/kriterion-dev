@@ -256,8 +256,8 @@ async function run() {
       '<code>data/</code>', '<code>http://</code>', '<code>public/languages/</code>',
       '</p>\n              <code class="keyline" id="keyline">ENCRYPTION_KEY=',
       '<code>https://</code>',
-      '<code>https://www.google.com/search?q=site%3Aforum.beispiel.de+%s</code>',
-      'https://forum.beispiel.de/suche?q=%s',
+      '<code>https://www.google.com/search?q=site%3Aforum.example.com+%s</code>',
+      'https://forum.example.com/search?q=%s',
       // Merkmal der abgelaufenen Sitzung
       'kriterion:session-gone',
       // Name des CSRF-Cookies
@@ -295,8 +295,8 @@ async function run() {
       'docker compose exec kriterion node usertool.js password <name>',
       'docker compose exec kriterion node usertool.js twofactor <name>',
       // Zwei Beispieladressen
-      '<code>https://www.google.com/search?q=site%3Aforum.beispiel.de+%s</code>',
-      'https://forum.beispiel.de/suche?q=%s'
+      '<code>https://www.google.com/search?q=site%3Aforum.example.com+%s</code>',
+      'https://forum.example.com/search?q=%s'
     ];
     const restLeft = rest
       .filter(t => !REST_GERMAN_NAMED.includes(t))

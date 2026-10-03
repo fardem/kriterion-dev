@@ -266,18 +266,19 @@ similar title.
 ### Filters and sort order
 
 - **Status:** All, Tested, Untested. In addition “Rejection” (All, Rejected,
-  Not rejected), “★ Favourites” and “Own values”. All of them can be combined.
+  Not rejected), “★ Favourites” and “◆ ★”. All of them can be combined.
 - **Categories:** several can be chosen, always combined with Or. “Without”
   shows entries without a category.
 - **Tags:** several can be chosen. The toggle sets And (default) or Or. Dimmed
   tags would no longer give a match.
-- **Own values:** “None” or “Partial”, measured by the user's own stars; a
-  second click switches it off. Untested entries count by “Potential”, tested
-  ones by “Rating”. “None”: no own star. “Partial”: fewer own stars than the
-  threshold, by default 80 % of the criteria. An admin sets the threshold in
-  the “Rating: criteria” card. If the potential mode is off or a box has no
-  criteria, the entries of that phase drop out. Without criteria, the group is
-  missing.
+- **◆ ★:** “None” or “Partial”, measured by the user's own stars; a second
+  click switches it off. Untested entries count by “Potential” (◆), tested ones
+  by “Rating” (★). The title of the group names the words from the vocabulary.
+  “None”: no own star. “Partial”: fewer own stars than the threshold, by default
+  80 % of the criteria. An admin sets the threshold in “Potential: criteria” or
+  “Rating: criteria”; both cards show the same value. If the potential mode is
+  off, only ★ is shown and untested entries drop out; so do the entries of a
+  box without criteria. Without criteria, the group is missing.
 - **“Reset filters (n)”** appears in the sort row as soon as a filter is set.
   The search term, the sort order and saved views stay.
 - **Sort order:** by last change, rating, potential, title, number of test
@@ -528,6 +529,8 @@ setting). The original stays unchanged.
   update are read again once after the start. If a video needs a proxy, the
   group “Proxy” states its state, resolution and size and the bit rates of video
   and audio, measured on the proxy. What the file does not state is left out.
+  Only “General” is open when the dialog opens; a click on the heading of
+  another group opens it.
 - **Info on documents:** “Info” in the ⋯ menu of a Word, Excel, PowerPoint or
   PDF file and their OpenDocument counterparts shows two groups. “In Kriterion”:
   uploaded by and on, modified before upload (the time of the file on the
@@ -893,7 +896,7 @@ The same interface, adapted to screen width and input.
 - On the phone, the filters are collapsed. The toggle shows the number of
   active filters.
 - “‹ Previous” and “Next ›” at the foot of an entry browse in the order of the
-  overview.
+  overview, with filters and sort order.
 - On the image, a swipe browses. Deleting is done on the large image, not on
   the thumbnail tile.
 - Sorting by dragging needs a short hold with the finger.
@@ -907,9 +910,9 @@ The same interface, adapted to screen width and input.
 ## Language
 
 German, English and Turkish. Each user chooses their language in “Appearance”;
-the change takes effect at once. Without a choice of their own, the browser
-language applies, otherwise the default language of the installation. The
-sign-in page shows the default language.
+the change takes effect at once. Without a choice of their own, the default
+language of the installation applies. The sign-in page shows the default
+language.
 
 In “Settings › Installation › Languages”, the owner admin sets the default
 language and the languages to choose from. A new installation starts in

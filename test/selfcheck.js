@@ -15,7 +15,7 @@ async function run() {
 
   const gpList = require('./counterproof').REGRESSIONS;
   // Mit jedem neuen Rueckbau in counterproof.js anheben.
-  check(`Es sind genau 1754 Rueckbauten`, gpList.length === 1754, `${gpList.length}`);
+  check(`Es sind genau 1811 Rueckbauten`, gpList.length === 1811, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* Jede Datei nur einmal lesen: ueber tausend Rueckbauten verteilen sich auf
@@ -33,9 +33,9 @@ async function run() {
     const n = gpFileText(file).split(r.search).length - 1;
     if (n !== 1) gpFail.push(`${r.nr} (${r.file}): ${n} Treffer`);
   }
-  // Belegt das einmalige Lesen je Datei. Neue Zieldateien in counterproof.js erhoehen die 51.
-  check('Der Waechter liest hoechstens einundfuenfzig Dateien',
-    gpText.size <= 51, `${gpText.size} Dateien fuer ${gpList.length} Rueckbauten`);
+  // Belegt das einmalige Lesen je Datei. Neue Zieldateien in counterproof.js erhoehen die 52.
+  check('Der Waechter liest hoechstens zweiundfuenfzig Dateien',
+    gpText.size <= 52, `${gpText.size} Dateien fuer ${gpList.length} Rueckbauten`);
   check('Jeder Suchtext kommt in seiner Datei genau einmal vor',
     gpFail.length === 0, gpFail.join(' · '));
   // Ein Ersatz gleich dem Suchtext baut nichts zurueck, und alles bliebe gruen.
@@ -372,7 +372,7 @@ async function run() {
       ['test/release_053.js', 12],
       ['test/release_054.js', 7],
       ['test/release_055.js', 6],
-      ['test/release_056.js', 6],
+      ['test/release_056.js', 11],
       ['test/roundtrip.js', 1312],
       ['test/selfcheck.js', 85],
       ['test/source.js', 217],
@@ -384,7 +384,7 @@ async function run() {
       ['test/ui_style.js', 168],
       ['test/ui_system.js', 187],
       ['test/ui_translator.js', 24],
-      ['counterproof.js', 338],
+      ['counterproof.js', 339],
       ['server.js', 1093],
       ['auth.js', 149],
       ['db.js', 56],
@@ -402,11 +402,11 @@ async function run() {
       ['backup.js', 48],
       ['backuptool.js', 29],
       ['videoproxy.js', 25],
-      ['public/app.js', 1206],
+      ['public/app.js', 1211],
       ['public/theme.js', 2],
-      ['public/style.css', 520],
+      ['public/style.css', 521],
     ];
-    const COMMENT_TOTAL = { comment: 7263, code: 89868 };
+    const COMMENT_TOTAL = { comment: 7275, code: 90875 };
     // Ausgelieferte Dateien: Bloecke ueber drei Zeilen und Bloecke mit Betonung in Grossbuchstaben.
     const COMMENT_LIMITS = { longBlocks: 3, emphasis: 6 };
     check('Der Waechter sieht alle achtundfuenfzig Dateien',

@@ -345,9 +345,10 @@ geri kalan durum değişmez. Yedekleme klasöründeki bir kopya değiştirilmede
 `data/files/` klasörüne konur. Dosya daha eski bir yedeklemede hâlâ o
 yedeklemenin veritabanında duruyorsa, geri alınırken yeniden şifrelenir.
 
-`restore` yarıda kesilirse örnek durdurulmuş kalır ve ileti durumu bildirir.
-Aynı seçimle ikinci bir çağrı işi tamamlar. Ondan sonraki ilk başlatma, geri
-yüklenen durumun saklama süresini ve silme listesini uygular.
+`restore` yarıda kesilirse örnek durdurulmuş kalır; ileti durumu ve işi
+tamamlayan çağrıyı bildirir. Bu çağrı yedeklemeyi adındaki zamanla anar, çünkü
+3. adım yeni bir yedekleme oluşturur ve numaralar kayar. Ondan sonraki ilk
+başlatma, geri yüklenen durumun saklama süresini ve silme listesini uygular.
 
 Bir yedekleme yalnızca oluşturulduğu anahtarla açılır. Bir anahtar
 değişikliğinden önceye aitse, önce eski değeri `ENCRYPTION_KEY` olarak yaz.
@@ -455,14 +456,16 @@ Dışarıya yalnızca HTTPS üzerinden açılır; bu durumda `BEHIND_PROXY=1` de
 | | `BEHIND_PROXY` boş | `BEHIND_PROXY=1` |
 |---|---|---|
 | `X-Forwarded-For`, `X-Forwarded-Proto` | yok sayılır | okunur |
-| istemcinin adresi | bağlantının adresi | `X-Forwarded-For` içindeki son değer |
+| istemcinin adresi | bağlantının adresi | bağlantı kendi ağdan geliyorsa `X-Forwarded-For` içindeki son değer; değilse bağlantının adresi |
 | `http://` ile başlayan `PUBLIC_ADDRESS` | izin verilir | başlatmada uyarı |
 
 Başlatma durumu günlüğe yazar: `Behind proxy: on` ya da `off`.
 
 - `http://<server-ip>:3100` üzerinden doğrudan erişim proxy'nin yanında
   kullanılabilir kalır. Proxy çökerse erişim buradan sürer.
-- **Container'ın portu ağda erişilebilirse, oradan herkes `X-Forwarded-For`
+- Kendi ağ sayılanlar: 127.0.0.1, ::1, özel ağlar (10.x, 172.16–31.x,
+  192.168.x), 100.64.0.0/10, IPv6 `fc00::/7` ve `fe80::/10`.
+- **Container'ın portuna kendi ağdan erişen herkes `X-Forwarded-For`
   ayarlayıp giriş deneme sınırını aşabilir.** Bunu önlemek için portu yalnızca
   proxy'ye aç.
 - `BEHIND_PROXY` değiştirilince HTTPS üzerinden giriş yapmış herkesin oturumu

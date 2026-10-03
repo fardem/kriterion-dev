@@ -1852,8 +1852,8 @@ async function run() {
       }
       if (has) ssCode++;
     }
-    check('Und es stehen genau 2021 Regelzeilen da',
-      ssCode === 2021, `${ssCode} Zeilen`);
+    check('Und es stehen genau 2031 Regelzeilen da',
+      ssCode === 2031, `${ssCode} Zeilen`);
     // Laenger als drei Zeilen darf nur eine Tabelle gemessener Werte sein.
     const ssLines = ssBlocks.map(b => b.split('\n').length);
     const ssOver = ssLines.filter(n => n > 3).length;
@@ -2064,11 +2064,11 @@ async function run() {
     /* Helfer mit festem Markup */
     'BRAND_LINE', 'MARK', 'subhead', 'sparkline', 'serverBox', 'countCell',
     'many', 'inventoryText', 'tileNumber', 'entryNav', 'linkOrigin',
-    'deliveryRow', 'pickBarHtml',
+    'deliveryRow', 'pickBarHtml', 'loadFailed',
     /* Variablen, die kurz vor der Zuweisung gebaut werden */
     'badgeRow', 'cardMarkup', 'findingRow', 'testLine', 'groupRows', 'testRow',
     'bottom', 'weightField', 'fallbackMark', 'situation', 'stateBox',
-    'changeBox', 'listBox', 'outdatedBox', 'tooBigBox', 'copyBox'
+    'changeBox', 'rest', 'ruleText', 'tooBigBox', 'copyBox'
   ];
 
   /* Kennt nur Strings, Template-Strings und Kommentare; das genuegt fuer die
@@ -2240,7 +2240,7 @@ async function run() {
   const hAll = assignments(hSource);
   // Feste Zahl: ueber null Zuweisungen waere die Pruefung immer gruen.
   check('Der Waechter sieht alle Zuweisungen an innerHTML',
-    hAll.length === 200, `${hAll.length} Zuweisungen`);
+    hAll.length === 202, `${hAll.length} Zuweisungen`);
   const hNaked = [];
   const hUsed = new Set();
   for (const one of hAll)

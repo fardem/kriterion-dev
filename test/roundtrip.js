@@ -1588,7 +1588,7 @@ async function sendImport(object, mode, withoutShare = false) {
   }
   check('Auch der Fehlerweg des Eintrags traegt sie',
     /server\.entryUnknown[\s\S]{0,80}<\/div>`;\n      wireSubhead/.test(appSource)
-    || /\$\{subhead\(\)\}<p class="hint">\$\{tH\('server\.entryUnknown'\)\}/.test(appSource));
+    || /\$\{subhead\(\)\}<p class="hint">\$\{loadFailed\(e\)\}<\/p><\/div>`;\n      wireSubhead/.test(appSource));
   const appWithoutProse = appSource.replace(/\/\*[\s\S]*?\*\//g, ' ');
   check('Und die Klasse `back` steht nirgends mehr im Aufbau',
     (appWithoutProse.match(/class="back"/g) || []).length === 0,
