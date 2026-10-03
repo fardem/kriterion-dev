@@ -1,6 +1,5 @@
-/* Kriterion — Pruefstand: einstellbare Bitrate der Proxys, Ersatz veralteter Proxys im Hintergrund,
-   „Proxy“ in der Liste, Groesse des Videos und Knopfleiste im Vollbild; Filter „Eigene Werte“ und Vollbild am Telefon;
-   Titel in der Mail und die Fehler aus der Durchsicht; Vollbild am Telefon, Kontraste und IPv6 je /64. */
+/* Kriterion — Pruefstand: Bitrate und Ersatz der Proxys, „Proxy“ in der Liste, Vollbild am Telefon, Filter ◆ ★
+   mit Keine · Teilweise · 👍, Titel in der Mail, Fehler aus der Durchsicht, Kontraste, IPv6 je /64. */
 const H = require('./frame.js');
 const D = require('./dom.js');
 const { buildDom, until, openRequests } = D;
@@ -592,10 +591,10 @@ async function run() {
     const statusRow = () => w.document.getElementById('f-rejected')?.parentElement;
     const labels = [...(statusRow()?.querySelectorAll(':scope > .eyebrow') || [])].map(e => e.textContent);
     const counted = deText('list.ownValuesHint', { testedNo: 'Ungetestet', testedYes: 'Getestet', potential: 'Potenzial', ratingOne: 'Bewertung' });
-    check('Die Zeile „Potenzial / Bewertung“ entfaellt; „◆ ★: Keine · Teilweise“ steht am Ende der Statuszeile, ohne „Alle“',
+    check('Die Zeile „Potenzial / Bewertung“ entfaellt; „◆ ★: Keine · Teilweise · 👍“ steht am Ende der Statuszeile, ohne „Alle“',
       !w.document.getElementById('f-shares') && !!own() && own().parentElement === statusRow() &&
       statusRow().lastElementChild === own() && equal(labels, ['Status', 'Ablehnung', '◆ ★']) &&
-      equal(pills().map(b => b.textContent), ['Keine', 'Teilweise']), `${labels.join(' | ')} · ${pills().map(b => b.textContent).join(' ')}`);
+      equal(pills().map(b => b.textContent), ['Keine', 'Teilweise', '👍']), `${labels.join(' | ')} · ${pills().map(b => b.textContent).join(' ')}`);
     check('Der Titel der Knoepfe nennt, was zaehlt; bei „Teilweise“ zuerst die Schwelle',
       pills()[0]?.title === counted && pills()[1]?.title === `${deText('list.sharePartialHint', { share: 75 })}\n${counted}`,
       JSON.stringify(pills().map(b => b.title)));
@@ -615,6 +614,48 @@ async function run() {
     await click(pills()[0]);
     check('Mit dem Status „Getestet“ zaehlt nur die Bewertung', equal(shown(), ['G-keine']), shown().join(' '));
     w.close();
+  }
+
+  group('Uebersicht: Keine · Teilweise · 👍 als Leiste');
+  {
+    const items = [ownEntry(1, 'U-keine', false, { before: 'none', after: null }),
+      ownEntry(2, 'U-voll', false, { before: 'full', after: null }),
+      ownEntry(3, 'G-teil', true, { before: 'full', after: 'partial' }),
+      ownEntry(4, 'G-voll', true, { before: 'none', after: 'full' })];
+    const m = buildDom(JSDOM, { overviewItems: items, settings: { filters: null, userCount: 1, partialShare: 75 } });
+    const w = m.w;
+    await until(w, listReady, 2000, 'die Uebersicht').catch(() => {});
+    const own = () => w.document.getElementById('f-own');
+    const pills = () => [...(own()?.querySelectorAll('.pill') || [])];
+    const counted = deText('list.ownValuesHint', { testedNo: 'Ungetestet', testedYes: 'Getestet', potential: 'Potenzial', ratingOne: 'Bewertung' });
+    check('Eine Leiste mit drei Feldern; 👍 nennt im Titel „mindestens“ die Schwelle und was zaehlt',
+      !!own()?.classList.contains('seg') && equal(pills().map(b => b.textContent), ['Keine', 'Teilweise', '👍']) &&
+      pills()[2]?.title === `${deText('list.shareFullHint', { share: 75 })}\n${counted}` && pills()[2].title.startsWith('Mindestens 75 %'),
+      JSON.stringify(pills().map(b => [b.textContent, b.title])));
+    const shown = () => w.visibleItems().map(i => i.title).sort();
+    const click = async (el) => { el?.click(); await until(w, listReady, 1000, 'das Filtern').catch(() => {}); };
+    await click(pills()[2]);
+    check('👍: mindestens die Schwelle, jeder Eintrag in seiner Phase; ein Filter, gespeichert als `own: full`',
+      equal(shown(), ['G-voll', 'U-voll']) && w.filterNumber() === 1 && !!pills()[2]?.classList.contains('on') &&
+      m.sent.some(x => x.method === 'PUT' && x.url === '/api/settings' && x.body?.filters?.own === 'full'), shown().join(' '));
+    await click(pills()[2]);
+    check('Ein zweiter Klick auf 👍 schaltet aus', shown().length === 4 && w.filterNumber() === 0 &&
+      !pills().some(b => b.classList.contains('on')), `${shown().length} ${w.filterNumber()}`);
+    w.close();
+    const n = buildDom(JSDOM, { overviewItems: items, settings: { filters: { own: 'full' }, userCount: 1, partialShare: 75 } });
+    await until(n.w, listReady, 2000, 'die Uebersicht').catch(() => {});
+    const kept = [...(n.w.document.getElementById('f-own')?.querySelectorAll('.pill.on') || [])].map(b => b.textContent);
+    check('Ein gespeicherter Filter 👍 gilt nach dem Laden, auch in Ansichten',
+      equal(kept, ['👍']) && equal(n.w.visibleItems().map(i => i.title).sort(), ['G-voll', 'U-voll']) &&
+      n.w.filterNormal({ own: 'full' }).own === 'full', `${kept.join(' ')} ${n.w.visibleItems().length}`);
+    n.w.close();
+    const css = read('public/style.css');
+    check('Die Felder liegen ohne Abstand aneinander, die Raender uebereinander; aussen rund',
+      css.includes('.pills.seg { gap: 0; flex-wrap: nowrap; }') &&
+      css.includes('.pills.seg .pill { border-radius: 0; margin-left: -1px; }') &&
+      css.includes('.pills.seg .pill:first-child { border-radius: 999px 0 0 999px; margin-left: 0; }') &&
+      css.includes('.pills.seg .pill:last-child { border-radius: 0 999px 999px 0; }') &&
+      css.includes('.pills.seg .pill:hover, .pills.seg .pill.on { position: relative; }'), 'Regel fehlt');
   }
 
   group('Eigene Werte: alte Filter, ohne Potenzialmodus, ohne Kriterien');

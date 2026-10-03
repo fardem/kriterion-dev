@@ -13427,6 +13427,48 @@ const REGRESSIONS = [
     search: "    background: rgba(var(--lb-surface-rgb), .9); border-color",
     replacement: "    background: rgba(var(--lb-surface-rgb), .86); border-color",
     expected: "Kontraste: Fokus, Eingabefelder, Zeichen auf Fotos, Tastatur"
+  },
+  {
+    nr: '1947', name: "Das dritte Feld 👍 fehlt",
+    file: 'public/app.js',
+    search: "`],\n     ['full', '👍', `${t('list.shareFullHint', { share: PARTIAL_SHARE })}\\n${counted}`]].forEach",
+    replacement: "`]].forEach",
+    expected: "Uebersicht: Keine · Teilweise · 👍 als Leiste"
+  },
+  {
+    nr: '1948', name: "Ein gespeicherter Filter 👍 gilt beim Laden als „Alle“",
+    file: 'public/app.js',
+    search: "const SHARE_VALUES = ['all', 'none', 'partial', 'full'];",
+    replacement: "const SHARE_VALUES = ['all', 'none', 'partial'];",
+    expected: "Uebersicht: Keine · Teilweise · 👍 als Leiste"
+  },
+  {
+    nr: '1949', name: "Der Titel von 👍 nennt die Schwelle nicht",
+    file: 'public/app.js',
+    search: "t('list.shareFullHint', { share: PARTIAL_SHARE })",
+    replacement: "t('list.shareFullHint')",
+    expected: "Uebersicht: Keine · Teilweise · 👍 als Leiste"
+  },
+  {
+    nr: '1950', name: "Die Leiste hat wieder Abstaende zwischen den Feldern",
+    file: 'public/app.js',
+    search: "g.className = 'pills seg'; g.id = 'f-own';",
+    replacement: "g.className = 'pills'; g.id = 'f-own';",
+    expected: "Uebersicht: Keine · Teilweise · 👍 als Leiste"
+  },
+  {
+    nr: '1951', name: "Die Raender benachbarter Felder liegen doppelt",
+    file: 'public/style.css',
+    search: ".pills.seg .pill { border-radius: 0; margin-left: -1px; }",
+    replacement: ".pills.seg .pill { border-radius: 0; }",
+    expected: "Uebersicht: Keine · Teilweise · 👍 als Leiste"
+  },
+  {
+    nr: '1952', name: "Der Titel von 👍 sagt „mehr als“ statt „mindestens“",
+    file: 'public/languages/de.json',
+    search: "\"list.shareFullHint\": \"Mindestens {share} % der Kriterien mit eigenen Sternen\"",
+    replacement: "\"list.shareFullHint\": \"Mehr als {share} % der Kriterien mit eigenen Sternen\"",
+    expected: "Uebersicht: Keine · Teilweise · 👍 als Leiste"
   }
 
 ];

@@ -1402,6 +1402,7 @@
   "list.shareNone": "None",
   "list.sharePartial": "Partial",
   "list.sharePartialHint": "Fewer than {share} % of the criteria with your own stars",
+  "list.shareFullHint": "At least {share} % of the criteria with your own stars",
   "list.ownValuesHint": "“{testedNo}” counts by “{potential}”, “{testedYes}” by “{ratingOne}”",
   "list.ownRatingHint": "“{testedYes}” counts by “{ratingOne}”",
   "list.onlyFavorites": "Show favourites only",

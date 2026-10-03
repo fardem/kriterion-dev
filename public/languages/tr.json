@@ -1402,6 +1402,7 @@
   "list.shareNone": "Yok",
   "list.sharePartial": "Kısmen",
   "list.sharePartialHint": "Kendi yıldızların kriterlerin %{share} oranına ulaşmıyor",
+  "list.shareFullHint": "Kendi yıldızların kriterlerin en az %{share} oranında",
   "list.ownValuesHint": "“{testedNo}” için “{potential}”, “{testedYes}” için “{ratingOne}” sayılır",
   "list.ownRatingHint": "“{testedYes}” için “{ratingOne}” sayılır",
   "list.onlyFavorites": "Yalnızca favorileri göster",

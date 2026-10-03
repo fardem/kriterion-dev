@@ -7,6 +7,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 > A box above the changes of a version means there is something to do when updating.
 > Yanked versions are marked `[YANKED]`.
 
+## [0.56.5] - 2026-10-03
+
+Fingerprint `859baa64` — previously `5d8a9336`.
+
+### Changed
+
+- The overview filter "◆ ★" is a bar with three fields: "None", "Partial" and 👍. 👍 shows the entries with your own stars for at least the threshold of the criteria. A second click switches the filter off.
+
 ## [0.56.4] - 2026-10-03
 
 Fingerprint `5d8a9336` — previously `6a318ea6`.

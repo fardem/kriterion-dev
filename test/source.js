@@ -1852,8 +1852,8 @@ async function run() {
       }
       if (has) ssCode++;
     }
-    check('Und es stehen genau 2045 Regelzeilen da',
-      ssCode === 2045, `${ssCode} Zeilen`);
+    check('Und es stehen genau 2050 Regelzeilen da',
+      ssCode === 2050, `${ssCode} Zeilen`);
     // Laenger als drei Zeilen darf nur eine Tabelle gemessener Werte sein.
     const ssLines = ssBlocks.map(b => b.split('\n').length);
     const ssOver = ssLines.filter(n => n > 3).length;

@@ -1402,6 +1402,7 @@
   "list.shareNone": "Keine",
   "list.sharePartial": "Teilweise",
   "list.sharePartialHint": "Weniger als {share} % der Kriterien mit eigenen Sternen",
+  "list.shareFullHint": "Mindestens {share} % der Kriterien mit eigenen Sternen",
   "list.ownValuesHint": "„{testedNo}“ zählt mit „{potential}“, „{testedYes}“ mit „{ratingOne}“",
   "list.ownRatingHint": "„{testedYes}“ zählt mit „{ratingOne}“",
   "list.onlyFavorites": "Nur Favoriten zeigen",

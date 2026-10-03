@@ -478,6 +478,12 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .pill:hover { border-color: var(--accent-line); color: var(--text); background: var(--accent-dim); }
 .pill.on { background: var(--accent); border-color: var(--accent-edge); color: var(--on-accent); font-weight: 620; }
 .pill-tag { font-family: var(--mono); font-size: .77rem; }
+/* `margin-left: -1px` legt die Raender der Felder uebereinander; `position: relative` zeichnet das gewaehlte oben. */
+.pills.seg { gap: 0; flex-wrap: nowrap; }
+.pills.seg .pill { border-radius: 0; margin-left: -1px; }
+.pills.seg .pill:first-child { border-radius: 999px 0 0 999px; margin-left: 0; }
+.pills.seg .pill:last-child { border-radius: 0 999px 999px 0; }
+.pills.seg .pill:hover, .pills.seg .pill.on { position: relative; }
 /* Trennt den Favoritenumschalter von den drei Statuspillen davor. Gesetzt
    orange (`.pill.on`), nicht gold: Gold steht fuer Bewertung. */
 .pill-sep { margin-left: 14px; }

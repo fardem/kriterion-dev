@@ -272,15 +272,16 @@ Beim Anlegen zeigt „Ähnliche Titel: …“ vorhandene Einträge mit ähnliche
   Kategorie.
 - **Tags:** mehrere wählbar. Der Umschalter legt Und (Vorgabe) oder Oder fest.
   Gedämpfte Tags ergäben keinen Treffer mehr.
-- **◆ ★:** „Keine“ oder „Teilweise“, gemessen an den eigenen Sternen; ein
-  zweiter Klick schaltet aus. Ungetestete Einträge zählen mit „Potenzial“ (◆),
-  getestete mit „Bewertung“ (★). Der Titel der Gruppe nennt die Wörter aus dem
-  Vokabular. „Keine“: kein eigener Stern. „Teilweise“: weniger eigene Sterne als
-  die Schwelle, Vorgabe 80 % der Kriterien. Die Schwelle stellt ein Admin in
-  „Potenzial: Kriterien“ oder „Bewertung: Kriterien“ ein; beide Karten zeigen
-  denselben Wert. Ist der Potenzialmodus aus, steht nur ★, und ungetestete
-  Einträge fallen heraus; ebenso die Einträge eines Kastens ohne Kriterien.
-  Ohne Kriterien fehlt die Gruppe.
+- **◆ ★:** eine Leiste mit „Keine“, „Teilweise“ und 👍, gemessen an den eigenen
+  Sternen; ein zweiter Klick schaltet aus. Ungetestete Einträge zählen mit
+  „Potenzial“ (◆), getestete mit „Bewertung“ (★). Der Titel der Gruppe nennt die
+  Wörter aus dem Vokabular. „Keine“: kein eigener Stern. „Teilweise“: weniger
+  eigene Sterne als die Schwelle, Vorgabe 80 % der Kriterien. 👍: mindestens die
+  Schwelle. Die Schwelle stellt ein Admin in „Potenzial: Kriterien“ oder
+  „Bewertung: Kriterien“ ein; beide Karten zeigen denselben Wert. Ist der
+  Potenzialmodus aus, steht nur ★, und ungetestete Einträge fallen heraus;
+  ebenso die Einträge eines Kastens ohne Kriterien. Ohne Kriterien fehlt die
+  Gruppe.
 - **„Filter zurücksetzen (n)"** steht in der Sortierzeile, sobald ein Filter
   gesetzt ist. Suchbegriff, Sortierung und gespeicherte Ansichten bleiben.
 - **Sortierung:** nach Änderung, Bewertung, Potenzial, Titel, Zahl der

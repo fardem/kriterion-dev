@@ -272,14 +272,15 @@ similar title.
   shows entries without a category.
 - **Tags:** several can be chosen. The toggle sets And (default) or Or. Dimmed
   tags would no longer give a match.
-- **◆ ★:** “None” or “Partial”, measured by the user's own stars; a second
-  click switches it off. Untested entries count by “Potential” (◆), tested ones
-  by “Rating” (★). The title of the group names the words from the vocabulary.
-  “None”: no own star. “Partial”: fewer own stars than the threshold, by default
-  80 % of the criteria. An admin sets the threshold in “Potential: criteria” or
-  “Rating: criteria”; both cards show the same value. If the potential mode is
-  off, only ★ is shown and untested entries drop out; so do the entries of a
-  box without criteria. Without criteria, the group is missing.
+- **◆ ★:** a bar with “None”, “Partial” and 👍, measured by the user's own stars;
+  a second click switches it off. Untested entries count by “Potential” (◆),
+  tested ones by “Rating” (★). The title of the group names the words from the
+  vocabulary. “None”: no own star. “Partial”: fewer own stars than the
+  threshold, by default 80 % of the criteria. 👍: at least the threshold. An
+  admin sets the threshold in “Potential: criteria” or “Rating: criteria”; both
+  cards show the same value. If the potential mode is off, only ★ is shown and
+  untested entries drop out; so do the entries of a box without criteria.
+  Without criteria, the group is missing.
 - **“Reset filters (n)”** appears in the sort row as soon as a filter is set.
   The search term, the sort order and saved views stay.
 - **Sort order:** by last change, rating, potential, title, number of test

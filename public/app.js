@@ -2759,7 +2759,7 @@ const FILTER_DEFAULT = { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'a
                          sort: 'updated_desc' };
 /* Filter nach den eigenen Werten; `share` am Eintrag rechnet der Server mit der Schwelle aus den
    Einstellungen. Nennt er keine Phase, fehlt die Gruppe, und der Wert gilt als 'all'. */
-const SHARE_VALUES = ['all', 'none', 'partial'];
+const SHARE_VALUES = ['all', 'none', 'partial', 'full'];
 const sharePhase = (i) => (i.tested ? 'after' : 'before');
 const shareShown = () => state.all.some(i => i.share && Object.keys(i.share).length > 0);
 const shareWanted = (f) => (shareShown() ? f.own : 'all');
@@ -3598,9 +3598,10 @@ function drawFilters() {
     const counted = POTENTIAL_MODE ? t('list.ownValuesHint') : t('list.ownRatingHint');
     secondLabel(r1, POTENTIAL_MODE ? '◆ ★' : '★').title = counted;
     const g = document.createElement('div');
-    g.className = 'pills'; g.id = 'f-own';
+    g.className = 'pills seg'; g.id = 'f-own';
     [['none', t('list.shareNone'), counted],
-     ['partial', t('list.sharePartial'), `${t('list.sharePartialHint', { share: PARTIAL_SHARE })}\n${counted}`]].forEach(([v, l, hint]) => {
+     ['partial', t('list.sharePartial'), `${t('list.sharePartialHint', { share: PARTIAL_SHARE })}\n${counted}`],
+     ['full', '👍', `${t('list.shareFullHint', { share: PARTIAL_SHARE })}\n${counted}`]].forEach(([v, l, hint]) => {
       const b = document.createElement('button');
       b.className = 'pill' + (f.own === v ? ' on' : '');
       b.textContent = l;

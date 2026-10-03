@@ -274,15 +274,15 @@ Oluştururken “Benzer başlıklar: …” benzer başlıklı mevcut öğeleri 
 - **Etiketler:** birden fazlası seçilebilir. Geçiş düğmesi “Ve” (varsayılan)
   ile “Ya da” arasında seçim yapar. Soluk görünen bir etiket eklenirse hiç
   sonuç kalmaz.
-- **◆ ★:** “Yok” ya da “Kısmen”, kendi yıldızlarına göre; ikinci tıklama
-  filtreyi kapatır. Test edilmemiş öğeler “Potansiyel” (◆), test edilmiş öğeler
-  “Değerlendirme” (★) ile sayılır. Grubun başlığı sözlükteki kelimeleri
-  gösterir. “Yok”: kendi yıldızı yok. “Kısmen”: kendi yıldızları eşiğin altında,
-  varsayılan olarak ölçütlerin %80'i. Eşiği bir yönetici “Potansiyel: ölçütler”
-  ya da “Değerlendirme: ölçütler” kartında ayarlar; iki kart da aynı değeri
-  gösterir. Potansiyel modu kapalıysa yalnızca ★ görünür ve test edilmemiş
-  öğeler sonuçta yer almaz; ölçütü olmayan bir kutunun öğeleri de. Hiç ölçüt
-  yoksa grup görünmez.
+- **◆ ★:** “Yok”, “Kısmen” ve 👍 içeren bir çubuk, kendi yıldızlarına göre;
+  ikinci tıklama filtreyi kapatır. Test edilmemiş öğeler “Potansiyel” (◆), test
+  edilmiş öğeler “Değerlendirme” (★) ile sayılır. Grubun başlığı sözlükteki
+  kelimeleri gösterir. “Yok”: kendi yıldızı yok. “Kısmen”: kendi yıldızları
+  eşiğin altında, varsayılan olarak ölçütlerin %80'i. 👍: en az eşik kadar. Eşiği
+  bir yönetici “Potansiyel: ölçütler” ya da “Değerlendirme: ölçütler” kartında
+  ayarlar; iki kart da aynı değeri gösterir. Potansiyel modu kapalıysa yalnızca
+  ★ görünür ve test edilmemiş öğeler sonuçta yer almaz; ölçütü olmayan bir
+  kutunun öğeleri de. Hiç ölçüt yoksa grup görünmez.
 - **“Filtreleri sıfırla (n)”** bir filtre seçildiği anda sıralama satırında
   görünür. Arama sözcüğü, sıralama ve kayıtlı görünümler kalır.
 - **Sıralama:** son değişikliğe, değerlendirmeye, potansiyele, başlığa, test
