@@ -7,9 +7,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 > A box above the changes of a version means there is something to do when updating.
 > Yanked versions are marked `[YANKED]`.
 
+## [0.56.2] - 2026-10-03
+
+Fingerprint `df009920` — previously `a8fe80d0`.
+
+### Changed
+
+- "Extended info" on images and videos is now called "Info", as on documents: in the ⋯ menu, at ⓘ in full screen and in the dialog.
+
 ## [0.56.1] - 2026-10-03
 
-Fingerprint `7b76501a` — previously `a161550c`.
+Fingerprint `a8fe80d0` — previously `a161550c`.
 
 ### Changed
 
@@ -17,7 +25,6 @@ Fingerprint `7b76501a` — previously `a161550c`.
 - Full screen: "Close" stays at the top right, the bin is the first button of the bar.
 - Full screen: on touch, a tap beside the picture no longer closes it; a mouse click still does.
 - Full screen covers the page completely in the dark scheme.
-- "Extended info" on images and videos is now called "Info", as on documents: in the ⋯ menu, at ⓘ in full screen and in the dialog.
 
 ### Fixed
 

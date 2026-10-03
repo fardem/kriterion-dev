@@ -1,12 +1,10 @@
 # Änderungsprotokoll 0.56.1 — „Filter „Eigene Werte“, Vollbild am Telefon“
 
 **Gebaut am 3. Oktober 2026 auf 0.56.0 mit dem Nachtrag zum Prüfstand
-(`3c57a9a`). Fingerprint `7b76501a`, davor `a161550c`.** PATCH. Vor dem
-Nachtrag „Infos“ (Abschnitt 3) war der Fingerprint `a8fe80d0`.
+(`3c57a9a`). Fingerprint `a8fe80d0`, davor `a161550c`.** PATCH.
 
 Schema: nein. Austauschformat: bleibt 22. Routen: keine neue. Am Server ändert
-sich nichts. Neue Sprachschlüssel: `list.ownValues` und `list.ownValuesHint`;
-`entry.docInfo` entfällt.
+sich nichts. Neue Sprachschlüssel: `list.ownValues` und `list.ownValuesHint`.
 Kein neuer Vorgang im Sicherheitsprotokoll, keine neue Abhängigkeit.
 
 Grundlage ist `Doku/Auftrag_0.56.1.md` mit den Punkten B1 bis B8 und den
@@ -25,8 +23,6 @@ Fragen F1 bis F7.
 | 3. Oktober 2026 | Fragetafel: Höchstwert der Bitrate bleibt 10 Mbit/s (Empfehlung); in 0.56.1 kommen aus den Vorschlägen V1 bis V4, V6, V7, V9 und V10 (Empfehlung), keine Fehler aus der Durchsicht und kein Stil; die Vorschlagsdatei kommt mit 0.56.1 ins Repository (Empfehlung); PR #282 bis zum Merge beobachten (Empfehlung) |
 | 3. Oktober 2026 | „Dinge die schon erledigt bitte nicht dort aufnehmen“: Die Vorschlagsdatei enthält nur Offenes |
 | 3. Oktober 2026 | Zwei Fragetafeln zum Auftrag, F1 bis F7, jede mit der Empfehlung: alte Filterwerte entfallen; die Gruppe heißt immer „Eigene Werte“; ohne Potenzialmodus fallen ungetestete Einträge heraus; quer weicht der Streifen; kein Wischen auf dem Video; 🗑 vorn in der Leiste; neben das Bild schließt nur die Maus |
-| 3. Oktober 2026 | Nach dem Push von #283: „Manchmal heißen die Infos von Media info Infos manchmal erweiterte Infos. Bitte vereinfachen. Entere45 mediainfo oder nur info“ |
-| 3. Oktober 2026 | Fragetafel: überall „Infos“ (Empfehlung); in PR #283 als Teil von 0.56.1 (Empfehlung) |
 
 ---
 
@@ -38,18 +34,17 @@ Gemessen am fertigen Stand gegen `3c57a9a`.
 |---|---:|---:|
 | Tabellen | 46 | 46 |
 | Routen insgesamt | 131 | 131 |
-| Zeilen `public/app.js` | 12.568 | **12.581** |
-| Schlüssel je Sprachdatei | 1.559 | **1.560** |
+| Zeilen `public/app.js` | 12.568 | **12.584** |
+| Schlüssel je Sprachdatei | 1.559 | **1.561** |
 | Regelzeilen des Stilblatts | 2.016 | **2.021** |
 | Fensterabfragen (`@media`) im Stilblatt | 16 | **17** |
 | Kommentarzeilen | 7.257 in 58 Dateien | **7.263 in 58** |
-| Rückbauten | 1.733 | **1.754** |
-| Prüfungen im Prüfstand | 8.268 | **8.286** |
-| Zeilen `CHANGELOG.md` | 1.285 | **1.305** |
+| Rückbauten | 1.733 | **1.753** |
+| Prüfungen im Prüfstand | 8.268 | **8.284** |
+| Zeilen `CHANGELOG.md` | 1.285 | **1.304** |
 
-Anleitung, Zeilen: `manual.md` 937 → 941, `manual-de.md` 955 → 962,
-`manual-tr.md` 941 → 946. README: je Sprache zwei Stellen mit „Infos“, die
-Zeilenzahl bleibt.
+Anleitung, Zeilen: `manual.md` 937 → 942, `manual-de.md` 955 → 962,
+`manual-tr.md` 941 → 948. README unverändert.
 
 Grenzwerte der Kommentarzeilen angehoben: `public/app.js` 1.202 → 1.206
 (`inert` an der Seite, eigener Eintrag im Verlauf, Tipp neben das Bild, Gesten),
@@ -125,18 +120,6 @@ Grenzwerte der Kommentarzeilen angehoben: `public/app.js` 1.202 → 1.206
 - ✕ bekommt den Fokus. Beim Schließen entfällt `inert`, und der Fokus geht an
   das Element zurück, das ihn vorher hatte.
 
-### Nachtrag: ein Name „Infos“
-
-- `entry.docInfo` entfällt. `entry.mediaInfo` heißt „Infos“, „Info“ und
-  „Bilgi“ und steht im Menü ⋯ von Bildern, Videos und Dokumenten, an ⓘ im
-  Vollbild und als Titel des Dialogs.
-- `fileMenu()` baut den Punkt mit einer Bedingung für alle drei Arten;
-  `documentInfo()` und der Parameter `title` von `showMediaInfo()` entfallen.
-- Anleitung in drei Sprachen: „Infos zu Bildern und Videos“ und „Infos zu
-  Dokumenten“. README in drei Sprachen: zwei Stellen je Sprache.
-- Gruppennamen im Prüfstand wie „Erweiterte Infos: Quelltext“ bleiben; die
-  Rückbauten verweisen auf sie.
-
 ---
 
 ## 4. Entscheidungen beim Bauen
@@ -153,12 +136,11 @@ Grenzwerte der Kommentarzeilen angehoben: `public/app.js` 1.202 → 1.206
 
 ## 5. Der Prüfstand
 
-**Neu** in `test/release_056.js`: 23 Prüfungen in sechs Gruppen: „Eigene Werte:
+**Neu** in `test/release_056.js`: 21 Prüfungen in fünf Gruppen: „Eigene Werte:
 eine Gruppe in der Statuszeile“ (6), „Eigene Werte: alte Filter, ohne
 Potenzialmodus, ohne Kriterien“ (3), „Vollbild: Zurueck, Fokus und die Seite
 dahinter“ (5), „Vollbild: Wischen und Tipp neben das Bild“ (3), „Vollbild:
-Kopfzeile, quer und deckend“ (4), „Infos: ein Name fuer Bilder, Videos und
-Dokumente“ (2).
+Kopfzeile, quer und deckend“ (4).
 
 **Angepasst:** `test/release_054.js` (5 Prüfungen der alten Zeile entfallen,
 Gruppe umbenannt), `test/release_056.js` (`.lb-title` mit `flex: 1 1 0`),
@@ -166,14 +148,9 @@ Gruppe umbenannt), `test/release_056.js` (`.lb-title` mit `flex: 1 1 0`),
 außerhalb der Leiste), `test/roundtrip.js` (17 Fensterabfragen),
 `test/source.js` (2.021 Regelzeilen), `test/release_053.js` (102 Abschnitte, 42
 Fingerprints), `test/selfcheck.js` (1.753 Rückbauten, Grenzwerte),
-`test/ui_overview.js` (Schlüssel `fresh` statt `neu`, siehe Rückbau 323). Für
-den Nachtrag „Infos“: `test/release_045.js`, `test/release_052.js` und
-`test/release_054.js` (`entry.mediaInfo` statt `entry.docInfo`, „Infos“ auch
-bei Bildern und PDF, Überschriften der Anleitung), dazu die Namen einzelner
-Prüfungen in `test/release_052.js` bis `test/release_055.js`.
+`test/ui_overview.js` (Schlüssel `fresh` statt `neu`, siehe Rückbau 323).
 
-**Rückbauten.** 1830 bis 1850 neu, 21 Stück; 1850 gehört zum Nachtrag
-„Infos“. 1657 bis 1659 auf den neuen Code,
+**Rückbauten.** 1830 bis 1849 neu, 20 Stück. 1657 bis 1659 auf den neuen Code,
 1660 und 1661 auf die umbenannte Gruppe. Gefahren je Modul gegen eine Kopie des
 Arbeitsbaums: 1830 bis 1849, 1657 bis 1659 und 1818, 1819, 1822 gegen
 `test/release_056.js` **26 von 26 rot**; 1660 und 1661 gegen
@@ -186,11 +163,6 @@ alle 14 Prüfungen der Gruppe „Die gestrichene Pille „Neu seit …"“. Die 
 fragte nach dem Schlüssel `neu`, der seit der Umbenennung `fresh` heißt.
 Berichtigt in `test/ui_overview.js`; danach ist 323 rot, ohne Rückbau bleibt die
 Gruppe grün.
-
-Nachtrag „Infos“: 1557, 1644, 1669 und 1769 mit neuem Suchtext, 1645 mit
-neuem Namen; 1557 gegen `test/release_052.js`, 1644, 1645 und 1669 gegen
-`test/release_054.js`, 1769 gegen `test/release_055.js`, 1850 gegen
-`test/release_056.js`: **6 von 6 rot**.
 
 Die 32 älteren Rückbauten, deren Suchtext im geänderten Code von
 `openLightbox()` oder `drawFilters()` steht (254, 298, 350, 351, 353, 1208,
@@ -225,8 +197,7 @@ dunklen Schema `rgb(6, 7, 9)`, im hellen `rgb(43, 50, 58)`.
 `history.pushState()` und `location.hash = '#/'`: zuerst `popstate` mit
 `state` null, dann `hashchange`.
 
-Der volle Lauf vor dem Commit des Nachtrags: **8.286 von 8.286** Prüfungen
-bestanden; vor dem Nachtrag 8.284 von 8.284.
+Der volle Lauf vor dem Commit: **8.284 von 8.284** Prüfungen bestanden.
 
 ---
 
