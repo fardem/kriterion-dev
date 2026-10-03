@@ -7,6 +7,34 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 > A box above the changes of a version means there is something to do when updating.
 > Yanked versions are marked `[YANKED]`.
 
+## [0.56.5] - 2026-10-03
+
+Fingerprint `859baa64` — previously `5d8a9336`.
+
+### Changed
+
+- The overview filter "◆ ★" is a bar with three fields: "None", "Partial" and 👍. 👍 shows the entries with your own stars for at least the threshold of the criteria. A second click switches the filter off.
+
+## [0.56.4] - 2026-10-03
+
+Fingerprint `5d8a9336` — previously `6a318ea6`.
+
+### Changed
+
+- Full screen: a click or double tap on the picture shows the original at 100 %, and the clicked spot stays in place. The button is now called "100 %" and shows the middle.
+- Full screen on the phone in portrait: the title has its own line next to ✕, the buttons are below. For files, the file name comes first, the entry title small next to it.
+- Full screen on touch devices: the arrows ‹ › are hidden while a video plays; the zoomed picture has no scroll bars.
+- "Load whole" shows the progress in the button ("Cancel 45 %") instead of next to it.
+- Input fields have a stronger border, 3 : 1 against the card. Light theme: the focus ring and the arrows, ▶ and ★ on photos have more contrast.
+- Buttons that appear on hover also appear with keyboard focus; the file and folder menu shows the focus with a ring.
+- Sign-in rate limit: for IPv6, the whole /64 network counts as one address.
+
+### Fixed
+
+- Full screen: the arrows and the picture ignored the notch and the gesture bar of the phone; zooming showed a white corner between the scroll bars; tiles without a thumbnail in the strip were dimmed and hard to read.
+- Entry preview: a swipe still browsed when a second finger joined or the page was zoomed.
+- Touch devices: the arrows on the image and in full screen changed their transparency after a tap.
+
 ## [0.56.3] - 2026-10-03
 
 Fingerprint `6a318ea6` — previously `df009920`.

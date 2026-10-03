@@ -1,6 +1,6 @@
 # Vorschläge von Claude zu 0.56.x
 
-**Stand 3. Oktober 2026, auf 0.56.3.**
+**Stand 3. Oktober 2026, auf 0.56.4.**
 
 Diese Datei sammelt offene Vorschläge aus drei Quellen:
 
@@ -12,11 +12,10 @@ Erledigtes steht hier nicht. Was gebaut wird, wählt der Betreiber in einer
 Fragetafel. Die Nummern (V, F, S) dienen nur der Auswahl.
 
 Mit 0.56.3 sind aus Abschnitt 2 alle Fehler gebaut außer F24, F32, F33, F37,
-F42, F44, F45 und F48 bis F50. Am 3. Oktober 2026 hat Claude jeden übrigen
+F42, F44, F45 und F48 bis F50. Mit 0.56.4 sind Paket 3 (Vollbild) und Paket 4
+(Kontraste) gebaut, dazu F55. Am 3. Oktober 2026 hat Claude jeden übrigen
 Punkt noch einmal bewertet; das Ergebnis steht in der Spalte „Bewertung“:
 
-- **Paket 3**: Vollbild.
-- **Paket 4**: Kontraste.
 - **eigene Runde**: braucht eine Entscheidung oder Schema und Server.
 - **Bemerkung**: nicht bauen.
 
@@ -56,8 +55,9 @@ zusammengefasst bleiben 18.
 
 Hochkant passt das Bild in allen 90 Fällen ohne Zoom ganz in die Bühne.
 
-V1 bis V4, V6, V7, V9 und V10 sind mit 0.56.1 gebaut und stehen hier nicht
-mehr; die übrigen Nummern bleiben.
+V1 bis V4, V6, V7, V9 und V10 sind mit 0.56.1 gebaut, V5, V8, V12, V13, V15
+bis V17 und V19 mit 0.56.4. Sie stehen hier nicht mehr; die übrigen Nummern
+bleiben.
 
 ### 1.1 Messwerte
 
@@ -78,17 +78,9 @@ Bau von 0.56.1. Der Eintrag im Test hat einen Titel mit 100 Zeichen.
 
 | Nr. | Befund | Beleg | Ursache | Vorschlag | Aufwand | Bewertung |
 |---|---|---|---|---|---|---|
-| V5 | **Hochkant ist der Titel 0 px breit.** Man sieht nicht, zu welchem Eintrag das Bild gehört; bei Dateien steht der Titel des Eintrags statt des Dateinamens | `412x915-foto-hoch.png`: Titel 21 px, „E…“; an 360 px 0 px | Titel und Leiste teilen eine Zeile; `openLightbox()` bekommt an allen 5 Aufrufen `item.title` | Am Telefon hochkant den Titel als eigene Zeile über der Leiste, klein; bei Dateien den Dateinamen | mittel | Paket 3, nur der Dateiname statt des Titels |
-| V8 | **Zoom springt auf 1 : 1 des Originals**, am Telefon 7- bis 27-fach; sichtbar bleiben 1 bis 2 % des Bildes, und zwar die Mitte statt der angetippten Stelle | `412x915-zoom-foto-hoch.png`: Bild 3.000 × 4.000 px auf 412 px | `setZoom()` lädt das Original ohne Größe (`style.css:1514` `max-width: none`) | Zweifach vergrößern um die angetippte Stelle; Pinch-Zoom des Browsers zulassen | mittel | Paket 3; am Telefon ist der Zoom heute unbrauchbar. Pinch-Zoom ist schon erlaubt |
 | V11 | Nach dem Zurückdrehen ins Hochformat stimmt die Größe des Videos, die Steuerleiste von Chromium ist aber schmaler als das Video (312 statt 360 px an 360 × 640) | `360x640-gedreht-zurueck.png`, Pixel des Zeitstrahls | Chromium begrenzt die Leiste nach dem Drehen; `fitPlayer()` und der ResizeObserver arbeiten richtig | zuerst auf einem Android-Telefon nachsehen; bestätigt es sich, nach geänderter Größe `controls` kurz aus- und einschalten | klein | Bemerkung; erst an einem Android-Telefon prüfen |
-| V12 | Die Pfeile ‹ › (54 × 54 px) liegen hochkant über Bild und Video, auch während das Video spielt | `navOverContent` in allen Fällen hochkant | `.lb-nav` absolut über der Bühne | Auf Touch ausblenden (Wischen reicht) oder nach 2 s Wiedergabe ausblenden | klein | Paket 3, nur während der Wiedergabe ausblenden |
-| V13 | Pfeile und Bühne beachten `safe-area-inset` nicht; ohne Streifen reicht die Bühne bis in die Gestenleiste | aus dem Code | nur `.lb-top` und `.lb-strip` haben `env(safe-area-inset-*)` | Abstände der Pfeile und unten an der Bühne mit `env()` | klein | Paket 3 |
 | V14 | Bilddateien laden im Vollbild das Original (3.000 × 4.000 = 12 MP), Fotos des Eintrags die Fassung mit 1.600 px; an 412 × 915 genügen 1,6 MP | Messwerte `natural` | `imageSource()` (`public/app.js:4448–4453`) gibt bei Dateien für `medium` das Original | für Bilddateien eine Fassung mit 1.600 px speichern, das Original erst bei Zoom und Download | mittel | eigene Runde: neue Tabelle, Route und Speicher |
-| V15 | Beim Zoom erscheint unten rechts eine weiße Ecke von 10 × 10 px; zwei Rollbalken von 10 px verkleinern den Ausschnitt | `412x915-zoom-foto-hoch.png`, Pixel 255,255,255 | `::-webkit-scrollbar` ohne `::-webkit-scrollbar-corner` (`style.css:276–279`) | `::-webkit-scrollbar-corner { background: transparent }`; auf Touch die Rollbalken der Bühne ausblenden | klein | Paket 3 |
-| V16 | Der Platzhalter „WEBM“ auf nicht gewählten Kacheln im Streifen hat 2,06 : 1 | Bildschirmfotos der Dateien | `.lb-ext` in `--muted` auf Kachel mit Deckung .5 | Kachel ohne Standbild nicht abdunkeln oder hellere Schrift | klein | Paket 3, mit V15 |
-| V17 | Während „Ganz laden“ wird die Leiste um 72 bis 94 px breiter (Text „geladen n %“), Knöpfe können zwischen den Reihen springen | aus dem Code | `.lb-loaded` vor dem Knopf (`public/app.js:4599`, `4685–4686`) | den Fortschritt in den Knopf schreiben („Abbrechen 45 %“), Knopf mit fester Mindestbreite | klein | Paket 3 |
-| V18 | ↓ und ⊕ sind Schriftzeichen statt Symbole wie die übrigen Knöpfe; mehrere Knöpfe haben nur `title` und damit am Telefon keinen sichtbaren Namen | `public/app.js:4605–4606` | — | Symbole wie bei ⓘ und 🔗, `aria-label` an jedem Knopf | klein | Bemerkung; `title` reicht, ⊕ fällt mit V8 weg |
-| V19 | Die Vorschau im Eintrag (`#viewer`) blättert weiter, wenn beim Wischen ein zweiter Finger dazukommt; im Vollbild ist das mit 0.56.1 behoben | aus dem Code | `touchstart` an `#viewer` (`public/app.js:6403`) kehrt beim zweiten Finger zurück, `swipes` bleibt gesetzt | `swipes` bei jedem `touchstart` neu setzen, wie in `openLightbox()` | klein | Paket 3 |
+| V18 | ↓ und ⊕ sind Schriftzeichen statt Symbole wie die übrigen Knöpfe; mehrere Knöpfe haben nur `title` und damit am Telefon keinen sichtbaren Namen | `public/app.js:4605–4606` | — | Symbole wie bei ⓘ und 🔗, `aria-label` an jedem Knopf | klein | Bemerkung; `title` reicht, ⊕ ist mit 0.56.4 entfallen |
 
 
 ---
@@ -116,7 +108,6 @@ mit 0.56.3; hier stehen nur die übrigen.
 
 | Nr. | Befund | Stelle | Bewertung |
 |---|---|---|---|
-| F55 | Bei IPv6 ist jede Adresse ein eigener Zähler der Anmeldebremse; ein /64 reicht zum Umgehen | `auth.js` `keyIp()` | eigene Runde; Zähler je /64 |
 | F56 | Ein Benutzer mit eigenem Account setzt mit seiner Anmeldung den Zähler der Adresse zurück und umgeht so die Sperre; gegen fremde Namen bleibt die Verzögerung von 4 s | `auth.js` `noteSuccess()` | Bemerkung; so entschieden am 3. Oktober 2026 (Änderungsprotokoll 0.56.3) |
 | F57 | Derselbe Bestätigungslink der Registrierung lässt sich 24 h lang beliebig oft senden | `auth.js` `setConfirmed` ohne `confirmed_at IS NULL` | Bemerkung; setzt seit 0.56.3 keinen Zähler mehr zurück |
 
@@ -124,18 +115,12 @@ mit 0.56.3; hier stehen nur die übrigen.
 
 | Nr. | Vorschlag | Beleg | Aufwand | Bewertung |
 |---|---|---|---|---|
-| S1 | Kontraste im hellen Schema anheben: Fokusrahmen und 33 Ränder in `--accent` mit `--accent-edge` zeichnen | Fokusrahmen 2,61 : 1 auf Weiß, 2,22 : 1 auf `--bg`; Grenze 3 : 1 (geprüft) | klein | Paket 4, nur Fokus und Felder |
-| S2 | Ränder der Eingabefelder mit eigenem Token nahe `--faint` | Rand gegen Karte 1,25 : 1 dunkel, 1,45 : 1 hell (geprüft) | klein | Paket 4, mit Bildschirmfotos vergleichen |
-| S3 | Pfeile ‹ › im Bild (`.vnav`), ▶ und ★ auf Karten mit `--on-photo` statt `--text` | im hellen Schema 1,29 : 1 (geprüft), ▶ 1,30 : 1 (gegengeprüft) | klein | Paket 4; im hellen Schema am Telefon kaum zu erkennen |
 | S4 | Text nur in `--text`, `--text-2` und `--muted`; `--faint` nur für Trenner und Symbole | `--faint` auf `--surface` 3,21 : 1 dunkel (geprüft); 62 Regeln, `.hint` 92-mal in `public/app.js` | mittel | eigene Runde, Entscheidung: die Abstufung von `--faint` fiele weg |
-| S5 | Knöpfe, die nur bei Hover erscheinen, auch bei Tastaturfokus zeigen (`:focus-within`) | `.mrow .mact`, `.xdel`, `.vtools`, `.vnav`, `.cmt-img .del` (gegengeprüft) | klein | Paket 4 |
-| S6 | Fokus im Datei- und Ordnermenü sichtbar machen | `.fmenu-item:focus-visible` ohne Linie, Ersatz 1,11 : 1 (gegengeprüft) | klein | Paket 4 |
 | S7 | Trefferflächen am Telefon auf 40 px über `::after` vergrößern, ohne das Layout zu ändern | Sterne 22,5 px, Tag-Pillen 27 px, „Und/Oder“ 20 px, Punkte der Zeitleiste 12 px | mittel | eigene Runde; am Gerät prüfen, benachbarte Flächen überlappen |
 | S8 | Einstellungskarten: je Einstellung eine kurze Bezeichnung, darunter höchstens ein Satz; Rest unter „Mehr“ | 81 Absätze `.desc` in 27 Karten; „Darstellung“ 7 Einstellungen, 9 Absätze, rund 750 Zeichen | mittel | eigene Runde; Textarbeit in 27 Karten und drei Sprachen |
 | S9 | Zeilenlänge in breiten Karten auf `72ch` begrenzen | rund 180 Zeichen je Zeile bei 1.300 px | klein | Bemerkung |
 | S10 | Schriftgrößen auf rund 8 Tokens, Gewichte auf 400, 500, 600, 700 | 51 verschiedene Größen, 35 Angaben unter 0,7 rem, kleinste 0,5 rem; 9 Gewichte | mittel | Bemerkung; über 100 Stellen, viele Tests auf Zeilen des Stilblatts |
 | S11 | 141 `style="…"` in `public/app.js` in Klassen; danach kann `'unsafe-inline'` aus `style-src` | 122 davon Abstände | mittel | Bemerkung; kann den Document Server brechen |
-| S12 | Hover-Regeln in `@media (hover: hover)` statt Rücknahmen unter `(hover: none)` | Die Rücknahmen passen nicht zu den Ausgangswerten (`.vnav` .86 gegen .82) | mittel | Paket 4, nur die zwei abweichenden Werte |
 | S13 | Doppelte Blöcke zusammenfassen: `.lrow`/`.trow`/`.mrow`, `.warn-box`/`.ok-box`; Radius, Deckung und Dauer als Tokens | 41 Gruppen mit gleichem Deklarationsblock | mittel | Bemerkung |
 
 

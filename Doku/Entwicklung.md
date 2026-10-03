@@ -166,9 +166,9 @@ von Dateien `.lock`.
   `status = deleted` und dem Namen `deleted-<id>`.
 - `sessions`: aktive Anmeldungen. Die Karte „Meine Sitzungen" adressiert sie
   über eine abgeleitete Kennung, nie über den Sitzungsschlüssel.
-- `login_attempts`: Zähler der Anmeldebremse je Adresse und je Name. Liegt in
-  der Datenbank, damit ein Neustart eine Sperre nicht aufhebt. Zeilen ohne
-  neuen Versuch werden nach einer Stunde gelöscht.
+- `login_attempts`: Zähler der Anmeldebremse je Adresse (IPv6 je /64) und je
+  Name. Liegt in der Datenbank, damit ein Neustart eine Sperre nicht aufhebt.
+  Zeilen ohne neuen Versuch werden nach einer Stunde gelöscht.
 - `tokens`: Einladungs- und Rücksetzlinks, gespeichert als SHA-256. Sieben Tage
   gültig, einmal einlösbar; abgelaufene Zeilen werden nach dreißig Tagen
   gelöscht.
@@ -377,7 +377,9 @@ hinten an. Gelesen wird der Kopf nur, wenn die Verbindung aus dem eigenen Netz
 kommt (`PRIVATE_PEER` in `auth.js`: Loopback, private Netze, 100.64.0.0/10, ULA,
 Link-local); sonst gilt die Adresse der Verbindung.
 
-**Anmeldebremse.** Je Adresse läuft nur eine Prüfung von Passwort oder Code zur
+**Anmeldebremse.** Zähler und Warteschlange gelten je Adresse, bei IPv6 je /64
+(`addressBlock()` in `auth.js`); eine Adresse mit IPv4-Teil (`::ffff:a.b.c.d`)
+zählt einzeln. Je Adresse läuft nur eine Prüfung von Passwort oder Code zur
 Zeit (`brakeTurn()` in `server.js`): zwischen `checkThrottle()` und
 `noteFailure()` liegt scrypt, parallele Anfragen sähen sonst denselben
 Zählerstand. Das gilt für die Anmeldung, den zweiten Schritt, `/api/confirm`,

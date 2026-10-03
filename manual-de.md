@@ -32,7 +32,8 @@ Ohne Anmeldung ist nur der öffentliche Titel zu sehen. Sitzungen laufen nach
 
 Nach mehreren Fehlversuchen antwortet die Anmeldung verzögert. Nach zehn
 Fehlversuchen von derselben Adresse ist sie für einige Minuten gesperrt, auch
-über einen Neustart hinweg. Je Benutzername wird nur verzögert, nie gesperrt.
+über einen Neustart hinweg. Bei IPv6 zählt das ganze /64-Netz als eine Adresse.
+Je Benutzername wird nur verzögert, nie gesperrt.
 
 Ein ungültiger Einladungs- oder Rücksetzlink (abgelaufen, eingelöst, falsch
 oder Account gesperrt) ergibt immer dieselbe Meldung: „Dieser Link gilt nicht
@@ -271,15 +272,16 @@ Beim Anlegen zeigt „Ähnliche Titel: …“ vorhandene Einträge mit ähnliche
   Kategorie.
 - **Tags:** mehrere wählbar. Der Umschalter legt Und (Vorgabe) oder Oder fest.
   Gedämpfte Tags ergäben keinen Treffer mehr.
-- **◆ ★:** „Keine“ oder „Teilweise“, gemessen an den eigenen Sternen; ein
-  zweiter Klick schaltet aus. Ungetestete Einträge zählen mit „Potenzial“ (◆),
-  getestete mit „Bewertung“ (★). Der Titel der Gruppe nennt die Wörter aus dem
-  Vokabular. „Keine“: kein eigener Stern. „Teilweise“: weniger eigene Sterne als
-  die Schwelle, Vorgabe 80 % der Kriterien. Die Schwelle stellt ein Admin in
-  „Potenzial: Kriterien“ oder „Bewertung: Kriterien“ ein; beide Karten zeigen
-  denselben Wert. Ist der Potenzialmodus aus, steht nur ★, und ungetestete
-  Einträge fallen heraus; ebenso die Einträge eines Kastens ohne Kriterien.
-  Ohne Kriterien fehlt die Gruppe.
+- **◆ ★:** eine Leiste mit „Keine“, „Teilweise“ und 👍, gemessen an den eigenen
+  Sternen; ein zweiter Klick schaltet aus. Ungetestete Einträge zählen mit
+  „Potenzial“ (◆), getestete mit „Bewertung“ (★). Der Titel der Gruppe nennt die
+  Wörter aus dem Vokabular. „Keine“: kein eigener Stern. „Teilweise“: weniger
+  eigene Sterne als die Schwelle, Vorgabe 80 % der Kriterien. 👍: mindestens die
+  Schwelle. Die Schwelle stellt ein Admin in „Potenzial: Kriterien“ oder
+  „Bewertung: Kriterien“ ein; beide Karten zeigen denselben Wert. Ist der
+  Potenzialmodus aus, steht nur ★, und ungetestete Einträge fallen heraus;
+  ebenso die Einträge eines Kastens ohne Kriterien. Ohne Kriterien fehlt die
+  Gruppe.
 - **„Filter zurücksetzen (n)"** steht in der Sortierzeile, sobald ein Filter
   gesetzt ist. Suchbegriff, Sortierung und gespeicherte Ansichten bleiben.
 - **Sortierung:** nach Änderung, Bewertung, Potenzial, Titel, Zahl der
@@ -338,8 +340,10 @@ geht direkt dort.
   „Dateien“: dort lässt es sich hochladen.
 - Das erste Element ist das Hauptbild. Reihenfolge durch Ziehen der
   Vorschaubilder.
-- Blättern mit ← → oder den Pfeilen. Ein Klick öffnet das Vollbild, ein
-  weiterer zoomt auf Originalgröße. Esc, ✕ oben rechts und Zurück im Browser
+- Blättern mit ← → oder den Pfeilen. Ein Klick öffnet das Vollbild. Dort zeigt
+  ein Klick auf das Bild das Original in 100 %, die angeklickte Stelle bleibt an
+  ihrem Platz; „100 %“ oben zeigt die Mitte. Ein weiterer Klick zeigt wieder das
+  ganze Bild. Esc, ✕ oben rechts und Zurück im Browser
   schließen es, mit der Maus auch ein Klick neben das Bild. ↓ im Vollbild lädt
   die Datei herunter. Hat ein Video den Fokus, etwa nach einem Klick darauf, springen ←
   und → darin 5 Sekunden zurück oder vor, im Eintrag wie im Vollbild.
@@ -355,11 +359,11 @@ geht direkt dort.
   Kommentaren.
 - **Video ganz laden:** Im Vollbild steht oben bei einem Video „Ganz laden“,
   am Rechner bis 2 GB, am Telefon bis 500 MB. Der Knopf hält das Video an und
-  lädt die Datei einmal ganz; oben steht „geladen 45 %“. Danach spielt das
-  Video an derselben Stelle weiter, und Springen braucht kein Laden. Ein
-  zweiter Druck bricht ab. Die Kopie bleibt, bis die Seite neu geladen oder ein
-  anderes Video ganz geladen wird. Ohne den Knopf lädt der Browser das Video
-  wie gewohnt stückweise. Das gilt auch für Videos unter „Dateien“ und in
+  lädt die Datei einmal ganz; der Knopf zeigt dabei „Abbrechen 45 %“. Danach
+  spielt das Video an derselben Stelle weiter, und Springen braucht kein Laden.
+  Ein zweiter Druck bricht ab. Die Kopie bleibt, bis die Seite neu geladen oder
+  ein anderes Video ganz geladen wird. Ohne den Knopf lädt der Browser das
+  Video wie gewohnt stückweise. Das gilt auch für Videos unter „Dateien“ und in
   Kommentaren.
 - **Auswählen:** „Auswählen“ über der Bildleiste setzt ein Kästchen an jedes
   Foto und Video; Klick oder Leertaste wählt. Die Leiste darunter nennt die
@@ -470,7 +474,8 @@ unverändert.
   Esc beendet die Auswahl.
 - **Klick auf eine Datei:** Ein Bild oder Video öffnet das Vollbild; ← und →
   blättern durch Bilder und Videos derselben Gruppe, ohne Ordner oder im
-  selben Ordner, in der Folge der Anzeige. PDF, Text, Markdown, CSV,
+  selben Ordner, in der Folge der Anzeige. Oben steht der Dateiname, daneben
+  klein der Titel des Eintrags. PDF, Text, Markdown, CSV,
   Log und `.docx` zeigen die Vorschau unter den Kacheln, auf dem Telefon die
   eigene Ansicht. Hat der Admin einen Document Server eingeschaltet, gilt das
   auch für Word-, Excel- und PowerPoint-Dateien und ihre
@@ -920,9 +925,12 @@ Dieselbe Oberfläche, an Breite und Bedienung angepasst.
 - Am Bild blättert ein Wisch. Gelöscht wird am großen Bild, nicht an der
   Vorschaukachel.
 - Sortieren per Ziehen braucht mit dem Finger ein kurzes Halten.
-- Im Vollbild zoomt ein doppeltes Tippen. Ein Wisch blättert, bei einem Video
-  nur neben dem Video. Ein Tipp neben das Bild schließt nicht; die Zurück-Taste
-  schließt.
+- Im Vollbild zeigt ein doppeltes Tippen die angetippte Stelle in 100 %. Ein
+  Wisch blättert, bei einem Video nur neben dem Video. Während ein Video
+  spielt, sind die Pfeile ‹ › ausgeblendet. Ein Tipp neben das Bild schließt
+  nicht; die Zurück-Taste schließt.
+- Hochkant steht der Titel im Vollbild in einer eigenen Zeile neben ✕, die
+  Knöpfe darunter.
 - Quer fehlt im Vollbild der Streifen mit den Vorschaubildern; geblättert wird
   mit den Pfeilen oder durch Wischen.
 - Über „Zum Startbildschirm hinzufügen" im Browser lässt sich Kriterion wie

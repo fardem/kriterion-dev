@@ -1,6 +1,5 @@
-/* Kriterion — Pruefstand: einstellbare Bitrate der Proxys, Ersatz veralteter Proxys im Hintergrund,
-   „Proxy“ in der Liste, Groesse des Videos und Knopfleiste im Vollbild; Filter „Eigene Werte“ und Vollbild am Telefon;
-   Titel in der Mail und die Fehler aus der Durchsicht. */
+/* Kriterion — Pruefstand: Bitrate und Ersatz der Proxys, „Proxy“ in der Liste, Vollbild am Telefon, Filter ◆ ★
+   mit Keine · Teilweise · 👍, Titel in der Mail, Fehler aus der Durchsicht, Kontraste, IPv6 je /64. */
 const H = require('./frame.js');
 const D = require('./dom.js');
 const { buildDom, until, openRequests } = D;
@@ -350,6 +349,22 @@ async function run() {
       `${confirmed.status} ${tenth.status} ${after.status}`);
   }
 
+  group('Anmeldebremse: IPv6 je /64');
+  {
+    const burst = await Promise.all(Array.from({ length: 15 }, (_, n) =>
+      rPost('/api/login', { user: 'niemand', password: 'falsch-falsch-falsch' }, `2001:db8:5:6:${(n + 1).toString(16)}::1`)));
+    const n = (s) => burst.filter(a => a.status === s).length;
+    const written = await rPost('/api/login', { user: 'niemand', password: 'falsch-falsch-falsch' }, '2001:0DB8:0005:0006:ffff::9');
+    const neighbour = await rPost('/api/login', { user: 'niemand', password: 'falsch-falsch-falsch' }, '2001:db8:5:7::1');
+    check('15 parallele Fehlversuche von 15 Adressen eines /64: 10 werden geprueft, 5 gesperrt; das /64 daneben nicht',
+      n(401) === 10 && n(429) === 5 && written.status === 429 && neighbour.status === 401,
+      `${burst.map(a => a.status).join(' ')} · ${written.status} · ${neighbour.status}`);
+    check('Zaehler und Warteschlange nehmen denselben Schluessel; IPv4 und `::ffff:` bleiben je Adresse',
+      /const keyIp = \(ip\) => `ip:\$\{addressBlock\(ip\)\}`;/.test(read('auth.js')) &&
+      /if \(!net\.isIPv6\(address\) \|\| address\.includes\('\.'\)\) return address;/.test(read('auth.js')) &&
+      /const key = auth\.addressBlock\(ip\);\n  const before = BRAKE_QUEUE\.get\(key\)/.test(serverSource), 'Stelle fehlt');
+  }
+
   group('Server: Testtag, Vorschaubild, letzter Eigentuemer');
   {
     const itemId = (await R.call('POST', '/api/items', { title: 'Eintrag R' })).content?.id;
@@ -576,10 +591,10 @@ async function run() {
     const statusRow = () => w.document.getElementById('f-rejected')?.parentElement;
     const labels = [...(statusRow()?.querySelectorAll(':scope > .eyebrow') || [])].map(e => e.textContent);
     const counted = deText('list.ownValuesHint', { testedNo: 'Ungetestet', testedYes: 'Getestet', potential: 'Potenzial', ratingOne: 'Bewertung' });
-    check('Die Zeile „Potenzial / Bewertung“ entfaellt; „◆ ★: Keine · Teilweise“ steht am Ende der Statuszeile, ohne „Alle“',
+    check('Die Zeile „Potenzial / Bewertung“ entfaellt; „◆ ★: Keine · Teilweise · 👍“ steht am Ende der Statuszeile, ohne „Alle“',
       !w.document.getElementById('f-shares') && !!own() && own().parentElement === statusRow() &&
       statusRow().lastElementChild === own() && equal(labels, ['Status', 'Ablehnung', '◆ ★']) &&
-      equal(pills().map(b => b.textContent), ['Keine', 'Teilweise']), `${labels.join(' | ')} · ${pills().map(b => b.textContent).join(' ')}`);
+      equal(pills().map(b => b.textContent), ['Keine', 'Teilweise', '👍']), `${labels.join(' | ')} · ${pills().map(b => b.textContent).join(' ')}`);
     check('Der Titel der Knoepfe nennt, was zaehlt; bei „Teilweise“ zuerst die Schwelle',
       pills()[0]?.title === counted && pills()[1]?.title === `${deText('list.sharePartialHint', { share: 75 })}\n${counted}`,
       JSON.stringify(pills().map(b => b.title)));
@@ -599,6 +614,48 @@ async function run() {
     await click(pills()[0]);
     check('Mit dem Status „Getestet“ zaehlt nur die Bewertung', equal(shown(), ['G-keine']), shown().join(' '));
     w.close();
+  }
+
+  group('Uebersicht: Keine · Teilweise · 👍 als Leiste');
+  {
+    const items = [ownEntry(1, 'U-keine', false, { before: 'none', after: null }),
+      ownEntry(2, 'U-voll', false, { before: 'full', after: null }),
+      ownEntry(3, 'G-teil', true, { before: 'full', after: 'partial' }),
+      ownEntry(4, 'G-voll', true, { before: 'none', after: 'full' })];
+    const m = buildDom(JSDOM, { overviewItems: items, settings: { filters: null, userCount: 1, partialShare: 75 } });
+    const w = m.w;
+    await until(w, listReady, 2000, 'die Uebersicht').catch(() => {});
+    const own = () => w.document.getElementById('f-own');
+    const pills = () => [...(own()?.querySelectorAll('.pill') || [])];
+    const counted = deText('list.ownValuesHint', { testedNo: 'Ungetestet', testedYes: 'Getestet', potential: 'Potenzial', ratingOne: 'Bewertung' });
+    check('Eine Leiste mit drei Feldern; 👍 nennt im Titel „mindestens“ die Schwelle und was zaehlt',
+      !!own()?.classList.contains('seg') && equal(pills().map(b => b.textContent), ['Keine', 'Teilweise', '👍']) &&
+      pills()[2]?.title === `${deText('list.shareFullHint', { share: 75 })}\n${counted}` && pills()[2].title.startsWith('Mindestens 75 %'),
+      JSON.stringify(pills().map(b => [b.textContent, b.title])));
+    const shown = () => w.visibleItems().map(i => i.title).sort();
+    const click = async (el) => { el?.click(); await until(w, listReady, 1000, 'das Filtern').catch(() => {}); };
+    await click(pills()[2]);
+    check('👍: mindestens die Schwelle, jeder Eintrag in seiner Phase; ein Filter, gespeichert als `own: full`',
+      equal(shown(), ['G-voll', 'U-voll']) && w.filterNumber() === 1 && !!pills()[2]?.classList.contains('on') &&
+      m.sent.some(x => x.method === 'PUT' && x.url === '/api/settings' && x.body?.filters?.own === 'full'), shown().join(' '));
+    await click(pills()[2]);
+    check('Ein zweiter Klick auf 👍 schaltet aus', shown().length === 4 && w.filterNumber() === 0 &&
+      !pills().some(b => b.classList.contains('on')), `${shown().length} ${w.filterNumber()}`);
+    w.close();
+    const n = buildDom(JSDOM, { overviewItems: items, settings: { filters: { own: 'full' }, userCount: 1, partialShare: 75 } });
+    await until(n.w, listReady, 2000, 'die Uebersicht').catch(() => {});
+    const kept = [...(n.w.document.getElementById('f-own')?.querySelectorAll('.pill.on') || [])].map(b => b.textContent);
+    check('Ein gespeicherter Filter 👍 gilt nach dem Laden, auch in Ansichten',
+      equal(kept, ['👍']) && equal(n.w.visibleItems().map(i => i.title).sort(), ['G-voll', 'U-voll']) &&
+      n.w.filterNormal({ own: 'full' }).own === 'full', `${kept.join(' ')} ${n.w.visibleItems().length}`);
+    n.w.close();
+    const css = read('public/style.css');
+    check('Die Felder liegen ohne Abstand aneinander, die Raender uebereinander; aussen rund',
+      css.includes('.pills.seg { gap: 0; flex-wrap: nowrap; }') &&
+      css.includes('.pills.seg .pill { border-radius: 0; margin-left: -1px; }') &&
+      css.includes('.pills.seg .pill:first-child { border-radius: 999px 0 0 999px; margin-left: 0; }') &&
+      css.includes('.pills.seg .pill:last-child { border-radius: 0 999px 999px 0; }') &&
+      css.includes('.pills.seg .pill:hover, .pills.seg .pill.on { position: relative; }'), 'Regel fehlt');
   }
 
   group('Eigene Werte: alte Filter, ohne Potenzialmodus, ohne Kriterien');
@@ -996,6 +1053,198 @@ async function run() {
       /\.vspot \{ top: 62px; \}/.test(phone) && /\.upload-bar \{ top: auto; bottom: calc\(16px \+ env\(safe-area-inset-bottom\)\); \}/.test(phone) &&
       /\.filters\.closed, \.sys-tabs\.closed \{ display: none; \}/.test(folded) && (css.match(/\.sys-tabs\.closed/g) || []).length === 1,
       'Regel fehlt');
+  }
+
+  group('Vollbild: 100 % an der angetippten Stelle');
+  {
+    const d = buildDom(JSDOM, { hash: '#/item/1', settings: { filters: null, userCount: 1 } });
+    const w = d.w, doc = w.document;
+    await until(w, detailReady, 3000, 'die Detailansicht').catch(() => {});
+    doc.querySelector('#viewer img')?.click();
+    const lb = doc.querySelector('.lightbox');
+    const stage = lb?.querySelector('.lb-stage'), img = lb?.querySelector('.lb-stage img'), button = lb?.querySelector('.zoom');
+    check('Der Knopf heisst „100 %“; sein Titel und der Hinweis am Bild nennen 100 %',
+      button?.textContent === '100 %' && button.title === deText('list.zoomFull') && button.title.includes('100 %') &&
+      img?.title === deText('list.clickZoomHint') && img.title.includes('100 %') && button.getAttribute('aria-pressed') === 'false',
+      `${button?.textContent} | ${button?.title} | ${img?.title}`);
+    const box = (left, top, width, height) => () => ({ left, top, width, height, x: left, y: top, right: left + width, bottom: top + height });
+    const pointer = (pointerType, clientX, clientY) =>
+      img?.dispatchEvent(new w.PointerEvent('pointerup', { pointerType, clientX, clientY, bubbles: true }));
+    if (stage && img) {
+      stage.getBoundingClientRect = box(0, 50, 400, 600);
+      img.getBoundingClientRect = box(50, 150, 300, 400);
+    }
+    pointer('mouse', 125, 250);
+    const original = img?.getAttribute('src');
+    if (img) img.getBoundingClientRect = box(0, 50, 1200, 1600);
+    img?.dispatchEvent(new w.Event('load'));
+    check('Ein Klick laedt das Original; der Punkt unter dem Zeiger bleibt an seiner Stelle',
+      !!stage?.classList.contains('zoomed') && /\/raw$/.test(original || '') && button?.getAttribute('aria-pressed') === 'true' &&
+      stage.scrollLeft === 175 && stage.scrollTop === 200, `${original} ${stage?.scrollLeft}/${stage?.scrollTop}`);
+    pointer('mouse', 125, 250);
+    const back = [stage?.classList.contains('zoomed'), button?.getAttribute('aria-pressed'), img?.getAttribute('src')];
+    if (stage) ['scrollWidth', 'clientWidth', 'scrollHeight', 'clientHeight'].forEach((k, n) =>
+      Object.defineProperty(stage, k, { value: [1200, 400, 1600, 600][n], configurable: true }));
+    button?.click();
+    img?.dispatchEvent(new w.Event('load'));
+    check('Ein zweiter Klick zeigt das ganze Bild; der Knopf zeigt die Mitte',
+      back[0] === false && back[1] === 'false' && /size=medium/.test(back[2] || '') &&
+      stage?.scrollLeft === 400 && stage.scrollTop === 500, `${back.join(' ')} ${stage?.scrollLeft}/${stage?.scrollTop}`);
+    button?.click();
+    if (stage) { stage.scrollLeft = 0; stage.scrollTop = 0; }
+    if (img) img.getBoundingClientRect = box(50, 150, 300, 400);
+    pointer('touch', 100, 200);
+    pointer('touch', 275, 450);
+    if (img) img.getBoundingClientRect = box(0, 50, 1200, 1600);
+    img?.dispatchEvent(new w.Event('load'));
+    check('Am Telefon zaehlt die Stelle des zweiten Tipps',
+      !!stage?.classList.contains('zoomed') && stage.scrollLeft === 625 && stage.scrollTop === 800,
+      `${stage?.scrollLeft}/${stage?.scrollTop}`);
+    lb?.querySelector('.lb-nav.next')?.click();
+    check('Blaettern setzt den Knopf zurueck', button?.getAttribute('aria-pressed') === 'false' &&
+      !stage?.classList.contains('zoomed'), button?.getAttribute('aria-pressed'));
+    w.close();
+  }
+
+  group('Vollbild: Kopfzeile am Telefon und der Dateiname');
+  {
+    const m = buildDom(JSDOM, { hash: '#/item/1', settings: { filters: null, userCount: 1 },
+      extraAttachments: [video(82, 'probe-lang.mp4'), video(83, 'zweite.mp4')] });
+    const w = m.w;
+    await until(w, (z) => z.document.querySelector('#atts .atile[data-key="f83"]') && openRequests(z) === 0, 3000, 'die Kacheln');
+    const item = w.document.querySelector('.title-in')?.value ?? '';
+    w.document.querySelector('#atts .atile[data-key="f82"] .aface')?.click();
+    const lb = () => w.document.querySelector('.lightbox');
+    const parts = () => [lb()?.querySelector('.lb-name')?.textContent, lb()?.querySelector('.lb-of')?.textContent];
+    const first = parts();
+    lb()?.querySelector('.lb-nav.next')?.click();
+    const second = parts();
+    w.document.body.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    await until(w, () => !lb(), 1000, 'das Schliessen').catch(() => {});
+    w.document.querySelector('#viewer img')?.click();
+    const photo = parts();
+    check('Bei Dateien steht der Dateiname vorn, der Titel des Eintrags dahinter; bei Fotos nur der Titel',
+      !!item && equal(first, ['probe-lang.mp4', item]) && equal(second, ['zweite.mp4', item]) && equal(photo, ['', item]),
+      JSON.stringify([item, first, second, photo]));
+    w.close();
+    const css = read('public/style.css');
+    const narrow = (css.match(/@media \(max-width: 700px\) \{\n[\s\S]*?\n\}/) || [''])[0];
+    check('Hochkant am Telefon: Titel und ✕ in der ersten Zeile, die Knoepfe darunter; der Titel des Eintrags klein',
+      /\.lb-top \{ flex-wrap: wrap; \}/.test(narrow) && /\.lb-tools \{ order: 1; flex: 1 1 100%; \}/.test(narrow) &&
+      /\.lb-name:not\(:empty\) \+ \.lb-of \{ margin-left: 8px; font-size: \.8rem; font-weight: 400; color: var\(--muted\); \}/.test(css),
+      narrow.slice(0, 120) || 'Block fehlt');
+  }
+
+  group('Vollbild: Pfeile waehrend der Wiedergabe, Raender, Rollbalken, Streifen');
+  {
+    const d = buildDom(JSDOM, { hash: '#/item/1', settings: { filters: null, userCount: 1 } });
+    const w = d.w;
+    await until(w, detailReady, 3000, 'die Detailansicht').catch(() => {});
+    w.openLightbox([{ id: 5, kind: 'video' }, { id: 6 }], 0, 'Probe');
+    const lb = w.document.querySelector('.lightbox');
+    const player = lb?.querySelector('.lb-video');
+    let paused = true;
+    if (player) Object.defineProperty(player, 'paused', { configurable: true, get: () => paused });
+    const marked = [];
+    for (const [type, now] of [['play', false], ['pause', true], ['play', false], ['ended', true], ['play', false], ['emptied', true]]) {
+      paused = now;
+      player?.dispatchEvent(new w.Event(type));
+      marked.push(lb?.classList.contains('lb-playing'));
+    }
+    check('Waehrend ein Video spielt, traegt das Vollbild `lb-playing`; Pause, Ende und eine leere Quelle nehmen es weg',
+      equal(marked, [true, false, true, false, true, false]), JSON.stringify(marked));
+    lb?.querySelector('.close')?.click();
+    w.close();
+    const css = read('public/style.css');
+    const touch = (css.match(/@media \(hover: none\) \{\n[\s\S]*?\n\}/) || [''])[0];
+    check('Ohne Zeiger: keine Pfeile waehrend der Wiedergabe, keine Rollbalken an der gezoomten Buehne',
+      /\.lightbox\.lb-playing \.lb-nav \{ visibility: hidden; \}/.test(touch) &&
+      /\.lb-stage \{ scrollbar-width: none; \}/.test(touch) && /\.lb-stage::-webkit-scrollbar \{ display: none; \}/.test(touch) &&
+      /::-webkit-scrollbar-corner \{ background: transparent; \}/.test(css), touch.slice(0, 80) || 'Block fehlt');
+    check('Buehne, Streifen und Pfeile halten die Raender des Telefons ein',
+      /\.lightbox \{ padding: 0 env\(safe-area-inset-right\) env\(safe-area-inset-bottom\) env\(safe-area-inset-left\); \}/.test(css) &&
+      /\.lb-nav\.prev \{ left: calc\(16px \+ env\(safe-area-inset-left\)\); \} \.lb-nav\.next \{ right: calc\(16px \+ env\(safe-area-inset-right\)\); \}/.test(css) &&
+      !/\.lb-strip \{[^}]*safe-area/.test(css) && !/\.lb-top \{[^}]*safe-area-inset-(left|right)/.test(css), 'Regel fehlt');
+    check('Kacheln ohne Standbild sind nicht abgedunkelt, die Endung steht in --text-2; „Abbrechen 100 %“ passt in den Knopf',
+      /\.lb-thumb:has\(\.lb-ext\) \{[^}]*opacity: 1; \}/.test(css) && /\.lb-ext \{[^}]*color: var\(--text-2\); \}/.test(css) &&
+      /\.lb-btn\.whole\[aria-pressed="true"\] \{ min-width: calc\(15ch \+ 22px\); \}/.test(css) && /\n\.lb-count, \.lb-btn\.whole, /.test(css) &&
+      !/lb-loaded/.test(css), 'Regel fehlt');
+  }
+
+  group('Vorschau im Eintrag: Wischen mit einem Finger');
+  {
+    const d = buildDom(JSDOM, { hash: '#/item/1', settings: { filters: null, userCount: 1 } });
+    const w = d.w, doc = w.document;
+    await until(w, detailReady, 3000, 'die Detailansicht').catch(() => {});
+    const count = () => doc.querySelector('#viewer .vcount')?.textContent;
+    const touch = (type, points) => {
+      const e = new w.Event(type, { bubbles: true });
+      const list = points.map(([x, y]) => ({ clientX: x, clientY: y }));
+      Object.defineProperty(e, 'touches', { value: type === 'touchend' ? [] : list });
+      Object.defineProperty(e, 'changedTouches', { value: type === 'touchend' ? list : [list[list.length - 1]] });
+      (doc.querySelector('#viewer img') || doc.getElementById('viewer'))?.dispatchEvent(e);
+    };
+    const before = count();
+    touch('touchstart', [[300, 200]]);
+    touch('touchstart', [[300, 200], [340, 260]]);
+    touch('touchend', [[150, 205]]);
+    const twoFingers = count();
+    w.visualViewport = { scale: 2 };
+    touch('touchstart', [[300, 200]]);
+    touch('touchend', [[150, 205]]);
+    const pinched = count();
+    w.visualViewport = undefined;
+    touch('touchstart', [[300, 200]]);
+    touch('touchend', [[150, 205]]);
+    check('Ein zweiter Finger und eine gezoomte Seite blaettern nicht; ein Wisch mit einem Finger schon',
+      before === '1 / 2' && twoFingers === '1 / 2' && pinched === '1 / 2' && count() === '2 / 2',
+      `${before} ${twoFingers} ${pinched} ${count()}`);
+    w.close();
+  }
+
+  group('Kontraste: Fokus, Eingabefelder, Zeichen auf Fotos, Tastatur');
+  {
+    const css = read('public/style.css');
+    const flat = css.replace(/\/\*[\s\S]*?\*\//g, ' ');
+    const token = (block, name) => ((block.match(new RegExp(`--${name}: (#[0-9a-f]{6});`)) || [])[1]);
+    const dark = flat.slice(0, flat.indexOf(':root[data-theme="light"]'));
+    const light = flat.slice(flat.indexOf(':root[data-theme="light"]'), flat.indexOf('[data-theme="light"] .lightbox'));
+    const lum = (hex) => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255)
+      .map(v => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)).reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0);
+    const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return Math.round((x + 0.05) / (y + 0.05) * 100) / 100; };
+    const focusRules = flat.match(/[^{}]*:focus[^{}]*\{[^}]*\}/g) || [];
+    check('Fokusrahmen und Feldfokus in --accent-edge; im hellen Schema 5,38 : 1 auf Weiss',
+      /:focus-visible \{ outline: 2px solid var\(--accent-edge\);/.test(flat) && focusRules.length > 10 &&
+      !focusRules.some(r => /var\(--accent\)/.test(r)) && ratio(token(light, 'accent-text'), '#ffffff') === 5.38,
+      focusRules.filter(r => /var\(--accent\)/.test(r)).join(' | ').slice(0, 160));
+    const edge = [token(dark, 'input-edge'), token(light, 'input-edge')];
+    const fields = ['.input', '.ta', '.select'].map(sel => (flat.match(new RegExp(`\\n${sel.replace('.', '\\.')} \\{[^}]*\\}`)) || [''])[0]);
+    check('Eingabefelder haben einen eigenen Rand mit mindestens 3 : 1 gegen die Karte, in beiden Schemata',
+      ratio(edge[0], token(dark, 'surface')) >= 3 && ratio(edge[1], token(light, 'surface')) >= 3 &&
+      fields.every(r => /border: 1px solid var\(--input-edge\);/.test(r)) &&
+      ['.input', '.ta', '.select'].every(sel => flat.includes(`${sel}:hover { border-color: var(--muted); }`)),
+      `${edge.join(' ')} ${ratio(edge[0], token(dark, 'surface'))} ${ratio(edge[1], token(light, 'surface'))}`);
+    const rule = (sel) => (flat.match(new RegExp(`(^|\\n)${sel.replace(/[.()[\]]/g, '\\$&')} \\{[^}]*\\}`)) || [''])[0];
+    check('Auf Fotos: Pfeile und Werkzeuge beim Zeigen in --on-photo-strong, ▶ in --on-photo; die Farben gelten in beiden Schemata',
+      /color: var\(--on-photo-strong\);/.test(rule('.vnav')) && /color: var\(--on-photo\);/.test(rule('.card-play')) &&
+      /color: var\(--on-photo\);/.test(flat.match(/\.thumb \.play-badge, [^{]*\{[^}]*\}/)?.[0] || '') &&
+      /color: var\(--on-photo-strong\);/.test(rule('.vfocus:hover, .vlink:hover, .vfull:hover, .vremove:hover')) &&
+      token(dark, 'on-photo-strong') === '#e9ecef' && !token(light, 'on-photo-strong') && !token(light, 'badge-gold'), rule('.vnav'));
+    check('Knoepfe, die nur beim Zeigen erscheinen, erscheinen auch mit dem Tastaturfokus',
+      ['.viewer:hover .vnav, .vnav:focus-visible', '.thumb:hover .del, .thumb .del:focus-visible',
+        '.lrow:hover .xdel, .trow:hover .xdel, .xdel:focus-visible', '.mrow:hover .mact, .mrow .mact:focus-visible',
+        '.viewer:hover .vtools, .vtools:has(:focus-visible)', '.cmt-img:hover .del, .cmt-img .del:focus-visible']
+        .every(sel => flat.includes(`${sel} { opacity: 1; }`)), 'Regel fehlt');
+    check('Im Datei- und Ordnermenue hat der Fokus einen Rahmen',
+      flat.includes('.fmenu-item:focus-visible { background: var(--surface-3); outline: 2px solid var(--accent-edge); outline-offset: -2px; }') &&
+      !/\.fmenu-item:focus-visible[^{]*\{[^}]*outline: none/.test(flat), 'Regel fehlt');
+    const touchBlock = (flat.match(/@media \(hover: none\) \{\n[\s\S]*?\n\}/) || [''])[0];
+    const alpha = (text, rgb) => (text.match(new RegExp(`background: rgba\\(var\\(--${rgb}\\), ([.\\d]+)\\)`)) || [])[1];
+    const vnavBack = (touchBlock.match(/\.vnav:hover \{[^}]*\}/) || [''])[0], lbBack = (touchBlock.match(/\.lb-nav:hover \{[^}]*\}/) || [''])[0];
+    check('Ohne Zeiger nimmt die Ruecknahme die Werte der Ausgangsregeln',
+      alpha(vnavBack, 'tool-rgb') === alpha(rule('.vnav'), 'tool-rgb') && alpha(vnavBack, 'tool-rgb') === '.86' &&
+      alpha(lbBack, 'lb-surface-rgb') === alpha(rule('.lb-nav'), 'lb-surface-rgb') && alpha(lbBack, 'lb-surface-rgb') === '.9' &&
+      /color: var\(--on-photo-strong\);/.test(vnavBack), `${alpha(vnavBack, 'tool-rgb')} ${alpha(lbBack, 'lb-surface-rgb')}`);
   }
 
   group('Werkzeuge, Image und Texte aus der Durchsicht');

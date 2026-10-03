@@ -507,7 +507,6 @@ async function run() {
       x.show = (key, { playing = false } = {}) => {
         faceOf(w, key)?.click();
         x.player = w.document.querySelector('.lightbox .lb-video');
-        x.loaded = w.document.querySelector('.lightbox .lb-loaded');
         x.button = w.document.querySelector('.lightbox .lb-btn.whole');
         x.resumed = 0;
         if (!x.player) return x;
@@ -531,20 +530,20 @@ async function run() {
     check('Der Knopf haelt das Video an und holt die ganze Datei einmal, ohne Cache; der Player hat keine Quelle',
       a.calls.length === 1 && a.calls[0].url === NET && a.calls[0].cache === 'no-store' &&
       a.player.getAttribute('src') === null && a.button.getAttribute('aria-pressed') === 'true' &&
-      a.button.textContent === deText('dialog.cancel'),
+      a.button.textContent === deText('entry.loadWholeCancel', { n: 0 }),
       `${JSON.stringify(a.calls.map(c => [c.url, c.cache]))} ${a.player.getAttribute('src')} ${a.button.textContent}`);
     a.push(450);
-    await until(a.w, () => a.loaded.hidden === false, 1000, 'die Anzeige').catch(() => {});
-    check('Waehrend des Ladens steht „geladen 45 %“ am Video',
-      a.loaded.hidden === false && a.loaded.textContent === deText('entry.videoLoaded', { n: 45 }),
-      `${a.loaded.hidden} ${a.loaded.textContent}`);
+    const at45 = deText('entry.loadWholeCancel', { n: 45 });
+    await until(a.w, () => a.button.textContent === at45, 1000, 'die Anzeige').catch(() => {});
+    check('Waehrend des Ladens steht „Abbrechen 45 %“ im Knopf; eine eigene Anzeige daneben gibt es nicht',
+      a.button.textContent === at45 && !a.w.document.querySelector('.lightbox .lb-loaded'), a.button.textContent);
     a.push(550);
     a.end();
     await until(a.w, () => a.player.getAttribute('src') === 'blob:probe-1', 1000, 'den Wechsel').catch(() => {});
     check('Danach spielt das Video aus der Kopie an derselben Stelle weiter; Anzeige und Knopf gehen',
       a.player.getAttribute('src') === 'blob:probe-1' && a.player.currentTime === 12 && a.resumed === 1 &&
-      a.loaded.hidden === true && a.button.hidden === true,
-      `${a.player.getAttribute('src')} ${a.player.currentTime} ${a.resumed} ${a.loaded.hidden} ${a.button.hidden}`);
+      a.button.textContent === deText('entry.loadWhole') && a.button.hidden === true,
+      `${a.player.getAttribute('src')} ${a.player.currentTime} ${a.resumed} ${a.button.textContent} ${a.button.hidden}`);
     press(a.w.document.body, 'Escape');
     a.show('f48');
     check('Nach dem Schliessen spielt dasselbe Video aus der Kopie, ohne zu laden',
@@ -572,11 +571,11 @@ async function run() {
     b.button.click();
     await until(b.w, () => b.calls.length === 1, 1000, 'den Abruf').catch(() => {});
     b.push(300);
-    await until(b.w, () => b.loaded.hidden === false, 1000, 'die Anzeige').catch(() => {});
+    await until(b.w, () => b.button.textContent === deText('entry.loadWholeCancel', { n: 30 }), 1000, 'die Anzeige').catch(() => {});
     b.button.click();
     check('Ein zweiter Druck bricht ab; das Video spielt aus dem Netz an derselben Stelle weiter',
       b.calls[0]?.signal?.aborted === true && b.player.getAttribute('src') === NET && b.player.currentTime === 30 &&
-      b.resumed === 1 && b.loaded.hidden === true && b.button.getAttribute('aria-pressed') === 'false',
+      b.resumed === 1 && b.button.textContent === deText('entry.loadWhole') && b.button.getAttribute('aria-pressed') === 'false',
       `${b.calls[0]?.signal?.aborted} ${b.player.getAttribute('src')} ${b.player.currentTime} ${b.resumed}`);
     b.button.click();
     await until(b.w, () => b.calls.length === 2, 1000, 'den neuen Abruf').catch(() => {});
@@ -601,7 +600,7 @@ async function run() {
     c.button.click();
     await until(c.w, () => c.calls[0]?.signal?.aborted, 1000, 'den Abbruch').catch(() => {});
     check('Ohne bekannte Groesse entscheidet Content-Length; darueber bricht der Abruf ab, die Adresse kommt zurueck',
-      c.calls.length === 1 && c.calls[0].signal?.aborted === true && c.loaded.hidden === true &&
+      c.calls.length === 1 && c.calls[0].signal?.aborted === true && c.button.textContent === deText('entry.loadWhole') &&
       c.player.getAttribute('src') === NET, `${c.calls[0]?.signal?.aborted} ${c.player.getAttribute('src')}`);
     press(c.w.document.body, 'Escape');
     c.w.close();
@@ -612,8 +611,8 @@ async function run() {
     d.end();
     await wait(50);
     check('Ist der Blob kuerzer als die Datei, kommt die Adresse zurueck; die Anzeige geht',
-      d.player.getAttribute('src') === NET && d.loaded.hidden === true && d.revoked.length === 0,
-      `${d.player.getAttribute('src')} ${d.loaded.hidden}`);
+      d.player.getAttribute('src') === NET && d.button.textContent === deText('entry.loadWhole') && d.revoked.length === 0,
+      `${d.player.getAttribute('src')} ${d.button.textContent}`);
     press(d.w.document.body, 'Escape');
     d.w.close();
   }

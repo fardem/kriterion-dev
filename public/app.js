@@ -2759,7 +2759,7 @@ const FILTER_DEFAULT = { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'a
                          sort: 'updated_desc' };
 /* Filter nach den eigenen Werten; `share` am Eintrag rechnet der Server mit der Schwelle aus den
    Einstellungen. Nennt er keine Phase, fehlt die Gruppe, und der Wert gilt als 'all'. */
-const SHARE_VALUES = ['all', 'none', 'partial'];
+const SHARE_VALUES = ['all', 'none', 'partial', 'full'];
 const sharePhase = (i) => (i.tested ? 'after' : 'before');
 const shareShown = () => state.all.some(i => i.share && Object.keys(i.share).length > 0);
 const shareWanted = (f) => (shareShown() ? f.own : 'all');
@@ -3598,9 +3598,10 @@ function drawFilters() {
     const counted = POTENTIAL_MODE ? t('list.ownValuesHint') : t('list.ownRatingHint');
     secondLabel(r1, POTENTIAL_MODE ? '◆ ★' : '★').title = counted;
     const g = document.createElement('div');
-    g.className = 'pills'; g.id = 'f-own';
+    g.className = 'pills seg'; g.id = 'f-own';
     [['none', t('list.shareNone'), counted],
-     ['partial', t('list.sharePartial'), `${t('list.sharePartialHint', { share: PARTIAL_SHARE })}\n${counted}`]].forEach(([v, l, hint]) => {
+     ['partial', t('list.sharePartial'), `${t('list.sharePartialHint', { share: PARTIAL_SHARE })}\n${counted}`],
+     ['full', '👍', `${t('list.shareFullHint', { share: PARTIAL_SHARE })}\n${counted}`]].forEach(([v, l, hint]) => {
       const b = document.createElement('button');
       b.className = 'pill' + (f.own === v ? ' on' : '');
       b.textContent = l;
@@ -4623,17 +4624,16 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
   lb.className = 'lightbox';
   lb.innerHTML = `
     <div class="lb-top">
-      <span class="lb-title">${esc(title || '')}</span>
+      <span class="lb-title"><span class="lb-name"></span><span class="lb-of">${esc(title || '')}</span></span>
       <div class="lb-tools">
         ${remove ? `<button class="lb-btn remove" title="${esc(t('dialog.delete'))}">${ICON_TRASH}</button>` : ''}
-        <span class="lb-loaded" hidden></span>
         <button class="lb-btn whole" hidden aria-pressed="false">${tH('entry.loadWhole')}</button>
         <button class="lb-btn original" hidden></button>
         <span class="lb-count"></span>
         ${info ? `<button class="lb-btn info" title="${esc(t('entry.mediaInfo'))}" aria-label="${esc(t('entry.mediaInfo'))}">${ICON_INFO}</button>` : ''}
         ${linkOf ? `<button class="lb-btn copy" title="${esc(t('entry.copyLink'))}">${ICON_LINK}</button>` : ''}
         <a class="lb-btn download" download title="${esc(t('entry.download'))}">↓</a>
-        <button class="lb-btn zoom" title="${esc(t('list.zoomFull'))}">⊕</button>
+        <button class="lb-btn zoom" title="${esc(t('list.zoomFull'))}" aria-pressed="false">${tH('list.zoomActual')}</button>
         ${still ? `<button class="lb-btn still" title="${esc(t('entry.setStill'))}" aria-label="${esc(t('entry.setStill'))}">${ICON_STILL}</button>` : ''}
       </div>
       <button class="lb-btn close" title="${esc(t('list.closeEsc'))}">${ICON_X}</button>
@@ -4662,7 +4662,6 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
   const player = lb.querySelector('.lb-video');
   const note = lb.querySelector('.lb-unplayable');
   const strip = lb.querySelector('.lb-strip');
-  const loaded = lb.querySelector('.lb-loaded');
   let spot = null;
 
   // Video ganz laden, nur auf Knopfdruck. `loading`: der laufende Abruf mit Stelle und Zustand davor.
@@ -4673,7 +4672,7 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
     const copied = !!wholeCopy && player.getAttribute('src') === wholeCopy.url;
     wholeButton.hidden = player.hidden || !note.hidden || playBytes(photos[i], original) > WHOLE_BYTES() ||
       (!loading && (copied || !player.getAttribute('src')));
-    wholeButton.textContent = loading ? t('dialog.cancel') : t('entry.loadWhole');
+    wholeButton.textContent = loading ? t('entry.loadWholeCancel', { n: loading.percent }) : t('entry.loadWhole');
     wholeButton.title = loading ? t('entry.loadWholeStop') : t('entry.loadWholeTitle');
     wholeButton.setAttribute('aria-pressed', String(!!loading));
   }
@@ -4682,7 +4681,6 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
     if (!was) return;
     loading = null;
     was.stop.abort();
-    loaded.hidden = true;
     if (backToAddress) {
       player.src = was.source;
       player.currentTime = was.at;
@@ -4693,7 +4691,7 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
   async function loadWhole() {
     const p = photos[i], source = player.getAttribute('src'), limit = WHOLE_BYTES();
     if (loading || !source || playBytes(p, original) > limit) return;
-    const mine = loading = { source, at: player.currentTime, playing: !player.paused, stop: new AbortController() };
+    const mine = loading = { source, at: player.currentTime, playing: !player.paused, stop: new AbortController(), percent: 0 };
     // Ohne Quelle laedt der Player waehrend des Abrufs nichts nach.
     player.pause();
     player.removeAttribute('src');
@@ -4706,14 +4704,13 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
       const [keep, count] = r.body.tee();
       const blob = new Response(keep, { headers: { 'Content-Type': r.headers.get('Content-Type') || '' } }).blob();
       const reader = count.getReader();
-      for (let got = 0, shown = -1; ;) {
+      for (let got = 0; ;) {
         const { done, value } = await reader.read();
         if (done) break;
         got += value.length;
-        if (Math.floor(got * 100 / total) === shown) continue;
-        shown = Math.floor(got * 100 / total);
-        loaded.textContent = t('entry.videoLoaded', { n: shown });
-        loaded.hidden = false;
+        if (Math.floor(got * 100 / total) === mine.percent) continue;
+        mine.percent = Math.floor(got * 100 / total);
+        markWhole();
       }
       const ready = await blob;
       // Chromium ohne Profil haelt knapp 2 GB; darueber meldet der Blob seine Groesse, liest aber nicht.
@@ -4726,7 +4723,6 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
       player.src = wholeCopy.url;
       player.currentTime = mine.at;
       if (mine.playing) player.play()?.catch?.(() => {});
-      loaded.hidden = true;
       markWhole();
     } catch {
       if (loading === mine) stopLoading(true);
@@ -4794,12 +4790,28 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
     handover = null;
   };
 
-  // Erst nach dem Laden des Originals stimmt scrollWidth fuer die Mitte.
-  img.addEventListener('load', () => { if (zoomed) centerStage(stage); });
+  // Erst nach dem Laden des Originals stimmen scrollWidth und die Lage des Bildes.
+  let zoomAt = null;
+  img.addEventListener('load', () => {
+    if (!zoomed) return;
+    if (!zoomAt) { centerStage(stage); return; }
+    const view = stage.getBoundingClientRect(), box = img.getBoundingClientRect();
+    stage.scrollLeft += box.left - view.left + zoomAt.fx * box.width - zoomAt.x;
+    stage.scrollTop += box.top - view.top + zoomAt.fy * box.height - zoomAt.y;
+  });
 
-  function setZoom(on) {
+  function setZoom(on, click) {
     zoomed = on;
+    zoomAt = null;
+    if (on && click) {
+      const view = stage.getBoundingClientRect(), box = img.getBoundingClientRect();
+      if (box.width > 0 && box.height > 0) {
+        zoomAt = { fx: (click.clientX - box.left) / box.width, fy: (click.clientY - box.top) / box.height,
+          x: click.clientX - view.left, y: click.clientY - view.top };
+      }
+    }
     stage.classList.toggle('zoomed', on);
+    lb.querySelector('.zoom').setAttribute('aria-pressed', String(on));
     // Erst beim Zoom wird das unveraenderte Original geladen.
     img.src = imageSource(photos[i], on ? '' : 'medium');
   }
@@ -4808,6 +4820,7 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
     if (i >= photos.length) i = 0;
     zoomed = false;
     stage.classList.remove('zoomed');
+    lb.querySelector('.zoom').setAttribute('aria-pressed', 'false');
     spot?.stop();
     spot = null;
     hold();
@@ -4839,6 +4852,7 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
     lb.querySelector('.zoom').hidden = !hasOriginal(photos[i]);
     img.title = hasOriginal(photos[i]) ? t('list.clickZoomHint') : '';
     lb.querySelector('.lb-count').textContent = `${i + 1} / ${photos.length}`;
+    lb.querySelector('.lb-name').textContent = photos[i].source === 'file' ? photos[i].filename || '' : '';
     const bin = lb.querySelector('.remove');
     if (bin && removable) bin.hidden = !removable(photos[i]);
     const keep = lb.querySelector('.still');
@@ -4888,6 +4902,9 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
     link.href = imageSource(photos[i], '');
   }
   player.addEventListener('error', unplayable);
+  // `.lb-playing` blendet ohne Zeiger die Pfeile aus, die sonst ueber dem laufenden Video liegen.
+  const markPlaying = () => lb.classList.toggle('lb-playing', !player.paused);
+  ['play', 'pause', 'ended', 'emptied'].forEach(type => player.addEventListener(type, markPlaying));
   // HEVC in Chrome: Ton ohne Bild, videoWidth bleibt 0.
   player.addEventListener('loadedmetadata', () => { if (!player.videoWidth) unplayable(); });
 
@@ -4955,7 +4972,6 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
   });
   lb.querySelector('.copy')?.addEventListener('click',
     () => copyText(linkOf(photos[i]), t('card.linkCopied')));
-  /* Geloescht wird das gerade gezeigte Bild. */
   lb.querySelector('.remove')?.addEventListener('click', async () => {
     const removed = photos[i];
     if (!await remove(removed)) return;
@@ -4971,9 +4987,9 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
   let lastTap = 0;
   img.addEventListener('pointerup', (e) => {
     if (!hasOriginal(photos[i])) return;
-    if (e.pointerType !== 'touch') { setZoom(!zoomed); return; }
+    if (e.pointerType !== 'touch') { setZoom(!zoomed, e); return; }
     const now = Date.now();
-    if (now - lastTap < DOUBLE_TAP) { lastTap = 0; setZoom(!zoomed); }
+    if (now - lastTap < DOUBLE_TAP) { lastTap = 0; setZoom(!zoomed, e); }
     else lastTap = now;
   });
   lb.querySelector('.prev')?.addEventListener('click', () => { i--; show(); });
@@ -6442,10 +6458,11 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   const stage = document.getElementById('viewer');
   const SWIPE_DISTANCE = 45;
   let swipeX = 0, swipeY = 0, swipes = false;
+  // Bei jedem `touchstart` neu: ein zweiter Finger oder eine gezoomte Seite blaettert nicht.
   stage.addEventListener('touchstart', e => {
-    if (cropMode || e.touches.length !== 1 || item.photos.length < 2) return;
-    if (e.target.closest('video')) return;
-    swipeX = e.touches[0].clientX; swipeY = e.touches[0].clientY; swipes = true;
+    swipes = !cropMode && e.touches.length === 1 && item.photos.length > 1 && !e.target.closest('video') &&
+      !(window.visualViewport?.scale > 1);
+    if (swipes) { swipeX = e.touches[0].clientX; swipeY = e.touches[0].clientY; }
   }, { passive: true });
   stage.addEventListener('touchend', e => {
     if (!swipes || cropMode) return;

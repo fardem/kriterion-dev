@@ -2060,8 +2060,9 @@ async function run() {
   check('Und er ist groesser als die Fotozahl daneben',
     parseFloat((ruleFav.match(/font-size: *([\d.]+)rem/) || [0, 0])[1]) >= 1,
     ruleFav);
-  check('Er bleibt dabei gold -- keine neue Farbe',
-    /color: *var\(--gold\)/.test(ruleFav), ruleFav);
+  check('Er bleibt dabei gold; auf dem Foto in beiden Schemata #ffc531',
+    /color: *var\(--badge-gold\)/.test(ruleFav) && /--badge-gold: #ffc531;/.test(cssFav) &&
+    (cssFav.match(/--badge-gold:/g) || []).length === 1, ruleFav);
   // Gold steht fuer Bewertung und Favorit, Orange fuer Bedienung.
   check('Der Filterknopf faerbt sich nicht gold',
     !/\.pill-sep\.on \{[^}]*var\(--gold\)/.test(cssFav),

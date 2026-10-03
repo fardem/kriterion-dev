@@ -1516,8 +1516,8 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Auf dem Finger traegt die Vorschaukachel kein Kreuz mehr',
     /@media \(hover: none\) \{ \.thumb \.del \{ display: none; \} \}/.test(cssEng),
     (cssEng.match(/@media \(hover: none\) \{ \.thumb \.del[^}]*\}/) || ['(keine Regel)'])[0]);
-  check('Am Zeigegeraet bleibt es beim Ueberfahren',
-    /\.thumb:hover \.del \{ opacity: 1; \}/.test(cssEng));
+  check('Am Zeigegeraet bleibt es beim Ueberfahren und mit dem Tastaturfokus',
+    /\.thumb:hover \.del, \.thumb \.del:focus-visible \{ opacity: 1; \}/.test(cssEng));
   /* Mit opacity: 0 bliebe das Kreuz antippbar. */
   check('Und zwar herausgenommen, nicht nur unsichtbar gemacht',
     !/@media \(hover: none\) \{ \.thumb \.del \{ (opacity|visibility)/.test(cssEng),
@@ -5619,7 +5619,8 @@ async function sendImport(object, mode, withoutShare = false) {
   const pkSince = Date.now(), pkNap = (ms) => new Promise(r => setTimeout(r, ms));
   while (pkPending() && Date.now() - pkSince < 10000) await pkNap(100);
   const pkMoved = pkPending() === 0;
-  check('Die Umlagerung beim Start ist fertig, bevor geloescht wird', pkMoved, 'nach 10 s noch Dateien in der Datenbank');
+  check('Die Umlagerung beim Start ist fertig, bevor geloescht wird', pkMoved,
+    `nach 10 s noch ${pkPending()} Dateien in der Datenbank; Server: ${PK.log().split('\n').filter(Boolean).slice(-6).join(' | ')}`);
 
   /* Ausgangsstand fuer den Vergleich. `|| {}`: ohne Eintrag werden die Pruefungen
      rot, statt dass der Lauf abreisst. */
