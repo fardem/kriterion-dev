@@ -39,7 +39,7 @@ Gemessen am fertigen Stand gegen 0.56.2.
 | Schlüssel je Sprachdatei | 1.560 | **1.563** |
 | Kommentarzeilen | 7.263 in 58 Dateien | **7.275** in 58 |
 | Rückbauten | 1.754 | **1.811** |
-| Prüfungen im Prüfstand | 8.286 | **PRUEF** |
+| Prüfungen im Prüfstand | 8.286 | **8.329** |
 | Zeilen `CHANGELOG.md` | 1.312 | **1.349** |
 
 Anleitung, Zeilen: `manual.md` 941 → 944, `manual-de.md` 962 → 964,
@@ -208,4 +208,4 @@ Arbeitsbaums, mit der erwarteten Gruppe als Filter: **73 von 73 rot**. 564,
 Bereitschaftsgrund der Karte nicht leer ist; die Prüfung verlangt seitdem die
 Antwort 550 des SMTP-Servers.
 
-Der volle Lauf vor dem Push: **PRUEF von PRUEF** Prüfungen bestanden.
+Der volle Lauf vor dem Push: **8.329 von 8.329** Prüfungen bestanden.
