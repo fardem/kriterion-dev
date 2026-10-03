@@ -373,7 +373,17 @@ Cookiename, `Secure` und `Strict-Transport-Security` hängen an
 | `Strict-Transport-Security` | `max-age=31536000` | nein |
 
 Aus `X-Forwarded-For` gilt der letzte Eintrag: der Proxy hängt die Gegenstelle
-hinten an.
+hinten an. Gelesen wird der Kopf nur, wenn die Verbindung aus dem eigenen Netz
+kommt (`PRIVATE_PEER` in `auth.js`: Loopback, private Netze, 100.64.0.0/10, ULA,
+Link-local); sonst gilt die Adresse der Verbindung.
+
+**Anmeldebremse.** Je Adresse läuft nur eine Prüfung von Passwort oder Code zur
+Zeit (`brakeTurn()` in `server.js`): zwischen `checkThrottle()` und
+`noteFailure()` liegt scrypt, parallele Anfragen sähen sonst denselben
+Zählerstand. Das gilt für die Anmeldung, den zweiten Schritt, `/api/confirm`,
+`PUT /api/account` und die Routen des zweiten Faktors. Eine gelungene Anmeldung
+und das Einlösen eines Links setzen den Zähler der Adresse zurück, der
+Bestätigungslink der Registrierung nicht.
 
 ## Prüfstand
 

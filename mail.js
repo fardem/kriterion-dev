@@ -97,9 +97,11 @@ function checkInput(input, before) {
 
   const user = String(e.user ?? '').trim();
   const sender = String(e.sender ?? '').trim();
+  const sameAccount = provider === old.provider && user === old.user &&
+    (v.key !== 'eigen' || String(e.server || '').trim() === old.server);
   // Nicht trimmen: ein Leerzeichen am Ende kann zum Passwort gehoeren.
   const password = typeof e.password === 'string' && e.password !== ''
-    ? e.password : String(old.password || '');
+    ? e.password : (sameAccount ? String(old.password || '') : '');
 
   if (!user) throw message('mail.userMissing');
   if (!password) throw message('mail.passwordMissing');

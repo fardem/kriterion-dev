@@ -3571,6 +3571,9 @@ async function run() {
       afRows(d).filter(z => /löschen/i.test(z)).length === 3 &&
       afRows(d).length === 5,
       afRows(d).join(' · '));
+    check('Das Feld bleibt beim Tippen stehen: dasselbe Element, Fokus und Speichern beim Verlassen bleiben',
+      !!afKeep && d.w.document.getElementById('cleanup-keep') === afKeep && afKeep.value === '2',
+      String(d.w.document.getElementById('cleanup-keep') === afKeep));
     check('Und gespeichert wurde dabei nichts',
       !d.sent.some(x => x.method === 'PUT' && x.url === '/api/settings') &&
       !d.sent.some(x => x.url === '/api/backup/cleanup'),
@@ -3627,8 +3630,8 @@ async function run() {
     check('Mit Bestaetigung geht das Loeschen hinaus',
       outcome.length === 1 && outcome[0].method === 'POST' && outcome[0].body?.kind === 'rule',
       d.sent.slice(-3).map(x => `${x.method} ${x.url} ${JSON.stringify(x.body)}`).join(' · '));
-    check('Und der Rumpf traegt genau ein Feld, und das ist die Art',
-      equal(Object.keys(outcome[0]?.body || {}), ['kind']),
+    check('Und der Rumpf traegt die Art und die angezeigten Werte',
+      equal(outcome[0]?.body, { kind: 'rule', keep: 3, days: 30 }),
       JSON.stringify(outcome[0]?.body));
     check('Eine Meldung nennt, wie viele wirklich geloescht wurden',
       /2 Backups gelöscht/.test(d.w.document.querySelector('.toast')?.textContent || ''),

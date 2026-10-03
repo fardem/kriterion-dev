@@ -1568,6 +1568,11 @@ html:has(> body.lb-open) { overflow: hidden; }
 .share-in { width: 5.5em; margin: 0 4px 0 8px; }
 .minfo-head { margin: 14px 0 2px; font-size: .8rem; font-weight: 620; color: var(--muted); }
 .minfo-head:first-child { margin-top: 0; }
+.minfo-group > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 7px; user-select: none; }
+.minfo-group > summary::-webkit-details-marker { display: none; }
+.minfo-group > summary::before { content: ''; width: .45em; height: .45em; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform .15s var(--ease); }
+.minfo-group[open] > summary::before { transform: rotate(45deg); }
+.minfo-group > summary:hover { color: var(--text-2); }
 .adeleted-list { list-style: none; margin: 0; padding: 0; max-height: 55vh; overflow-y: auto; }
 .adeleted-list li + li { border-top: 1px solid var(--line); }
 .adeleted-list label { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; align-items: baseline; padding: 6px 0; }
@@ -2210,7 +2215,6 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
 .filter-toggle .fcount { font-family: var(--mono); font-size: .72rem; color: var(--faint); }
 .sys-toggle { display: none; align-items: center; gap: 7px; margin-bottom: 12px; }
 .sys-toggle .fcount { font-family: var(--mono); font-size: .72rem; color: var(--faint); }
-.sys-tabs.closed { display: none; }
 .filter-toggle.active { border-color: var(--accent-line); color: var(--text); }
 .filter-toggle.active .fcount { color: var(--accent-text); }
 
@@ -2248,6 +2252,9 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
   .server-row { flex-wrap: wrap; }
   .server-row code { flex: 1 1 100%; overflow-x: visible;
     white-space: pre-wrap; overflow-wrap: anywhere; }
+  .mrow.user { flex-wrap: wrap; row-gap: 4px; }
+  .mrow.user .mname { flex: 1 0 100%; }
+  .mrow.user .user-act { margin-left: auto; }
 }
 
 /* Suche in eigener Zeile nur bei schmalem, nicht bei niedrigem Fenster: quer
@@ -2416,11 +2423,16 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      Einstellungen 241 px. Eingeklappt startet nur das Telefon. */
   .filter-toggle { display: inline-flex; }
   .sys-toggle { display: inline-flex; }
-  .filters.closed { display: none; }
+  .filters.closed, .sys-tabs.closed { display: none; }
 }
 
 /* ---- Telefon ---- */
 @media (max-width: 700px), (max-height: 500px) and (max-width: 960px) {
+
+  /* Unter den Werkzeugen des Videos: 10 px Abstand oben, 44 px Knopf, 8 px Luft. */
+  .vspot { top: 62px; }
+  .upload-bar { top: auto; bottom: calc(16px + env(safe-area-inset-bottom)); }
+  body:has(.cmp-bar) .upload-bar { bottom: calc(90px + env(safe-area-inset-bottom)); }
 
   .shell {
     padding-left: max(12px, env(safe-area-inset-left));

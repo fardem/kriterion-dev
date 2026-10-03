@@ -261,7 +261,7 @@ async function sendTokenLink(target, token, readerLocale) {
   if (!target.email)
     return { delivery: 'aus', deliveryReason: t(readerLocale, 'server.noUserAddress') };
   const values2 = {
-    title: getSetting('title_public', 'Bewertungskatalog'),
+    instanceTitle: getSetting('title_public', 'Bewertungskatalog'),
     username: target.username, link: `${PUBLIC.address}/#/invite/${token.plain}`,
     days: auth.TOKEN_DAYS, minutes: auth.TOKEN_DEADLINE_MINUTES
   };
@@ -303,9 +303,9 @@ async function sendConfirm(name, address, plain, locale) {
   const account = mail.resolve(getSetting(mail.SETTING_KEY, null));
   if (!mail.configured(account) || !PUBLIC.address)
     return { ok: false, reasonKey: '', reason: 'aus' };
-  const title = getSetting('title_public', 'Bewertungskatalog');
+  const instanceTitle = getSetting('title_public', 'Bewertungskatalog');
   /* Es gibt noch keinen Zugang mit einer Sprache; sie kommt vom Aufrufer. */
-  const letter = mail.mailConfirm(locale, { title, username: name,
+  const letter = mail.mailConfirm(locale, { instanceTitle, username: name,
     link: `${PUBLIC.address}/#/confirm/${plain}`,
     hours: auth.REQUEST_HOURS });
   return mail.send(account, address, letter.subject, letter.text);
@@ -632,10 +632,36 @@ app.post('/api/setup', async (req, res) => {
   res.json({ ok: true });
 });
 
+/* Je Adresse eine Passwortpruefung zur Zeit: zwischen checkThrottle() und noteFailure()
+   liegt scrypt, parallele Anfragen saehen sonst denselben Zaehlerstand. */
+const BRAKE_QUEUE = new Map();
+function brakeTurn(res, ip) {
+  const before = BRAKE_QUEUE.get(ip) || Promise.resolve();
+  let release;
+  const mine = new Promise(r => { release = r; });
+  BRAKE_QUEUE.set(ip, mine);
+  res.once('close', () => before.then(() => {
+    release();
+    if (BRAKE_QUEUE.get(ip) === mine) BRAKE_QUEUE.delete(ip);
+  }));
+  return before;
+}
+
+async function brakeFree(req, res, ip, name) {
+  const throttle = auth.checkThrottle(ip, name);
+  if (throttle.blocked) {
+    res.status(429).json({
+      error: t(localeOf(req), 'server.throttled', { seconds: throttle.retryInSec })});
+    return false;
+  }
+  if (throttle.delayMs) await new Promise(r => setTimeout(r, throttle.delayMs));
+  return true;
+}
+
 app.post('/api/login', async (req, res) => {
   const ip = auth.clientIp(req);
-  /* `username` statt `user`: `user` ist in den Routen der Angemeldete
-   (req.user). */
+  await brakeTurn(res, ip);
+  // `username` statt `user`: `user` ist in den Routen der Angemeldete (req.user).
   const { user: username, password } = req.body || {};
   // Gezaehlt wird je IP und je Name.
   const throttle = auth.checkThrottle(ip, username);
@@ -669,10 +695,9 @@ app.post('/api/login', async (req, res) => {
 /* Zweiter Faktor der Anmeldung. */
 app.post('/api/login/second', async (req, res) => {
   const ip = auth.clientIp(req);
+  await brakeTurn(res, ip);
   const { ticket, code } = req.body || {};
-  /* Bremse zuerst, wie an POST /api/login und POST /api/confirm: ein
-   gesperrter Aufrufer bekommt ueberall dieselbe 429 und keine Auskunft ueber
-   sein Ticket. */
+  // Bremse zuerst: ein gesperrter Aufrufer bekommt dieselbe 429 und keine Auskunft ueber sein Ticket.
   const throttle = auth.checkThrottle(ip, null);
   if (throttle.blocked) {
     return res.status(429).json({
@@ -808,7 +833,6 @@ app.post('/api/signup/confirm', async (req, res) => {
     return res.status(400).json({ error:
       t(localeOf(req), 'server.confirmExpired')});
   }
-  auth.noteSuccess(ip, null);
   res.json({ ok: true });
 });
 
@@ -1074,11 +1098,17 @@ app.get('/api/account', (req, res) => {
 });
 
 app.put('/api/account', async (req, res) => {
+  const ip = auth.clientIp(req);
+  await brakeTurn(res, ip);
+  if (!await brakeFree(req, res, ip, req.user.username)) return;
   const { oldPassword, username, newPassword, email } = req.body || {};
   let result;
   try {
     result = await auth.changeUser(req.user.id, oldPassword, username, newPassword, email);
-  } catch (e) { return res.status(400).json({ error: errorText(req, e) }); }
+  } catch (e) {
+    if (e.key === 'login.oldPasswordWrong') auth.noteFailure(ip, req.user.username);
+    return res.status(400).json({ error: errorText(req, e) });
+  }
   auth.endOtherSessions(req.user.id, auth.sessionToken(req));
   res.json(result);
 });
@@ -1113,11 +1143,22 @@ app.delete('/api/sessions/:sessionId', (req, res) => {
 /* ---- Zweiter Faktor ---- */
 /* Die Benutzernummer kommt aus req.user, nie aus dem Pfad. */
 
-// Fragt das bisherige Passwort, fuer alle vier Routen.
+// Fragt das bisherige Passwort, fuer alle vier Routen, hinter der Anmeldebremse.
 async function ownPasswordMatches(req, res, password) {
+  const ip = auth.clientIp(req);
+  await brakeTurn(res, ip);
+  if (!await brakeFree(req, res, ip, req.user.username)) return false;
   const row = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.user.id);
   if (row && await auth.checkPassword(String(password || ''), row.password_hash)) return true;
+  auth.noteFailure(ip, req.user.username);
   res.status(403).json({ error: t(localeOf(req), 'server.passwordWrong')});
+  return false;
+}
+
+function ownCodeMatches(req, res, code) {
+  if (auth.checkTwoFactor(req.user.id, code)) return true;
+  auth.noteFailure(auth.clientIp(req), req.user.username);
+  res.status(403).json({ error: t(localeOf(req), auth.TWO_FACTOR_DENIAL)});
   return false;
 }
 
@@ -1142,8 +1183,7 @@ app.post('/api/two-factor/on', async (req, res) => {
 app.post('/api/two-factor/codes', async (req, res) => {
   const { password, code } = req.body || {};
   if (!await ownPasswordMatches(req, res, password)) return;
-  if (!auth.checkTwoFactor(req.user.id, code))
-    return res.status(403).json({ error: t(localeOf(req), auth.TWO_FACTOR_DENIAL)});
+  if (!ownCodeMatches(req, res, code)) return;
   try {
     /* Erst die Codes erneuern, dann den Stand lesen: er zaehlt die offenen
    Codes. */
@@ -1157,8 +1197,7 @@ app.delete('/api/two-factor', async (req, res) => {
   if (!auth.twoFactorOn(req.user.id))
     return res.status(400).json({ error: t(localeOf(req), 'server.twoFactorOff')});
   if (!await ownPasswordMatches(req, res, password)) return;
-  if (!auth.checkTwoFactor(req.user.id, code))
-    return res.status(403).json({ error: t(localeOf(req), auth.TWO_FACTOR_DENIAL)});
+  if (!ownCodeMatches(req, res, code)) return;
   auth.turnTwoFactorOff(req.user.id, req.user.id);
   res.json({ ...auth.twoFactorState(req.user.id) });
 });
@@ -1168,6 +1207,7 @@ app.delete('/api/two-factor', async (req, res) => {
    Passwort noch einmal, kein zweites Geheimnis. */
 app.post('/api/confirm', async (req, res) => {
   const ip = auth.clientIp(req);
+  await brakeTurn(res, ip);
   const name = req.user.username;
   const throttle = auth.checkThrottle(ip, name);
   if (throttle.blocked) {
@@ -1178,23 +1218,20 @@ app.post('/api/confirm', async (req, res) => {
   const { password, purpose, target, targets, code } = req.body || {};
   if (!auth.CONFIRM_PURPOSES.includes(purpose))
     return res.status(400).json({ error: t(localeOf(req), 'server.purposeUnknown')});
-  /* Mehrere Ziele in einer Anfrage, weil der Code des zweiten Faktors nur
-   einmal gilt. */
+  // Mehrere Ziele in einer Anfrage, weil der Code des zweiten Faktors nur einmal gilt.
   let targetList;
   if (targets !== undefined) {
     if (target !== undefined)
       return res.status(400).json({ error: t(localeOf(req), 'server.targetEitherOr')});
     if (!Array.isArray(targets) || !targets.length)
       return res.status(400).json({ error: t(localeOf(req), 'server.targetsMissing')});
-    /* Gedeckelt wie die Zahl der Teile: jede Freigabe liegt bis zu ihrem
-   Ablauf im Arbeitsspeicher. */
+    // Gedeckelt wie die Zahl der Teile: jede Freigabe liegt bis zu ihrem Ablauf im Speicher.
     if (targets.length > EXCHANGE_PART_MAX)
       return res.status(400).json({ error: t(localeOf(req), 'server.targetsTooMany', { cap: EXCHANGE_PART_MAX })});
     targetList = targets.map(z => Number(z));
     if (!targetList.every(n => Number.isInteger(n) && n > 0))
       return res.status(400).json({ error: t(localeOf(req), 'server.targetNotNumber')});
-    // Doppelte Nummern sind ein Fehler: eine Antwort mit weniger Freigaben als
-    // verlangt saehe wie ein Erfolg aus.
+    // Doppelte Nummern sind ein Fehler: weniger Freigaben als verlangt saehen wie ein Erfolg aus.
     if (new Set(targetList).size !== targetList.length)
       return res.status(400).json({ error: t(localeOf(req), 'server.targetTwice')});
   } else targetList = [target ?? null];
@@ -1402,7 +1439,7 @@ app.post('/api/mail/test', ownerOnly, async (req, res) => {
   if (!mail.configured(raw))
     return res.status(400).json({ error: t(localeOf(req), 'server.mailAccountMissing')});
   const locale = localeOf(req);
-  const letter = mail.mailTest(locale, { title: getSetting('title_public', 'Bewertungskatalog'),
+  const letter = mail.mailTest(locale, { instanceTitle: getSetting('title_public', 'Bewertungskatalog'),
                                           username: ownOne.username });
   const e = await mail.send(raw, ownOne.email, letter.subject, letter.text);
   if (e.ok) {
@@ -1458,9 +1495,9 @@ app.post('/api/requests/:id/approve', adminOnly, async (req, res) => {
   /* Der Protokolleintrag nennt den neuen Zugang, nicht den Namen der Anfrage. */
   auth.log('request.approve', { actor: req.user.id, target: created.id });
   const v = await sendTokenLink({ username: created.username, email: created.email }, token, localeOf(req));
-  res.json({ ...created, token: token.plain, purpose: token.purpose, days: token.days,
-             minutes: auth.TOKEN_DEADLINE_MINUTES, ...linkInfo(token.plain), ...v,
-             ...requestCard(localeOf(req)) });
+  // Die Karte zuerst: ihr deliveryReason ist die Bereitschaft, der von `v` der Grund des Versands.
+  res.json({ ...requestCard(localeOf(req)), ...created, token: token.plain, purpose: token.purpose,
+             days: token.days, minutes: auth.TOKEN_DEADLINE_MINUTES, ...linkInfo(token.plain), ...v });
 });
 
 /* Loescht nur die Anfrage; kein Zugang, kein Token, keine Mail. */
@@ -3770,7 +3807,7 @@ app.get('/api/photos/:id/raw', (req, res) => {
   let rangeable = p.kind === 'video';
   if (want !== 'data') {
     if (blob) rangeable = false;
-    else blob = qPhotoBytes.data.get(req.params.id).bytes;
+    else blob = qPhotoBytes().data.get(req.params.id).bytes;
   }
   attachments.setImageHeader(res, blob, { name: `photo-${p.id}`, maxAge: 86400 });
   if (!rangeable) return res.send(blob);
@@ -5049,8 +5086,9 @@ app.post('/api/items/:id/test-days', (req, res) => {
   const rating = Number(req.body.rating);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return res.status(400).json({ error: t(localeOf(req), 'server.dateInvalid')});
   if (!(rating >= 1 && rating <= 5)) return res.status(400).json({ error: t(localeOf(req), 'server.gradeRange')});
-  const today = new Date().toISOString().slice(0, 10);
-  if (day > today) return res.status(400).json({ error: t(localeOf(req), 'server.dateFuture')});
+  /* Das Datum kommt aus der Uhr des Browsers; UTC+14 ist die frueheste Zeitzone. */
+  const latest = new Date(Date.now() + 14 * 3600000).toISOString().slice(0, 10);
+  if (day > latest) return res.status(400).json({ error: t(localeOf(req), 'server.dateFuture')});
   if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
     return res.status(404).json({ error: t(localeOf(req), 'server.entryUnknown')});
 
@@ -5749,7 +5787,8 @@ app.post('/api/files/missing', ownerOnly, async (req, res, next) => {
   if (DATABASE_INCOMPLETE) return res.status(409).json({ error: t(locale, 'server.databaseIncomplete') });
   const folder = backupFolder();
   if (!folder) return res.status(409).json({ error: t(locale, 'server.backupDirUnreachable') });
-  const lock = takeBackupLock(folder);
+  let lock;
+  try { lock = takeBackupLock(folder); } catch (e) { return next(e); }
   if (!lock) return res.status(409).json({ error: t(locale, 'server.backupRunning') });
   const wanted = pickedNames(req.body);
   let restored = 0;
@@ -5890,7 +5929,7 @@ function originalServer(f) {
       for (let i = Math.floor(from / f.chunk); i <= Math.floor(to / f.chunk); i++) {
         const plain = await attachments.readChunk(handle, f, i);
         const start = Math.max(0, from - i * f.chunk), end = Math.min(plain.length, to - i * f.chunk + 1);
-        if (!res.write(plain.subarray(start, end))) await new Promise(r => res.once('drain', r));
+        if (!res.write(plain.subarray(start, end))) await untilDrained(res);
       }
       res.end();
     } catch { res.destroy(); }
@@ -6342,8 +6381,9 @@ function exportHead() {
   return head.slice(0, -']}'.length);
 }
 
-/* Auf 'drain' warten, sonst stuende die ganze Datei im Puffer des Sockets. */
+/* Auf 'drain' warten, sonst stuende die ganze Datei im Puffer; nach 'close' kaeme keines mehr. */
 function untilDrained(res) {
+  if (res.destroyed) return Promise.reject(new Error('the client closed the connection'));
   return new Promise((done, fail) => {
     const gone = () => { res.off('drain', ready); fail(new Error('the client closed the connection')); };
     const ready = () => { res.off('close', gone); done(); };
@@ -7903,17 +7943,20 @@ let BACKUP_BUSY = false;
 // Stand der letzten Kopie fuer die Karte; null, solange in dieser Laufzeit keine lief.
 let BACKUP_COPY = null;
 
+let HELD_LOCK = null;
+
 /* Sperre im Speicher und als Lockfile (backup.takeLock); null, wenn schon ein Backup laeuft. */
 function takeBackupLock(folder) {
   if (BACKUP_BUSY) return null;
   const lock = backup.takeLock(folder);
-  if (lock) BACKUP_BUSY = true;
+  if (lock) { BACKUP_BUSY = true; HELD_LOCK = lock; }
   return lock;
 }
 
 function dropBackupLock(lock) {
   backup.dropLock(lock);
   BACKUP_BUSY = false;
+  HELD_LOCK = null;
 }
 
 app.post('/api/backup/cleanup', ownerOnly,
@@ -7956,10 +7999,11 @@ function cleanupUnderLock(req, target, files, kind, names) {
       return [400, { error: t(localeOf(req), 'server.cleanupSelection')}];
     matched = chosen.map(n => known.get(n));
   } else {
-    const b = checkRuleValue(getSetting('backupKeep', CLEANUP_KEEP.fallback),
+    // Die Werte, die der Browser zeigt; ohne sie die gespeicherte Regel.
+    const b = checkRuleValue(req.body?.keep ?? getSetting('backupKeep', CLEANUP_KEEP.fallback),
                               CLEANUP_KEEP, 'server.ruleKeep');
     if (b.error) return [400, { error: t(localeOf(req), b.error, b.values) }];
-    const rule = checkRuleValue(getSetting('backupDays', CLEANUP_DAYS.fallback),
+    const rule = checkRuleValue(req.body?.days ?? getSetting('backupDays', CLEANUP_DAYS.fallback),
                               CLEANUP_DAYS, 'server.ruleDays');
     if (rule.error) return [400, { error: t(localeOf(req), rule.error, rule.values) }];
     matched = ruleHit(files, b.value, rule.value, Date.now(), mark ? mark.ms : null);
@@ -8165,8 +8209,8 @@ async function fileFromBackup(it, d, folder, probe, r, made) {
     });
     if (id == null) throw refusal(409, 'server.backupFileThere');
     moveIntoPlace(f.name);
-    // Liegt die Datei noch unter files/, hat die Loeschliste sie noch nicht geraeumt.
-    fs.rmSync(diskPath(f.name, true), { force: true });
+    // Scheitert das Umbenennen, bleibt die Kopie fuer diskRun() unter upload/.
+    if (fs.existsSync(diskPath(f.name))) fs.rmSync(diskPath(f.name, true), { force: true });
     return { id, itemId: it.id, inline: false, filename };
   } catch (e) {
     if (!qDiskKnown.get(f.name))
@@ -8251,7 +8295,11 @@ app.post('/api/items/:id/deleted-files', ownerOnly, async (req, res, next) => {
   try { rest = target.error ? [] : fs.readdirSync(target.filePath).filter(n => /^kriterion-.+\.sqlite\.wird$/.test(n)); }
   catch {}
   const restAt = (name) => name.replace(/^kriterion-(\d{4}-\d\d-\d\d)-(\d\d)-(\d\d)-(\d\d).*$/, '$1 $2:$3:$4');
-  if (rest.length) BACKUP_COPY = { running: false, error: 'server.backupRestarted', at: restAt(rest.sort().pop()) };
+  if (rest.length) {
+    BACKUP_COPY = { running: false, error: 'server.backupRestarted', at: restAt(rest.sort().pop()) };
+    // Ohne Signal-Handler (kill -9, Speicher voll) steht das Lockfile noch; es sperrte 24 h.
+    backup.dropLock(path.join(target.filePath, COPY_DIR, '.lock'));
+  }
 }
 
 /* Die Werte von `err.type` aus body-parser und raw-body. */
@@ -8380,6 +8428,7 @@ for (const signal of ['SIGTERM', 'SIGINT']) {
     /* Erst die Threads beenden, dann die Datenbank schliessen. */
     for (const w of batchThreads) { try { w.terminate(); } catch {} }
     if (proxyStop) proxyStop();
+    if (HELD_LOCK) backup.dropLock(HELD_LOCK);
     try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); } catch {}
     process.exit(0);
   });

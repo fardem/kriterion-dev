@@ -576,9 +576,10 @@ async function commandRestore(selection, options) {
     throw new Refusal(`Ein Backup läuft gerade: ${backup.COPY_DIR}/.lock (${backup.lockHolder(folder) || '?'}). ` +
       'Läuft weder ein Backup noch backuptool.js, das Lockfile löschen und neu aufrufen.');
   const release = () => backup.dropLock(lock);
+  const again = `Zu Ende führen: ./backuptool.sh restore ${nameTime(chosen.d.name)}`;
   const interrupted = () => {
     release();
-    console.error(RED('\nAbgebrochen. Ein zweiter Aufruf mit derselben Auswahl führt zu Ende.'));
+    console.error(RED(`\nAbgebrochen. ${again}`));
     process.exit(1);
   };
   process.once('SIGINT', interrupted);
@@ -641,7 +642,7 @@ async function commandRestore(selection, options) {
   } catch (e) {
     if (step < 4) throw e;
     console.error(RED(`\nAbgebrochen in Schritt ${step}: ${e.message}`));
-    console.error('Ein zweiter Aufruf mit derselben Auswahl führt zu Ende.');
+    console.error(again);
     if (before) console.error(`Zurück zum Stand davor: ./backuptool.sh restore ${nameTime(before)}`);
     throw new Refusal('Nicht vollständig zurückgespielt.');
   } finally {

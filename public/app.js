@@ -170,7 +170,7 @@ function exportSum(ex, s) {
   return (ex.envelope || 0)
     + (s.withPhotos ? (ex.photos || 0) : 0)
     + (s.withPhotos && s.withVideos ? (ex.videos || 0) : 0)
-    + (s.withFiles ? (ex.attachments || 0) + (ex.commentImages || 0) : 0);
+    + (s.withFiles ? (ex.attachments || 0) + (ex.commentImages || 0) + (ex.commentVideos || 0) : 0);
 }
 // Mit allen Teilen: fuer die Kennzahlen, wo kein Schalter steht.
 const exportTotal = (stats) => exportSum(stats && stats.export,
@@ -353,6 +353,12 @@ function autoGrow(el) {
   return fit;
 }
 
+// Text markieren und neben dem Dialog loslassen ergibt einen click auf dem Hintergrund.
+let DOWN_AT = null;
+document.addEventListener('pointerdown', e => { DOWN_AT = e.target; }, true);
+document.addEventListener('click', () => { DOWN_AT = null; });
+const fromBackdrop = (e, bd) => e.target === bd && (DOWN_AT === null || DOWN_AT === bd);
+
 /* `cancel`: Ergebnis bei Klick auf den Hintergrund und bei Escape. `keys` sieht
    jede Taste vor Escape und gibt true zurueck, wenn es sie behandelt hat. */
 function openModal(html, atClose, cancel, keys) {
@@ -370,7 +376,7 @@ function openModal(html, atClose, cancel, keys) {
     if (e.key === 'Escape') done(cancel);
   };
   document.addEventListener('keydown', onKey, true);
-  bd.onclick = (e) => { if (e.target === bd) done(cancel); };
+  bd.onclick = (e) => { if (fromBackdrop(e, bd)) done(cancel); };
   return { bd, done };
 }
 
@@ -517,7 +523,7 @@ function userDeleteDialog(name, number, b) {
     });
     bd.querySelector('[data-no]').onclick = () => done(null);
     bd.querySelector('[data-yes]').onclick = take;
-    bd.onclick = e => { if (e.target === bd) done(null); };
+    bd.onclick = e => { if (fromBackdrop(e, bd)) done(null); };
     const onKey = e => { if (e.key === 'Escape') done(null); };
     document.addEventListener('keydown', onKey, true);
     bd.querySelector('[data-no]').focus();
@@ -585,6 +591,7 @@ function showSetup(errMsg) {
 }
 
 function showLogin(errMsg) {
+  LIGHTBOX_CLOSE?.(true);
   document.querySelectorAll('.lightbox, .backdrop, .cmp-bar').forEach(e => e.remove());
   document.body.classList.remove('lb-open');
   // Nur auf der Anmeldeseite teilen sich Inhalt und Versionszeile die Fensterhoehe.
@@ -1058,8 +1065,9 @@ function setUpBlocksOut(item) {
         saveBlocks();
       }
       setUpBlocksOut(item);
-      // Eingeklappt liess sich die Wolke nicht messen; die Zeilenbegrenzung nachholen.
+      // Eingeklappt liessen sich Wolke und Links nicht messen; die Begrenzung nachholen.
       if (name === 'tags' && closed && redrawCloud) redrawCloud();
+      if (name === 'links' && closed && redrawLinks) redrawLinks();
     };
 
     if (!block.dataset.draggable) {
@@ -1278,8 +1286,9 @@ const dueOf = (z, doneToo = false) => {
   return z.dueDate === todayKey() ? 'today' : 'later';
 };
 
-// Zeichnet die Wolke der Detailansicht neu; messen laesst sie sich nur bei offenem Block.
+// Zeichnen Wolke und Links der Detailansicht neu; messen lassen sie sich nur bei offenem Block.
 let redrawCloud = null;
+let redrawLinks = null;
 
 /* ================= Vokabular und Darstellung ================= */
 // Die Oberflaeche benennt sich um, die Daten nicht.
@@ -2561,13 +2570,13 @@ function markupLive() {
   return MARKUP_FIELD;
 }
 
-/* Ueber der Auswahl, 8 px Abstand zum Fensterrand; ohne Platz oben darunter. */
+/* Ueber der Auswahl, 8 px Abstand zum Fensterrand; ohne Platz unter der Kopfzeile darunter. */
 function markupMenuPlace(box) {
   const width = box.offsetWidth, height = box.offsetHeight;
   const left = Math.max(8, Math.min(box.dataset.left * 1, window.innerWidth - width - 8));
   const above = box.dataset.top * 1 - height - 6;
   box.style.left = (left + window.scrollX) + 'px';
-  box.style.top = ((above < 4 ? box.dataset.bottom * 1 + 6 : above) + window.scrollY) + 'px';
+  box.style.top = ((above < mastheadHeight() + 4 ? box.dataset.bottom * 1 + 6 : above) + window.scrollY) + 'px';
 }
 
 function markupMenuShow(rect) {
@@ -3019,6 +3028,8 @@ function matchesTags(item, tagIds, mode) {
 
 /* Mit `filter` zaehlt die Filterzeile vorab, wie viele Eintraege ein
    Umschalter uebrig liesse. */
+const sortOf = (sort) => (!POTENTIAL_MODE && /^potential_/.test(sort) ? 'updated_desc' : sort);
+
 function visibleItems(filter) {
   const f = filter || state.filters;
   let out = state.items;
@@ -3042,7 +3053,7 @@ function visibleItems(filter) {
   out = [...out].sort((a, b) => {
     // Favoriten nicht vorsortieren: sonst stuende ein Favorit ohne Bewertung
     // auch bei absteigender Bewertung oben.
-    switch (f.sort) {
+    switch (sortOf(f.sort)) {
       /* Ohne Locale: ISO-Zeitstempel wie „2026-09-05 14:02:11" sind Ziffern. */
       case 'updated_asc': return a.updated_at.localeCompare(b.updated_at);
       case 'rating_desc': return (b.avgRating ?? -1) - (a.avgRating ?? -1);
@@ -3123,11 +3134,15 @@ function translateAddress() {
   return true;
 }
 
+/* Zaehlt die Ansichten; nach einem await zeichnet nur die juengste. Ein render* erhoeht ihn. */
+let VIEW_RUN = 0;
+
 function route() {
   translateAddress();
   const h = location.hash || '#/';
-  // Die alte Ansicht verschwindet; ihre Tagwolke nicht mehr zeichnen.
+  // Die alte Ansicht verschwindet; ihre Tagwolke und Links nicht mehr zeichnen.
   redrawCloud = null;
+  redrawLinks = null;
   endFileViewer();
   endRefViewers();
   closeFileMenu();
@@ -3141,6 +3156,7 @@ function route() {
   const view = SYS_PATTERN.test(h) ? 'system' : h === '#/compare' ? 'compare'
     : h === '#/open' ? 'open' : f ? 'file' : m || p || fo ? 'entry' : 'list';
   if (LAST_VIEW === 'list' && view !== 'list') rememberSeen();
+  if (view !== 'list') document.querySelector('.cmp-bar')?.remove();
   LAST_VIEW = view;
   if (view === 'system') return renderSystem();
   if (view === 'compare') return renderCompare();
@@ -3230,7 +3246,7 @@ function showBellPanel() {
   };
   document.addEventListener('keydown', onKey, true);
   bd.querySelector('[data-no]').onclick = zu;
-  bd.onclick = e => { if (e.target === bd) zu(); };
+  bd.onclick = e => { if (fromBackdrop(e, bd)) zu(); };
 
   const box = bd.querySelector('#bell-list');
   if (!rows.length) {
@@ -3276,9 +3292,10 @@ function showBellPanel() {
 
 /* ---- Kopfzeile der Unteransichten ---- */
 
-/* Vorheriger und naechster Eintrag in der Reihenfolge der Uebersicht. */
+/* Nachbarn in der Reihenfolge der Uebersicht; faellt der Eintrag aus dem Filter, im ganzen Bestand. */
 const entryNeighbours = (id) => {
-  const list = state.items || [];
+  const shown = state.items ? visibleItems() : [];
+  const list = shown.some(x => x.id === id) ? shown : (state.items || []);
   const at = list.findIndex(x => x && x.id === id);
   if (at < 0) return { prev: null, next: null };
   return {
@@ -3379,11 +3396,13 @@ let SEARCH_HANDOFF = false;
 
 /* ---- Uebersicht ---- */
 async function renderList() {
+  const run = ++VIEW_RUN;
   /* Den alten Inhalt stehen lassen, bis der neue da ist. */
   if (!app.firstElementChild)
     app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">${tH('list.loading')}</p></div>`;
   try { await loadAll(); }
-  catch (e) { if (e.message !== SESSION_GONE) app.innerHTML = `<div class="shell"><p class="hint">${esc(e.message)}</p></div>`; return; }
+  catch (e) { if (run === VIEW_RUN && e.message !== SESSION_GONE) app.innerHTML = `<div class="shell"><p class="hint">${esc(e.message)}</p></div>`; return; }
+  if (run !== VIEW_RUN) return;
 
   app.innerHTML = `<div class="shell">
     <div class="masthead">
@@ -3574,12 +3593,12 @@ function drawFilters() {
   });
   r1.appendChild(g1b);
 
-  /* ---- Eigene Werte, in derselben Zeile; ohne „Alle“, ein zweiter Klick schaltet aus ---- */
+  /* ---- Eigene Sterne, in derselben Zeile; ohne „Alle“, ein zweiter Klick schaltet aus ---- */
   if (shareShown()) {
-    secondLabel(r1, t('list.ownValues'));
+    const counted = POTENTIAL_MODE ? t('list.ownValuesHint') : t('list.ownRatingHint');
+    secondLabel(r1, POTENTIAL_MODE ? '◆ ★' : '★').title = counted;
     const g = document.createElement('div');
     g.className = 'pills'; g.id = 'f-own';
-    const counted = t('list.ownValuesHint');
     [['none', t('list.shareNone'), counted],
      ['partial', t('list.sharePartial'), `${t('list.sharePartialHint', { share: PARTIAL_SHARE })}\n${counted}`]].forEach(([v, l, hint]) => {
       const b = document.createElement('button');
@@ -3755,7 +3774,7 @@ function drawFilters() {
   sel.innerHTML = groups.map(g => `<optgroup label="${esc(g.name)}">`
     + g.bases.map(b => `<option value="${esc(b.key)}">${esc(b.word())}</option>`).join('')
     + `</optgroup>`).join('');
-  let picked = sortParts(f.sort);
+  let picked = sortParts(sortOf(f.sort));
   sel.value = picked.base.key;
   /* Der Knopf nennt die konkrete Richtung, etwa „neu → alt", nicht „absteigend". */
   const dirBtn = document.createElement('button');
@@ -4109,7 +4128,7 @@ function drawCompareBar() {
     <button class="btn btn-sm"${state.compare.size < 2 ? ' disabled' : ''}>${tH('list.compareAction')}</button>
     <button class="btn-x" title="${esc(t('list.clearSelection'))}">${ICON_X}</button>`;
   bar.querySelector('.btn').onclick = () => { if (state.compare.size >= 2) location.hash = '#/compare'; };
-  bar.querySelector('.btn-x').onclick = () => { state.compare.clear(); drawBody(); };
+  bar.querySelector('.btn-x').onclick = () => { state.compare.clear(); drawCompareBar(); drawBody(); };
   document.body.appendChild(bar);
 }
 
@@ -4149,7 +4168,7 @@ function openCreate() {
     <button class="btn btn-accent" id="ns">${tH('list.create')}</button></div></div>`;
   document.body.appendChild(bd);
   const close = () => bd.remove();
-  bd.onclick = e => { if (e.target === bd) close(); };
+  bd.onclick = e => { if (fromBackdrop(e, bd)) close(); };
   document.getElementById('nc').onclick = close;
   const nt = document.getElementById('nt');
   const row = document.getElementById('nt-similar');
@@ -4162,29 +4181,35 @@ function openCreate() {
     row.querySelectorAll('[data-close]').forEach(a => { a.onclick = () => close(); });
   };
   nt.addEventListener('input', drawSimilar);
+  const createButton = document.getElementById('ns');
   const save = async () => {
+    if (createButton.disabled) return;
     const title = nt.value.trim();
     if (!title) return toast(t('list.titleMissing'), true);
+    createButton.disabled = true;
     try {
       const it = await api('POST', '/api/items', { title, description: document.getElementById('nd').value.trim() });
       close(); location.hash = `#/item/${it.id}`;
     } catch (e) { toast(e.message, true); }
+    finally { createButton.disabled = false; }
   };
-  document.getElementById('ns').onclick = save;
+  createButton.onclick = save;
   nt.addEventListener('keydown', e => { if (e.key === 'Enter') save(); });
   nt.focus();
 }
 
 /* ---- Offene Aufgaben ueber alle Eintraege ---- */
 async function renderOpen() {
+  const run = ++VIEW_RUN;
   app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">${tH('list.loading')}</p></div>`;
   let rows;
   try { rows = await api('GET', '/api/open'); }
   catch (e) {
-    if (e.message !== SESSION_GONE)
+    if (run === VIEW_RUN && e.message !== SESSION_GONE)
       app.innerHTML = `<div class="shell"><p class="hint">${esc(e.message)}</p></div>`;
     return;
   }
+  if (run !== VIEW_RUN) return;
 
   /* Nur im Speicher, nicht in den Einstellungen, wie im Vergleich. */
   let onlyMy = false;
@@ -4240,10 +4265,11 @@ async function renderOpen() {
     };
 
     // Zwei Leermeldungen: nichts offen, oder nichts Eigenes offen.
+    const stillOpen = visible.filter(z => !z.done).length;
     document.getElementById('open-hint').textContent = !visible.length
       ? (rows.length ? t('list.nothingOpenMine')
                        : t('list.nothingOpen'))
-      : t('list.openGroupedBy', { length: visible.length, task: vTask(visible.length) })
+      : t('list.openGroupedBy', { length: stillOpen, task: vTask(stillOpen) })
         + (multipleUsers() ? (onlyMy ? t('list.showingOwn')
                                          : t('list.showingAll')) : '');
 
@@ -4255,7 +4281,7 @@ async function renderOpen() {
       const section = document.createElement('div');
       section.className = 'open-section' + (key === 'overdue' ? ' overdue' : '');
       section.dataset.due = key;
-      section.textContent = `${t(word)} · ${inside.length}`;
+      section.textContent = `${t(word)} · ${inside.filter(z => !z.done).length}`;
       box.appendChild(section);
       groupsOf(inside).forEach(g => {
       const boxId = document.createElement('div');
@@ -4310,10 +4336,12 @@ async function renderOpen() {
 async function renderCompare() {
   const ids = [...state.compare];
   if (ids.length < 2) { location.hash = '#/'; return; }
+  const run = ++VIEW_RUN;
   app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">${tH('list.loading')}</p></div>`;
   let items;
   try { items = await Promise.all(ids.map(id => api('GET', `/api/items/${id}`))); }
-  catch (e) { toast(e.message, true); location.hash = '#/'; return; }
+  catch (e) { if (run === VIEW_RUN) { toast(e.message, true); location.hash = '#/'; } return; }
+  if (run !== VIEW_RUN) return;
 
   /* Zwei Gruppen von Zeilen in der Reihenfolge am Eintrag, vorher und nachher,
      jede mit eigenem Durchschnitt und Trennzeile. */
@@ -4434,6 +4462,8 @@ async function renderCompare() {
 
 /* ---- Vollbild ---- */
 let lightboxOpen = false;
+// close() des offenen Vollbilds; showLogin() ruft es, damit `inert` und die Tastenhandler gehen.
+let LIGHTBOX_CLOSE = null;
 let lightboxRuns = 0;
 
 /* Einzige Stelle, die Bildadressen baut und die Version `v=` anhaengt. */
@@ -4875,8 +4905,11 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
   const stageWatch = typeof ResizeObserver === 'function' ? new ResizeObserver(fitPlayer) : null;
   stageWatch?.observe(stage);
 
+  // Bei einem Element bliebe show() beim selben, haelt aber Video und „Ganz laden“ an.
+  const step = (d) => { if (photos.length < 2) return; i += d; show(); };
   const close = (historyMoved = false) => {
     if (!lb.isConnected) return;
+    LIGHTBOX_CLOSE = null;
     spot?.stop();
     stageWatch?.disconnect();
     hold();
@@ -4897,10 +4930,11 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); }
     // Hat das Video den Fokus, spult es, statt zu blaettern.
     else if (document.activeElement === player) { if (seekVideo(e)) e.stopPropagation(); }
-    else if (e.key === 'ArrowLeft') { e.preventDefault(); e.stopPropagation(); i--; show(); }
-    else if (e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); i++; show(); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); e.stopPropagation(); step(-1); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); step(1); }
   }
   document.addEventListener('keydown', onKey, true);
+  LIGHTBOX_CLOSE = close;
 
   lb.querySelector('.close').onclick = () => close();
   const infoButton = lb.querySelector('.info');
@@ -4959,7 +4993,7 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
     if (!moved || zoomed) return;
     moved = false;
     const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
-    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) { i += dx < 0 ? 1 : -1; show(); }
+    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) step(dx < 0 ? 1 : -1);
   }, { passive: true });
 
   show();
@@ -5111,10 +5145,13 @@ function languageName(code) {
   if (!code) return '';
   try { return new Intl.DisplayNames([LOCALE], { type: 'language' }).of(code) || code; } catch { return code; }
 }
-function mediaGroup(head, rows) {
+function mediaGroup(head, rows, fold = false) {
   const shown = rows.filter(([, v]) => v !== '' && v !== null && v !== undefined);
-  return shown.length ? `<h3 class="minfo-head">${esc(head)}</h3>` + shown.map(([k, v]) =>
-    `<div class="kv"><span class="k">${tH(k)}</span><span class="v">${esc(v)}</span></div>`).join('') : '';
+  if (!shown.length) return '';
+  const body = shown.map(([k, v]) =>
+    `<div class="kv"><span class="k">${tH(k)}</span><span class="v">${esc(v)}</span></div>`).join('');
+  return fold ? `<details class="minfo-group"><summary class="minfo-head">${esc(head)}</summary>${body}</details>`
+    : `<h3 class="minfo-head">${esc(head)}</h3>${body}`;
 }
 // Die Zeit der Kamera hat keine Zeitzone und steht da, wie die Kamera sie zeigt.
 function fmtCameraTime(text) {
@@ -5130,7 +5167,7 @@ function shotGroup(e) {
   return mediaGroup(t('entry.mediaShot'), [['entry.mediaTaken', e.taken ? fmtCameraTime(e.taken) : ''],
     ['entry.mediaCamera', e.camera], ['entry.mediaLens', e.lens], ['entry.mediaExposure', e.exposure ? exposureText(e.exposure) : ''],
     ['entry.mediaAperture', e.aperture ? `f/${number(e.aperture, 0, 1)}` : ''], ['entry.mediaIso', e.iso ? String(e.iso) : ''],
-    ['entry.mediaFocal', focalText(e)], ['entry.mediaPlace', e.gps ? t('entry.mediaYes') : '']]);
+    ['entry.mediaFocal', focalText(e)], ['entry.mediaPlace', e.gps ? t('entry.mediaYes') : '']], true);
 }
 /* Die erste Bildspur ist das Hauptbild; weitere sind Vorschaubilder in der Datei, etwa im EXIF-Block.
    Bei EXIF-Ausrichtung 5 bis 8 stehen Breite und Hoehe wie angezeigt. */
@@ -5143,7 +5180,7 @@ function imageGroup(f) {
   return mediaGroup(t('entry.kindImage'), [['entry.mediaFormat', main.format],
     ['entry.mediaResolution', turned ? pixelText(main.height, main.width) : pixelText(main.width, main.height)],
     ['entry.mediaBitDepth', bits(main.bitDepth)], ['entry.mediaColorSpace', main.colorSpace], ['entry.mediaChroma', main.chroma],
-    ['entry.mediaThumbs', !thumbs.length ? '' : sizes.length ? `${thumbs.length} (${sizes.join(', ')})` : String(thumbs.length)]]);
+    ['entry.mediaThumbs', !thumbs.length ? '' : sizes.length ? `${thumbs.length} (${sizes.join(', ')})` : String(thumbs.length)]], true);
 }
 const PROXY_STATES = { ready: 'entry.proxyReady', waiting: 'entry.proxyWaiting', failed: 'entry.proxyFailed' };
 // Gruende aus server.js; sonst die letzte Zeile von ffmpeg.
@@ -5154,7 +5191,7 @@ function proxyGroup(p) {
   return mediaGroup(t('entry.mediaProxy'), [['entry.mediaProxyState',
     [t(PROXY_STATES[p.state] || 'entry.proxyWaiting'), why].filter(Boolean).join(': ')],
     ['entry.mediaResolution', pixelText(p.width, p.height)], ['entry.mediaFileSize', p.size ? fmtBytes(p.size) : ''],
-    ['entry.proxyVideoRate', bitRateText(p.videoBitRate)], ['entry.proxyAudioRate', bitRateText(p.audioBitRate)]]);
+    ['entry.proxyVideoRate', bitRateText(p.videoBitRate)], ['entry.proxyAudioRate', bitRateText(p.audioBitRate)]], true);
 }
 function mediaInfoHtml(f) {
   const g = f.general || {}, video = f.video || [], audio = f.audio || [], shot = f.exif || {};
@@ -5171,12 +5208,12 @@ function mediaInfoHtml(f) {
       ['entry.mediaResolution', area(v.width, v.height)],
       ['entry.mediaFrameRate', v.frameRate ? t('entry.mediaFps', { n: number(v.frameRate, 0, 3) }) : ''],
       ['entry.mediaBitRate', bitRateText(v.bitRate)], ['entry.mediaBitDepth', bits(v.bitDepth)],
-      ['entry.mediaChroma', v.chroma], ['entry.mediaHdr', v.hdr]])),
+      ['entry.mediaChroma', v.chroma], ['entry.mediaHdr', v.hdr]], true)),
     ...audio.map((s, at) => mediaGroup(audio.length > 1
       ? t('entry.mediaAudioTrack', { n: at + 1, count: audio.length }) : t('entry.mediaAudio'), [
       ['entry.mediaCodec', s.format], ['entry.mediaChannels', s.channels ? String(s.channels) : ''],
       ['entry.mediaSamplingRate', s.samplingRate ? t('entry.mediaKhz', { n: number(s.samplingRate / 1000, 0, 1) }) : ''],
-      ['entry.mediaBitRate', bitRateText(s.bitRate)], ['entry.mediaLanguage', languageName(s.language)]])),
+      ['entry.mediaBitRate', bitRateText(s.bitRate)], ['entry.mediaLanguage', languageName(s.language)]], true)),
     imageGroup(f), shotGroup(shot), proxyGroup(f.proxy)
   ].join('');
   return html || `<p>${tH('entry.mediaNone')}</p>`;
@@ -5679,7 +5716,11 @@ window.addEventListener('beforeunload', (e) => {
 });
 
 /* ---- Detailansicht ---- */
+const loadFailed = (e) => (e.status === 404 ? tH('server.entryUnknown') : esc(e.message));
+
 async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fileWanted = 0, folderWanted = 0) {
+  const run = ++VIEW_RUN;
+  const here = () => run === VIEW_RUN;
   /* Von Hand geoeffnete oder geschlossene Bloecke gelten nur fuer einen Eintrag. */
   GLANCE.clear();
   JUMPED.clear();
@@ -5698,12 +5739,13 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       api('GET', `/api/items/${id}`), api('GET', '/api/product-categories'), api('GET', '/api/tags')
     ]);
   } catch (e) {
-    if (e.message !== SESSION_GONE) {
-      app.innerHTML = `<div class="shell">${subhead()}<p class="hint">${tH('server.entryUnknown')}</p></div>`;
+    if (here() && e.message !== SESSION_GONE) {
+      app.innerHTML = `<div class="shell">${subhead()}<p class="hint">${loadFailed(e)}</p></div>`;
       wireSubhead({ term });
     }
     return;
   }
+  if (!here()) return;
   let idx = 0;
   const returning = fileReturn && fileReturn.itemId === Number(id);
   if (!returning || FOLDERS_OPEN.itemId !== Number(id))
@@ -5911,7 +5953,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   function drawViewer() {
     const v = document.getElementById('viewer');
     // Nach einem await kann die Ansicht schon gewechselt haben.
-    if (!v) return;
+    if (!v || !here()) return;
     // #viewer bleibt dasselbe Element; die Handler des Ausschnittmodus loeschen.
     v.onpointerdown = v.onpointermove = v.onpointerup =
       v.onpointerleave = v.onpointercancel = null;
@@ -6197,7 +6239,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   function drawThumbs() {
     const box = document.getElementById('thumbs');
     // Nach einem await kann die Ansicht schon gewechselt haben.
-    if (!box) return;
+    if (!box || !here()) return;
     box.innerHTML = '';
     drawPhotoPick();
     item.photos.forEach((p, i) => {
@@ -6911,7 +6953,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     };
     document.addEventListener('keydown', onKey, true);
     bd.querySelector('[data-no]').onclick = zu;
-    bd.onclick = e => { if (e.target === bd) zu(); };
+    bd.onclick = e => { if (fromBackdrop(e, bd)) zu(); };
   }
 
   async function showMatch(boxId) {
@@ -6936,7 +6978,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     };
     document.addEventListener('keydown', onKey, true);
     bd.querySelector('[data-no]').onclick = zu;
-    bd.onclick = e => { if (e.target === bd) zu(); };
+    bd.onclick = e => { if (fromBackdrop(e, bd)) zu(); };
     drawMatch();
 
     function drawMatch() {
@@ -7143,7 +7185,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
         const res = await api('POST', `/api/items/${id}/test-days`, { day, rating: newRating });
         item = res;
         drawTestDays(); drawSwitches();
-        toast(res.replaced ? t('entry.gradeReplaced', { day: fmtDay(day) }) : `${V.dayOne} eingetragen`);
+        toast(res.replaced ? t('entry.gradeReplaced', { day: fmtDay(day) }) : t('entry.dayAdded'));
       } catch (e) { toast(e.message, true); }
     };
     setUpBlocksOut(item);
@@ -7216,7 +7258,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
         e.stopPropagation();
         if (!await confirmBox(search ? t('entry.removeSearchAsk') : t('entry.removeLinkAsk'),
           t('entry.removedFromList',
-            { what: search ? `„${l.url}"` : dom }), t('entry.remove'))) return;
+            { what: search ? t('entry.quoted', { text: l.url }) : dom }), t('entry.remove'))) return;
         try { await api('DELETE', `/api/links/${l.id}`); item = await api('GET', `/api/items/${id}`); drawLinks(); }
         catch (err) { toast(err.message, true); }
       };
@@ -8430,6 +8472,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
 
   /* ---- Kommentare ---- */
   function drawComments() {
+    if (!here()) return;
     const box = document.getElementById('cmts');
     /* Die Zahlen stehen in der Kopfzeile, damit sie auch eingeklappt sichtbar sind. */
     const counts = commentNumbers(item.comments);
@@ -8605,7 +8648,15 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
             }
             toast(t('entry.imagesAttached', { n: sent }));
           } catch (e) { toast(e.message, true); }
-          if (sent) drawComments();
+          if (!sent) return;
+          // Neu zeichnen schliesst den Editor; er geht mit dem ungespeicherten Text wieder auf.
+          const draft = ta.value;
+          drawComments();
+          const again = document.querySelector(`#cmts .cmt[data-comment="${c.id}"] .ed`);
+          if (!again) return;
+          again.click();
+          const field = again.closest('.cmt').querySelector('.cmt-edit textarea');
+          if (field) { field.value = draft; autoGrow(field); }
         };
         wrap.querySelector('.addimg').onclick = () => pickImages(addLater, true);
         ta.addEventListener('paste', (e) => {
@@ -8717,7 +8768,9 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     takeImages(images);
   });
 
-  document.getElementById('cadd').onclick = async () => {
+  const commentButton = document.getElementById('cadd');
+  commentButton.onclick = async () => {
+    if (commentButton.disabled) return;
     const ta = document.getElementById('ctext');
     const v = ta.value.trim();
     if (!v) return toast(t('server.textMissing'), true);
@@ -8731,12 +8784,15 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       fd.append('stillFrame', newVideo.image, 'stillframe.jpg');
       if (newVideo.duration) fd.append('duration', String(newVideo.duration));
     }
+    commentButton.disabled = true;
     try {
       item = await sendForm(`/api/items/${id}/comments`, fd);
+      if (!here()) return;
       ta.value = ''; fitCtext();
       newImages = []; newVideo = null; newPinned = false; newKind = 'note';
       drawNewImages(); drawNewMarks(); drawComments();
     } catch (e) { toast(e.message, true); }
+    finally { commentButton.disabled = false; }
   };
 
   /* Die Zahlen kommen vom Server: nur er trennt eigene von fremden Beitraegen. */
@@ -8781,8 +8837,9 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     catch (e) { toast(e.message, true); }
   });
 
-  // Ab hier kann das Aufklappen des Tagblocks die Wolke nachmessen lassen.
+  // Ab hier kann das Aufklappen des Tag- und des Linkblocks nachmessen lassen.
   redrawCloud = drawCloud;
+  redrawLinks = limitLinks;
 
   // Gespeicherte Anordnung anwenden, bevor die Blöcke gefüllt werden.
   sortBlocks();
@@ -9027,17 +9084,19 @@ function endFileViewer() {
 }
 
 async function renderFileView(itemId, fileId, editWanted = false) {
+  const run = ++VIEW_RUN;
   fileReturn = { itemId: Number(itemId), fileId: Number(fileId) };
   app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">${tH('list.loading')}</p></div>`;
   let item;
   try { item = await api('GET', `/api/items/${itemId}`); }
   catch (e) {
-    if (e.message !== SESSION_GONE) {
-      app.innerHTML = `<div class="shell">${subhead({ searchBox: false })}<p class="hint">${tH('server.entryUnknown')}</p></div>`;
+    if (run === VIEW_RUN && e.message !== SESSION_GONE) {
+      app.innerHTML = `<div class="shell">${subhead({ searchBox: false })}<p class="hint">${loadFailed(e)}</p></div>`;
       wireSubhead();
     }
     return;
   }
+  if (run !== VIEW_RUN) return;
   const a = (item.attachments || []).find(x => x.id === Number(fileId));
   // Bild und Video oeffnen das Vollbild im Eintrag, wie die Adresse eines Fotos.
   if (a && (a.preview === 'video' || (a.preview === 'image' && !editWanted))) {
@@ -9183,6 +9242,7 @@ function sysVisibleSections(fetched) {
 
 /* `keepScroll` behaelt die Scrollposition ueber das Neuzeichnen. */
 async function renderSystem({ keepScroll = false } = {}) {
+  const run = ++VIEW_RUN;
   const side = document.scrollingElement || document.documentElement;
   const scrollBefore = keepScroll && side ? side.scrollTop : 0;
   app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">${tH('list.loading')}</p></div>`;
@@ -9202,7 +9262,8 @@ async function renderSystem({ keepScroll = false } = {}) {
       ADMIN ? api('GET', '/api/requests') : null,
       ADMIN ? api('GET', '/api/document-server') : null
     ]);
-  } catch (e) { if (e.message !== SESSION_GONE) toast(e.message, true); return; }
+  } catch (e) { if (run === VIEW_RUN && e.message !== SESSION_GONE) toast(e.message, true); return; }
+  if (run !== VIEW_RUN) return;
   // Die Frist kommt vom Server; die Karte rechnet sie nicht nach.
   if (fetched.trash && fetched.trash.days) TRASH_DAYS = fetched.trash.days;
 
@@ -9749,7 +9810,7 @@ function setUpAppearanceOut() {
     if (!await confirmBox(t('card.restoreLayoutAsk'),
       t('card.blocksResetHint'),
       t('card.restore'))) return;
-    BLOCKS = { side: [...BLOCK_DEFAULT.side], bottom: [...BLOCK_DEFAULT.bottom], zu: [] };
+    BLOCKS = { side: [...BLOCK_DEFAULT.side], bottom: [...BLOCK_DEFAULT.bottom], closed: [] };
     try { await api('PUT', '/api/settings', { blocks: BLOCKS }); toast(t('card.layoutRestored')); }
     catch (e) { toast(e.message, true); }
   });
@@ -9838,8 +9899,8 @@ function setUpTagsOut(fetched) {
 
 /* ---- Karten „Bewertung: Kriterien" und „Potenzial: Kriterien" ---- */
 const CRIT_CARD = {
-  after:  { list: 'mcrits',  field: 'newcrit',  button: 'newcrit-b' },
-  before: { list: 'mpcrits', field: 'newpcrit', button: 'newpcrit-b' }
+  after:  { list: 'mcrits',  field: 'newcrit',  button: 'newcrit-b',  share: 'partial-share' },
+  before: { list: 'mpcrits', field: 'newpcrit', button: 'newpcrit-b', share: 'partial-share-before' }
 };
 
 function cardCriteria(phase) {
@@ -9856,16 +9917,9 @@ function cardCriteria(phase) {
           ? `<div class="pills" id="${k.list}-lang" style="margin-bottom:12px"></div>` : ''}
         <div class="manage-list${before && !POTENTIAL_MODE ? ' list-quiet' : ''}" id="${k.list}"></div>
         <p class="desc" style="margin:10px 0 0">${tH('card.weightExplainHint')} ${t('card.weightRangeHint')}</p>
-        <!-- Ein Textfeld MIT Vorschlagsliste, kein Auswahlfeld: feste Stufen decken 0,2 bis 2 nicht
-             ab, und ein Eintrag "anderer Wert ..." waere ein Moduswechsel -- erst waehlen, dann
-             tippen, zwei Bedienformen fuer dieselbe Sache. Dasselbe Muster wie die Tageingabe am
-             Eintrag (#newtag mit list="tagsug").
-             ZWEI VORSCHLAEGE UNTER 1: die Liste ist der einzige Ort, an dem der Bereich unter 1
-             ueberhaupt sichtbar wird. Ohne sie bliebe er da und waere nur nicht auffindbar.
-             Sie kostet eine Zeile und der Server merkt davon nichts -- alles zwischen 0,2 und 2
-             laesst sich ohnehin eintippen. -->
-        ${/* Eine Liste fuer die Gewichtsfelder beider Karten;
-             datalist mit doppelter id waere ungueltig. */''}
+        <!-- Textfeld mit Vorschlagsliste statt Auswahl: feste Stufen deckten 0,2 bis 2 nicht ab.
+             Die beiden Vorschlaege unter 1 machen den Bereich unter 1 sichtbar. -->
+        ${/* Eine Liste fuer beide Karten; datalist mit doppelter id waere ungueltig. */''}
         ${before ? '' : `<datalist id="weightsug">
           <option value="0,5"><option value="0,8"><option value="1"><option value="1,2"><option value="1,5">
         </datalist>`}
@@ -9873,9 +9927,9 @@ function cardCriteria(phase) {
           <input class="input input-sm" id="${k.field}" placeholder="${esc(t('card.newCriterion'))}" style="padding:8px 11px">
           <button class="btn btn-sm" id="${k.button}">${tH('entry.create')}</button>
         </div>
-        ${!before ? `<p class="desc" style="margin:16px 0 8px">${tH('card.partialShareHint')}</p>
-          <label class="ex-files" for="partial-share">${tH('card.partialShare')}<input class="input input-sm share-in"
-            id="partial-share" type="number" min="1" max="100" step="1" value="${Number(PARTIAL_SHARE)}"> %</label>` : ''}
+        <p class="desc" style="margin:16px 0 8px">${tH('card.partialShareHint')}</p>
+        <label class="ex-files" for="${k.share}">${tH('card.partialShare')}<input class="input input-sm share-in"
+          id="${k.share}" type="number" min="1" max="100" step="1" value="${Number(PARTIAL_SHARE)}"> %</label>
         ${before ? `${!POTENTIAL_MODE
             ? `<p class="desc" id="pot-off" style="margin:16px 0 0">${tH('card.potentialModeOff')}</p>` : ''}
           <p class="desc" style="margin:16px 0 8px">${tH('card.potentialModeHint')}</p>
@@ -9904,14 +9958,17 @@ function setUpCriteriaOut(fetched, phase) {
     document.getElementById(k.button).onclick = addCrit;
     critField.addEventListener('keydown', e => { if (e.key === 'Enter') addCrit(); });
   }
-  const shareField = document.getElementById('partial-share');
+  const shareField = document.getElementById(k.share);
   if (shareField) shareField.onchange = async () => {
     try {
       const saved = await api('PUT', '/api/settings', { partialShare: Number(shareField.value) });
       if (Number.isInteger(saved.partialShare)) PARTIAL_SHARE = saved.partialShare;
       toast(t('list.saved'));
     } catch (e) { toast(e.message, true); }
-    shareField.value = String(PARTIAL_SHARE);
+    for (const id of [CRIT_CARD.after.share, CRIT_CARD.before.share]) {
+      const f = document.getElementById(id);
+      if (f) f.value = String(PARTIAL_SHARE);
+    }
   };
   if (phase === 'before') createToggle('pot-mode', 'potentialMode',
     () => POTENTIAL_MODE, v => { POTENTIAL_MODE = v; },
@@ -10409,7 +10466,7 @@ function cardSearchProvider() {
           word: '<code>%s</code>', word2: '<code>http://</code>', word3: '<code>https://</code>' })}</p>
         <div class="engine-own" id="engines-own"></div>
         ${more(tMarks('card.searchDomainTip', {
-          word: '<code>https://www.google.com/search?q=site%3Aforum.beispiel.de+%s</code>',
+          word: '<code>https://www.google.com/search?q=site%3Aforum.example.com+%s</code>',
           word2: '<code>%3A</code>' }))}
       </div>`;
 }
@@ -10484,7 +10541,7 @@ function setUpSearchProviderOut() {
       nm.maxLength = 20; nm.placeholder = t('card.name'); nm.value = a.name || '';
       const vl = document.createElement('input');
       vl.className = 'input input-sm'; vl.id = `se-vorlage-${i + 1}`;
-      vl.maxLength = 300; vl.placeholder = 'https://forum.beispiel.de/suche?q=%s';
+      vl.maxLength = 300; vl.placeholder = 'https://forum.example.com/search?q=%s';
       vl.value = a.template || '';
       const b3 = document.createElement('button');
       b3.className = 'btn btn-sm'; b3.id = `se-b-${i + 1}`;
@@ -10611,7 +10668,7 @@ function cardUsers() {
           ${OWNER ? `<select class="input input-sm" id="user-role">
             <option value="user">${tH('card.user')}</option>
             <option value="admin">${tH('card.admin')}</option>
-            <option value="eigentuemer">${tH('card.owner')}</option>
+            <option value="owner">${tH('card.owner')}</option>
           </select>` : ''}
           <button class="btn btn-accent btn-sm" id="user-create">${tH('card.createWithLink')}</button>
         </div>
@@ -10757,7 +10814,7 @@ function setUpUsersOut() {
          kennt nur drei. */
       const waiting = z.withoutPassword;
       row.innerHTML = `<span class="mname">${esc(authorName({ id: z.id, name: z.username, deleted: false }))}${
-          self ? ' <span class="user-mine">(du)</span>' : ''}</span>
+          self ? ` <span class="user-mine">${tH('card.youMarker')}</span>` : ''}</span>
         <span class="user-role"><span class="role-badge ${esc(z.role)}">${esc(rolesWord(z.role))}</span></span>
         <span class="user-status" title="${waiting ? esc(t('card.inviteOpen')) : esc(statusWord(z.status))}"><span
           class="user-dot ${waiting ? 'invited' : esc(z.status)}"></span>${esc(statusWord(z.status))}${
@@ -10770,7 +10827,7 @@ function setUpUsersOut() {
           `${data.mayRoles ? `<select class="input input-sm user-role-sel">
              <option value="user"${z.role === 'user' ? ' selected' : ''}>${tH('card.user')}</option>
              <option value="admin"${z.role === 'admin' ? ' selected' : ''}>${tH('card.admin')}</option>
-             <option value="eigentuemer"${z.role === 'owner' ? ' selected' : ''}>${tH('card.owner')}</option>
+             <option value="owner"${z.role === 'owner' ? ' selected' : ''}>${tH('card.owner')}</option>
            </select>` : ''}
            <button class="mact user-lock-btn" title="${esc(z.status === 'active' ? t('card.lock') : t('card.unlock'))}">${
              z.status === 'active' ? ICON_LOCK : ICON_CHECK}</button>
@@ -10882,7 +10939,7 @@ function setUpUsersOut() {
     };
     doc.addEventListener('keydown', onKey, true);
     bd.querySelector('[data-no]').onclick = zu;
-    bd.onclick = e => { if (e.target === bd) zu(); };
+    bd.onclick = e => { if (fromBackdrop(e, bd)) zu(); };
     const box = bd.querySelector('#tombstone-list');
     if (!userTombstones.length) {
       box.innerHTML = `<span class="hint">${tH('card.noUserDeleted')}</span>`;
@@ -11322,7 +11379,7 @@ function mailDialog(mailStatus) {
     };
     document.addEventListener('keydown', onKey, true);
     bd.querySelector('[data-no]').onclick = () => finished(false);
-    bd.onclick = e => { if (e.target === bd) finished(false); };
+    bd.onclick = e => { if (fromBackdrop(e, bd)) finished(false); };
 
     bd.querySelector('#mail-save').onclick = async () => {
       const body = {
@@ -11781,9 +11838,10 @@ const BATCH_RUNS = [
 ];
 
 let inventoryClock = null;
-function followBatchRun() {
+// `stats` vom Zeichnen: ein Lauf, der vor der ersten Abfrage endet, meldete sonst nie sein Ende.
+function followBatchRun(stats) {
   if (inventoryClock) return;
-  const inFlight = new Set();
+  const inFlight = new Set(BATCH_RUNS.filter(l => stats?.[l.field]?.running).map(l => l.field));
   const stop = () => { clearInterval(inventoryClock); inventoryClock = null; };
   inventoryClock = setInterval(async () => {
     if (!BATCH_RUNS.some(l => document.getElementById(l.id))) return stop();
@@ -11833,14 +11891,13 @@ function setUpImageStoreOut(fetched) {
       if (!ok) return;
       try { await api('POST', '/api/images/convert', {}); }
       catch (e) { return toast(e.message, true); }
-      /* Neu zeichnen: /api/stats traegt den Lauf, und setUpImageStoreOut()
-         startet followBatchRun(). */
+      // Neu zeichnen: /api/stats traegt den Lauf, setUpImageStoreOut() startet followBatchRun().
       renderSystem();
     };
   });
 
   if (fetched.stats && BATCH_RUNS.some(l => fetched.stats[l.field] && fetched.stats[l.field].running))
-    followBatchRun();
+    followBatchRun(fetched.stats);
 }
 
 
@@ -11919,14 +11976,10 @@ function setUpBackupOut(fetched) {
     document.getElementById('backup-dir-save').onclick = async () => {
       const value = document.getElementById('backup-dir').value;
       try {
-        const r = await api('PUT', '/api/backup/dir', { place: value });
-        // changedAt und outdated wandern mit, sonst verschwaende der Kasten
-        // ueber die alten Backups beim ersten Speichern des Ortes.
-        fetched.backup = { ...fetched.backup, place: r.place, filePath: r.filePath, error: null,
-                      reachable: r.reachable, last: r.last, number: r.number,
-                      changedAt: r.changedAt, outdated: r.outdated };
+        await api('PUT', '/api/backup/dir', { place: value });
         saved();
-        drawBackup(fetched);
+        // Neu geladen statt drawBackup(): „Alte Backups“ zeigte sonst die Liste des alten Ordners.
+        renderSystem({ keepScroll: true });
       } catch (e) { toast(e.message, true); }
     };
     // Der Knopf sperrt sich, solange das Backup entsteht: VACUUM INTO laeuft synchron.
@@ -11999,7 +12052,8 @@ function setUpCleanupOut(fetched) {
   drawCleanup(fetched);
 }
 
-  function drawCleanup(fetched) {
+  /* keepFields: die beiden Felder bleiben stehen, damit Fokus und 'change' beim Tippen erhalten bleiben. */
+  function drawCleanup(fetched, keepFields = false) {
     const box = document.getElementById('cleanup-box');
     if (!box) return;
     const d = fetched.backup || {};
@@ -12074,7 +12128,17 @@ function setUpCleanupOut(fetched) {
           tH('card.oldKeyBackupsDelete', { n: oldCount })}</button>
       </div>`;
 
-    box.innerHTML = `
+    const rest = `${listBox}
+      ${stateBox}
+      <div class="row-in">
+        <button class="btn btn-accent btn-sm" id="cleanup-run"${matched.length ? '' : ' disabled'}>${tH('card.deleteNow')}</button>
+      </div>
+      ${outdatedBox}`;
+    const ruleText = tH('card.backupDeleteRule', { keep: keep, min: gT.min, max: gT.max });
+    if (keepFields && document.getElementById('cleanup-rest')) {
+      document.getElementById('cleanup-rest').innerHTML = rest;
+      document.getElementById('cleanup-rule').innerHTML = ruleText;
+    } else box.innerHTML = `
       <label class="ex-files"><input type="checkbox" id="cleanup-toggle"${a.an ? ' checked' : ''}>
         ${tH('card.cleanupAfterBackup')}</label>
       <p class="hint hint-sm" style="margin:6px 2px 0">${tH('card.onlyOnButton')}</p>
@@ -12084,16 +12148,11 @@ function setUpCleanupOut(fetched) {
         <input class="input" id="cleanup-keep" type="number" inputmode="numeric"
           min="${Number(gB.min)}" max="${Number(gB.max)}" step="1" value="${Number(keep)}"></div>
       <div class="field"><label for="cleanup-days">${tH('card.deleteFromAge')}</label>
-        <p class="desc" style="margin:0 0 6px">${tH('card.backupDeleteRule', { keep: keep, min: gT.min, max: gT.max })}</p>
+        <p class="desc" id="cleanup-rule" style="margin:0 0 6px">${ruleText}</p>
         <input class="input" id="cleanup-days" type="number" inputmode="numeric"
           min="${Number(gT.min)}" max="${Number(gT.max)}" step="1" value="${Number(days)}"></div>
       <div class="sys-part"></div>
-      ${listBox}
-      ${stateBox}
-      <div class="row-in">
-        <button class="btn btn-accent btn-sm" id="cleanup-run"${matched.length ? '' : ' disabled'}>${tH('card.deleteNow')}</button>
-      </div>
-      ${outdatedBox}`;
+      <div id="cleanup-rest">${rest}</div>`;
 
     atElement('cleanup-toggle', (el) => {
       el.onchange = async () => {
@@ -12124,7 +12183,7 @@ function setUpCleanupOut(fetched) {
       if (run !== previewRun) return;
       if (!document.getElementById('cleanup-box')) return;
       fetched.backup = fresh;
-      drawCleanup(fetched);
+      drawCleanup(fetched, true);
     };
     for (const [id, key] of [['cleanup-keep', 'backupKeep'],
                                     ['cleanup-days', 'backupDays']])
@@ -12145,7 +12204,8 @@ function setUpCleanupOut(fetched) {
     const clear = async (kind, title, event) => {
       if (!(await secondConfirm('backup', null, title, event))) return;
       let r;
-      try { r = await api('POST', '/api/backup/cleanup', { kind }); }
+      // Bei 'rule' die angezeigten Werte: das Speichern aus 'change' kann noch unterwegs sein.
+      try { r = await api('POST', '/api/backup/cleanup', kind === 'rule' ? { kind, ...values() } : { kind }); }
       catch (e) { return toast(e.message, true); }
       fetched.backup = { ...fetched.backup, reachable: r.reachable, last: r.last,
                            number: r.number, changedAt: r.changedAt, outdated: r.outdated,
@@ -12474,7 +12534,7 @@ function askImport(file, stats) {
         <div class="modal-acts"><button class="btn" data-close>${tH('list.close')}</button></div></div>`;
       document.body.appendChild(bd);
       bd.querySelector('[data-close]').onclick = () => bd.remove();
-      bd.onclick = e => { if (e.target === bd) bd.remove(); };
+      bd.onclick = e => { if (fromBackdrop(e, bd)) bd.remove(); };
       return;
     }
     const fileDate = info.date ? fmtDate(info.date.replace('T',' ').slice(0,19)) : '';
@@ -12496,7 +12556,7 @@ function askImport(file, stats) {
     document.body.appendChild(bd);
     const close = () => bd.remove();
     bd.querySelector('[data-cancel]').onclick = close;
-    bd.onclick = e => { if (e.target === bd) close(); };
+    bd.onclick = e => { if (fromBackdrop(e, bd)) close(); };
 
     const run = async (mode) => {
       if (!await longRunNotice('card.importRunTitle')) return;

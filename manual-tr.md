@@ -268,20 +268,21 @@ Oluştururken “Benzer başlıklar: …” benzer başlıklı mevcut öğeleri 
 ### Filtre ve sıralama
 
 - **Durum:** Tümü, Test edildi, Test edilmedi. Ayrıca “Ret” (Tümü, Reddedildi,
-  Reddedilmedi), “★ Favoriler” ve “Kendi değerleriniz”. Hepsi birlikte
-  kullanılabilir.
+  Reddedilmedi), “★ Favoriler” ve “◆ ★”. Hepsi birlikte kullanılabilir.
 - **Kategoriler:** birden fazlası seçilebilir, her zaman “ya da” ile.
   “Kategorisiz” kategorisi olmayan öğeleri gösterir.
 - **Etiketler:** birden fazlası seçilebilir. Geçiş düğmesi “Ve” (varsayılan)
   ile “Ya da” arasında seçim yapar. Soluk görünen bir etiket eklenirse hiç
   sonuç kalmaz.
-- **Kendi değerleriniz:** “Yok” ya da “Kısmen”, kendi yıldızlarına göre; ikinci
-  tıklama filtreyi kapatır. Test edilmemiş öğeler “Potansiyel”, test edilmiş
-  öğeler “Değerlendirme” ile sayılır. “Yok”: kendi yıldızı yok. “Kısmen”: kendi
-  yıldızları eşiğin altında, varsayılan olarak ölçütlerin %80'i. Eşiği bir
-  yönetici “Değerlendirme: ölçütler” kartında ayarlar. Potansiyel modu kapalıysa
-  ya da bir kutunun ölçütü yoksa o aşamanın öğeleri sonuçta yer almaz. Hiç
-  ölçüt yoksa grup görünmez.
+- **◆ ★:** “Yok” ya da “Kısmen”, kendi yıldızlarına göre; ikinci tıklama
+  filtreyi kapatır. Test edilmemiş öğeler “Potansiyel” (◆), test edilmiş öğeler
+  “Değerlendirme” (★) ile sayılır. Grubun başlığı sözlükteki kelimeleri
+  gösterir. “Yok”: kendi yıldızı yok. “Kısmen”: kendi yıldızları eşiğin altında,
+  varsayılan olarak ölçütlerin %80'i. Eşiği bir yönetici “Potansiyel: ölçütler”
+  ya da “Değerlendirme: ölçütler” kartında ayarlar; iki kart da aynı değeri
+  gösterir. Potansiyel modu kapalıysa yalnızca ★ görünür ve test edilmemiş
+  öğeler sonuçta yer almaz; ölçütü olmayan bir kutunun öğeleri de. Hiç ölçüt
+  yoksa grup görünmez.
 - **“Filtreleri sıfırla (n)”** bir filtre seçildiği anda sıralama satırında
   görünür. Arama sözcüğü, sıralama ve kayıtlı görünümler kalır.
 - **Sıralama:** son değişikliğe, değerlendirmeye, potansiyele, başlığa, test
@@ -528,7 +529,8 @@ değişmez.
   altındaki “Kayıt tarihi” görünmez. Güncellemeden önceki görselleri Kriterion
   başlatmadan sonra bir kez yeniden okur. Bir video proxy gerektiriyorsa “Proxy”
   grubu durumu, çözünürlüğü, boyutu ve proxy üzerinde ölçülen video ve ses bit
-  hızlarını gösterir. Dosyanın belirtmediği bilgiler görünmez.
+  hızlarını gösterir. Dosyanın belirtmediği bilgiler görünmez. Açılışta yalnızca
+  “Genel” açıktır; diğer grupları başlıklarına tıklamak açar.
 - **Belgeler için bilgi:** Bir Word, Excel, PowerPoint ya da PDF dosyasının ve
   bunların OpenDocument karşılıklarının ⋯ menüsündeki “Bilgi” iki grup gösterir.
   “Kriterion'da”: yükleyen ve yükleme tarihi, yüklemeden önce değiştirilme
@@ -898,8 +900,8 @@ Aynı arayüz, genişliğe ve kullanıma uyarlanmış.
 - Telefonda zil, “Açık görevler”, ayarlar ve çıkış menü simgesinin arkasındadır. Arama
   ve “+ Öğe” görünür kalır. Dokunmatik bir tablet de aynı menüyü alır.
 - Telefonda filtreler kapalıdır. Düğme etkin filtrelerin sayısını gösterir.
-- Bir öğenin altındaki “‹ Önceki” ve “Sonraki ›” genel görünümün sırasıyla
-  gezinir.
+- Bir öğenin altındaki “‹ Önceki” ve “Sonraki ›” genel görünümün sırasıyla,
+  filtre ve sıralamayla gezinir.
 - Resimde bir kaydırma hareketiyle gezinilir. Silme büyük resimde yapılır,
   önizleme döşemesinde değil.
 - Parmakla sürükleyerek sıralamak için kısa bir süre basılı tutmak gerekir.
@@ -914,9 +916,8 @@ Aynı arayüz, genişliğe ve kullanıma uyarlanmış.
 ## Dil
 
 Almanca, İngilizce ve Türkçe. Herkes dilini “Görünüm” kartında seçer;
-değişiklik hemen etki eder. Kendi seçimi olmayan için tarayıcının dili, o dil
-yoksa kurulumun varsayılan dili geçerlidir. Giriş sayfası varsayılan dili
-gösterir.
+değişiklik hemen etki eder. Kendi seçimi olmayan için kurulumun varsayılan dili
+geçerlidir. Giriş sayfası varsayılan dili gösterir.
 
 Sahip yönetici “Ayarlar › Kurulum › Diller” altında varsayılan dili ve
 seçilebilir dilleri belirler. Yeni bir kurulum İngilizce başlar.

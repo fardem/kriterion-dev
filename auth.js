@@ -278,8 +278,8 @@ function setRole(userId, role, actor) {
   if (!u) throw new Message('server.userUnknown');
   if (u.status === 'deleted') throw new Message('server.userDeleted');
   if (!ROLES.includes(role)) throw new Message('login.roleUnknown');
-  // Dieselbe Sperre in setStatus() und removeUser(): der letzte Eigentuemer bleibt.
-  if (u.role === 'owner' && role !== 'owner' && ownerCount() <= 1)
+  // Dieselbe Sperre in setStatus() und removeUser(): der letzte aktive Eigentuemer bleibt.
+  if (u.role === 'owner' && u.status === 'active' && role !== 'owner' && ownerCount() <= 1)
     throw new Message('login.lastOwner');
   db.prepare('UPDATE users SET role = ? WHERE id = ?').run(role, u.id);
   log('user.role', { actor: acting, target: u.id, detail: role });
@@ -293,7 +293,7 @@ function setStatus(userId, status, actor) {
   if (u.status === 'deleted') throw new Message('server.userDeleted');
   if (status !== 'active' && status !== 'locked')
     throw new Message('login.statusNotSettable');
-  if (u.role === 'owner' && status !== 'active' && ownerCount() <= 1)
+  if (u.role === 'owner' && u.status === 'active' && status !== 'active' && ownerCount() <= 1)
     throw new Message('login.lastOwner');
   db.prepare('UPDATE users SET status = ? WHERE id = ?').run(status, u.id);
   /* requireAuth() weist gesperrte Zugaenge zusaetzlich ab; der zweite Faktor
@@ -337,7 +337,7 @@ function removeUser(userId, options = {}, actor) {
   const u = getUser2(userId);
   if (!u) throw new Message('server.userUnknown');
   if (u.status === 'deleted') throw new Message('login.userDeleted');
-  if (u.role === 'owner' && ownerCount() <= 1)
+  if (u.role === 'owner' && u.status === 'active' && ownerCount() <= 1)
     throw new Message('login.lastOwner');
   const counts = countInventory(u.id);
   db.transaction(() => {
@@ -410,14 +410,17 @@ function cleanupAttempts() {
   return n;
 }
 
-// Letzter Eintrag von X-Forwarded-For: den setzt der eigene Proxy, davor der Client.
+// Nur vom eigenen Netz gilt X-Forwarded-For, davon der letzte Eintrag: den setzt der eigene Proxy.
+const PRIVATE_PEER =
+  /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.|::1$|f[cd]|fe[89ab])/i;
 function clientIp(req) {
-  if (BEHIND_PROXY) {
+  const peer = req.socket.remoteAddress || 'unbekannt';
+  if (BEHIND_PROXY && PRIVATE_PEER.test(peer.replace(/^::ffff:/i, ''))) {
     const chain = String(req.headers['x-forwarded-for'] || '')
       .split(',').map(s => s.trim()).filter(Boolean);
     if (chain.length) return chain[chain.length - 1];
   }
-  return req.socket.remoteAddress || 'unbekannt';
+  return peer;
 }
 
 function checkThrottle(ip, name) {
@@ -1096,7 +1099,7 @@ module.exports = {
   BEHIND_PROXY, PASSWORD_MIN, SESSION_DAYS, fromEnv,
   PUBLIC_ADDRESS, checkPublicAddress, parseCookies, checkLogin, createSession, destroySession,
   sessionUser, pruneSessions, sessionCookie, clearCookie, requireAuth,
-  clientIp, checkThrottle, noteFailure, noteSuccess, cleanupAttempts,
+  clientIp, PRIVATE_PEER, checkThrottle, noteFailure, noteSuccess, cleanupAttempts,
   delay, SCRYPT_COST: SCRYPT.N, SCRYPT_SHIPPED,
   sessionIdOf, sessionsOf, endSession, endOtherSessions,
   TOKEN_DAYS, TOKEN_DEADLINE_MINUTES, tokenHash,

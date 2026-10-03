@@ -7,6 +7,43 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 > A box above the changes of a version means there is something to do when updating.
 > Yanked versions are marked `[YANKED]`.
 
+## [0.56.3] - 2026-10-03
+
+Fingerprint `6a318ea6` — previously `df009920`.
+
+### Changed
+
+- The overview filter for your own stars is now called "◆ ★", only "★" without the potential mode; its tooltip names the words from the vocabulary.
+- The threshold for "Partial" can be set in "Potential: criteria" and in "Rating: criteria"; both show the same value.
+- Info on images and videos: only "General" is open; the other groups open with a click on their heading.
+- German: "Farbunterabtastung" is now "Chroma Subsampling".
+- Behind a reverse proxy, `X-Forwarded-For` is read only from the own network: loopback, private networks, 100.64.0.0/10, IPv6 ULA and link-local.
+
+### Fixed
+
+- Emails showed "{instanceTitle}" instead of the title of the installation, in subject and text.
+- Sign-in rate limit: parallel attempts from one address all got through before the lock; the confirmation link of a sign-up request reset the counter.
+- Password and two-factor code were not rate-limited for signed-in users (own account, two-factor settings).
+- "Restore default layout" broke the entry view until reload.
+- The role "Owner admin" could not be assigned in the interface.
+- "Old backups": each digit typed rebuilt the field, the value was not saved, and "Delete now" could delete more than shown.
+- A test day after midnight failed with "date in the future" until 2 a.m. in Germany and 3 a.m. in Turkey.
+- A photo without a thumbnail returned an error instead of the original.
+- Fetching missing files back from a full or read-only backup drive ended the server.
+- An update during a backup blocked backups for 24 hours.
+- Seeking in a video could leave the file open on the server.
+- If renaming a file fetched back from a backup failed, the copy was deleted.
+- `backuptool restore` named a backup number that had shifted after an abort; it now names the time.
+- `keytool.sh`: a failed copy of the data directory went unnoticed, the new key showed in the process list, and the expected log line was wrong.
+- `.env.before-key-change-*` from `keytool.sh` ended up in the Docker image.
+- A blank password in the mail settings reused the stored one for a different server.
+- The reason of a failed email was missing when approving a sign-up request.
+- A locked owner admin could not be demoted or removed while another owner admin was active.
+- Interface: a late answer overwrote the view opened after it; "Next ›" ignored filters and sort order; adding an image while editing a comment lost the text; a double click created an entry or comment twice; selecting text in a dialog and releasing outside closed it; an expired session with full screen open blocked the sign-in.
+- Interface: the export size left out comment videos; "Links" opened collapsed showed one row; the open-task counter counted done tasks; an arrow key in full screen with one item stopped the video; the compare bar stayed outside the overview; sorting by potential stayed active without the potential mode; a short image conversion left its button disabled; network errors on an entry read "not found".
+- Phone: user rows in "Users" were wider than the screen; "From the start" on a video lay under the video tools; the upload indicator covered the menu button; the settings tabs stayed hidden after rotating.
+- Texts: hard-coded German words and example addresses, the section named for search engines, and the field named in the cleanup rule error.
+
 ## [0.56.2] - 2026-10-03
 
 Fingerprint `df009920` — previously `a8fe80d0`.
