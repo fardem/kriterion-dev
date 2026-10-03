@@ -1016,8 +1016,9 @@ async function run() {
     // Nicht neben dem Schliessen: ein Fehlgriff loeschte das Bild.
     const tools = [...doc.querySelectorAll('.lightbox .lb-tools .lb-btn')]
       .map(b => b.className.replace('lb-btn ', ''));
-    check('Und er steht vor dem Schliessen, nicht daneben',
-      equal(tools, ['whole', 'original', 'info', 'copy', 'download', 'zoom', 'remove', 'close']), JSON.stringify(tools));
+    check('Und er steht vorn in der Leiste, ✕ ausserhalb davon',
+      equal(tools, ['remove', 'whole', 'original', 'info', 'copy', 'download', 'zoom']) &&
+      !!doc.querySelector('.lightbox .lb-top > .lb-btn.close'), JSON.stringify(tools));
 
     const imagesBefore = [...doc.querySelectorAll('.lightbox .lb-thumb')].length;
     // `?.`: ein Rueckbau kann den Papierkorb entfernen, dann ist `removed()` null.

@@ -268,18 +268,20 @@ Oluştururken “Benzer başlıklar: …” benzer başlıklı mevcut öğeleri 
 ### Filtre ve sıralama
 
 - **Durum:** Tümü, Test edildi, Test edilmedi. Ayrıca “Ret” (Tümü, Reddedildi,
-  Reddedilmedi) ve “★ Favoriler”. Hepsi birlikte kullanılabilir.
+  Reddedilmedi), “★ Favoriler” ve “Kendi değerleriniz”. Hepsi birlikte
+  kullanılabilir.
 - **Kategoriler:** birden fazlası seçilebilir, her zaman “ya da” ile.
   “Kategorisiz” kategorisi olmayan öğeleri gösterir.
 - **Etiketler:** birden fazlası seçilebilir. Geçiş düğmesi “Ve” (varsayılan)
   ile “Ya da” arasında seçim yapar. Soluk görünen bir etiket eklenirse hiç
   sonuç kalmaz.
-- **Potansiyel ve Değerlendirme:** her biri “Tümü”, “Yok” ve “Kısmen”; kendi
-  yıldızlarına göre. “Yok”: o kutuda kendi yıldızı yok. “Kısmen”: kendi
-  yıldızları eşiğin altında, varsayılan olarak ölçütlerin %80'i.
-  “Değerlendirme”de yalnızca test edilmiş öğeler sayılır. Eşiği bir yönetici
-  “Değerlendirme: ölçütler” kartında ayarlar. Potansiyel modu kapalıysa ya da
-  bir kutunun ölçütü yoksa onun grubu görünmez.
+- **Kendi değerleriniz:** “Yok” ya da “Kısmen”, kendi yıldızlarına göre; ikinci
+  tıklama filtreyi kapatır. Test edilmemiş öğeler “Potansiyel”, test edilmiş
+  öğeler “Değerlendirme” ile sayılır. “Yok”: kendi yıldızı yok. “Kısmen”: kendi
+  yıldızları eşiğin altında, varsayılan olarak ölçütlerin %80'i. Eşiği bir
+  yönetici “Değerlendirme: ölçütler” kartında ayarlar. Potansiyel modu kapalıysa
+  ya da bir kutunun ölçütü yoksa o aşamanın öğeleri sonuçta yer almaz. Hiç
+  ölçüt yoksa grup görünmez.
 - **“Filtreleri sıfırla (n)”** bir filtre seçildiği anda sıralama satırında
   görünür. Arama sözcüğü, sıralama ve kayıtlı görünümler kalır.
 - **Sıralama:** son değişikliğe, değerlendirmeye, potansiyele, başlığa, test
@@ -336,8 +338,9 @@ Görevler doğrudan orada tamamlandı olarak işaretlenir.
 - Sıradaki ilk resim ana resimdir. Sıra, küçük resimler sürüklenerek
   değiştirilir.
 - ← → tuşlarıyla ya da ekrandaki oklarla gezinilir. Bir tıklama tam ekranı
-  açar, ikincisi özgün boyuta yakınlaştırır, Esc kapatır. Tam ekranda ↓ dosyayı
-  indirir. Bir video odaktaysa, örneğin üzerine tıklandıktan sonra, ← ve →
+  açar, ikincisi özgün boyuta yakınlaştırır. Esc, sağ üstteki ✕ ve tarayıcıdaki
+  Geri tam ekranı kapatır; fareyle resmin yanına tıklamak da kapatır. Tam
+  ekranda ↓ dosyayı indirir. Bir video odaktaysa, örneğin üzerine tıklandıktan sonra, ← ve →
   videoda 5 saniye geri ya da ileri atlar; öğede de tam ekranda da.
 - **Bağlantıyı kopyala:** tam ekrandaki zincir simgesi gösterilen fotoğrafın ya
   da videonun adresini kopyalar. Adres öğeyi ve tam ekranı bu noktada açar.
@@ -902,7 +905,11 @@ Aynı arayüz, genişliğe ve kullanıma uyarlanmış.
 - Resimde bir kaydırma hareketiyle gezinilir. Silme büyük resimde yapılır,
   önizleme döşemesinde değil.
 - Parmakla sürükleyerek sıralamak için kısa bir süre basılı tutmak gerekir.
-- Tam ekranda çift dokunma yakınlaştırır.
+- Tam ekranda çift dokunma yakınlaştırır. Kaydırma hareketi gezinir; videoda
+  yalnızca videonun yanında. Resmin yanına dokunmak tam ekranı kapatmaz; Geri
+  tuşu kapatır.
+- Yatay tutulduğunda tam ekranda küçük resim şeridi yoktur; oklarla ya da
+  kaydırarak gezinilir.
 - Tarayıcıdaki “Ana ekrana ekle” ile Kriterion bir uygulama gibi eklenebilir.
   İnternet olmadan açılmaz.
 

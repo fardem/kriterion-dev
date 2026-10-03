@@ -576,8 +576,8 @@ async function run() {
     check('Die Kachel der Datei traegt den Rahmen, solange das Vollbild sie zeigt', equal(opened(w), ['f42']),
       opened(w).join(' '));
     const tools = [...(lb()?.querySelectorAll('.lb-tools > .lb-btn') || [])].filter(b => !b.hidden).map(b => b.className.split(' ')[1]);
-    check('Die Leiste: Erweiterte Infos, Link kopieren, Herunterladen, mit Recht Loeschen',
-      equal(tools, ['info', 'copy', 'download', 'zoom', 'remove', 'close']) &&
+    check('Die Leiste: mit Recht Loeschen, Erweiterte Infos, Link kopieren, Herunterladen',
+      equal(tools, ['remove', 'info', 'copy', 'download', 'zoom']) &&
       lb()?.querySelector('.download')?.getAttribute('href') === '/api/attachments/42/raw', tools.join(' '));
     press(w.document.body, 'ArrowRight');
     check('← und → blaettern durch die Bilder der Gruppe', count() === '2 / 2' &&

@@ -2746,14 +2746,14 @@ const isNarrow = () => !!(window.matchMedia && window.matchMedia(NARROW).matches
 const CATEGORY_NONE = 'ohne';
 /* Die einzige Vorgabe der Filter; keine Kopie davon anlegen. */
 const FILTER_DEFAULT = { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'all',
-                         rejected: 'all', favorite: false, potential: 'all', rating: 'all',
+                         rejected: 'all', favorite: false, own: 'all',
                          sort: 'updated_desc' };
 /* Filter nach den eigenen Werten; `share` am Eintrag rechnet der Server mit der Schwelle aus den
-   Einstellungen. Nennt er eine Phase nicht, fehlt ihre Gruppe, und ihr Wert gilt als 'all'. */
-const SHARE_PHASES = { potential: 'before', rating: 'after' };
+   Einstellungen. Nennt er keine Phase, fehlt die Gruppe, und der Wert gilt als 'all'. */
 const SHARE_VALUES = ['all', 'none', 'partial'];
-const shareShown = (key) => state.all.some(i => i.share && SHARE_PHASES[key] in i.share);
-const shareWanted = (f, key) => (shareShown(key) ? f[key] : 'all');
+const sharePhase = (i) => (i.tested ? 'after' : 'before');
+const shareShown = () => state.all.some(i => i.share && Object.keys(i.share).length > 0);
+const shareWanted = (f) => (shareShown() ? f.own : 'all');
 
 const statusEffective = (f) => f.tested;
 
@@ -2901,8 +2901,9 @@ function filterNormal(raw) {
     v === CATEGORY_NONE || state.categories.some(c => c.id === v));
   if (f.tagMode !== 'or') f.tagMode = 'and';
   f.favorite = f.favorite === true;
-  for (const key of Object.keys(SHARE_PHASES)) if (!SHARE_VALUES.includes(f[key])) f[key] = 'all';
-  /* `fresh` stammt von einem entfernten Filter. */
+  if (!SHARE_VALUES.includes(f.own)) f.own = 'all';
+  /* `fresh`, `potential` und `rating` stammen von entfernten Filtern. */
+  delete f.potential; delete f.rating;
   delete f.fresh;
   return f;
 }
@@ -3034,10 +3035,8 @@ function visibleItems(filter) {
   if (f.rejected === 'ja') out = out.filter(i => i.rejected);
   else if (f.rejected === 'nein') out = out.filter(i => !i.rejected);
   if (f.favorite) out = out.filter(i => i.favorite);
-  for (const key of Object.keys(SHARE_PHASES)) {
-    const wanted = shareWanted(f, key);
-    if (wanted !== 'all') out = out.filter(i => i.share?.[SHARE_PHASES[key]] === wanted);
-  }
+  const own = shareWanted(f);
+  if (own !== 'all') out = out.filter(i => i.share?.[sharePhase(i)] === own);
   /* Die Suche steckt schon in `state.items` (GET /api/items?q=). */
 
   out = [...out].sort((a, b) => {
@@ -3498,7 +3497,7 @@ function filterNumber() {
   if (f.tested !== v.tested) n++;
   if (f.rejected !== v.rejected) n++;
   if (f.favorite) n++;
-  for (const key of Object.keys(SHARE_PHASES)) if (shareWanted(f, key) !== 'all') n++;
+  if (shareWanted(f) !== 'all') n++;
   /* Kategorien zaehlen zusammen als ein Filter, weil sie mit `or` verknuepft
      sind; Tags zaehlen einzeln. */
   if (f.categoryIds.length) n++;
@@ -3575,25 +3574,22 @@ function drawFilters() {
   });
   r1.appendChild(g1b);
 
-  /* ---- Potenzial und Bewertung, gemessen an den eigenen Werten ---- */
-  const shares = [['potential', V.potential], ['rating', V.ratingOne]].filter(([key]) => shareShown(key));
-  if (shares.length) {
-    const r = row(shares[0][1]);
-    r.id = 'f-shares';
-    shares.forEach(([key, label], at) => {
-      if (at) secondLabel(r, label);
-      const g = document.createElement('div');
-      g.className = 'pills'; g.id = `f-${key}`;
-      [['all', t('list.all')], ['none', t('list.shareNone')], ['partial', t('list.sharePartial')]].forEach(([v, l]) => {
-        const b = document.createElement('button');
-        b.className = 'pill' + (f[key] === v ? ' on' : '');
-        b.textContent = l;
-        if (v === 'partial') b.title = t('list.sharePartialHint', { share: PARTIAL_SHARE });
-        b.onclick = () => { f[key] = v; redraw(); };
-        g.appendChild(b);
-      });
-      r.appendChild(g);
+  /* ---- Eigene Werte, in derselben Zeile; ohne „Alle“, ein zweiter Klick schaltet aus ---- */
+  if (shareShown()) {
+    secondLabel(r1, t('list.ownValues'));
+    const g = document.createElement('div');
+    g.className = 'pills'; g.id = 'f-own';
+    const counted = t('list.ownValuesHint');
+    [['none', t('list.shareNone'), counted],
+     ['partial', t('list.sharePartial'), `${t('list.sharePartialHint', { share: PARTIAL_SHARE })}\n${counted}`]].forEach(([v, l, hint]) => {
+      const b = document.createElement('button');
+      b.className = 'pill' + (f.own === v ? ' on' : '');
+      b.textContent = l;
+      b.title = hint;
+      b.onclick = () => { f.own = f.own === v ? 'all' : v; redraw(); };
+      g.appendChild(b);
     });
+    r1.appendChild(g);
   }
 
   /* ---- Kategorie ---- */
@@ -4438,6 +4434,7 @@ async function renderCompare() {
 
 /* ---- Vollbild ---- */
 let lightboxOpen = false;
+let lightboxRuns = 0;
 
 /* Einzige Stelle, die Bildadressen baut und die Version `v=` anhaengt. */
 function imageSource(p, filesize) {
@@ -4598,6 +4595,7 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
     <div class="lb-top">
       <span class="lb-title">${esc(title || '')}</span>
       <div class="lb-tools">
+        ${remove ? `<button class="lb-btn remove" title="${esc(t('dialog.delete'))}">${ICON_TRASH}</button>` : ''}
         <span class="lb-loaded" hidden></span>
         <button class="lb-btn whole" hidden aria-pressed="false">${tH('entry.loadWhole')}</button>
         <button class="lb-btn original" hidden></button>
@@ -4607,9 +4605,8 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
         <a class="lb-btn download" download title="${esc(t('entry.download'))}">↓</a>
         <button class="lb-btn zoom" title="${esc(t('list.zoomFull'))}">⊕</button>
         ${still ? `<button class="lb-btn still" title="${esc(t('entry.setStill'))}" aria-label="${esc(t('entry.setStill'))}">${ICON_STILL}</button>` : ''}
-        ${remove ? `<button class="lb-btn remove" title="${esc(t('dialog.delete'))}">${ICON_TRASH}</button>` : ''}
-        <button class="lb-btn close" title="${esc(t('list.closeEsc'))}">${ICON_X}</button>
       </div>
+      <button class="lb-btn close" title="${esc(t('list.closeEsc'))}">${ICON_X}</button>
     </div>
     <div class="lb-stage"><img alt="" title="${esc(t('list.clickZoomHint'))}">
       <video class="lb-video" controls playsinline preload="metadata" tabindex="0" hidden></video>
@@ -4618,8 +4615,17 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
     ${photos.length > 1 ? `<button class="lb-nav prev" title="${esc(t('list.previous'))}">‹</button>
                            <button class="lb-nav next" title="${esc(t('list.next'))}">›</button>` : ''}
     ${photos.length > 1 ? `<div class="lb-strip"></div>` : ''}`;
+  const focusBefore = document.activeElement;
+  // Die Seite dahinter fuer Tab und Vorleser sperren; Dialoge und Meldungen kommen spaeter dazu und bleiben frei.
+  const behind = [...document.body.children].filter(el => !el.hasAttribute('inert') && !el.classList.contains('toast'));
+  behind.forEach(el => el.setAttribute('inert', ''));
   document.body.appendChild(lb);
   document.body.classList.add('lb-open');
+  // Eigener Eintrag im Verlauf: Zurueck und jeder Wechsel der Adresse loesen `popstate` aus und schliessen.
+  const mark = ++lightboxRuns;
+  history.pushState({ lightbox: mark }, '');
+  const back = (e) => { if (e.state?.lightbox !== mark) close(true); };
+  window.addEventListener('popstate', back);
 
   const stage = lb.querySelector('.lb-stage');
   const img = lb.querySelector('.lb-stage img');
@@ -4869,7 +4875,8 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
   const stageWatch = typeof ResizeObserver === 'function' ? new ResizeObserver(fitPlayer) : null;
   stageWatch?.observe(stage);
 
-  const close = () => {
+  const close = (historyMoved = false) => {
+    if (!lb.isConnected) return;
     spot?.stop();
     stageWatch?.disconnect();
     hold();
@@ -4877,8 +4884,12 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
     shown?.(null);
     lightboxOpen = false;
     document.removeEventListener('keydown', onKey, true);
+    window.removeEventListener('popstate', back);
     document.body.classList.remove('lb-open');
     lb.remove();
+    behind.forEach(el => el.removeAttribute('inert'));
+    if (focusBefore?.isConnected) focusBefore.focus?.({ preventScroll: true });
+    if (!historyMoved && history.state?.lightbox === mark) history.back();
   };
   function onKey(e) {
     // Ein Dialog ueber dem Vollbild bekommt die Tasten; Esc schliesst dann nur ihn.
@@ -4891,7 +4902,7 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
   }
   document.addEventListener('keydown', onKey, true);
 
-  lb.querySelector('.close').onclick = close;
+  lb.querySelector('.close').onclick = () => close();
   const infoButton = lb.querySelector('.info');
   if (infoButton) infoButton.onclick = () => info(photos[i], infoButton);
   lb.querySelector('.zoom').onclick = () => setZoom(!zoomed);
@@ -4933,12 +4944,16 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
   });
   lb.querySelector('.prev')?.addEventListener('click', () => { i--; show(); });
   lb.querySelector('.next')?.addEventListener('click', () => { i++; show(); });
-  stage.addEventListener('click', e => { if (e.target === stage) close(); });
+  // Neben das Bild schliesst nur die Maus; der Finger trifft am Telefon leicht daneben.
+  let pointer = 'mouse';
+  stage.addEventListener('pointerdown', e => { pointer = e.pointerType; });
+  stage.addEventListener('click', e => { if (e.target === stage && pointer === 'mouse') close(); });
 
+  // Nicht mit zwei Fingern, nicht auf dem Video (dort zieht der Finger an der Zeitleiste), nicht bei gezoomter Seite.
   let sx = 0, sy = 0, moved = false;
   stage.addEventListener('touchstart', e => {
-    if (zoomed || e.touches.length !== 1) return;
-    sx = e.touches[0].clientX; sy = e.touches[0].clientY; moved = true;
+    moved = !zoomed && e.touches.length === 1 && e.target !== player && !(window.visualViewport?.scale > 1);
+    if (moved) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }
   }, { passive: true });
   stage.addEventListener('touchend', e => {
     if (!moved || zoomed) return;
@@ -4948,6 +4963,7 @@ function openLightbox(photos, startIdx, title, remove, inside, linkOf, { removab
   }, { passive: true });
 
   show();
+  lb.querySelector('.close').focus({ preventScroll: true });
 }
 
 /* ---- Ziehen zum Umsortieren ---- */

@@ -1400,6 +1400,8 @@
   "list.shareNone": "Yok",
   "list.sharePartial": "Kısmen",
   "list.sharePartialHint": "Kendi değerleriniz kriterlerin %{share} oranına ulaşmıyor",
+  "list.ownValues": "Kendi değerleriniz",
+  "list.ownValuesHint": "“{testedNo}” için “{potential}”, “{testedYes}” için “{ratingOne}” sayılır",
   "list.onlyFavorites": "Yalnızca favorileri göster",
   "list.open": "Aç",
   "list.openCount": " ({n} açık)",

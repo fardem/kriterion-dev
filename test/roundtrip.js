@@ -1486,8 +1486,8 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und das Stilblatt hat genau zwei Behaelterabfragen',
     (cssEng.match(/@container /g) || []).length === 2,
     String((cssEng.match(/@container /g) || []).length));
-  check('Und sechzehn Fensterabfragen -- eine weniger als vor dieser Runde',
-    (cssEng.match(/@media /g) || []).length === 16,
+  check('Und siebzehn Fensterabfragen',
+    (cssEng.match(/@media /g) || []).length === 17,
     String((cssEng.match(/@media /g) || []).length));
   const behaelter = (css.match(/@container \(max-width: 420px\) \{[\s\S]*?\n\}/) || [''])[0];
   check('Die Zeile des Protokolls fragt die Karte und nicht mehr das Fenster',

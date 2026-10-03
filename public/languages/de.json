@@ -1400,6 +1400,8 @@
   "list.shareNone": "Keine",
   "list.sharePartial": "Teilweise",
   "list.sharePartialHint": "Weniger als {share} % der Kriterien selbst bewertet",
+  "list.ownValues": "Eigene Werte",
+  "list.ownValuesHint": "„{testedNo}“ zählt mit „{potential}“, „{testedYes}“ mit „{ratingOne}“",
   "list.onlyFavorites": "Nur Favoriten zeigen",
   "list.open": "Öffnen",
   "list.openCount": " ({n} offen)",
