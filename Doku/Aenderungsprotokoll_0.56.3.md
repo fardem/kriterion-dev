@@ -32,7 +32,24 @@ Vorgang im Sicherheitsprotokoll, keine neue Abhängigkeit.
 
 Gemessen am fertigen Stand gegen 0.56.2.
 
-BILANZ
+| | 0.56.2 | 0.56.3 |
+|---|---:|---:|
+| Zeilen `public/app.js` | 12.581 | **12.641** |
+| Zeilen `server.js` | 8.452 | **8.501** |
+| Schlüssel je Sprachdatei | 1.560 | **1.563** |
+| Kommentarzeilen | 7.263 in 58 Dateien | **7.275** in 58 |
+| Rückbauten | 1.754 | **1.811** |
+| Prüfungen im Prüfstand | 8.286 | **PRUEF** |
+| Zeilen `CHANGELOG.md` | 1.312 | **1.349** |
+
+Anleitung, Zeilen: `manual.md` 941 → 944, `manual-de.md` 962 → 964,
+`manual-tr.md` 946 → 947. README: `README.md` 717 → 720, `README-de.md`
+720 → 724, `README-tr.md` 721 → 724.
+
+Kommentarzeilen: die Grenzwerte sind angehoben für `public/app.js` 1.206 →
+1.211, `public/style.css` 520 → 521, `counterproof.js` 338 → 339 und
+`test/release_056.js` 6 → 11; die Gründe stehen im Commit. Regelzeilen im
+Stilblatt 2.021 → 2.031.
 
 ---
 
@@ -156,4 +173,39 @@ BILANZ
 
 ## 4. Der Prüfstand
 
-PRUEFSTAND
+**Neu** in `test/release_056.js`: elf Gruppen mit zusammen 42 Prüfungen.
+
+- „Mail: der Titel der Installation in Betreff und Text“ und „Mail: das
+  gespeicherte Passwort und der Grund eines Fehlers“: am echten SMTP-Gespräch
+  mit eigenem Server hinter `BEHIND_PROXY=1`.
+- „Anmeldebremse: parallele Versuche, Kopf nur aus dem eigenen Netz“: 15
+  parallele Fehlversuche ergeben 10 × 401 und 5 × 429.
+- „Server: Testtag, Vorschaubild, letzter Eigentuemer“ und „Server: Lockfile
+  und Backup-Ordner“, darunter SIGTERM während einer Kopie mit `hold=4000`.
+- Sechs Gruppen ohne eigenen Server: Übersicht, Einstellungen, Detailansicht
+  und Vollbild in jsdom, dazu „Quelltext: kleine Fehler aus der Durchsicht“ und
+  „Werkzeuge, Image und Texte aus der Durchsicht“.
+
+Der Server der neuen Gruppen nutzt die Portbasis 7340 des ersten Servers des
+Moduls, der zu diesem Zeitpunkt beendet ist.
+
+**Angepasst:** `test/ui_entry.js` (Rollen `user,admin,owner`; die Prüfung von
+`here()` am Betrachter), `test/ui_system.js` (das Feld bleibt beim Tippen
+stehen; „Jetzt löschen“ schickt `keep` und `days`), `test/roundtrip.js`
+(Fehlerweg mit `loadFailed()`), `test/source.js` (Ausnahmen des Wächters
+über `innerHTML`, 202 Zuweisungen, 2.031 Regelzeilen), `test/ui_language.js`
+und `test/release_030.js` (`forum.example.com`), `test/release_053.js` (104
+Abschnitte, 44 Fingerprints), `test/release_056.js` („◆ ★“ in der Statuszeile),
+`test/selfcheck.js` (1.811 Rückbauten, 52 Zieldateien, Grenzwerte der
+Kommentare).
+
+**Rückbauten.** 1851 bis 1907 neu. 110, 541, 542, 564, 641, 826, 831, 834,
+1125, 1233, 1661, 1701, 1760, 1778, 1832 und 1833 mit neuem Suchtext; die
+sieben Rückbauten mit der erwarteten Gruppe „Alte Sicherungen“ nennen die
+Gruppe mit ihrem heutigen Namen. Gefahren je Modul gegen eine Kopie des
+Arbeitsbaums, mit der erwarteten Gruppe als Filter: **73 von 73 rot**. 564,
+641 und 110 lassen ihr Modul abbrechen. 1855 blieb zuerst grün, weil auch der
+Bereitschaftsgrund der Karte nicht leer ist; die Prüfung verlangt seitdem die
+Antwort 550 des SMTP-Servers.
+
+Der volle Lauf vor dem Push: **PRUEF von PRUEF** Prüfungen bestanden.
