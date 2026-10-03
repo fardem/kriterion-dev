@@ -338,6 +338,12 @@ const readyFailure = (portBase, port, dataDirectory, log = '') =>
   `Zweitserver nicht erreichbar: Portbasis ${portBase}, Port ${port}, ` +
   `Verzeichnis ${dataDirectory} -- ${READY_TRIES * READY_STEP / 1000} s gewartet\n${log}`;
 
+// Die Ausgabe eines Servers kommt ueber eine Pipe und kann seiner Antwort hinterherlaufen.
+async function logUntil(log, wanted, ms = 5000, stepMs = 25) {
+  const hit = typeof wanted === 'function' ? wanted : (text) => wanted.test(text);
+  for (const end = Date.now() + ms; !hit(log()) && Date.now() < end;) await new Promise(r => setTimeout(r, stepMs));
+}
+
 function startFurtherServer(dataDirectory, extraEnv, portBase) {
   const port = portBase + PORT_OFFSET + Math.floor(Math.random() * PORT_WIDTH);
   const base = `http://127.0.0.1:${port}`;
@@ -1005,6 +1011,6 @@ return {
   get stillFailed() { return stillFailed; },
   /* der Weg der Module */
   counters, addCounters, addSkippedGroups, skippedModules, moduleRun, standalone,
-  mainServerReady
+  mainServerReady, logUntil
 };
 })(ROOT, createRequire(nodePath.join(ROOT, 'package.json')));

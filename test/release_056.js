@@ -95,6 +95,7 @@ async function run() {
   };
   const stats = async () => (await as('dritt', 'GET', '/api/stats')).content?.proxy || {};
   const benchLine = (bytes) => { const at = bytes.indexOf('proxy '); return at < 0 ? '' : bytes.toString('latin1', at, bytes.indexOf('\n', at)); };
+  // Die Logzeile kommt ueber die Pipe nach der Zeile in der Datenbank; until2() wartet auf beides.
   const count = (text) => B.log().split(text).length - 1;
 
   group('Proxy: die Bitrate in den Einstellungen');
@@ -142,7 +143,8 @@ async function run() {
   check('Nach dem Aendern zaehlt die Karte den Proxy als veraltet; bis der neue fertig ist, spielt der alte, und er wartet nur einmal',
     busy.stale === 1 && busy.waiting === 1 && during.status === 200 && during.bytes.equals(old.bytes) &&
     proxyRow(clipId)?.name === first.name && still.waiting === 1, `${JSON.stringify(busy)} ${during.status} ${still.waiting}`);
-  const swapped = await until2(() => proxyRow(clipId)?.name !== first.name, 10000);
+  const swapped = await until2(() => proxyRow(clipId)?.name !== first.name &&
+    count(`Proxy for file ${clipId} replaced in `) === 1, 10000);
   const next = proxyRow(clipId) || {};
   const fresh = await proxyOf(clipId, next.size);
   check('Der neue ersetzt den alten mit der neuen Bitrate; das Log nennt den Ersatz',
@@ -170,7 +172,9 @@ async function run() {
   await as('owner', 'PUT', '/api/settings', { proxyRate: 2 });
   await wait(300);
   const played = await proxyOf(xId);
-  const allNew = await until2(() => [clipId, xId, yId, zId].every(id => proxyRow(id)?.video_bps === rateOf(2e6)), 30000);
+  const allNew = await until2(() => [clipId, xId, yId, zId].every(id => proxyRow(id)?.video_bps === rateOf(2e6)) &&
+    [xId, yId, zId].every(id => count(`Proxy for file ${id} replaced in `) === 1) &&
+    count(`Proxy for file ${clipId} replaced in `) === 2, 30000);
   const at = (id) => B.log().indexOf(`Proxy for file ${id} replaced in `);
   check('Ein veraltetes Video, das gerade spielt, kommt in der Warteschlange nach vorn',
     played.status === 200 && allNew && at(zId) >= 0 && at(zId) < at(xId) && at(xId) < at(yId) && at(yId) < B.log().lastIndexOf(`Proxy for file ${clipId} replaced in `),
@@ -202,7 +206,8 @@ async function run() {
   B = H.startFurtherServer(dir, bench(), 7340);
   await B.ready;
   await login();
-  const renewed = await until2(() => [clipId, xId, yId, zId].every(id => proxyRow(id)?.video_bps === rateOf(3.5e6)), 20000);
+  const renewed = await until2(() => [clipId, xId, yId, zId].every(id => proxyRow(id)?.video_bps === rateOf(3.5e6)) &&
+    count(`Proxy for file ${clipId} replaced in `) === 1, 20000);
   check('Ein Proxy ohne Zeile in proxy_rates gilt als veraltet und wird beim Start ersetzt',
     renewed && proxyRow(clipId)?.name !== names[clipId] && proxyRow(xId)?.name !== names[xId] &&
     count(`Proxy for file ${clipId} replaced in `) === 1, JSON.stringify(proxyRow(clipId)));

@@ -218,6 +218,36 @@ rot**. 1062 hat einen neuen Suchtext, weil die Zeile in `testbench.js` keine
 Klammer mehr trägt; rot. Der volle Lauf mit der Liste: **8.268 von 8.268**
 Prüfungen bestanden, 1.733 Rückbauten.
 
+**Nachtrag: Wettlauf mit dem Protokoll.** Lauf 1207 (Pull Request #282) war
+mit 1 Prüfung rot, und die neue Liste nannte sie: „Proxy: abgespielte zuerst,
+Fehlschlag und Neustart › Ein veraltetes Video, das gerade spielt, kommt in der
+Warteschlange nach vorn“, Hinweis `4:1331 2:1411 3:1491 1:1023`. Ursache:
+`until2()` wartete auf die neue Bitrate in der Datenbank und las danach sofort
+das Protokoll des Servers. Die Zeile „Proxy for file 1 replaced in …“ kommt
+über die Pipe von stdout und war auf dem Läufer noch nicht da.
+
+Nachgestellt in einer Kopie, in der `test/frame.js` jede Ausgabe eines Servers
+um 300 ms verzögert:
+
+- `test/release_056.js` ohne Fix: 3 rot, darunter genau diese Prüfung mit dem
+  Hinweis `4:1332 2:1412 3:1492 1:1024`. Mit Fix: 32 von 32.
+- Der ganze Prüfstand ohne Fix: 14 Prüfungen rot, die alle das Protokoll
+  direkt nach einer Antwort oder nach dem Start lesen. 10 davon stehen in
+  `test/roundtrip.js`, 4 in `test/release_055.js`.
+
+Die 10 aus `test/roundtrip.js` stehen alle vor der Gruppe „Zeitleiste
+abschaltbar“, also in dem Teil des Logs von Lauf 1204, der die 6 roten enthielt.
+Jede nennt bei Rot eine Hinweiszeile. Die 6 roten aus Lauf 1204 sind damit sehr
+wahrscheinlich 6 dieser 10; belegt ist es nicht.
+
+Fix: `test/frame.js` hat jetzt `logUntil(log, muster, ms)`. Die Funktion fragt
+das Protokoll alle 25 ms ab, bis das Muster passt, höchstens 5 s. Vor jeder der
+14 Prüfungen steht ein `await H.logUntil(...)` mit dem Muster, das die Prüfung
+erwartet; die Prüfungen selbst sind unverändert. In `test/release_056.js`
+wartet `until2()` an drei Stellen zusätzlich auf die Zeilen im Protokoll. Die
+Rückbauten 1781 bis 1822 gegen `test/release_056.js` mit Fix: **42 von 42
+rot**.
+
 ---
 
 ## 6. Nicht geprüft und offen
@@ -228,5 +258,7 @@ Prüfungen bestanden, 1.733 Rückbauten.
   Auf dem N100 dauerte eine Stunde 4K mit 60 Bildern je Sekunde mit Quick Sync
   rund 30 Minuten, mit der CPU zwei bis zweieinhalb Stunden.
 - Die türkischen Texte hat kein Muttersprachler gelesen.
-- Die 6 roten Prüfungen aus Lauf 1204 (Abschnitt 5): Namen und Ursache sind
-  nicht bekannt. Ein künftiger roter Lauf nennt sie am Ende des Logs.
+- Die 6 roten Prüfungen aus Lauf 1204 (Abschnitt 5): Die Namen sind nicht
+  bekannt. Wahrscheinliche Ursache ist der Wettlauf mit dem Protokoll; der
+  Nachtrag in Abschnitt 5 behebt ihn an 14 Stellen. Ein künftiger roter Lauf
+  nennt die Namen am Ende des Logs.

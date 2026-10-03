@@ -164,6 +164,7 @@ async function run() {
   check('Die Antwort traegt die neue Liste und die neuen Zahlen',
     equal((del.content?.unknown || []).map(f => f.name).sort(), [notPicked, hexNamed].sort()) &&
     del.content?.disk?.unknownCount === 2, JSON.stringify((del.content?.unknown || []).map(f => f.name)));
+  await H.logUntil(() => B.log().slice(logBefore), /without a reference removed/);
   const delLog = B.log().slice(logBefore).split('\n').filter(z => z.includes('without a reference removed'));
   check('Das Server-Log nennt das Loeschen in einer Zeile, mit Zahl, Bytes und Namen',
     delLog.length === 1 && delLog[0].includes(`removed: 5 (${5 + 400 + linkSize + 4000} bytes)`) &&
@@ -245,6 +246,7 @@ async function run() {
     equal((back.content?.missing || []).map(f => f.name).sort(), [dDisk, gDisk].sort()) && !onDisk(gDisk) &&
     fs.readdirSync(uploadDir).length === 0,
     `${JSON.stringify((back.content?.missing || []).map(f => f.name))} ${fs.readdirSync(uploadDir).join(' ')}`);
+  await H.logUntil(() => B.log().slice(backLog), /restored from the backup folder/);
   const backRows = B.log().slice(backLog).split('\n').filter(z => z.includes('restored from the backup folder'));
   check('Das Server-Log nennt das Zurueckholen in einer Zeile mit den Namen',
     backRows.length === 1 && backRows[0].includes(': 3: ') && backRows[0].includes(aDisk), backRows.join(' | ') || '(keine)');
@@ -431,6 +433,7 @@ async function run() {
     proxyStats.checked === true && proxyStats.quickSync === true && /iHD/.test(proxyStats.driver || '') && proxyStats.ready === 2 &&
     proxyStats.waiting === 0 && proxyStats.failed === 0 && proxyStats.bytes === row.size + (proxyRow(mkvId)?.size || 0),
     JSON.stringify(proxyStats));
+  await H.logUntil(() => B.log(), (t) => t.includes(`Proxy for file ${clipId} made in `) && t.includes('(way A).'));
   check('Das Server-Log nennt je Proxy den Weg', B.log().includes(`Proxy for file ${clipId} made in `) &&
     B.log().includes('(way A).'), B.log().split('\n').filter(z => z.includes('Proxy')).join(' | '));
 
@@ -483,6 +486,7 @@ async function run() {
   await restart({ BACKUP_DIR: backupRoot, KRITERION_TESTBENCH: benchProxy(':qsv=1:ffmpegfail=2') });
   const retried = await until2(() => proxyRow(brokenId)?.state === 'ready', 20000);
   const brokenLine = benchLine((await proxyOf('zweit', brokenId)).bytes);
+  await H.logUntil(() => B.log(), (t) => t.includes(`Proxy for file ${brokenId} made in `));
   check('Der naechste Start versucht es einmal neu; scheitert Weg A, folgt Weg B',
     retried && brokenLine.includes('-init_hw_device vaapi=va:/dev/dri/renderD128') && brokenLine.includes('hwupload') &&
     B.log().includes(`Proxy for file ${brokenId} failed (way A)`) && B.log().includes(`Proxy for file ${brokenId} made in `),
