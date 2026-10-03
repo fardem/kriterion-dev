@@ -32,7 +32,8 @@ Without signing in, only the public title is visible. Sessions expire after
 
 After several failed attempts, the sign-in answers with a delay. After ten
 failed attempts from the same IP address, it is locked for a few minutes, even
-across a restart. Per username, it is only delayed, never locked.
+across a restart. For IPv6, the whole /64 network counts as one address. Per
+username, it is only delayed, never locked.
 
 An invalid invitation or reset link (expired, used, wrong or account locked)
 always gives the same message: “This link is no longer valid. Please ask the
@@ -335,8 +336,10 @@ off right there.
   block: it can be uploaded there.
 - The first item is the main image. Change the order by dragging the
   thumbnails.
-- Browse with ← → or the arrows. A click opens the full screen view, another
-  click zooms to original size. Esc, ✕ at the top right and Back in the browser
+- Browse with ← → or the arrows. A click opens the full screen view. There, a
+  click on the picture shows the original at 100 %, and the clicked spot stays
+  in place; “100 %” at the top shows the middle. Another click shows the whole
+  picture again. Esc, ✕ at the top right and Back in the browser
   close it, with the mouse also a click beside the picture. ↓ in full screen
   downloads the file. When a video has the focus, for example after a click on it, ← and →
   jump 5 seconds back or forward in it, in the entry as well as in full screen.
@@ -351,10 +354,10 @@ off right there.
   comments.
 - **Loading the whole video:** In full screen, a video shows “Load whole” at
   the top, up to 2 GB on a computer and up to 500 MB on a phone. The button
-  pauses the video and loads the whole file once; “loaded 45 %” is shown at
-  the top. The video then continues at the same point, and jumping needs no
-  loading. Pressing it again cancels. The copy stays until the page is
-  reloaded or another video is loaded whole. Without the button, the browser
+  pauses the video and loads the whole file once; meanwhile the button shows
+  “Cancel 45 %”. The video then continues at the same point, and jumping
+  needs no loading. Pressing it again cancels. The copy stays until the page
+  is reloaded or another video is loaded whole. Without the button, the browser
   loads the video in pieces as usual. This also applies to videos under
   “Files” and in comments.
 - **Selecting:** “Select” above the image strip puts a checkbox on every photo
@@ -462,7 +465,8 @@ setting). The original stays unchanged.
   the selection.
 - **Click on a file:** An image or video opens the full screen view; ← and →
   browse through the images and videos of the same group, without a folder or
-  in the same folder, in the order shown. PDF, text, Markdown, CSV, log and
+  in the same folder, in the order shown. At the top, the file name is shown,
+  the entry title small next to it. PDF, text, Markdown, CSV, log and
   `.docx` show the preview below the tiles, on the phone the separate view. If
   the admin has switched on a Document Server, this also applies to Word, Excel
   and PowerPoint files and their OpenDocument counterparts; below the viewer it
@@ -900,8 +904,12 @@ The same interface, adapted to screen width and input.
 - On the image, a swipe browses. Deleting is done on the large image, not on
   the thumbnail tile.
 - Sorting by dragging needs a short hold with the finger.
-- In full screen, a double tap zooms. A swipe browses, on a video only beside
-  the video. A tap beside the picture does not close it; the back button does.
+- In full screen, a double tap shows the tapped spot at 100 %. A swipe
+  browses, on a video only beside the video. While a video plays, the arrows
+  ‹ › are hidden. A tap beside the picture does not close it; the back button
+  does.
+- In portrait, the title in full screen has its own line next to ✕; the
+  buttons are below it.
 - In landscape, full screen has no strip of thumbnails; browse with the arrows
   or by swiping.
 - With “Add to Home Screen” in the browser, Kriterion can be placed on the

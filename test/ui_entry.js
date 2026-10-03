@@ -2149,24 +2149,20 @@ async function run() {
   check('Ohne Bühne passiert nichts, statt zu stürzen',
     (() => { try { wb.centerStage(null); return true; } catch { return false; } })());
 
-  // Prueft, dass das Vollbild centerStage() nach dem Zoom wirklich aufruft.
+  // Prueft, dass der Knopf „100 %“ centerStage() wirklich aufruft.
   const lb4 = (wb.openLightbox(includingOriginal, 0, 'Mitte'), wb.document.querySelector('.lightbox'));
   await until(wb, (x) => x.document.querySelectorAll('.lightbox').length > 1,
     2000, 'das zweite Vollbild');
   const buehne4 = lb4.querySelector('.lb-stage'), bild4 = lb4.querySelector('.lb-stage img');
   ['scrollWidth', 'clientWidth', 'scrollHeight', 'clientHeight'].forEach((k, n) =>
     Object.defineProperty(buehne4, k, { value: [3000, 1000, 2400, 800][n], configurable: true }));
-  const mouseTap = (target) => {
-    const e = new wb.Event('pointerup', { bubbles: true });
-    Object.defineProperty(e, 'pointerType', { value: 'mouse' });
-    target.dispatchEvent(e);
-  };
-  mouseTap(bild4);
+  const zoomButton = lb4.querySelector('.zoom');
+  zoomButton.click();
   bild4.dispatchEvent(new wb.Event('load'));
-  check('Nach dem Zoom rückt die Bühne wirklich in die Mitte',
+  check('Nach dem Knopf „100 %“ rückt die Bühne wirklich in die Mitte',
     buehne4.scrollLeft === 1000 && buehne4.scrollTop === 800,
     `${buehne4.scrollLeft}/${buehne4.scrollTop}`);
-  mouseTap(bild4);
+  zoomButton.click();
   buehne4.scrollLeft = 0; buehne4.scrollTop = 0;
   bild4.dispatchEvent(new wb.Event('load'));
   check('Ohne Zoom bleibt der Bildlauf unangetastet',

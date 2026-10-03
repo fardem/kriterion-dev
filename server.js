@@ -632,17 +632,18 @@ app.post('/api/setup', async (req, res) => {
   res.json({ ok: true });
 });
 
-/* Je Adresse eine Passwortpruefung zur Zeit: zwischen checkThrottle() und noteFailure()
-   liegt scrypt, parallele Anfragen saehen sonst denselben Zaehlerstand. */
+/* Je `auth.addressBlock()` eine Passwortpruefung zur Zeit: zwischen checkThrottle() und
+   noteFailure() liegt scrypt, parallele Anfragen saehen sonst denselben Zaehlerstand. */
 const BRAKE_QUEUE = new Map();
 function brakeTurn(res, ip) {
-  const before = BRAKE_QUEUE.get(ip) || Promise.resolve();
+  const key = auth.addressBlock(ip);
+  const before = BRAKE_QUEUE.get(key) || Promise.resolve();
   let release;
   const mine = new Promise(r => { release = r; });
-  BRAKE_QUEUE.set(ip, mine);
+  BRAKE_QUEUE.set(key, mine);
   res.once('close', () => before.then(() => {
     release();
-    if (BRAKE_QUEUE.get(ip) === mine) BRAKE_QUEUE.delete(ip);
+    if (BRAKE_QUEUE.get(key) === mine) BRAKE_QUEUE.delete(key);
   }));
   return before;
 }

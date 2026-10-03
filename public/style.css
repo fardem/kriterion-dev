@@ -55,6 +55,8 @@
   /* Rand unter dem Zeiger in zwei Stufen; --line-hover-2 ist die kraeftigere. */
   --line-hover: #333b44;
   --line-hover-2: #3a434c;
+  /* Rand der Eingabefelder, gegen --surface dunkel 3,07 : 1, hell 3,12; Grenze fuer Grafik 3 : 1. */
+  --input-edge: #5e6770;
   /* Zeichen, wo kein Bild ist. Eigene Variable: im hellen Schema weicht sie
      von --line-hover ab. */
   --placeholder: #333b44;
@@ -76,6 +78,7 @@
   /* Als Zahl statt `var(--text-2)`: das helle Schema setzte sonst dunkle
      Schrift auf den dunklen Traeger. */
   --on-photo: #b3bac1;
+  --on-photo-strong: #e9ecef;
   --on-photo-dim: #616a73;
   /* Gruen und Rot auf Fotos, ebenfalls fest. Auf dem Traeger ueber hellem
      Foto: #3fd39a 5,89 : 1 statt 2,10 (#0c7a54), #f0555c 3,30 statt 2,10
@@ -84,6 +87,7 @@
   --badge-green-rgb: 63,211,154;
   --badge-red: #f0555c;
   --badge-red-rgb: 240,85,92;
+  --badge-gold: #ffc531;
   /* Striche der Marke (SVG in app.js). Kontrast dunkel 5,58 und 7,31, hell
      4,62 und 4,59; Grenze fuer Grafik 3 : 1. */
   --brand-grey: var(--muted);
@@ -180,6 +184,7 @@
 
   --line-hover: #b9c2cb;
   --line-hover-2: #aab4bf;
+  --input-edge: #8a939d;
   --placeholder: #78828d;
   /* Gegen --bg (#eaedf1): --timeline-line 1,54 : 1 (Grenze 1,5),
      --timeline-mid 2,13 (2,0), --timeline-year 4,62 (4,5). */
@@ -270,13 +275,14 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 /* Hilfsfeld zum Kopieren ohne sicheren Kontext, ausserhalb des sichtbaren
    Bereichs. */
 .copy-spare { position: fixed; top: -1000px; left: 0; opacity: 0; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+:focus-visible { outline: 2px solid var(--accent-edge); outline-offset: 2px; border-radius: 4px; }
 ::selection { background: var(--accent); color: var(--on-accent); }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 999px; border: 2px solid var(--bg); }
 ::-webkit-scrollbar-thumb:hover { background: var(--line-hover-2); }
+::-webkit-scrollbar-corner { background: transparent; }
 
 .hint { color: var(--faint); font-size: .87rem; }
 /* --muted wie `.label`: die Beschriftung braucht man zum Bedienen. */
@@ -288,7 +294,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    springen. */
 .brand .count, .card-test, .rating-inline, .link-count, .rrow .ravg, .rrow .rname .rweight,
 .mrow .mcount, .mrow .mweight, .kv .v, .log-time, .session-time, .trash-meta, .cmt-head,
-.lb-count, .lb-loaded, .vcount, .bsum, .calc-row > span, .open-when, .card-find .find-more,
+.lb-count, .lb-btn.whole, .vcount, .bsum, .calc-row > span, .open-when, .card-find .find-more,
 .thumb .num, .thumb .duration, .cmt-img .duration, .apic .duration, .lrow .lnum, .cmp-crit, .cmp-group, .pill .n, .photo-count,
 .two-factor-codes span, .user-status, .filter-toggle .fcount, .open-count {
   font-variant-numeric: tabular-nums;
@@ -352,13 +358,13 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .field label { display: block; font-size: .8rem; font-weight: 600; color: var(--text-2); margin-bottom: 6px; }
 .input {
   width: 100%; padding: 10px 12px;
-  background: var(--bg); border: 1px solid var(--line);
+  background: var(--bg); border: 1px solid var(--input-edge);
   border-radius: var(--r-sm); font-size: .97rem; color: var(--text);
   transition: border-color .15s var(--ease), box-shadow .15s var(--ease);
 }
 .input::placeholder { color: var(--faint); }
-.input:hover { border-color: var(--line-hover); }
-.input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+.input:hover { border-color: var(--muted); }
+.input:focus { outline: none; border-color: var(--accent-edge); box-shadow: 0 0 0 3px var(--accent-dim); }
 .login-card .btn { width: 100%; margin-top: 10px; padding: 11px; }
 .login-card .login-divider {
   margin: 28px 0 0; font-size: .87rem;
@@ -492,9 +498,9 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .similar a:hover { color: var(--accent-text); text-decoration-color: var(--accent-text); }
 .select {
   padding: 6px 10px; border-radius: var(--r-sm);
-  border: 1px solid var(--line); background: var(--surface); color: var(--text-2); font-size: .83rem;
+  border: 1px solid var(--input-edge); background: var(--surface); color: var(--text-2); font-size: .83rem;
 }
-.select:hover { border-color: var(--line-hover); }
+.select:hover { border-color: var(--muted); }
 .link-btn { font-size: .8rem; color: var(--muted); text-decoration: underline; }
 .link-btn:hover { color: var(--accent-text); }
 /* Abstand vor „+ Ansicht speichern", gleich `.pill-sep`. */
@@ -551,7 +557,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    sonst kaum zu sehen. */
 .card-pin {
   position: absolute; top: 8px; right: 9px;
-  font-size: 1.05rem; line-height: 1; color: var(--gold);
+  font-size: 1.05rem; line-height: 1; color: var(--badge-gold);
   width: 26px; height: 26px; display: flex;
   align-items: center; justify-content: center;
   background: rgba(var(--photo-rgb), .82);
@@ -565,7 +571,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 /* Links unten, weil rechts unten `.photo-count` steht. */
 .card-play {
   position: absolute; bottom: 8px; left: 8px;
-  font-size: .72rem; line-height: 1; color: var(--text-2);
+  font-size: .72rem; line-height: 1; color: var(--on-photo);
   width: 24px; height: 24px; display: flex;
   align-items: center; justify-content: center;
   background: rgba(var(--photo-rgb), .82);
@@ -681,9 +687,9 @@ mark {
   background: rgba(var(--tool-rgb), .86);
   border: 1px solid rgba(var(--edge-on-dark-rgb), .12);
   display: flex; align-items: center; justify-content: center;
-  color: var(--text); font-size: 1.27rem; transition: all .15s var(--ease); opacity: 0;
+  color: var(--on-photo-strong); font-size: 1.27rem; transition: all .15s var(--ease); opacity: 0;
 }
-.viewer:hover .vnav { opacity: 1; }
+.viewer:hover .vnav, .vnav:focus-visible { opacity: 1; }
 /* Ohne Zeiger gibt es kein :hover. Regel einzeilig und ohne Kommentar
    lassen: test/roundtrip.js sucht sie woertlich. */
 @media (hover: none) { .vnav { opacity: 1; } }
@@ -729,7 +735,7 @@ mark {
    Umsortieren ab. */
 .thumb .play-badge, .lb-thumb .play-badge, .cmt-img .play-badge, .markup-pic .play-badge, .apic .play-badge {
   position: absolute; top: 3px; left: 3px; pointer-events: none;
-  font-size: .58rem; line-height: 1; color: var(--text-2);
+  font-size: .58rem; line-height: 1; color: var(--on-photo);
   width: 16px; height: 16px; display: flex; align-items: center; justify-content: center;
   background: rgba(var(--photo-rgb), .82); border-radius: 999px; padding-left: 1px;
 }
@@ -739,7 +745,7 @@ mark {
   font-family: var(--mono); font-size: .58rem; padding: 1px 4px; border-radius: 5px 0 0 0;
 }
 .lb-thumb { position: relative; }
-.thumb:hover .del { opacity: 1; }
+.thumb:hover .del, .thumb .del:focus-visible { opacity: 1; }
 /* Ohne Zeiger kein Kreuz: auf der kleinen Kachel laege es unter dem Daumen;
    geloescht wird ueber `.vremove`. Einzeilig lassen, test/roundtrip.js sucht
    die Regel woertlich. */
@@ -765,7 +771,7 @@ mark {
   transition: background .15s var(--ease), border-color .15s var(--ease);
 }
 .title-in:hover { background: var(--surface); border-color: var(--line); }
-.title-in:focus { outline: none; background: var(--surface); border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+.title-in:focus { outline: none; background: var(--surface); border-color: var(--accent-edge); box-shadow: 0 0 0 3px var(--accent-dim); }
 .pin-btn { font-size: 1.13rem; padding: 4px; color: var(--faint); flex-shrink: 0; transition: color .15s var(--ease), transform .15s var(--ease); }
 .pin-btn:hover { transform: scale(1.15); }
 .pin-btn.on { color: var(--gold); }
@@ -795,13 +801,13 @@ mark {
 .block-head .hint { color: var(--text-2); }
 .ta {
   width: 100%; min-height: 92px; resize: vertical; color: var(--text);
-  background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--bg); border: 1px solid var(--input-edge); border-radius: var(--r-sm);
   padding: 11px 13px; font-size: .97rem; line-height: 1.65;
   transition: border-color .15s var(--ease), box-shadow .15s var(--ease);
 }
 .ta::placeholder { color: var(--faint); }
-.ta:hover { border-color: var(--line-hover); }
-.ta:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+.ta:hover { border-color: var(--muted); }
+.ta:focus { outline: none; border-color: var(--accent-edge); box-shadow: 0 0 0 3px var(--accent-dim); }
 .ta-desc { min-height: 140px; }
 /* Die Hoehe setzt `autoGrow()`; ein Ziehgriff wirkte nur bis zum naechsten
    Zeichen. */
@@ -897,7 +903,7 @@ mark {
 .xdel { color: var(--faint); font-size: .87rem; opacity: 0; transition: opacity .15s var(--ease), color .15s var(--ease); padding: 2px 5px; border-radius: 4px; }
 /* Jede Zeilenart mit `.xdel` hier eintragen, sonst bleibt das Kreuz
    unsichtbar. */
-.lrow:hover .xdel, .trow:hover .xdel { opacity: 1; }
+.lrow:hover .xdel, .trow:hover .xdel, .xdel:focus-visible { opacity: 1; }
 @media (hover: none) { .xdel { opacity: 1; } }
 /* An einer Stimme ist das Kreuz immer sichtbar; in der schmalen Zeile
    faende man es sonst nicht. */
@@ -1018,7 +1024,7 @@ mark {
   justify-content: center; border: 0; border-radius: 6px; background: none; font-size: 1.05rem; cursor: pointer;
 }
 .tfolder:hover { background: var(--surface-3); }
-.tfolder:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.tfolder:focus-visible { outline: 2px solid var(--accent-edge); outline-offset: -2px; }
 .trow.lit, .afolder.lit { border-color: var(--accent); border-radius: 8px; box-shadow: 0 0 0 2px var(--accent-dim); }
 .test-scroll { max-height: 300px; overflow-y: auto; margin: 0 -4px 12px; padding: 0 4px; }
 .test-add { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding-top: 12px; border-top: 1px dashed var(--line); }
@@ -1338,7 +1344,7 @@ mark {
   padding: 10px 12px; margin-bottom: 12px; }
 .namegap .desc { font-size: .82rem; }
 .mrow .mact { color: var(--faint); font-size: .8rem; padding: 3px 6px; border-radius: 4px; opacity: 0; transition: all .15s var(--ease); }
-.mrow:hover .mact { opacity: 1; }
+.mrow:hover .mact, .mrow .mact:focus-visible { opacity: 1; }
 .mrow .mact:hover { color: var(--accent-text); background: var(--accent-dim); }
 .mrow .mact.rm:hover { color: var(--red); background: var(--red-dim); }
 /* Der Radierer steht immer da. Orange statt Rot beim Überfahren: die
@@ -1358,7 +1364,7 @@ mark {
   transition: border-color .15s var(--ease), box-shadow .15s var(--ease);
 }
 .mrow .mweight-field:hover { border-color: var(--line-hover); }
-.mrow .mweight-field:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+.mrow .mweight-field:focus { outline: none; border-color: var(--accent-edge); box-shadow: 0 0 0 3px var(--accent-dim); }
 .mrow .mweight-fixed { font-size: .74rem; }
 /* Kein `touch-action: none`: jede Wischbewegung wuerde zum Umsortieren;
    `makeSortable()` in app.js beginnt erst nach kurzem Halten. */
@@ -1506,6 +1512,8 @@ mark {
 /* `overscroll-behavior: contain`: sonst scrollt ein Wisch am Ende die Seite dahinter;
    `body.lb-open` verhindert das nicht. */
 .lightbox { position: fixed; inset: 0; z-index: var(--z-lightbox); background: var(--lb-bg); display: flex; flex-direction: column; overscroll-behavior: contain; animation: fade .2s var(--ease) both; }
+/* Die Buehne endet vor Gestenleiste und Notch; oben haelt `.lb-top` den Abstand selbst. */
+.lightbox { padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
 .lb-stage { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 0; }
 .lb-stage img { max-width: 100%; max-height: 100%; object-fit: contain; cursor: zoom-in; user-select: none; -webkit-user-drag: none; }
 /* `flex-start`, weil ein zentriertes, zu grosses Flex-Kind nach beiden Seiten
@@ -1518,18 +1526,21 @@ mark {
 .lb-unplayable p { margin: 0; font-size: .93rem; }
 .lb-unplayable a { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--text); text-decoration: none; font-size: .85rem; }
 .lb-unplayable a:hover { border-color: var(--accent); color: var(--accent-text); }
-/* `safe-area-inset`, sonst liegt der Schliessknopf unter der Uhr des Telefons. */
-.lb-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; padding-top: calc(14px + env(safe-area-inset-top)); padding-left: max(18px, env(safe-area-inset-left)); padding-right: max(18px, env(safe-area-inset-right)); flex-shrink: 0; }
+/* `safe-area-inset-top`, sonst liegt der Schliessknopf unter der Uhr des Telefons. */
+.lb-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; padding-top: calc(14px + env(safe-area-inset-top)); flex-shrink: 0; }
 /* Basis 0: der Titel bekommt nur den Platz, den die Knoepfe uebrig lassen; die Leiste bricht erst um,
    wenn sie allein nicht passt. */
 .lb-title { font-size: .93rem; color: var(--text-2); font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 0; min-width: 0; }
+.lb-name:not(:empty) + .lb-of { margin-left: 8px; font-size: .8rem; font-weight: 400; color: var(--muted); }
 .lb-tools { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
-.lb-count, .lb-loaded { font-family: var(--mono); font-size: .8rem; color: var(--muted); }
+.lb-count { font-family: var(--mono); font-size: .8rem; color: var(--muted); }
 .lb-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); display: flex; align-items: center; justify-content: center; color: var(--text-2); font-size: 1rem; transition: all .15s var(--ease); }
 .lb-btn:hover { background: var(--surface-3); color: var(--text); border-color: var(--line-hover-2); }
 .lb-btn.download { text-decoration: none; }
-.lb-btn.whole, .lb-btn.original { width: auto; padding: 0 10px; font-size: .8rem; }
-.lb-btn.whole[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+.lb-btn.whole, .lb-btn.original, .lb-btn.zoom { width: auto; padding: 0 10px; font-size: .8rem; }
+.lb-btn.whole[aria-pressed="true"], .lb-btn.zoom[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+/* Platz fuer „Abbrechen 100 %“: beim Laden waechst der Knopf nicht mit jeder Ziffer. */
+.lb-btn.whole[aria-pressed="true"] { min-width: calc(15ch + 22px); }
 /* ✕ steht ausserhalb der Leiste und bleibt oben rechts, auch wenn sie umbricht; der Papierkorb steht vorn. */
 .lb-top > .close { flex-shrink: 0; align-self: flex-start; }
 .lb-btn.remove { margin-right: 10px; }
@@ -1538,15 +1549,15 @@ mark {
    Pfeile scrollten mit. */
 .lb-nav { position: absolute; z-index: var(--z-page-arrows); top: 50%; transform: translateY(-50%); width: 46px; height: 46px; border-radius: 50%; background: rgba(var(--lb-surface-rgb), .9); border: 1px solid rgba(var(--edge-on-dark-rgb), .11); display: flex; align-items: center; justify-content: center; color: var(--text); font-size: 1.53rem; transition: all .15s var(--ease); }
 .lb-nav:hover { background: var(--accent); border-color: var(--accent-edge); color: var(--on-accent); transform: translateY(-50%) scale(1.07); }
-.lb-nav.prev { left: 16px; } .lb-nav.next { right: 16px; }
+.lb-nav.prev { left: calc(16px + env(safe-area-inset-left)); } .lb-nav.next { right: calc(16px + env(safe-area-inset-right)); }
 /* `safe center`: bei Ueberlauf schoebe `center` die ersten Bilder unerreichbar ueber
    den linken Rand. `center` davor gilt fuer Browser ohne `safe`. */
-.lb-strip { display: flex; gap: 7px; padding: 12px 18px 18px; padding-bottom: calc(18px + env(safe-area-inset-bottom)); overflow-x: auto; overscroll-behavior-x: contain; justify-content: center; justify-content: safe center; flex-shrink: 0; }
+.lb-strip { display: flex; gap: 7px; padding: 12px 18px 18px; overflow-x: auto; overscroll-behavior-x: contain; justify-content: center; justify-content: safe center; flex-shrink: 0; }
 .lb-thumb { width: 56px; height: 56px; border-radius: 6px; overflow: hidden; flex-shrink: 0; border: 2px solid transparent; opacity: .5; transition: all .15s var(--ease); }
 .lb-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-/* Ein Video ohne Standbild zeigt die Endung. */
-.lb-thumb:has(.lb-ext) { display: flex; align-items: center; justify-content: center; background: var(--surface-2); }
-.lb-ext { font-family: var(--mono); font-size: .62rem; font-weight: 700; letter-spacing: .05em; color: var(--muted); }
+/* Ein Video ohne Standbild zeigt die Endung; ohne Bild nicht abgedunkelt, die Wahl zeigt der Rand. */
+.lb-thumb:has(.lb-ext) { display: flex; align-items: center; justify-content: center; background: var(--surface-2); opacity: 1; }
+.lb-ext { font-family: var(--mono); font-size: .62rem; font-weight: 700; letter-spacing: .05em; color: var(--text-2); }
 .lb-thumb.on { opacity: 1; border-color: var(--accent); }
 .lb-thumb:hover { opacity: 1; }
 body.lb-open { overflow: hidden; }
@@ -1693,7 +1704,7 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
   display: flex; align-items: center; gap: 6px;
   opacity: 0; transition: opacity .15s var(--ease);
 }
-.viewer:hover .vtools { opacity: 1; }
+.viewer:hover .vtools, .vtools:has(:focus-visible) { opacity: 1; }
 @media (hover: none) { .vtools { opacity: 1; } }
 /* Im Ausschnittmodus sichtbar ohne Hover, sonst verschwaende der Weg hinaus. */
 .vtools.open { opacity: 1; }
@@ -1705,7 +1716,7 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
   transition: color .15s var(--ease), border-color .15s var(--ease),
               background .15s var(--ease);
 }
-.vfocus:hover, .vlink:hover, .vfull:hover, .vremove:hover { color: var(--text); border-color: var(--line-hover-2); }
+.vfocus:hover, .vlink:hover, .vfull:hover, .vremove:hover { color: var(--on-photo-strong); border-color: var(--line-hover-2); }
 .vfocus.on { color: var(--accent-text); border-color: var(--accent); }
 /* Papierkorb abgesetzt, erst beim Hover rot; die beiden davor stellen nur etwas ein. */
 .vremove { margin-left: 14px; }
@@ -1757,7 +1768,7 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
 }
 .aface:hover .apic { border-color: var(--line-hover-2); }
 .aface:focus-visible { outline: none; }
-.aface:focus-visible .apic { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+.aface:focus-visible .apic { border-color: var(--accent-edge); box-shadow: 0 0 0 3px var(--accent-dim); }
 /* Rahmen, solange Vorschau oder Vollbild dieser Datei offen ist. */
 .atile.open .apic { border-color: var(--accent); }
 .apic img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -1821,7 +1832,7 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
   text-align: left; cursor: pointer;
 }
 .afolder-face:hover, .afolder.over .afolder-face { background: var(--surface-3); }
-.afolder-face:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.afolder-face:focus-visible { outline: 2px solid var(--accent-edge); outline-offset: 1px; }
 .afolder-caret { width: 12px; flex-shrink: 0; color: var(--muted); }
 .afolder-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .afolder-meta {
@@ -1865,7 +1876,7 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
 }
 .afolder-check .icon { width: 20px; height: 20px; }
 .afolder-check[aria-checked="true"], .afolder-check[aria-checked="mixed"] { color: var(--accent-text); }
-.afolder-check:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.afolder-check:focus-visible { outline: 2px solid var(--accent-edge); outline-offset: -2px; }
 .apick {
   position: sticky; bottom: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px;
   margin-top: 10px; padding: 8px 12px; padding-bottom: calc(8px + env(safe-area-inset-bottom));
@@ -1876,7 +1887,7 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
 .apick .apick-del:not(:disabled):hover { color: var(--red); }
 .pick-row { display: flex; justify-content: flex-end; margin-top: 6px; }
 .thumbs.picking .thumb { cursor: pointer; }
-.thumbs.picking .thumb:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.thumbs.picking .thumb:focus-visible { outline: 2px solid var(--accent-edge); outline-offset: 2px; }
 /* ---- Kacheln oder Liste ---- */
 /* Am Telefon brechen Sortierung, Ansicht und Knoepfe um; sonst ist die Seite breiter als der Bildschirm. */
 .block-head:has(> .ahead-acts) { flex-wrap: wrap; }
@@ -1889,7 +1900,7 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
 .aview-btn + .aview-btn { border-left: 1px solid var(--line); }
 .aview-btn:hover { color: var(--text); }
 .aview-btn[aria-pressed="true"] { background: var(--surface-3); color: var(--text); font-weight: 600; }
-.aview-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.aview-btn:focus-visible { outline: 2px solid var(--accent-edge); outline-offset: -2px; }
 .asort { padding: 3px 8px; border-radius: 999px; font-family: var(--mono); font-size: .72rem; color: var(--muted); }
 /* Feste Spaltenbreiten: jede Zeile ist ein eigenes Grid, und nur so stehen die Spalten untereinander. */
 .alist { --acols: 32px minmax(0, 1fr) 6rem 4.6rem 5.8rem; }
@@ -1901,7 +1912,7 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
   column-gap: 12px; min-height: 44px; padding: 4px 6px; border-radius: 6px;
 }
 .alist .aface:hover, .alist .atile.open .aface { background: var(--surface-3); }
-.alist .aface:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.alist .aface:focus-visible { outline: 2px solid var(--accent-edge); outline-offset: -2px; }
 .alist .aface:focus-visible .apic { box-shadow: none; }
 .alist .apic { width: 32px; height: 32px; margin: 0; border-width: 1px; border-radius: 5px; }
 .alist .aext { font-size: .5rem; letter-spacing: 0; }
@@ -1931,7 +1942,7 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
   border: 0; border-radius: 6px; background: none; color: var(--muted); cursor: pointer;
 }
 .aact:hover { background: var(--surface-3); color: var(--text); }
-.aact:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.aact:focus-visible { outline: 2px solid var(--accent-edge); outline-offset: -2px; }
 .aedit { grid-column: 1; }
 .alink { grid-column: 2; }
 .aproxy { display: none; }
@@ -1954,7 +1965,7 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
 }
 button.acol { cursor: pointer; }
 button.acol:hover, .acol[aria-pressed="true"] { color: var(--text); }
-button.acol:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.acol:focus-visible { outline: 2px solid var(--accent-edge); outline-offset: 2px; }
 .acol-size { text-align: right; }
 .acol-from { display: none; }
 .afrom-on .acol-from { display: block; }
@@ -2037,7 +2048,8 @@ button.acol:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
   border: 0; border-radius: 5px; background: none; color: var(--text);
   font: inherit; font-size: .87rem; text-align: left; text-decoration: none; cursor: pointer;
 }
-.fmenu-item:hover, .fmenu-item:focus-visible { background: var(--surface-3); outline: none; }
+.fmenu-item:hover { background: var(--surface-3); }
+.fmenu-item:focus-visible { background: var(--surface-3); outline: 2px solid var(--accent-edge); outline-offset: -2px; }
 .fmenu-item.danger { color: var(--red); }
 .fmenu-line { height: 1px; margin: 4px 8px; background: var(--line); }
 .fmenu-mark { width: 16px; flex-shrink: 0; color: var(--accent-text); }
@@ -2114,7 +2126,7 @@ button.acol:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
   border-radius: 50%; background: rgba(var(--photo-rgb), .8); color: var(--on-photo-dim);
   font-size: .7rem; line-height: 1; opacity: 0; transition: opacity .15s var(--ease);
 }
-.cmt-img:hover .del { opacity: 1; }
+.cmt-img:hover .del, .cmt-img .del:focus-visible { opacity: 1; }
 .cmt-img .del:hover { color: var(--red); }
 @media (hover: none) { .cmt-img .del { opacity: 1; } }
 .cmt-form-row { display: flex; align-items: center; gap: 8px; }
@@ -2261,6 +2273,9 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
    waere die Kopfzeile sonst 124 statt 86 px hoch. */
 @media (max-width: 700px) {
   .search-box { order: 3; flex: 1 1 100%; max-width: none; }
+  /* Titel und ✕ in der ersten Zeile, die Knoepfe darunter. */
+  .lb-top { flex-wrap: wrap; }
+  .lb-tools { order: 1; flex: 1 1 100%; }
 }
 
 /* Fuer den Dialog am Telefon, der von unten hereinkommt; `rise` hebt nur an. */
@@ -2365,14 +2380,18 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
   /* `translateY(-50%)` haelt den Pfeil mittig; `none` schoebe ihn nach unten. */
   .vnav:hover {
     transform: translateY(-50%);
-    background: rgba(var(--tool-rgb), .82); border-color: rgba(var(--edge-on-dark-rgb), .12);
-    color: var(--text);
+    background: rgba(var(--tool-rgb), .86); border-color: rgba(var(--edge-on-dark-rgb), .12);
+    color: var(--on-photo-strong);
   }
   .lb-nav:hover {
     transform: translateY(-50%);
-    background: rgba(var(--lb-surface-rgb), .86); border-color: rgba(var(--edge-on-dark-rgb), .11);
+    background: rgba(var(--lb-surface-rgb), .9); border-color: rgba(var(--edge-on-dark-rgb), .11);
     color: var(--text);
   }
+  /* Der Finger wischt und rollt: keine Pfeile ueber dem laufenden Video, keine Rollbalken an der Buehne. */
+  .lightbox.lb-playing .lb-nav { visibility: hidden; }
+  .lb-stage { scrollbar-width: none; }
+  .lb-stage::-webkit-scrollbar { display: none; }
 }
 
 /* ---- Tablett ---- */

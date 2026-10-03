@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const net = require('net');
 const { db, assignInventory, lateStatement } = require('./db');
 const { logLine, logWarn, logFail } = require('./log');
 const keys = require('./keys');
@@ -376,7 +377,17 @@ const BLOCK_SECONDS = 5 * 60;
 // Wie lange eine Zeile ohne neuen Versuch stehen bleibt.
 const ATTEMPT_KEEP_MINUTES = 60;
 
-const keyIp = (ip) => `ip:${ip}`;
+// IPv6 je /64, ein Anschluss bekommt meist das ganze Netz; mit IPv4-Teil (`::ffff:a.b.c.d`) die volle Adresse.
+function addressBlock(ip) {
+  const address = String(ip || '');
+  if (!net.isIPv6(address) || address.includes('.')) return address;
+  const [head, tail] = address.toLowerCase().split('::');
+  const front = head ? head.split(':') : [];
+  const back = tail ? tail.split(':') : [];
+  const groups = tail === undefined ? front : [...front, ...Array(8 - front.length - back.length).fill('0'), ...back];
+  return `${groups.slice(0, 4).map(g => parseInt(g, 16).toString(16)).join(':')}::/64`;
+}
+const keyIp = (ip) => `ip:${addressBlock(ip)}`;
 const keyName = (name) =>
   `name:${String(name || '').trim().toLocaleLowerCase(comparisonLocale())}`;
 
@@ -1099,7 +1110,7 @@ module.exports = {
   BEHIND_PROXY, PASSWORD_MIN, SESSION_DAYS, fromEnv,
   PUBLIC_ADDRESS, checkPublicAddress, parseCookies, checkLogin, createSession, destroySession,
   sessionUser, pruneSessions, sessionCookie, clearCookie, requireAuth,
-  clientIp, PRIVATE_PEER, checkThrottle, noteFailure, noteSuccess, cleanupAttempts,
+  clientIp, PRIVATE_PEER, addressBlock, checkThrottle, noteFailure, noteSuccess, cleanupAttempts,
   delay, SCRYPT_COST: SCRYPT.N, SCRYPT_SHIPPED,
   sessionIdOf, sessionsOf, endSession, endOtherSessions,
   TOKEN_DAYS, TOKEN_DEADLINE_MINUTES, tokenHash,

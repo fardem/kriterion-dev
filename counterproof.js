@@ -10789,8 +10789,8 @@ const REGRESSIONS = [
   {
     nr: '1570', name: "Beim Laden steht keine Anzeige",
     file: 'public/app.js',
-    search: "        loaded.textContent = t('entry.videoLoaded', { n: shown });\n        loaded.hidden = false;\n",
-    replacement: "        loaded.textContent = t('entry.videoLoaded', { n: shown });\n",
+    search: "        mine.percent = Math.floor(got * 100 / total);\n        markWhole();\n",
+    replacement: "        mine.percent = Math.floor(got * 100 / total);\n",
     expected: "Video ganz laden"
   },
   {
@@ -11524,8 +11524,8 @@ const REGRESSIONS = [
   {
     nr: '1675', name: "Nach dem Laden spielt das Video nicht weiter",
     file: 'public/app.js',
-    search: "      if (mine.playing) player.play()?.catch?.(() => {});\n      loaded.hidden = true;",
-    replacement: "      loaded.hidden = true;",
+    search: "      if (mine.playing) player.play()?.catch?.(() => {});\n      markWhole();",
+    replacement: "      markWhole();",
     expected: "Video ganz laden"
   },
   {
@@ -12238,8 +12238,8 @@ const REGRESSIONS = [
   {
     nr: '1777', name: "Das Stilblatt faerbt den Knopf Original wieder orange",
     file: 'public/style.css',
-    search: '.lb-btn.whole[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }',
-    replacement: '.lb-btn.whole[aria-pressed="true"], .lb-btn.original[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }',
+    search: '.lb-btn.whole[aria-pressed="true"], .lb-btn.zoom[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }',
+    replacement: '.lb-btn.whole[aria-pressed="true"], .lb-btn.zoom[aria-pressed="true"], .lb-btn.original[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }',
     expected: "Proxy: Abspielen und Umschalter"
   },
   {
@@ -13154,6 +13154,279 @@ const REGRESSIONS = [
     search: "„Löschen, wenn älter als“ muss eine ganze Zahl",
     replacement: "„Löschen ab Alter“ muss eine ganze Zahl",
     expected: "Werkzeuge, Image und Texte aus der Durchsicht"
+  },
+  {
+    nr: '1908', name: "IPv6 zaehlt wieder je Adresse",
+    file: 'auth.js',
+    search: "const keyIp = (ip) => `ip:${addressBlock(ip)}`;",
+    replacement: "const keyIp = (ip) => `ip:${ip}`;",
+    expected: "Anmeldebremse: IPv6 je /64"
+  },
+  {
+    nr: '1909', name: "Die Warteschlange der Passwortpruefung zaehlt je Adresse",
+    file: 'server.js',
+    search: "  const key = auth.addressBlock(ip);\n",
+    replacement: "  const key = ip;\n",
+    expected: "Anmeldebremse: IPv6 je /64"
+  },
+  {
+    nr: '1910', name: "Die Schreibweise der IPv6-Adresse aendert den Zaehler",
+    file: 'auth.js',
+    search: "  return `${groups.slice(0, 4).map(g => parseInt(g, 16).toString(16)).join(':')}::/64`;",
+    replacement: "  return `${groups.slice(0, 4).join(':')}::/64`;",
+    expected: "Anmeldebremse: IPv6 je /64"
+  },
+  {
+    nr: '1911', name: "Der Klick zoomt wieder auf die Mitte",
+    file: 'public/app.js',
+    search: "    if (e.pointerType !== 'touch') { setZoom(!zoomed, e); return; }",
+    replacement: "    if (e.pointerType !== 'touch') { setZoom(!zoomed); return; }",
+    expected: "Vollbild: 100 % an der angetippten Stelle"
+  },
+  {
+    nr: '1912', name: "Der Doppeltipp zoomt wieder auf die Mitte",
+    file: 'public/app.js',
+    search: "    if (now - lastTap < DOUBLE_TAP) { lastTap = 0; setZoom(!zoomed, e); }",
+    replacement: "    if (now - lastTap < DOUBLE_TAP) { lastTap = 0; setZoom(!zoomed); }",
+    expected: "Vollbild: 100 % an der angetippten Stelle"
+  },
+  {
+    nr: '1913', name: "Nach dem Laden rueckt der Punkt waagrecht weg",
+    file: 'public/app.js',
+    search: "    stage.scrollLeft += box.left - view.left + zoomAt.fx * box.width - zoomAt.x;\n",
+    replacement: "",
+    expected: "Vollbild: 100 % an der angetippten Stelle"
+  },
+  {
+    nr: '1914', name: "Der Knopf heisst wieder ⊕",
+    file: 'public/app.js',
+    search: "aria-pressed=\"false\">${tH('list.zoomActual')}</button>",
+    replacement: "aria-pressed=\"false\">⊕</button>",
+    expected: "Vollbild: 100 % an der angetippten Stelle"
+  },
+  {
+    nr: '1915', name: "Der Knopf zeigt nicht, dass gezoomt ist",
+    file: 'public/app.js',
+    search: "    lb.querySelector('.zoom').setAttribute('aria-pressed', String(on));\n",
+    replacement: "",
+    expected: "Vollbild: 100 % an der angetippten Stelle"
+  },
+  {
+    nr: '1916', name: "Der Hinweis am Bild nennt wieder die Originalgroesse",
+    file: 'public/languages/de.json',
+    search: "\"list.clickZoomHint\": \"Ein Klick zeigt diese Stelle in 100 %\"",
+    replacement: "\"list.clickZoomHint\": \"Klick zoomt auf Originalgröße\"",
+    expected: "Vollbild: 100 % an der angetippten Stelle"
+  },
+  {
+    nr: '1917', name: "Blaettern laesst den Knopf gedrueckt",
+    file: 'public/app.js',
+    search: "    lb.querySelector('.zoom').setAttribute('aria-pressed', 'false');\n",
+    replacement: "",
+    expected: "Vollbild: 100 % an der angetippten Stelle"
+  },
+  {
+    nr: '1918', name: "Der Knopf zentriert nicht mehr",
+    file: 'public/app.js',
+    search: "    if (!zoomAt) { centerStage(stage); return; }",
+    replacement: "    if (!zoomAt) return;",
+    expected: "Vollbild: 100 % an der angetippten Stelle"
+  },
+  {
+    nr: '1919', name: "Bei Dateien fehlt der Dateiname",
+    file: 'public/app.js',
+    search: "    lb.querySelector('.lb-name').textContent = photos[i].source === 'file' ? photos[i].filename || '' : '';\n",
+    replacement: "",
+    expected: "Vollbild: Kopfzeile am Telefon und der Dateiname"
+  },
+  {
+    nr: '1920', name: "Hochkant teilen sich Titel und Knoepfe wieder eine Zeile",
+    file: 'public/style.css',
+    search: "  .lb-tools { order: 1; flex: 1 1 100%; }\n",
+    replacement: "",
+    expected: "Vollbild: Kopfzeile am Telefon und der Dateiname"
+  },
+  {
+    nr: '1921', name: "Der Titel des Eintrags steht neben dem Dateinamen gleich gross",
+    file: 'public/style.css',
+    search: ".lb-name:not(:empty) + .lb-of { margin-left: 8px; font-size: .8rem; font-weight: 400; color: var(--muted); }\n",
+    replacement: "",
+    expected: "Vollbild: Kopfzeile am Telefon und der Dateiname"
+  },
+  {
+    nr: '1922', name: "Die Pfeile liegen waehrend der Wiedergabe ueber dem Video",
+    file: 'public/style.css',
+    search: "  .lightbox.lb-playing .lb-nav { visibility: hidden; }\n",
+    replacement: "",
+    expected: "Vollbild: Pfeile waehrend der Wiedergabe, Raender, Rollbalken, Streifen"
+  },
+  {
+    nr: '1923', name: "Pause und Ende nehmen `lb-playing` nicht weg",
+    file: 'public/app.js',
+    search: "  ['play', 'pause', 'ended', 'emptied'].forEach(",
+    replacement: "  ['play'].forEach(",
+    expected: "Vollbild: Pfeile waehrend der Wiedergabe, Raender, Rollbalken, Streifen"
+  },
+  {
+    nr: '1924', name: "Die Ecke der Rollbalken ist wieder weiss",
+    file: 'public/style.css',
+    search: "::-webkit-scrollbar-corner { background: transparent; }\n",
+    replacement: "",
+    expected: "Vollbild: Pfeile waehrend der Wiedergabe, Raender, Rollbalken, Streifen"
+  },
+  {
+    nr: '1925', name: "Am Telefon hat die gezoomte Buehne Rollbalken",
+    file: 'public/style.css',
+    search: "  .lb-stage { scrollbar-width: none; }\n",
+    replacement: "",
+    expected: "Vollbild: Pfeile waehrend der Wiedergabe, Raender, Rollbalken, Streifen"
+  },
+  {
+    nr: '1926', name: "Der linke Pfeil liegt unter der Notch",
+    file: 'public/style.css',
+    search: ".lb-nav.prev { left: calc(16px + env(safe-area-inset-left)); }",
+    replacement: ".lb-nav.prev { left: 16px; }",
+    expected: "Vollbild: Pfeile waehrend der Wiedergabe, Raender, Rollbalken, Streifen"
+  },
+  {
+    nr: '1927', name: "Ohne Streifen reicht die Buehne in die Gestenleiste",
+    file: 'public/style.css',
+    search: ".lightbox { padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }\n",
+    replacement: "",
+    expected: "Vollbild: Pfeile waehrend der Wiedergabe, Raender, Rollbalken, Streifen"
+  },
+  {
+    nr: '1928', name: "Kacheln ohne Standbild sind wieder abgedunkelt",
+    file: 'public/style.css',
+    search: "justify-content: center; background: var(--surface-2); opacity: 1; }",
+    replacement: "justify-content: center; background: var(--surface-2); }",
+    expected: "Vollbild: Pfeile waehrend der Wiedergabe, Raender, Rollbalken, Streifen"
+  },
+  {
+    nr: '1929', name: "Die Endung im Streifen steht wieder in --muted",
+    file: 'public/style.css',
+    search: "letter-spacing: .05em; color: var(--text-2); }",
+    replacement: "letter-spacing: .05em; color: var(--muted); }",
+    expected: "Vollbild: Pfeile waehrend der Wiedergabe, Raender, Rollbalken, Streifen"
+  },
+  {
+    nr: '1930', name: "„Ganz laden“ waechst mit jeder Ziffer",
+    file: 'public/style.css',
+    search: ".lb-btn.whole[aria-pressed=\"true\"] { min-width: calc(15ch + 22px); }\n",
+    replacement: "",
+    expected: "Vollbild: Pfeile waehrend der Wiedergabe, Raender, Rollbalken, Streifen"
+  },
+  {
+    nr: '1931', name: "Der Knopf zeigt beim Laden keinen Fortschritt",
+    file: 'public/app.js',
+    search: "    wholeButton.textContent = loading ? t('entry.loadWholeCancel', { n: loading.percent }) : t('entry.loadWhole');",
+    replacement: "    wholeButton.textContent = loading ? t('dialog.cancel') : t('entry.loadWhole');",
+    expected: "Video ganz laden"
+  },
+  {
+    nr: '1932', name: "Ein zweiter Finger blaettert in der Vorschau weiter",
+    file: 'public/app.js',
+    search: "    swipes = !cropMode && e.touches.length === 1 && item.photos.length > 1",
+    replacement: "    if (e.touches.length !== 1) return;\n    swipes = !cropMode && item.photos.length > 1",
+    expected: "Vorschau im Eintrag: Wischen mit einem Finger"
+  },
+  {
+    nr: '1933', name: "Eine gezoomte Seite blaettert in der Vorschau",
+    file: 'public/app.js',
+    search: "&&\n      !(window.visualViewport?.scale > 1);\n    if (swipes)",
+    replacement: "&&\n      true;\n    if (swipes)",
+    expected: "Vorschau im Eintrag: Wischen mit einem Finger"
+  },
+  {
+    nr: '1934', name: "Der Fokusrahmen ist wieder --accent",
+    file: 'public/style.css',
+    search: ":focus-visible { outline: 2px solid var(--accent-edge); outline-offset: 2px; border-radius: 4px; }",
+    replacement: ":focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }",
+    expected: "Kontraste: Fokus, Eingabefelder, Zeichen auf Fotos, Tastatur"
+  },
+  {
+    nr: '1935', name: "Der Feldfokus nimmt wieder --accent",
+    file: 'public/style.css',
+    search: ".input:focus { outline: none; border-color: var(--accent-edge);",
+    replacement: ".input:focus { outline: none; border-color: var(--accent);",
+    expected: "Kontraste: Fokus, Eingabefelder, Zeichen auf Fotos, Tastatur"
+  },
+  {
+    nr: '1936', name: "Der Rand des Textfelds ist wieder --line",
+    file: 'public/style.css',
+    search: "  background: var(--bg); border: 1px solid var(--input-edge); border-radius: var(--r-sm);",
+    replacement: "  background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-sm);",
+    expected: "Kontraste: Fokus, Eingabefelder, Zeichen auf Fotos, Tastatur"
+  },
+  {
+    nr: '1937', name: "Der helle Rand der Felder liegt unter 3 : 1",
+    file: 'public/style.css',
+    search: "  --input-edge: #8a939d;\n",
+    replacement: "  --input-edge: #aab4bf;\n",
+    expected: "Kontraste: Fokus, Eingabefelder, Zeichen auf Fotos, Tastatur"
+  },
+  {
+    nr: '1938', name: "Die Pfeile im Bild sind im hellen Schema wieder dunkel",
+    file: 'public/style.css',
+    search: "color: var(--on-photo-strong); font-size: 1.27rem;",
+    replacement: "color: var(--text); font-size: 1.27rem;",
+    expected: "Kontraste: Fokus, Eingabefelder, Zeichen auf Fotos, Tastatur"
+  },
+  {
+    nr: '1939', name: "▶ auf Karten steht wieder in --text-2",
+    file: 'public/style.css',
+    search: "font-size: .72rem; line-height: 1; color: var(--on-photo);",
+    replacement: "font-size: .72rem; line-height: 1; color: var(--text-2);",
+    expected: "Kontraste: Fokus, Eingabefelder, Zeichen auf Fotos, Tastatur"
+  },
+  {
+    nr: '1940', name: "Der Favoritenstern ist im hellen Schema wieder dunkelgold",
+    file: 'public/style.css',
+    search: "font-size: 1.05rem; line-height: 1; color: var(--badge-gold);",
+    replacement: "font-size: 1.05rem; line-height: 1; color: var(--gold);",
+    expected: "Favoriten: Sortierung und Filter"
+  },
+  {
+    nr: '1941', name: "Die Pfeile im Bild erscheinen nicht mit dem Tastaturfokus",
+    file: 'public/style.css',
+    search: ".viewer:hover .vnav, .vnav:focus-visible { opacity: 1; }",
+    replacement: ".viewer:hover .vnav { opacity: 1; }",
+    expected: "Kontraste: Fokus, Eingabefelder, Zeichen auf Fotos, Tastatur"
+  },
+  {
+    nr: '1942', name: "Die Werkzeuge im Bild erscheinen nicht mit dem Tastaturfokus",
+    file: 'public/style.css',
+    search: ".viewer:hover .vtools, .vtools:has(:focus-visible) { opacity: 1; }",
+    replacement: ".viewer:hover .vtools { opacity: 1; }",
+    expected: "Kontraste: Fokus, Eingabefelder, Zeichen auf Fotos, Tastatur"
+  },
+  {
+    nr: '1943', name: "Das Kreuz erscheint nicht mit dem Tastaturfokus",
+    file: 'public/style.css',
+    search: ".lrow:hover .xdel, .trow:hover .xdel, .xdel:focus-visible { opacity: 1; }",
+    replacement: ".lrow:hover .xdel, .trow:hover .xdel { opacity: 1; }",
+    expected: "Kontraste: Fokus, Eingabefelder, Zeichen auf Fotos, Tastatur"
+  },
+  {
+    nr: '1944', name: "Im Dateimenue hat der Fokus keinen Rahmen",
+    file: 'public/style.css',
+    search: ".fmenu-item:focus-visible { background: var(--surface-3); outline: 2px solid var(--accent-edge); outline-offset: -2px; }",
+    replacement: ".fmenu-item:focus-visible { background: var(--surface-3); outline: none; }",
+    expected: "Kontraste: Fokus, Eingabefelder, Zeichen auf Fotos, Tastatur"
+  },
+  {
+    nr: '1945', name: "Ohne Zeiger springt der Pfeil im Bild auf .82",
+    file: 'public/style.css',
+    search: "    background: rgba(var(--tool-rgb), .86); border-color",
+    replacement: "    background: rgba(var(--tool-rgb), .82); border-color",
+    expected: "Kontraste: Fokus, Eingabefelder, Zeichen auf Fotos, Tastatur"
+  },
+  {
+    nr: '1946', name: "Ohne Zeiger springt der Pfeil im Vollbild auf .86",
+    file: 'public/style.css',
+    search: "    background: rgba(var(--lb-surface-rgb), .9); border-color",
+    replacement: "    background: rgba(var(--lb-surface-rgb), .86); border-color",
+    expected: "Kontraste: Fokus, Eingabefelder, Zeichen auf Fotos, Tastatur"
   }
 
 ];

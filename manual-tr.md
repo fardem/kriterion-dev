@@ -32,8 +32,8 @@ erer.
 
 Birkaç başarısız denemeden sonra giriş gecikmeli yanıt verir. Aynı adresten on
 başarısız denemeden sonra giriş birkaç dakika kilitlenir; kilit yeniden
-başlatmadan sonra da sürer. Kullanıcı adına göre yalnızca gecikme uygulanır,
-kilit hiç uygulanmaz.
+başlatmadan sonra da sürer. IPv6'da bütün /64 ağı tek adres sayılır. Kullanıcı
+adına göre yalnızca gecikme uygulanır, kilit hiç uygulanmaz.
 
 Geçersiz bir davet ya da sıfırlama bağlantısı (süresi dolmuş, kullanılmış,
 yanlış ya da hesap kilitli) her zaman aynı iletiyi verir: “Bu bağlantı artık
@@ -339,7 +339,9 @@ Görevler doğrudan orada tamamlandı olarak işaretlenir.
 - Sıradaki ilk resim ana resimdir. Sıra, küçük resimler sürüklenerek
   değiştirilir.
 - ← → tuşlarıyla ya da ekrandaki oklarla gezinilir. Bir tıklama tam ekranı
-  açar, ikincisi özgün boyuta yakınlaştırır. Esc, sağ üstteki ✕ ve tarayıcıdaki
+  açar. Orada resme tıklamak özgün resmi %100 gösterir ve tıklanan nokta
+  yerinde kalır; üstteki “%100” ortayı gösterir. Bir tıklama daha resmin
+  tamamını yeniden gösterir. Esc, sağ üstteki ✕ ve tarayıcıdaki
   Geri tam ekranı kapatır; fareyle resmin yanına tıklamak da kapatır. Tam
   ekranda ↓ dosyayı indirir. Bir video odaktaysa, örneğin üzerine tıklandıktan sonra, ← ve →
   videoda 5 saniye geri ya da ileri atlar; öğede de tam ekranda da.
@@ -353,10 +355,10 @@ Görevler doğrudan orada tamamlandı olarak işaretlenir.
   başlar. Bu, “Dosyalar” altındaki ve yorumlardaki videolar için de geçerlidir.
 - **Videonun tamamını yükleme:** Tam ekranda bir videonun üstünde “Tamamını
   yükle” yazar; bilgisayarda 2 GB'a, telefonda 500 MB'a kadar. Düğme videoyu
-  durdurur ve dosyanın tamamını bir kez yükler; üstte “%45 yüklendi” yazar.
-  Sonra video aynı yerden devam eder ve atlamak için yükleme gerekmez. Tekrar
-  basmak yüklemeyi durdurur. Kopya, sayfa yeniden yüklenene ya da başka bir
-  video tamamen yüklenene kadar kalır. Düğme olmadan tarayıcı videoyu her
+  durdurur ve dosyanın tamamını bir kez yükler; bu sırada düğmede “İptal %45”
+  yazar. Sonra video aynı yerden devam eder ve atlamak için yükleme gerekmez.
+  Tekrar basmak yüklemeyi durdurur. Kopya, sayfa yeniden yüklenene ya da başka
+  bir video tamamen yüklenene kadar kalır. Düğme olmadan tarayıcı videoyu her
   zamanki gibi parça parça yükler. Bu, “Dosyalar” altındaki ve yorumlardaki
   videolar için de geçerlidir.
 - **Seçme:** Resim şeridinin üstündeki “Seç” her fotoğrafa ve videoya bir
@@ -466,7 +468,8 @@ değişmez.
   senin dosyansa “Şuraya taşı …” sunar. “İptal” ya da Esc seçimi bitirir.
 - **Dosyaya tıklama:** Bir resim ya da video tam ekranı açar; ← ve → aynı
   gruptaki (klasörsüz ya da aynı klasördeki) resimler ve videolar arasında,
-  gösterim sırasıyla gezinir. PDF, metin, Markdown, CSV, log ve `.docx`
+  gösterim sırasıyla gezinir. Üstte dosya adı, yanında küçük olarak öğenin
+  başlığı yazar. PDF, metin, Markdown, CSV, log ve `.docx`
   dosyaları önizlemeyi döşemelerin altında, telefonda ayrı sayfada gösterir.
   Yönetici bir Document Server açtıysa bu, Word, Excel ve PowerPoint dosyaları
   ve bunların OpenDocument karşılıkları için de geçerlidir; görüntüleyicinin
@@ -905,9 +908,11 @@ Aynı arayüz, genişliğe ve kullanıma uyarlanmış.
 - Resimde bir kaydırma hareketiyle gezinilir. Silme büyük resimde yapılır,
   önizleme döşemesinde değil.
 - Parmakla sürükleyerek sıralamak için kısa bir süre basılı tutmak gerekir.
-- Tam ekranda çift dokunma yakınlaştırır. Kaydırma hareketi gezinir; videoda
-  yalnızca videonun yanında. Resmin yanına dokunmak tam ekranı kapatmaz; Geri
-  tuşu kapatır.
+- Tam ekranda çift dokunma dokunulan noktayı %100 gösterir. Kaydırma hareketi
+  gezinir; videoda yalnızca videonun yanında. Video oynarken ‹ › okları
+  gizlenir. Resmin yanına dokunmak tam ekranı kapatmaz; Geri tuşu kapatır.
+- Dikey tutulduğunda tam ekranda başlık ✕ ile kendi satırında durur;
+  düğmeler onun altındadır.
 - Yatay tutulduğunda tam ekranda küçük resim şeridi yoktur; oklarla ya da
   kaydırarak gezinilir.
 - Tarayıcıdaki “Ana ekrana ekle” ile Kriterion bir uygulama gibi eklenebilir.
