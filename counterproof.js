@@ -7289,8 +7289,8 @@ const REGRESSIONS = [
     /* Ein Modul, das nach seiner Meldung stirbt, zaehlt dann als bestanden. */
     nr: '1062', name: 'Der Treiber liest wieder nur die Meldung',
     file: 'testbench.js',
-    search: "if (!report.abort && !report.failed && r.status !== 0) {",
-    replacement: "if (false) {",
+    search: "if (!report.abort && !report.failed && r.status !== 0)",
+    replacement: "if (false)",
     expected: 'Der Treiber sieht den Rueckgabewert — 0.34.4'
   },
 
@@ -12556,6 +12556,57 @@ const REGRESSIONS = [
     search: "    const on = strip.children[i]?.getBoundingClientRect(), box = strip.getBoundingClientRect();\n    if (on) strip.scrollLeft += on.left + on.width / 2 - (box.left + box.width / 2);",
     replacement: "    strip.children[i]?.scrollIntoView?.({ block: 'nearest', inline: 'center' });",
     expected: "Vollbild: Groesse des Videos und Knopfleiste"
+  },
+
+  /* ---- Die roten Pruefungen am Ende des Laufs ---- */
+  {
+    nr: '1823', name: "Eine rote Pruefung kommt nicht in die Liste",
+    file: 'test/frame.js',
+    search: "    RED.push({ group: groupName, name });\n",
+    replacement: "",
+    expected: "Der Gruppenfilter"
+  },
+  {
+    nr: '1824', name: "Der Schlussblock zeigt die Liste nicht",
+    file: 'test/frame.js',
+    search: "  if (RED.length) {",
+    replacement: "  if (RED.length < 0) {",
+    expected: "Der Gruppenfilter"
+  },
+  {
+    nr: '1825', name: "Die Liste nennt die Gruppe nicht",
+    file: 'test/frame.js',
+    search: "timeName = groupName = name;",
+    replacement: "timeName = name;",
+    expected: "Der Gruppenfilter"
+  },
+  {
+    nr: '1826', name: "Die Meldung eines Moduls traegt keine roten Pruefungen",
+    file: 'test/frame.js',
+    search: "times: TIMES, red: RED,",
+    replacement: "times: TIMES,",
+    expected: "Der Gruppenfilter"
+  },
+  {
+    nr: '1827', name: "Der Treiber nimmt die gemeldeten roten Pruefungen nicht auf",
+    file: 'test/frame.js',
+    search: "  for (const r of z.red || []) RED.push(r);\n",
+    replacement: "",
+    expected: "Der Gruppenfilter"
+  },
+  {
+    nr: '1828', name: "Ein uebergangener Fehlschlag steht in der Liste",
+    file: 'test/frame.js',
+    search: "if (silent) { if (condition) stillPassed++; else stillFailed++; return; }",
+    replacement: "if (silent) { if (condition) stillPassed++; else { stillFailed++; RED.push({ group: groupName, name }); } return; }",
+    expected: "Der Gruppenfilter"
+  },
+  {
+    nr: '1829', name: "Ein Fehler des Treibers fehlt in der Liste",
+    file: 'testbench.js',
+    search: "times: [], red: [{ group: `Modul ${name}`, name: text }] });",
+    replacement: "times: [] });",
+    expected: 'Der Treiber sieht den Rueckgabewert — 0.34.4'
   }
 
 ];

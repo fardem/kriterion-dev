@@ -13,7 +13,7 @@ async function run() {
    BRAKE_STEP, RUN_SCRYPT, __dirname, require, group, check, equal, KEY,
    PORT_OFFSET, PORT, BASE, DATA, USER, PASSWORD, open, startServer,
    shortRun, shortRunAll, setPasswordImInventory, endKind, CASES,
-   FINGERPRINT_BASE, smtpEmpfaenger, startFurtherServer, call, names,
+   FINGERPRINT_BASE, smtpEmpfaenger, startFurtherServer, logUntil, call, names,
    includingShare, callF, shareMain, nextSecond
   } = H;
   const fSource = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
@@ -707,11 +707,33 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und färbt den Rückgabewert trotzdem nicht rot', stillRed.code === 0,
     `Code ${stillRed.code}`);
   check('Er taucht auch in keiner Zeile mit einem Namen auf',
-    !/✗/.test(stillRed.text), stillRed.text.split('\n').filter(z => /✗/.test(z)).join(' | '));
+    !/✗|übergangen und rot/.test(stillRed.text),
+    stillRed.text.split('\n').filter(z => /✗|übergangen und rot/.test(z)).join(' | '));
 
   const shownRed = frameProbe('rot-gezeigt', 'Rechte');
   check('Ein Fehlschlag im Gezeigten macht den Lauf rot',
     shownRed.code === 1 && /1 GESCHEITERT/.test(shownRed.text), `Code ${shownRed.code}`);
+  const shownEnd = shownRed.text.slice(shownRed.text.indexOf('Pruefungen bestanden'));
+  check('Und die Liste nach der Summe nennt ihn mit seiner Gruppe',
+    /\n {2}ROT:\n {4}Rechte am Eintrag › gezeigt und rot\n/.test(shownEnd), JSON.stringify(shownEnd.slice(0, 160)));
+
+  /* Ein Modul meldet seine roten Pruefungen ueber counters(), der Treiber nimmt sie mit addCounters(). */
+  const relay = require('child_process').spawnSync(process.execPath, ['-e', `
+    const H = require('./test/frame.js');
+    H.group('Gestellt'); H.check('rot im Modul', false);
+    const red = JSON.stringify(H.counters().red);
+    H.addCounters({ passedCount: 0, failed: 1, skipped: 0, stillPassed: 0, stillFailed: 0, groupsShown: 0,
+      groupsStill: 0, times: [], red: [{ group: 'Modul gestellt', name: 'aus der Meldung' }] });
+    H.endBlock();
+    require('fs').rmSync(H.DATA, { recursive: true, force: true });
+    console.log(red);`], { cwd: __dirname, encoding: 'utf8', timeout: 30000 });
+  const relayText = relay.stdout || '';
+  check('Die Meldung eines Moduls traegt seine roten Pruefungen',
+    relayText.trim().endsWith('[{"group":"Gestellt","name":"rot im Modul"}]'),
+    JSON.stringify(relayText.trim().split('\n').pop()));
+  check('Und der Treiber setzt die gemeldeten hinter die eigenen',
+    /\n {2}ROT:\n {4}Gestellt › rot im Modul\n {4}Modul gestellt › aus der Meldung\n/.test(relayText),
+    JSON.stringify(relayText.slice(relayText.indexOf('ROT:'), relayText.indexOf('ROT:') + 120)));
 
   const outside = frameProbe('1', 'Gibtesnicht');
   check('Ein Filter ohne Treffer meldet keinen Erfolg',
@@ -1052,6 +1074,7 @@ async function sendImport(object, mode, withoutShare = false) {
   await SX.ready;
   check('Der Serverstart leert den Ordner',
     fs.readdirSync(sxImportDir).length === 0, fs.readdirSync(sxImportDir).join(' '));
+  await logUntil(() => SX.log(), /Import: 1 leftover file\(s\) removed at startup\./);
   check('Und er sagt es ins Protokoll',
     /Import: 1 leftover file\(s\) removed at startup\./.test(SX.log()),
     SX.log().split('\n').filter(z => /Import:/.test(z)).join(' · ') || '(keine Zeile)');
@@ -5916,6 +5939,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Schon der Start raeumt sie weg',
       pkRows('SELECT id FROM trash WHERE id = ?', idFresh).length === 0,
       JSON.stringify(pkRows('SELECT id, title, deleted_at FROM trash')));
+    await logUntil(() => PK2.log(), /Trash: \d+ row\(s\) older than 30 days removed/);
     check('Und sagt es im Protokoll',
       /Trash: \d+ row\(s\) older than 30 days removed/.test(PK2.log()),
       PK2.log().slice(-400));
@@ -6604,8 +6628,8 @@ async function sendImport(object, mode, withoutShare = false) {
       (siSource.match(/new Database\(full[^\n]*/) || ['(nicht gefunden)'])[0]);
   }
 
-  /* Zuletzt: die Ausgabe des Kindprozesses ist gepuffert, direkt nach dem
-     Start fehlt die Zeile womoeglich noch. */
+  await logUntil(() => SI.log(), (t) => /\[Kriterion\] Backup location: /.test(t) &&
+    (t.match(/\[Kriterion\] Backup written: /g) || []).length >= 3);
   check('Der Start nennt den Sicherungsort im Protokoll',
     /\[Kriterion\] Backup location: /.test(SI.log()), SI.log().slice(0, 400));
   check('Und jede geschriebene Sicherung steht ebenfalls darin',
@@ -6646,6 +6670,7 @@ async function sendImport(object, mode, withoutShare = false) {
       (await (await fetch(SD.base + '/api/backup', { method: 'POST',
         headers: H.withCsrf('kriterion_session=cookie-sd-anna') })).json()
       ).error?.includes('Datenverzeichnis'), 'keine sprechende Absage');
+    await logUntil(() => SD.log(), /Backup location: off -- The backup folder must not be inside the data directory/);
     check('Der Start sagt es im Protokoll',
       /Backup location: off -- The backup folder must not be inside the data directory/
         .test(SD.log()), SD.log().slice(0, 500));
@@ -6658,6 +6683,7 @@ async function sendImport(object, mode, withoutShare = false) {
     const goneDirectory = path.join(dDir, 'gibt-es-nicht');
     const SF = startFurtherServer(dDir, { BACKUP_DIR: goneDirectory }, 4360);
     await SF.ready;
+    await logUntil(() => SF.log(), /Backup location: off -- The backup folder .*gibt-es-nicht.* does not exist/);
     const sfRow = SF.log().split('\n').filter(z => /Backup location/.test(z)).join(' | ');
     check('Und ein fehlender Ordner steht mit seinem Namen im Protokoll — 0.33.2',
       /Backup location: off -- The backup folder .*gibt-es-nicht.* does not exist/.test(SF.log()),
@@ -7226,6 +7252,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und die Antwort bleibt die einer gelungenen Sicherung',
       ok.content?.ok === true && /^kriterion-.+\.sqlite$/.test(ok.content?.file || '') &&
       ok.content?.bytes > 0, JSON.stringify(ok.content?.file));
+    await logUntil(() => AU.log(), /\[Kriterion\] Old backups removed: 3 \(\d+ bytes freed\)\./);
     check('Die Zeile im Containerprotokoll nennt Zahl und freigegebene Bytes',
       /\[Kriterion\] Old backups removed: 3 \(\d+ bytes freed\)\./.test(AU.log()),
       (AU.log().match(/\[Kriterion\] Old backups removed.*/g) || []).join(' · '));
@@ -10354,6 +10381,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und die junge bleibt stehen',
       raRows("SELECT COUNT(*) n FROM security_log WHERE at > datetime('now', '-180 days')")[0].n === 1,
       JSON.stringify(raRows('SELECT id, at FROM security_log')));
+    await logUntil(() => RA.log(), /Security log: 1 row\(s\) older than 180 days removed/);
     check('Der Start sagt es auch im Protokoll des Containers',
       /Security log: 1 row\(s\) older than 180 days removed/.test(RA.log()),
       RA.log().split('\n').filter(z => /Sicherheits/.test(z)).join(' | ') || '(keine Zeile)');
@@ -10868,6 +10896,7 @@ async function sendImport(object, mode, withoutShare = false) {
       withoutPhotos.fresh.content?.linkSource === 'browser', JSON.stringify(withoutPhotos.fresh.content?.linkSource));
     check('Der Schluessel steht trotzdem in der Antwort -- daraus baut der Browser',
       /^[0-9a-f]{64}$/.test(withoutPhotos.fresh.content?.token || ''), JSON.stringify(withoutPhotos.fresh.content?.token));
+    await logUntil(() => withoutPhotos.S.log(), /Public address: not set/);
     check('Der Start sagt, dass sie nicht gesetzt ist',
       /Public address: not set/.test(withoutPhotos.S.log()),
       withoutPhotos.S.log().split('\n').filter(z => /Adresse/.test(z)).join(' | ') || '(keine Zeile)');
@@ -10883,6 +10912,7 @@ async function sendImport(object, mode, withoutShare = false) {
       JSON.stringify(withPhotos.fresh.content?.link));
     check('Und sagt, woher die Adresse kam',
       withPhotos.fresh.content?.linkSource === 'einstellung', JSON.stringify(withPhotos.fresh.content?.linkSource));
+    await logUntil(() => withPhotos.S.log(), /Public address: https:\/\/kriterion\.beispiel\.de --/);
     check('Der Start nennt die Adresse im Protokoll des Containers',
       /Public address: https:\/\/kriterion\.beispiel\.de --/.test(withPhotos.S.log()),
       withPhotos.S.log().split('\n').filter(z => /Adresse/.test(z)).join(' | ') || '(keine Zeile)');
@@ -11270,6 +11300,7 @@ async function sendImport(object, mode, withoutShare = false) {
     await A.S.stop();
     const A2 = startFurtherServer(A.dir, { PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 6370);
     await A2.ready;
+    await logUntil(() => A2.log(), (t) => /Mail delivery: Own server via 127\.0\.0\.1:/.test(t) && /instanz@beispiel\.de/.test(t));
     check('Nach einem Neustart nennt die Startzeile Anbieter, Server und Absender',
       /Mail delivery: Own server via 127\.0\.0\.1:/.test(A2.log()) &&
       /instanz@beispiel\.de/.test(A2.log()),

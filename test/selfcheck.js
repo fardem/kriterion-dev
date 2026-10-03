@@ -15,7 +15,7 @@ async function run() {
 
   const gpList = require('./counterproof').REGRESSIONS;
   // Mit jedem neuen Rueckbau in counterproof.js anheben.
-  check(`Es sind genau 1726 Rueckbauten`, gpList.length === 1726, `${gpList.length}`);
+  check(`Es sind genau 1733 Rueckbauten`, gpList.length === 1733, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* Jede Datei nur einmal lesen: ueber tausend Rueckbauten verteilen sich auf
@@ -329,7 +329,7 @@ async function run() {
   }
   // Mit jedem Rueckbau auf eine Pruefstandsdatei anheben.
   check('Der Waechter sieht die Rueckbauten auf Pruefstandsdateien',
-    rpChecked === 36, `${rpChecked} Rueckbauten`);
+    rpChecked === 41, `${rpChecked} Rueckbauten`);
   check('Und jeder ihrer Namen steht in der Zieldatei, im Rahmen oder im Suchtext',
     rpStrange.length === 0, rpStrange.slice(0, 6).join(' · '));
 
@@ -347,12 +347,12 @@ async function run() {
     const crTool = require('./tools/comments.js');
     const crAll = crTool.measureAll();
     const COMMENT_ROWS = [
-      ['testbench.js', 29],
+      ['testbench.js', 30],
       ['test/batchrun.js', 26],
       ['test/dom.js', 176],
       ['test/ffmpeg.js', 5],
       ['test/firstlogin.js', 12],
-      ['test/frame.js', 125],
+      ['test/frame.js', 127],
       ['test/keychange.js', 42],
       ['test/release_029.js', 14],
       ['test/release_030.js', 93],
@@ -372,8 +372,8 @@ async function run() {
       ['test/release_053.js', 12],
       ['test/release_054.js', 7],
       ['test/release_055.js', 6],
-      ['test/release_056.js', 5],
-      ['test/roundtrip.js', 1313],
+      ['test/release_056.js', 6],
+      ['test/roundtrip.js', 1312],
       ['test/selfcheck.js', 85],
       ['test/source.js', 217],
       ['test/ui_entry.js', 261],
@@ -384,7 +384,7 @@ async function run() {
       ['test/ui_style.js', 168],
       ['test/ui_system.js', 187],
       ['test/ui_translator.js', 24],
-      ['counterproof.js', 337],
+      ['counterproof.js', 338],
       ['server.js', 1093],
       ['auth.js', 149],
       ['db.js', 56],
@@ -406,7 +406,7 @@ async function run() {
       ['public/theme.js', 2],
       ['public/style.css', 518],
     ];
-    const COMMENT_TOTAL = { comment: 7253, code: 89458 };
+    const COMMENT_TOTAL = { comment: 7257, code: 89566 };
     // Ausgelieferte Dateien: Bloecke ueber drei Zeilen und Bloecke mit Betonung in Grossbuchstaben.
     const COMMENT_LIMITS = { longBlocks: 3, emphasis: 6 };
     check('Der Waechter sieht alle achtundfuenfzig Dateien',
@@ -848,6 +848,9 @@ async function run() {
       driverRed);
     check('Und es ist die einzige rote Zeile',
       (driverText.match(/✗/g) || []).length === 1, driverRed);
+    check('Die Liste am Ende nennt das Modul',
+      /\n {2}ROT:\n {4}Modul source › meldet keinen Fehler, endete aber mit Rueckgabewert 9,/.test(driverText),
+      JSON.stringify(driverText.slice(driverText.indexOf('ROT:'), driverText.indexOf('ROT:') + 80)));
     check('Der Lauf endet rot', driver.status === 1, `Code ${driver.status}`);
   }
 

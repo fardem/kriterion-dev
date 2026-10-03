@@ -23,6 +23,9 @@ Abhängigkeit.
 | 2. Oktober 2026 | Fragetafel, eigene Antwort: „Proxy wenn vorhanden.. Wenn nicht vorhanden nichts anzeigen“ |
 | 2. Oktober 2026 | Fragetafel: „Ganz laden“ bleibt (Empfehlung); 0.56.0 sofort bauen; das Gerät ist ein Telefon mit Android, hochkant; dazu drei Bildschirmfotos |
 | 2. Oktober 2026 | Fragetafel: Proxys aus 0.55 nach dem Update im Hintergrund ersetzen (Empfehlung); die Leiste oben „Ist ganz da“; der Browser ist Chrome |
+| 2. Oktober 2026 | Drei Bildschirmfotos aus Chrome auf Android; daraus die Ursache am Telefon (Abschnitt 3) |
+| 2. Oktober 2026 | Fragetafel beim Push: die zwei Commits direkt auf 0.55.1 (`b3b5879`) pushen, ohne den Branch neu auf `main` aufzusetzen (Empfehlung). Das Neu-Aufsetzen hatte die automatische Freigabe abgelehnt; 0.55.1 ist über #280 schon in `main` |
+| 2. Oktober 2026 | Fragetafel nach dem roten Lauf 1204: Der Prüfstand listet am Ende jedes Laufs die roten Prüfungen mit ihrer Gruppe (Empfehlung); Nachtrag und Liste kommen über einen neuen Pull Request nach `main` (Empfehlung) |
 
 ---
 
@@ -191,6 +194,60 @@ Mit einem eingefügten Element von 900 px: Layoutbreite 901 px, im Vollbild
 
 Der volle Lauf vor dem Push: **8.264 von 8.264** Prüfungen bestanden.
 
+**GitHub.** Lauf 1204 auf dem Branch (`8674d64`): 8.252 von 8.258 bestanden,
+**6 rot**. Derselbe Stand auf `main` (`330ff7f`, Lauf 1205) und als `v0.56.0`
+(Lauf 1206): grün. Die 6 roten stehen vor der Gruppe „Zeitleiste abschaltbar“
+in `ui_entry`, also in `roundtrip`, `source`, `ui_overview` oder den ersten
+vier Gruppen von `ui_entry`; je rote Prüfung steht eine Hinweiszeile mehr im
+Log. Das Werkzeug für GitHub liest nur die letzten 5.000 von 9.721 Zeilen. Vom
+Start des Prüfstands bis zur Gruppe „Linkliste und Aktionszeichen“ vergingen
+rund 137 s, in Lauf 1205 rund 114 s. Die fünf Module von `roundtrip` bis
+`ui_system` dreimal parallel hier: alle grün.
+
+**Nachtrag: die roten Prüfungen am Ende.** `test/frame.js` merkt sich jede rote
+Prüfung mit ihrer Gruppe, gibt sie in der Meldung eines Moduls weiter und
+nennt sie im Schlussblock unter „ROT:“, direkt nach der Summenzeile.
+`testbench.js` trägt dort auch seine eigenen Fehler ein, mit „Modul <Name>“ als
+Gruppe. Übergangene Gruppen eines gefilterten Laufs kommen nicht in die Liste.
+Die Zeilen der Liste tragen kein ✗; `counterproof.js` liest rote Prüfungen
+weiter nur aus den Zeilen mit ✗. Neu sind drei Prüfungen in `test/roundtrip.js`
+(„Der Gruppenfilter“) und eine in `test/selfcheck.js` („Der Treiber sieht den
+Rueckgabewert — 0.34.4“); eine bestehende prüft zusätzlich, dass der übergangene
+Fehlschlag in keiner Zeile steht. Rückbauten 1823 bis 1829 neu: **7 von 7
+rot**. 1062 hat einen neuen Suchtext, weil die Zeile in `testbench.js` keine
+Klammer mehr trägt; rot. Der volle Lauf mit der Liste: **8.268 von 8.268**
+Prüfungen bestanden, 1.733 Rückbauten.
+
+**Nachtrag: Wettlauf mit dem Protokoll.** Lauf 1207 (Pull Request #282) war
+mit 1 Prüfung rot, und die neue Liste nannte sie: „Proxy: abgespielte zuerst,
+Fehlschlag und Neustart › Ein veraltetes Video, das gerade spielt, kommt in der
+Warteschlange nach vorn“, Hinweis `4:1331 2:1411 3:1491 1:1023`. Ursache:
+`until2()` wartete auf die neue Bitrate in der Datenbank und las danach sofort
+das Protokoll des Servers. Die Zeile „Proxy for file 1 replaced in …“ kommt
+über die Pipe von stdout und war auf dem Läufer noch nicht da.
+
+Nachgestellt in einer Kopie, in der `test/frame.js` jede Ausgabe eines Servers
+um 300 ms verzögert:
+
+- `test/release_056.js` ohne Fix: 3 rot, darunter genau diese Prüfung mit dem
+  Hinweis `4:1332 2:1412 3:1492 1:1024`. Mit Fix: 32 von 32.
+- Der ganze Prüfstand ohne Fix: 14 Prüfungen rot, die alle das Protokoll
+  direkt nach einer Antwort oder nach dem Start lesen. 10 davon stehen in
+  `test/roundtrip.js`, 4 in `test/release_055.js`.
+
+Die 10 aus `test/roundtrip.js` stehen alle vor der Gruppe „Zeitleiste
+abschaltbar“, also in dem Teil des Logs von Lauf 1204, der die 6 roten enthielt.
+Jede nennt bei Rot eine Hinweiszeile. Die 6 roten aus Lauf 1204 sind damit sehr
+wahrscheinlich 6 dieser 10; belegt ist es nicht.
+
+Fix: `test/frame.js` hat jetzt `logUntil(log, muster, ms)`. Die Funktion fragt
+das Protokoll alle 25 ms ab, bis das Muster passt, höchstens 5 s. Vor jeder der
+14 Prüfungen steht ein `await H.logUntil(...)` mit dem Muster, das die Prüfung
+erwartet; die Prüfungen selbst sind unverändert. In `test/release_056.js`
+wartet `until2()` an drei Stellen zusätzlich auf die Zeilen im Protokoll. Die
+Rückbauten 1781 bis 1822 gegen `test/release_056.js` mit Fix: **42 von 42
+rot**.
+
 ---
 
 ## 6. Nicht geprüft und offen
@@ -201,3 +258,7 @@ Der volle Lauf vor dem Push: **8.264 von 8.264** Prüfungen bestanden.
   Auf dem N100 dauerte eine Stunde 4K mit 60 Bildern je Sekunde mit Quick Sync
   rund 30 Minuten, mit der CPU zwei bis zweieinhalb Stunden.
 - Die türkischen Texte hat kein Muttersprachler gelesen.
+- Die 6 roten Prüfungen aus Lauf 1204 (Abschnitt 5): Die Namen sind nicht
+  bekannt. Wahrscheinliche Ursache ist der Wettlauf mit dem Protokoll; der
+  Nachtrag in Abschnitt 5 behebt ihn an 14 Stellen. Ein künftiger roter Lauf
+  nennt die Namen am Ende des Logs.
