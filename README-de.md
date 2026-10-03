@@ -464,7 +464,7 @@ Der Start meldet die Lage im Protokoll: `Behind proxy: on` oder `off`.
 
 - Der direkte Weg über `http://<server-ip>:3100` bleibt nutzbar, parallel zum
   Proxy. Fällt der Proxy aus, geht es darüber weiter.
-- Als eigenes Netz gelten 127.0.0.1, ::1, private Netze (10.x, 172.16–31.x,
+- Als eigenes Netz gelten Loopback, private Netze (10.x, 172.16–31.x,
   192.168.x), 100.64.0.0/10, IPv6 `fc00::/7` und `fe80::/10`.
 - **Wer den Port des Containers aus dem eigenen Netz erreicht, kann
   `X-Forwarded-For` setzen und die Anmeldebremse umgehen.** Wer das

@@ -463,7 +463,7 @@ Başlatma durumu günlüğe yazar: `Behind proxy: on` ya da `off`.
 
 - `http://<server-ip>:3100` üzerinden doğrudan erişim proxy'nin yanında
   kullanılabilir kalır. Proxy çökerse erişim buradan sürer.
-- Kendi ağ sayılanlar: 127.0.0.1, ::1, özel ağlar (10.x, 172.16–31.x,
+- Kendi ağ sayılanlar: loopback, özel ağlar (10.x, 172.16–31.x,
   192.168.x), 100.64.0.0/10, IPv6 `fc00::/7` ve `fe80::/10`.
 - **Container'ın portuna kendi ağdan erişen herkes `X-Forwarded-For`
   ayarlayıp giriş deneme sınırını aşabilir.** Bunu önlemek için portu yalnızca

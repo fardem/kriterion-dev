@@ -459,7 +459,7 @@ At start, the log states the setting: `Behind proxy: on` or `off`.
 
 - Direct access via `http://<server-ip>:3100` stays usable, alongside the
   proxy. If the proxy fails, access continues that way.
-- The own network is 127.0.0.1, ::1, private networks (10.x, 172.16–31.x,
+- The own network is loopback, private networks (10.x, 172.16–31.x,
   192.168.x), 100.64.0.0/10, IPv6 `fc00::/7` and `fe80::/10`.
 - **Anyone who reaches the container's port from the own network can set
   `X-Forwarded-For` and get around the sign-in rate limit.** To rule this out,
