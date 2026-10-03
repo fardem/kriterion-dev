@@ -7784,8 +7784,8 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   }
 
   // Beim ersten Aufruf liest der Server die Datei; bis dahin steht „wird gelesen“ im Dialog.
-  async function showMediaInfo(url, name, back, title = 'entry.mediaInfo') {
-    const { bd, done } = openModal(`<div class="modal minfo"><h2>${tH(title)}</h2>
+  async function showMediaInfo(url, name, back) {
+    const { bd, done } = openModal(`<div class="modal minfo"><h2>${tH('entry.mediaInfo')}</h2>
       <p class="minfo-name"></p><div class="minfo-body" aria-live="polite"><p>${tH('entry.mediaReading')}</p></div>
       <div class="modal-acts"><button class="btn btn-accent" data-yes>${tH('list.close')}</button></div></div>`,
       () => { if (back && back.isConnected) back.focus(); }, null);
@@ -7799,7 +7799,6 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     } catch (e) { body.innerHTML = `<p>${esc(e.message)}</p>`; }
   }
   const fileInfo = (a, back) => showMediaInfo(`/api/attachments/${Number(a.id)}/info`, a.filename, back);
-  const documentInfo = (a, back) => showMediaInfo(`/api/attachments/${Number(a.id)}/info`, a.filename, back, 'entry.docInfo');
   // Fotos haben keinen Dateinamen; der Dialog nennt Art und Stelle wie der Zaehler im Vollbild.
   const photoInfo = (p, back) => showMediaInfo(`/api/photos/${Number(p.id)}/info`,
     `${t(p.kind === 'video' ? 'entry.kindVideo' : 'entry.kindImage')} ${item.photos.findIndex(x => x.id === p.id) + 1} / ${
@@ -7816,10 +7815,8 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       open.push({ label: t('entry.edit'), run: () => { location.hash = fileAddress(id, a.id, true); } });
     pass.push({ label: t('entry.download'), href: `/api/attachments/${Number(a.id)}/raw` });
     pass.push({ label: t('entry.copyFileLink'), run: () => copyText(fileLink(a), t('card.linkCopied')) });
-    if (a.preview === 'image' || kindOf(a) === 'video')
+    if (a.preview === 'image' || kindOf(a) === 'video' || DOCUMENT_KINDS.includes(kindOf(a)))
       pass.push({ label: t('entry.mediaInfo'), own: true, run: () => fileInfo(a, li.querySelector('.amore')) });
-    else if (DOCUMENT_KINDS.includes(kindOf(a)))
-      pass.push({ label: t('entry.docInfo'), own: true, run: () => documentInfo(a, li.querySelector('.amore')) });
     const targets = moveTargets(a);
     if (a.mine === true) sort.push({ label: t('entry.renameFileMenu'), own: true, run: () => renameFile(a) });
     if (a.mine === true && targets.length)

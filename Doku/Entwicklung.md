@@ -77,7 +77,7 @@ annehmen.
 - `attachment_stills`: Standbild und Dauer eines Videos unter „Dateien“, im
   Browser erzeugt, 1600 px WebP. Setzen darf nur, wer die Datei hochgeladen
   hat (`PUT /api/attachments/:id/still`). Im Papierkorb und im Export.
-- `attachment_media`: die Erweiterten Infos zu einem Bild oder Video als JSON
+- `attachment_media`: die Infos zu einem Bild oder Video als JSON
   (`general`, `video`, `audio`, `image`, `orientation`, `exif`), gelesen mit
   `mediainfo.js` in der Warteschlange `mediaSoon()`: nach dem Upload, nach
   Import und Papierkorb, beim Start und stündlich für die Dateien aus
@@ -295,7 +295,7 @@ ffmpeg läuft unter einer anderen Nummer.
   Datei oder lässt sie sich nicht entschlüsseln, fällt die Zeile weg, und das
   Video wartet wieder. `proxyFilesThere()` tut dasselbe beim Start für Zeilen
   ohne Datei, etwa nach dem Zurückspielen eines Backups.
-- **Erweiterte Infos:** `proxyInfo()` misst bei jedem Aufruf die Bitraten von
+- **Infos:** `proxyInfo()` misst bei jedem Aufruf die Bitraten von
   Video und Audio am fertigen Proxy: `proxyRates()` liest ihn mit
   `sealedReader()` wie `readPartsOf()` eine Datei und gibt ihn an MediaInfo,
   in der Reihe der Analysen (`inMediaTurn()`). Gespeichert wird nichts.

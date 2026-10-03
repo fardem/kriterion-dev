@@ -9,7 +9,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [0.56.1] - 2026-10-03
 
-Fingerprint `a8fe80d0` — previously `a161550c`.
+Fingerprint `7b76501a` — previously `a161550c`.
 
 ### Changed
 
@@ -17,6 +17,7 @@ Fingerprint `a8fe80d0` — previously `a161550c`.
 - Full screen: "Close" stays at the top right, the bin is the first button of the bar.
 - Full screen: on touch, a tap beside the picture no longer closes it; a mouse click still does.
 - Full screen covers the page completely in the dark scheme.
+- "Extended info" on images and videos is now called "Info", as on documents: in the ⋯ menu, at ⓘ in full screen and in the dialog.
 
 ### Fixed
 

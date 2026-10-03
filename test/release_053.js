@@ -600,13 +600,13 @@ async function run() {
     const lb = w.document.querySelector('.lightbox');
     const info = lb?.querySelector('.lb-btn.info');
     const count = () => lb?.querySelector('.lb-count')?.textContent;
-    check('ⓘ steht links neben dem Link, mit „Erweiterte Infos“ als Titel',
+    check('ⓘ steht links neben dem Link, mit „Infos“ als Titel',
       !!info && info.previousElementSibling?.classList.contains('lb-count') && info.nextElementSibling?.classList.contains('copy') &&
       info?.title === DE['entry.mediaInfo'], lb?.querySelector('.lb-tools')?.innerHTML.slice(0, 200));
     const before = count();
     info?.click();
     await until(w, (x) => x.document.querySelector('.modal.minfo .kv'), 1000, 'die Angaben').catch(() => {});
-    check('Ein Klick öffnet „Erweiterte Infos“ der gezeigten Datei',
+    check('Ein Klick öffnet „Infos“ der gezeigten Datei',
       !!w.document.querySelector('.modal.minfo') && w.document.querySelector('.modal.minfo .minfo-name')?.textContent === 'clip.mp4' &&
       equal(asked, ['/api/attachments/48/info']), asked.join(' '));
     press(w.document.body, 'ArrowRight');

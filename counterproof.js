@@ -10696,9 +10696,9 @@ const REGRESSIONS = [
     expected: "Menü „…\" in fünf Gruppen"
   },
   {
-    nr: '1557', name: "Erweiterte Infos stehen an jeder Datei",
+    nr: '1557', name: "Infos stehen an jeder Datei",
     file: 'public/app.js',
-    search: "    if (a.preview === 'image' || kindOf(a) === 'video')\n      pass.push(",
+    search: "    if (a.preview === 'image' || kindOf(a) === 'video' || DOCUMENT_KINDS.includes(kindOf(a)))\n      pass.push(",
     replacement: "    if (true)\n      pass.push(",
     expected: "Menü „…\" in fünf Gruppen"
   },
@@ -11307,12 +11307,12 @@ const REGRESSIONS = [
   {
     nr: '1644', name: "„Infos“ fehlt im Menue",
     file: 'public/app.js',
-    search: "    else if (DOCUMENT_KINDS.includes(kindOf(a)))",
-    replacement: "    else if (false)",
+    search: " || DOCUMENT_KINDS.includes(kindOf(a)))\n      pass.push(",
+    replacement: ")\n      pass.push(",
     expected: "Infos zu Dokumenten: Menüpunkt und Dialog"
   },
   {
-    nr: '1645', name: "Infos zu Dokumenten erscheinen als Erweiterte Infos",
+    nr: '1645', name: "Dokumente zeigen im Dialog die Gruppen eines Bildes oder Videos",
     file: 'public/app.js',
     search: "      body.innerHTML = facts.document ? documentInfoHtml(facts) : mediaInfoHtml(facts);",
     replacement: "      body.innerHTML = mediaInfoHtml(facts);",
@@ -11482,8 +11482,8 @@ const REGRESSIONS = [
   {
     nr: '1669', name: "Die Anleitung beschreibt „Infos“ nicht",
     file: 'manual-de.md',
-    search: "- **Infos:** „Infos“ im Menü ⋯ einer Word-, Excel-, PowerPoint- oder PDF-Datei",
-    replacement: "- „Infos“ im Menü ⋯ einer Word-, Excel-, PowerPoint- oder PDF-Datei",
+    search: "- **Infos zu Dokumenten:** „Infos“ im Menü ⋯ einer Word-, Excel-, PowerPoint-",
+    replacement: "- „Infos“ im Menü ⋯ einer Word-, Excel-, PowerPoint-",
     expected: "Anleitung, README und Namen"
   },
   {
@@ -12180,10 +12180,10 @@ const REGRESSIONS = [
     expected: "Proxy: Standbild, die vier Endungen und Erweiterte Infos"
   },
   {
-    nr: '1769', name: "avi ohne Proxy hat keine Erweiterten Infos",
+    nr: '1769', name: "avi ohne Proxy hat keine Infos",
     file: 'public/app.js',
-    search: "    if (a.preview === 'image' || kindOf(a) === 'video')\n      pass.push(",
-    replacement: "    if (a.preview === 'image' || a.preview === 'video')\n      pass.push(",
+    search: "    if (a.preview === 'image' || kindOf(a) === 'video' || ",
+    replacement: "    if (a.preview === 'image' || a.preview === 'video' || ",
     expected: "Proxy: Standbild, die vier Endungen und Erweiterte Infos"
   },
   {
@@ -12747,6 +12747,13 @@ const REGRESSIONS = [
     search: "    if (focusBefore?.isConnected) focusBefore.focus?.({ preventScroll: true });\n",
     replacement: "",
     expected: "Vollbild: Zurueck, Fokus und die Seite dahinter"
+  },
+  {
+    nr: '1850', name: "Bilder und Videos heissen wieder „Erweiterte Infos“",
+    file: 'public/languages/de.json',
+    search: "  \"entry.mediaInfo\": \"Infos\",",
+    replacement: "  \"entry.mediaInfo\": \"Erweiterte Infos\",",
+    expected: "Infos: ein Name fuer Bilder, Videos und Dokumente"
   }
 
 ];

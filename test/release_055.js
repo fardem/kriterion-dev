@@ -383,7 +383,7 @@ async function run() {
   check('Vorgabe aus: nach der Analyse entsteht kein Proxy, die Liste nennt keinen',
     bothRead && !proxyRow(clipId) && !proxyRow(mkvId) && (await fileNamed(v1, 'clip.mp4'))?.proxy === null,
     `${bothRead} ${JSON.stringify(proxyRow(clipId))}`);
-  check('Eine Datei .mkv wird analysiert und hat „Erweiterte Infos“; bis zum Proxy bleibt sie ohne Vorschau',
+  check('Eine Datei .mkv wird analysiert und hat „Infos“; bis zum Proxy bleibt sie ohne Vorschau',
     mkvInfo.status === 200 && mkvInfo.content?.video?.[0]?.width === 640 && mkvInfo.content?.proxy === undefined &&
     mkvBefore?.preview !== 'video', `${mkvInfo.status} ${mkvBefore?.preview}`);
   const switchByAdmin = await as('dritt', 'PUT', '/api/settings', { proxyOn: true });
@@ -424,7 +424,7 @@ async function run() {
     row.size === got.bytes.length && sealed.length === got.bytes.length + 16 * Math.ceil(got.bytes.length / 1048576) &&
     sealed.indexOf('proxy ') < 0 && (fs.statSync(proxyDir).mode & 0o777) === 0o700, `${sealed.length} ${row.size}`);
   const clipInfo = await as('zweit', 'GET', `/api/attachments/${clipId}/info`);
-  check('„Erweiterte Infos“ nennt Zustand, Pixel und Groesse des Proxys und die Bitraten, die MediaInfo am Proxy misst',
+  check('„Infos“ nennt Zustand, Pixel und Groesse des Proxys und die Bitraten, die MediaInfo am Proxy misst',
     equal(clipInfo.content?.proxy, { state: 'ready', width: 1920, height: 1080, size: got.bytes.length, reason: null,
       videoBitRate: VP.videoBitRate(5e6, facts.video[0]), audioBitRate: 128000 }),
     JSON.stringify(clipInfo.content?.proxy));
@@ -824,13 +824,13 @@ async function run() {
       return out;
     };
     const ready = await infoOf('f90');
-    check('„Erweiterte Infos“ hat die Gruppe „Proxy“ mit Zustand, Pixeln, Groesse und den Bitraten von Video und Audio',
+    check('„Infos“ hat die Gruppe „Proxy“ mit Zustand, Pixeln, Groesse und den Bitraten von Video und Audio',
       ready.offered && ready.heads.includes(DE['entry.mediaProxy']) &&
       [`${DE['entry.mediaProxyState']}: ${DE['entry.proxyReady']}`, `${DE['entry.mediaResolution']}: 640 × 360`,
         `${DE['entry.mediaFileSize']}: ${w.eval('fmtBytes(2048)')}`, `${DE['entry.proxyVideoRate']}: 5,8 Mbit/s`,
         `${DE['entry.proxyAudioRate']}: 128 kbit/s`].every(x => ready.rows.includes(x)), ready.rows.join(' | '));
     const failed = await infoOf('f91');
-    check('Auch eine Datei .avi ohne Proxy hat „Erweiterte Infos“; ein Fehlschlag nennt den Grund',
+    check('Auch eine Datei .avi ohne Proxy hat „Infos“; ein Fehlschlag nennt den Grund',
       failed.offered && failed.rows.includes(`${DE['entry.mediaProxyState']}: ${DE['entry.proxyFailed']}: ${DE['entry.proxyTmpSpace']}`),
       failed.rows.join(' | '));
     w.close();

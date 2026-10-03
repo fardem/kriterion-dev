@@ -54,7 +54,7 @@ Diese Datei beschreibt Installation und Betrieb. Die Bedienung steht im
 | | |
 |---|---|
 | Einträge | Titel, Beschreibung, Kategorie, Tags, Fotos, Kurzvideos, Dateien, Links |
-| Dateien | bis 2 GB je Datei, hochgeladen in Stücken, fortsetzbar; als Kacheln oder Liste, nach Name, Datum, Größe oder Typ sortiert, nach Typ gruppiert, mit Vorschaubild auch für Text, Office und PDF; in Ordnern; mehrere auf einmal löschen oder verschieben; gelöschte Dateien 30 Tage im Papierkorb und einzeln aus Backups zurückzuholen; Erweiterte Infos zu Bildern und Videos wie in MediaInfo, auch zu Fotos und Videos des Eintrags; Videos spielen an der zuletzt gesehenen Stelle weiter und laden auf Knopfdruck ganz; auf Wunsch spielen sie über einen kleineren Proxy in H.264, auch `mkv`, `avi`, `wmv` und `flv` |
+| Dateien | bis 2 GB je Datei, hochgeladen in Stücken, fortsetzbar; als Kacheln oder Liste, nach Name, Datum, Größe oder Typ sortiert, nach Typ gruppiert, mit Vorschaubild auch für Text, Office und PDF; in Ordnern; mehrere auf einmal löschen oder verschieben; gelöschte Dateien 30 Tage im Papierkorb und einzeln aus Backups zurückzuholen; „Infos“ zu Bildern und Videos wie in MediaInfo, auch zu Fotos und Videos des Eintrags; Videos spielen an der zuletzt gesehenen Stelle weiter und laden auf Knopfdruck ganz; auf Wunsch spielen sie über einen kleineren Proxy in H.264, auch `mkv`, `avi`, `wmv` und `flv` |
 | Bewerten | eigene Kriterien mit 1 bis 5 Sternen, je Kriterium ein Gewicht, daraus ein gewichteter Schnitt |
 | Kommentare | Notiz, Bericht oder Aufgabe mit Fälligkeitsdatum, dazu Bilder und Videos |
 | Testtage | datierte Einträge mit Note und Tags |
@@ -674,7 +674,7 @@ application/octet-stream` und `upload-offset: <received>`; die Antwort auf das
 letzte Stück ist der Eintrag.
 
 `GET /api/attachments/<id>/info` und `GET /api/photos/<id>/info` liefern die
-Erweiterten Infos zu einem Bild oder Video als JSON mit `general`, `video`,
+„Infos“ zu einem Bild oder Video als JSON mit `general`, `video`,
 `audio`, `image`, `orientation` und `exif`. Der Server liest sie mit
 `mediainfo.js`, `sharp` und `exif-reader` und legt sie in den Tabellen
 `attachment_media` und `photo_media` ab; im JSON-Export stehen sie nicht. Zu

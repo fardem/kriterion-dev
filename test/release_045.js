@@ -292,11 +292,11 @@ async function run() {
       !menuOf(w, 'f43').some(x => x.endsWith(DE['entry.editAll'])), ownOffice.join(' / '));
     check('Bearbeiten und die vorige Fassung stehen nur mit Recht da',
       equal(ownOffice, ['menuitem:' + DE['entry.openFile'], 'menuitem:' + DE['entry.edit'],
-        'menuitem:' + DE['entry.download'], 'menuitem:' + DE['entry.copyFileLink'], 'menuitem:' + DE['entry.docInfo'],
+        'menuitem:' + DE['entry.download'], 'menuitem:' + DE['entry.copyFileLink'], 'menuitem:' + DE['entry.mediaInfo'],
         'menuitem:' + DE['entry.renameFileMenu'], 'menuitem:' + DE['entry.restorePrevious'],
         'menuitemcheckbox:' + DE['entry.editAll'], 'menuitem:' + DE['entry.deleteFile']]) &&
       equal(foreignOffice, [DE['entry.openFile'], DE['entry.edit'], DE['entry.download'], DE['entry.copyFileLink'],
-        DE['entry.docInfo']]),
+        DE['entry.mediaInfo']]),
       `${ownOffice.join(' / ')} || ${foreignOffice.join(' / ')}`);
     moreOf(w, 'f41')?.click();
     check('Der Kopf nennt Name und, ab zwei Accounts, wer wann hochgeladen hat',
@@ -576,7 +576,7 @@ async function run() {
     check('Die Kachel der Datei traegt den Rahmen, solange das Vollbild sie zeigt', equal(opened(w), ['f42']),
       opened(w).join(' '));
     const tools = [...(lb()?.querySelectorAll('.lb-tools > .lb-btn') || [])].filter(b => !b.hidden).map(b => b.className.split(' ')[1]);
-    check('Die Leiste: mit Recht Loeschen, Erweiterte Infos, Link kopieren, Herunterladen',
+    check('Die Leiste: mit Recht Loeschen, Infos, Link kopieren, Herunterladen',
       equal(tools, ['remove', 'info', 'copy', 'download', 'zoom']) &&
       lb()?.querySelector('.download')?.getAttribute('href') === '/api/attachments/42/raw', tools.join(' '));
     press(w.document.body, 'ArrowRight');

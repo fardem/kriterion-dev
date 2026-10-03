@@ -155,7 +155,7 @@ async function run() {
     const old = (info) => { const o = JSON.parse(info); delete o.orientation; delete o.exif; return JSON.stringify(o); };
     inDb(d => d.prepare('UPDATE attachment_media SET info = ? WHERE attachment_id = ?').run(old(stored), j?.id));
     const again = await as('zweit', 'GET', `/api/attachments/${j?.id}/info`);
-    check('Eine Zeile aus der Zeit vor EXIF liest der Server bei „Erweiterte Infos“ neu',
+    check('Eine Zeile aus der Zeit vor EXIF liest der Server bei „Infos“ neu',
       again.content?.exif?.camera === 'Canon EOS 20D' && again.content?.orientation === 6 &&
       JSON.parse(inDb(d => d.prepare('SELECT info FROM attachment_media WHERE attachment_id = ?').get(j?.id).info)).orientation === 6,
       JSON.stringify(again.content).slice(0, 160));
@@ -442,9 +442,9 @@ async function run() {
       manuals.de.includes('### Glocke und „Offene Aufgaben“') && !/„Offen"/.test(manuals.de) &&
       manuals.de.includes('Der Abschnitt „Verfahren der Ablage“ der Karte „Bildformate“'), 'Namen');
     const covered = (text, words) => words.filter(x => !text.includes(x));
-    const missing = [...covered(manuals.de, ['„Umbenennen …“', '**Infos:**', 'Aufnahme:', '„Teilweise“', 'PNG · 1920 × 1080']),
-      ...covered(manuals.en, ['“Rename …”', '**Info:**', 'Capture:', '“Partial”', 'PNG · 1920 × 1080']),
-      ...covered(manuals.tr, ['“Yeniden adlandır …”', '**Bilgi:**', 'Çekim:', '“Kısmen”', 'PNG · 1920 × 1080'])];
+    const missing = [...covered(manuals.de, ['„Umbenennen …“', '**Infos zu Dokumenten:**', 'Aufnahme:', '„Teilweise“', 'PNG · 1920 × 1080']),
+      ...covered(manuals.en, ['“Rename …”', '**Info on documents:**', 'Capture:', '“Partial”', 'PNG · 1920 × 1080']),
+      ...covered(manuals.tr, ['“Yeniden adlandır …”', '**Belgeler için bilgi:**', 'Çekim:', '“Kısmen”', 'PNG · 1920 × 1080'])];
     check('Alle drei Anleitungen beschreiben Umbenennen, Infos, Aufnahme, den Filter und den Typ bei Bildern',
       missing.length === 0, missing.join(' · ') || 'alles da');
     const readmes = ['README.md', 'README-de.md', 'README-tr.md'].map(read);
@@ -543,10 +543,9 @@ async function run() {
       press(w.document.querySelector('.fmenu-list'), 'Escape');
       return out;
     };
-    const has = ['f70', 'f71', 'f72', 'f43', 'f44', 'f41', 'f42'].map(k => labels(k).includes(DE['entry.docInfo']));
-    check('„Infos“ bei Word, Tabelle, Präsentation und PDF; nicht bei ZIP, Text und Bild',
-      equal(has, [true, true, true, true, false, false, false]) && DE['entry.docInfo'] === 'Infos' &&
-      labels('f42').includes(DE['entry.mediaInfo']), has.join(' '));
+    const has = ['f70', 'f71', 'f72', 'f43', 'f44', 'f41', 'f42'].map(k => labels(k).includes(DE['entry.mediaInfo']));
+    check('„Infos“ bei Word, Tabelle, Präsentation, PDF und Bild; nicht bei ZIP und Text',
+      equal(has, [true, true, true, true, false, false, true]) && DE['entry.mediaInfo'] === 'Infos', has.join(' '));
     const facts = { document: true,
       kriterion: { uploadedBy: { id: 2, name: 'zweit', deleted: false }, uploadedAt: '2026-09-29 08:00:00',
         fileModified: '2026-09-15 09:30:00', savedBy: { id: 1, name: 'chefin', deleted: false }, savedAt: '2026-09-30 12:30:00',
@@ -560,7 +559,7 @@ async function run() {
       asked.push(url);
       return Promise.resolve(answerWith(facts));
     };
-    menuOf(w, 'f70').find(e => e.textContent === DE['entry.docInfo'])?.click();
+    menuOf(w, 'f70').find(e => e.textContent === DE['entry.mediaInfo'])?.click();
     await until(w, (x) => x.document.querySelector('.modal.minfo .kv'), 1000, 'die Angaben').catch(() => {});
     const modal = w.document.querySelector('.modal.minfo');
     const heads = [...(modal?.querySelectorAll('.minfo-head') || [])].map(e => e.textContent);

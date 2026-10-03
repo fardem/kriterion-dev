@@ -503,19 +503,19 @@ setting). The original stays unchanged.
   shows the extension.
 - **⋯ menu:** is on every tile and offers only what the user may do, in five
   groups separated by lines: “Open” and “Edit”; “Download”, “Copy link to this
-  file” and “Extended info” or “Info”; “Rename …”, “Move to …” and “Choose
+  file” and “Info”; “Rename …”, “Move to …” and “Choose
   thumbnail …”; “Restore previous version” and “Editable by all”; “Delete
   file”. The top shows the
   name and, with several accounts, who uploaded the file and when. On the
   phone, the menu opens at the bottom edge. A tile that is still uploading
   offers “Cancel”, after an error “Try again” and “Remove”.
-- **Extended info:** “Extended info” in the ⋯ menu of an image or video and ⓘ
+- **Info on images and videos:** “Info” in the ⋯ menu of an image or video and ⓘ
   in full screen show what the file contains. ⓘ is also in the full screen view
-  of the entry's photos and videos. General: for videos the container,
-  otherwise the format, plus file size, duration, overall bit rate, recording
-  date and the number of audio tracks. Video: codec, profile, resolution, frame
-  rate, bit rate, bit depth, chroma subsampling and HDR. H.264 and H.265 carry
-  the MediaInfo name in brackets, for example “H.265 (HEVC)”; the list and the
+  of the entry's photos and videos. General: for videos the container, otherwise
+  the format, plus file size, duration, overall bit rate, recording date and the
+  number of audio tracks. Video: codec, profile, resolution, frame rate, bit
+  rate, bit depth, chroma subsampling and HDR. H.264 and H.265 carry the
+  MediaInfo name in brackets, for example “H.265 (HEVC)”; the list and the
   thumbnail show just “H.265”. Per audio track: codec, channels, sampling rate,
   bit rate and language. Image: the main image with format, resolution as
   displayed, bit depth, colour space and chroma subsampling; thumbnails inside
@@ -526,19 +526,18 @@ setting). The original stays unchanged.
   shown; Kriterion does not store coordinates. With a time taken from EXIF,
   “Recorded” under “General” is left out for images. Images from before the
   update are read again once after the start. If a video needs a proxy, the
-  group “Proxy” states its state, resolution and size and the bit rates of
-  video and audio, measured on the proxy. What the file does not state is left
-  out.
-- **Info:** “Info” in the ⋯ menu of a Word, Excel, PowerPoint or PDF file and
-  their OpenDocument counterparts shows two groups. “In Kriterion”: uploaded by
-  and on, modified before upload (the time of the file on the computer, only
-  for files since the update), last saved by and on in the Document Server,
-  number of saves and the date of the previous version. “In the file”: title,
-  created by, created, last modified by, modified, pages, words, slides and
-  application; for PDF title, author, created with, produced by, created,
-  modified and pages. It is read when the dialog opens; parts of an Office
-  file over 1 MB and, for PDF, everything except the first and the last MB stay
-  unread. For `.doc`, `.xls`, `.ppt` and `.rtf` only the details from
+  group “Proxy” states its state, resolution and size and the bit rates of video
+  and audio, measured on the proxy. What the file does not state is left out.
+- **Info on documents:** “Info” in the ⋯ menu of a Word, Excel, PowerPoint or
+  PDF file and their OpenDocument counterparts shows two groups. “In Kriterion”:
+  uploaded by and on, modified before upload (the time of the file on the
+  computer, only for files since the update), last saved by and on in the
+  Document Server, number of saves and the date of the previous version. “In the
+  file”: title, created by, created, last modified by, modified, pages, words,
+  slides and application; for PDF title, author, created with, produced by,
+  created, modified and pages. It is read when the dialog opens; parts of an
+  Office file over 1 MB and, for PDF, everything except the first and the last
+  MB stay unread. For `.doc`, `.xls`, `.ppt` and `.rtf` only the details from
   Kriterion appear. What is missing is not shown.
 - **Rename:** “Rename …” in the ⋯ menu of an own file shows the name without
   the extension; the extension stays. Enter saves, Esc cancels. In the same
