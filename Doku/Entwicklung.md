@@ -326,6 +326,21 @@ Prüfen in Chromium mit `Emulation.setDeviceMetricsOverride` (412 × 915,
 `mobile: true`): `innerWidth` und `document.documentElement.scrollWidth` müssen
 412 sein.
 
+## Vollbild: Verlauf, Fokus und Gesten
+
+- `openLightbox()` legt mit `history.pushState()` einen Eintrag mit derselben
+  Adresse und `{ lightbox: n }` an. `popstate` schließt das Vollbild, außer der
+  Eintrag, auf dem der Browser danach steht, ist der eigene.
+- ✕, Esc und das Löschen des letzten Bildes nehmen den Eintrag mit
+  `history.back()` zurück. Ein Wechsel der Adresse löst vor `hashchange`
+  ebenfalls `popstate` aus (Chromium 1194, jsdom); `route()` ruft dafür nichts.
+- Beim Öffnen werden alle Kinder von `body` außer Meldungen `inert`. Dialoge
+  und Meldungen, die danach aufgehen, bleiben frei. ✕ bekommt den Fokus; beim
+  Schließen geht er an das Element zurück, das ihn vorher hatte.
+- Ein Wisch zählt nur mit einem Finger, nicht auf dem Video und nicht bei
+  `visualViewport.scale > 1`. Neben das Bild schließt nur ein Klick, dessen
+  `pointerdown` von der Maus kam.
+
 ## Bildablage
 
 Fotos werden unverändert gespeichert. Ausnahme ist PNG: je nach Verfahren wird

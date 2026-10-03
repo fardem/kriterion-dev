@@ -685,8 +685,8 @@ async function run() {
       !/^### (Hinzugefügt|Geändert|Behoben|Entfernt)/m.test(log), `${log.split('\n').length} Zeilen`);
     const older = ((log.match(/^## Older versions — 0\.10\.0 to 0\.19\.6\n\n((?:- 0\.1\d\.\d+: .*\n)+)/m) || [])[1] || '')
       .split('\n').filter(Boolean);
-    check('Ab 0.20.0 behaelt jede Version Ueberschrift und Fingerprint, 0.10.0 bis 0.19.6 stehen je in einer Zeile: 101 Abschnitte',
-      (log.match(/^## /gm) || []).length === 101 && (log.match(/^Fingerprint `/gm) || []).length === 41 && older.length === 29,
+    check('Ab 0.20.0 behaelt jede Version Ueberschrift und Fingerprint, 0.10.0 bis 0.19.6 stehen je in einer Zeile: 102 Abschnitte',
+      (log.match(/^## /gm) || []).length === 102 && (log.match(/^Fingerprint `/gm) || []).length === 42 && older.length === 29,
       `${(log.match(/^## /gm) || []).length} / ${(log.match(/^Fingerprint `/gm) || []).length} / ${older.length}`);
   }
 }
