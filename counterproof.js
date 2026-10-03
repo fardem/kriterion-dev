@@ -6576,8 +6576,8 @@ const REGRESSIONS = [
   {
     nr: '953', name: 'Der geoeffnete Tab bekommt sein `noopener` nicht mehr',
     file: 'public/app.js',
-    search: "          if (!search) return window.open(l.url, '_blank', 'noopener,noreferrer');",
-    replacement: "          if (!search) return window.open(l.url, '_blank');",
+    search: "        if (!search) return window.open(l.url, '_blank', 'noopener,noreferrer');",
+    replacement: "        if (!search) return window.open(l.url, '_blank');",
     expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
   },
   {
@@ -8312,7 +8312,7 @@ const REGRESSIONS = [
   {
     nr: '1201', name: 'Der Import laesst seine Datei liegen',
     file: 'server.js',
-    search: '  } finally {\n    try { fs.rmSync(req.file.path, { force: true }); }\n'
+    search: '  } finally {\n    file?.close();\n    try { fs.rmSync(req.file.path, { force: true }); }\n'
       + '    catch (e) { logWarn(`Import: ${req.file.path} stayed behind -- ${e.message}`); }\n  }\n});',
     replacement: '  }\n});',
     expected: 'Der Export schreibt stueckweise'
@@ -8918,8 +8918,8 @@ const REGRESSIONS = [
   {
     nr: '1287', name: 'Ein Klick in den Betrachter oeffnet das Feld der Beschreibung',
     file: 'public/app.js',
-    search: "    if (e.target.closest('.markup-viewer, a')) return;",
-    replacement: "    if (e.target.closest('a')) return;",
+    search: "    if (!mayEdit() || e.target.closest('.markup-viewer, a')) return;",
+    replacement: "    if (!mayEdit() || e.target.closest('a')) return;",
     expected: 'Verweise auf Dateien: Marken im Browser'
   },
   {
@@ -9002,8 +9002,8 @@ const REGRESSIONS = [
   {
     nr: '1303', name: 'Der Name steht wieder hinter dem Pfad',
     file: 'public/app.js',
-    search: "      const bottom = search ? '<span class=\"snames\"></span>'\n                          : (path ? `<span class=\"path\">${esc(path)}</span>` : '');\n      row.innerHTML = `<span class=\"grip\" title=\"${esc(t('entry.dragToSort'))}\">⣿</span>\n        <span class=\"lnum\">${Number(n + 1)}</span>\n        <span class=\"lurl\"><span class=\"dom\">${esc(top)}</span>${\n          bottom ? `<span class=\"lbottom\">${bottom}</span>` : ''\n        }</span>\n        ${showFrom ? `<span class=\"lfrom\">(${esc(authorName(l.author))})</span>` : ''}\n",
-    replacement: "      const bottom = (search ? '<span class=\"snames\"></span>'\n                          : (path ? `<span class=\"path\">${esc(path)}</span>` : '')) + (showFrom\n        ? `<span class=\"lfrom\">(${esc(authorName(l.author))})</span>` : '');\n      row.innerHTML = `<span class=\"grip\" title=\"${esc(t('entry.dragToSort'))}\">⣿</span>\n        <span class=\"lnum\">${Number(n + 1)}</span>\n        <span class=\"lurl\"><span class=\"dom\">${esc(top)}</span>${\n          bottom ? `<span class=\"lbottom\">${bottom}</span>` : ''\n        }</span>\n",
+    search: "      const bottom = search ? '<span class=\"snames\"></span>'\n                          : (path ? `<span class=\"path\">${esc(path)}</span>` : '');\n      row.innerHTML = `${mayEdit() ? `<span class=\"grip\" title=\"${esc(t('entry.dragToSort'))}\">⣿</span>` : ''}\n        <span class=\"lnum\">${Number(n + 1)}</span>\n        <span class=\"lurl\"><span class=\"dom\">${esc(top)}</span>${\n          bottom ? `<span class=\"lbottom\">${bottom}</span>` : ''\n        }</span>\n        ${showFrom ? `<span class=\"lfrom\">(${esc(authorName(l.author))})</span>` : ''}\n",
+    replacement: "      const bottom = (search ? '<span class=\"snames\"></span>'\n                          : (path ? `<span class=\"path\">${esc(path)}</span>` : '')) + (showFrom\n        ? `<span class=\"lfrom\">(${esc(authorName(l.author))})</span>` : '');\n      row.innerHTML = `${mayEdit() ? `<span class=\"grip\" title=\"${esc(t('entry.dragToSort'))}\">⣿</span>` : ''}\n        <span class=\"lnum\">${Number(n + 1)}</span>\n        <span class=\"lurl\"><span class=\"dom\">${esc(top)}</span>${\n          bottom ? `<span class=\"lbottom\">${bottom}</span>` : ''\n        }</span>\n",
     expected: 'Der Name an der Linkzeile'
   },
   {
@@ -10194,7 +10194,7 @@ const REGRESSIONS = [
   {
     nr: '1485', name: "Die Bildleiste bietet die Auswahl ohne Recht zum Loeschen an",
     file: 'public/app.js',
-    search: "      !!photosPicked || !item.photos.length || !mayDeletePhotos();",
+    search: "      !!photosPicked || !item.photos.length || !mayEdit();",
     replacement: "      !!photosPicked || !item.photos.length;",
     expected: "Auswahl in der Bildleiste im Browser"
   },
@@ -11083,8 +11083,8 @@ const REGRESSIONS = [
   {
     nr: '1612', name: "ⓘ fehlt im Vollbild der Fotos",
     file: 'public/app.js',
-    search: "        openLightbox([...item.photos], idx, item.title, deletePhoto, innerPlayer, photoLink, { info: photoInfo });\n    };\n",
-    replacement: "        openLightbox([...item.photos], idx, item.title, deletePhoto, innerPlayer, photoLink);\n    };\n",
+    search: "        openLightbox([...item.photos], idx, item.title, photoRemove(), innerPlayer, photoLink, { info: photoInfo });\n    };\n",
+    replacement: "        openLightbox([...item.photos], idx, item.title, photoRemove(), innerPlayer, photoLink);\n    };\n",
     expected: "ⓘ im Vollbild und die Tasten bei offenem Dialog"
   },
   {
@@ -13469,6 +13469,209 @@ const REGRESSIONS = [
     search: "\"list.shareFullHint\": \"Mindestens {share} % der Kriterien mit eigenen Sternen\"",
     replacement: "\"list.shareFullHint\": \"Mehr als {share} % der Kriterien mit eigenen Sternen\"",
     expected: "Uebersicht: Keine · Teilweise · 👍 als Leiste"
+  },
+  {
+    nr: '1953', name: "Der Import prueft den Platz fuer den Inhalt nicht",
+    file: 'server.js',
+    search: "    const short = spaceShort(encLen(Math.ceil(req.file.size * 3 / 4)));\n    if (short) return refuseSpace(req, res, short);\n",
+    replacement: "",
+    expected: "Import: Platz fuer den Inhalt, die Datei wird geschlossen"
+  },
+  {
+    nr: '1954', name: "Eine zu alte Importdatei bleibt offen",
+    file: 'server.js',
+    search: "    file?.close();\n    try { fs.rmSync(req.file.path",
+    replacement: "    try { fs.rmSync(req.file.path",
+    expected: "Import: Platz fuer den Inhalt, die Datei wird geschlossen"
+  },
+  {
+    nr: '1955', name: "Die Transaktionen beginnen wieder mit BEGIN",
+    file: 'db.js',
+    search: "  db.transaction = (fn) => transaction(fn).immediate;",
+    replacement: "  db.transaction = (fn) => transaction(fn);",
+    expected: "Umlagerung: eine zweite Verbindung haelt die Schreibsperre"
+  },
+  {
+    nr: '1956', name: "Eine gescheiterte Datei wartet auf den stuendlichen Lauf",
+    file: 'server.js',
+    search: "      failed ? RELOCATE_AGAIN_MS : 0).unref();",
+    replacement: "      failed ? HOUR_MS : 0).unref();",
+    expected: "Umlagerung: eine zweite Verbindung haelt die Schreibsperre"
+  },
+  {
+    nr: '1957', name: "Ein Fehler beendet die ganze Umlagerung",
+    file: 'server.js',
+    search: "      try { await relocateOne(id, true); }\n      catch (e) { failed++; logFail(`Relocation of file ${id}: ${e.code || e.message}`); }",
+    replacement: "      await relocateOne(id, true);",
+    expected: "Umlagerung: eine zweite Verbindung haelt die Schreibsperre"
+  },
+  {
+    nr: '1958', name: "Gepackte Objektstroeme werden nicht gelesen",
+    file: 'attachments.js',
+    search: "  const packed = encrypted ? new Map() : pdfObjectStreams(text);",
+    replacement: "  const packed = new Map();",
+    expected: "Infos: PDF mit gepacktem Objektstrom, Office als ZIP64"
+  },
+  {
+    nr: '1959', name: "Verschluesselte PDFs liefern Seiten aus dem Strom",
+    file: 'attachments.js',
+    search: "  const packed = encrypted ? new Map() : pdfObjectStreams(text);",
+    replacement: "  const packed = pdfObjectStreams(text);",
+    expected: "Infos: PDF mit gepacktem Objektstrom, Office als ZIP64"
+  },
+  {
+    nr: '1960', name: "Die Seitenzahl aus dem Objektstrom fehlt",
+    file: 'attachments.js',
+    search: "  const counts = [...text.split('endobj'), ...packed.values()].filter",
+    replacement: "  const counts = text.split('endobj').filter",
+    expected: "Infos: PDF mit gepacktem Objektstrom, Office als ZIP64"
+  },
+  {
+    nr: '1961', name: "Eine indirekte Laenge zerschneidet den Strom",
+    file: 'attachments.js',
+    search: "/\\/Length\\s+(\\d+)\\b(?!\\s+\\d+\\s+R)/",
+    replacement: "/\\/Length\\s+(\\d+)(?!\\s+\\d+\\s+R)/",
+    expected: "Infos: PDF mit gepacktem Objektstrom, Office als ZIP64"
+  },
+  {
+    nr: '1962', name: "ZIP64: der Locator wird nicht erkannt",
+    file: 'attachments.js',
+    search: "tail.readUInt32LE(end - 20) === 0x07064b50",
+    replacement: "tail.readUInt32LE(end - 20) === 0x06064b50",
+    expected: "Infos: PDF mit gepacktem Objektstrom, Office als ZIP64"
+  },
+  {
+    nr: '1963', name: "ZIP64: das Extrafeld wird uebersprungen",
+    file: 'attachments.js',
+    search: "    if (extra.readUInt16LE(e) !== 0x0001) continue;",
+    replacement: "    if (extra.readUInt16LE(e) !== 0x0009) continue;",
+    expected: "Infos: PDF mit gepacktem Objektstrom, Office als ZIP64"
+  },
+  {
+    nr: '1964', name: "Ohne Recht steht der Titel als Feld",
+    file: 'public/app.js',
+    search: "            ${mayEdit() ? `<textarea class=\"title-in\"",
+    replacement: "            ${true ? `<textarea class=\"title-in\"",
+    expected: "Detailansicht ohne Recht: nur ansehen"
+  },
+  {
+    nr: '1965', name: "Ohne Recht stehen die Schalter da",
+    file: 'public/app.js',
+    search: "            ${mayEdit() ? `<button class=\"switch\" id=\"sw-test\">",
+    replacement: "            ${true ? `<button class=\"switch\" id=\"sw-test\">",
+    expected: "Detailansicht ohne Recht: nur ansehen"
+  },
+  {
+    nr: '1966', name: "Ohne Recht steht die Kategorie als Auswahl",
+    file: 'public/app.js',
+    search: "            ${mayEdit() ? '<select class=\"select select-sm\" id=\"cat\"",
+    replacement: "            ${true ? '<select class=\"select select-sm\" id=\"cat\"",
+    expected: "Detailansicht ohne Recht: nur ansehen"
+  },
+  {
+    nr: '1967', name: "Ohne Recht steht die Ablage fuer Fotos da",
+    file: 'public/app.js',
+    search: "        ${mayEdit() ? `<label class=\"drop\" id=\"drop\">",
+    replacement: "        ${true ? `<label class=\"drop\" id=\"drop\">",
+    expected: "Detailansicht ohne Recht: nur ansehen"
+  },
+  {
+    nr: '1968', name: "Ohne Recht gibt es den Ausschnitt im Bild",
+    file: 'public/app.js',
+    search: "        ${mayEdit() ? `<button class=\"vfocus",
+    replacement: "        ${true ? `<button class=\"vfocus",
+    expected: "Detailansicht ohne Recht: nur ansehen"
+  },
+  {
+    nr: '1969', name: "Ohne Recht hat das Vollbild einen Papierkorb",
+    file: 'public/app.js',
+    search: "  const photoRemove = () => (mayEdit() ? deletePhoto : null);",
+    replacement: "  const photoRemove = () => deletePhoto;",
+    expected: "Detailansicht ohne Recht: nur ansehen"
+  },
+  {
+    nr: '1970', name: "Ohne Recht steht das × an den Miniaturen",
+    file: 'public/app.js',
+    search: "        (mayEdit() ? `<span class=\"del\"",
+    replacement: "        (true ? `<span class=\"del\"",
+    expected: "Detailansicht ohne Recht: nur ansehen"
+  },
+  {
+    nr: '1971', name: "Ohne Recht ziehen die Links",
+    file: 'public/app.js',
+    search: "${mayEdit() ? `<span class=\"grip\"",
+    replacement: "${true ? `<span class=\"grip\"",
+    expected: "Detailansicht ohne Recht: nur ansehen"
+  },
+  {
+    nr: '1972', name: "Ohne Recht steht die Tag-Wolke da",
+    file: 'public/app.js',
+    search: "          ${mayEdit() ? `<div class=\"cloud-head\">",
+    replacement: "          ${true ? `<div class=\"cloud-head\">",
+    expected: "Detailansicht ohne Recht: nur ansehen"
+  },
+  {
+    nr: '1973', name: "Ohne Recht steht der Stift an der Beschreibung",
+    file: 'public/app.js',
+    search: "        ${mayEdit() ? `<button class=\"mact ed\" id=\"descedit\"",
+    replacement: "        ${true ? `<button class=\"mact ed\" id=\"descedit\"",
+    expected: "Detailansicht ohne Recht: nur ansehen"
+  },
+  {
+    nr: '1974', name: "Ein Klick auf die Beschreibung oeffnet ohne Recht das Feld",
+    file: 'public/app.js',
+    search: "    if (!mayEdit() || e.target.closest('.markup-viewer, a')) return;",
+    replacement: "    if (e.target.closest('.markup-viewer, a')) return;",
+    expected: "Detailansicht ohne Recht: nur ansehen"
+  },
+  {
+    nr: '1975', name: "Fremde Testtage: die Note ist anklickbar",
+    file: 'public/app.js',
+    search: "      const s = stars(d.rating, d.mine !== true ? null : v => enqueue(async () => {",
+    replacement: "      const s = stars(d.rating, v => enqueue(async () => {",
+    expected: "Detailansicht ohne Recht: nur ansehen"
+  },
+  {
+    nr: '1976', name: "Fremde Testtage: das × steht da",
+    file: 'public/app.js',
+    search: "      x.hidden = !(d.mine === true || ADMIN);\n",
+    replacement: "",
+    expected: "Detailansicht ohne Recht: nur ansehen"
+  },
+  {
+    nr: '1977', name: "Fremde Testtage: Tags lassen sich setzen",
+    file: 'public/app.js',
+    search: "      plus.hidden = d.mine !== true;\n",
+    replacement: "",
+    expected: "Detailansicht ohne Recht: nur ansehen"
+  },
+  {
+    nr: '1978', name: "Ungetestet: der Hinweis zum Einschalten erscheint fuer jeden",
+    file: 'public/app.js',
+    search: "${mayEdit() ? tH('entry.testedFirstHint') : tH('entry.none')}",
+    replacement: "${tH('entry.testedFirstHint')}",
+    expected: "Detailansicht ohne Recht: nur ansehen"
+  },
+  {
+    nr: '1979', name: "stars() ohne Auswahl reagiert auf die Maus",
+    file: 'public/app.js',
+    search: "  if (!onPick) { w.classList.add('read'); return w; }\n",
+    replacement: "",
+    expected: "Detailansicht ohne Recht: nur ansehen"
+  },
+  {
+    nr: '1980', name: "Nach einer Absage bleibt der abgelehnte Titel stehen",
+    file: 'public/app.js',
+    search: "      catch (e) { toast(e.message, true); titleEl.value = item.title; titleFit(); }",
+    replacement: "      catch (e) { toast(e.message, true); }",
+    expected: "Detailansicht: nach einer Absage gilt der gespeicherte Stand"
+  },
+  {
+    nr: '1981', name: "Nach einer Absage bleibt die gewaehlte Kategorie stehen",
+    file: 'public/app.js',
+    search: "      catch (e) { toast(e.message, true); drawCat(); }",
+    replacement: "      catch (e) { toast(e.message, true); }",
+    expected: "Detailansicht: nach einer Absage gilt der gespeicherte Stand"
   }
 
 ];

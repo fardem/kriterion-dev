@@ -309,6 +309,7 @@ function stars(value, onPick) {
     s.dataset.v = i;
     w.appendChild(s);
   }
+  if (!onPick) { w.classList.add('read'); return w; }
   // Nur `.star`, nicht alle Kinder: sonst faerbt sich das × als sechstes Kind
   // beim Darueberfahren mit.
   const stars = () => [...w.querySelectorAll('.star')];
@@ -5763,6 +5764,8 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   }
   if (!here()) return;
   let idx = 0;
+  // Wie entryFree() in server.js: Verfasser und Admin aendern den Eintrag, alle anderen sehen ihn nur an.
+  const mayEdit = () => item.mine === true || ADMIN;
   const returning = fileReturn && fileReturn.itemId === Number(id);
   if (!returning || FOLDERS_OPEN.itemId !== Number(id))
     FOLDERS_OPEN = { itemId: Number(id), open: new Set((item.folders || []).filter(f => f.open).map(f => f.id)) };
@@ -5784,10 +5787,10 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
         <div class="thumbs" id="thumbs"></div>
         ${pickBarHtml('ppick')}
         ${/* Eigener span: uploadFiles() tauscht nur den Text, nicht das input. */''}
-        <label class="drop" id="drop"><input type="file" id="file" accept="image/*,video/*" multiple><span
+        ${mayEdit() ? `<label class="drop" id="drop"><input type="file" id="file" accept="image/*,video/*" multiple><span
           id="drop-text">${tH('entry.addMediaHint')}</span></label>
         <p class="hint hint-sm" style="margin:8px 2px 0">
-          ${tH('entry.photoOrderHint', { mb: UPLOAD_LIMITS.video })} ${tH('entry.clipboardLarger')}</p>
+          ${tH('entry.photoOrderHint', { mb: UPLOAD_LIMITS.video })} ${tH('entry.clipboardLarger')}</p>` : ''}
       </div>
 
       <div class="meta-col">
@@ -5795,13 +5798,15 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
         <div class="title-head">
           <div class="title-line">
             ${/* textarea statt input, damit lange Titel umbrechen. */''}
-            <textarea class="title-in" id="title" rows="1">${esc(item.title)}</textarea>
+            ${mayEdit() ? `<textarea class="title-in" id="title" rows="1">${esc(item.title)}</textarea>`
+              : `<h1 class="title-text" id="title">${esc(item.title)}</h1>`}
             <button class="pin-btn${item.favorite ? ' on' : ''}" id="pin" title="${esc(item.favorite ? t('entry.unmarkFavorite') : t('entry.markFavorite'))}">${item.favorite ? '★' : '☆'}</button>
           </div>
           <div class="hint hint-sm author-row" id="iauthor" hidden></div>
           <div class="switches" style="margin-top:10px">
-            <button class="switch" id="sw-test"><span class="knob"></span><span id="sw-test-t"></span></button>
-            <button class="switch" id="sw-rej"><span class="knob"></span><span id="sw-rej-t"></span></button>
+            ${mayEdit() ? `<button class="switch" id="sw-test"><span class="knob"></span><span id="sw-test-t"></span></button>
+            <button class="switch" id="sw-rej"><span class="knob"></span><span id="sw-rej-t"></span></button>`
+              : '<span class="state" id="sw-test-t"></span><span class="state" id="sw-rej-t"></span>'}
           </div>
           ${/* Eigene Zeile unter dem Schalter: im Schalter bricht der Satz bei
                120 Prozent Schriftgroesse ueber die Zeile. */''}
@@ -5818,8 +5823,9 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
           <div class="row-in">
             ${/* Keine Mindestbreite inline: sie ueberstimmte die Regel fuer
                  schmale Bildschirme in style.css. */''}
-            <select class="select select-sm" id="cat" style="padding:9px 11px"></select>
-            ${mayCategoryCreate() ? `<input class="input input-sm" id="newcat" placeholder="${esc(t('entry.newCategoryHint'))}" style="padding:8px 11px">
+            ${mayEdit() ? '<select class="select select-sm" id="cat" style="padding:9px 11px"></select>'
+              : '<span id="cat-text"></span>'}
+            ${mayCategoryCreate() && mayEdit() ? `<input class="input input-sm" id="newcat" placeholder="${esc(t('entry.newCategoryHint'))}" style="padding:8px 11px">
             <button class="btn btn-sm" id="newcat-b">${tH('entry.create')}</button>` : ''}
           </div>
         </div>
@@ -5830,13 +5836,13 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
           <!-- Diese Liste steht ausserhalb der Eingabezeile: die Tageingabe
                am Testtag benutzt sie, und die bleibt in jedem Fall stehen. -->
           <datalist id="tagsug"></datalist>
-          ${mayTagCreate() ? `<div class="row-in">
+          ${mayTagCreate() && mayEdit() ? `<div class="row-in">
             <input class="input input-sm" id="newtag" list="tagsug" placeholder="${esc(t('entry.tagInputHint'))}" style="padding:8px 11px">
             <button class="btn btn-sm" id="newtag-b">${tH('entry.add')}</button>
           </div>` : ''}
-          <div class="cloud-head"><span class="hint">${tH('entry.tagsHint')}</span>
+          ${mayEdit() ? `<div class="cloud-head"><span class="hint">${tH('entry.tagsHint')}</span>
             <button class="link-btn" id="tagcloud-more" hidden>${tH('list.more')}</button></div>
-          <div class="pills cloud" id="tagcloud"></div>
+          <div class="pills cloud" id="tagcloud"></div>` : ''}
         </div>
 
         ${POTENTIAL_MODE ? `<div class="block" data-block="potenzial">
@@ -5862,7 +5868,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       ${/* Ein div und kein button: die Vorschau enthaelt Links, und ein Button
            mit Links ist fuer Screenreader nicht aufloesbar. */''}
       <div class="block-head"><span class="label">${tH('list.description')}</span>
-        <button class="mact ed" id="descedit" title="${esc(t('entry.edit'))}">${ICON_PEN}</button></div>
+        ${mayEdit() ? `<button class="mact ed" id="descedit" title="${esc(t('entry.edit'))}">${ICON_PEN}</button>` : ''}</div>
       <div class="desc-view" id="descview"></div>
       <div class="markup-wrap"><textarea class="ta ta-desc" id="desc" data-markup hidden
         placeholder="${esc(t('entry.whatIsThis'))}">${esc(item.description)}</textarea></div>
@@ -5953,6 +5959,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
 
   /* ---- Fotos ---- */
   const photoLink = (p) => fullAddress(photoAddress(id, p.id));
+  const photoRemove = () => (mayEdit() ? deletePhoto : null);
   async function deletePhoto(photo) {
     if (!photo) return false;
     const word = isVideo(photo) ? t('list.video') : t('list.photo');
@@ -5991,13 +5998,13 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
         : `<img src="/api/photos/${Number(ps[idx].id)}/raw?size=medium" alt="" title="${esc(t('entry.clickFullscreen'))}">`) + `
       ${idx === 0 ? `<span class="main-flag">${tH('entry.mainImage')}</span>` : ''}
       <div class="vtools${cropMode ? ' open' : ''}">
-        <button class="vfocus${cropMode ? ' on' : ''}" title="${esc(t('entry.setCrop'))}"
-          aria-label="${esc(t('entry.setCrop'))}">${ICON_CROP}</button>
+        ${mayEdit() ? `<button class="vfocus${cropMode ? ' on' : ''}" title="${esc(t('entry.setCrop'))}"
+          aria-label="${esc(t('entry.setCrop'))}">${ICON_CROP}</button>` : ''}
         ${/* Im Ausschnittmodus beginnt jeder Druck auf das Bild eine Geste. */''}
         ${cropMode ? '' : `<button class="vlink" title="${esc(t('entry.copyLink'))}" aria-label="${esc(t('entry.copyLink'))}">${ICON_LINK}</button>`}
         ${showsVideo ? `<button class="vfull" title="${esc(t('entry.openFullscreen'))}" aria-label="${esc(t('entry.openFullscreen'))}">${ICON_FULLSCREEN}</button>` : ''}
-        <button class="vremove" title="${esc(isVideo(ps[idx]) ? t('list.video') : t('list.photo'))} ${esc(t('entry.delete'))}"
-          aria-label="${esc(isVideo(ps[idx]) ? t('list.video') : t('list.photo'))} ${esc(t('entry.delete'))}">${ICON_TRASH}</button>
+        ${mayEdit() ? `<button class="vremove" title="${esc(isVideo(ps[idx]) ? t('list.video') : t('list.photo'))} ${esc(t('entry.delete'))}"
+          aria-label="${esc(isVideo(ps[idx]) ? t('list.video') : t('list.photo'))} ${esc(t('entry.delete'))}">${ICON_TRASH}</button>` : ''}
       </div>
       ${cropMode && !showsVideo ? `<div class="vzoom">
         <label for="vzoom-slider">${tH('entry.zoom')}</label>
@@ -6013,16 +6020,18 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     if (showsVideo) viewerSpot = watchSpot(innerPlayer(), ps[idx], v);
     if (image) image.onclick = () => {
       if (!cropMode)
-        openLightbox([...item.photos], idx, item.title, deletePhoto, innerPlayer, photoLink, { info: photoInfo });
+        openLightbox([...item.photos], idx, item.title, photoRemove(), innerPlayer, photoLink, { info: photoInfo });
     };
     v.querySelector('.vfull')?.addEventListener('click',
-      () => openLightbox([...item.photos], idx, item.title, deletePhoto, innerPlayer, photoLink, { info: photoInfo }));
-    v.querySelector('.vfocus').onclick = () => {
+      () => openLightbox([...item.photos], idx, item.title, photoRemove(), innerPlayer, photoLink, { info: photoInfo }));
+    const cropButton = v.querySelector('.vfocus');
+    if (cropButton) cropButton.onclick = () => {
       cropMode = !cropMode;
       drawViewer();
       if (cropMode) toast(t('entry.cropHint'));
     };
-    v.querySelector('.vremove').onclick = () => deletePhoto(ps[idx]);
+    const removeButton = v.querySelector('.vremove');
+    if (removeButton) removeButton.onclick = () => deletePhoto(ps[idx]);
     v.querySelector('.vlink')?.addEventListener('click',
       () => copyText(photoLink(ps[idx]), t('card.linkCopied')));
     if (cropMode && image) setUpCropOut(v, image, ps[idx]);
@@ -6162,7 +6171,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
         item = await api('PUT', `/api/photos/${photo.id}/focus`, { x: fx, y: fy, zoom });
         drawThumbs();
         toast(t('list.saved'));
-      } catch (e) { toast(e.message, true); }
+      } catch (e) { toast(e.message, true); drawViewer(); }
     };
 
     /* Cursor je Griff, solange nicht gedrueckt ist. */
@@ -6246,7 +6255,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     if (at < 0) return false;
     idx = at;
     drawViewer(); markThumb();
-    openLightbox([...item.photos], idx, item.title, deletePhoto,
+    openLightbox([...item.photos], idx, item.title, photoRemove(),
                  () => document.querySelector('#viewer video'), photoLink, { info: photoInfo });
     return true;
   }
@@ -6267,9 +6276,15 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       tile.innerHTML = `<img src="${esc(imageSource(p, 'thumb'))}" alt="">` +
         (isVideo(p) ? `<span class="play-badge">▶</span>` : '') +
         (length ? `<span class="duration">${esc(length)}</span>` : '') +
-        `<span class="num">${Number(i + 1)}</span><span class="del" title="${esc(t(isVideo(p) ? 'entry.deleteVideo' : 'entry.deletePhoto'))}">${ICON_X}</span>`;
+        `<span class="num">${Number(i + 1)}</span>` +
+        (mayEdit() ? `<span class="del" title="${esc(t(isVideo(p) ? 'entry.deleteVideo' : 'entry.deletePhoto'))}">${ICON_X}</span>` : '');
       if (photosPicked) {
         pickThumb(tile, p, `${word} ${i + 1}`);
+        box.appendChild(tile);
+        return;
+      }
+      if (!mayEdit()) {
+        tile.onclick = () => { idx = i; drawViewer(); markThumb(); };
         box.appendChild(tile);
         return;
       }
@@ -6294,7 +6309,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
             idx = Math.max(0, item.photos.findIndex(p2 => p2.id === currentId));
             drawViewer(); drawThumbs();
             toast(t('entry.orderSaved'));
-          } catch (err) { toast(err.message, true); }
+          } catch (err) { toast(err.message, true); drawThumbs(); }
         }
       });
       box.appendChild(tile);
@@ -6302,8 +6317,6 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   }
 
   /* ---- Auswahl in der Bildleiste ---- */
-  // Wie DELETE /api/photos/:id: Verfasser des Eintrags und Admin.
-  const mayDeletePhotos = () => item.mine === true || ADMIN;
   const photoPickBar = document.getElementById('ppick');
   function photoPicking(on) {
     photosPicked = on ? new Set() : null;
@@ -6315,7 +6328,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       if (!item.photos.some(p => p.id === x)) photosPicked.delete(x);
     document.getElementById('thumbs').classList.toggle('picking', !!photosPicked);
     document.getElementById('ppick-start').parentElement.hidden =
-      !!photosPicked || !item.photos.length || !mayDeletePhotos();
+      !!photosPicked || !item.photos.length || !mayEdit();
     photoPickBar.hidden = !photosPicked;
     if (photosPicked) drawPickBar(photoPickBar, photosPicked.size, item.photos.length);
   }
@@ -6418,10 +6431,12 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     dropText.textContent = old;
   }
 
-  document.getElementById('file').onchange = e => { uploadFiles([...e.target.files]); e.target.value = ''; };
+  const mediaInput = document.getElementById('file');
+  if (mediaInput) mediaInput.onchange = e => { uploadFiles([...e.target.files]); e.target.value = ''; };
 
   // Bilder aus der Zwischenablage — spart bei Bildschirmfotos den Umweg ueber eine Datei
   const onPaste = (e) => {
+    if (!mayEdit()) return;
     const mark = document.activeElement?.tagName;
     if (mark === 'INPUT' || mark === 'TEXTAREA') return;
     const files = [...(e.clipboardData?.files || [])].filter(f => /^image\//.test(f.type));
@@ -6432,10 +6447,12 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   document.addEventListener('paste', onPaste);
 
   const drop = document.getElementById('drop');
-  ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
-  ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
-  drop.addEventListener('drop', e => uploadFiles([...(e.dataTransfer?.files || [])]
-    .filter(f => /^image\//.test(f.type) || /^video\//.test(f.type))));
+  if (drop) {
+    ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+    ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+    drop.addEventListener('drop', e => uploadFiles([...(e.dataTransfer?.files || [])]
+      .filter(f => /^image\//.test(f.type) || /^video\//.test(f.type))));
+  }
 
   const keyNav = e => {
     const mark = document.activeElement?.tagName;
@@ -6478,12 +6495,19 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
   /* ---- Schalter ---- */
   function drawSwitches() {
     const toggle = document.getElementById('sw-test'), r = document.getElementById('sw-rej');
-    const locked = item.testDays.length > 0;
-    toggle.className = 'switch' + (item.tested ? ' on-green' : '') + (locked ? ' locked' : '');
-    toggle.title = locked ? t('entry.lockedByDays') : '';
-    document.getElementById('sw-test-t').textContent = item.tested ? V.testedYes : V.testedNo;
-    r.className = 'switch' + (item.rejected ? ' on-red' : '');
-    document.getElementById('sw-rej-t').textContent = item.rejected ? t('list.rejected') : t('list.notRejected');
+    const testText = document.getElementById('sw-test-t'), rejText = document.getElementById('sw-rej-t');
+    testText.textContent = item.tested ? V.testedYes : V.testedNo;
+    rejText.textContent = item.rejected ? t('list.rejected') : t('list.notRejected');
+    if (!toggle) {
+      testText.className = 'state' + (item.tested ? ' on-green' : '');
+      rejText.className = 'state on-red';
+      rejText.hidden = !item.rejected;
+    } else {
+      const locked = item.testDays.length > 0;
+      toggle.className = 'switch' + (item.tested ? ' on-green' : '') + (locked ? ' locked' : '');
+      toggle.title = locked ? t('entry.lockedByDays') : '';
+      r.className = 'switch' + (item.rejected ? ' on-red' : '');
+    }
     drawRejection();
   }
 
@@ -6574,7 +6598,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       reasonOpen = false; drawSwitches(); toast(t('entry.reasonRemoved'));
     } catch (e) { toast(e.message, true); }
   }
-  document.getElementById('sw-test').onclick = async () => {
+  if (mayEdit()) document.getElementById('sw-test').onclick = async () => {
     try {
       item = await api('PUT', `/api/items/${id}`, { tested: !item.tested });
       /* „Getestet" kehrt die Klapp-Regel der Bloecke um; die Ausnahmen in GLANCE verfallen. */
@@ -6583,7 +6607,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     }
     catch (e) { toast(e.message, true); }   // Sperre wird serverseitig begruendet
   };
-  document.getElementById('sw-rej').onclick = async () => {
+  if (mayEdit()) document.getElementById('sw-rej').onclick = async () => {
     /* Beim Einschalten geht die bisherige Begruendung mit. */
     const core = item.rejected
       ? { rejected: false }
@@ -6640,16 +6664,18 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
 
   /* ---- Texte ---- */
   const titleEl = document.getElementById('title');
-  /* Enter speichert: der Titel ist einzeilig, auch wenn er umbricht. */
-  titleEl.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); titleEl.blur(); } };
-  const titleFit = autoGrow(titleEl);
-  titleEl.onblur = async () => {
-    const v = titleEl.value.replace(/[\r\n]+/g, ' ').trim();
-    if (titleEl.value !== v) { titleEl.value = v; titleFit(); }
-    if (!v || v === item.title) return;
-    try { item = await api('PUT', `/api/items/${id}`, { title: v }); toast(t('list.saved')); }
-    catch (e) { toast(e.message, true); }
-  };
+  if (mayEdit()) {
+    /* Enter speichert: der Titel ist einzeilig, auch wenn er umbricht. */
+    titleEl.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); titleEl.blur(); } };
+    const titleFit = autoGrow(titleEl);
+    titleEl.onblur = async () => {
+      const v = titleEl.value.replace(/[\r\n]+/g, ' ').trim();
+      if (titleEl.value !== v) { titleEl.value = v; titleFit(); }
+      if (!v || v === item.title) return;
+      try { item = await api('PUT', `/api/items/${id}`, { title: v }); toast(t('list.saved')); }
+      catch (e) { toast(e.message, true); titleEl.value = item.title; titleFit(); }
+    };
+  }
   /* ---- Beschreibung ---- */
   const descEl = document.getElementById('desc');
   const descView = document.getElementById('descview');
@@ -6659,7 +6685,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     if (!item.description) {
       const hint = document.createElement('span');
       hint.className = 'hint';
-      hint.textContent = t('entry.whatIsThis');
+      hint.textContent = mayEdit() ? t('entry.whatIsThis') : t('entry.none');
       descView.appendChild(hint);
       return;
     }
@@ -6675,9 +6701,10 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     descEl.focus();
     descFit();
   }
-  document.getElementById('descedit').onclick = () => { openBlock('beschreibung'); descWrite(true); };
+  const descEdit = document.getElementById('descedit');
+  if (descEdit) descEdit.onclick = () => { openBlock('beschreibung'); descWrite(true); };
   descView.onclick = (e) => {
-    if (e.target.closest('.markup-viewer, a')) return;
+    if (!mayEdit() || e.target.closest('.markup-viewer, a')) return;
     /* Bei markiertem Text nicht umschalten: das naehme die Auswahl und damit
        das Menue im Lesemodus. */
     const picked = document.getSelection();
@@ -6701,9 +6728,8 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     if (value === item.description) return;
     try { item = await api('PUT', `/api/items/${id}`, { description: value }); drawDesc(); toast(t('list.saved')); }
     catch (err) {
-      /* Der ungespeicherte Text bleibt im Feld. */
-      descWrite(true);
-      descEl.value = value;
+      /* Der ungespeicherte Text bleibt im Feld, ausser der Server lehnt das Recht ab. */
+      if (err.status !== 403) { descWrite(true); descEl.value = value; }
       toast(err.message, true);
     }
   });
@@ -6721,11 +6747,16 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
 
   function drawCat() {
     const s = document.getElementById('cat');
+    if (!s) {
+      document.getElementById('cat-text').textContent = item.category ? item.category.name : t('entry.none');
+      setUpBlocksOut(item);
+      return;
+    }
     s.innerHTML = `<option value="">${tH('entry.none')}</option>` + cats.map(c =>
       `<option value="${Number(c.id)}"${item.category && item.category.id === c.id ? ' selected' : ''}>${esc(c.name)}</option>`).join('');
     s.onchange = async () => {
       try { item = await api('PUT', `/api/items/${id}`, { productCategoryId: s.value ? +s.value : null }); toast(t('list.saved')); }
-      catch (e) { toast(e.message, true); }
+      catch (e) { toast(e.message, true); drawCat(); }
     };
     setUpBlocksOut(item);
   }
@@ -6755,11 +6786,11 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     item.tags.forEach(tag => {
       const c = document.createElement('span');
       c.className = 'chip';
-      c.innerHTML = `${esc(tag.name)} <button title="${esc(t('entry.remove'))}">${ICON_X}</button>`;
-      c.querySelector('button').onclick = async () => {
+      c.innerHTML = mayEdit() ? `${esc(tag.name)} <button title="${esc(t('entry.remove'))}">${ICON_X}</button>` : esc(tag.name);
+      c.querySelector('button')?.addEventListener('click', async () => {
         try { item = await api('DELETE', `/api/items/${id}/tags/${tag.id}`); drawTags(); }
         catch (e) { toast(e.message, true); }
-      };
+      });
       box.appendChild(c);
     });
     document.getElementById('tagsug').innerHTML = allTags.map(tag => `<option value="${esc(tag.name)}">`).join('');
@@ -7067,7 +7098,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
     const box = document.getElementById('testblock');
     if (!item.tested) {
       box.innerHTML = `<div class="block-head"><span class="label">${esc(V.dayMany)}</span></div>
-        <div class="test-locked">${tH('entry.testedFirstHint')}</div>`;
+        <div class="test-locked">${mayEdit() ? tH('entry.testedFirstHint') : tH('entry.none')}</div>`;
       return;
     }
     const n = item.testDays.length;
@@ -7091,14 +7122,16 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       date.className = 'tdate'; date.textContent = fmtDay(d.day);
       const wd = document.createElement('span');
       wd.className = 'tweek'; wd.textContent = weekday(d.day);
-      // Keine Null bei Tagesnoten: ein Testtag hat eine Note oder wird geloescht.
-      const s = stars(d.rating, v => enqueue(async () => {
+      // Keine Null bei Tagesnoten: ein Testtag hat eine Note oder wird geloescht. Die Note aendert nur der Verfasser.
+      const s = stars(d.rating, d.mine !== true ? null : v => enqueue(async () => {
         try { item = await api('PUT', `/api/test-days/${d.id}`, { rating: v }); drawTestDays(); }
         catch (e) { toast(e.message, true); }
       }));
       const folder = d.folder != null ? (item.folders || []).find(f => f.id === d.folder) : null;
+      // Loeschen wie DELETE /api/test-days/:id: Verfasser des Testtags und Admin.
       const x = document.createElement('button');
       x.className = 'xdel'; x.innerHTML = ICON_X; x.title = t('entry.deleteDay');
+      x.hidden = !(d.mine === true || ADMIN);
       x.onclick = async () => {
         if (!await confirmBox(t('entry.deleteDayAsk'), t('entry.dayDeleteHint', { day: fmtDay(d.day) })
             + (folder ? ' ' + t('entry.dayDeleteFolder', { name: folder.name }) : ''))) return;
@@ -7127,15 +7160,18 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
         const c = document.createElement('span');
         c.className = 'chip chip-xs';
         // Mit Namen, damit „Tag" und „Testtag" nicht zusammenfallen.
-        c.innerHTML = `${esc(tag.name)}<button title="${esc(t('entry.tagQuote', { name: tag.name }))}">${ICON_X}</button>`;
-        c.querySelector('button').onclick = async () => {
+        c.innerHTML = d.mine === true
+          ? `${esc(tag.name)}<button title="${esc(t('entry.tagQuote', { name: tag.name }))}">${ICON_X}</button>` : esc(tag.name);
+        c.querySelector('button')?.addEventListener('click', async () => {
           try { item = await api('DELETE', `/api/test-days/${d.id}/tags/${tag.id}`); drawTestDays(); loadTagList(); }
           catch (e) { toast(e.message, true); }
-        };
+        });
         tagBox.appendChild(c);
       });
+      // Tags am Testtag setzt nur sein Verfasser, wie POST /api/test-days/:id/tags.
       const plus = document.createElement('button');
       plus.className = 'ttag-add'; plus.textContent = '+'; plus.title = t('entry.addTagDay');
+      plus.hidden = d.mine !== true;
       plus.onclick = () => {
         if (tagBox.querySelector('input')) return;
         const inp = document.createElement('input');
@@ -7244,7 +7280,7 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
       row.title = entered ? `${reasonText} · ${entered}` : reasonText;
       const bottom = search ? '<span class="snames"></span>'
                           : (path ? `<span class="path">${esc(path)}</span>` : '');
-      row.innerHTML = `<span class="grip" title="${esc(t('entry.dragToSort'))}">⣿</span>
+      row.innerHTML = `${mayEdit() ? `<span class="grip" title="${esc(t('entry.dragToSort'))}">⣿</span>` : ''}
         <span class="lnum">${Number(n + 1)}</span>
         <span class="lurl"><span class="dom">${esc(top)}</span>${
           bottom ? `<span class="lbottom">${bottom}</span>` : ''
@@ -7279,22 +7315,24 @@ async function renderDetail(id, termAddress, commentWanted, photoWanted = 0, fil
         try { await api('DELETE', `/api/links/${l.id}`); item = await api('GET', `/api/items/${id}`); drawLinks(); }
         catch (err) { toast(err.message, true); }
       };
+      const openLink = () => {
+        if (!search) return window.open(l.url, '_blank', 'noopener,noreferrer');
+        // Ohne gueltigen Standard wird nicht ersatzweise woanders gesucht.
+        if (!isDefault) return toast(ADMIN
+          ? t('entry.noSearchEngineHint')
+          : t('entry.noSearchEngine'), true);
+        window.open(searchAddress(isDefault.template, l.url), '_blank', 'noopener,noreferrer');
+      };
       // Klick oeffnet den Link, Ziehen sortiert (makeSortable).
-      makeSortable(row, {
+      if (!mayEdit()) row.onclick = openLink;
+      else makeSortable(row, {
         axis: 'y', selector: '.lrow', ignore: '.xdel, .sname',
-        onClick: () => {
-          if (!search) return window.open(l.url, '_blank', 'noopener,noreferrer');
-          // Ohne gueltigen Standard wird nicht ersatzweise woanders gesucht.
-          if (!isDefault) return toast(ADMIN
-            ? t('entry.noSearchEngineHint')
-            : t('entry.noSearchEngine'), true);
-          window.open(searchAddress(isDefault.template, l.url), '_blank', 'noopener,noreferrer');
-        },
+        onClick: openLink,
         onDrop: async (children) => {
           try {
             item = await api('PUT', `/api/items/${id}/link-order`, { order: children.map(c => +c.dataset.lid) });
             drawLinks(); toast(t('entry.orderSaved'));
-          } catch (err) { toast(err.message, true); }
+          } catch (err) { toast(err.message, true); drawLinks(); }
         }
       });
       box.appendChild(row);

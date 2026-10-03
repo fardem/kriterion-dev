@@ -1,6 +1,6 @@
 # Vorschläge von Claude zu 0.56.x
 
-**Stand 3. Oktober 2026, auf 0.56.4.**
+**Stand 3. Oktober 2026, auf 0.56.6.**
 
 Diese Datei sammelt offene Vorschläge aus drei Quellen:
 
@@ -13,8 +13,9 @@ Fragetafel. Die Nummern (V, F, S) dienen nur der Auswahl.
 
 Mit 0.56.3 sind aus Abschnitt 2 alle Fehler gebaut außer F24, F32, F33, F37,
 F42, F44, F45 und F48 bis F50. Mit 0.56.4 sind Paket 3 (Vollbild) und Paket 4
-(Kontraste) gebaut, dazu F55. Am 3. Oktober 2026 hat Claude jeden übrigen
-Punkt noch einmal bewertet; das Ergebnis steht in der Spalte „Bewertung“:
+(Kontraste) gebaut, dazu F55. Mit 0.56.6 sind F24, F42 und F44 gebaut. Am 3.
+Oktober 2026 hat Claude jeden übrigen Punkt noch einmal bewertet; das Ergebnis
+steht in der Spalte „Bewertung“:
 
 - **eigene Runde**: braucht eine Entscheidung oder Schema und Server.
 - **Bemerkung**: nicht bauen.
@@ -93,12 +94,9 @@ mit 0.56.3; hier stehen nur die übrigen.
 
 | Nr. | Befund | Stelle | Bewertung |
 |---|---|---|---|
-| F24 | Import ohne Platzprüfung für die Dateien: Die Platte kann volllaufen, der Import endet nach langer Arbeit mit 500 | `server.js:6623`, `6888` | eigene Runde; Import mit Platzprüfung, 2 bis 3 Zeilen, selten |
 | F32 | `PUT /api/items` nimmt einen leeren Titel an und setzt „getestet“ mit `0` oder `null` zurück, obwohl Testtage existieren | `server.js:3590`, `3608` | Bemerkung; nur über die API, die Oberfläche verhindert beides |
 | F33 | Nach Wiederherstellen eines Eintrags oder Import fehlen Standbild und Dauer bei mkv, avi, wmv, flv | `server.js:6895` | Bemerkung; der Browser holt Standbild und Dauer nach |
 | F37 | Die Suche markiert nach „İ“ den falschen Ausschnitt | `public/app.js:1416–1424` | Bemerkung; „İ“ in Deutsch und Englisch, selten |
-| F42 | Die Detailansicht zeigt Bedienelemente, die der Server mit 403 ablehnt; danach bleibt die Anzeige geändert | `public/app.js:5724` ff. | eigene Runde; 10 bis 15 Zeilen, nur Ärger |
-| F44 | Ein Import mit zu alter Datei lässt den Dateideskriptor offen; der Platz bleibt bis zum Neustart belegt | `server.js:6743`, `7005` | eigene Runde; bis 4 GB belegt bis zum Neustart, selten |
 | F45 | Nach SIGTERM beim Zurückholen bleibt `upload/<name>.part` liegen | `server.js:5765`, `7598` | Bemerkung; der nächste Versuch überschreibt die Datei |
 | F48 | Wer alle Kriterien löscht, hat nach dem Neustart wieder die drei mitgelieferten | `server.js:214–224` | Bemerkung; so gewollt, `test/roundtrip.js` prüft es |
 | F49 | Die Suche nach Kategorie findet übersetzte Namen nicht | `server.js:3302` | eigene Runde; nur bei mehrsprachigen Installationen |
@@ -110,6 +108,7 @@ mit 0.56.3; hier stehen nur die übrigen.
 |---|---|---|---|
 | F56 | Ein Benutzer mit eigenem Account setzt mit seiner Anmeldung den Zähler der Adresse zurück und umgeht so die Sperre; gegen fremde Namen bleibt die Verzögerung von 4 s | `auth.js` `noteSuccess()` | Bemerkung; so entschieden am 3. Oktober 2026 (Änderungsprotokoll 0.56.3) |
 | F57 | Derselbe Bestätigungslink der Registrierung lässt sich 24 h lang beliebig oft senden | `auth.js` `setConfirmed` ohne `confirmed_at IS NULL` | Bemerkung; setzt seit 0.56.3 keinen Zähler mehr zurück |
+| F58 | Jeder Worker (`batchrun.js`) lädt `db.js` neu und führt dabei dessen Schreibanweisungen aus, auch `assignInventory()`; eine nach dem Start herrenlos gemachte Zeile bekommt nach etwa 1,5 s wieder den Eigentümer | `db.js` beim Laden, `server.js` `startBatchThread()` | eigene Runde; aus der Untersuchung des Papierkorb-Laufs am 3. Oktober 2026, nicht nachgestellt |
 
 ## 3. Stil
 

@@ -19,6 +19,10 @@ function open(file) {
   db.pragma(`key="x'${key.hex}'"`);
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
+  /* `immediate`: sonst scheitert eine Transaktion, die erst liest und dann schreibt, sofort an der Schreibsperre
+     einer anderen Verbindung (Worker, usertool.js); der Busy-Timeout von 5 s greift dabei nicht. */
+  const transaction = db.transaction.bind(db);
+  db.transaction = (fn) => transaction(fn).immediate;
   return db;
 }
 

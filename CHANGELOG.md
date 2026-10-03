@@ -7,6 +7,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 > A box above the changes of a version means there is something to do when updating.
 > Yanked versions are marked `[YANKED]`.
 
+## [0.56.6] - 2026-10-03
+
+Fingerprint `55fa87e4` — previously `859baa64`.
+
+### Changed
+
+- Someone who is neither the author of an entry nor an admin sees it without the buttons for what they may not change: title, description, status and category are plain text; the drop field for photos and videos, the crop, deleting and dragging are missing. At someone else's test day, score, × and tags are read-only.
+- The import checks the free space for the unpacked content before reading the file and refuses with the figures.
+- "Info" reads PDF details stored in a compressed object stream and Office and OpenDocument files stored as ZIP64.
+
+### Fixed
+
+- A transaction that first read and then wrote failed at once with "database is locked" while another connection was writing (image worker, `usertool.js`); it now waits up to 5 seconds. Moving files from the database to disk after the start could stop for an hour this way; a failed file is now retried after a minute.
+- An import file with a too old format stayed open until the restart and kept its disk space.
+- After a refused change, title, description, category, crop and order show the saved state again.
+
 ## [0.56.5] - 2026-10-03
 
 Fingerprint `859baa64` — previously `5d8a9336`.

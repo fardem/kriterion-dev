@@ -242,6 +242,12 @@ Tek bir öğedeki yetkiler. “Yazar”, ilgili şeyi oluşturan kişidir.
 Yönetici başkalarının katkılarını siler, ama değiştirmez. Başkasının yorumundan
 bir resmi kaldırırsa orada “Yönetici 2 resim veya video kaldırdı” yazar.
 
+Diğer herkes öğeyi, yalnızca yazarın ve yöneticinin değiştirebileceği şeylerin
+düğmeleri olmadan görür: başlık, açıklama, durum ve kategori düz metindir;
+fotoğraf ve video bırakma alanı, kırpma, silme ve sürükleme yoktur. Başkasının
+test gününde not, × ve etiketler yalnızca okunur. Sunucu yine de her
+değişikliği denetler.
+
 ### Yazar
 
 İkinci hesaptan itibaren öğe, yorum ve test günü yazarını gösterir. Bağlantılar
@@ -872,6 +878,8 @@ için işaret konursa klasörleri test günleriyle ve “Dosyalar” altındaki 
 videonun küçük resmini de taşır; daha eski bir dışa aktarma dosyasından
 dosyalar klasörsüz gelir. “Ek” sınırını aşan dosyaları hiçbir dışa aktarma
 içermez; kart bunları önceden gösterir. İçe aktarma her dosyayı diske yazar.
+Okumadan önce boş alanı denetler: içerik için dosyanın dörtte üçü, ayrıca
+veritabanı ve 1 GB; yetmezse rakamlarla reddeder.
 İçinde olmayanlar:
 kullanıcılar, parolalar, oturumlar, iki adımlı doğrulama, posta hesabı, başlık,
 sözcükler, arama motorları, ayarlar, güvenlik günlüğü, çöp kutusu.

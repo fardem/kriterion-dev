@@ -141,7 +141,7 @@ ausgearbeitet steht; die Begründung bleibt am Punkt.*
 
 ---
 
-## Der Stand der offenen Punkte — 23. September 2026, nach der Zuordnung
+## Der Stand der offenen Punkte — 3. Oktober 2026
 
 **Diese Tafel sagt, wo ein Punkt steht, und trägt ihn nicht ein zweites Mal.**
 Jede Zeile nennt einen Punkt in einem Satz und sagt, wo er steht: eine Nummer
@@ -187,14 +187,19 @@ sagt der Fahrplan.
 > Fassung der Videos für das Telefon. Sie steht mit ihrer Ausarbeitung im
 > Fahrplan als B1.
 
+> **Am 3. Oktober 2026 auf den Stand gebracht.** 52 ist mit 0.56.3 gebaut,
+> die Infos zu gepackten Objektströmen und ZIP64 mit 0.56.6. In der Tafel „Was
+> eine Nummer hat“ standen 0.38.6 bis 0.52.0 noch als offen, obwohl der Fahrplan
+> sie als gebaut führt; sie sind gestrichen.
+
 ### Was ohne Nummer offen ist
 
 | steht in | worum es geht | Nutzen | Aufwand | Vorschlag |
 |---|---|---|---|---|
 | **20** | Nach einem Umbenennen holt die Oberfläche vier Antworten statt drei; die vierte ist die größte der Installation | niedrig | klein | liegen lassen |
-| **52** | `.env.before-key-change-*` steht in keiner Ignorierliste; mit `COPY . .` geht der alte Schlüssel ins Image | mittel | klein | in eine Runde nehmen; am 1. Oktober 2026 nicht für 0.55.0 gewählt |
+| ~~**52**~~ | ~~`.env.before-key-change-*` steht in keiner Ignorierliste; mit `COPY . .` geht der alte Schlüssel ins Image~~ | — | — | **GEBAUT mit 0.56.3** |
 | **54** | „Dateien“ wie im Windows-Explorer: Auswahl mit Strg und Umschalt, Doppelklick zum Öffnen; die Kopfzeile ist in 0.52.0 | niedrig | mittel | liegen lassen |
-| Protokoll 0.54.0 | „Infos“ zeigt nichts aus der Datei bei PDF mit `/Info` in einem gepackten Objektstrom und bei Office-Dateien als ZIP64 | mittel | klein | am 1. Oktober 2026 nicht für 0.55.0 gewählt |
+| ~~Protokoll 0.54.0~~ | ~~„Infos“ zeigt nichts aus der Datei bei PDF mit `/Info` in einem gepackten Objektstrom und bei Office-Dateien als ZIP64~~ | — | — | **GEBAUT mit 0.56.6** |
 | ~~Protokoll 0.38.2~~ | ~~Die Strichstärke des Löschkreuzes bleibt 1.8, dieselbe wie am Stift und am Zitatzeichen~~ | — | — | **ABGELEHNT am 21. September 2026** |
 | ~~Protokoll 0.38.2~~ | ~~Der Trefferausschnitt zeigt bei einem Treffer im Ziel eines Links den Rohtext samt seiner Marken~~ | — | — | **RUHT seit dem 21. September 2026** |
 | ~~Protokoll 0.38.3~~ | ~~Der Halt nach einem Sprung ist eine Frist von 1600 Millisekunden und keine Messung~~ | — | — | **RUHT seit dem 21. September 2026** |
@@ -206,15 +211,15 @@ sagt der Fahrplan.
 
 | Nummer | worum es geht | Schema |
 |---|---|---|
-| **0.38.6** | Die Lizenz — es gibt keine im Repository, und deshalb trägt die README kein Abzeichen dafür | nein |
-| **0.39.0** | Die Fotokachel nach `photo_derivatives`, mit einer Sicherung davor. *Gemessen: der Umweg kostet nur den, der die Kachel wirklich holt — bis 100 kB Original 0,02 ms, ueber 1 MB 14,8 ms* | **ja** |
-| **0.40.0** | Export, Import und Papierkorb ohne den Arbeitsspeicher — erst am Bestand messen | nein |
-| **0.41.0** | Backup, Videos in Kommentaren und der Prüfstand ohne feste Wartezeiten: 618 feste Wartezeiten, die Hinweise zu Export, Import und Backup und sieben Punkte vom 23. September 2026. Auftrag erteilt am 23. September 2026 | **ja** |
+| ~~**0.38.6**~~ | ~~Die Lizenz — es gibt keine im Repository, und deshalb trägt die README kein Abzeichen dafür~~ — **GEBAUT** | nein |
+| ~~**0.39.0**~~ | ~~Die Fotokachel nach `photo_derivatives`, mit einer Sicherung davor. *Gemessen: der Umweg kostet nur den, der die Kachel wirklich holt — bis 100 kB Original 0,02 ms, ueber 1 MB 14,8 ms*~~ — **GEBAUT** | **ja** |
+| ~~**0.40.0**~~ | ~~Export, Import und Papierkorb ohne den Arbeitsspeicher — erst am Bestand messen~~ — **GEBAUT** | nein |
+| ~~**0.41.0**~~ | ~~Backup, Videos in Kommentaren und der Prüfstand ohne feste Wartezeiten: 618 feste Wartezeiten, die Hinweise zu Export, Import und Backup und sieben Punkte vom 23. September 2026. Auftrag erteilt am 23. September 2026~~ — **GEBAUT** | **ja** |
 | ~~**0.42.0**~~ | ~~Dokumente über einen Document Server ansehen~~ — **GEBAUT am 25. September 2026** | nein |
 | ~~**0.43.0**~~ | ~~Dokumente über den Document Server bearbeiten; wer bearbeitet, legt der Hochladende je Datei fest~~ — **GEBAUT am 27. September 2026** | **ja** |
 | ~~**0.44.0**~~ | ~~Verweise auf Dateien und Fotos in Kommentar und Beschreibung~~ — **GEBAUT am 27. September 2026** | **ja** |
-| **0.45.0 bis 0.48.0** | Dateien, Ordner und Testtage: Kacheln, Videos unter „Dateien", Ordner, Dateien der Testtage verschlüsselt auf der Platte. Beschlossen am 28. September 2026, `Doku/Konzept_Dateien_und_Ordner.md`. **0.45.0, die Kacheln, GEBAUT am 28. September 2026** | **ja** |
-| **0.52.0** | Dateien: Gruppieren, Sortieren mit Richtung, Kopfzeile, Zeile und Menü „…“; Erweiterte Infos zu Bildern und Videos; Video ganz laden; der Papierkorb-Test und `ui_export`. Punkte 53, 55, 56, 58 und 59, von 54 und 57 je ein Teil. Auftrag erteilt am 30. September 2026 | **ja** |
+| ~~**0.45.0 bis 0.48.0**~~ | ~~Dateien, Ordner und Testtage: Kacheln, Videos unter „Dateien", Ordner, Dateien der Testtage verschlüsselt auf der Platte. Beschlossen am 28. September 2026, `Doku/Konzept_Dateien_und_Ordner.md`. **0.45.0, die Kacheln, GEBAUT am 28. September 2026**~~ — **GEBAUT** | **ja** |
+| ~~**0.52.0**~~ | ~~Dateien: Gruppieren, Sortieren mit Richtung, Kopfzeile, Zeile und Menü „…“; Erweiterte Infos zu Bildern und Videos; Video ganz laden; der Papierkorb-Test und `ui_export`. Punkte 53, 55, 56, 58 und 59, von 54 und 57 je ein Teil. Auftrag erteilt am 30. September 2026~~ — **GEBAUT** | **ja** |
 
 ### Sprache
 

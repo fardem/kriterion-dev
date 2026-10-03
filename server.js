@@ -4949,13 +4949,24 @@ const relocateNeed = (ids) => ids.reduce((n, id) => {
   return r ? n + encLen(r.size) + (r.before == null ? 0 : encLen(r.before)) : n;
 }, 0);
 
-let RELOCATING = false;
+const RELOCATE_AGAIN_MS = BENCH.relocate || 60000;
+let RELOCATING = false, RELOCATE_SKIPPED = false;
 async function relocate(ids) {
-  if (RELOCATING) return;
+  if (RELOCATING) { RELOCATE_SKIPPED = true; return; }
   RELOCATING = true;
-  try { for (const id of ids) await relocateOne(id, true); }
-  finally { RELOCATING = false; }
+  let failed = 0;
+  try {
+    for (const id of ids) {
+      try { await relocateOne(id, true); }
+      catch (e) { failed++; logFail(`Relocation of file ${id}: ${e.code || e.message}`); }
+    }
+  } finally { RELOCATING = false; }
   if (ids.length) reclaim();
+  if ((failed || RELOCATE_SKIPPED) && !DATABASE_INCOMPLETE) {
+    RELOCATE_SKIPPED = false;
+    setTimeout(() => relocate(qRelocatePending.all().map(z => z.id)).catch(e => logFail(`Relocation: ${e.message}`)),
+      failed ? RELOCATE_AGAIN_MS : 0).unref();
+  }
 }
 
 // Passt der Bestand der Datenbank nicht auf die Platte, startet Kriterion nicht.
@@ -6775,7 +6786,7 @@ function exchangeFromFile(file) {
     skipSpace(c);
     if (c.char() !== '{') throw brokenFile();
     c.step();
-    if (nextField() === null) { close(); return { head, items: null }; }
+    if (nextField() === null) { close(); return { head, items: null, close }; }
     skipSpace(c);
     if (c.char() !== '[') throw brokenFile();
     c.step();
@@ -6802,7 +6813,8 @@ function exchangeFromFile(file) {
       }
     } finally { close(); }
   }
-  return { head, items: entries() };
+  // close(): ein nie gestarteter Generator laeuft nicht durch sein `finally`.
+  return { head, items: entries(), close };
 }
 
 /* Vorbereitet, damit SQLite sie nicht je Eintrag neu uebersetzt. */
@@ -7283,10 +7295,14 @@ app.post('/api/import', ownerOnly, secondConfirmNeeded('import'), importSpace,
                 { count: 1, bytes: IMPORT_MAX, key: 'server.importOne' }),
          async (req, res, next) => {
   if (!req.file) return res.status(400).json({ error: t(localeOf(req), 'server.noFile')});
-  /* `finally` loescht die Datei auf jedem Weg, auch beim Abbruch des Browsers. */
+  /* `finally` schliesst und loescht die Datei auf jedem Weg, auch beim Abbruch des Browsers. */
+  let file = null;
   try {
+    // Base64: entpackt hoechstens drei Viertel der Datei, als Dateien in files/ und Fotos in der Datenbank.
+    const short = spaceShort(encLen(Math.ceil(req.file.size * 3 / 4)));
+    if (short) return refuseSpace(req, res, short);
     const mode = req.body.mode === 'replace' ? 'replace' : 'merge';
-    const file = exchangeFromFile(req.file.path);
+    file = exchangeFromFile(req.file.path);
     if (!file.items)
       return res.status(400).json({ error: t(localeOf(req), 'server.exportEmpty')});
     // newIds geht nicht hinaus; die Oberflaeche braucht die Nummern nicht.
@@ -7300,6 +7316,7 @@ app.post('/api/import', ownerOnly, secondConfirmNeeded('import'), importSpace,
     if (e && e.denial) return res.status(400).json({ error: errorText(req, e) });
     next(e);
   } finally {
+    file?.close();
     try { fs.rmSync(req.file.path, { force: true }); }
     catch (e) { logWarn(`Import: ${req.file.path} stayed behind -- ${e.message}`); }
   }

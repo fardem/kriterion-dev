@@ -485,23 +485,48 @@ function pdfTime(v) {
   return docTime(`${y}-${mo}-${d}T${h}:${mi}:${sec}${zone ? zone.replace(/'/g, '') : ''}`);
 }
 
+const FULL16 = 0xffff, FULL32 = 0xffffffff;
+/* ZIP64: steht ein Feld auf FULL32, folgt sein Wert als 64 Bit im Extrafeld 0x0001, in der
+   Reihenfolge entpackt, gepackt, Lage. */
+function zip64Fields(extra, values) {
+  for (let e = 0; e + 4 <= extra.length; e += 4 + extra.readUInt16LE(e + 2)) {
+    if (extra.readUInt16LE(e) !== 0x0001) continue;
+    const field = extra.subarray(e + 4, e + 4 + extra.readUInt16LE(e + 2));
+    let q = 0;
+    return values.map(v => {
+      if (v !== FULL32 || q + 8 > field.length) return v;
+      q += 8;
+      return Number(field.readBigUInt64LE(q - 8));
+    });
+  }
+  return values;
+}
+
 /* Liest nur das zentrale Verzeichnis und die genannten Eintraege; Eintraege ueber DOCUMENT_PART
-   bleiben ungelesen, ebenso ZIP64. */
+   bleiben ungelesen. */
 async function zipParts(size, read, names) {
   const tailLength = Math.min(size, ZIP_END_MAX);
   const tail = await read(tailLength, size - tailLength);
   let end = -1;
   for (let i = tail.length - 22; i >= 0; i--) if (tail.readUInt32LE(i) === 0x06054b50) { end = i; break; }
   if (end < 0) return {};
-  const count = tail.readUInt16LE(end + 10), dirSize = tail.readUInt32LE(end + 12), dirAt = tail.readUInt32LE(end + 16);
+  let count = tail.readUInt16LE(end + 10), dirSize = tail.readUInt32LE(end + 12), dirAt = tail.readUInt32LE(end + 16);
+  // ZIP64: der Locator steht 20 Bytes vor dem Ende und nennt die Lage des eigenen Records.
+  if ((count === FULL16 || dirSize === FULL32 || dirAt === FULL32) && end >= 20 && tail.readUInt32LE(end - 20) === 0x07064b50) {
+    const recordAt = Number(tail.readBigUInt64LE(end - 12));
+    const record = recordAt + 56 <= size ? await read(56, recordAt) : Buffer.alloc(0);
+    if (record.length < 56 || record.readUInt32LE(0) !== 0x06064b50) return {};
+    [count, dirSize, dirAt] = [32, 40, 48].map(at => Number(record.readBigUInt64LE(at)));
+  }
   if (dirSize > DOCUMENT_PART || dirAt + dirSize > size) return {};
   const dir = await read(dirSize, dirAt);
   const out = {};
   for (let n = 0, p = 0; n < count && p + 46 <= dir.length && dir.readUInt32LE(p) === 0x02014b50; n++) {
-    const method = dir.readUInt16LE(p + 10), packed = dir.readUInt32LE(p + 20), unpacked = dir.readUInt32LE(p + 24);
-    const nameLength = dir.readUInt16LE(p + 28), at = dir.readUInt32LE(p + 42);
+    const method = dir.readUInt16LE(p + 10), nameLength = dir.readUInt16LE(p + 28), extraLength = dir.readUInt16LE(p + 30);
     const name = dir.subarray(p + 46, p + 46 + nameLength).toString('utf8');
-    p += 46 + nameLength + dir.readUInt16LE(p + 30) + dir.readUInt16LE(p + 32);
+    const [unpacked, packed, at] = zip64Fields(dir.subarray(p + 46 + nameLength, p + 46 + nameLength + extraLength),
+      [dir.readUInt32LE(p + 24), dir.readUInt32LE(p + 20), dir.readUInt32LE(p + 42)]);
+    p += 46 + nameLength + extraLength + dir.readUInt16LE(p + 32);
     if (!names.includes(name) || packed > DOCUMENT_PART || unpacked > DOCUMENT_PART || at + 30 > size) continue;
     const head = await read(30, at);
     if (head.length < 30 || head.readUInt32LE(0) !== 0x04034b50) continue;
@@ -574,20 +599,48 @@ function pdfValue(dict, key) {
   return null;
 }
 
-/* Nur das erste und das letzte MiB. Das Objekt /Info oder ein Seitenbaum in einem gepackten
-   Objektstrom bleibt ungelesen; bei verschluesselten Dateien auch die Texte. */
+const PDF_STREAMS_MAX = 32;
+/* Objekte aus gepackten Objektstroemen (/Type /ObjStm, FlateDecode) im gelesenen Text, nach Nummer;
+   ein abgeschnittener oder kaputter Strom fehlt. */
+function pdfObjectStreams(text) {
+  const out = new Map();
+  for (const m of [...text.matchAll(/\/Type\s*\/ObjStm\b/g)].slice(0, PDF_STREAMS_MAX)) {
+    const head = text.slice(text.lastIndexOf('obj', m.index), text.indexOf('stream', m.index));
+    const count = Number((/\/N\s+(\d+)/.exec(head) || [])[1]), first = Number((/\/First\s+(\d+)/.exec(head) || [])[1]);
+    if (!count || !(first >= 0) || !/\/Filter\s*\/FlateDecode\b/.test(head)) continue;
+    let start = text.indexOf('stream', m.index) + 6;
+    start += text[start] === '\r' && text[start + 1] === '\n' ? 2 : 1;
+    const length = /\/Length\s+(\d+)\b(?!\s+\d+\s+R)/.exec(head);
+    const end = length ? start + Number(length[1]) : text.indexOf('endstream', start);
+    let body;
+    try { body = zlib.inflateSync(Buffer.from(text.slice(start, end), 'latin1'), { maxOutputLength: DOCUMENT_PART }); }
+    catch { continue; }
+    const pairs = body.subarray(0, first).toString('latin1').trim().split(/\s+/).map(Number);
+    for (let k = 0; k < count && 2 * k + 1 < pairs.length; k++) {
+      const from = first + pairs[2 * k + 1], to = k + 1 < count ? first + pairs[2 * k + 3] : body.length;
+      out.set(pairs[2 * k], body.subarray(from, to).toString('latin1'));
+    }
+  }
+  return out;
+}
+
+/* Nur das erste und das letzte MiB, auch fuer gepackte Objektstroeme; bei verschluesselten
+   Dateien bleiben die Texte ungelesen. */
 async function pdfFacts(size, read) {
   const first = await read(Math.min(size, DOCUMENT_PART), 0);
   const rest = Math.min(Math.max(0, size - DOCUMENT_PART), DOCUMENT_PART);
   const text = first.toString('latin1') + (rest ? '\n' + (await read(rest, size - rest)).toString('latin1') : '');
+  const encrypted = /\/Encrypt\s/.test(text);
+  const packed = encrypted ? new Map() : pdfObjectStreams(text);
   const info = [...text.matchAll(/\/Info\s+(\d+)\s+(\d+)\s+R/g)].pop();
   let dict = '';
   if (info) {
     const at = text.search(new RegExp(`(?:^|[^0-9])${info[1]}\\s+${info[2]}\\s+obj\\b`));
     if (at >= 0) dict = text.slice(at, text.indexOf('endobj', at) >>> 0);
+    else dict = packed.get(Number(info[1])) || '';
   }
-  if (/\/Encrypt\s/.test(text)) dict = '';
-  const counts = text.split('endobj').filter(o => /\/Type\s*\/Pages\b/.test(o))
+  if (encrypted) dict = '';
+  const counts = [...text.split('endobj'), ...packed.values()].filter(o => /\/Type\s*\/Pages\b/.test(o))
     .map(o => Number((/\/Count\s+(\d+)/.exec(o) || [])[1] || 0));
   return { title: pdfValue(dict, 'Title'), author: pdfValue(dict, 'Author'), creatorTool: pdfValue(dict, 'Creator'),
     producer: pdfValue(dict, 'Producer'), created: pdfTime(pdfValue(dict, 'CreationDate')),

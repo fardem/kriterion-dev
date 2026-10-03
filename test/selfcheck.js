@@ -15,7 +15,7 @@ async function run() {
 
   const gpList = require('./counterproof').REGRESSIONS;
   // Mit jedem neuen Rueckbau in counterproof.js anheben.
-  check(`Es sind genau 1856 Rueckbauten`, gpList.length === 1856, `${gpList.length}`);
+  check(`Es sind genau 1885 Rueckbauten`, gpList.length === 1885, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* Jede Datei nur einmal lesen: ueber tausend Rueckbauten verteilen sich auf
@@ -366,13 +366,13 @@ async function run() {
       ['test/release_047.js', 14],
       ['test/release_048.js', 17],
       ['test/release_049.js', 13],
-      ['test/release_050.js', 9],
+      ['test/release_050.js', 11],
       ['test/release_051.js', 9],
       ['test/release_052.js', 6],
       ['test/release_053.js', 12],
       ['test/release_054.js', 7],
       ['test/release_055.js', 6],
-      ['test/release_056.js', 10],
+      ['test/release_056.js', 11],
       ['test/roundtrip.js', 1312],
       ['test/selfcheck.js', 85],
       ['test/source.js', 217],
@@ -385,12 +385,12 @@ async function run() {
       ['test/ui_system.js', 187],
       ['test/ui_translator.js', 24],
       ['counterproof.js', 339],
-      ['server.js', 1093],
+      ['server.js', 1095],
       ['auth.js', 150],
-      ['db.js', 56],
+      ['db.js', 58],
       ['mail.js', 17],
       ['keys.js', 14],
-      ['attachments.js', 69],
+      ['attachments.js', 74],
       ['images.js', 13],
       ['batchrun.js', 15],
       ['log.js', 3],
@@ -402,11 +402,11 @@ async function run() {
       ['backup.js', 48],
       ['backuptool.js', 29],
       ['videoproxy.js', 25],
-      ['public/app.js', 1212],
+      ['public/app.js', 1214],
       ['public/theme.js', 2],
-      ['public/style.css', 527],
+      ['public/style.css', 528],
     ];
-    const COMMENT_TOTAL = { comment: 7282, code: 91483 };
+    const COMMENT_TOTAL = { comment: 7297, code: 92000 };
     // Ausgelieferte Dateien: Bloecke ueber drei Zeilen und Bloecke mit Betonung in Grossbuchstaben.
     const COMMENT_LIMITS = { longBlocks: 3, emphasis: 6 };
     check('Der Waechter sieht alle achtundfuenfzig Dateien',

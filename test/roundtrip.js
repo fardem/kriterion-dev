@@ -5620,7 +5620,7 @@ async function sendImport(object, mode, withoutShare = false) {
   while (pkPending() && Date.now() - pkSince < 10000) await pkNap(100);
   const pkMoved = pkPending() === 0;
   check('Die Umlagerung beim Start ist fertig, bevor geloescht wird', pkMoved,
-    `nach 10 s noch ${pkPending()} Dateien in der Datenbank; Server: ${PK.log().split('\n').filter(Boolean).slice(-6).join(' | ')}`);
+    `nach 10 s noch ${pkPending()} Dateien in der Datenbank; Server: ${PK.log().split('\n').filter(l => /Disk run|Relocation|locked/.test(l)).join(' | ')}`);
 
   /* Ausgangsstand fuer den Vergleich. `|| {}`: ohne Eintrag werden die Pruefungen
      rot, statt dass der Lauf abreisst. */

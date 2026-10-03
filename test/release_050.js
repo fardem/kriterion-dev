@@ -176,6 +176,36 @@ async function run() {
       (await rawOf('uploader', id)).buf.equals(content), `${leftover.length} ${stillInDb} ${relocated}`);
   }
 
+  group('Umlagerung: eine zweite Verbindung haelt die Schreibsperre');
+  {
+    /* `hold=4000` haelt die Datei vor ihrem Commit an; der Test nimmt die Sperre nach dem Start und gibt sie
+       frei, waehrend der Commit wartet. true: die Datei lag beim Freigeben noch in der Datenbank. */
+    const lockFor = async (id, ms) => {
+      const L = open(path.join(dir, 'katalog.sqlite'));
+      L.exec('BEGIN IMMEDIATE');
+      await wait(ms);
+      const waiting = dataLength(id) > 0;
+      L.exec('COMMIT');
+      L.close();
+      return waiting;
+    };
+    const lines = () => B.log().split('\n').filter(l => /Relocation|Disk run/.test(l)).join(' | ');
+    await stop();
+    const short = putRow(item, 'sperre-kurz.txt', Buffer.from('kurz ' + crypto.randomBytes(8).toString('hex')));
+    await start(':hold=4000:relocate=500');
+    const shortWaited = await lockFor(short, 5000);
+    const shortDone = await until2(() => !!diskRow(short) && dataLength(short) === 0, 6000);
+    check('Haelt eine andere Verbindung die Schreibsperre kuerzer als 5 s, wartet der Commit und scheitert nicht',
+      shortWaited && shortDone && !B.log().includes(`Relocation of file ${short}`), `${shortWaited} ${shortDone} ${lines()}`);
+    await stop();
+    const long = putRow(item, 'sperre-lang.txt', Buffer.from('lang ' + crypto.randomBytes(8).toString('hex')));
+    await start(':hold=4000:relocate=500');
+    const longWaited = await lockFor(long, 9500);
+    const longDone = await until2(() => !!diskRow(long) && dataLength(long) === 0, 8000);
+    check('Laenger als der Busy-Timeout: die Datei scheitert einmal und wird nach `relocate` ms wieder versucht',
+      longWaited && longDone && B.log().includes(`Relocation of file ${long}: SQLITE_BUSY`), `${longWaited} ${longDone} ${lines()}`);
+  }
+
   group('Ein Weg fuer Dateien: Grenze „Datei" und Erkennung');
   {
     const settings = (await as('owner', 'GET', '/api/settings')).content;

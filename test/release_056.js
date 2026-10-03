@@ -1,5 +1,5 @@
-/* Kriterion — Pruefstand: Bitrate und Ersatz der Proxys, „Proxy“ in der Liste, Vollbild am Telefon, Filter ◆ ★
-   mit Keine · Teilweise · 👍, Titel in der Mail, Fehler aus der Durchsicht, Kontraste, IPv6 je /64. */
+/* Kriterion — Pruefstand: Proxys, Vollbild am Telefon, Filter ◆ ★, Mail, Fehler aus der Durchsicht, Kontraste,
+   IPv6 je /64, Platz beim Import, Ansicht ohne Recht, Infos aus Objektstroemen und ZIP64. */
 const H = require('./frame.js');
 const D = require('./dom.js');
 const { buildDom, until, openRequests } = D;
@@ -396,6 +396,112 @@ async function run() {
     check('Die Sperre „letzter Eigentuemer“ zaehlt nur aktive: ein gesperrter Eigentuemer laesst sich herabstufen',
       locked.status === 200 && demoted.status === 200 && demoted.content?.role === 'user',
       `${locked.status} ${demoted.status} ${demoted.content?.error || ''}`);
+  }
+
+  group('Import: Platz fuer den Inhalt, die Datei wird geschlossen');
+  {
+    // Reserve wie spaceShort() in server.js: Datenbank und 1024 MB; frei bleiben 1 bis 2 MB.
+    const dbMb = Math.ceil(fs.statSync(path.join(rDir, 'katalog.sqlite')).size / 1048576);
+    await rRestart(`:free=${1024 + dbMb + 1}`);
+    const rImport = async (data) => {
+      await rFree('import');
+      const fd = new FormData();
+      fd.append('mode', 'merge');
+      fd.append('file', new Blob([JSON.stringify(data)], { type: 'application/json' }), 'export.json');
+      const a = await fetch(R.base + '/api/import', { method: 'POST', body: fd, headers: withCsrf(R.cookieValue()) });
+      return { status: a.status, content: await a.json().catch(() => null) };
+    };
+    const raw = require('crypto').randomBytes(4 * 1048576).toString('base64');
+    const big = await rImport({ version: 22, items: [{ title: 'Gross', attachments: [{ filename: 'gross.bin',
+      mime_type: 'application/octet-stream', data_base64: raw }] }] });
+    const small = await rImport({ version: 22, items: [{ title: 'Klein' }] });
+    const titles = ((await R.call('GET', '/api/items')).content || []).map(i => i.title);
+    const importDir = path.join(rDir, 'import');
+    check('Reicht der Platz nicht fuer den entpackten Inhalt, lehnt der Import mit 507 ab, bevor er schreibt; ein kleiner geht durch',
+      big.status === 507 && big.content?.error?.startsWith('Frei: ') && small.status === 200 &&
+      !titles.includes('Gross') && titles.includes('Klein') && fs.readdirSync(importDir).length === 0,
+      `${big.status} ${big.content?.error} · ${small.status} · ${titles.join(' ')}`);
+    await rRestart('');
+    const old = await rImport({ version: 13, items: [{ title: 'Alt' }] });
+    const held = (() => {
+      try {
+        return fs.readdirSync(`/proc/${R.pid}/fd`).map(f => { try { return fs.readlinkSync(`/proc/${R.pid}/fd/${f}`); } catch { return ''; } })
+          .filter(l => l.startsWith(importDir));
+      } catch { return null; }
+    })();
+    check('Eine zu alte Datei wird abgewiesen und geschlossen; der Server haelt nichts aus import/ offen',
+      old.status === 400 && Array.isArray(held) && held.length === 0 && fs.readdirSync(importDir).length === 0,
+      `${old.status} ${JSON.stringify(held)}`);
+  }
+
+  group('Infos: PDF mit gepacktem Objektstrom, Office als ZIP64');
+  {
+    const zlib = require('zlib');
+    const A = require(path.join(__dirname, 'attachments.js'));
+    const facts = (name, b) => A.documentFacts(name, b.length, async (n, at) => b.subarray(at, at + n));
+    const objects = [[4, "<< /Title (Bericht im Strom) /Author <FEFF0041006E006E0061> /Creator (Writer) /Producer (Test)" +
+      " /CreationDate (D:20260901100000+02'00') /ModDate (D:20260930123000Z) >>"],
+      [2, '<< /Type /Pages /Kids [3 0 R] /Count 9 >>'], [3, '<< /Type /Page /Parent 2 0 R >>']];
+    const pdf = ({ indirect = false, encrypt = false, filler = 0 } = {}) => {
+      let body = '';
+      const at = objects.map(([, o]) => { const here = body.length; body += o + ' '; return here; });
+      const head = objects.map(([n], i) => `${n} ${at[i]}`).join(' ') + ' ';
+      const packed = zlib.deflateSync(Buffer.from(head + body, 'latin1'));
+      return Buffer.concat([Buffer.from('%PDF-1.5\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n' +
+        (filler ? '%' + 'f'.repeat(filler) + '\n' : '') + `5 0 obj\n<< /Type /ObjStm /N 3 /First ${head.length} /Filter /FlateDecode` +
+        ` /Length ${indirect ? '17 0 R' : packed.length} >>\nstream\r\n`, 'latin1'), packed,
+        Buffer.from(`\nendstream\nendobj\n17 0 obj ${packed.length} endobj\n6 0 obj\n<< /Type /XRef /Size 8 /Root 1 0 R /Info 4 0 R` +
+          `${encrypt ? ' /Encrypt 9 0 R' : ''} /W [1 4 2] /Length 0 >>\nstream\n\nendstream\nendobj\nstartxref\n0\n%%EOF\n`, 'latin1')]);
+    };
+    const expected = { title: 'Bericht im Strom', author: 'Anna', creatorTool: 'Writer', producer: 'Test',
+      created: '2026-09-01T08:00:00Z', modified: '2026-09-30T12:30:00Z', pages: 9 };
+    const read = [await facts('a.pdf', pdf()), await facts('b.pdf', pdf({ indirect: true })), await facts('c.pdf', pdf({ filler: 2500000 }))];
+    const locked = await facts('d.pdf', pdf({ encrypt: true }));
+    check('PDF: /Info und Seitenzahl aus dem gepackten Objektstrom, auch mit indirekter Laenge und im letzten MiB; verschluesselt nichts',
+      read.every(r => equal(r, expected)) && Object.values(locked).every(v => v === null),
+      JSON.stringify([read[0], read[1]?.title, read[2]?.title, locked.title]));
+    const zip = (entries, wide) => {
+      const locals = [], centrals = [];
+      let at = 0;
+      for (const e of entries) {
+        const name = Buffer.from(e.name), raw = Buffer.from(e.data), packed = zlib.deflateRawSync(raw);
+        const local = Buffer.alloc(30), central = Buffer.alloc(46), extra = Buffer.alloc(wide ? 28 : 0);
+        local.writeUInt32LE(0x04034b50, 0); local.writeUInt16LE(8, 8); local.writeUInt16LE(name.length, 26);
+        central.writeUInt32LE(0x02014b50, 0); central.writeUInt16LE(8, 10); central.writeUInt16LE(name.length, 28);
+        central.writeUInt32LE(wide ? 0xffffffff : packed.length, 20); central.writeUInt32LE(wide ? 0xffffffff : raw.length, 24);
+        central.writeUInt32LE(wide ? 0xffffffff : at, 42);
+        if (wide) {
+          extra.writeUInt16LE(1, 0); extra.writeUInt16LE(24, 2); central.writeUInt16LE(28, 30);
+          extra.writeBigUInt64LE(BigInt(raw.length), 4); extra.writeBigUInt64LE(BigInt(packed.length), 12); extra.writeBigUInt64LE(BigInt(at), 20);
+        }
+        locals.push(local, name, packed);
+        centrals.push(central, name, extra);
+        at += 30 + name.length + packed.length;
+      }
+      const dir = Buffer.concat(centrals), end = Buffer.alloc(22), tail = [];
+      end.writeUInt32LE(0x06054b50, 0);
+      if (wide) {
+        const record = Buffer.alloc(56), locator = Buffer.alloc(20);
+        record.writeUInt32LE(0x06064b50, 0); record.writeBigUInt64LE(44n, 4);
+        record.writeBigUInt64LE(BigInt(entries.length), 24); record.writeBigUInt64LE(BigInt(entries.length), 32);
+        record.writeBigUInt64LE(BigInt(dir.length), 40); record.writeBigUInt64LE(BigInt(at), 48);
+        locator.writeUInt32LE(0x07064b50, 0); locator.writeBigUInt64LE(BigInt(at + dir.length), 8); locator.writeUInt32LE(1, 16);
+        tail.push(record, locator);
+        end.writeUInt16LE(0xffff, 8); end.writeUInt16LE(0xffff, 10); end.writeUInt32LE(0xffffffff, 12); end.writeUInt32LE(0xffffffff, 16);
+      } else {
+        end.writeUInt16LE(entries.length, 8); end.writeUInt16LE(entries.length, 10); end.writeUInt32LE(dir.length, 12); end.writeUInt32LE(at, 16);
+      }
+      return Buffer.concat([...locals, dir, ...tail, end]);
+    };
+    const docx = [{ name: '[Content_Types].xml', data: '<Types/>' },
+      { name: 'docProps/core.xml', data: '<cp:coreProperties><dc:title>Bericht</dc:title><dc:creator>Anna</dc:creator></cp:coreProperties>' },
+      { name: 'docProps/app.xml', data: '<Properties><Application>Word</Application><Pages>3</Pages></Properties>' }];
+    const odt = [{ name: 'mimetype', data: 'application/vnd.oasis.opendocument.text' },
+      { name: 'meta.xml', data: '<office:meta><dc:title>Notizen</dc:title><meta:initial-creator>Ben</meta:initial-creator></office:meta>' }];
+    const [narrow, wide, wideOdt] = [await facts('a.docx', zip(docx, false)), await facts('b.docx', zip(docx, true)), await facts('c.odt', zip(odt, true))];
+    check('Office und ODF als ZIP64: Locator, ZIP64-Record und Extrafeld 0x0001 werden gelesen',
+      equal(wide, narrow) && wide?.title === 'Bericht' && wide.pages === 3 && wide.application === 'Word' &&
+      wideOdt?.title === 'Notizen' && wideOdt.createdBy === 'Ben', JSON.stringify([wide, wideOdt]));
   }
 
   group('Server: Lockfile und Backup-Ordner');
@@ -903,6 +1009,81 @@ async function run() {
     check('„Standardanordnung wiederherstellen“ setzt `closed`; danach laesst sich jeder Block wieder pruefen',
       a.w.eval('Array.isArray(BLOCKS.closed) && !("zu" in BLOCKS)'), a.w.eval('JSON.stringify(BLOCKS)'));
     a.w.close();
+  }
+
+  group('Detailansicht ohne Recht: nur ansehen');
+  {
+    const bert = { id: 2, name: 'bert', deleted: false }, ich = { id: 3, name: 'carla', deleted: false };
+    const days = [{ id: 3, day: '2026-08-01', rating: 4, mine: false, author: bert, tags: [{ id: 91, name: 'Regen' }] },
+      { id: 4, day: '2026-08-02', rating: 3, mine: true, author: ich, tags: [{ id: 92, name: 'Sonne' }] }];
+    const view = { hash: '#/item/1', entryMine: false, dayInventory: days, tags: [{ id: 7, name: 'Akku', usage_count: 1, assigned: true }],
+      settings: { filters: null, userCount: 2, isAdmin: false, isOwner: false } };
+    const d = buildDom(JSDOM, view);
+    const w = d.w, doc = w.document;
+    await until(w, detailReady, 3000, 'die Detailansicht').catch(() => {});
+    check('Titel, Status und Kategorie stehen als Text; keine Schalter, keine Auswahl, kein „Neue Kategorie“',
+      doc.getElementById('title')?.tagName === 'H1' && doc.getElementById('title').textContent === 'Beispiel' &&
+      !doc.getElementById('sw-test') && !doc.getElementById('sw-rej') &&
+      doc.getElementById('sw-test-t')?.className === 'state on-green' && doc.getElementById('sw-rej-t')?.hidden === true &&
+      !doc.getElementById('cat') && doc.getElementById('cat-text')?.textContent === DE['entry.none'] && !doc.getElementById('newcat'),
+      `${doc.getElementById('title')?.tagName} ${doc.getElementById('sw-test-t')?.className} ${doc.getElementById('cat-text')?.textContent}`);
+    check('Keine Ablage fuer Fotos und Videos, kein Ausschnitt, kein Loeschen, kein Auswaehlen, kein Ziehen von Fotos und Links',
+      !doc.getElementById('drop') && !doc.querySelector('#viewer .vfocus') && !doc.querySelector('#viewer .vremove') &&
+      !doc.querySelector('#thumbs .del') && doc.getElementById('ppick-start')?.parentElement.hidden === true &&
+      doc.querySelectorAll('#links .lrow').length > 0 && !doc.querySelector('#links .grip'),
+      `${!!doc.getElementById('drop')} ${!!doc.querySelector('#viewer .vfocus')} ${doc.querySelectorAll('#links .grip').length}`);
+    check('Tags ohne × und ohne Wolke, keine Tag-Eingabe; die Beschreibung ohne Stift, ein Klick oeffnet kein Feld',
+      doc.querySelectorAll('#chips .chip').length === 1 && !doc.querySelector('#chips .chip button') && !doc.getElementById('tagcloud') &&
+      !doc.getElementById('newtag') && !doc.getElementById('descedit') &&
+      (doc.getElementById('descview')?.click(), doc.getElementById('desc')?.hidden === true),
+      `${doc.querySelectorAll('#chips .chip button').length} ${!!doc.getElementById('tagcloud')} ${doc.getElementById('desc')?.hidden}`);
+    const paste = new w.Event('paste', { bubbles: true, cancelable: true });
+    Object.defineProperty(paste, 'clipboardData', { value: { files: [new w.File(['x'], 'bild.png', { type: 'image/png' })] } });
+    doc.dispatchEvent(paste);
+    await wait(50);
+    doc.querySelector('#viewer img')?.click();
+    check('Einfuegen laedt nichts hoch; das Vollbild hat keinen Papierkorb',
+      !d.sent.some(x => x.method === 'POST' && /\/photos$/.test(x.url)) && !!doc.querySelector('.lightbox') &&
+      !doc.querySelector('.lightbox .lb-btn.remove'), `${d.sent.filter(x => x.method === 'POST').map(x => x.url).join(' ')}`);
+    doc.querySelector('.lightbox .close')?.click();
+    const rows = [...doc.querySelectorAll('#tdays .trow')];
+    const row = (dayId) => rows.find(r => r.dataset.day === String(dayId));
+    const looks = (r) => [r?.querySelector('.stars')?.classList.contains('read'), r?.querySelector('.xdel')?.hidden,
+      r?.querySelector('.ttag-add')?.hidden, !!r?.querySelector('.chip button')];
+    check('Ein fremder Testtag: Note, × und Tags nur lesen; am eigenen alles wie bisher',
+      equal(looks(row(3)), [true, true, true, false]) && equal(looks(row(4)), [false, false, false, true]),
+      JSON.stringify([looks(row(3)), looks(row(4))]));
+    w.close();
+    const u = buildDom(JSDOM, { ...view, untested: true });
+    await until(u.w, detailReady, 3000, 'die Detailansicht').catch(() => {});
+    const own = buildDom(JSDOM, { hash: '#/item/1', entryMine: true, untested: true, settings: { filters: null, userCount: 2, isAdmin: false } });
+    await until(own.w, detailReady, 3000, 'die Detailansicht').catch(() => {});
+    check('Ungetestet: der Hinweis, „Getestet“ einzuschalten, erscheint nur fuer den Verfasser',
+      u.w.document.querySelector('#testblock .test-locked')?.textContent === DE['entry.none'] &&
+      !!own.w.document.getElementById('sw-test') && own.w.document.querySelector('#testblock .test-locked')?.textContent.includes('einschalten'),
+      `${u.w.document.querySelector('#testblock .test-locked')?.textContent} · ${own.w.document.querySelector('#testblock .test-locked')?.textContent}`);
+    u.w.close();
+    own.w.close();
+  }
+
+  group('Detailansicht: nach einer Absage gilt der gespeicherte Stand');
+  {
+    const d = buildDom(JSDOM, { hash: '#/item/1', entryMine: true, settings: { filters: null, userCount: 1 } });
+    const w = d.w, doc = w.document;
+    await until(w, detailReady, 3000, 'die Detailansicht').catch(() => {});
+    const base = w.fetch;
+    w.fetch = (url, opt) => (opt?.method === 'PUT' && /\/api\/items\/1$/.test(String(url))
+      ? Promise.resolve(new Response(JSON.stringify({ error: 'Das darf nur der Verfasser.' }), { status: 403, headers: { 'content-type': 'application/json' } }))
+      : base(url, opt));
+    const title = doc.getElementById('title'), cat = doc.getElementById('cat');
+    title.value = 'Ein anderer Titel';
+    title.dispatchEvent(new w.Event('blur'));
+    if (cat && cat.options.length > 1) { cat.value = cat.options[1].value; cat.dispatchEvent(new w.Event('change')); }
+    await wait(80);
+    check('Titel und Kategorie springen nach dem 403 auf den gespeicherten Stand zurueck',
+      doc.getElementById('title').value === 'Beispiel' && doc.getElementById('cat')?.value === '' && cat?.options.length > 1,
+      `${doc.getElementById('title').value} ${doc.getElementById('cat')?.value}`);
+    w.close();
   }
 
   group('Detailansicht: spaete Antworten, Kommentar, Anlegen, Dialog');

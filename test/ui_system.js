@@ -25,7 +25,7 @@ async function run() {
     { id: 1, name: 'Vorhanden', usage_count: 3, test_usage_count: 0 },
     { id: 2, name: 'Auch da', usage_count: 1, test_usage_count: 0, assigned: true }
   ];
-  const createDom = (isAdmin, free) => buildDom(JSDOM, { hash: '#/item/1', tags: createPool,
+  const createDom = (isAdmin, free) => buildDom(JSDOM, { hash: '#/item/1', tags: createPool, entryMine: true,
     settings: { filters: null, userCount: 3, isAdmin,
                      tagsFreeCreate: free, categoriesFreeCreate: free } });
 

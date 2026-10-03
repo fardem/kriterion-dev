@@ -241,6 +241,12 @@ Ein Admin löscht fremde Beiträge, ändert sie aber nicht. Entfernt er ein Bild
 aus einem fremden Kommentar, steht dort „2 Bilder oder Videos vom Admin
 entfernt".
 
+Alle anderen sehen den Eintrag ohne die Knöpfe für das, was nur Verfasser und
+Admin ändern: Titel, Beschreibung, Status und Kategorie stehen als Text; das
+Feld zum Ablegen von Fotos und Videos, der Ausschnitt, das Löschen und das
+Ziehen fehlen. An einem fremden Testtag sind Note, × und Tags nur zu lesen.
+Der Server prüft jede Änderung trotzdem.
+
 ### Verfasser
 
 Ab dem zweiten Account nennen Eintrag, Kommentar und Testtag ihren Verfasser.
@@ -885,7 +891,9 @@ Die Exportdatei enthält nur Einträge mit Verfassernamen. Mit dem Häkchen für
 Dateien trägt sie auch die Ordner mit ihrem Testtag und das Vorschaubild jedes
 Videos unter „Dateien“; aus einer älteren Exportdatei kommen die Dateien ohne
 Ordner. Dateien über „Anhang“ enthält kein Export; die Karte nennt sie
-vorher. Der Import legt jede Datei auf die Platte.
+vorher. Der Import legt jede Datei auf die Platte. Vor dem Lesen prüft er den
+freien Platz: drei Viertel der Datei für den Inhalt, dazu die Datenbank und
+1 GB Reserve; sonst lehnt er mit den Zahlen ab.
 Nicht darin:
 Benutzer, Passwörter, Sitzungen, zweiter Faktor, Mailzugang, Titel,
 Vokabular, Suchmaschinen, Einstellungen, Sicherheitsprotokoll, Papierkorb.

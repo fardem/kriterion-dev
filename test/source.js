@@ -1852,8 +1852,8 @@ async function run() {
       }
       if (has) ssCode++;
     }
-    check('Und es stehen genau 2050 Regelzeilen da',
-      ssCode === 2050, `${ssCode} Zeilen`);
+    check('Und es stehen genau 2056 Regelzeilen da',
+      ssCode === 2056, `${ssCode} Zeilen`);
     // Laenger als drei Zeilen darf nur eine Tabelle gemessener Werte sein.
     const ssLines = ssBlocks.map(b => b.split('\n').length);
     const ssOver = ssLines.filter(n => n > 3).length;
@@ -1980,8 +1980,8 @@ async function run() {
     // Feste Zahl: auf einer leeren Menge waere die Pruefung darueber immer gruen.
     const zpCount = zpFiles.reduce((n, f) =>
       n + (zpRead(f).match(/\blog(?:Line|Warn|Fail)\(/g) || []).length, 0);
-    check('Und es sind 83 Protokollzeilen in den sieben Dateien',
-      zpCount === 83, `${zpCount} Zeilen`);
+    check('Und es sind 85 Protokollzeilen in den sieben Dateien',
+      zpCount === 85, `${zpCount} Zeilen`);
     // Ohne TZ laeuft der Container auf UTC, und der Versatz waere immer +00:00.
     const zpCompose = fs.readFileSync(
       path.join(__dirname, 'docker-compose.example.yml'), 'utf8');

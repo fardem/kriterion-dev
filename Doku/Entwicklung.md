@@ -36,6 +36,12 @@ Die Datei heißt `katalog.sqlite`. Der Name bleibt auch nach einer Umbenennung
 des Projekts: ein anderer Name ließe den Start eine leere Neuinstallation
 annehmen.
 
+Jede Transaktion beginnt mit `BEGIN IMMEDIATE` (`open()` in `db.js`). Mit
+`BEGIN` scheitert eine Transaktion, die erst liest und dann schreibt, sofort mit
+`SQLITE_BUSY`, wenn eine andere Verbindung schreibt: der Worker in
+`batchrun.js`, `usertool.js` oder ein Test. Der Busy-Timeout von 5 s greift dann
+nicht. Gemessen: 1 ms statt 5.016 ms.
+
 - `items`: Titel, Beschreibung, Getestet- und Abgelehnt-Merkmal, Kategorie. Zur
   Ablehnung gehören `rejected_at`, `rejected_reason` und `rejected_by`; alle
   drei dürfen leer sein. `items.favorite` wird nicht beschrieben.
@@ -426,6 +432,7 @@ Für die Dateien auf der Platte, nur in `server.js`:
 | `clock=<s>` | die Uhr der Uploads geht so viele Sekunden vor |
 | `hold=<ms>` | Halt vor dem Schreiben unter `upload/` und vor jeder Kopie des Backups |
 | `run=<ms>` | Abstand der Läufe statt einer Stunde |
+| `relocate=<ms>` | Wartezeit, bis die Umlagerung eine gescheiterte Datei wieder versucht, statt einer Minute |
 | `checkwait=<ms>` | Wartezeit von `GET /api/maintenance` auf die Prüfung der Datenbank statt 20 s |
 | `ffmpeg=1` | `test/ffmpeg.js` statt ffmpeg, ohne root und ohne `tmpfs` |
 

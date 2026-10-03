@@ -241,6 +241,12 @@ An admin deletes other users' contributions but does not change them. If an
 admin removes an image from someone else's comment, the comment shows “2
 images or videos removed by the admin”.
 
+Anyone else sees the entry without the buttons for what only the author and
+the admin may change: title, description, status and category are plain
+text; the drop field for photos and videos, the crop, deleting and dragging
+are missing. At someone else's test day, score, × and tags are read-only. The
+server checks every change all the same.
+
 ### Authors
 
 From the second account on, entry, comment and test day show their author.
@@ -866,7 +872,9 @@ The export file contains only entries with author names. With the tick for
 files, it also carries the folders with their test day and the thumbnail of
 every video under “Files”; from an older export file, the files come without
 folders. No export contains files above “Attachment”; the card names them
-beforehand. The import puts every file on disk.
+beforehand. The import puts every file on disk. Before reading, it checks
+the free space: three quarters of the file for the content, plus the database
+and 1 GB of reserve; otherwise it refuses with the figures.
 Not in it:
 users, passwords, sessions, second factor, mail account, title, vocabulary,
 search engines, settings, security log, trash.
