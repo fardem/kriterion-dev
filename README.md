@@ -53,7 +53,7 @@ This file covers installing and running Kriterion. Using it is covered in the
 | | |
 |---|---|
 | Entries | title, description, category, tags, photos, short videos, files, links |
-| Files | up to 2 GB per file, uploaded in chunks, resumable; as tiles or list, sorted by name, date, size or type, grouped by type, with a thumbnail also for text, Office and PDF; in folders; delete or move several at once; deleted files stay 30 days in the trash and can be fetched back one by one from backups; Extended info on images and videos as in MediaInfo, also for the photos and videos of the entry; videos resume where they were last watched and load in full at the push of a button; on request they play through a smaller proxy in H.264, also `mkv`, `avi`, `wmv` and `flv` |
+| Files | up to 2 GB per file, uploaded in chunks, resumable; as tiles or list, sorted by name, date, size or type, grouped by type, with a thumbnail also for text, Office and PDF; in folders; delete or move several at once; deleted files stay 30 days in the trash and can be fetched back one by one from backups; “Info” on images and videos as in MediaInfo, also for the photos and videos of the entry; videos resume where they were last watched and load in full at the push of a button; on request they play through a smaller proxy in H.264, also `mkv`, `avi`, `wmv` and `flv` |
 | Rate | your own criteria with 1 to 5 stars, a weight per criterion, from these a weighted average |
 | Comments | note, report or task with a due date, plus images and videos |
 | Test days | dated entries with score and tags |
@@ -672,7 +672,7 @@ application/octet-stream` and `upload-offset: <received>`; the response to the
 last chunk is the entry.
 
 `GET /api/attachments/<id>/info` and `GET /api/photos/<id>/info` return the
-Extended info on an image or video as JSON with `general`, `video`, `audio`,
+“Info” on an image or video as JSON with `general`, `video`, `audio`,
 `image`, `orientation` and `exif`. The server reads it with `mediainfo.js`,
 `sharp` and `exif-reader` and stores it in the tables `attachment_media` and
 `photo_media`; it is not in the JSON export. For Office, OpenDocument and PDF

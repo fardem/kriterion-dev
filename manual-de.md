@@ -512,13 +512,13 @@ unverändert.
   Bilddatei nicht als Bild lesen, steht auf der Kachel die Endung.
 - **Menü ⋯:** steht an jeder Kachel und bietet nur an, was man darf, in fünf
   Gruppen, getrennt durch Linien: „Öffnen“ und „Bearbeiten“; „Herunterladen“,
-  „Link auf diese Datei kopieren“ und „Erweiterte Infos“ oder „Infos“;
+  „Link auf diese Datei kopieren“ und „Infos“;
   „Umbenennen …“, „Verschieben nach …“ und „Vorschaubild wählen …“; „Vorige Fassung wiederherstellen“ und
   „Bearbeiten durch alle“; „Datei löschen“. Oben steht der Name, bei
   mehreren Accounts auch, wer die Datei wann hochgeladen hat. Auf dem Telefon öffnet das Menü am unteren Rand. An
   einer Kachel, die noch hochgeht, steht „Abbrechen“, nach einem Fehler
   „Erneut versuchen“ und „Entfernen“.
-- **Erweiterte Infos:** „Erweiterte Infos“ im Menü ⋯ eines Bildes oder Videos
+- **Infos zu Bildern und Videos:** „Infos“ im Menü ⋯ eines Bildes oder Videos
   und ⓘ im Vollbild zeigen, was in der Datei steht. ⓘ steht auch im Vollbild
   der Fotos und Videos des Eintrags. Allgemein: bei Videos der Container, sonst
   das Format, dazu Dateigröße, Dauer, Gesamtbitrate, Aufnahmedatum und die Zahl
@@ -537,18 +537,18 @@ unverändert.
   nach. Braucht ein Video einen Proxy, nennt die Gruppe „Proxy“ Zustand,
   Auflösung und Größe und die am Proxy gemessenen Bitraten von Video und
   Audio. Was die Datei nicht angibt, fehlt.
-- **Infos:** „Infos“ im Menü ⋯ einer Word-, Excel-, PowerPoint- oder PDF-Datei
-  und ihrer OpenDocument-Gegenstücke zeigt zwei Gruppen. „In Kriterion“:
-  hochgeladen von und am, geändert vor dem Hochladen (die Zeit der Datei auf
-  dem Rechner, nur bei Dateien seit dem Update), zuletzt gespeichert von und am
-  im Document Server, Zahl der Speicherungen und das Datum der vorigen Fassung.
-  „In der Datei“: Titel, erstellt von, erstellt, zuletzt bearbeitet von,
-  geändert, Seiten, Wörter, Folien und Programm; bei PDF Titel, Autor,
-  erstellt mit, erzeugt von, erstellt, geändert und Seiten. Gelesen wird beim
-  Öffnen des Dialogs; Teile einer Office-Datei über 1 MB und bei PDF alles
+- **Infos zu Dokumenten:** „Infos“ im Menü ⋯ einer Word-, Excel-, PowerPoint-
+  oder PDF-Datei und ihrer OpenDocument-Gegenstücke zeigt zwei Gruppen. „In
+  Kriterion“: hochgeladen von und am, geändert vor dem Hochladen (die Zeit der
+  Datei auf dem Rechner, nur bei Dateien seit dem Update), zuletzt gespeichert
+  von und am im Document Server, Zahl der Speicherungen und das Datum der
+  vorigen Fassung. „In der Datei“: Titel, erstellt von, erstellt, zuletzt
+  bearbeitet von, geändert, Seiten, Wörter, Folien und Programm; bei PDF Titel,
+  Autor, erstellt mit, erzeugt von, erstellt, geändert und Seiten. Gelesen wird
+  beim Öffnen des Dialogs; Teile einer Office-Datei über 1 MB und bei PDF alles
   außer dem ersten und dem letzten MB bleiben ungelesen. Bei `.doc`, `.xls`,
-  `.ppt` und `.rtf` stehen nur die Angaben aus Kriterion. Was fehlt, steht
-  nicht da.
+  `.ppt` und `.rtf` stehen nur die Angaben aus Kriterion. Was fehlt, steht nicht
+  da.
 - **Umbenennen:** „Umbenennen …“ im Menü ⋯ einer eigenen Datei zeigt den Namen
   ohne Endung; die Endung bleibt. Enter speichert, Esc bricht ab. Im selben
   Ordner, ohne Ordner unter den Dateien ohne Ordner, darf kein zweiter Name

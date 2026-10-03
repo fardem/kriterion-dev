@@ -600,13 +600,13 @@ async function run() {
     const lb = w.document.querySelector('.lightbox');
     const info = lb?.querySelector('.lb-btn.info');
     const count = () => lb?.querySelector('.lb-count')?.textContent;
-    check('ⓘ steht links neben dem Link, mit „Erweiterte Infos“ als Titel',
+    check('ⓘ steht links neben dem Link, mit „Infos“ als Titel',
       !!info && info.previousElementSibling?.classList.contains('lb-count') && info.nextElementSibling?.classList.contains('copy') &&
       info?.title === DE['entry.mediaInfo'], lb?.querySelector('.lb-tools')?.innerHTML.slice(0, 200));
     const before = count();
     info?.click();
     await until(w, (x) => x.document.querySelector('.modal.minfo .kv'), 1000, 'die Angaben').catch(() => {});
-    check('Ein Klick öffnet „Erweiterte Infos“ der gezeigten Datei',
+    check('Ein Klick öffnet „Infos“ der gezeigten Datei',
       !!w.document.querySelector('.modal.minfo') && w.document.querySelector('.modal.minfo .minfo-name')?.textContent === 'clip.mp4' &&
       equal(asked, ['/api/attachments/48/info']), asked.join(' '));
     press(w.document.body, 'ArrowRight');
@@ -685,8 +685,8 @@ async function run() {
       !/^### (Hinzugefügt|Geändert|Behoben|Entfernt)/m.test(log), `${log.split('\n').length} Zeilen`);
     const older = ((log.match(/^## Older versions — 0\.10\.0 to 0\.19\.6\n\n((?:- 0\.1\d\.\d+: .*\n)+)/m) || [])[1] || '')
       .split('\n').filter(Boolean);
-    check('Ab 0.20.0 behaelt jede Version Ueberschrift und Fingerprint, 0.10.0 bis 0.19.6 stehen je in einer Zeile: 102 Abschnitte',
-      (log.match(/^## /gm) || []).length === 102 && (log.match(/^Fingerprint `/gm) || []).length === 42 && older.length === 29,
+    check('Ab 0.20.0 behaelt jede Version Ueberschrift und Fingerprint, 0.10.0 bis 0.19.6 stehen je in einer Zeile: 103 Abschnitte',
+      (log.match(/^## /gm) || []).length === 103 && (log.match(/^Fingerprint `/gm) || []).length === 43 && older.length === 29,
       `${(log.match(/^## /gm) || []).length} / ${(log.match(/^Fingerprint `/gm) || []).length} / ${older.length}`);
   }
 }

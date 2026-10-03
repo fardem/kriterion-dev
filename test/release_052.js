@@ -380,16 +380,16 @@ async function run() {
     const office = menuOf('f49'), clip = menuOf('f48'), pdf = menuOf('f43'), zip = menuOf('f44'), png = menuOf('f42');
     check('Office-Datei: Öffnen · Bearbeiten | Herunterladen · Link · Infos | Umbenennen | Fassung · Bearbeiten durch alle | Löschen',
       equal(office, [DE['entry.openFile'], DE['entry.edit'], '|', DE['entry.download'], DE['entry.copyFileLink'],
-        DE['entry.docInfo'], '|',
+        DE['entry.mediaInfo'], '|',
         DE['entry.renameFileMenu'], '|', DE['entry.restorePrevious'], DE['entry.editAll'], '|', DE['entry.deleteFile']]),
       office.join(' / '));
-    check('Eigenes Video: Öffnen | Herunterladen · Link · Erweiterte Infos | Umbenennen · Vorschaubild wählen … | Löschen',
+    check('Eigenes Video: Öffnen | Herunterladen · Link · Infos | Umbenennen · Vorschaubild wählen … | Löschen',
       equal(clip, [DE['entry.openFile'], '|', DE['entry.download'], DE['entry.copyFileLink'], DE['entry.mediaInfo'], '|',
         DE['entry.renameFileMenu'], DE['entry.chooseStill'], '|', DE['entry.deleteFile']]), clip.join(' / '));
-    check('Öffnen auch beim fremden Bild; Erweiterte Infos nur bei Bild und Video',
+    check('Öffnen auch beim fremden Bild; „Infos“ bei Bild und PDF, nicht bei ZIP',
       equal(png, [DE['entry.openFile'], '|', DE['entry.download'], DE['entry.copyFileLink'], DE['entry.mediaInfo'], '|',
         DE['entry.deleteFile']]) &&
-      !pdf.includes(DE['entry.mediaInfo']) && !zip.includes(DE['entry.mediaInfo']) && zip[0] === DE['entry.download'],
+      pdf.includes(DE['entry.mediaInfo']) && !zip.includes(DE['entry.mediaInfo']) && zip[0] === DE['entry.download'],
       `${png.join(' / ')} || ${zip.join(' / ')}`);
     check('Trennlinien sind role=separator und keine Menüeinträge',
       (() => {

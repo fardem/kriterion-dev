@@ -32,7 +32,7 @@ eines Telefons und Touch, an der echten App mit echtem Server:
 - je 10 Fälle: Fotos hoch, quer und Panorama; Videos in 4K hoch und quer, im
   Eintrag und als Datei mit Proxy; eine Bilddatei; ein langer Dateiname; ein
   Eintrag mit nur einem Bild
-- dazu Erweiterte Infos, Zoom, Abspielen, Original, Drehen bei offenem
+- dazu Infos, Zoom, Abspielen, Original, Drehen bei offenem
   Vollbild, Schließen, helles Schema, Türkisch, Schrift 120 %
 - zusammen 96 Bildschirmfotos
 
@@ -187,7 +187,7 @@ Browser oder am laufenden Server nachgestellt, außer wo es dasteht.
 
 Vollbild:
 
-- Der Dialog „Erweiterte Infos“ über dem Vollbild sei an 360 × 640 um 11 px zu
+- Der Dialog „Infos“ über dem Vollbild sei an 360 × 640 um 11 px zu
   hoch: Die 11 px sind Innenabstand, der Inhalt passt.
 - Der Proxy wechsle ohne Meldung auf das Original: Artefakt der Messung. Der
   Ersatz für ffmpeg schreibt im Test ein MP4 ohne Bilder, und für einen Proxy,

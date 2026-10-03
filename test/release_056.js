@@ -539,6 +539,38 @@ async function run() {
     check('Das Vollbild ist im dunklen Schema deckend',
       /--lb-bg: rgb\(var\(--scrim-rgb\)\);/.test(css) && !/--lb-bg: rgba\(/.test(css), 'Regel fehlt');
   }
+
+  group('Infos: ein Name fuer Bilder, Videos und Dokumente');
+  {
+    const [de, en, tr] = ['de', 'en', 'tr'].map(l => JSON.parse(read(`public/languages/${l}.json`)));
+    check('Ein Schluessel: „Infos“, „Info“, „Bilgi“; den eigenen fuer Dokumente gibt es nicht mehr',
+      de['entry.mediaInfo'] === 'Infos' && en['entry.mediaInfo'] === 'Info' && tr['entry.mediaInfo'] === 'Bilgi' &&
+      ![de, en, tr].some(x => 'entry.docInfo' in x), `${de['entry.mediaInfo']} ${en['entry.mediaInfo']} ${tr['entry.mediaInfo']}`);
+    const d = buildDom(JSDOM, { hash: '#/item/1', settings: { filters: null, userCount: 1 }, extraAttachments: [video(80, 'clip.mp4')] });
+    const w = d.w, doc = w.document;
+    await until(w, (x) => x.document.querySelector('#atts .atile[data-key="f80"]') && openRequests(x) === 0, 3000, 'die Kacheln').catch(() => {});
+    const escape = () => doc.activeElement?.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    const menuOf = (key) => {
+      doc.querySelector(`#atts .atile[data-key="${key}"] .amore`)?.click();
+      const out = [...doc.querySelectorAll('.fmenu-list > *')].map(e => e.textContent);
+      escape();
+      return out;
+    };
+    const titleOf = async (key) => {
+      doc.querySelector(`#atts .atile[data-key="${key}"] .amore`)?.click();
+      [...doc.querySelectorAll('.fmenu-item')].find(e => e.textContent === 'Infos')?.click();
+      await until(w, (x) => x.document.querySelector('.modal.minfo h2'), 1000, 'der Dialog').catch(() => {});
+      const title = doc.querySelector('.modal.minfo h2')?.textContent;
+      doc.querySelector('.modal.minfo [data-yes]')?.click();
+      await until(w, (x) => !x.document.querySelector('.modal.minfo') && openRequests(x) === 0, 2000, 'das Schliessen').catch(() => {});
+      return title;
+    };
+    const has = ['f42', 'f80', 'f43'].map(k => menuOf(k).includes('Infos'));
+    const titles = [await titleOf('f42'), await titleOf('f43')];
+    check('Bild, Video und PDF haben im Menue „Infos“; der Dialog heisst bei Bild und PDF „Infos“',
+      equal(has, [true, true, true]) && equal(titles, ['Infos', 'Infos']), `${has.join(' ')} · ${titles.join(' ')}`);
+    w.close();
+  }
 }
 
 module.exports = run;

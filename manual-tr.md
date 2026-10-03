@@ -505,13 +505,13 @@ değişmez.
   uzantı durur.
 - **⋯ menüsü:** her döşemede durur ve yalnızca izin verilenleri, çizgilerle
   ayrılmış beş grupta sunar: “Aç” ve “Düzenle”; “İndir”,
-  “Bu dosyaya bağlantıyı kopyala” ve “Ayrıntılı bilgi” ya da “Bilgi”;
+  “Bu dosyaya bağlantıyı kopyala” ve “Bilgi”;
   “Yeniden adlandır …”, “Şuraya taşı …” ve “Küçük resmi seç …”; “Önceki sürümü geri yükle” ve “Herkes düzenleyebilir”;
   “Dosyayı sil”. Üstte ad, birden fazla hesap varsa dosyayı kimin ne zaman
   yüklediği de durur. Telefonda menü alt kenarda açılır. Hâlâ yüklenen bir
   döşemede “İptal”, bir hatadan sonra “Yeniden dene” ve “Kaldır” durur.
-- **Ayrıntılı bilgi:** Bir resmin ya da videonun ⋯ menüsündeki
-  “Ayrıntılı bilgi” ve tam ekrandaki ⓘ dosyada yazanları gösterir. ⓘ öğenin
+- **Resimler ve videolar için bilgi:** Bir resmin ya da videonun ⋯ menüsündeki
+  “Bilgi” ve tam ekrandaki ⓘ dosyada yazanları gösterir. ⓘ öğenin
   fotoğraflarının ve videolarının tam ekranında da durur. Genel: videolarda
   kapsayıcı, diğerlerinde biçim; ayrıca dosya boyutu, süre, toplam bit hızı,
   kayıt tarihi ve ses parçalarının sayısı. Video: codec, profil, çözünürlük,
@@ -522,26 +522,24 @@ değişmez.
   gösterildiği gibi çözünürlük, bit derinliği, renk uzayı ve renk alt
   örneklemesi. Dosyadaki küçük resimler, örneğin EXIF bloğundakiler, sayı ve
   boyutlarıyla tek satırda durur. Çekim: EXIF'ten çekim zamanı, kamera,
-  objektif, pozlama süresi, diyafram, ISO ve odak uzaklığı; dosya taşıyorsa
-  35 mm karşılığıyla. Dosyada bir konum varsa yalnızca “Dosyada konum: evet”
-  durur; Kriterion koordinat saklamaz. EXIF'te çekim zamanı varsa görsellerde
-  “Genel” altındaki “Kayıt tarihi” görünmez. Güncellemeden önceki görselleri
-  Kriterion başlatmadan sonra bir kez yeniden okur. Bir video proxy
-  gerektiriyorsa “Proxy” grubu durumu, çözünürlüğü, boyutu ve proxy üzerinde
-  ölçülen video ve ses bit hızlarını gösterir. Dosyanın belirtmediği bilgiler
-  görünmez.
-- **Bilgi:** Bir Word, Excel, PowerPoint ya da PDF dosyasının ve bunların
-  OpenDocument karşılıklarının ⋯ menüsündeki “Bilgi” iki grup gösterir.
+  objektif, pozlama süresi, diyafram, ISO ve odak uzaklığı; dosya taşıyorsa 35
+  mm karşılığıyla. Dosyada bir konum varsa yalnızca “Dosyada konum: evet” durur;
+  Kriterion koordinat saklamaz. EXIF'te çekim zamanı varsa görsellerde “Genel”
+  altındaki “Kayıt tarihi” görünmez. Güncellemeden önceki görselleri Kriterion
+  başlatmadan sonra bir kez yeniden okur. Bir video proxy gerektiriyorsa “Proxy”
+  grubu durumu, çözünürlüğü, boyutu ve proxy üzerinde ölçülen video ve ses bit
+  hızlarını gösterir. Dosyanın belirtmediği bilgiler görünmez.
+- **Belgeler için bilgi:** Bir Word, Excel, PowerPoint ya da PDF dosyasının ve
+  bunların OpenDocument karşılıklarının ⋯ menüsündeki “Bilgi” iki grup gösterir.
   “Kriterion'da”: yükleyen ve yükleme tarihi, yüklemeden önce değiştirilme
   (dosyanın bilgisayardaki zamanı, yalnızca güncellemeden sonraki dosyalarda),
   Document Server'da son kaydeden ve son kaydetme tarihi, kaydetme sayısı ve
   önceki sürümün tarihi. “Dosyada”: başlık, oluşturan, oluşturulma, son
   düzenleyen, değiştirilme, sayfalar, sözcükler, slaytlar ve uygulama; PDF'te
-  başlık, yazar, oluşturma aracı, üreten, oluşturulma, değiştirilme ve
-  sayfalar. Pencere açılınca okunur; bir Office dosyasının 1 MB'ı aşan
-  parçaları ve PDF'te ilk ve son MB dışındaki her şey okunmaz. `.doc`, `.xls`,
-  `.ppt` ve `.rtf` dosyalarında yalnızca Kriterion'daki bilgiler durur. Eksik
-  olan görünmez.
+  başlık, yazar, oluşturma aracı, üreten, oluşturulma, değiştirilme ve sayfalar.
+  Pencere açılınca okunur; bir Office dosyasının 1 MB'ı aşan parçaları ve PDF'te
+  ilk ve son MB dışındaki her şey okunmaz. `.doc`, `.xls`, `.ppt` ve `.rtf`
+  dosyalarında yalnızca Kriterion'daki bilgiler durur. Eksik olan görünmez.
 - **Yeniden adlandırma:** Kendi dosyasının ⋯ menüsündeki “Yeniden adlandır …”
   adı uzantısız gösterir; uzantı kalır. Enter kaydeder, Esc iptal eder. Aynı
   klasörde, klasörsüz dosyalarda da, ikinci bir dosya aynı adı taşıyamaz;

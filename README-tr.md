@@ -54,7 +54,7 @@ Bu dosya kurulumu ve işletimi anlatır. Kullanımı
 | | |
 |---|---|
 | Öğeler | başlık, açıklama, kategori, etiketler, fotoğraflar, kısa videolar, dosyalar, bağlantılar |
-| Dosyalar | dosya başına 2 GB'a kadar, parçalar halinde yüklenir, yarıda kalırsa kaldığı yerden sürer; döşeme ya da liste olarak, ada, tarihe, boyuta ya da türe göre sıralı, türe göre gruplu, metin, Office ve PDF için de küçük resimli; klasörlerde; birden çok dosya bir kerede silinir ya da taşınır; silinen dosyalar 30 gün çöp kutusunda kalır ve yedeklemelerden tek tek geri alınabilir; resimler ve videolar için MediaInfo'daki gibi “Ayrıntılı bilgi”, öğenin fotoğrafları ve videoları için de; videolar en son izlenen yerden devam eder ve bir düğmeyle tamamen yüklenir; istenirse H.264 biçiminde daha küçük bir proxy üzerinden oynar, `mkv`, `avi`, `wmv` ve `flv` de |
+| Dosyalar | dosya başına 2 GB'a kadar, parçalar halinde yüklenir, yarıda kalırsa kaldığı yerden sürer; döşeme ya da liste olarak, ada, tarihe, boyuta ya da türe göre sıralı, türe göre gruplu, metin, Office ve PDF için de küçük resimli; klasörlerde; birden çok dosya bir kerede silinir ya da taşınır; silinen dosyalar 30 gün çöp kutusunda kalır ve yedeklemelerden tek tek geri alınabilir; resimler ve videolar için MediaInfo'daki gibi “Bilgi”, öğenin fotoğrafları ve videoları için de; videolar en son izlenen yerden devam eder ve bir düğmeyle tamamen yüklenir; istenirse H.264 biçiminde daha küçük bir proxy üzerinden oynar, `mkv`, `avi`, `wmv` ve `flv` de |
 | Değerlendirme | 1 ile 5 arası yıldız verilen kendi ölçütlerin, ölçüt başına bir ağırlık, bunlardan ağırlıklı bir ortalama |
 | Yorumlar | not, rapor ya da son tarihli görev, yanında resimler ve videolar |
 | Test günleri | puan ve etiket taşıyan tarihli girdiler |
@@ -675,7 +675,7 @@ application/octet-stream` ve `upload-offset: <received>`. Son parçanın yanıt�
 öğenin kendisidir.
 
 `GET /api/attachments/<id>/info` ve `GET /api/photos/<id>/info`, bir resmin ya
-da videonun “Ayrıntılı bilgi” verisini JSON olarak döndürür: `general`,
+da videonun “Bilgi” verisini JSON olarak döndürür: `general`,
 `video`, `audio`, `image`, `orientation` ve `exif`. Sunucu bu bilgiyi
 `mediainfo.js`, `sharp` ve `exif-reader` ile okur ve `attachment_media` ile
 `photo_media` tablolarına yazar; JSON dışa aktarmada yer almaz. Office,
